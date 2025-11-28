@@ -21,5 +21,16 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Seed roles and initial admin user
+        $this->call([
+            \Database\Seeders\RoleSeeder::class,
+            \Database\Seeders\AdminUserSeeder::class,
+        ]);
+
+        // Add sample data for development
+        $this->call([
+            \Database\Seeders\SampleDataSeeder::class,
+        ]);
     }
 }
