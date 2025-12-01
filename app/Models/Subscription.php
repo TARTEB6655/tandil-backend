@@ -10,7 +10,7 @@ class Subscription extends Model
     use HasFactory;
     protected $fillable = [
         'client_id','plan','start_date','end_date','amount',
-        'payment_status','total_visits','completed_visits'
+        'payment_status','payment_reference','paid_at','total_visits','completed_visits'
     ];
 
     public function client()

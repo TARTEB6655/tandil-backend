@@ -27,6 +27,25 @@ Route::post('/register', [\App\Http\Controllers\Auth\AuthController::class, 'reg
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\Auth\AuthController::class, 'logout']);
         Route::get('/profile', [\App\Http\Controllers\Auth\AuthController::class, 'profile']);
+        // Payments
+        Route::post('payments/paypal/create', [\App\Http\Controllers\PaymentController::class, 'createPaypalOrder']);
+        Route::post('payments/paypal/webhook', [\App\Http\Controllers\PaymentController::class, 'paypalWebhook']);
+
+        // Technician routes (requires role=technician in middleware or role check inside controller)
+        Route::get('tech/visits', [\App\Http\Controllers\Technician\TechnicianController::class, 'assigned']);
+        Route::post('tech/visits/{id}/accept', [\App\Http\Controllers\Technician\TechnicianController::class, 'accept']);
+        Route::post('tech/visits/{id}/start', [\App\Http\Controllers\Technician\TechnicianController::class, 'start']);
+        Route::post('tech/visits/{id}/complete', [\App\Http\Controllers\Technician\TechnicianController::class, 'complete']);
+        Route::post('tech/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
+
+        // Supervisor routes
+        Route::get('supervisor/visits/{id}', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'reviewVisit']);
+        Route::post('supervisor/visits/{id}/recommend', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'recommendProducts']);
+        Route::post('supervisor/visits/{id}/finalize', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'finalizeReport']);
+
+        // Shop / Orders
+        Route::post('shop/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
+        Route::post('shop/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
     });
 });
 
@@ -78,12 +97,16 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
 | SUBSCRIPTIONS (CLIENT / ADMIN)
 |--------------------------------------------------------------------------
 */
+// Public plans endpoint (no auth required)
+Route::get('/subscriptions/plans', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'plans']);
+
 Route::middleware('auth:sanctum')->prefix('subscriptions')->group(function () {
 
     Route::get('/', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'update']);
+    Route::post('/{id}/mark-paid', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'markPaid']);
     Route::delete('/{id}', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'destroy']);
 });
 
@@ -102,6 +125,25 @@ Route::middleware('auth:sanctum')->prefix('visits')->group(function () {
 
     // Upload visit photos
     Route::post('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
+});
+
+// Technician, Supervisor and Shop protected routes (top-level paths, not under /auth)
+Route::middleware('auth:sanctum')->group(function () {
+    // Technician
+    Route::get('tech/visits', [\App\Http\Controllers\Technician\TechnicianController::class, 'assigned']);
+    Route::post('tech/visits/{id}/accept', [\App\Http\Controllers\Technician\TechnicianController::class, 'accept']);
+    Route::post('tech/visits/{id}/start', [\App\Http\Controllers\Technician\TechnicianController::class, 'start']);
+    Route::post('tech/visits/{id}/complete', [\App\Http\Controllers\Technician\TechnicianController::class, 'complete']);
+    Route::post('tech/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
+
+    // Supervisor
+    Route::get('supervisor/visits/{id}', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'reviewVisit']);
+    Route::post('supervisor/visits/{id}/recommend', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'recommendProducts']);
+    Route::post('supervisor/visits/{id}/finalize', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'finalizeReport']);
+
+    // Shop / Orders
+    Route::post('shop/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
+    Route::post('shop/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
 });
 
 

@@ -13,10 +13,15 @@ return new class extends Migration {
             $table->unsignedBigInteger('technician_id')->nullable();
             $table->date('scheduled_date');
             $table->string('status')->default('pending'); // pending, completed, reviewed
+            $table->timestamp('accepted_at')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
 
             $table->foreign('subscription_id')->references('id')->on('subscriptions')->cascadeOnDelete();
-            $table->foreign('technician_id')->references('id')->on('employees')->nullOnDelete();
+            // technician_id references users table (technicians are stored as users)
+            $table->foreign('technician_id')->references('id')->on('users')->nullOnDelete();
         });
     }
 
