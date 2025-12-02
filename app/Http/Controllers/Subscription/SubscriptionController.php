@@ -11,16 +11,21 @@ use Carbon\Carbon;
 
 class SubscriptionController extends Controller
 {
+    public function __construct()
+    {
+        // Only authenticated users with permission to manage subscriptions
+        $this->middleware(['auth', 'permission:manage subscriptions']);
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();
 
-        if ($user && method_exists($user, 'hasRole') && $user->hasRole('admin')) {
+        if ($user->hasRole('admin')) {
             $subs = Subscription::with('client')->get();
-        } else if ($user) {
-            $subs = Subscription::where('client_id', $user->id)->with('visits')->get();
         } else {
-            return response()->json(['status' => false, 'message' => 'Unauthorized'], 401);
+            // Clients only see their own subscriptions
+            $subs = Subscription::where('client_id', $user->id)->with('visits')->get();
         }
 
         return response()->json(['status' => true, 'data' => $subs], 200);
@@ -67,14 +72,14 @@ class SubscriptionController extends Controller
 
     public function store(StoreSubscriptionRequest $request)
     {
-
         $user = $request->user();
-
         $data = $request->validated();
         $data['client_id'] = $user->id;
 
-        // Determine start_date (first day = when user applies)
-        $start = isset($data['start_date']) && $data['start_date'] ? Carbon::parse($data['start_date']) : Carbon::today();
+        // Determine start_date (default to today if missing)
+        $start = isset($data['start_date']) && $data['start_date']
+            ? Carbon::parse($data['start_date'])
+            : Carbon::today();
         $data['start_date'] = $start->toDateString();
 
         // Compute end_date based on plan length
@@ -86,13 +91,15 @@ class SubscriptionController extends Controller
         ];
         $months = $planMap[$data['plan']] ?? 1;
 
-        // Load prices from config/subscriptions.php
+        // Load prices from config (fallback to hardcoded price if config missing)
         $plansConfig = config('subscriptions.plans', []);
-
         if (empty($data['amount'])) {
-            $data['amount'] = isset($plansConfig[$data['plan']]['price']) ? (float) $plansConfig[$data['plan']]['price'] : 0.00;
+            $data['amount'] = isset($plansConfig[$data['plan']]['price'])
+                ? (float) $plansConfig[$data['plan']]['price']
+                : (500.00 * $months);
         }
-        // end_date is last day of last month
+
+        // End date is last day of the last month of subscription
         $end = $start->copy()->addMonthsNoOverflow($months)->subDay();
         $data['end_date'] = $end->toDateString();
 
@@ -103,16 +110,15 @@ class SubscriptionController extends Controller
         // Generate visits asynchronously; worker will create Visit records
         GenerateVisitsForSubscription::dispatch($sub);
 
-        // reload subscription with visits
+        // Reload subscription with visits
         $sub->load('visits');
 
         // Notify the client (database + mail) that subscription created
-        if ($user) {
-            try {
-                $user->notify(new \App\Notifications\SubscriptionCreated($sub));
-            } catch (\Throwable $e) {
-                // don't break response if notification fails; log if needed
-            }
+        try {
+            $user->notify(new \App\Notifications\SubscriptionCreated($sub));
+        } catch (\Throwable $e) {
+            // Log error here if needed, but don't break the flow
+            // \Log::error('Failed to send subscription notification: '.$e->getMessage());
         }
 
         return response()->json(['status' => true, 'data' => $sub], 201);
@@ -125,11 +131,12 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         $sub = Subscription::find($id);
+
         if (! $sub) {
             return response()->json(['status' => false, 'message' => 'Subscription not found'], 404);
         }
 
-        // Only admins or owner can mark paid
+        // Only admins or the owner can mark as paid
         if (! ($user->hasRole('admin') || $sub->client_id == $user->id)) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
@@ -139,11 +146,12 @@ class SubscriptionController extends Controller
 
         // Notify client that payment received
         try {
-            $sub->client->notify(new \App\Notifications\SubscriptionCreated($sub));
+            $sub->client->notify(new \App\Notifications\SubscriptionPaid($sub));
         } catch (\Throwable $e) {
+            // Log error if necessary
+            // \Log::error('Failed to send payment notification: '.$e->getMessage());
         }
 
         return response()->json(['status' => true, 'data' => $sub], 200);
     }
 }
-

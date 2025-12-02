@@ -8,22 +8,39 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
+    public function __construct()
+    {
+        // Only admin users can manage roles
+        $this->middleware('role:admin');
+    }
+
     /**
-     * List roles.
+     * List all roles
      */
     public function index()
     {
         $roles = Role::all();
-        return response()->json(['status' => true, 'data' => $roles]);
+
+        return response()->json([
+            'status' => true,
+            'data' => $roles,
+        ]);
     }
 
     /**
-     * Create a role (minimal).
+     * Create a new role
      */
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required|string']);
-        $role = Role::create(['name' => $request->input('name')]);
-        return response()->json(['status' => true, 'data' => $role], 201);
+        $validated = $request->validate([
+            'name' => 'required|string|unique:roles,name',
+        ]);
+
+        $role = Role::create(['name' => $validated['name']]);
+
+        return response()->json([
+            'status' => true,
+            'data' => $role,
+        ], 201);
     }
 }

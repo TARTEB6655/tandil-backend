@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
+    public function __construct()
+    {
+        // Apply middleware to protect routes based on permissions
+        $this->middleware('permission:view reports')->only(['index', 'show']);
+        $this->middleware('permission:create reports')->only(['store']);
+    }
+
     public function index(Request $request)
     {
         $reports = \App\Models\Report::with(['visit', 'supervisor'])->get();

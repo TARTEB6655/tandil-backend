@@ -12,37 +12,30 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
-    /**
-     * Mass assignable fields
-     */
     protected $fillable = [
         'name',
         'email',
         'phone',
         'password',
-        'role',        // quick reference (optional)
-        'status',      // active / inactive / suspended
+        'role',    // optional: quick reference
+        'status',  // active / inactive
     ];
 
-    /**
-     * Hidden fields
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Cast fields
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
 
-    /**
-     * Relationships
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONSHIPS
+    |--------------------------------------------------------------------------
+    */
 
     // HR employee record
     public function employee()
@@ -50,10 +43,16 @@ class User extends Authenticatable
         return $this->hasOne(Employee::class);
     }
 
-    // Client's subscriptions
+    // Client → Subscriptions
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class, 'client_id');
+    }
+
+    // Technician → Visits assigned
+    public function visits()
+    {
+        return $this->hasMany(Visit::class, 'technician_id');
     }
 
     // Shopping cart
@@ -67,4 +66,28 @@ class User extends Authenticatable
     {
         return $this->hasMany(Order::class);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUPERVISOR RELATIONS
+    |--------------------------------------------------------------------------
+    */
+
+    // Areas supervised by this user
+    public function supervisedAreas()
+    {
+        return $this->belongsToMany(Area::class, 'area_supervisor', 'user_id', 'area_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROLE HELPERS
+    |--------------------------------------------------------------------------
+    */
+
+    public function isTechnician()    { return $this->hasRole('technician'); }
+    public function isSupervisor()     { return $this->hasRole('supervisor'); }
+    public function isAreaManager()    { return $this->hasRole('area_manager'); }
+    public function isAdmin()          { return $this->hasRole('admin'); }
+    public function isClient()         { return $this->hasRole('client'); }
 }

@@ -18,7 +18,7 @@ class AuthController extends Controller
             'name'     => 'required|string|max:100',
             'email'    => 'required|email|unique:users,email',
             'phone'    => 'nullable|string|max:20',
-            'password' => 'required|min:6',
+            'password' => 'required|string|min:6|confirmed', // Added confirmed for password confirmation
             'role'     => 'required|in:client,technician,supervisor,area_manager,hr,admin',
         ]);
 
@@ -29,7 +29,7 @@ class AuthController extends Controller
             'phone'    => $validated['phone'] ?? null,
             'password' => Hash::make($validated['password']),
             'role'     => $validated['role'],
-            'status'   => 'active', // default
+            'status'   => 'active', // default active status
         ]);
 
         // Assign Spatie role
@@ -53,7 +53,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'email'    => 'required|email',
-            'password' => 'required'
+            'password' => 'required|string',
         ]);
 
         $user = User::where('email', $validated['email'])->first();
@@ -65,7 +65,6 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Check if account is active
         if ($user->status !== 'active') {
             return response()->json([
                 'status'  => false,

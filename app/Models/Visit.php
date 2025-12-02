@@ -8,9 +8,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Visit extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-        'subscription_id','technician_id','scheduled_date','status'
+        'subscription_id',
+        'technician_id',
+        'supervisor_id',
+        'area_id',
+        'scheduled_date',
+        'completed_date',
+        'status',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONSHIPS
+    |--------------------------------------------------------------------------
+    */
 
     public function subscription()
     {
@@ -19,7 +32,17 @@ class Visit extends Model
 
     public function technician()
     {
-        return $this->belongsTo(Employee::class, 'technician_id');
+        return $this->belongsTo(User::class, 'technician_id');
+    }
+
+    public function supervisor()
+    {
+        return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    public function area()
+    {
+        return $this->belongsTo(Area::class, 'area_id');
     }
 
     public function photos()
@@ -30,5 +53,10 @@ class Visit extends Model
     public function report()
     {
         return $this->hasOne(Report::class);
+    }
+
+    public function complaints()
+    {
+        return $this->hasMany(Complaint::class);
     }
 }
