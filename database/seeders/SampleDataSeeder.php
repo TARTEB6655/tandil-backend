@@ -15,10 +15,10 @@ class SampleDataSeeder extends Seeder
     public function run(): void
     {
         // Create sample products
-        Product::factory()->count(12)->create();
+        Product::factory()->count(50)->create();
 
         // Create sample clients
-        $clients = User::factory()->count(6)->create();
+        $clients = User::factory()->count(20)->create();
 
         foreach ($clients as $client) {
             $subscription = Subscription::factory()->create([
@@ -26,7 +26,7 @@ class SampleDataSeeder extends Seeder
             ]);
 
             // create a few visits per subscription
-            $visits = Visit::factory()->count(3)->create([
+            $visits = Visit::factory()->count(10)->create([
                 'subscription_id' => $subscription->id,
             ]);
 

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,7 +32,7 @@ Route::prefix('auth')->group(function () {
         Route::post('payments/paypal/create', [\App\Http\Controllers\PaymentController::class, 'createPaypalOrder']);
         Route::post('payments/paypal/webhook', [\App\Http\Controllers\PaymentController::class, 'paypalWebhook']);
 
-        // Technician routes (only for role technician)
+        // Technician routes
         Route::middleware('role:technician')->group(function () {
             Route::get('tech/visits', [\App\Http\Controllers\Technician\TechnicianController::class, 'assigned']);
             Route::post('tech/visits/{id}/accept', [\App\Http\Controllers\Technician\TechnicianController::class, 'accept']);
@@ -40,14 +41,12 @@ Route::prefix('auth')->group(function () {
             Route::post('tech/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
         });
 
-        // Supervisor routes (only for role supervisor)
+        // Supervisor routes
         Route::middleware('role:supervisor')->group(function () {
-            // Existing routes
             Route::get('supervisor/visits/{id}', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'reviewVisit']);
             Route::post('supervisor/visits/{id}/recommend', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'recommendProducts']);
             Route::post('supervisor/visits/{id}/finalize', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'finalizeReport']);
 
-            // New routes for extended functionality
             Route::get('supervisor/visits', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listVisits']);
             Route::get('supervisor/areas', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listAreas']);
             Route::post('supervisor/visits/{id}/status', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'updateVisitStatus']);
@@ -55,24 +54,31 @@ Route::prefix('auth')->group(function () {
             Route::post('supervisor/complaints/{id}/escalate', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'escalateComplaint']);
         });
 
-        // Shop / Orders (roles allowed to shop: client, admin, supervisor, area_manager)
+        // Shop / Orders
         Route::middleware('role:client|admin|supervisor|area_manager')->group(function () {
             Route::post('shop/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
             Route::post('shop/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
         });
 
         /*
-         |--------------------------------------------------------------------------
-         | Complaints routes (authenticated users)
-         |--------------------------------------------------------------------------
-         */
+        |--------------------------------------------------------------------------
+        | COMPLAINTS
+        |--------------------------------------------------------------------------
+        */
         Route::prefix('complaints')->group(function () {
-            Route::get('/', [\App\Http\Controllers\ComplaintController::class, 'index']);         // list complaints
-            Route::post('/', [\App\Http\Controllers\ComplaintController::class, 'store']);        // create complaint
-            Route::get('/{id}', [\App\Http\Controllers\ComplaintController::class, 'show']);      // view complaint
-            Route::put('/{id}', [\App\Http\Controllers\ComplaintController::class, 'update']);    // update complaint (status, notes)
-            Route::delete('/{id}', [\App\Http\Controllers\ComplaintController::class, 'destroy']); // delete complaint (admin only)
+            Route::get('/', [\App\Http\Controllers\ComplaintController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\ComplaintController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\ComplaintController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\ComplaintController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\ComplaintController::class, 'destroy']);
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | CATEGORY ROUTES (NEW)
+        |--------------------------------------------------------------------------
+        */
+        Route::apiResource('categories', CategoryController::class);
     });
 });
 
@@ -80,7 +86,6 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 | ADMIN PANEL (USERS, ROLES, EMPLOYEES)
 |--------------------------------------------------------------------------
-| Only admin users can access these routes.
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
 
@@ -91,11 +96,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::put('/users/{id}', [\App\Http\Controllers\Admin\UserController::class, 'update']);
     Route::delete('/users/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy']);
 
-    // ROLE MANAGEMENT
+    // ROLES
     Route::get('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'index']);
     Route::post('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'store']);
 
-    // EMPLOYEE MANAGEMENT (HR)
+    // HR - EMPLOYEES
     Route::prefix('hr')->group(function () {
         Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index']);
         Route::post('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'store']);
@@ -107,10 +112,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
 
 /*
 |--------------------------------------------------------------------------
-| SUBSCRIPTIONS (CLIENT / ADMIN)
+| SUBSCRIPTIONS
 |--------------------------------------------------------------------------
 */
-// Public plans endpoint (no auth required)
 Route::get('/subscriptions/plans', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'plans']);
 
 Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('subscriptions')->group(function () {
@@ -124,7 +128,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('subscriptions'
 
 /*
 |--------------------------------------------------------------------------
-| VISITS (TECHNICIAN, SUPERVISOR, AREA_MANAGER)
+| VISITS
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:technician|supervisor|area_manager'])->prefix('visits')->group(function () {
@@ -133,11 +137,14 @@ Route::middleware(['auth:sanctum', 'role:technician|supervisor|area_manager'])->
     Route::get('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'update']);
 
-    // Upload visit photos
     Route::post('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
 });
 
-// Technician, Supervisor and Shop protected routes (top-level paths, not under /auth)
+/*
+|--------------------------------------------------------------------------
+| TECHNICIAN & SUPERVISOR DUPLICATE GROUP
+|--------------------------------------------------------------------------
+*/
 Route::middleware('auth:sanctum')->group(function () {
 
     // Technician
@@ -151,12 +158,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Supervisor
     Route::middleware('role:supervisor')->group(function () {
-        // Already declared inside /auth prefix; can optionally remove redundancy here if needed
         Route::get('supervisor/visits/{id}', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'reviewVisit']);
         Route::post('supervisor/visits/{id}/recommend', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'recommendProducts']);
         Route::post('supervisor/visits/{id}/finalize', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'finalizeReport']);
 
-        // New extended routes
         Route::get('supervisor/visits', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listVisits']);
         Route::get('supervisor/areas', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listAreas']);
         Route::post('supervisor/visits/{id}/status', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'updateVisitStatus']);
@@ -164,7 +169,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('supervisor/complaints/{id}/escalate', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'escalateComplaint']);
     });
 
-    // Shop / Orders
+    // SHOP / ORDERS
     Route::middleware('role:client|admin|supervisor|area_manager')->group(function () {
         Route::post('shop/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
         Route::post('shop/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
@@ -184,22 +189,18 @@ Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manag
 
 /*
 |--------------------------------------------------------------------------
-| SHOP MODULE (PRODUCTS, CART, ORDERS)
+| SHOP MODULE
 |--------------------------------------------------------------------------
 */
 Route::prefix('shop')->group(function () {
-    // Public product catalog
     Route::get('/products', [\App\Http\Controllers\Shop\ProductController::class, 'index']);
     Route::get('/products/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'show']);
 
-    // Auth protected SHOP operations
     Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->group(function () {
-        // Cart
         Route::post('/cart/add', [\App\Http\Controllers\Shop\CartController::class, 'add']);
         Route::get('/cart', [\App\Http\Controllers\Shop\CartController::class, 'view']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);
 
-        // Orders
         Route::post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
@@ -218,7 +219,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager|hr
 
 /*
 |--------------------------------------------------------------------------
-| AREAS (AREA MANAGER)
+| AREAS
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('areas')->group(function () {

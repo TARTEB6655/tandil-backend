@@ -9,23 +9,44 @@ use App\Models\Product;
 class ProductController extends Controller
 {
     /**
-     * List products with pagination.
+     * List products with pagination, search, sorting, and filtering.
      */
     public function index(Request $request)
     {
-        $perPage = (int) $request->query('per_page', 12);
-        $perPage = $perPage > 0 ? $perPage : 12;  // Avoid negative or zero perPage values
+        $perPage  = (int) $request->query('per_page', 12);
+        $search   = $request->query('search');
+        $category = $request->query('category_id');
+        $sortBy   = $request->query('sort_by', 'created_at');  // name, price, created_at
+        $sortDir  = $request->query('sort_dir', 'desc');        // asc, desc
 
-        $products = Product::paginate($perPage);
+        $query = Product::query();
+
+        // Search
+        if ($search) {
+            $query->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
+        }
+
+        // Filter by category
+        if ($category) {
+            $query->where('category_id', $category);
+        }
+
+        // Sorting
+        if (in_array($sortBy, ['name', 'price', 'created_at'])) {
+            $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
+        }
+
+        $products = $query->paginate($perPage > 0 ? $perPage : 12);
 
         return response()->json([
             'status' => true,
             'data' => $products
-        ], 200);
+        ]);
     }
 
     /**
-     * Show single product by id.
+     * Show single product by ID.
      */
     public function show($id)
     {
@@ -41,6 +62,7 @@ class ProductController extends Controller
         return response()->json([
             'status' => true,
             'data' => $product
-        ], 200);
+        ]);
     }
 }
+
