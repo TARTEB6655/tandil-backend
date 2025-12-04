@@ -17,25 +17,45 @@ class UserController extends Controller
     }
 
     // List users with their roles
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::select(['id', 'name', 'email', 'phone', 'status', 'created_at'])
-            ->with('roles:id,name')
-            ->get();
+        $query = User::with('roles');
 
-        return response()->json(['status' => true, 'data' => $users], 200);
+        // Search
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%")
+                  ->orWhere('phone', 'LIKE', "%{$search}%");
+        }
+
+        // Filter by role
+        if ($request->has('role') && $request->role) {
+            $query->where('role', $request->role);
+        }
+
+        // Filter by status
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        return view('admin.users.index', compact('users'));
     }
 
     // Show user details by ID
     public function show($id)
     {
-        $user = User::with('roles:id,name')->find($id);
+        $user = User::with('roles')->findOrFail($id);
+        return view('admin.users.show', compact('user'));
+    }
 
-        if (!$user) {
-            return response()->json(['status' => false, 'message' => 'User not found'], 404);
-        }
-
-        return response()->json(['status' => true, 'data' => $user], 200);
+    // Show form for creating new user
+    public function create()
+    {
+        $roles = \Spatie\Permission\Models\Role::all();
+        return view('admin.users.create', compact('roles'));
     }
 
     // Create new user
@@ -55,13 +75,22 @@ class UserController extends Controller
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
             'password' => bcrypt($data['password']),
-            'role' => $data['role'],      // update role column
+            'role' => $data['role'],
             'status' => $data['status'],
         ]);
 
         $user->assignRole($data['role']);
 
-        return response()->json(['status' => true, 'data' => $user], 201);
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User created successfully.');
+    }
+
+    // Show form for editing user
+    public function edit($id)
+    {
+        $user = User::with('roles')->findOrFail($id);
+        $roles = \Spatie\Permission\Models\Role::all();
+        return view('admin.users.edit', compact('user', 'roles'));
     }
 
     // Update user
@@ -97,7 +126,8 @@ class UserController extends Controller
 
         $user->save();
 
-        return response()->json(['status' => true, 'data' => $user], 200);
+        return redirect()->route('admin.users.show', $user)
+            ->with('success', 'User updated successfully.');
     }
 
     // Delete user
@@ -106,20 +136,45 @@ class UserController extends Controller
         $admin = $request->user();
 
         if ((int)$admin->id === (int)$id) {
-            return response()->json([
-                'status' => false,
-                'message' => 'You cannot delete your own account'
-            ], 403);
+            return redirect()->route('admin.users.index')
+                ->with('error', 'You cannot delete your own account');
         }
 
         $user = User::find($id);
 
         if (!$user) {
-            return response()->json(['status' => false, 'message' => 'User not found'], 404);
+            return redirect()->route('admin.users.index')
+                ->with('error', 'User not found');
         }
 
         $user->delete();
 
-        return response()->json(['status' => true, 'message' => 'User deleted successfully'], 200);
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User deleted successfully.');
+    }
+
+    // Reset password
+    public function resetPassword(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        return redirect()->back()->with('success', 'Password reset successfully');
+    }
+
+    // Ban/Deactivate user
+    public function toggleStatus($id)
+    {
+        $user = User::findOrFail($id);
+        $user->status = $user->status === 'active' ? 'inactive' : 'active';
+        $user->save();
+
+        $status = $user->status === 'active' ? 'activated' : 'deactivated';
+        return redirect()->back()->with('success', "User {$status} successfully");
     }
 }

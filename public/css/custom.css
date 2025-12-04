@@ -1,0 +1,84 @@
+/* Custom CSS for Shopify-style Admin Dashboard */
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for sidebar */
+aside nav::-webkit-scrollbar {
+    width: 6px;
+}
+
+aside nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+aside nav::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 3px;
+}
+
+aside nav::-webkit-scrollbar-thumb:hover {
+    background: #d1d5db;
+}
+
+/* Focus states */
+input:focus,
+button:focus {
+    outline: none;
+}
+
+/* Smooth transitions */
+* {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+/* Card hover effects */
+.bg-white.rounded-lg:hover {
+    transform: translateY(-1px);
+}
+
+/* Sidebar link active state enhancement */
+.bg-blue-50 {
+    position: relative;
+}
+
+.bg-blue-50::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background-color: #3b82f6;
+    border-radius: 0 2px 2px 0;
+}
+
+/* Search input focus ring */
+input[type="text"]:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Dropdown menu shadow */
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Notification badge pulse */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.bg-red-500 {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+

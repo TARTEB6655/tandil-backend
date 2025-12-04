@@ -16,9 +16,8 @@ class ProductController extends Controller
     {
         $search     = $request->query('search');
         $categoryId = $request->query('category_id');
-        $perPage    = $request->query('per_page', 15);
 
-        $query = Product::query();
+        $query = Product::with('category');
 
         if ($search) {
             $query->where('name', 'LIKE', "%{$search}%")
@@ -29,13 +28,10 @@ class ProductController extends Controller
             $query->where('category_id', $categoryId);
         }
 
-        $products = $query->orderBy('created_at', 'desc')
-                          ->paginate($perPage > 0 ? $perPage : 15);
+        $products = $query->orderBy('created_at', 'desc')->paginate(15);
+        $categories = \App\Models\Category::all();
 
-        return response()->json([
-            'status' => true,
-            'data' => $products
-        ], 200);
+        return view('admin.products.index', compact('products', 'categories'));
     }
 
     /**
@@ -58,11 +54,18 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Product created successfully',
-            'data' => $product
-        ], 201);
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Product created successfully.');
+    }
+
+    /**
+     * Show form for editing product.
+     */
+    public function edit($id)
+    {
+        $product = Product::with('category')->findOrFail($id);
+        $categories = \App\Models\Category::all();
+        return view('admin.products.edit', compact('product', 'categories'));
     }
 
     /**
@@ -70,19 +73,17 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Product::find($id);
+        $product = Product::with('category')->findOrFail($id);
+        return view('admin.products.show', compact('product'));
+    }
 
-        if (! $product) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Product not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => true,
-            'data' => $product
-        ], 200);
+    /**
+     * Show form for creating a product.
+     */
+    public function create()
+    {
+        $categories = \App\Models\Category::all();
+        return view('admin.products.create', compact('categories'));
     }
 
     /**
@@ -119,11 +120,8 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Product updated successfully',
-            'data' => $product
-        ], 200);
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Product updated successfully.');
     }
 
     /**
@@ -147,9 +145,7 @@ class ProductController extends Controller
 
         $product->delete();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Product deleted successfully'
-        ], 200);
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Product deleted successfully.');
     }
 }
