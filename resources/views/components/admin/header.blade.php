@@ -20,14 +20,8 @@
                     </svg>
                 </button>
 
-                <!-- Logo (visible only on >= 992px) -->
-                <a href="{{ route('admin.dashboard') }}" class="hidden min-[992px]:flex items-center gap-3 transition-opacity hover:opacity-80">
-                    <img 
-                        src="{{ asset('images/logo.png') }}" 
-                        alt="Logo" 
-                        class="w-28 h-auto object-contain" 
-                        onerror="this.style.display='none'"
-                    />
+                <!-- Logo Text (visible only on >= 992px) -->
+                <a href="{{ route('admin.dashboard') }}" class="hidden min-[992px]:flex items-center transition-opacity hover:opacity-80">
                     <span class="text-lg font-semibold text-gray-900 tracking-tight">
                         {{ config('app.name', 'Tandil') }}
                     </span>
