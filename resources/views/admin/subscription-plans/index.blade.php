@@ -1,8 +1,10 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
-            Subscription Plans
-        </h2>
+        <!-- Page Header -->
+        <div class="mb-6 md:mb-8">
+            <h1 class="text-xl font-medium text-gray-900">Subscription Plans</h1>
+            <p class="mt-1 text-sm text-gray-500">Manage subscription plans and pricing</p>
+        </div>
 
         @if(session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
@@ -16,8 +18,9 @@
             </div>
         @endif
 
-        <div class="bg-white shadow rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Name</th>
@@ -29,17 +32,24 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($plansArray as $plan)
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $plan['label'] }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">AED {{ number_format($plan['price'], 2) }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ isset($plan['visit_frequency']) ? ucfirst(str_replace('-', ' ', $plan['visit_frequency'])) : 'Monthly' }}</td>
+                        <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $plan['enabled'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                <div class="text-sm font-semibold text-gray-900">{{ $plan['label'] }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-semibold text-gray-900">AED {{ number_format($plan['price'], 2) }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {{ isset($plan['visit_frequency']) ? ucfirst(str_replace('-', ' ', $plan['visit_frequency'])) : 'Monthly' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2.5 py-1 inline-flex text-xs font-semibold rounded-full {{ $plan['enabled'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                     {{ $plan['enabled'] ? 'Enabled' : 'Disabled' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('admin.subscription-plans.edit', $plan['key']) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                <a href="{{ route('admin.subscription-plans.edit', $plan['key']) }}" 
+                                   class="text-indigo-600 hover:text-indigo-900 font-medium">Edit</a>
                             </td>
                         </tr>
                     @empty
@@ -48,7 +58,8 @@
                         </tr>
                     @endforelse
                 </tbody>
-            </table>
+                </table>
+            </div>
         </div>
     </div>
 </x-admin-layout>

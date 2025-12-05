@@ -26,54 +26,56 @@ class VisitController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
+            }
 
-        if ($user->hasRole('admin')) {
-            // Admin sees everything
-            $visits = Visit::with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                ->latest()
-                ->get();
-        }
+            if ($user->hasRole('admin')) {
+                // Admin sees everything
+                $visits = Visit::with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
+                    ->latest()
+                    ->get();
+            } elseif ($user->hasRole('area_manager')) {
+                // Area Manager → visits in their managed areas
+                $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
 
-        elseif ($user->hasRole('area_manager')) {
-            // Area Manager → visits in their managed areas
-            $areaIds = $user->managedAreas()->pluck('id');
+                $visits = Visit::whereIn('area_id', $areaIds)
+                    ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
+                    ->latest()
+                    ->get();
+            } elseif ($user->hasRole('supervisor')) {
+                // Supervisor → visits in areas they supervise
+                $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
 
-            $visits = Visit::whereIn('area_id', $areaIds)
+                $visits = Visit::whereIn('area_id', $areaIds)
+                    ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
+                    ->latest()
+                    ->get();
+            } elseif ($user->hasRole('technician')) {
+                // Technician → assigned visits
+                $visits = Visit::where('technician_id', $user->id)
+                    ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
+                    ->latest()
+                    ->get();
+            } else {
+                // Client → their subscription visits
+                $visits = Visit::whereHas('subscription', function ($q) use ($user) {
+                    $q->where('client_id', $user->id);
+                })
                 ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
                 ->latest()
                 ->get();
+            }
+
+            return response()->json(['status' => true, 'data' => $visits], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch visits: ' . $e->getMessage()
+            ], 500);
         }
-
-        elseif ($user->hasRole('supervisor')) {
-            // Supervisor → visits in areas they supervise
-            $areaIds = $user->supervisedAreas()->pluck('id');
-
-            $visits = Visit::whereIn('area_id', $areaIds)
-                ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                ->latest()
-                ->get();
-        }
-
-        elseif ($user->hasRole('technician')) {
-            // Technician → assigned visits
-            $visits = Visit::where('technician_id', $user->id)
-                ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                ->latest()
-                ->get();
-        }
-
-        else {
-            // Client → their subscription visits
-            $visits = Visit::whereHas('subscription', function ($q) use ($user) {
-                $q->where('client_id', $user->id);
-            })
-            ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-            ->latest()
-            ->get();
-        }
-
-        return response()->json(['status' => true, 'data' => $visits], 200);
     }
 
     /**
@@ -95,8 +97,8 @@ class VisitController extends Controller
             $user->hasRole('admin') ||
             ($user->hasRole('technician') && $visit->technician_id === $user->id) ||
             ($user->hasRole('client') && $visit->subscription->client_id === $user->id) ||
-            ($user->hasRole('supervisor') && $user->supervisedAreas->contains('id', $visit->area_id)) ||
-            ($user->hasRole('area_manager') && $user->managedAreas->contains('id', $visit->area_id))
+            ($user->hasRole('supervisor') && in_array($visit->area_id, $user->supervisedAreas()->pluck('areas.id')->toArray())) ||
+            ($user->hasRole('area_manager') && in_array($visit->area_id, $user->supervisedAreas()->pluck('areas.id')->toArray()))
         ) {
             return response()->json(['status' => true, 'data' => $visit], 200);
         }
@@ -175,8 +177,11 @@ class VisitController extends Controller
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
-        if ($user->hasRole('supervisor') && !$user->supervisedAreas->contains('id', $visit->area_id)) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+        if ($user->hasRole('supervisor')) {
+            $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+            if (!in_array($visit->area_id, $areaIds)) {
+                return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            }
         }
 
         if ($user->hasRole('client')) {

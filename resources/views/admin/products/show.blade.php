@@ -1,7 +1,7 @@
 <x-admin-layout>
-    <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+    <h1 class="text-xl font-medium text-gray-900 mb-6">
             Product Details
-        </h2>
+        </h1>
 
     <div class="space-y-6">
         <div class="bg-white shadow rounded-lg p-6 space-y-6">
@@ -19,8 +19,8 @@
                 @endif
 
                 <div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ $product->name }}</h3>
-                    <p class="text-3xl font-bold text-indigo-600 mb-4">AED {{ number_format($product->price, 2) }}</p>
+                    <h2 class="text-lg font-medium text-gray-900 mb-2">{{ $product->name }}</h2>
+                    <p class="text-lg font-medium text-indigo-600 mb-4">AED {{ number_format($product->price, 2) }}</p>
                     <p class="text-sm text-gray-500 mb-2">Category: {{ $product->category->name ?? 'No Category' }}</p>
                     @if($product->description)
                         <p class="text-sm text-gray-700 mt-4">{{ $product->description }}</p>

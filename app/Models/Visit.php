@@ -17,6 +17,12 @@ class Visit extends Model
         'scheduled_date',
         'completed_date',
         'status',
+        'approved_by',
+        'approved_at',
+        'accepted_at',
+        'started_at',
+        'completed_at',
+        'notes',
     ];
 
     /*

@@ -101,4 +101,14 @@ class TipController extends Controller
         return redirect()->route('admin.tips.index')
             ->with('success', 'Tip deleted successfully.');
     }
+
+    public function toggleStatus($id)
+    {
+        $tip = Tip::findOrFail($id);
+        $tip->status = $tip->status === 'published' ? 'draft' : 'published';
+        $tip->save();
+
+        return redirect()->back()
+            ->with('success', 'Tip status updated successfully.');
+    }
 }

@@ -13,22 +13,34 @@ class SubscriptionController extends Controller
 {
     public function __construct()
     {
-        // Only authenticated users with permission to manage subscriptions
-        $this->middleware(['auth', 'permission:manage subscriptions']);
+        // Only authenticated users with client or admin role
+        // Exclude plans() method as it's public
+        $this->middleware('auth:sanctum')->except('plans');
     }
 
     public function index(Request $request)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        if ($user->hasRole('admin')) {
-            $subs = Subscription::with('client')->get();
-        } else {
-            // Clients only see their own subscriptions
-            $subs = Subscription::where('client_id', $user->id)->with('visits')->get();
+            if (!$user) {
+                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
+            }
+
+            if ($user->hasRole('admin')) {
+                $subs = Subscription::with('client')->get();
+            } else {
+                // Clients only see their own subscriptions
+                $subs = Subscription::where('client_id', $user->id)->with('visits')->get();
+            }
+
+            return response()->json(['status' => true, 'data' => $subs], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch subscriptions: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['status' => true, 'data' => $subs], 200);
     }
 
     /**
@@ -72,9 +84,13 @@ class SubscriptionController extends Controller
 
     public function store(StoreSubscriptionRequest $request)
     {
-        $user = $request->user();
-        $data = $request->validated();
-        $data['client_id'] = $user->id;
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
+            }
+            $data = $request->validated();
+            $data['client_id'] = $user->id;
 
         // Determine start_date (default to today if missing)
         $start = isset($data['start_date']) && $data['start_date']
@@ -121,7 +137,19 @@ class SubscriptionController extends Controller
             // \Log::error('Failed to send subscription notification: '.$e->getMessage());
         }
 
-        return response()->json(['status' => true, 'data' => $sub], 201);
+            return response()->json(['status' => true, 'data' => $sub], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to create subscription: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\HrController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\NotificationController;
 
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
 use App\Http\Controllers\Technician\TechnicianDashboardController;
@@ -89,6 +90,14 @@ Route::middleware(['auth', 'role:admin'])
         
         Route::resource('roles', RoleController::class);
         Route::resource('products', ProductController::class);
+        Route::get('products/import', [ProductController::class, 'showImport'])->name('products.import');
+        Route::post('products/import', [ProductController::class, 'import'])->name('products.import.store');
+        Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
+        Route::post('products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
+        Route::post('products/bulk-update-stock', [ProductController::class, 'bulkUpdateStock'])->name('products.bulk-update-stock');
+        Route::post('products/{id}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle-status');
+        
+        Route::resource('categories', CategoryController::class);
         Route::resource('subscriptions', SubscriptionController::class);
         Route::post('subscriptions/{id}/extend', [SubscriptionController::class, 'extend'])->name('subscriptions.extend');
         Route::post('subscriptions/{id}/activate', [SubscriptionController::class, 'activate'])->name('subscriptions.activate');
@@ -108,6 +117,12 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
         Route::post('orders/{id}/update-status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::post('orders/{id}/mark-paid', [OrderController::class, 'markPaid'])->name('orders.mark-paid');
+        Route::post('orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('orders/{id}/refund', [OrderController::class, 'refund'])->name('orders.refund');
+        
+        Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
+        Route::post('payments/gateway/{gateway}', [PaymentController::class, 'updateGateway'])->name('payments.update-gateway');
+        Route::get('payments/transaction/{id}', [PaymentController::class, 'showTransaction'])->name('payments.transaction');
         
         Route::resource('complaints', ComplaintController::class)->only(['index', 'show']);
         Route::post('complaints/{id}/update-status', [ComplaintController::class, 'updateStatus'])->name('complaints.update-status');
@@ -119,10 +134,38 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('settings/payment', [SettingController::class, 'updatePaymentSettings'])->name('settings.payment');
         Route::post('settings/notification', [SettingController::class, 'updateNotificationSettings'])->name('settings.notification');
         Route::post('settings/email', [SettingController::class, 'updateEmailSettings'])->name('settings.email');
+        Route::post('settings/social', [SettingController::class, 'updateSocialSettings'])->name('settings.social');
+        Route::post('settings/contact', [SettingController::class, 'updateContactSettings'])->name('settings.contact');
+        Route::get('settings/email-templates', [SettingController::class, 'emailTemplates'])->name('settings.email-templates');
+        Route::post('settings/email-templates/{id}', [SettingController::class, 'updateEmailTemplate'])->name('settings.email-template.update');
+        Route::post('settings/security', [SettingController::class, 'updateSecuritySettings'])->name('settings.security');
+        Route::post('settings/integrations', [SettingController::class, 'updateIntegrationsSettings'])->name('settings.integrations');
         
         Route::resource('audit-logs', AuditLogController::class)->only(['index', 'show']);
         Route::resource('banners', BannerController::class);
         Route::resource('tips', TipController::class);
+        Route::post('tips/{id}/toggle-status', [TipController::class, 'toggleStatus'])->name('tips.toggle-status');
+        
+        // Notifications routes
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
+        Route::post('notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
+        Route::post('notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
+        Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::get('notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
+        
+        // Analytics API routes
+        Route::prefix('analytics')->name('analytics.')->group(function () {
+            Route::get('revenue', [\App\Http\Controllers\Admin\AnalyticsController::class, 'revenue'])->name('revenue');
+            Route::get('visits', [\App\Http\Controllers\Admin\AnalyticsController::class, 'visits'])->name('visits');
+            Route::get('subscriptions', [\App\Http\Controllers\Admin\AnalyticsController::class, 'subscriptions'])->name('subscriptions');
+            Route::get('visit-status', [\App\Http\Controllers\Admin\AnalyticsController::class, 'visitStatus'])->name('visit-status');
+            Route::get('technician-performance', [\App\Http\Controllers\Admin\AnalyticsController::class, 'technicianPerformance'])->name('technician-performance');
+            Route::get('area-performance', [\App\Http\Controllers\Admin\AnalyticsController::class, 'areaPerformance'])->name('area-performance');
+            Route::get('order-status', [\App\Http\Controllers\Admin\AnalyticsController::class, 'orderStatus'])->name('order-status');
+            Route::get('payment-status', [\App\Http\Controllers\Admin\AnalyticsController::class, 'paymentStatus'])->name('payment-status');
+        });
     });
 
 // Supervisor routes

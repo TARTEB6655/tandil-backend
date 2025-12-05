@@ -1,8 +1,8 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+        <h1 class="text-xl font-medium text-gray-900 mb-6">
             Edit Employee
-        </h2>
+        </h1>
 
         <div class="bg-white shadow rounded-lg p-6">
             <form method="POST" action="{{ route('admin.hr.update', $employee->id) }}">

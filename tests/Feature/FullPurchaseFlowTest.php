@@ -23,8 +23,9 @@ class FullPurchaseFlowTest extends TestCase
         Notification::fake();
         Storage::fake('public');
 
-        // Create client
+        // Create client with client role
         $client = User::factory()->create();
+        $client->assignRole('client');
 
         // Act as client and create subscription via controller
         $this->actingAs($client, 'sanctum');
@@ -48,6 +49,7 @@ class FullPurchaseFlowTest extends TestCase
 
         // Assign a technician and simulate the technician flow
         $tech = User::factory()->create();
+        $tech->assignRole('technician');
         $visit = $visits->first();
         $visit->technician_id = $tech->id;
         $visit->save();
@@ -81,9 +83,38 @@ class FullPurchaseFlowTest extends TestCase
 
         // Supervisor reviews and finalizes report
         $supervisor = User::factory()->create();
+        $supervisor->assignRole('supervisor');
+        
+        // Give permission to review reports
+        $permission = \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'review reports']);
+        $supervisor->givePermissionTo('review reports');
+        
+        // Ensure visit has an area, create one if needed
+        if (!$visit->area_id) {
+            $area = \App\Models\Area::factory()->create();
+            $visit->area_id = $area->id;
+            $visit->save();
+        } else {
+            $area = \App\Models\Area::find($visit->area_id);
+        }
+        
+        // Assign supervisor to the visit's area
+        if ($area) {
+            $area->supervisors()->attach($supervisor->id);
+        }
+        
+        // Refresh supervisor to load relationships
+        $supervisor->refresh();
+        
         $this->actingAs($supervisor, 'sanctum');
 
-        $this->postJson("/api/supervisor/visits/{$visit->id}/finalize", ['notes' => 'Approved'])->assertStatus(200);
+        $response = $this->postJson("/api/auth/supervisor/visits/{$visit->id}/finalize", ['notes' => 'Approved', 'status' => 'finalized']);
+        if ($response->status() !== 200) {
+            fwrite(STDERR, "FINALIZE_RESPONSE: " . $response->getContent() . PHP_EOL);
+            fwrite(STDERR, "VISIT_AREA_ID: " . $visit->area_id . PHP_EOL);
+            fwrite(STDERR, "SUPERVISOR_AREAS: " . json_encode($supervisor->supervisedAreas()->pluck('id')->toArray()) . PHP_EOL);
+        }
+        $response->assertStatus(200);
 
         // Assert a notification was sent to client
         Notification::assertSentTo($client, ReportFinalized::class);

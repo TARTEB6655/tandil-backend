@@ -1,9 +1,9 @@
 <x-admin-layout>
     <div class="space-y-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="font-semibold text-2xl text-gray-800 leading-tight">
+            <h1 class="text-xl font-medium text-gray-900">
                 Tips & Messages Management
-            </h2>
+            </h1>
             <a href="{{ route('admin.tips.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                 Create New Tip
             </a>
@@ -74,13 +74,22 @@
                                 {{ $tip->scheduled_at ? $tip->scheduled_at->format('M d, Y') : 'Not scheduled' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('admin.tips.show', $tip) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
-                                <a href="{{ route('admin.tips.edit', $tip) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Edit</a>
-                                <form action="{{ route('admin.tips.destroy', $tip) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                </form>
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ route('admin.tips.show', $tip) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                    <a href="{{ route('admin.tips.edit', $tip) }}" class="text-yellow-600 hover:text-yellow-900">Edit</a>
+                                    <form action="{{ route('admin.tips.toggle-status', $tip) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" 
+                                                class="text-xs px-2 py-1 rounded {{ $tip->status === 'published' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-green-100 text-green-800 hover:bg-green-200' }} transition-colors">
+                                            {{ $tip->status === 'published' ? 'Unpublish' : 'Publish' }}
+                                        </button>
+                                    </form>
+                                    <form action="{{ route('admin.tips.destroy', $tip) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

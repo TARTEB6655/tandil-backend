@@ -27,7 +27,7 @@ class SupervisorController extends Controller
         $user = $request->user();
 
         // Get IDs of supervised areas
-        $areaIds = $user->supervisedAreas()->pluck('id');
+        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
 
         $visits = Visit::whereIn('area_id', $areaIds)
             ->with(['subscription.client', 'technician', 'report', 'photos'])
@@ -63,7 +63,8 @@ class SupervisorController extends Controller
         }
 
         // Check if visit is in supervised areas
-        if (!$user->supervisedAreas->contains('id', $visit->area_id)) {
+        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        if (!in_array($visit->area_id, $areaIds)) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -82,7 +83,8 @@ class SupervisorController extends Controller
             return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
         }
 
-        if (!$user->supervisedAreas->contains('id', $visit->area_id)) {
+        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        if (!in_array($visit->area_id, $areaIds)) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -122,7 +124,8 @@ class SupervisorController extends Controller
             return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
         }
 
-        if (!$user->supervisedAreas->contains('id', $visit->area_id)) {
+        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        if (!in_array($visit->area_id, $areaIds)) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -178,7 +181,8 @@ class SupervisorController extends Controller
             return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
         }
 
-        if (!$user->supervisedAreas->contains('id', $visit->area_id)) {
+        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        if (!in_array($visit->area_id, $areaIds)) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -209,10 +213,10 @@ class SupervisorController extends Controller
     {
         $user = $request->user();
 
-        $areaIds = $user->supervisedAreas()->pluck('id');
+        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
 
         $complaints = Complaint::whereHas('visit', function ($query) use ($areaIds) {
-            $query->whereIn('area_id', $areaIds);
+            $query->whereIn('visits.area_id', $areaIds);
         })->with(['visit', 'client'])->get();
 
         return response()->json(['status' => true, 'data' => $complaints], 200);
@@ -231,7 +235,8 @@ class SupervisorController extends Controller
         }
 
         // Check if complaint belongs to supervised area
-        if (!$user->supervisedAreas->contains('id', $complaint->visit->area_id)) {
+        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        if (!in_array($complaint->visit->area_id, $areaIds)) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 

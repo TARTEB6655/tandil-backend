@@ -1,6 +1,6 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+        <h1 class="text-xl font-medium text-gray-900 mb-6">
             User Details
         </h2>
         <div class="bg-white shadow rounded-lg p-6 space-y-6">
@@ -11,7 +11,7 @@
             @endif
 
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">User Information</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-4">User Information</h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-500">Name</p>

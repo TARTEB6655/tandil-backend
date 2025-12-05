@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -15,7 +16,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with('user');
+        $query = Order::with(['user', 'items']);
 
         // Filter by status
         if ($request->has('status') && $request->status) {
@@ -35,23 +36,38 @@ class OrderController extends Controller
             })->orWhere('payment_reference', 'LIKE', "%{$request->search}%");
         }
 
+        // Apply filter tabs
+        $filter = $request->get('filter', 'all');
+        if ($filter === 'unfulfilled') {
+            $query->where('order_status', '!=', 'delivered')->where('order_status', '!=', 'cancelled');
+        } elseif ($filter === 'unpaid') {
+            $query->where('payment_status', '!=', 'paid');
+        } elseif ($filter === 'open') {
+            $query->whereIn('order_status', ['pending', 'processing']);
+        } elseif ($filter === 'archived') {
+            $query->where('order_status', 'cancelled');
+        }
+
         $orders = $query->orderBy('created_at', 'desc')->paginate(15);
 
         // Statistics
         $stats = [
             'total' => Order::count(),
-            'pending' => Order::where('order_status', 'pending')->count(),
-            'processed' => Order::where('order_status', 'processed')->count(),
-            'delivered' => Order::where('order_status', 'delivered')->count(),
-            'cancelled' => Order::where('order_status', 'cancelled')->count(),
+            'total_items' => OrderItem::sum('quantity'),
+            'total_revenue' => Order::where('payment_status', 'paid')->sum('total_amount'),
+            'fulfilled' => Order::where('order_status', 'delivered')->count(),
+            'unfulfilled' => Order::where('order_status', '!=', 'delivered')->where('order_status', '!=', 'cancelled')->count(),
+            'unpaid' => Order::where('payment_status', '!=', 'paid')->count(),
+            'open' => Order::whereIn('order_status', ['pending', 'processing'])->count(),
+            'archived' => Order::where('order_status', 'cancelled')->count(),
         ];
 
-        return view('admin.orders.index', compact('orders', 'stats'));
+        return view('admin.orders.index', compact('orders', 'stats', 'filter'));
     }
 
     public function show($id)
     {
-        $order = Order::with('user')->findOrFail($id);
+        $order = Order::with(['user', 'items.product.category', 'transactions'])->findOrFail($id);
         return view('admin.orders.show', compact('order'));
     }
 
@@ -76,6 +92,62 @@ class OrderController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Order marked as paid');
+    }
+
+    /**
+     * Cancel an order.
+     */
+    public function cancel(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+
+        // Can only cancel pending or processing orders
+        if (!in_array($order->order_status, ['pending', 'processing'])) {
+            return redirect()->back()->with('error', 'Only pending or processing orders can be cancelled.');
+        }
+
+        $order->update([
+            'order_status' => 'cancelled',
+        ]);
+
+        return redirect()->back()->with('success', 'Order cancelled successfully.');
+    }
+
+    /**
+     * Process refund for an order.
+     */
+    public function refund(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+
+        $validated = $request->validate([
+            'refund_amount' => 'required|numeric|min:0.01|max:' . $order->total_amount,
+            'refund_reason' => 'nullable|string|max:500',
+        ]);
+
+        // Create refund transaction
+        $transaction = \App\Models\Transaction::create([
+            'transaction_id' => 'REF-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(12)),
+            'transactionable_type' => Order::class,
+            'transactionable_id' => $order->id,
+            'type' => 'refund',
+            'gateway' => $order->payment_method ?? 'manual',
+            'amount' => $validated['refund_amount'],
+            'currency' => 'AED',
+            'status' => 'completed',
+            'notes' => $validated['refund_reason'] ?? 'Admin refund',
+            'processed_at' => now(),
+        ]);
+
+        // Update order
+        $order->update([
+            'payment_status' => 'refunded',
+            'refunded_at' => now(),
+            'refund_amount' => $validated['refund_amount'],
+            'refund_reason' => $validated['refund_reason'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'Refund processed successfully. Transaction ID: ' . $transaction->transaction_id);
     }
 }
 

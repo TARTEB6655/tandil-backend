@@ -1,5 +1,5 @@
 <x-admin-layout>
-    <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+    <h1 class="text-xl font-medium text-gray-900 mb-6">
             Subscription Details
         </h2>
 
@@ -13,7 +13,7 @@
 
             <!-- Client Info -->
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Client Information</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Client Information</h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-500">Name</p>
@@ -28,7 +28,7 @@
 
             <!-- Subscription Details -->
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Subscription Details</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Subscription Details</h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-500">Plan</p>
@@ -64,7 +64,7 @@
             <!-- Visits List -->
             @if($subscription->visits && $subscription->visits->count() > 0)
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Visits</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Visits</h3>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">

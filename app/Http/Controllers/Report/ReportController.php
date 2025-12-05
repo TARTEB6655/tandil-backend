@@ -9,43 +9,86 @@ class ReportController extends Controller
 {
     public function __construct()
     {
-        // Apply middleware to protect routes based on permissions
-        $this->middleware('permission:view reports')->only(['index', 'show']);
-        $this->middleware('permission:create reports')->only(['store']);
+        // Apply middleware to protect routes based on roles
+        $this->middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manager|admin']);
     }
 
     public function index(Request $request)
     {
-        $reports = \App\Models\Report::with(['visit', 'supervisor'])->get();
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
+            }
 
-        return response()->json([
-            'status' => true,
-            'data' => $reports
-        ], 200);
+            if ($user->hasRole('admin') || $user->hasRole('supervisor') || $user->hasRole('area_manager')) {
+                $reports = \App\Models\Report::with(['visit', 'supervisor'])->get();
+            } else {
+                // Clients and technicians see only their own reports
+                $reports = \App\Models\Report::whereHas('visit', function($q) use ($user) {
+                    if ($user->hasRole('client')) {
+                        $q->whereHas('subscription', function($sq) use ($user) {
+                            $sq->where('client_id', $user->id);
+                        });
+                    } elseif ($user->hasRole('technician')) {
+                        $q->where('technician_id', $user->id);
+                    }
+                })->with(['visit', 'supervisor'])->get();
+            }
+
+            return response()->json([
+                'status' => true,
+                'data' => $reports
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch reports: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function show($id)
     {
-        $report = \App\Models\Report::with(['visit', 'supervisor'])->find($id);
+        try {
+            $report = \App\Models\Report::with(['visit', 'supervisor'])->find($id);
 
-        if (! $report) {
-            return response()->json(['status' => false, 'message' => 'Report not found'], 404);
+            if (! $report) {
+                return response()->json(['status' => false, 'message' => 'Report not found'], 404);
+            }
+
+            return response()->json(['status' => true, 'data' => $report], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch report: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['status' => true, 'data' => $report], 200);
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'visit_id' => 'required|integer|exists:visits,id',
-            'technician_notes' => 'nullable|string',
-            'supervisor_notes' => 'nullable|string',
-            'recommendations' => 'nullable|array',
-        ]);
+        try {
+            $data = $request->validate([
+                'visit_id' => 'required|integer|exists:visits,id',
+                'notes' => 'nullable|string',
+                'status' => 'nullable|string|in:draft,pending,approved,sent_to_client',
+            ]);
 
-        $report = \App\Models\Report::create($data);
+            $report = \App\Models\Report::create($data);
 
-        return response()->json(['status' => true, 'data' => $report], 201);
+            return response()->json(['status' => true, 'data' => $report], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to create report: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

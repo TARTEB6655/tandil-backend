@@ -1,8 +1,8 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+        <h1 class="text-xl font-medium text-gray-900 mb-6">
             Complaints Management
-        </h2>
+        </h1>
 
         @if(session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">

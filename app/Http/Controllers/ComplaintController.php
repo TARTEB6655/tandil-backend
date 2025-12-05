@@ -11,7 +11,7 @@ class ComplaintController extends Controller
 {
     public function __construct()
     {
-        // Protect all routes with auth middleware; adjust roles/permissions as needed
+        // Protect all routes with auth middleware
         $this->middleware('auth:sanctum');
     }
 
@@ -20,19 +20,29 @@ class ComplaintController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
+            }
 
-        if ($user->hasRole('admin') || $user->hasRole('area_manager') || $user->hasRole('supervisor')) {
-            // Admin and managers can see all complaints
-            $complaints = Complaint::with(['visit', 'client'])->get();
-        } else {
-            // Other users see only their own complaints
-            $complaints = Complaint::with('visit')
-                ->where('client_id', $user->id)
-                ->get();
+            if ($user->hasRole('admin') || $user->hasRole('area_manager') || $user->hasRole('supervisor') || $user->hasRole('hr')) {
+                // Admin and managers can see all complaints
+                $complaints = Complaint::with(['visit', 'client'])->get();
+            } else {
+                // Other users see only their own complaints
+                $complaints = Complaint::with('visit')
+                    ->where('client_id', $user->id)
+                    ->get();
+            }
+
+            return response()->json(['status' => true, 'data' => $complaints]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch complaints: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['status' => true, 'data' => $complaints]);
     }
 
     /**
@@ -40,31 +50,45 @@ class ComplaintController extends Controller
      */
     public function store(Request $request)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
+            }
 
-        $validator = Validator::make($request->all(), [
-            'visit_id' => 'required|exists:visits,id',
-            'notes' => 'required|string|max:1000',
-        ]);
+            $validator = Validator::make($request->all(), [
+                'visit_id' => 'required|exists:visits,id',
+                'notes' => 'required|string|max:1000',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            }
+
+            // Check that the visit belongs to the user or user is authorized
+            $visit = Visit::with('subscription')->find($request->input('visit_id'));
+            if (!$visit) {
+                return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
+            }
+
+            if ($visit->subscription && $visit->subscription->client_id !== $user->id && !$user->hasRole('admin')) {
+                return response()->json(['status' => false, 'message' => 'You can only file complaints for your own visits'], 403);
+            }
+
+            $complaint = Complaint::create([
+                'visit_id' => $visit->id,
+                'client_id' => $user->id,
+                'notes' => $request->input('notes'),
+                'status' => 'open',
+            ]);
+
+            return response()->json(['status' => true, 'data' => $complaint], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to create complaint: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Check that the visit belongs to the user or user is authorized
-        $visit = Visit::find($request->input('visit_id'));
-        if ($visit->subscription->client_id !== $user->id) {
-            return response()->json(['status' => false, 'message' => 'You can only file complaints for your own visits'], 403);
-        }
-
-        $complaint = Complaint::create([
-            'visit_id' => $visit->id,
-            'client_id' => $user->id,
-            'notes' => $request->input('notes'),
-            'status' => 'open',
-        ]);
-
-        return response()->json(['status' => true, 'data' => $complaint], 201);
     }
 
     /**
@@ -79,7 +103,7 @@ class ComplaintController extends Controller
 
         $user = $request->user();
 
-        if ($user->hasRole('admin') || $user->hasRole('area_manager') || $user->hasRole('supervisor') || $complaint->client_id === $user->id) {
+        if ($user->hasRole('admin') || $user->hasRole('area_manager') || $user->hasRole('supervisor') || $user->hasRole('hr') || $complaint->client_id === $user->id) {
             return response()->json(['status' => true, 'data' => $complaint]);
         }
 

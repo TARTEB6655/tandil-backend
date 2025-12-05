@@ -16,8 +16,14 @@ class VisitFactory extends Factory
         return [
             'subscription_id' => null,
             'technician_id' => null,
+            'supervisor_id' => null,
+            'area_id' => null,
             'scheduled_date' => $scheduled->toDateString(),
-            'status' => $this->faker->randomElement(['scheduled','completed','missed']),
+            'status' => $this->faker->randomElement(['pending', 'accepted', 'in_progress', 'completed', 'cancelled']),
+            'accepted_at' => null,
+            'started_at' => null,
+            'completed_at' => null,
+            'notes' => null,
         ];
     }
 }

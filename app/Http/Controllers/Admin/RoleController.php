@@ -19,6 +19,15 @@ class RoleController extends Controller
      */
     public function index()
     {
+        // Check if this is an API request
+        if (request()->expectsJson() || request()->is('api/*')) {
+            $roles = Role::with('permissions')->get();
+            return response()->json([
+                'status' => true,
+                'data' => $roles
+            ], 200);
+        }
+        
         $roles = Role::withCount('users')->with('permissions')->get();
         return view('admin.roles.index', compact('roles'));
     }
@@ -57,6 +66,14 @@ class RoleController extends Controller
 
         if ($request->has('permissions')) {
             $role->syncPermissions($request->permissions);
+        }
+
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => true,
+                'data' => $role->load('permissions')
+            ], 201);
         }
 
         return redirect()->route('admin.roles.index')

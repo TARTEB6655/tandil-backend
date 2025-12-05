@@ -23,25 +23,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Test User']
         );
 
-        // Seed roles and initial admin user
+        // Seed all complete data (roles, users, products, orders, payments, etc.)
         $this->call([
-            \Database\Seeders\RoleSeeder::class,
-            \Database\Seeders\AdminUserSeeder::class,
-        ]);
-
-        // Seed categories first (required for products)
-        $this->call([
-            \Database\Seeders\CategorySeeder::class,
-        ]);
-
-        // Seed products after categories
-        $this->call([
-            \Database\Seeders\ProductSeeder::class,
-        ]);
-
-        // Add sample data for development
-        $this->call([
-            \Database\Seeders\SampleDataSeeder::class,
+            \Database\Seeders\CompleteDataSeeder::class,
         ]);
     }
 }

@@ -26,12 +26,19 @@ class AreaController extends Controller
      */
     public function index()
     {
-        $areas = Area::with(['supervisors', 'technicians', 'visits'])->get();
+        try {
+            $areas = Area::with(['supervisors', 'technicians', 'visits'])->get();
 
-        return response()->json([
-            'status' => true,
-            'data' => $areas
-        ]);
+            return response()->json([
+                'status' => true,
+                'data' => $areas
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch areas: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

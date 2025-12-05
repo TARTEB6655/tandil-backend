@@ -1,7 +1,7 @@
 <x-admin-layout>
-    <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+    <h1 class="text-xl font-medium text-gray-900 mb-6">
             Edit Subscription
-        </h2>
+        </h1>
 
     <div class="space-y-6">
         <div class="bg-white shadow rounded-lg p-6">

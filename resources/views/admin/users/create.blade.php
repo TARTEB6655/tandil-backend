@@ -2,7 +2,7 @@
     <div class="space-y-4 sm:space-y-6">
         <!-- Page Header -->
         <div class="mb-6 md:mb-8">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Create New User</h1>
+            <h1 class="text-xl font-medium text-gray-900">Create New User</h1>
             <p class="mt-1 text-sm md:text-base text-gray-600">Add a new user to the system and assign their role</p>
         </div>
 
@@ -39,7 +39,7 @@
 
                 <!-- Personal Information Section -->
                 <div class="space-y-5">
-                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Personal Information</h3>
+                    <h3 class="text-base font-medium text-gray-900 border-b border-gray-200 pb-2">Personal Information</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <!-- Name -->
@@ -96,7 +96,7 @@
 
                 <!-- Security Section -->
                 <div class="space-y-5 pt-5 border-t border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Security</h3>
+                    <h3 class="text-base font-medium text-gray-900 border-b border-gray-200 pb-2">Security</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <!-- Password -->
@@ -135,7 +135,7 @@
 
                 <!-- Role & Status Section -->
                 <div class="space-y-5 pt-5 border-t border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Role & Status</h3>
+                    <h3 class="text-base font-medium text-gray-900 border-b border-gray-200 pb-2">Role & Status</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <!-- Role Selection -->

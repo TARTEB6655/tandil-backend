@@ -11,8 +11,8 @@
     <div class="space-y-4 sm:space-y-6">
         <!-- Page Header -->
         <div class="mb-6 md:mb-8">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Users Management</h1>
-            <p class="mt-1 text-sm md:text-base text-gray-600">Manage and monitor all system users</p>
+            <h1 class="text-xl font-medium text-gray-900">Users Management</h1>
+            <p class="mt-1 text-sm text-gray-500">Manage and monitor all system users</p>
         </div>
 
         <!-- Success Message -->

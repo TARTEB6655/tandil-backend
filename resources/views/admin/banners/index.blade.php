@@ -1,7 +1,7 @@
 <x-admin-layout>
     <div class="space-y-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="font-semibold text-2xl text-gray-800 leading-tight">
+            <h1 class="text-xl font-medium text-gray-900">
                 Banners Management
             </h2>
             <a href="{{ route('admin.banners.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">

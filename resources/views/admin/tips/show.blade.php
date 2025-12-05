@@ -1,12 +1,12 @@
 <x-admin-layout>
-    <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+    <h1 class="text-xl font-medium text-gray-900 mb-6">
             Tip Details
-        </h2>
+        </h1>
 
     <div class="space-y-6">
         <div class="bg-white shadow rounded-lg p-6 space-y-6">
             <div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ $tip->title }}</h3>
+                <h2 class="text-lg font-medium text-gray-900 mb-2">{{ $tip->title }}</h2>
                 <div class="flex gap-4 mb-4">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                         {{ ucfirst($tip->type) }}

@@ -14,9 +14,24 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-gray-50 font-sans overflow-x-hidden" style="font-family: 'Inter', sans-serif;">
-    <div class="flex h-screen overflow-hidden" x-data x-init="$store.sidebar.init()">
+    <div class="flex h-screen overflow-hidden" 
+         x-data 
+         x-init="
+            if (window.Alpine && window.Alpine.store('sidebar')) {
+                $store.sidebar.init();
+            } else {
+                document.addEventListener('alpine:init', () => {
+                    if (window.Alpine && window.Alpine.store('sidebar')) {
+                        $store.sidebar.init();
+                    }
+                });
+            }
+         ">
         
         <!-- Sidebar -->
         @include('components.admin.sidebar')

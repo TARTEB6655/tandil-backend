@@ -11,26 +11,31 @@ Alpine.store('sidebar', {
     init() {
         // Sidebar is always open on desktop (above 991px)
         // On mobile/tablet (991px and below), it starts closed
-        if (window.innerWidth > 991) {
-            this.open = true;
-        } else {
-            this.open = false;
-        }
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
+        const checkWidth = () => {
             if (window.innerWidth > 991) {
                 // Always open on desktop, restore body scroll
                 this.open = true;
                 document.body.style.overflow = '';
             } else {
-                // On mobile/tablet, keep current state but ensure body scroll is managed
+                // On mobile/tablet, start closed
                 if (this.open) {
                     document.body.style.overflow = 'hidden';
                 } else {
                     document.body.style.overflow = '';
                 }
             }
+        };
+        
+        // Initial check
+        checkWidth();
+        
+        // Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                checkWidth();
+            }, 100);
         });
     },
     
@@ -45,6 +50,9 @@ Alpine.store('sidebar', {
             } else {
                 document.body.style.overflow = '';
             }
+        } else {
+            // On desktop, ensure it's always open
+            this.open = true;
         }
     }
 });

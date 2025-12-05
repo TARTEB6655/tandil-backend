@@ -1,5 +1,5 @@
 <x-admin-layout>
-    <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
+    <h1 class="text-xl font-medium text-gray-900 mb-6">
             Report Details
         </h2>
 
@@ -7,7 +7,7 @@
         <div class="bg-white shadow rounded-lg p-6 space-y-6">
             <!-- Visit Info -->
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Visit Information</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Visit Information</h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-500">Client</p>
@@ -33,7 +33,7 @@
             <!-- Technician Notes -->
             @if($report->technician_notes)
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Technician Notes</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-2">Technician Notes</h3>
                 <p class="text-sm text-gray-700 bg-gray-50 p-4 rounded">{{ $report->technician_notes }}</p>
             </div>
             @endif
@@ -41,7 +41,7 @@
             <!-- Supervisor Notes -->
             @if($report->supervisor_notes)
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Supervisor Notes</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-2">Supervisor Notes</h3>
                 <p class="text-sm text-gray-700 bg-blue-50 p-4 rounded">{{ $report->supervisor_notes }}</p>
             </div>
             @endif
@@ -49,7 +49,7 @@
             <!-- Recommendations -->
             @if($report->recommendations)
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Recommendations</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-2">Recommendations</h3>
                 <div class="bg-green-50 p-4 rounded">
                     <ul class="list-disc list-inside space-y-1">
                         @foreach($report->recommendations as $recommendation)
@@ -63,7 +63,7 @@
             <!-- Photos -->
             @if($report->visit->photos && $report->visit->photos->count() > 0)
             <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Visit Photos</h3>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Visit Photos</h3>
                 <div class="grid grid-cols-2 gap-4">
                     @foreach($report->visit->photos as $photo)
                         <img src="{{ asset('storage/' . $photo->photo_path) }}" alt="Visit Photo" class="rounded-lg">

@@ -37,17 +37,57 @@ class Handler extends ExceptionHandler
     {
         // For API requests, always return JSON responses
         if ($request->is('api/*') || $request->expectsJson()) {
+            // Handle ValidationException
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+
+            // Handle AuthenticationException
+            if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthenticated.'
+                ], 401);
+            }
+
+            // Handle AuthorizationException
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized. You do not have permission to perform this action.'
+                ], 403);
+            }
+
+            // Handle ModelNotFoundException
+            if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Resource not found.'
+                ], 404);
+            }
+
+            // Generic error handling
             $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
             $message = $e->getMessage() ?: 'Server Error';
 
-            $payload = [
-                'status' => false,
-                'message' => $message,
-            ];
-
-            // include validation errors when available
-            if (property_exists($e, 'errors') && is_array($e->errors())) {
-                $payload['errors'] = $e->errors();
+            // Don't expose internal errors in production
+            if (config('app.debug')) {
+                $payload = [
+                    'status' => false,
+                    'message' => $message,
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ];
+            } else {
+                $payload = [
+                    'status' => false,
+                    'message' => $status === 500 ? 'An error occurred. Please try again later.' : $message,
+                ];
             }
 
             return response()->json($payload, $status);
