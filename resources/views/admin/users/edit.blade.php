@@ -1,67 +1,203 @@
 <x-admin-layout>
-    <div class="space-y-6">
-        <h2 class="font-semibold text-2xl text-gray-800 leading-tight mb-6">
-            Edit User
-        </h2>
-        <div class="bg-white shadow rounded-lg p-6">
-            <form method="POST" action="{{ route('admin.users.update', $user) }}">
+    <div class="space-y-4 sm:space-y-6">
+        <!-- Page Header -->
+        <div class="mb-6 md:mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Edit User</h1>
+            <p class="mt-1 text-sm md:text-base text-gray-600">Update user information and role assignment</p>
+        </div>
+
+        <!-- Success/Error Messages -->
+        @if(session('success'))
+            <div class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm">{{ session('success') }}</span>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-sm font-medium">Please fix the following errors:</span>
+                </div>
+                <ul class="list-disc list-inside text-sm space-y-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <!-- Edit User Form Card -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:p-6">
+            <form method="POST" action="{{ route('admin.users.update', $user) }}" class="space-y-6">
                 @csrf
                 @method('PUT')
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">Name</label>
-                    <input type="text" name="name" value="{{ old('name', $user->name) }}" required class="mt-1 block w-full rounded-md border-gray-300">
-                    @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
+                <!-- Personal Information Section -->
+                <div class="space-y-5">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Personal Information</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Name -->
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                                Full Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   id="name"
+                                   name="name" 
+                                   value="{{ old('name', $user->name) }}" 
+                                   required 
+                                   class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition @error('name') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror"
+                                   placeholder="Enter full name">
+                            @error('name')
+                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" name="email" value="{{ old('email', $user->email) }}" required class="mt-1 block w-full rounded-md border-gray-300">
-                    @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
+                        <!-- Email -->
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                                Email Address <span class="text-red-500">*</span>
+                            </label>
+                            <input type="email" 
+                                   id="email"
+                                   name="email" 
+                                   value="{{ old('email', $user->email) }}" 
+                                   required 
+                                   class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition @error('email') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror"
+                                   placeholder="user@example.com">
+                            @error('email')
+                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">Phone</label>
-                    <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" class="mt-1 block w-full rounded-md border-gray-300">
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">New Password (leave blank to keep current)</label>
-                    <input type="password" name="password" class="mt-1 block w-full rounded-md border-gray-300">
-                    @error('password') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">Confirm Password</label>
-                    <input type="password" name="password_confirmation" class="mt-1 block w-full rounded-md border-gray-300">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Role</label>
-                        <select name="role" required class="mt-1 block w-full rounded-md border-gray-300">
-                            @foreach($roles as $role)
-                                <option value="{{ $role->name }}" {{ old('role', $user->role) == $role->name ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $role->name)) }}</option>
-                            @endforeach
-                        </select>
+                        <!-- Phone -->
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                                Phone Number
+                            </label>
+                            <input type="text" 
+                                   id="phone"
+                                   name="phone" 
+                                   value="{{ old('phone', $user->phone) }}" 
+                                   class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition @error('phone') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror"
+                                   placeholder="+971 XX XXX XXXX">
+                            @error('phone')
+                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
+                </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <select name="status" required class="mt-1 block w-full rounded-md border-gray-300">
-                            <option value="active" {{ old('status', $user->status) == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ old('status', $user->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            <option value="suspended" {{ old('status', $user->status) == 'suspended' ? 'selected' : '' }}>Suspended</option>
-                        </select>
+                <!-- Security Section -->
+                <div class="space-y-5 pt-5 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Security</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Password -->
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                                New Password
+                            </label>
+                            <input type="password" 
+                                   id="password"
+                                   name="password" 
+                                   minlength="8"
+                                   class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition @error('password') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror"
+                                   placeholder="Leave blank to keep current password">
+                            @error('password')
+                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1.5 text-xs text-gray-500">Leave blank to keep the current password</p>
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div>
+                            <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">
+                                Confirm New Password
+                            </label>
+                            <input type="password" 
+                                   id="password_confirmation"
+                                   name="password_confirmation" 
+                                   minlength="8"
+                                   class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition"
+                                   placeholder="Re-enter new password">
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex gap-4">
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Update User</button>
-                    <a href="{{ route('admin.users.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</a>
+                <!-- Role & Status Section -->
+                <div class="space-y-5 pt-5 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Role & Status</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Role Selection -->
+                        <div>
+                            <label for="role" class="block text-sm font-medium text-gray-700 mb-2">
+                                User Role <span class="text-red-500">*</span>
+                            </label>
+                            <select id="role"
+                                    name="role" 
+                                    required 
+                                    class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition @error('role') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror">
+                                <option value="">Select a role</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->name }}" {{ old('role', $user->role) == $role->name ? 'selected' : '' }}>
+                                        {{ ucfirst(str_replace('_', ' ', $role->name)) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('role')
+                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1.5 text-xs text-gray-500">Change the role assigned to this user</p>
+                        </div>
+
+                        <!-- Status Selection -->
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                                Account Status <span class="text-red-500">*</span>
+                            </label>
+                            <select id="status"
+                                    name="status" 
+                                    required 
+                                    class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition @error('status') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror">
+                                <option value="active" {{ old('status', $user->status) == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ old('status', $user->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                <option value="suspended" {{ old('status', $user->status) == 'suspended' ? 'selected' : '' }}>Suspended</option>
+                            </select>
+                            @error('status')
+                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1.5 text-xs text-gray-500">Update the account status</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end gap-3 pt-5 border-t border-gray-200">
+                    <a href="{{ route('admin.users.index') }}" 
+                       class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200 shadow-sm hover:shadow-md">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Update User
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </x-admin-layout>
-
