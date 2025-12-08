@@ -9,11 +9,23 @@ class Report extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'visit_id','supervisor_id','technician_notes','supervisor_notes','recommendations'
+        'visit_id',
+        'supervisor_id',
+        'user_id', // client_id for backward compatibility
+        'technician_notes',
+        'supervisor_notes',
+        'notes',
+        'recommendations',
+        'recommended_products',
+        'status',
+        'approved_by',
+        'approved_at'
     ];
 
     protected $casts = [
-        'recommendations' => 'array'
+        'recommendations' => 'array',
+        'recommended_products' => 'array',
+        'approved_at' => 'datetime'
     ];
 
     public function visit()
@@ -23,6 +35,6 @@ class Report extends Model
 
     public function supervisor()
     {
-        return $this->belongsTo(Employee::class, 'supervisor_id');
+        return $this->belongsTo(User::class, 'supervisor_id');
     }
 }

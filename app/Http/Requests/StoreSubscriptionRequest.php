@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class StoreSubscriptionRequest extends FormRequest
+class StoreSubscriptionRequest extends BaseFormRequest
 {
     public function authorize()
     {

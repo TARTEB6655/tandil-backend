@@ -7,6 +7,7 @@ use Throwable;
 use Illuminate\Http\Request;
 use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\JsonResponse;
 
 class Handler extends ExceptionHandler
 {
@@ -35,65 +36,130 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e): Response
     {
-        // For API requests, always return JSON responses
-        if ($request->is('api/*') || $request->expectsJson()) {
-            // Handle ValidationException
-            if ($e instanceof \Illuminate\Validation\ValidationException) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $e->errors()
-                ], 422);
-            }
-
-            // Handle AuthenticationException
-            if ($e instanceof \Illuminate\Auth\AuthenticationException) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthenticated.'
-                ], 401);
-            }
-
-            // Handle AuthorizationException
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized. You do not have permission to perform this action.'
-                ], 403);
-            }
-
-            // Handle ModelNotFoundException
-            if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Resource not found.'
-                ], 404);
-            }
-
-            // Generic error handling
-            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
-            $message = $e->getMessage() ?: 'Server Error';
-
-            // Don't expose internal errors in production
-            if (config('app.debug')) {
-                $payload = [
-                    'status' => false,
-                    'message' => $message,
-                    'exception' => get_class($e),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ];
-            } else {
-                $payload = [
-                    'status' => false,
-                    'message' => $status === 500 ? 'An error occurred. Please try again later.' : $message,
-                ];
-            }
-
-            return response()->json($payload, $status);
+        // For API requests or when Accept: application/json header is present, always return JSON
+        // Also check if request wants JSON or is an API route
+        if ($request->is('api/*') || $request->expectsJson() || $request->wantsJson() || $request->header('Accept') === 'application/json') {
+            return $this->handleApiException($request, $e);
         }
 
         return parent::render($request, $e);
+    }
+
+    /**
+     * Handle API exceptions and return JSON responses.
+     */
+    protected function handleApiException($request, Throwable $e): JsonResponse
+    {
+        $isDebug = config('app.debug');
+        $exceptionClass = get_class($e);
+        $file = $e->getFile();
+        $line = $e->getLine();
+        $message = $e->getMessage() ?: 'An error occurred';
+
+        // Handle ValidationException - Use Laravel's standard format
+        if ($e instanceof \Illuminate\Validation\ValidationException) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        // Handle AuthenticationException
+        if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated',
+                'type' => $exceptionClass,
+                'line' => $line,
+                'file' => $file,
+            ], 401);
+        }
+
+        // Handle AuthorizationException
+        if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized. You do not have permission to perform this action.',
+                'type' => $exceptionClass,
+                'line' => $line,
+                'file' => $file,
+            ], 403);
+        }
+
+        // Handle ModelNotFoundException
+        if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Resource not found.',
+                'type' => $exceptionClass,
+                'line' => $line,
+                'file' => $file,
+            ], 404);
+        }
+
+        // Handle QueryException (Database errors)
+        if ($e instanceof \Illuminate\Database\QueryException) {
+            $dbMessage = $isDebug ? $message : 'Database error occurred.';
+            return response()->json([
+                'status' => false,
+                'message' => $dbMessage,
+                'type' => $exceptionClass,
+                'line' => $line,
+                'file' => $file,
+            ], 500);
+        }
+
+        // Handle NotFoundHttpException
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Route not found.',
+                'type' => $exceptionClass,
+                'line' => $line,
+                'file' => $file,
+            ], 404);
+        }
+
+        // Handle MethodNotAllowedHttpException
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Method not allowed for this route.',
+                'type' => $exceptionClass,
+                'line' => $line,
+                'file' => $file,
+            ], 405);
+        }
+
+        // Handle HttpException
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+            $statusCode = $e->getStatusCode();
+            return response()->json([
+                'status' => false,
+                'message' => $message,
+                'type' => $exceptionClass,
+                'line' => $line,
+                'file' => $file,
+            ], $statusCode);
+        }
+
+        // Generic error handling
+        $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+        
+        $payload = [
+            'status' => false,
+            'message' => $isDebug ? $message : ($statusCode === 500 ? 'An error occurred. Please try again later.' : $message),
+            'type' => $exceptionClass,
+            'line' => $line,
+            'file' => $file,
+        ];
+
+        // Add trace only in debug mode
+        if ($isDebug) {
+            $payload['trace'] = $e->getTraceAsString();
+        }
+
+        return response()->json($payload, $statusCode);
     }
 
     /**

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Subscription;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use App\Models\Subscription;
+use App\Models\Visit;
 use App\Http\Requests\StoreSubscriptionRequest;
-use App\Jobs\GenerateVisitsForSubscription;
 use Carbon\Carbon;
 
 class SubscriptionController extends Controller
@@ -20,27 +21,16 @@ class SubscriptionController extends Controller
 
     public function index(Request $request)
     {
-        try {
-            $user = $request->user();
+        $user = $request->user();
 
-            if (!$user) {
-                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
-            }
-
-            if ($user->hasRole('admin')) {
-                $subs = Subscription::with('client')->get();
-            } else {
-                // Clients only see their own subscriptions
-                $subs = Subscription::where('client_id', $user->id)->with('visits')->get();
-            }
-
-            return response()->json(['status' => true, 'data' => $subs], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to fetch subscriptions: ' . $e->getMessage()
-            ], 500);
+        if ($user->hasRole('admin')) {
+            $subs = Subscription::with('client')->get();
+        } else {
+            // Clients only see their own subscriptions
+            $subs = Subscription::where('client_id', $user->id)->with('visits')->get();
         }
+
+        return ApiResponse::success('Subscriptions retrieved successfully.', $subs);
     }
 
     /**
@@ -63,34 +53,26 @@ class SubscriptionController extends Controller
             ];
         })->values();
 
-        return response()->json(['status' => true, 'data' => $plans], 200);
+        return ApiResponse::success('Plans retrieved successfully.', $plans);
     }
 
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $sub = Subscription::with('visits')->find($id);
-
-        if (! $sub) {
-            return response()->json(['status' => false, 'message' => 'Subscription not found'], 404);
-        }
+        $sub = Subscription::with('visits')->findOrFail($id);
 
         if (! ($user->hasRole('admin') || $sub->client_id == $user->id)) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return ApiResponse::error('Forbidden', 403);
         }
 
-        return response()->json(['status' => true, 'data' => $sub], 200);
+        return ApiResponse::success('Subscription retrieved successfully.', $sub);
     }
 
     public function store(StoreSubscriptionRequest $request)
     {
-        try {
-            $user = $request->user();
-            if (!$user) {
-                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
-            }
-            $data = $request->validated();
-            $data['client_id'] = $user->id;
+        $user = $request->user();
+        $data = $request->validated();
+        $data['client_id'] = $user->id;
 
         // Determine start_date (default to today if missing)
         $start = isset($data['start_date']) && $data['start_date']
@@ -123,8 +105,17 @@ class SubscriptionController extends Controller
 
         $sub = Subscription::create($data);
 
-        // Generate visits asynchronously; worker will create Visit records
-        GenerateVisitsForSubscription::dispatch($sub);
+        // Generate visits synchronously based on plan's total_visits
+        $visits = [];
+        for ($i = 0; $i < $months; $i++) {
+            $scheduled = $start->copy()->addMonthsNoOverflow($i)->toDateString();
+            $visit = Visit::create([
+                'subscription_id' => $sub->id,
+                'scheduled_date' => $scheduled,
+                'status' => 'pending',
+            ]);
+            $visits[] = $visit;
+        }
 
         // Reload subscription with visits
         $sub->load('visits');
@@ -137,19 +128,59 @@ class SubscriptionController extends Controller
             // \Log::error('Failed to send subscription notification: '.$e->getMessage());
         }
 
-            return response()->json(['status' => true, 'data' => $sub], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation failed.',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to create subscription: ' . $e->getMessage()
-            ], 500);
+        return ApiResponse::success('Subscription created successfully.', $sub, 201);
+    }
+
+    /**
+     * Update subscription
+     */
+    public function update(Request $request, $id)
+    {
+        $user = $request->user();
+        $sub = Subscription::findOrFail($id);
+
+        // Only admins or the owner can update
+        if (!($user->hasRole('admin') || $sub->client_id == $user->id)) {
+            return ApiResponse::error('Forbidden', 403);
         }
+
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'payment_status' => 'nullable|string|in:pending,paid,failed,refunded',
+        ]);
+
+        if ($request->has('start_date')) {
+            $sub->start_date = $request->input('start_date');
+        }
+        if ($request->has('end_date')) {
+            $sub->end_date = $request->input('end_date');
+        }
+        if ($request->has('payment_status') && $user->hasRole('admin')) {
+            $sub->payment_status = $request->input('payment_status');
+        }
+
+        $sub->save();
+
+        return ApiResponse::success('Subscription updated successfully.', $sub->load('visits'));
+    }
+
+    /**
+     * Delete/Cancel subscription
+     */
+    public function destroy(Request $request, $id)
+    {
+        $user = $request->user();
+        $sub = Subscription::findOrFail($id);
+
+        // Only admins or the owner can delete
+        if (!($user->hasRole('admin') || $sub->client_id == $user->id)) {
+            return ApiResponse::error('Forbidden', 403);
+        }
+
+        $sub->delete();
+
+        return ApiResponse::success('Subscription cancelled successfully.');
     }
 
     /**
@@ -158,15 +189,11 @@ class SubscriptionController extends Controller
     public function markPaid(Request $request, $id)
     {
         $user = $request->user();
-        $sub = Subscription::find($id);
-
-        if (! $sub) {
-            return response()->json(['status' => false, 'message' => 'Subscription not found'], 404);
-        }
+        $sub = Subscription::findOrFail($id);
 
         // Only admins or the owner can mark as paid
         if (! ($user->hasRole('admin') || $sub->client_id == $user->id)) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return ApiResponse::error('Forbidden', 403);
         }
 
         $sub->payment_status = 'paid';
@@ -180,6 +207,6 @@ class SubscriptionController extends Controller
             // \Log::error('Failed to send payment notification: '.$e->getMessage());
         }
 
-        return response()->json(['status' => true, 'data' => $sub], 200);
+        return ApiResponse::success('Subscription marked as paid.', $sub);
     }
 }

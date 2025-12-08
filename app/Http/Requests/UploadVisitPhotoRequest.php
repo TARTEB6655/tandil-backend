@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class UploadVisitPhotoRequest extends FormRequest
+class UploadVisitPhotoRequest extends BaseFormRequest
 {
     public function authorize()
     {

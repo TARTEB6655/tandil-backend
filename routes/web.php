@@ -21,6 +21,8 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\Admin\PaymentController;
 
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
 use App\Http\Controllers\Technician\TechnicianDashboardController;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use App\Models\Product;
 
@@ -39,10 +40,7 @@ class ProductController extends Controller
 
         $products = $query->paginate($perPage > 0 ? $perPage : 12);
 
-        return response()->json([
-            'status' => true,
-            'data' => $products
-        ]);
+        return ApiResponse::success('Products retrieved successfully.', $products);
     }
 
     /**
@@ -50,19 +48,9 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Product::find($id);
+        $product = Product::findOrFail($id);
 
-        if (! $product) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Product not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => true,
-            'data' => $product
-        ]);
+        return ApiResponse::success('Product retrieved successfully.', $product);
     }
 }
 

@@ -17,13 +17,33 @@ class PaymentController extends Controller
         $this->paypal = $paypal;
     }
 
-    // Create a PayPal order for a subscription or order
+    // Create a PayPal order for a subscription, order, or direct amount
     public function createPaypalOrder(Request $request)
     {
-        $type = $request->input('type', 'subscription');
-        $id = $request->input('id');
         $return = $request->input('return_url', url('/'));
         $cancel = $request->input('cancel_url', url('/'));
+        $currency = $request->input('currency', 'USD');
+        
+        // Check if amount is provided directly
+        if ($request->has('amount')) {
+            // Direct amount payment (standalone payment)
+            $amount = (float) $request->input('amount');
+            
+            if ($amount <= 0) {
+                return response()->json(['status' => false, 'message' => 'Amount must be greater than 0'], 422);
+            }
+            
+            $res = $this->paypal->createOrder($amount, $currency, $return, $cancel);
+            return response()->json(['status' => true, 'data' => $res], 200);
+        }
+        
+        // Otherwise, use type + id format (for subscription/order)
+        $type = $request->input('type', 'subscription');
+        $id = $request->input('id');
+        
+        if (!$id) {
+            return response()->json(['status' => false, 'message' => 'Either provide "amount" directly, or provide "type" and "id"'], 422);
+        }
 
         if ($type === 'subscription') {
             $sub = Subscription::find($id);
@@ -31,14 +51,12 @@ class PaymentController extends Controller
                 return response()->json(['status' => false, 'message' => 'Subscription not found'], 404);
             }
             $amount = (float) $sub->amount;
-            $currency = $request->input('currency', 'USD');
         } else {
             $order = Order::find($id);
             if (! $order) {
                 return response()->json(['status' => false, 'message' => 'Order not found'], 404);
             }
             $amount = (float) $order->total_amount;
-            $currency = $request->input('currency', 'USD');
         }
 
         $res = $this->paypal->createOrder($amount, $currency, $return, $cancel);

@@ -18,3 +18,6 @@ class AreaFactory extends Factory
     }
 }
 
+
+
+

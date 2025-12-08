@@ -76,10 +76,10 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | CATEGORIES
+    | CATEGORIES (Admin Only)
     |--------------------------------------------------------------------------
     */
-    Route::apiResource('categories', \App\Http\Controllers\CategoryController::class);
+    Route::middleware('role:admin')->apiResource('categories', \App\Http\Controllers\CategoryController::class);
 });
 
 /*
@@ -161,15 +161,19 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     // Roles
     Route::get('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'index']);
     Route::post('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'store']);
+});
 
-    // HR - Employees
-    Route::prefix('hr')->group(function () {
-        Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index']);
-        Route::post('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'store']);
-        Route::get('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'show']);
-        Route::put('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update']);
-        Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy']);
-    });
+/*
+|--------------------------------------------------------------------------
+| HR ROUTES (HR and Admin can access)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('admin/hr')->group(function () {
+    Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index']);
+    Route::post('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'store']);
+    Route::get('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'show']);
+    Route::put('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update']);
+    Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy']);
 });
 
 /*

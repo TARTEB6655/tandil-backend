@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class CategoryRequest extends FormRequest
+class CategoryRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
@@ -17,7 +15,7 @@ class CategoryRequest extends FormRequest
 
         return [
             'name'        => 'required|string|max:255',
-            'slug'        => 'required|string|max:255|unique:categories,slug,' . $id,
+            'slug'        => 'nullable|string|max:255|unique:categories,slug,' . $id, // Made optional - will auto-generate if not provided
             'description' => 'nullable|string',
         ];
     }

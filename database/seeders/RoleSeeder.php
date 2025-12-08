@@ -18,8 +18,17 @@ class RoleSeeder extends Seeder
             'admin',
         ];
 
-        foreach ($roles as $role) {
-            Role::firstOrCreate(['name' => $role]);
+        // Create roles for both 'web' and 'sanctum' guards
+        // API routes use Sanctum, web routes use web guard
+        $guards = ['web', 'sanctum'];
+        
+        foreach ($guards as $guard) {
+            foreach ($roles as $role) {
+                Role::firstOrCreate(
+                    ['name' => $role, 'guard_name' => $guard],
+                    ['name' => $role, 'guard_name' => $guard]
+                );
+            }
         }
     }
 }

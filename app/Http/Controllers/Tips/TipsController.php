@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Tips;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
 use App\Models\Tip;
 use Illuminate\Http\Request;
 
@@ -17,10 +18,7 @@ class TipsController extends Controller
             ->latest()
             ->get();
 
-        return response()->json([
-            'status' => true,
-            'data' => $tips
-        ], 200);
+        return ApiResponse::success('Tips retrieved successfully.', $tips);
     }
 
     /**
@@ -28,18 +26,8 @@ class TipsController extends Controller
      */
     public function show($id)
     {
-        $tip = Tip::where('status', 'published')->find($id);
+        $tip = Tip::where('status', 'published')->findOrFail($id);
 
-        if (!$tip) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Tip not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => true,
-            'data' => $tip
-        ], 200);
+        return ApiResponse::success('Tip retrieved successfully.', $tip);
     }
 }

@@ -14,7 +14,8 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->routes(function () {
             // Load API routes with prefix 'api' and 'api' middleware group
-            Route::middleware('api')
+            // ForceJsonResponse ensures all API routes expect JSON responses
+            Route::middleware(['api', \App\Http\Middleware\ForceJsonResponse::class])
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
