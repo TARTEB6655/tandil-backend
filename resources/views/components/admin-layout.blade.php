@@ -5,7 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Tandil') }} - Admin Dashboard</title>
+    <title>Tandil - Admin Dashboard</title>
+    <script>
+        // Force title update to prevent browser cache issues
+        if (document.title !== 'Tandil - Admin Dashboard') {
+            document.title = 'Tandil - Admin Dashboard';
+        }
+    </script>
+    
+    <!-- Favicon with cache busting -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}?v={{ time() }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,13 +48,13 @@
         @include('components.admin.sidebar')
 
         <!-- Main Content Area -->
-        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden w-full max-[991px]:ml-0 min-[992px]:ml-[250px]">
+        <div class="relative flex flex-1 flex-col overflow-hidden w-full max-[991px]:ml-0 min-[992px]:ml-[250px]">
             <!-- Header -->
             @include('components.admin.header')
 
             <!-- Main Content -->
-            <main class="flex-1 min-w-0 max-[991px]:pl-0 min-[992px]:pl-10">
-                <div class="w-full px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 2xl:py-8" style="max-width: 66rem; margin-left: auto; margin-right: auto;">
+            <main class="flex-1 min-w-0 max-[991px]:pl-0 min-[992px]:pl-10 overflow-y-auto">
+                <div class="w-full px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 2xl:py-8" style="max-width: 100%; margin-left: auto; margin-right: auto;">
                     {{ $slot }}
                 </div>
             </main>

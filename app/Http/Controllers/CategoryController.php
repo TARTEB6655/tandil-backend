@@ -11,8 +11,14 @@ class CategoryController extends Controller
     // GET /categories
     public function index()
     {
-        $categories = Category::orderBy('id', 'desc')->paginate(10);
-        return ApiResponse::success('Categories retrieved successfully.', $categories);
+        $categories = Category::withCount('products')->orderBy('id', 'desc')->paginate(10);
+        
+        // Return view for web requests, JSON for API requests
+        if (request()->expectsJson() || request()->is('api/*')) {
+            return ApiResponse::success('Categories retrieved successfully.', $categories);
+        }
+        
+        return view('admin.categories.index', compact('categories'));
     }
 
     // POST /categories
@@ -34,14 +40,51 @@ class CategoryController extends Controller
         }
         
         $category = Category::create($validated);
-        return ApiResponse::success('Category created successfully.', $category, 201);
+        
+        // Return view redirect for web requests, JSON for API requests
+        if (request()->expectsJson() || request()->is('api/*')) {
+            return ApiResponse::success('Category created successfully.', $category, 201);
+        }
+        
+        return redirect()->route('admin.categories.index')
+            ->with('success', 'Category created successfully.');
+    }
+
+    // GET /categories/create
+    public function create()
+    {
+        // Return JSON error for API requests (create is not used in API)
+        if (request()->expectsJson() || request()->is('api/*')) {
+            return ApiResponse::error('Use POST /api/categories to create a category.', 405);
+        }
+        
+        return view('admin.categories.create');
     }
 
     // GET /categories/{id}
     public function show($id)
     {
         $category = Category::findOrFail($id);
-        return ApiResponse::success('Category retrieved successfully.', $category);
+        
+        // Return view for web requests, JSON for API requests
+        if (request()->expectsJson() || request()->is('api/*')) {
+            return ApiResponse::success('Category retrieved successfully.', $category);
+        }
+        
+        return view('admin.categories.show', compact('category'));
+    }
+
+    // GET /categories/{id}/edit
+    public function edit($id)
+    {
+        $category = Category::findOrFail($id);
+        
+        // Return JSON error for API requests (edit is not used in API)
+        if (request()->expectsJson() || request()->is('api/*')) {
+            return ApiResponse::error('Use PUT /api/categories/{id} to update a category.', 405);
+        }
+        
+        return view('admin.categories.edit', compact('category'));
     }
 
     // PUT /categories/{id}
@@ -64,7 +107,14 @@ class CategoryController extends Controller
         }
         
         $category->update($validated);
-        return ApiResponse::success('Category updated successfully.', $category);
+        
+        // Return view redirect for web requests, JSON for API requests
+        if (request()->expectsJson() || request()->is('api/*')) {
+            return ApiResponse::success('Category updated successfully.', $category);
+        }
+        
+        return redirect()->route('admin.categories.index')
+            ->with('success', 'Category updated successfully.');
     }
 
     // DELETE /categories/{id}
@@ -72,6 +122,13 @@ class CategoryController extends Controller
     {
         $category = Category::findOrFail($id);
         $category->delete();
-        return ApiResponse::success('Category deleted successfully.');
+        
+        // Return view redirect for web requests, JSON for API requests
+        if (request()->expectsJson() || request()->is('api/*')) {
+            return ApiResponse::success('Category deleted successfully.');
+        }
+        
+        return redirect()->route('admin.categories.index')
+            ->with('success', 'Category deleted successfully.');
     }
 }

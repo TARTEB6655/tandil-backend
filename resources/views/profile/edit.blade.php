@@ -34,8 +34,122 @@
                 </div>
             </div>
         </x-admin-layout>
+    @elseif(auth()->user()->role === 'client')
+        <!-- For client users, use the client layout -->
+        <x-client-layout>
+            <div class="space-y-6">
+                <!-- Page Header -->
+                <div class="mb-6">
+                    <h1 class="text-xl font-medium text-gray-900">Profile Settings</h1>
+                    <p class="mt-1 text-sm text-gray-500">Update your account's profile information and email address</p>
+                </div>
+
+                <!-- Success Message -->
+                @if(session('status') === 'profile-updated')
+                    <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-md mb-4">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-sm text-green-700">Profile updated successfully.</span>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Profile Information Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.update-profile-information-form')
+                </div>
+
+                <!-- Update Password Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.update-password-form')
+                </div>
+
+                <!-- Delete Account Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.delete-user-form')
+                </div>
+            </div>
+        </x-client-layout>
+    @elseif(auth()->user()->role === 'technician')
+        <!-- For technician users, use the technician layout -->
+        <x-technician-layout>
+            <div class="space-y-6">
+                <!-- Page Header -->
+                <div class="mb-6">
+                    <h1 class="text-xl font-medium text-gray-900">Profile Settings</h1>
+                    <p class="mt-1 text-sm text-gray-500">Update your account's profile information and email address</p>
+                </div>
+
+                <!-- Success Message -->
+                @if(session('status') === 'profile-updated')
+                    <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-md mb-4">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-sm text-green-700">Profile updated successfully.</span>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Profile Information Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.update-profile-information-form')
+                </div>
+
+                <!-- Update Password Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.update-password-form')
+                </div>
+
+                <!-- Delete Account Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.delete-user-form')
+                </div>
+            </div>
+        </x-technician-layout>
+    @elseif(auth()->user()->role === 'supervisor')
+        <!-- For supervisor users, use the supervisor layout -->
+        <x-supervisor-layout>
+            <div class="space-y-6">
+                <!-- Page Header -->
+                <div class="mb-6">
+                    <h1 class="text-xl font-medium text-gray-900">Profile Settings</h1>
+                    <p class="mt-1 text-sm text-gray-500">Update your account's profile information and email address</p>
+                </div>
+
+                <!-- Success Message -->
+                @if(session('status') === 'profile-updated')
+                    <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-md mb-4">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-sm text-green-700">Profile updated successfully.</span>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Profile Information Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.update-profile-information-form')
+                </div>
+
+                <!-- Update Password Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.update-password-form')
+                </div>
+
+                <!-- Delete Account Card -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    @include('profile.partials.delete-user-form')
+                </div>
+            </div>
+        </x-supervisor-layout>
     @else
-        <!-- For non-admin users, use the default app layout -->
+        <!-- For other roles, use the default app layout -->
         <x-app-layout>
             <x-slot name="header">
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
