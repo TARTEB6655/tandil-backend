@@ -19,6 +19,16 @@ Route::get('/health', function () {
 Route::prefix('auth')->group(function () {
     Route::post('/register', [\App\Http\Controllers\Auth\AuthController::class, 'register']);
     Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login']);
+    // Password reset endpoints (placeholder - implement if needed)
+    Route::post('/forgot-password', function () {
+        return response()->json(['message' => 'Password reset feature not implemented yet'], 501);
+    });
+    Route::post('/verify-otp', function () {
+        return response()->json(['message' => 'OTP verification not implemented yet'], 501);
+    });
+    Route::post('/reset-password', function () {
+        return response()->json(['message' => 'Password reset feature not implemented yet'], 501);
+    });
 });
 
 /*
@@ -29,6 +39,7 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::post('/logout', [\App\Http\Controllers\Auth\AuthController::class, 'logout']);
     Route::get('/profile', [\App\Http\Controllers\Auth\AuthController::class, 'profile']);
+    Route::get('/user', [\App\Http\Controllers\Auth\AuthController::class, 'profile']); // Alias for /profile
 
     // Payments
     Route::post('payments/paypal/create', [\App\Http\Controllers\PaymentController::class, 'createPaypalOrder']);
@@ -208,6 +219,80 @@ Route::prefix('shop')->group(function () {
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
         Route::post('/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| PRODUCTS (Frontend-compatible routes)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('products')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Shop\ProductController::class, 'index']);
+    Route::get('/search', [\App\Http\Controllers\Shop\ProductController::class, 'index']); // Search via query param
+    Route::get('/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'show']);
+    Route::get('/categories', [\App\Http\Controllers\Shop\ProductController::class, 'getCategories']);
+    Route::get('/category/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'getByCategory']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| SERVICES (Frontend-compatible routes)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('services')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ServiceController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'show']);
+    Route::get('/categories', [\App\Http\Controllers\Api\ServiceController::class, 'getCategories']);
+    Route::get('/category/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'getByCategory']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ORDERS (Frontend-compatible routes)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->prefix('orders')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
+    Route::post('/', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
+    Route::put('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'update']);
+    Route::post('/{id}/cancel', function (\Illuminate\Http\Request $request, $id) {
+        // TODO: Implement order cancellation
+        return response()->json(['message' => 'Order cancellation not implemented yet'], 501);
+    });
+    Route::get('/{id}/track', function (\Illuminate\Http\Request $request, $id) {
+        $order = \App\Models\Order::findOrFail($id);
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'order_id' => $order->id,
+                'status' => $order->order_status,
+                'tracking' => 'Order tracking not implemented yet'
+            ]
+        ]);
+    });
+    Route::post('/{id}/rate', function (\Illuminate\Http\Request $request, $id) {
+        // TODO: Implement order rating
+        return response()->json(['message' => 'Order rating not implemented yet'], 501);
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| USER PROFILE & SETTINGS (Frontend-compatible routes)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('user')->group(function () {
+    Route::get('/profile', [\App\Http\Controllers\Api\UserController::class, 'getProfile']);
+    Route::put('/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
+    Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);
+    Route::post('/addresses', [\App\Http\Controllers\Api\UserController::class, 'createAddress']);
+    Route::put('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']);
+    Route::delete('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'deleteAddress']);
+    Route::get('/loyalty', [\App\Http\Controllers\Api\UserController::class, 'getLoyalty']);
+    Route::get('/notifications', [\App\Http\Controllers\Api\UserController::class, 'getNotifications']);
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\UserController::class, 'markNotificationAsRead']);
+    Route::post('/notifications/read-all', [\App\Http\Controllers\Api\UserController::class, 'markAllNotificationsAsRead']);
 });
 
 /*

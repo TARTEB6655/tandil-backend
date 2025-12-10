@@ -52,5 +52,23 @@ class ProductController extends Controller
 
         return ApiResponse::success('Product retrieved successfully.', $product);
     }
+
+    /**
+     * Get product categories
+     */
+    public function getCategories()
+    {
+        $categories = \App\Models\Category::all();
+        return ApiResponse::success('Categories retrieved successfully.', $categories);
+    }
+
+    /**
+     * Get products by category
+     */
+    public function getByCategory($categoryId)
+    {
+        $category = \App\Models\Category::with('products')->findOrFail($categoryId);
+        return ApiResponse::success('Products retrieved successfully.', $category->products);
+    }
 }
 

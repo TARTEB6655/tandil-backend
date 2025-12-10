@@ -276,7 +276,23 @@ Route::middleware(['auth', 'role:area_manager'])
     ->name('areamanager.')
     ->group(function () {
         Route::get('/dashboard', [AreaManagerDashboardController::class, 'index'])->name('dashboard');
-        // add more area manager routes here
+        
+        // Areas
+        Route::get('/areas', [\App\Http\Controllers\AreaManager\AreaController::class, 'index'])->name('areas.index');
+        Route::get('/areas/{id}', [\App\Http\Controllers\AreaManager\AreaController::class, 'show'])->name('areas.show');
+        
+        // Visits
+        Route::get('/visits', [\App\Http\Controllers\AreaManager\VisitController::class, 'index'])->name('visits.index');
+        Route::get('/visits/{id}', [\App\Http\Controllers\AreaManager\VisitController::class, 'show'])->name('visits.show');
+        
+        // Reports
+        Route::get('/reports', [\App\Http\Controllers\AreaManager\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{id}', [\App\Http\Controllers\AreaManager\ReportController::class, 'show'])->name('reports.show');
+        
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\AreaManager\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 
 // HR routes
@@ -285,7 +301,22 @@ Route::middleware(['auth', 'role:hr'])
     ->name('hr.')
     ->group(function () {
         Route::get('/dashboard', [HrDashboardController::class, 'index'])->name('dashboard');
-        // add more HR routes here
+        
+        // Employees
+        Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index'])->name('employees.index');
+        Route::get('/employees/create', [\App\Http\Controllers\HR\EmployeeController::class, 'create'])->name('employees.create');
+        Route::post('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'store'])->name('employees.store');
+        Route::get('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'show'])->name('employees.show');
+        Route::get('/employees/{id}/edit', [\App\Http\Controllers\HR\EmployeeController::class, 'edit'])->name('employees.edit');
+        Route::put('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update'])->name('employees.update');
+        Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy'])->name('employees.destroy');
+        Route::post('/employees/{id}/create-user', [\App\Http\Controllers\HR\EmployeeController::class, 'createUser'])->name('employees.create-user');
+        Route::post('/employees/{id}/update-user-status', [\App\Http\Controllers\HR\EmployeeController::class, 'updateUserStatus'])->name('employees.update-user-status');
+        
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\HR\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 
 // Breeze auth routes (login/logout/password/reset)
