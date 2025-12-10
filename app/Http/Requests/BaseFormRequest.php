@@ -20,6 +20,7 @@ class BaseFormRequest extends FormRequest
     {
         throw new HttpResponseException(
             response()->json([
+                'status' => false,
                 'message' => 'The given data was invalid.',
                 'errors' => $validator->errors(),
             ], 422)

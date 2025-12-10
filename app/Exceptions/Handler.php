@@ -56,9 +56,10 @@ class Handler extends ExceptionHandler
         $line = $e->getLine();
         $message = $e->getMessage() ?: 'An error occurred';
 
-        // Handle ValidationException - Use Laravel's standard format
+        // Handle ValidationException - Use Laravel's standard format with status
         if ($e instanceof \Illuminate\Validation\ValidationException) {
             return response()->json([
+                'status' => false,
                 'message' => 'The given data was invalid.',
                 'errors' => $e->errors(),
             ], 422);
@@ -69,9 +70,6 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthenticated',
-                'type' => $exceptionClass,
-                'line' => $line,
-                'file' => $file,
             ], 401);
         }
 
@@ -80,9 +78,6 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized. You do not have permission to perform this action.',
-                'type' => $exceptionClass,
-                'line' => $line,
-                'file' => $file,
             ], 403);
         }
 
@@ -91,9 +86,6 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => false,
                 'message' => 'Resource not found.',
-                'type' => $exceptionClass,
-                'line' => $line,
-                'file' => $file,
             ], 404);
         }
 
@@ -103,9 +95,6 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => false,
                 'message' => $dbMessage,
-                'type' => $exceptionClass,
-                'line' => $line,
-                'file' => $file,
             ], 500);
         }
 
@@ -114,9 +103,6 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => false,
                 'message' => 'Route not found.',
-                'type' => $exceptionClass,
-                'line' => $line,
-                'file' => $file,
             ], 404);
         }
 
@@ -125,9 +111,6 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => false,
                 'message' => 'Method not allowed for this route.',
-                'type' => $exceptionClass,
-                'line' => $line,
-                'file' => $file,
             ], 405);
         }
 
@@ -137,9 +120,6 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => false,
                 'message' => $message,
-                'type' => $exceptionClass,
-                'line' => $line,
-                'file' => $file,
             ], $statusCode);
         }
 
@@ -149,13 +129,13 @@ class Handler extends ExceptionHandler
         $payload = [
             'status' => false,
             'message' => $isDebug ? $message : ($statusCode === 500 ? 'An error occurred. Please try again later.' : $message),
-            'type' => $exceptionClass,
-            'line' => $line,
-            'file' => $file,
         ];
 
-        // Add trace only in debug mode
+        // Add debug info only in debug mode
         if ($isDebug) {
+            $payload['type'] = $exceptionClass;
+            $payload['line'] = $line;
+            $payload['file'] = $file;
             $payload['trace'] = $e->getTraceAsString();
         }
 
