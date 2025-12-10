@@ -15,7 +15,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $perPage  = (int) $request->query('per_page', 12);
-        $search   = $request->query('search');
+        $search   = $request->query('search') ?? $request->query('q'); // Support both 'search' and 'q' parameters
         $category = $request->query('category_id');
         $sortBy   = $request->query('sort_by', 'created_at');  // name, price, created_at
         $sortDir  = $request->query('sort_dir', 'desc');        // asc, desc

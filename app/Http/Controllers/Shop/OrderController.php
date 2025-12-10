@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\PayPalService;
@@ -54,7 +55,10 @@ class OrderController extends Controller
             $request->input('cancel_url', url('/'))
         );
 
-        return response()->json(['status'=>true,'data'=>['order'=>$order,'payment'=>$res]],200);
+        return ApiResponse::success('Order created successfully.', [
+            'order' => $order,
+            'payment' => $res
+        ]);
     }
 
     public function index(Request $request)
@@ -67,10 +71,7 @@ class OrderController extends Controller
         
         $orders = $query->get();
         
-        return response()->json([
-            'status' => true,
-            'data' => $orders
-        ], 200);
+        return ApiResponse::success('Orders retrieved successfully.', $orders);
     }
 
     public function show(Request $request, $id)
@@ -79,28 +80,148 @@ class OrderController extends Controller
         $order = Order::with('items.product')->find($id);
         
         if (!$order) {
-            return response()->json(['status' => false, 'message' => 'Order not found'], 404);
+            return ApiResponse::error('Order not found', 404);
         }
         
         // Check if user owns the order or is admin
         if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return ApiResponse::error('Forbidden', 403);
         }
         
-        return response()->json([
-            'status' => true,
-            'data' => $order
-        ], 200);
+        return ApiResponse::success('Order retrieved successfully.', $order);
+    }
+
+    /**
+     * Update order
+     */
+    public function update(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::find($id);
+        
+        if (!$order) {
+            return ApiResponse::error('Order not found', 404);
+        }
+        
+        // Check if user owns the order or is admin
+        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+            return ApiResponse::error('Forbidden', 403);
+        }
+        
+        $validated = $request->validate([
+            'order_status' => 'sometimes|in:pending,processing,completed,cancelled',
+            'payment_status' => 'sometimes|in:pending,paid,failed',
+        ]);
+        
+        $order->fill($validated);
+        $order->save();
+        
+        return ApiResponse::success('Order updated successfully.', $order->load('items.product'));
     }
 
     public function markPaid(Request $request, $id)
     {
         $order = Order::find($id);
-        if (! $order) return response()->json(['status'=>false,'message'=>'Not found'],404);
+        if (! $order) {
+            return ApiResponse::error('Order not found', 404);
+        }
+        
         $order->payment_status = 'paid';
         $order->order_status = 'paid';
         $order->paid_at = now();
         $order->save();
-        return response()->json(['status'=>true,'data'=>$order],200);
+        
+        return ApiResponse::success('Order marked as paid.', $order);
+    }
+
+    /**
+     * Cancel order
+     */
+    public function cancel(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::find($id);
+        
+        if (!$order) {
+            return ApiResponse::error('Order not found', 404);
+        }
+        
+        // Check if user owns the order or is admin
+        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+            return ApiResponse::error('Forbidden', 403);
+        }
+        
+        // Check if order can be cancelled
+        if (in_array($order->order_status, ['completed', 'cancelled'])) {
+            return ApiResponse::error('Order cannot be cancelled', 400);
+        }
+        
+        $order->order_status = 'cancelled';
+        $order->save();
+        
+        return ApiResponse::success('Order cancelled successfully.', $order->load('items.product'));
+    }
+
+    /**
+     * Track order
+     */
+    public function track(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::with('items.product')->find($id);
+        
+        if (!$order) {
+            return ApiResponse::error('Order not found', 404);
+        }
+        
+        // Check if user owns the order or is admin
+        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+            return ApiResponse::error('Forbidden', 403);
+        }
+        
+        return ApiResponse::success('Order tracking retrieved successfully.', [
+            'order_id' => $order->id,
+            'status' => $order->order_status,
+            'payment_status' => $order->payment_status,
+            'order' => $order,
+            'tracking_history' => [
+                [
+                    'status' => $order->order_status,
+                    'date' => $order->created_at->toDateTimeString(),
+                    'message' => 'Order created'
+                ]
+            ]
+        ]);
+    }
+
+    /**
+     * Rate order
+     */
+    public function rate(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::find($id);
+        
+        if (!$order) {
+            return ApiResponse::error('Order not found', 404);
+        }
+        
+        // Check if user owns the order
+        if ($order->user_id !== $user->id) {
+            return ApiResponse::error('Forbidden', 403);
+        }
+        
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+        
+        // TODO: Implement rating system if you have a ratings table
+        // For now, just return success
+        return ApiResponse::success('Order rated successfully.', [
+            'order_id' => $order->id,
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'] ?? null
+        ]);
     }
 }

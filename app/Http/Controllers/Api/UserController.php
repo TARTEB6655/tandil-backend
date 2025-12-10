@@ -94,15 +94,8 @@ class UserController extends Controller
     public function getNotifications(Request $request)
     {
         $user = $request->user();
-        // Using database notifications if available, otherwise return empty
-        if (method_exists($user, 'notifications')) {
-            $notifications = $user->notifications()->latest()->paginate(20);
-        } else {
-            // Fallback to database notifications table if exists
-            $notifications = \App\Models\Notification::where('user_id', $user->id)
-                ->latest()
-                ->paginate(20);
-        }
+        // User model uses Notifiable trait, so notifications() method is available
+        $notifications = $user->notifications()->latest()->paginate(20);
         
         return ApiResponse::success('Notifications retrieved successfully.', $notifications);
     }
@@ -113,21 +106,13 @@ class UserController extends Controller
     public function markNotificationAsRead(Request $request, $id)
     {
         $user = $request->user();
+        $notification = $user->notifications()->where('id', $id)->first();
         
-        if (method_exists($user, 'notifications')) {
-            $notification = $user->notifications()->where('id', $id)->first();
-            if ($notification) {
-                $notification->markAsRead();
-            }
-        } else {
-            // Fallback to database notifications table
-            $notification = \App\Models\Notification::where('id', $id)
-                ->where('user_id', $user->id)
-                ->first();
-            if ($notification) {
-                $notification->update(['read_at' => now()]);
-            }
+        if (!$notification) {
+            return ApiResponse::error('Notification not found', 404);
         }
+        
+        $notification->markAsRead();
         
         return ApiResponse::success('Notification marked as read.');
     }
@@ -138,15 +123,7 @@ class UserController extends Controller
     public function markAllNotificationsAsRead(Request $request)
     {
         $user = $request->user();
-        
-        if (method_exists($user, 'unreadNotifications')) {
-            $user->unreadNotifications->markAsRead();
-        } else {
-            // Fallback to database notifications table
-            \App\Models\Notification::where('user_id', $user->id)
-                ->whereNull('read_at')
-                ->update(['read_at' => now()]);
-        }
+        $user->unreadNotifications->markAsRead();
         
         return ApiResponse::success('All notifications marked as read.');
     }

@@ -20,15 +20,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [\App\Http\Controllers\Auth\AuthController::class, 'register']);
     Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login']);
     // Password reset endpoints (placeholder - implement if needed)
-    Route::post('/forgot-password', function () {
-        return response()->json(['message' => 'Password reset feature not implemented yet'], 501);
-    });
-    Route::post('/verify-otp', function () {
-        return response()->json(['message' => 'OTP verification not implemented yet'], 501);
-    });
-    Route::post('/reset-password', function () {
-        return response()->json(['message' => 'Password reset feature not implemented yet'], 501);
-    });
+    Route::post('/forgot-password', [\App\Http\Controllers\Auth\AuthController::class, 'forgotPassword']);
+    Route::post('/verify-otp', [\App\Http\Controllers\Auth\AuthController::class, 'verifyOtp']);
+    Route::post('/reset-password', [\App\Http\Controllers\Auth\AuthController::class, 'resetPassword']);
 });
 
 /*
@@ -256,25 +250,9 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])
     Route::get('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
     Route::post('/', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
     Route::put('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'update']);
-    Route::post('/{id}/cancel', function (\Illuminate\Http\Request $request, $id) {
-        // TODO: Implement order cancellation
-        return response()->json(['message' => 'Order cancellation not implemented yet'], 501);
-    });
-    Route::get('/{id}/track', function (\Illuminate\Http\Request $request, $id) {
-        $order = \App\Models\Order::findOrFail($id);
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'order_id' => $order->id,
-                'status' => $order->order_status,
-                'tracking' => 'Order tracking not implemented yet'
-            ]
-        ]);
-    });
-    Route::post('/{id}/rate', function (\Illuminate\Http\Request $request, $id) {
-        // TODO: Implement order rating
-        return response()->json(['message' => 'Order rating not implemented yet'], 501);
-    });
+    Route::post('/{id}/cancel', [\App\Http\Controllers\Shop\OrderController::class, 'cancel']);
+    Route::get('/{id}/track', [\App\Http\Controllers\Shop\OrderController::class, 'track']);
+    Route::post('/{id}/rate', [\App\Http\Controllers\Shop\OrderController::class, 'rate']);
 });
 
 /*

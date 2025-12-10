@@ -44,7 +44,8 @@ class AuthController extends Controller
             'message' => 'User registered successfully.',
             'token'   => $token,
             'role'    => $user->role,
-            'user'    => $user
+            'user'    => $user,
+            'data'    => $user
         ], 201);
     }
 
@@ -76,7 +77,8 @@ class AuthController extends Controller
             'message' => 'Login successful.',
             'token'   => $token,
             'role'    => $user->role,
-            'user'    => $user
+            'user'    => $user,
+            'data'    => $user
         ]);
     }
 
@@ -88,8 +90,10 @@ class AuthController extends Controller
         $user = $request->user();
         return response()->json([
             'status' => true,
+            'message' => 'User retrieved successfully.',
             'role'   => $user->role,
-            'user'   => $user
+            'user'   => $user,
+            'data'   => $user
         ]);
     }
 
@@ -101,5 +105,32 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return ApiResponse::success('Logged out successfully.');
+    }
+
+    /**
+     * FORGOT PASSWORD
+     */
+    public function forgotPassword(Request $request)
+    {
+        // TODO: Implement password reset functionality
+        return ApiResponse::error('Password reset feature not implemented yet', 501);
+    }
+
+    /**
+     * VERIFY OTP
+     */
+    public function verifyOtp(Request $request)
+    {
+        // TODO: Implement OTP verification
+        return ApiResponse::error('OTP verification not implemented yet', 501);
+    }
+
+    /**
+     * RESET PASSWORD
+     */
+    public function resetPassword(Request $request)
+    {
+        // TODO: Implement password reset
+        return ApiResponse::error('Password reset feature not implemented yet', 501);
     }
 }
