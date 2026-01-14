@@ -136,31 +136,84 @@
                 <div class="space-y-5 pt-5 border-t border-gray-200">
                     <h3 class="text-base font-medium text-gray-900 border-b border-gray-200 pb-2">Role & Status</h3>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Role Selection -->
+                    <div class="space-y-5">
+                        <!-- Role Selection - Full Width -->
                         <div>
-                            <label for="role" class="block text-sm font-medium text-gray-700 mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
                                 User Role <span class="text-red-500">*</span>
                             </label>
-                            <select id="role"
-                                    name="role" 
-                                    required 
-                                    class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition @error('role') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror">
-                                <option value="">Select a role</option>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->name }}" {{ old('role', $user->role) == $role->name ? 'selected' : '' }}>
-                                        {{ ucfirst(str_replace('_', ' ', $role->name)) }}
-                                    </option>
+                            
+                            <!-- Hidden input for form submission -->
+                            <input type="hidden" 
+                                   id="role" 
+                                   name="role" 
+                                   value="{{ old('role', $user->role) }}" 
+                                   required>
+                            
+                            <!-- Role Cards Grid - 3 columns on large screens for better visibility -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-3">
+                                @foreach($roles as $roleOption)
+                                    <label class="relative flex flex-col p-4 sm:p-5 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md 
+                                                {{ old('role', $user->role) == $roleOption->name 
+                                                    ? 'border-gray-900 bg-gray-50 shadow-sm' 
+                                                    : 'border-gray-200 bg-white hover:border-gray-300' }}">
+                                        <div class="flex items-start gap-3">
+                                            <input type="radio" 
+                                                   name="role_radio" 
+                                                   value="{{ $roleOption->name }}"
+                                                   {{ old('role', $user->role) == $roleOption->name ? 'checked' : '' }}
+                                                   class="mt-1 h-4 w-4 text-gray-900 focus:ring-gray-900 border-gray-300 flex-shrink-0"
+                                                   onchange="document.getElementById('role').value = this.value; updateRoleSelection(this);">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="text-sm font-semibold text-gray-900 break-words">
+                                                        {{ ucfirst(str_replace('_', ' ', $roleOption->name)) }}
+                                                    </span>
+                                                </div>
+                                                @if($roleOption->description)
+                                                    <p class="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
+                                                        {{ $roleOption->description }}
+                                                    </p>
+                                                @else
+                                                    <p class="text-xs text-gray-400 italic mt-1">
+                                                        No description available
+                                                    </p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </label>
                                 @endforeach
-                            </select>
+                            </div>
+                            
+                            <script>
+                                function updateRoleSelection(radio) {
+                                    // Remove selected styling from all labels
+                                    document.querySelectorAll('label[for*="role"]').forEach(label => {
+                                        label.classList.remove('border-gray-900', 'bg-gray-50', 'shadow-sm');
+                                        label.classList.add('border-gray-200', 'bg-white');
+                                    });
+                                    // Add selected styling to clicked label
+                                    radio.closest('label').classList.remove('border-gray-200', 'bg-white');
+                                    radio.closest('label').classList.add('border-gray-900', 'bg-gray-50', 'shadow-sm');
+                                }
+                                
+                                // Initialize on page load
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const selectedRadio = document.querySelector('input[name="role_radio"]:checked');
+                                    if (selectedRadio) {
+                                        updateRoleSelection(selectedRadio);
+                                    }
+                                });
+                            </script>
+                            
                             @error('role')
                                 <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
                             @enderror
-                            <p class="mt-1.5 text-xs text-gray-500">Change the role assigned to this user</p>
+                            <p class="text-xs text-gray-500">Select a role to assign to this user. Each role has specific permissions and responsibilities.</p>
                         </div>
 
                         <!-- Status Selection -->
-                        <div>
+                        <div class="max-w-xs">
                             <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
                                 Account Status <span class="text-red-500">*</span>
                             </label>

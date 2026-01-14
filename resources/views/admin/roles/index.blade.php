@@ -34,6 +34,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role Name</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">Description</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Users Count</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">Permissions</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
@@ -53,6 +54,15 @@
                                             <div class="text-sm font-semibold text-gray-900 truncate">{{ ucfirst(str_replace('_', ' ', $role->name)) }}</div>
                                             <div class="text-xs text-gray-500 mt-0.5 truncate hidden sm:block">{{ $role->name }}</div>
                                         </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 hidden lg:table-cell">
+                                    <div class="max-w-xs">
+                                        @if($role->description)
+                                            <p class="text-sm text-gray-600 line-clamp-2">{{ $role->description }}</p>
+                                        @else
+                                            <p class="text-sm text-gray-400 italic">No description</p>
+                                        @endif
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -117,7 +127,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-12 text-center">
+                                <td colspan="5" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />

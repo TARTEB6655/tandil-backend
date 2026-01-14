@@ -192,6 +192,10 @@ Route::prefix('shop')->group(function () {
     // Public product routes
     Route::get('/products', [\App\Http\Controllers\Shop\ProductController::class, 'index']);
     Route::get('/products/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'show']);
+    
+    // Public category routes
+    Route::get('/categories', [\App\Http\Controllers\Shop\CategoryController::class, 'index']);
+    Route::get('/categories/{id}', [\App\Http\Controllers\Shop\CategoryController::class, 'show']);
 
     // Protected cart and order routes
     Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->group(function () {
@@ -203,6 +207,12 @@ Route::prefix('shop')->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
         Route::post('/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
+        
+        // Payment/Transaction routes
+        Route::get('/payments', [\App\Http\Controllers\Shop\PaymentController::class, 'index']);
+        Route::get('/payments/{id}', [\App\Http\Controllers\Shop\PaymentController::class, 'show']);
+        Route::get('/transactions', [\App\Http\Controllers\Shop\PaymentController::class, 'index']); // Alias
+        Route::get('/transactions/{id}', [\App\Http\Controllers\Shop\PaymentController::class, 'show']); // Alias
     });
 });
 

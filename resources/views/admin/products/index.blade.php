@@ -42,6 +42,54 @@
             </div>
         @endif
 
+        <!-- Bulk Actions Bar -->
+        <div id="bulkActionsBar" class="hidden bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-medium text-indigo-900">
+                        <span id="selectedCount">0</span> product(s) selected
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="bulkEdit()" 
+                                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit
+                        </button>
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" 
+                                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                                </svg>
+                                Change Status
+                            </button>
+                            <div x-show="open" @click.away="open = false" x-cloak
+                                 class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                <div class="py-1">
+                                    <button onclick="bulkChangeStatus('active')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set to Active</button>
+                                    <button onclick="bulkChangeStatus('draft')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set to Draft</button>
+                                    <button onclick="bulkChangeStatus('archived')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set to Archived</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="bulkDelete()" 
+                                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                <button onclick="clearSelection()" 
+                        class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                    Clear selection
+                </button>
+            </div>
+        </div>
+
         <!-- Filter Tabs -->
         <div class="bg-white rounded-lg border border-gray-200">
             <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -82,7 +130,7 @@
 
             <!-- Products Table -->
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
+                <table class="w-full divide-y divide-gray-200" style="min-width: 1200px;">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left">
@@ -116,23 +164,31 @@
                                            value="{{ $product->id }}"
                                            onchange="updateBulkActions()">
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-10 w-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-100">
-                                            @if($product->image)
-                                                <img src="{{ asset('storage/' . $product->image) }}" 
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center gap-3 min-w-[250px]">
+                                        <div class="h-16 w-16 flex-shrink-0 rounded-lg border-2 border-gray-200 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-sm">
+                                            @php
+                                                $imageUrl = $product->getImageUrl();
+                                            @endphp
+                                            @if($imageUrl)
+                                                <img src="{{ $imageUrl }}" 
                                                      alt="{{ $product->name }}" 
-                                                     class="h-full w-full object-cover">
+                                                     class="h-full w-full object-cover"
+                                                     loading="lazy"
+                                                     onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100\'><svg class=\'w-8 h-8 text-indigo-400\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\' /></svg></div>';">
                                             @else
-                                                <div class="h-full w-full flex items-center justify-center">
-                                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <div class="h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
+                                                    <svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                     </svg>
                                                 </div>
                                             @endif
                                         </div>
-                                        <div>
-                                            <div class="text-sm font-medium text-gray-900">{{ $product->name }}</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-sm font-medium text-gray-900 truncate">{{ $product->name }}</div>
+                                            @if($product->sku)
+                                                <div class="text-xs text-gray-500 mt-0.5">SKU: {{ $product->sku }}</div>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
@@ -217,7 +273,114 @@
         
         function updateBulkActions() {
             const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-            // Bulk actions logic here
+            const bulkBar = document.getElementById('bulkActionsBar');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (checkboxes.length > 0) {
+                bulkBar.classList.remove('hidden');
+                selectedCount.textContent = checkboxes.length;
+            } else {
+                bulkBar.classList.add('hidden');
+            }
+        }
+        
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            checkboxes.forEach(cb => cb.checked = false);
+            selectAll.checked = false;
+            updateBulkActions();
+        }
+        
+        function getSelectedIds() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        function bulkEdit() {
+            const ids = getSelectedIds();
+            if (ids.length === 0) {
+                alert('Please select at least one product');
+                return;
+            }
+            if (ids.length === 1) {
+                window.location.href = `/admin/products/${ids[0]}/edit`;
+            } else {
+                alert('Bulk edit for multiple products - redirecting to first product');
+                window.location.href = `/admin/products/${ids[0]}/edit`;
+            }
+        }
+        
+        function bulkChangeStatus(status) {
+            const ids = getSelectedIds();
+            if (ids.length === 0) {
+                alert('Please select at least one product');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to change status of ${ids.length} product(s) to ${status}?`)) {
+                return;
+            }
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("admin.products.bulk-update-status") }}';
+            
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+            
+            ids.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'product_ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+            
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = status;
+            form.appendChild(statusInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        function bulkDelete() {
+            const ids = getSelectedIds();
+            if (ids.length === 0) {
+                alert('Please select at least one product');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete ${ids.length} product(s)? This action cannot be undone.`)) {
+                return;
+            }
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("admin.products.bulk-delete") }}';
+            
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+            
+            ids.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'product_ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
         }
     </script>
     @endpush

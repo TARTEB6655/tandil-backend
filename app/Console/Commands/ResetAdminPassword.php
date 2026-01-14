@@ -27,8 +27,12 @@ class ResetAdminPassword extends Command
      */
     public function handle()
     {
-        $email = $this->argument('email') ?? $this->ask('Enter admin email', env('APP_ADMIN_EMAIL', 'admin@tandil.com'));
-        $password = $this->option('password') ?? $this->secret('Enter new password (min 8 characters)');
+        // Default credentials matching the login form
+        $defaultEmail = env('APP_ADMIN_EMAIL') ?: 'admin@tandil.com';
+        $defaultPassword = env('APP_ADMIN_PASSWORD') ?: 'password123';
+        
+        $email = $this->argument('email') ?? $this->ask('Enter admin email', $defaultEmail);
+        $password = $this->option('password') ?? $this->secret('Enter new password (min 8 characters)', $defaultPassword);
 
         if (strlen($password) < 8) {
             $this->error('Password must be at least 8 characters long.');

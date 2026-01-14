@@ -10,8 +10,19 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = env('APP_ADMIN_EMAIL', 'admin@tandil.com');
-        $password = env('APP_ADMIN_PASSWORD', 'password123');
+        // PERMANENT: Admin credentials (matching login form)
+        // These are hardcoded to ensure they always match the login form
+        $email = 'admin@tandil.com';
+        $password = 'password123';
+        
+        // Allow override via env if needed, but default to correct values
+        if (env('APP_ADMIN_EMAIL') && env('APP_ADMIN_EMAIL') !== 'admin@example.com') {
+            $email = env('APP_ADMIN_EMAIL');
+        }
+        if (env('APP_ADMIN_PASSWORD') && env('APP_ADMIN_PASSWORD') !== 'Password123!') {
+            $password = env('APP_ADMIN_PASSWORD');
+        }
+        
         $phone = '70000000';
 
         // Try to find user by email first

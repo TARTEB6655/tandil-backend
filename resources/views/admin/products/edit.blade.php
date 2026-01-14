@@ -38,10 +38,10 @@
                     </div>
                 </div>
 
-                @if($product->image)
+                @if($product->getImageUrl())
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700">Current Image</label>
-                    <img src="{{ asset('storage/' . $product->image) }}" alt="Product Image" class="mt-2 h-32 w-32 object-cover rounded">
+                    <img src="{{ $product->getImageUrl() }}" alt="Product Image" class="mt-2 h-32 w-32 object-cover rounded">
                 </div>
                 @endif
 

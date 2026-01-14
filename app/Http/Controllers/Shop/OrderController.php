@@ -62,21 +62,41 @@ class OrderController extends Controller
         $user = $request->user();
         
         $query = Order::where('user_id', $user->id)
-            ->with('items.product')
+            ->with(['items.product', 'user'])
             ->latest();
         
-        $orders = $query->get();
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('order_status', $request->status);
+        }
+        
+        // Filter by payment status
+        if ($request->has('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+        
+        $perPage = $request->get('per_page', 15);
+        $orders = $query->paginate($perPage);
         
         return response()->json([
             'status' => true,
-            'data' => $orders
+            'message' => 'Orders retrieved successfully',
+            'data' => $orders->items(),
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+                'from' => $orders->firstItem(),
+                'to' => $orders->lastItem(),
+            ]
         ], 200);
     }
 
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $order = Order::with('items.product')->find($id);
+        $order = Order::with(['items.product.category', 'user', 'transactions'])->find($id);
         
         if (!$order) {
             return response()->json(['status' => false, 'message' => 'Order not found'], 404);
@@ -89,6 +109,7 @@ class OrderController extends Controller
         
         return response()->json([
             'status' => true,
+            'message' => 'Order retrieved successfully',
             'data' => $order
         ], 200);
     }

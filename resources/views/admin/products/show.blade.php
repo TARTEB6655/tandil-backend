@@ -12,9 +12,9 @@
             @endif
 
             <div class="grid grid-cols-2 gap-6">
-                @if($product->image)
+                @if($product->getImageUrl())
                 <div>
-                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="w-full rounded-lg">
+                    <img src="{{ $product->getImageUrl() }}" alt="{{ $product->name }}" class="w-full rounded-lg">
                 </div>
                 @endif
 

@@ -28,7 +28,30 @@ class RoleController extends Controller
             ], 200);
         }
         
-        $roles = Role::withCount('users')->with('permissions')->get();
+        // Get roles with accurate user counts from both Spatie Permission and role field
+        $roles = Role::with('permissions')->orderBy('name')->get()->map(function($role) {
+            // Count users from Spatie Permission pivot table
+            $spatieCount = \App\Models\User::whereHas('roles', function($q) use ($role) {
+                $q->where('roles.id', $role->id);
+            })->where('status', 'active')->count();
+            
+            // Count users from role field that might not be in Spatie pivot
+            $roleFieldCount = \App\Models\User::where('role', $role->name)
+                ->where('status', 'active')
+                ->whereDoesntHave('roles', function($q) use ($role) {
+                    $q->where('roles.id', $role->id);
+                })->count();
+            
+            // Total count
+            $totalCount = $spatieCount + $roleFieldCount;
+            
+            // Create a role object with the accurate count
+            $roleObj = clone $role;
+            $roleObj->users_count = $totalCount;
+            
+            return $roleObj;
+        });
+        
         return view('admin.roles.index', compact('roles'));
     }
 
@@ -37,7 +60,23 @@ class RoleController extends Controller
      */
     public function show($id)
     {
-        $role = Role::with(['users', 'permissions'])->findOrFail($id);
+        $role = Role::with('permissions')->findOrFail($id);
+        
+        // Get users from both Spatie Permission and role field
+        $spatieUsers = \App\Models\User::whereHas('roles', function($q) use ($role) {
+            $q->where('roles.id', $role->id);
+        })->where('status', 'active')->orderBy('name')->get();
+        
+        $roleFieldUsers = \App\Models\User::where('role', $role->name)
+            ->where('status', 'active')
+            ->whereDoesntHave('roles', function($q) use ($role) {
+                $q->where('roles.id', $role->id);
+            })->orderBy('name')->get();
+        
+        // Merge users and remove duplicates
+        $allUsers = $spatieUsers->merge($roleFieldUsers)->unique('id');
+        $role->users = $allUsers;
+        
         $allPermissions = \Spatie\Permission\Models\Permission::all()->groupBy('guard_name');
         return view('admin.roles.show', compact('role', 'allPermissions'));
     }
@@ -48,7 +87,25 @@ class RoleController extends Controller
     public function create()
     {
         $permissions = \Spatie\Permission\Models\Permission::all()->groupBy('guard_name');
-        return view('admin.roles.create', compact('permissions'));
+        
+        // Get roles with accurate user counts
+        $existingRoles = Role::with('permissions')->orderBy('name')->get()->map(function($role) {
+            $spatieCount = \App\Models\User::whereHas('roles', function($q) use ($role) {
+                $q->where('roles.id', $role->id);
+            })->where('status', 'active')->count();
+            
+            $roleFieldCount = \App\Models\User::where('role', $role->name)
+                ->where('status', 'active')
+                ->whereDoesntHave('roles', function($q) use ($role) {
+                    $q->where('roles.id', $role->id);
+                })->count();
+            
+            $roleObj = clone $role;
+            $roleObj->users_count = $spatieCount + $roleFieldCount;
+            return $roleObj;
+        });
+        
+        return view('admin.roles.create', compact('permissions', 'existingRoles'));
     }
 
     /**
@@ -58,11 +115,15 @@ class RoleController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|unique:roles,name',
+            'description' => 'nullable|string|max:500',
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
 
-        $role = Role::create(['name' => $validated['name']]);
+        $role = Role::create([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+        ]);
 
         if ($request->has('permissions')) {
             $role->syncPermissions($request->permissions);
@@ -99,11 +160,15 @@ class RoleController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|unique:roles,name,' . $id,
+            'description' => 'nullable|string|max:500',
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
 
-        $role->update(['name' => $validated['name']]);
+        $role->update([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+        ]);
 
         if ($request->has('permissions')) {
             $role->syncPermissions($request->permissions);

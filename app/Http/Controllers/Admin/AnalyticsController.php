@@ -28,8 +28,13 @@ class AnalyticsController extends Controller
     {
         $months = $request->get('months', 6);
         
+        $driver = DB::connection()->getDriverName();
+        $dateFormat = $driver === 'sqlite'
+            ? DB::raw("strftime('%Y-%m', created_at) as month")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
+        
         $data = Order::select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                $dateFormat,
                 DB::raw('SUM(total_amount) as revenue'),
                 DB::raw('COUNT(*) as orders')
             )
@@ -53,8 +58,13 @@ class AnalyticsController extends Controller
     {
         $weeks = $request->get('weeks', 8);
         
+        $driver = DB::connection()->getDriverName();
+        $weekFormat = $driver === 'sqlite'
+            ? DB::raw("strftime('%Y-%W', created_at) as week")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%u") as week');
+        
         $data = Visit::select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%u") as week'),
+                $weekFormat,
                 DB::raw('COUNT(*) as count')
             )
             ->where('created_at', '>=', Carbon::now()->subWeeks($weeks))

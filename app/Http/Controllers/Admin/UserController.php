@@ -54,7 +54,7 @@ class UserController extends Controller
     // Show form for creating new user
     public function create()
     {
-        $roles = \Spatie\Permission\Models\Role::all();
+        $roles = \Spatie\Permission\Models\Role::orderBy('name')->get();
         return view('admin.users.create', compact('roles'));
     }
 
@@ -89,7 +89,7 @@ class UserController extends Controller
     public function edit($id)
     {
         $user = User::with('roles')->findOrFail($id);
-        $roles = \Spatie\Permission\Models\Role::all();
+        $roles = \Spatie\Permission\Models\Role::orderBy('name')->get();
         return view('admin.users.edit', compact('user', 'roles'));
     }
 
@@ -125,6 +125,12 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        // Redirect based on request
+        if ($request->has('redirect_to') && $request->redirect_to === 'dashboard') {
+            return redirect()->route('admin.dashboard')
+                ->with('success', 'User role updated successfully.');
+        }
 
         return redirect()->route('admin.users.show', $user)
             ->with('success', 'User updated successfully.');

@@ -22,7 +22,7 @@ class ProductController extends Controller
         $search     = $request->query('search');
         $categoryId = $request->query('category_id');
 
-        $query = Product::with('category');
+        $query = Product::with(['category', 'images', 'primaryImage']);
 
         if ($search) {
             $query->where('name', 'LIKE', "%{$search}%")
@@ -402,6 +402,24 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')
             ->with('success', "{$count} product(s) deleted successfully.");
+    }
+
+    /**
+     * Bulk update status
+     */
+    public function bulkUpdateStatus(Request $request)
+    {
+        $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'exists:products,id',
+            'status' => 'required|in:active,draft,archived',
+        ]);
+
+        $count = Product::whereIn('id', $request->product_ids)
+            ->update(['status' => $request->status]);
+
+        return redirect()->route('admin.products.index')
+            ->with('success', "Status updated for {$count} product(s).");
     }
 
     /**

@@ -43,7 +43,7 @@
 
             <!-- Main Content -->
             <main class="flex-1 min-w-0 max-[991px]:pl-0 min-[992px]:pl-10">
-                <div class="w-full px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 2xl:py-8" style="max-width: 66rem; margin-left: auto; margin-right: auto;">
+                <div class="w-full px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 2xl:py-8" style="max-width: 95%; margin-left: auto; margin-right: auto;">
                     {{ $slot }}
                 </div>
             </main>

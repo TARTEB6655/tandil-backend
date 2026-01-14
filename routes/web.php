@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\AreaController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ComplaintController;
 use App\Http\Controllers\Admin\HrController;
 use App\Http\Controllers\Admin\SettingController;
@@ -94,6 +96,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('products/import', [ProductController::class, 'import'])->name('products.import.store');
         Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
         Route::post('products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
+        Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus'])->name('products.bulk-update-status');
         Route::post('products/bulk-update-stock', [ProductController::class, 'bulkUpdateStock'])->name('products.bulk-update-stock');
         Route::post('products/{id}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle-status');
         

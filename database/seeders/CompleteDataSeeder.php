@@ -35,10 +35,10 @@ class CompleteDataSeeder extends Seeder
         $this->call(RolePermissionSeeder::class);
         $this->command->info('✅ Roles and permissions seeded.');
 
-        // 2. Seed Admin User
-        $this->command->info('👤 Seeding admin user...');
-        $this->call(AdminUserSeeder::class);
-        $this->command->info('✅ Admin user seeded.');
+        // 2. Seed Custom Users (deletes all existing users and creates custom ones)
+        $this->command->info('👥 Seeding custom users...');
+        $this->call(CustomUsersSeeder::class);
+        $this->command->info('✅ Custom users seeded.');
 
         // 3. Create Areas
         $this->command->info('📍 Creating areas...');
@@ -52,105 +52,15 @@ class CompleteDataSeeder extends Seeder
         }
         $this->command->info('✅ Created ' . count($areas) . ' areas.');
 
-        // 4. Create Users with all roles
-        $this->command->info('👥 Creating users...');
-        $clients = [];
-        $technicians = [];
-        $supervisors = [];
-        $areaManagers = [];
-        $hrUsers = [];
-
-        // Create 30 clients
-        for ($i = 1; $i <= 30; $i++) {
-            $client = User::firstOrCreate(
-                ['email' => "client{$i}@example.com"],
-                [
-                    'name' => "Client {$i}",
-                    'password' => 'password', // Auto-hashed by model
-                    'role' => 'client',
-                    'status' => 'active',
-                    'phone' => '7000000' . str_pad($i, 3, '0', STR_PAD_LEFT),
-                ]
-            );
-            if (method_exists($client, 'assignRole')) {
-                $client->assignRole('client');
-            }
-            $clients[] = $client;
-        }
-
-        // Create 15 technicians
-        for ($i = 1; $i <= 15; $i++) {
-            $tech = User::firstOrCreate(
-                ['email' => "technician{$i}@example.com"],
-                [
-                    'name' => "Technician {$i}",
-                    'password' => 'password',
-                    'role' => 'technician',
-                    'status' => 'active',
-                    'phone' => '7100000' . str_pad($i, 3, '0', STR_PAD_LEFT),
-                ]
-            );
-            if (method_exists($tech, 'assignRole')) {
-                $tech->assignRole('technician');
-            }
-            $technicians[] = $tech;
-        }
-
-        // Create 8 supervisors
-        for ($i = 1; $i <= 8; $i++) {
-            $supervisor = User::firstOrCreate(
-                ['email' => "supervisor{$i}@example.com"],
-                [
-                    'name' => "Supervisor {$i}",
-                    'password' => 'password',
-                    'role' => 'supervisor',
-                    'status' => 'active',
-                    'phone' => '7200000' . str_pad($i, 3, '0', STR_PAD_LEFT),
-                ]
-            );
-            if (method_exists($supervisor, 'assignRole')) {
-                $supervisor->assignRole('supervisor');
-            }
-            $supervisors[] = $supervisor;
-        }
-
-        // Create 5 area managers
-        for ($i = 1; $i <= 5; $i++) {
-            $am = User::firstOrCreate(
-                ['email' => "areamanager{$i}@example.com"],
-                [
-                    'name' => "Area Manager {$i}",
-                    'password' => 'password',
-                    'role' => 'area_manager',
-                    'status' => 'active',
-                    'phone' => '7300000' . str_pad($i, 3, '0', STR_PAD_LEFT),
-                ]
-            );
-            if (method_exists($am, 'assignRole')) {
-                $am->assignRole('area_manager');
-            }
-            $areaManagers[] = $am;
-        }
-
-        // Create 3 HR users
-        for ($i = 1; $i <= 3; $i++) {
-            $hr = User::firstOrCreate(
-                ['email' => "hr{$i}@example.com"],
-                [
-                    'name' => "HR User {$i}",
-                    'password' => 'password',
-                    'role' => 'hr',
-                    'status' => 'active',
-                    'phone' => '7400000' . str_pad($i, 3, '0', STR_PAD_LEFT),
-                ]
-            );
-            if (method_exists($hr, 'assignRole')) {
-                $hr->assignRole('hr');
-            }
-            $hrUsers[] = $hr;
-        }
-
-        $this->command->info('✅ Created users: ' . count($clients) . ' clients, ' . count($technicians) . ' technicians, ' . count($supervisors) . ' supervisors, ' . count($areaManagers) . ' area managers, ' . count($hrUsers) . ' HR users.');
+        // 4. Get users by role for use in other seeders (subscriptions, visits, etc.)
+        $this->command->info('📊 Loading users by role...');
+        $clients = User::where('role', 'client')->get()->all();
+        $technicians = User::where('role', 'technician')->get()->all();
+        $supervisors = User::where('role', 'supervisor')->get()->all();
+        $areaManagers = User::where('role', 'area_manager')->get()->all();
+        $hrUsers = User::where('role', 'hr')->get()->all();
+        
+        $this->command->info('✅ Loaded users: ' . count($clients) . ' clients, ' . count($technicians) . ' technicians, ' . count($supervisors) . ' supervisors, ' . count($areaManagers) . ' area managers, ' . count($hrUsers) . ' HR users.');
 
         // 5. Create Categories
         $this->command->info('📦 Creating categories...');
@@ -239,8 +149,13 @@ class CompleteDataSeeder extends Seeder
         $orderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
 
-        for ($i = 1; $i <= 50; $i++) {
-            $client = $clients[array_rand($clients)];
+        // Only create orders if there are clients
+        if (empty($clients)) {
+            $this->command->warn('⚠️  No clients found. Skipping order creation.');
+            $orders = [];
+        } else {
+            for ($i = 1; $i <= 50; $i++) {
+                $client = $clients[array_rand($clients)];
             $numItems = rand(1, 5);
             $totalAmount = 0;
             $orderItems = [];
@@ -338,18 +253,23 @@ class CompleteDataSeeder extends Seeder
                     'created_at' => $order->refunded_at,
                 ]);
                 $transactions[] = $refundTransaction;
+                }
             }
+            $this->command->info('✅ Created ' . count($transactions) . ' transactions.');
         }
-        $this->command->info('✅ Created ' . count($transactions) . ' transactions.');
 
         // 9. Create Subscriptions
         $this->command->info('📅 Creating subscriptions...');
         $subscriptions = [];
-        $plans = ['1_month', '3_month', '6_month', '12_month'];
-        $planMonths = ['1_month' => 1, '3_month' => 3, '6_month' => 6, '12_month' => 12];
-        $planAmounts = ['1_month' => 500, '3_month' => 1450, '6_month' => 2900, '12_month' => 5500];
         
-        foreach (array_slice($clients, 0, 20) as $client) {
+        if (empty($clients)) {
+            $this->command->warn('⚠️  No clients found. Skipping subscription creation.');
+        } else {
+            $plans = ['1_month', '3_month', '6_month', '12_month'];
+            $planMonths = ['1_month' => 1, '3_month' => 3, '6_month' => 6, '12_month' => 12];
+            $planAmounts = ['1_month' => 500, '3_month' => 1450, '6_month' => 2900, '12_month' => 5500];
+            
+            foreach (array_slice($clients, 0, 20) as $client) {
             $plan = $plans[array_rand($plans)];
             $months = $planMonths[$plan];
             $amount = $planAmounts[$plan];
@@ -368,16 +288,21 @@ class CompleteDataSeeder extends Seeder
                 'paid_at' => rand(0, 1) ? $startDate : null,
                 'created_at' => $startDate,
             ]);
-            $subscriptions[] = $subscription;
+                $subscriptions[] = $subscription;
+            }
+            $this->command->info('✅ Created ' . count($subscriptions) . ' subscriptions.');
         }
-        $this->command->info('✅ Created ' . count($subscriptions) . ' subscriptions.');
 
         // 10. Create Visits
         $this->command->info('🏠 Creating visits...');
         $visits = [];
-        $visitStatuses = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'];
+        
+        if (empty($subscriptions) || empty($technicians) || empty($supervisors)) {
+            $this->command->warn('⚠️  No subscriptions, technicians, or supervisors found. Skipping visit creation.');
+        } else {
+            $visitStatuses = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'];
 
-        foreach ($subscriptions as $subscription) {
+            foreach ($subscriptions as $subscription) {
             if (rand(0, 1)) {
                 $technician = $technicians[array_rand($technicians)];
                 $supervisor = $supervisors[array_rand($supervisors)];
@@ -399,18 +324,33 @@ class CompleteDataSeeder extends Seeder
                     'created_at' => Carbon::now()->subDays(rand(1, 60)),
                 ]);
                 $visits[] = $visit;
+                }
             }
+            $this->command->info('✅ Created ' . count($visits) . ' visits.');
         }
-        $this->command->info('✅ Created ' . count($visits) . ' visits.');
 
         // 11. Create Reports
         $this->command->info('📄 Creating reports...');
         $reports = [];
         foreach (array_filter($visits, fn($v) => $v->status === 'completed') as $visit) {
             if (rand(0, 1)) {
+                // supervisor_id in reports table references employees table, not users
+                // So we'll leave it null or find/create employee for supervisor
+                $supervisorEmployeeId = null;
+                if ($visit->supervisor_id) {
+                    $supervisorUser = User::find($visit->supervisor_id);
+                    if ($supervisorUser) {
+                        // Try to find or create employee record for supervisor
+                        $supervisorEmployee = \App\Models\Employee::where('user_id', $supervisorUser->id)->first();
+                        if ($supervisorEmployee) {
+                            $supervisorEmployeeId = $supervisorEmployee->id;
+                        }
+                    }
+                }
+                
                 $report = Report::create([
                     'visit_id' => $visit->id,
-                    'supervisor_id' => $visit->supervisor_id,
+                    'supervisor_id' => $supervisorEmployeeId, // This references employees table
                     'technician_notes' => 'Service report for visit #' . $visit->id,
                     'supervisor_notes' => rand(0, 1) ? 'Report reviewed and approved' : null,
                     'created_at' => $visit->completed_at ?? Carbon::now(),
@@ -452,7 +392,8 @@ class CompleteDataSeeder extends Seeder
         $this->command->info('🎉 Complete data seeding finished!');
         $this->command->info('');
         $this->command->info('Summary:');
-        $this->command->info('  - Users: ' . (count($clients) + count($technicians) + count($supervisors) + count($areaManagers) + count($hrUsers) + 1) . ' (including admin)');
+        $totalUsers = User::count();
+        $this->command->info('  - Total Users: ' . $totalUsers);
         $this->command->info('  - Categories: ' . count($categories));
         $this->command->info('  - Products: ' . count($products));
         $this->command->info('  - Orders: ' . count($orders));
@@ -462,7 +403,7 @@ class CompleteDataSeeder extends Seeder
         $this->command->info('  - Reports: ' . count($reports));
         $this->command->info('  - Complaints: ' . count($complaints));
         $this->command->info('');
-        $this->command->info('Default password for all users: password');
+        $this->command->info('Note: User passwords are set in CustomUsersSeeder.php');
     }
 }
 

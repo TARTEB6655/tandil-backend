@@ -2,7 +2,7 @@
   "info": {
     "name": "Tandil Backend - Full API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Full Tandil backend API collection for frontend integration and smoke tests. Import this into Postman and import the accompanying environment."
   },
   "item": [
@@ -61,44 +61,84 @@
       "item": [
         {
           "name": "Users - List",
-          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/admin/users", "host": ["{{base_url}}"], "path": ["api","admin","users"] } }
+          "request": { 
+            "method": "GET", 
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ], 
+            "url": { "raw": "{{base_url}}/api/admin/users", "host": ["{{base_url}}"], "path": ["api","admin","users"] } 
+          }
         },
         {
           "name": "Users - Create",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
             "body": { "mode": "raw", "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"new.user+{{timestamp}}@example.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"phone\": \"70000003\",\n  \"role\": \"client\"\n}" },
             "url": { "raw": "{{base_url}}/api/admin/users", "host": ["{{base_url}}"], "path": ["api","admin","users"] }
           }
         },
         {
           "name": "Users - Show",
-          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/admin/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","admin","users","{{user_id}}"] } }
+          "request": { 
+            "method": "GET", 
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ], 
+            "url": { "raw": "{{base_url}}/api/admin/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","admin","users","{{user_id}}"] } 
+          }
         },
         {
           "name": "Users - Update",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
             "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\"\n}" },
             "url": { "raw": "{{base_url}}/api/admin/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","admin","users","{{user_id}}"] }
           }
         },
         {
           "name": "Users - Delete",
-          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/admin/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","admin","users","{{user_id}}"] } }
+          "request": { 
+            "method": "DELETE", 
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ], 
+            "url": { "raw": "{{base_url}}/api/admin/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","admin","users","{{user_id}}"] } 
+          }
         },
 
         {
           "name": "Roles - List",
-          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/admin/roles", "host": ["{{base_url}}"], "path": ["api","admin","roles"] } }
+          "request": { 
+            "method": "GET", 
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ], 
+            "url": { "raw": "{{base_url}}/api/admin/roles", "host": ["{{base_url}}"], "path": ["api","admin","roles"] } 
+          }
         },
         {
           "name": "Roles - Create",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
             "body": { "mode": "raw", "raw": "{\n  \"name\": \"new_role\"\n}" },
             "url": { "raw": "{{base_url}}/api/admin/roles", "host": ["{{base_url}}"], "path": ["api","admin","roles"] }
           }
@@ -106,7 +146,80 @@
 
         {
           "name": "HR - Employees - List",
-          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/admin/hr/employees", "host": ["{{base_url}}"], "path": ["api","admin","hr","employees"] } }
+          "request": { 
+            "method": "GET", 
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ], 
+            "url": { "raw": "{{base_url}}/api/admin/hr/employees", "host": ["{{base_url}}"], "path": ["api","admin","hr","employees"] } 
+          }
+        },
+        {
+          "name": "HR - Employees - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe+{{timestamp}}@example.com\",\n  \"employee_id\": \"EMP-{{timestamp}}\",\n  \"phone\": \"+971501234569\",\n  \"designation\": \"Technician\",\n  \"region\": \"Dubai\",\n  \"joining_date\": \"2025-01-01\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/admin/hr/employees", "host": ["{{base_url}}"], "path": ["api","admin","hr","employees"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.id) { pm.environment.set('employee_id', json.data.id); }",
+                  "pm.test('Employee created successfully', function () { pm.expect(json.status).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "HR - Employees - Show",
+          "request": { 
+            "method": "GET", 
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ], 
+            "url": { "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}", "host": ["{{base_url}}"], "path": ["api","admin","hr","employees","{{employee_id}}"] } 
+          }
+        },
+        {
+          "name": "HR - Employees - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"john.doe.updated@example.com\",\n  \"phone\": \"+971501234570\",\n  \"designation\": \"Senior Technician\",\n  \"region\": \"Abu Dhabi\",\n  \"joining_date\": \"2025-01-15\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}", "host": ["{{base_url}}"], "path": ["api","admin","hr","employees","{{employee_id}}"] }
+          }
+        },
+        {
+          "name": "HR - Employees - Delete",
+          "request": { 
+            "method": "DELETE", 
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ], 
+            "url": { "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}", "host": ["{{base_url}}"], "path": ["api","admin","hr","employees","{{employee_id}}"] } 
+          }
         }
       ]
     },
@@ -178,6 +291,7 @@
     { "key": "product_id", "value": "1" },
     { "key": "cart_item_id", "value": "1" },
     { "key": "order_id", "value": "1" },
+    { "key": "employee_id", "value": "1" },
     { "key": "timestamp", "value": "" }
   ]
 }
