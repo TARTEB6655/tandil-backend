@@ -397,7 +397,8 @@ class CompleteDataSeeder extends Seeder
         $this->command->info('  - Categories: ' . count($categories));
         $this->command->info('  - Products: ' . count($products));
         $this->command->info('  - Orders: ' . count($orders));
-        $this->command->info('  - Transactions: ' . count($transactions));
+        $totalTransactions = \App\Models\Transaction::count();
+        $this->command->info('  - Transactions: ' . $totalTransactions);
         $this->command->info('  - Subscriptions: ' . count($subscriptions));
         $this->command->info('  - Visits: ' . count($visits));
         $this->command->info('  - Reports: ' . count($reports));
