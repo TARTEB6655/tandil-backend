@@ -206,6 +206,7 @@ class CompleteDataSeeder extends Seeder
             }
 
             $orders[] = $order;
+            }
         }
         $this->command->info('✅ Created ' . count($orders) . ' orders with items.');
 
