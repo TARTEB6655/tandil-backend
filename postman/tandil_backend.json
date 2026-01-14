@@ -2534,7 +2534,6 @@
                     ],
                     "description": "Admin product management APIs - Create, Read, Update, Delete products"
                 },
-            "item": [
                 {
                     "name": "Users - List",
                     "request": {
