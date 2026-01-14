@@ -107,5 +107,58 @@ class ProductController extends Controller
             'data' => $product
         ]);
     }
+
+    /**
+     * Get all categories.
+     */
+    public function getCategories()
+    {
+        $categories = \App\Models\Category::withCount(['products' => function($query) {
+            $query->where('status', 'active');
+        }])
+        ->orderBy('name')
+        ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Categories retrieved successfully',
+            'data' => $categories
+        ]);
+    }
+
+    /**
+     * Get products by category.
+     */
+    public function getByCategory($id)
+    {
+        $category = \App\Models\Category::find($id);
+        
+        if (!$category) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Category not found'
+            ], 404);
+        }
+
+        $products = Product::where('category_id', $category->id)
+            ->where('status', 'active')
+            ->with(['category', 'images', 'primaryImage'])
+            ->paginate(12);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Products retrieved successfully',
+            'data' => [
+                'category' => $category,
+                'products' => $products->items(),
+                'pagination' => [
+                    'current_page' => $products->currentPage(),
+                    'last_page' => $products->lastPage(),
+                    'per_page' => $products->perPage(),
+                    'total' => $products->total(),
+                ]
+            ]
+        ]);
+    }
 }
 
