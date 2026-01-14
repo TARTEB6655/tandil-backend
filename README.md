@@ -1,3 +1,8 @@
+
+<img width="1599" height="761" alt="image" src="https://github.com/user-attachments/assets/2c991817-373a-454d-985c-96453d062a2a" />
+
+
+
 # 🌿 Tandil Backend (Laravel API)
 
 Tandil is an agriculture service management platform designed for home & farm maintenance.  
