@@ -91,7 +91,7 @@ if (strpos($envFile, 'APP_KEY=base64:') === false && strpos($envFile, 'APP_KEY='
     echo "  ✅ Application key already exists\n\n";
 }
 
-// Step 6: Create directories
+// Step 6: Create directories with proper permissions
 echo "[6/10] Creating storage directories...\n";
 $dirs = [
     'storage/framework/cache/data',
@@ -103,10 +103,16 @@ $dirs = [
 foreach ($dirs as $dir) {
     $path = __DIR__ . '/' . $dir;
     if (!is_dir($path)) {
-        @mkdir($path, 0755, true);
+        @mkdir($path, 0775, true);
+        @chmod($path, 0775);
+    } else {
+        @chmod($path, 0775);
     }
 }
-echo "  ✅ Storage directories created\n\n";
+// Set permissions recursively
+@chmod(__DIR__ . '/storage', 0775);
+@chmod(__DIR__ . '/bootstrap/cache', 0775);
+echo "  ✅ Storage directories created with proper permissions\n\n";
 
 // Step 7: Clear caches
 echo "[7/10] Clearing all caches...\n";

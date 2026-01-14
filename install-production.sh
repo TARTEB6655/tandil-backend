@@ -93,15 +93,17 @@ else
     echo -e "${GREEN}✓${NC} Application key already exists"
 fi
 
-# Step 7: Create necessary directories
+# Step 7: Create necessary directories with proper permissions
 echo -e "${GREEN}[7/10]${NC} Creating storage directories..."
 mkdir -p storage/framework/cache/data
 mkdir -p storage/framework/sessions
 mkdir -p storage/framework/views
 mkdir -p storage/logs
 mkdir -p bootstrap/cache
-chmod -R 775 storage bootstrap/cache
-echo -e "${GREEN}✓${NC} Storage directories created"
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+chmod -R 775 storage/framework/views
+echo -e "${GREEN}✓${NC} Storage directories created with proper permissions"
 
 # Step 8: Clear all caches
 echo -e "${GREEN}[8/10]${NC} Clearing all caches..."
