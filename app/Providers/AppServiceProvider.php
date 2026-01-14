@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Ensure view compiled directory exists (fixes view:clear errors)
+        $viewPath = storage_path('framework/views');
+        if (!is_dir($viewPath)) {
+            @mkdir($viewPath, 0775, true);
+        }
+        
         // Use Tailwind pagination view
         \Illuminate\Pagination\Paginator::defaultView('vendor.pagination.tailwind');
         \Illuminate\Pagination\Paginator::defaultSimpleView('vendor.pagination.simple-tailwind');

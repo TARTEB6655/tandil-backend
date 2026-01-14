@@ -253,10 +253,9 @@ class CompleteDataSeeder extends Seeder
                     'created_at' => $order->refunded_at,
                 ]);
                 $transactions[] = $refundTransaction;
-                }
             }
-            $this->command->info('✅ Created ' . count($transactions) . ' transactions.');
         }
+        $this->command->info('✅ Created ' . count($transactions) . ' transactions.');
 
         // 9. Create Subscriptions
         $this->command->info('📅 Creating subscriptions...');
