@@ -36,24 +36,41 @@ class ClientDashboardController extends Controller
             ->count();
         
         // Get all visits for this client's subscriptions
-        $subscriptionIds = Subscription::where('client_id', $user->id)->pluck('id');
-        $totalVisits = Visit::whereIn('subscription_id', $subscriptionIds)->count();
-        $completedVisits = Visit::whereIn('subscription_id', $subscriptionIds)
-            ->where('status', 'completed')
-            ->count();
-        $pendingVisits = Visit::whereIn('subscription_id', $subscriptionIds)
-            ->where('status', 'pending')
-            ->count();
-        $inProgressVisits = Visit::whereIn('subscription_id', $subscriptionIds)
-            ->whereIn('status', ['accepted', 'started'])
-            ->count();
+        $subscriptionIds = Subscription::where('client_id', $user->id)->pluck('id')->toArray();
         
-        // Reports - get reports for visits belonging to this client's subscriptions
-        $visitIds = Visit::whereIn('subscription_id', $subscriptionIds)->pluck('id');
-        $totalReports = Report::whereIn('visit_id', $visitIds)->count();
-        $approvedReports = Report::whereIn('visit_id', $visitIds)
-            ->where('status', 'approved')
-            ->count();
+        // Handle empty subscription IDs to prevent query errors
+        if (empty($subscriptionIds)) {
+            $totalVisits = 0;
+            $completedVisits = 0;
+            $pendingVisits = 0;
+            $inProgressVisits = 0;
+            $visitIds = [];
+            $totalReports = 0;
+            $approvedReports = 0;
+        } else {
+            $totalVisits = Visit::whereIn('subscription_id', $subscriptionIds)->count();
+            $completedVisits = Visit::whereIn('subscription_id', $subscriptionIds)
+                ->where('status', 'completed')
+                ->count();
+            $pendingVisits = Visit::whereIn('subscription_id', $subscriptionIds)
+                ->where('status', 'pending')
+                ->count();
+            $inProgressVisits = Visit::whereIn('subscription_id', $subscriptionIds)
+                ->whereIn('status', ['accepted', 'started'])
+                ->count();
+            
+            // Reports - get reports for visits belonging to this client's subscriptions
+            $visitIds = Visit::whereIn('subscription_id', $subscriptionIds)->pluck('id')->toArray();
+            if (empty($visitIds)) {
+                $totalReports = 0;
+                $approvedReports = 0;
+            } else {
+                $totalReports = Report::whereIn('visit_id', $visitIds)->count();
+                $approvedReports = Report::whereIn('visit_id', $visitIds)
+                    ->where('status', 'approved')
+                    ->count();
+            }
+        }
         
         // Orders
         $totalOrders = Order::where('user_id', $user->id)->count();
@@ -86,8 +103,8 @@ class ClientDashboardController extends Controller
             ->take(5)
             ->get();
         
-        $recentVisitsQuery = Visit::whereIn('subscription_id', $subscriptionIds);
-        if ($search) {
+        $recentVisitsQuery = !empty($subscriptionIds) ? Visit::whereIn('subscription_id', $subscriptionIds) : Visit::whereRaw('1 = 0');
+        if ($search && !empty($subscriptionIds)) {
             $recentVisitsQuery->where(function($q) use ($search) {
                 $q->where('status', 'LIKE', "%{$search}%")
                   ->orWhere('notes', 'LIKE', "%{$search}%")
@@ -104,8 +121,8 @@ class ClientDashboardController extends Controller
             ->take(5)
             ->get();
         
-        $recentReportsQuery = Report::whereIn('visit_id', $visitIds);
-        if ($search) {
+        $recentReportsQuery = !empty($visitIds) ? Report::whereIn('visit_id', $visitIds) : Report::whereRaw('1 = 0');
+        if ($search && !empty($visitIds)) {
             $recentReportsQuery->where(function($q) use ($search) {
                 $q->where('notes', 'LIKE', "%{$search}%")
                   ->orWhere('technician_notes', 'LIKE', "%{$search}%")
@@ -144,10 +161,12 @@ class ClientDashboardController extends Controller
             ->sum('amount');
         
         // Visits by status
-        $visitsByStatus = Visit::whereIn('subscription_id', $subscriptionIds)
-            ->select('status', DB::raw('COUNT(*) as count'))
-            ->groupBy('status')
-            ->get();
+        $visitsByStatus = !empty($subscriptionIds) 
+            ? Visit::whereIn('subscription_id', $subscriptionIds)
+                ->select('status', DB::raw('COUNT(*) as count'))
+                ->groupBy('status')
+                ->get()
+            : collect();
         
         // Orders by status
         $ordersByStatus = Order::where('user_id', $user->id)
@@ -155,17 +174,22 @@ class ClientDashboardController extends Controller
             ->groupBy('order_status')
             ->get();
         
-        // Monthly spending (last 6 months)
+        // Monthly spending (last 6 months) - Use database-agnostic date formatting
         $monthlySpending = Order::where('user_id', $user->id)
             ->where('payment_status', 'paid')
-            ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
-                DB::raw('SUM(total_amount) as amount')
-            )
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
-            ->groupBy('month')
-            ->orderBy('month', 'asc')
-            ->get();
+            ->get()
+            ->groupBy(function($order) {
+                return $order->created_at->format('Y-m');
+            })
+            ->map(function($orders) {
+                return [
+                    'month' => $orders->first()->created_at->format('Y-m'),
+                    'amount' => $orders->sum('total_amount')
+                ];
+            })
+            ->values()
+            ->sortBy('month');
 
         return view('client.dashboard', compact(
             'totalSubscriptions',
