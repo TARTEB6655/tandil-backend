@@ -11,13 +11,24 @@ $app = require_once __DIR__.'/bootstrap/app.php';
 
 echo "=== Clearing All Laravel Caches ===\n\n";
 
+// Clear config cache FIRST (critical for view config to work)
+echo "1. Clearing config cache...\n";
 try {
-    // Clear config cache
-    echo "1. Clearing config cache...\n";
-    $app->make('Illuminate\Contracts\Console\Kernel')->call('config:clear');
-    echo "   ✅ Config cache cleared\n\n";
+    // Delete config cache file directly
+    $configCache = bootstrap_path('cache/config.php');
+    if (file_exists($configCache)) {
+        @unlink($configCache);
+    }
+    echo "   ✅ Config cache file removed\n";
 } catch (\Exception $e) {
-    echo "   ⚠️  Config cache: " . $e->getMessage() . "\n\n";
+    echo "   ⚠️  Config cache: " . $e->getMessage() . "\n";
+}
+
+try {
+    $app->make('Illuminate\Contracts\Console\Kernel')->call('config:clear');
+    echo "   ✅ Config cache cleared via artisan\n\n";
+} catch (\Exception $e) {
+    echo "   ⚠️  Config cache (artisan): " . $e->getMessage() . "\n\n";
 }
 
 try {
@@ -29,35 +40,34 @@ try {
     echo "   ⚠️  Route cache: " . $e->getMessage() . "\n\n";
 }
 
+// Clear view cache (with proper path handling)
+echo "3. Clearing view cache...\n";
 try {
-    // Clear view cache
-    echo "3. Clearing view cache...\n";
+    // Ensure view cache directory exists
     $viewPath = storage_path('framework/views');
     if (!is_dir($viewPath)) {
         @mkdir($viewPath, 0755, true);
     }
-    $app->make('Illuminate\Contracts\Console\Kernel')->call('view:clear');
-    echo "   ✅ View cache cleared\n\n";
-} catch (\Exception $e) {
-    // Fallback: manually clear view cache
-    echo "   ⚠️  View cache (artisan): " . $e->getMessage() . "\n";
-    try {
-        $viewPath = storage_path('framework/views');
-        if (is_dir($viewPath)) {
-            $files = glob($viewPath . '/*');
-            foreach ($files as $file) {
-                if (is_file($file) && basename($file) !== '.gitignore') {
-                    @unlink($file);
-                }
+    
+    // Manually clear view cache files first
+    if (is_dir($viewPath)) {
+        $files = glob($viewPath . '/*');
+        foreach ($files as $file) {
+            if (is_file($file) && basename($file) !== '.gitignore') {
+                @unlink($file);
             }
-            echo "   ✅ View cache manually cleared\n\n";
-        } else {
-            @mkdir($viewPath, 0755, true);
-            echo "   ✅ View cache directory created\n\n";
         }
-    } catch (\Exception $e2) {
-        echo "   ❌ View cache: " . $e2->getMessage() . "\n\n";
     }
+    
+    // Try artisan command (may fail if config not loaded, but files are already cleared)
+    try {
+        $app->make('Illuminate\Contracts\Console\Kernel')->call('view:clear');
+        echo "   ✅ View cache cleared via artisan\n\n";
+    } catch (\Exception $e) {
+        echo "   ✅ View cache files manually cleared (artisan skipped)\n\n";
+    }
+} catch (\Exception $e) {
+    echo "   ⚠️  View cache: " . $e->getMessage() . "\n\n";
 }
 
 try {
