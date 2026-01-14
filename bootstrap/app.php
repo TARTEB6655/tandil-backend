@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Register middleware aliases required by the application
         $middleware->alias([
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'role' => \App\Http\Middleware\CheckRole::class, // Custom role middleware that checks both Spatie and role field
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         ]);
         

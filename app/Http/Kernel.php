@@ -33,8 +33,8 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'bindings' => \Illuminate\Routing\Middleware\SubstituteBindings::class,
 
-        // Spatie permission middleware
-        'role' => \Spatie\Permission\Middlewares\RoleMiddleware::class,
+        // Custom role middleware that checks both Spatie Permission and role field
+        'role' => \App\Http\Middleware\CheckRole::class,
         'permission' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
         'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
     ];
