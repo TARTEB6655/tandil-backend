@@ -74,12 +74,20 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
-            'password' => bcrypt($data['password']),
+            'password' => $data['password'], // Model will auto-hash due to 'hashed' cast
             'role' => $data['role'],
             'status' => $data['status'],
         ]);
 
-        $user->assignRole($data['role']);
+        // Ensure role exists before assigning
+        $role = \Spatie\Permission\Models\Role::where('name', $data['role'])->first();
+        if ($role) {
+            $user->assignRole($data['role']);
+        } else {
+            // Create role if it doesn't exist
+            $role = \Spatie\Permission\Models\Role::create(['name' => $data['role'], 'guard_name' => 'web']);
+            $user->assignRole($role);
+        }
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User created successfully.');
@@ -116,12 +124,21 @@ class UserController extends Controller
         if (isset($data['email'])) $user->email = $data['email'];
         if (array_key_exists('phone', $data)) $user->phone = $data['phone'] ?? null;
         if (isset($data['status'])) $user->status = $data['status'];
-        if (isset($data['password'])) $user->password = bcrypt($data['password']);
+        if (isset($data['password'])) $user->password = $data['password']; // Model will auto-hash due to 'hashed' cast
 
         // Update role
         if (isset($data['role'])) {
             $user->role = $data['role'];       // update column
-            $user->syncRoles([$data['role']]); // update spatie role
+            
+            // Ensure role exists before syncing
+            $role = \Spatie\Permission\Models\Role::where('name', $data['role'])->first();
+            if ($role) {
+                $user->syncRoles([$data['role']]); // update spatie role
+            } else {
+                // Create role if it doesn't exist
+                $role = \Spatie\Permission\Models\Role::create(['name' => $data['role'], 'guard_name' => 'web']);
+                $user->syncRoles([$role]);
+            }
         }
 
         $user->save();
