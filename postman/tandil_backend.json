@@ -873,6 +873,142 @@
                     }
                 },
                 {
+                    "name": "Products - Search (Public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/products/search?q=fertilizer",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "products",
+                                "search"
+                            ],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": "fertilizer",
+                                    "description": "Search query"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "12",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Search products by query string (Public - alternative route)"
+                    }
+                },
+                {
+                    "name": "Products - Get Categories (Public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/products/categories",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "products",
+                                "categories"
+                            ]
+                        },
+                        "description": "Get all product categories (Public - alternative route)"
+                    }
+                },
+                {
+                    "name": "Products - Get by Category (Public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/products/category/{{category_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "products",
+                                "category",
+                                "{{category_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "12",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get products by category ID (Public - alternative route)"
+                    }
+                },
+                {
+                    "name": "Products - List (Alternative Route)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/products?per_page=12",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "products"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "12"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "List products (Public - alternative route /api/products)"
+                    }
+                },
+                {
                     "name": "Cart - Add Item",
                     "event": [
                         {
@@ -1122,6 +1258,235 @@
                     }
                 },
                 {
+                    "name": "Orders - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"order_status\": \"processing\",\n  \"payment_status\": \"paid\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/{{order_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders",
+                                "{{order_id}}"
+                            ]
+                        },
+                        "description": "Update order status (Alternative route /api/orders/{id})"
+                    }
+                },
+                {
+                    "name": "Orders - Cancel",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"Customer request\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/{{order_id}}/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders",
+                                "{{order_id}}",
+                                "cancel"
+                            ]
+                        },
+                        "description": "Cancel an order (Alternative route /api/orders/{id}/cancel)"
+                    }
+                },
+                {
+                    "name": "Orders - Track",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/{{order_id}}/track",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders",
+                                "{{order_id}}",
+                                "track"
+                            ]
+                        },
+                        "description": "Track order status (Alternative route /api/orders/{id}/track)"
+                    }
+                },
+                {
+                    "name": "Orders - Rate",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"rating\": 5,\n  \"review\": \"Great product!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/{{order_id}}/rate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders",
+                                "{{order_id}}",
+                                "rate"
+                            ]
+                        },
+                        "description": "Rate and review an order (Alternative route /api/orders/{id}/rate)"
+                    }
+                },
+                {
+                    "name": "Orders - List (Alternative Route)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/orders",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders"
+                            ]
+                        },
+                        "description": "List orders (Alternative route /api/orders)"
+                    }
+                },
+                {
+                    "name": "Orders - Get Details (Alternative Route)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/{{order_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders",
+                                "{{order_id}}"
+                            ]
+                        },
+                        "description": "Get order details (Alternative route /api/orders/{id})"
+                    }
+                },
+                {
+                    "name": "Orders - Checkout (Alternative Route)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"items\": [\n    {\n      \"product_id\": {{product_id}},\n      \"qty\": 2\n    }\n  ],\n  \"total_amount\": 100.00,\n  \"currency\": \"USD\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/orders",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders"
+                            ]
+                        },
+                        "description": "Create order (Alternative route POST /api/orders)"
+                    }
+                },
+                {
                     "name": "Categories - List (Public)",
                     "request": {
                         "method": "GET",
@@ -1252,6 +1617,63 @@
                             ]
                         },
                         "description": "Get payment transaction details"
+                    }
+                },
+                {
+                    "name": "Transactions - List (Alias)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/transactions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "shop",
+                                "transactions"
+                            ]
+                        },
+                        "description": "List transactions (Alias for /api/shop/payments)"
+                    }
+                },
+                {
+                    "name": "Transactions - Get Details (Alias)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/transactions/{{payment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "shop",
+                                "transactions",
+                                "{{payment_id}}"
+                            ]
+                        },
+                        "description": "Get transaction details (Alias for /api/shop/payments/{id})"
                     }
                 },
                 {
