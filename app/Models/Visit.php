@@ -25,6 +25,15 @@ class Visit extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'scheduled_date' => 'date',
+        'completed_date' => 'date',
+        'approved_at' => 'datetime',
+        'accepted_at' => 'datetime',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+    ];
+
     /*
     |--------------------------------------------------------------------------
     | RELATIONSHIPS

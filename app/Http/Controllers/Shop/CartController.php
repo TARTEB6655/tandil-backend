@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
 use App\Models\Cart;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class CartController extends Controller
 {
@@ -15,20 +15,13 @@ class CartController extends Controller
      */
     public function add(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         $user = $request->user();
-        $product = Product::find($request->product_id);
+        $product = Product::findOrFail($request->product_id);
 
         // Check if item already in cart
         $cartItem = Cart::where('user_id', $user->id)
@@ -46,10 +39,7 @@ class CartController extends Controller
             ]);
         }
 
-        return response()->json([
-            'status' => true,
-            'data' => $cartItem->load('product')
-        ], 201);
+        return ApiResponse::success('Item added to cart.', $cartItem->load('product'), 201);
     }
 
     /**
@@ -67,13 +57,10 @@ class CartController extends Controller
             return $item->quantity * $item->product->price;
         });
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'items' => $cartItems,
-                'total' => $total
-            ]
-        ], 200);
+        return ApiResponse::success('Cart retrieved successfully.', [
+            'items' => $cartItems,
+            'total' => $total
+        ]);
     }
 
     /**
@@ -84,20 +71,10 @@ class CartController extends Controller
         $user = $request->user();
         $cartItem = Cart::where('user_id', $user->id)
             ->where('id', $id)
-            ->first();
-
-        if (!$cartItem) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Cart item not found'
-            ], 404);
-        }
+            ->firstOrFail();
 
         $cartItem->delete();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Item removed from cart'
-        ], 200);
+        return ApiResponse::success('Item removed from cart.');
     }
 }

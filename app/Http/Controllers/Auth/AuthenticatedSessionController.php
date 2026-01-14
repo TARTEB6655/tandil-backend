@@ -29,25 +29,33 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        // Role-based dashboard redirects
-        if ($user->hasRole('admin')) {
+        // Role-based dashboard redirects - check both Spatie role and direct role property
+        if ($user->hasRole('admin') || $user->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
 
-        if ($user->hasRole('supervisor')) {
+        if ($user->hasRole('supervisor') || $user->role === 'supervisor') {
             return redirect()->route('supervisor.dashboard');
         }
 
-        if ($user->hasRole('technician')) {
+        if ($user->hasRole('technician') || $user->role === 'technician') {
             return redirect()->route('technician.dashboard');
         }
 
-        if ($user->hasRole('client')) {
+        if ($user->hasRole('client') || $user->role === 'client') {
             return redirect()->route('client.dashboard');
         }
 
-        // Default fallback
-        return redirect()->route('dashboard');
+        if ($user->hasRole('area_manager') || $user->role === 'area_manager') {
+            return redirect()->route('areamanager.dashboard');
+        }
+
+        if ($user->hasRole('hr') || $user->role === 'hr') {
+            return redirect()->route('hr.dashboard');
+        }
+
+        // Default fallback - redirect to dashboard redirect route
+        return redirect()->route('dashboard.redirect');
     }
 
     /**

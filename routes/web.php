@@ -23,6 +23,8 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\Admin\PaymentController;
 
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
 use App\Http\Controllers\Technician\TechnicianDashboardController;
@@ -177,7 +179,31 @@ Route::middleware(['auth', 'role:supervisor'])
     ->name('supervisor.')
     ->group(function () {
         Route::get('/dashboard', [SupervisorDashboardController::class, 'index'])->name('dashboard');
-        // add more supervisor routes here
+        
+        // Visits
+        Route::get('/visits', [\App\Http\Controllers\Supervisor\VisitController::class, 'index'])->name('visits.index');
+        Route::get('/visits/{id}', [\App\Http\Controllers\Supervisor\VisitController::class, 'show'])->name('visits.show');
+        Route::post('/visits/{id}/approve', [\App\Http\Controllers\Supervisor\VisitController::class, 'approve'])->name('visits.approve');
+        Route::post('/visits/{id}/reject', [\App\Http\Controllers\Supervisor\VisitController::class, 'reject'])->name('visits.reject');
+        
+        // Reports
+        Route::get('/reports', [\App\Http\Controllers\Supervisor\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{id}', [\App\Http\Controllers\Supervisor\ReportController::class, 'show'])->name('reports.show');
+        Route::get('/reports/{id}/review', [\App\Http\Controllers\Supervisor\ReportController::class, 'review'])->name('reports.review');
+        Route::post('/reports/{id}/finalize', [\App\Http\Controllers\Supervisor\ReportController::class, 'finalize'])->name('reports.finalize');
+        
+        // Complaints
+        Route::get('/complaints', [\App\Http\Controllers\Supervisor\ComplaintController::class, 'index'])->name('complaints.index');
+        Route::get('/complaints/{id}', [\App\Http\Controllers\Supervisor\ComplaintController::class, 'show'])->name('complaints.show');
+        Route::post('/complaints/{id}/update', [\App\Http\Controllers\Supervisor\ComplaintController::class, 'update'])->name('complaints.update');
+        
+        // Areas
+        Route::get('/areas', [\App\Http\Controllers\Supervisor\AreaController::class, 'index'])->name('areas.index');
+        
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\Supervisor\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 
 // Technician routes
@@ -186,7 +212,30 @@ Route::middleware(['auth', 'role:technician'])
     ->name('technician.')
     ->group(function () {
         Route::get('/dashboard', [TechnicianDashboardController::class, 'index'])->name('dashboard');
-        // add more technician routes here
+        
+        // Visits
+        Route::get('/visits', [\App\Http\Controllers\Technician\VisitController::class, 'index'])->name('visits.index');
+        Route::get('/visits/{id}', [\App\Http\Controllers\Technician\VisitController::class, 'show'])->name('visits.show');
+        Route::post('/visits/{id}/accept', [\App\Http\Controllers\Technician\VisitController::class, 'accept'])->name('visits.accept');
+        Route::post('/visits/{id}/start', [\App\Http\Controllers\Technician\VisitController::class, 'start'])->name('visits.start');
+        Route::post('/visits/{id}/complete', [\App\Http\Controllers\Technician\VisitController::class, 'complete'])->name('visits.complete');
+        Route::post('/visits/{id}/update-notes', [\App\Http\Controllers\Technician\VisitController::class, 'updateNotes'])->name('visits.update-notes');
+        Route::post('/visits/{id}/photos', [\App\Http\Controllers\Technician\VisitController::class, 'uploadPhoto'])->name('visits.upload-photo');
+        
+        // Reports
+        Route::get('/reports', [\App\Http\Controllers\Technician\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/create', [\App\Http\Controllers\Technician\ReportController::class, 'create'])->name('reports.create');
+        Route::post('/reports', [\App\Http\Controllers\Technician\ReportController::class, 'store'])->name('reports.store');
+        Route::get('/reports/{id}', [\App\Http\Controllers\Technician\ReportController::class, 'show'])->name('reports.show');
+        
+        // Complaints
+        Route::get('/complaints', [\App\Http\Controllers\Technician\ComplaintController::class, 'index'])->name('complaints.index');
+        Route::get('/complaints/{id}', [\App\Http\Controllers\Technician\ComplaintController::class, 'show'])->name('complaints.show');
+        
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\Technician\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 
 // Client routes
@@ -195,7 +244,33 @@ Route::middleware(['auth', 'role:client'])
     ->name('client.')
     ->group(function () {
         Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
-        // add more client routes here
+        
+        // Subscriptions
+        Route::get('/subscriptions', [\App\Http\Controllers\Client\SubscriptionController::class, 'index'])->name('subscriptions.index');
+        Route::get('/subscriptions/{id}', [\App\Http\Controllers\Client\SubscriptionController::class, 'show'])->name('subscriptions.show');
+        
+        // Visits
+        Route::get('/visits', [\App\Http\Controllers\Client\VisitController::class, 'index'])->name('visits.index');
+        Route::get('/visits/{id}', [\App\Http\Controllers\Client\VisitController::class, 'show'])->name('visits.show');
+        
+        // Reports
+        Route::get('/reports', [\App\Http\Controllers\Client\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{id}', [\App\Http\Controllers\Client\ReportController::class, 'show'])->name('reports.show');
+        
+        // Orders
+        Route::get('/orders', [\App\Http\Controllers\Client\OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{id}', [\App\Http\Controllers\Client\OrderController::class, 'show'])->name('orders.show');
+        
+        // Complaints
+        Route::get('/complaints', [\App\Http\Controllers\Client\ComplaintController::class, 'index'])->name('complaints.index');
+        Route::get('/complaints/create', [\App\Http\Controllers\Client\ComplaintController::class, 'create'])->name('complaints.create');
+        Route::post('/complaints', [\App\Http\Controllers\Client\ComplaintController::class, 'store'])->name('complaints.store');
+        Route::get('/complaints/{id}', [\App\Http\Controllers\Client\ComplaintController::class, 'show'])->name('complaints.show');
+        
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 
 // Area Manager routes
@@ -204,7 +279,23 @@ Route::middleware(['auth', 'role:area_manager'])
     ->name('areamanager.')
     ->group(function () {
         Route::get('/dashboard', [AreaManagerDashboardController::class, 'index'])->name('dashboard');
-        // add more area manager routes here
+        
+        // Areas
+        Route::get('/areas', [\App\Http\Controllers\AreaManager\AreaController::class, 'index'])->name('areas.index');
+        Route::get('/areas/{id}', [\App\Http\Controllers\AreaManager\AreaController::class, 'show'])->name('areas.show');
+        
+        // Visits
+        Route::get('/visits', [\App\Http\Controllers\AreaManager\VisitController::class, 'index'])->name('visits.index');
+        Route::get('/visits/{id}', [\App\Http\Controllers\AreaManager\VisitController::class, 'show'])->name('visits.show');
+        
+        // Reports
+        Route::get('/reports', [\App\Http\Controllers\AreaManager\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{id}', [\App\Http\Controllers\AreaManager\ReportController::class, 'show'])->name('reports.show');
+        
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\AreaManager\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 
 // HR routes
@@ -213,7 +304,22 @@ Route::middleware(['auth', 'role:hr'])
     ->name('hr.')
     ->group(function () {
         Route::get('/dashboard', [HrDashboardController::class, 'index'])->name('dashboard');
-        // add more HR routes here
+        
+        // Employees
+        Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index'])->name('employees.index');
+        Route::get('/employees/create', [\App\Http\Controllers\HR\EmployeeController::class, 'create'])->name('employees.create');
+        Route::post('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'store'])->name('employees.store');
+        Route::get('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'show'])->name('employees.show');
+        Route::get('/employees/{id}/edit', [\App\Http\Controllers\HR\EmployeeController::class, 'edit'])->name('employees.edit');
+        Route::put('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update'])->name('employees.update');
+        Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy'])->name('employees.destroy');
+        Route::post('/employees/{id}/create-user', [\App\Http\Controllers\HR\EmployeeController::class, 'createUser'])->name('employees.create-user');
+        Route::post('/employees/{id}/update-user-status', [\App\Http\Controllers\HR\EmployeeController::class, 'updateUserStatus'])->name('employees.update-user-status');
+        
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\HR\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     });
 
 // Breeze auth routes (login/logout/password/reset)

@@ -15,8 +15,8 @@ class SupervisorController extends Controller
 {
     public function __construct()
     {
-        // Only users with 'supervisor' role and 'review reports' permission can access these methods
-        $this->middleware(['role:supervisor', 'permission:review reports']);
+        // Middleware is handled in routes, but we can add auth here for safety
+        $this->middleware('auth:sanctum');
     }
 
     /**

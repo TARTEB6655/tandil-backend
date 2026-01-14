@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,17 +14,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->command->info('========================================');
+        $this->command->info('Starting Database Seeding');
+        $this->command->info('========================================');
+        $this->command->info('');
 
-        // Create Test User only if not exists to avoid duplicate error
-        User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            ['name' => 'Test User']
-        );
-
-        // Seed all complete data (roles, users, products, orders, payments, etc.)
+        // Seed in order: Roles -> Users -> Data
         $this->call([
-            \Database\Seeders\CompleteDataSeeder::class,
+            RoleSeeder::class,
+            RolePermissionSeeder::class,
+            CompleteDataSeeder::class,
         ]);
+
+        $this->command->info('');
+        $this->command->info('========================================');
+        $this->command->info('Database Seeding Completed!');
+        $this->command->info('========================================');
     }
 }

@@ -79,6 +79,70 @@ class VisitController extends Controller
     }
 
     /**
+     * Create a new visit
+     */
+    public function store(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            // Validation
+            $validator = Validator::make($request->all(), [
+                'subscription_id' => 'required|exists:subscriptions,id',
+                'technician_id' => 'nullable|exists:users,id',
+                'supervisor_id' => 'nullable|exists:users,id',
+                'area_id' => 'nullable|exists:areas,id',
+                'scheduled_date' => 'required|date',
+                'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Authorization: Only admin or client (for their own subscription) can create visits
+            $subscription = \App\Models\Subscription::find($request->subscription_id);
+            
+            if (!$subscription) {
+                return response()->json(['status' => false, 'message' => 'Subscription not found'], 404);
+            }
+
+            // Check if user is admin or owns the subscription
+            if (!$user->hasRole('admin') && $subscription->client_id !== $user->id) {
+                return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            }
+
+            // Create visit
+            $visit = Visit::create([
+                'subscription_id' => $request->subscription_id,
+                'technician_id' => $request->technician_id,
+                'supervisor_id' => $request->supervisor_id,
+                'area_id' => $request->area_id,
+                'scheduled_date' => $request->scheduled_date,
+                'status' => $request->status ?? 'pending',
+            ]);
+
+            // Load relationships
+            $visit->load(['subscription.client', 'technician', 'supervisor', 'area', 'photos']);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Visit created successfully',
+                'data' => $visit
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to create visit: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Show details of a visit
      */
     public function show(Request $request, $id)
@@ -107,22 +171,31 @@ class VisitController extends Controller
     }
 
     /**
-     * Upload a photo (technician/admin only)
+     * Upload a photo (admin, assigned technician, or client for own visits)
      */
     public function uploadPhoto(Request $request, $id)
     {
-        $visit = Visit::find($id);
+        $visit = Visit::with('subscription')->find($id);
         if (!$visit) {
             return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
         }
 
         $user = $request->user();
 
-        // Authorization: technician assigned or admin
-        if (!(
-            $user->hasRole('admin') ||
-            ($user->hasRole('technician') && $visit->technician_id == $user->id)
-        )) {
+        // Authorization: admin, assigned technician, or client (own subscription)
+        $isAuthorized = false;
+
+        if ($user->hasRole('admin')) {
+            $isAuthorized = true;
+        } elseif ($user->hasRole('technician') && $visit->technician_id == $user->id) {
+            // Technician can upload if assigned to the visit
+            $isAuthorized = true;
+        } elseif ($user->hasRole('client') && $visit->subscription && $visit->subscription->client_id === $user->id) {
+            // Client can upload photos for their own visits
+            $isAuthorized = true;
+        }
+
+        if (!$isAuthorized) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -130,6 +203,11 @@ class VisitController extends Controller
         $validator = Validator::make($request->all(), [
             'photo' => 'required|image|max:5120',
             'type'  => 'nullable|string|in:before,after',
+        ], [
+            'photo.required' => 'Please select an image file to upload.',
+            'photo.image' => 'The uploaded file must be an image.',
+            'photo.max' => 'The image size must not exceed 5MB.',
+            'type.in' => 'The type must be either "before" or "after".',
         ]);
 
         if ($validator->fails()) {
@@ -146,6 +224,119 @@ class VisitController extends Controller
         ]);
 
         return response()->json(['status' => true, 'data' => $photo], 201);
+    }
+
+    /**
+     * Update visit (general update)
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $visit = Visit::with('subscription')->find($id);
+            if (!$visit) {
+                return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
+            }
+
+            $user = $request->user();
+
+            // Authorization: Admin, client (own subscription), technician (assigned), supervisor/area_manager (area supervised)
+            $isAuthorized = false;
+
+            if ($user->hasRole('admin')) {
+                $isAuthorized = true;
+            } elseif ($user->hasRole('client') && $visit->subscription && $visit->subscription->client_id === $user->id) {
+                // Client can update their own visits
+                $isAuthorized = true;
+            } elseif ($user->hasRole('technician') && $visit->technician_id === $user->id) {
+                // Technician can update if assigned
+                $isAuthorized = true;
+            } elseif ($user->hasRole('supervisor') || $user->hasRole('area_manager')) {
+                // Supervisor/Area Manager can update if area is supervised
+                if ($visit->area_id) {
+                    $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+                    if (in_array($visit->area_id, $areaIds)) {
+                        $isAuthorized = true;
+                    }
+                }
+            }
+
+            if (!$isAuthorized) {
+                return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'scheduled_date' => 'nullable|date',
+                'notes' => 'nullable|string|max:2000',
+                'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
+                'technician_id' => 'nullable|exists:users,id',
+                'supervisor_id' => 'nullable|exists:users,id',
+                'area_id' => 'nullable|exists:areas,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            }
+
+            // Role-based status restrictions
+            if ($request->has('status')) {
+                $newStatus = $request->input('status');
+                
+                // Clients can only set: pending, scheduled
+                if ($user->hasRole('client') && !in_array($newStatus, ['pending', 'scheduled'])) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Clients can only set status to pending or scheduled'
+                    ], 403);
+                }
+                
+                // Technicians can only set: in_progress, completed
+                if ($user->hasRole('technician') && !in_array($newStatus, ['in_progress', 'completed'])) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Technicians can only set status to in_progress or completed'
+                    ], 403);
+                }
+                
+                // Supervisors can only set: approved, rejected
+                if ($user->hasRole('supervisor') && !in_array($newStatus, ['approved', 'rejected'])) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Supervisors can only set status to approved or rejected'
+                    ], 403);
+                }
+                
+                $visit->status = $newStatus;
+            }
+
+            if ($request->has('scheduled_date')) {
+                $visit->scheduled_date = $request->input('scheduled_date');
+            }
+            if ($request->has('notes')) {
+                $visit->notes = $request->input('notes');
+            }
+            
+            // Allow admin and client (own subscription) to assign technician/supervisor/area
+            if ($user->hasRole('admin') || ($user->hasRole('client') && $visit->subscription && $visit->subscription->client_id === $user->id)) {
+                if ($request->has('technician_id')) {
+                    $visit->technician_id = $request->input('technician_id');
+                }
+                if ($request->has('supervisor_id')) {
+                    $visit->supervisor_id = $request->input('supervisor_id');
+                }
+                if ($request->has('area_id')) {
+                    $visit->area_id = $request->input('area_id');
+                }
+            }
+
+            $visit->save();
+
+            return response()->json(['status' => true, 'data' => $visit->load(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to update visit: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

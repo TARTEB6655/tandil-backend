@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ApiResponse;
 use App\Models\Complaint;
 use App\Models\Visit;
 use Illuminate\Http\Request;
@@ -20,29 +21,19 @@ class ComplaintController extends Controller
      */
     public function index(Request $request)
     {
-        try {
-            $user = $request->user();
-            if (!$user) {
-                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
-            }
+        $user = $request->user();
 
-            if ($user->hasRole('admin') || $user->hasRole('area_manager') || $user->hasRole('supervisor') || $user->hasRole('hr')) {
-                // Admin and managers can see all complaints
-                $complaints = Complaint::with(['visit', 'client'])->get();
-            } else {
-                // Other users see only their own complaints
-                $complaints = Complaint::with('visit')
-                    ->where('client_id', $user->id)
-                    ->get();
-            }
-
-            return response()->json(['status' => true, 'data' => $complaints]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to fetch complaints: ' . $e->getMessage()
-            ], 500);
+        if ($user->hasRole('admin') || $user->hasRole('area_manager') || $user->hasRole('supervisor') || $user->hasRole('hr')) {
+            // Admin and managers can see all complaints
+            $complaints = Complaint::with(['visit', 'client'])->get();
+        } else {
+            // Other users see only their own complaints
+            $complaints = Complaint::with('visit')
+                ->where('client_id', $user->id)
+                ->get();
         }
+
+        return ApiResponse::success('Complaints retrieved successfully.', $complaints);
     }
 
     /**
@@ -50,45 +41,28 @@ class ComplaintController extends Controller
      */
     public function store(Request $request)
     {
-        try {
-            $user = $request->user();
-            if (!$user) {
-                return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
-            }
+        $user = $request->user();
 
-            $validator = Validator::make($request->all(), [
-                'visit_id' => 'required|exists:visits,id',
-                'notes' => 'required|string|max:1000',
-            ]);
+        $request->validate([
+            'visit_id' => 'required|exists:visits,id',
+            'notes' => 'required|string|max:1000',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
-            }
+        // Check that the visit belongs to the user or user is authorized
+        $visit = Visit::with('subscription')->findOrFail($request->input('visit_id'));
 
-            // Check that the visit belongs to the user or user is authorized
-            $visit = Visit::with('subscription')->find($request->input('visit_id'));
-            if (!$visit) {
-                return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
-            }
-
-            if ($visit->subscription && $visit->subscription->client_id !== $user->id && !$user->hasRole('admin')) {
-                return response()->json(['status' => false, 'message' => 'You can only file complaints for your own visits'], 403);
-            }
-
-            $complaint = Complaint::create([
-                'visit_id' => $visit->id,
-                'client_id' => $user->id,
-                'notes' => $request->input('notes'),
-                'status' => 'open',
-            ]);
-
-            return response()->json(['status' => true, 'data' => $complaint], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to create complaint: ' . $e->getMessage()
-            ], 500);
+        if ($visit->subscription && $visit->subscription->client_id !== $user->id && !$user->hasRole('admin')) {
+            return ApiResponse::error('You can only file complaints for your own visits', 403);
         }
+
+        $complaint = Complaint::create([
+            'visit_id' => $visit->id,
+            'client_id' => $user->id,
+            'notes' => $request->input('notes'),
+            'status' => 'open',
+        ]);
+
+        return ApiResponse::success('Complaint created successfully.', $complaint, 201);
     }
 
     /**
@@ -96,18 +70,14 @@ class ComplaintController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $complaint = Complaint::with(['visit', 'client'])->find($id);
-        if (! $complaint) {
-            return response()->json(['status' => false, 'message' => 'Complaint not found'], 404);
-        }
-
+        $complaint = Complaint::with(['visit', 'client'])->findOrFail($id);
         $user = $request->user();
 
         if ($user->hasRole('admin') || $user->hasRole('area_manager') || $user->hasRole('supervisor') || $user->hasRole('hr') || $complaint->client_id === $user->id) {
-            return response()->json(['status' => true, 'data' => $complaint]);
+            return ApiResponse::success('Complaint retrieved successfully.', $complaint);
         }
 
-        return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+        return ApiResponse::error('Forbidden', 403);
     }
 
     /**
@@ -146,7 +116,7 @@ class ComplaintController extends Controller
 
         $complaint->save();
 
-        return response()->json(['status' => true, 'data' => $complaint]);
+        return ApiResponse::success('Complaint updated successfully.', $complaint);
     }
 
     /**
@@ -154,20 +124,15 @@ class ComplaintController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        $complaint = Complaint::find($id);
-
-        if (! $complaint) {
-            return response()->json(['status' => false, 'message' => 'Complaint not found'], 404);
-        }
-
+        $complaint = Complaint::findOrFail($id);
         $user = $request->user();
 
         if (! $user->hasRole('admin')) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return ApiResponse::error('Forbidden', 403);
         }
 
         $complaint->delete();
 
-        return response()->json(['status' => true, 'message' => 'Complaint deleted']);
+        return ApiResponse::success('Complaint deleted successfully.');
     }
 }

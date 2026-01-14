@@ -67,11 +67,11 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ $subscription->completed_visits }} / {{ $subscription->total_visits }}
+                                {{ $subscription->completed_visits ?? 0 }} / {{ $subscription->total_visits ?? 0 }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div>{{ $subscription->start_date->format('M d, Y') }}</div>
-                                <div class="text-xs">{{ $subscription->end_date->format('M d, Y') }}</div>
+                                <div>{{ $subscription->start_date ? \Carbon\Carbon::parse($subscription->start_date)->format('M d, Y') : 'N/A' }}</div>
+                                <div class="text-xs">{{ $subscription->end_date ? \Carbon\Carbon::parse($subscription->end_date)->format('M d, Y') : 'N/A' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <a href="{{ route('admin.subscriptions.show', $subscription) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>

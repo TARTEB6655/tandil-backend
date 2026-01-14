@@ -16,8 +16,8 @@ class TechnicianController extends Controller
 {
     public function __construct()
     {
-        // Ensure only users with 'technician' role and permission 'manage visits' can access these methods
-        $this->middleware(['role:technician', 'permission:manage visits']);
+        // Middleware is handled in routes, but we can add auth here for safety
+        $this->middleware('auth:sanctum');
     }
 
     // List all visits assigned to the technician

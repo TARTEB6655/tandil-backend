@@ -13,6 +13,15 @@ class Subscription extends Model
         'payment_status','payment_reference','paid_at','total_visits','completed_visits'
     ];
 
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'paid_at' => 'datetime',
+        'amount' => 'decimal:2',
+        'total_visits' => 'integer',
+        'completed_visits' => 'integer',
+    ];
+
     public function client()
     {
         return $this->belongsTo(User::class, 'client_id');

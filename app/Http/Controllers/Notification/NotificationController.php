@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Notification;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -20,13 +21,10 @@ class NotificationController extends Controller
 
         $unreadCount = $user->unreadNotifications()->count();
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'notifications' => $notifications,
-                'unread_count' => $unreadCount
-            ]
-        ], 200);
+        return ApiResponse::success('Notifications retrieved successfully.', [
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount
+        ]);
     }
 
     /**
@@ -38,17 +36,11 @@ class NotificationController extends Controller
         $notification = $user->notifications()->find($id);
 
         if (!$notification) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Notification not found'
-            ], 404);
+            return ApiResponse::error('Notification not found. Make sure you are using the correct notification UUID from GET /api/notifications response.', 404);
         }
 
         $notification->markAsRead();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Notification marked as read'
-        ], 200);
+        return ApiResponse::success('Notification marked as read.');
     }
 }
