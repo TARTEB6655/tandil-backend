@@ -250,6 +250,15 @@ class ProductController extends Controller
 
         $product->update($validated);
 
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Product updated successfully.',
+                'data' => $product->load(['category', 'images', 'primaryImage'])
+            ]);
+        }
+
         return redirect()->route('admin.products.index')
             ->with('success', 'Product updated successfully.');
     }
@@ -257,7 +266,7 @@ class ProductController extends Controller
     /**
      * Delete a product
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $product = Product::find($id);
 
@@ -274,6 +283,14 @@ class ProductController extends Controller
         }
 
         $product->delete();
+
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Product deleted successfully.'
+            ]);
+        }
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Product deleted successfully.');
