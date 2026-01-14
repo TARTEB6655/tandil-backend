@@ -29,28 +29,42 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
+        // Helper function to safely check role
+        $hasRole = function($roleName) use ($user) {
+            // First check the role field (faster and more reliable)
+            if ($user->role === $roleName) {
+                return true;
+            }
+            // Then check Spatie Permission (with error handling)
+            try {
+                return $user->hasRole($roleName);
+            } catch (\Exception $e) {
+                return false;
+            }
+        };
+
         // Role-based dashboard redirects - check both Spatie role and direct role property
-        if ($user->hasRole('admin') || $user->role === 'admin') {
+        if ($hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         }
 
-        if ($user->hasRole('supervisor') || $user->role === 'supervisor') {
+        if ($hasRole('supervisor')) {
             return redirect()->route('supervisor.dashboard');
         }
 
-        if ($user->hasRole('technician') || $user->role === 'technician') {
+        if ($hasRole('technician')) {
             return redirect()->route('technician.dashboard');
         }
 
-        if ($user->hasRole('client') || $user->role === 'client') {
+        if ($hasRole('client')) {
             return redirect()->route('client.dashboard');
         }
 
-        if ($user->hasRole('area_manager') || $user->role === 'area_manager') {
+        if ($hasRole('area_manager')) {
             return redirect()->route('areamanager.dashboard');
         }
 
-        if ($user->hasRole('hr') || $user->role === 'hr') {
+        if ($hasRole('hr')) {
             return redirect()->route('hr.dashboard');
         }
 

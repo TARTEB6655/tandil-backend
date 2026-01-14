@@ -24,8 +24,20 @@ class CheckRole
 
         // Check if user has any of the required roles via Spatie Permission OR role field
         foreach ($roles as $role) {
-            if ($user->hasRole($role) || $user->role === $role) {
+            // First check the role field (faster and more reliable)
+            if ($user->role === $role) {
                 return $next($request);
+            }
+            
+            // Then check Spatie Permission (with error handling)
+            try {
+                if ($user->hasRole($role)) {
+                    return $next($request);
+                }
+            } catch (\Exception $e) {
+                // If Spatie role check fails, continue to next check
+                // The role field check above should handle most cases
+                continue;
             }
         }
 
