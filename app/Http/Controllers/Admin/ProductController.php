@@ -48,6 +48,21 @@ class ProductController extends Controller
         $products = $query->orderBy('created_at', 'desc')->paginate(15);
         $categories = \App\Models\Category::all();
 
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Products retrieved successfully.',
+                'data' => $products->items(),
+                'pagination' => [
+                    'current_page' => $products->currentPage(),
+                    'last_page' => $products->lastPage(),
+                    'per_page' => $products->perPage(),
+                    'total' => $products->total(),
+                ]
+            ]);
+        }
+
         return view('admin.products.index', compact('products', 'categories'));
     }
 
@@ -135,6 +150,30 @@ class ProductController extends Controller
             $product->update(['image' => $imagePath]);
         }
 
+        // Handle image URLs (for API requests)
+        if ($request->has('image_urls') && is_array($request->image_urls)) {
+            foreach ($request->image_urls as $index => $imageUrl) {
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imageUrl,
+                    'sort_order' => $index,
+                    'is_primary' => $index === 0,
+                ]);
+            }
+            if (!empty($request->image_urls[0])) {
+                $product->update(['image' => $request->image_urls[0]]);
+            }
+        }
+
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Product created successfully.',
+                'data' => $product->load(['category', 'images', 'primaryImage'])
+            ], 201);
+        }
+
         return redirect()->route('admin.products.index')
             ->with('success', 'Product created successfully.');
     }
@@ -152,9 +191,19 @@ class ProductController extends Controller
     /**
      * Show a single product.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $product = Product::with('category')->findOrFail($id);
+        $product = Product::with(['category', 'images', 'primaryImage'])->findOrFail($id);
+        
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Product retrieved successfully.',
+                'data' => $product
+            ]);
+        }
+        
         return view('admin.products.show', compact('product'));
     }
 

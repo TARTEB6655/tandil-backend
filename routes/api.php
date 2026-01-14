@@ -166,6 +166,17 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     // Roles
     Route::get('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'index']);
     Route::post('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'store']);
+
+    // Products Management
+    Route::get('/products', [\App\Http\Controllers\Admin\ProductController::class, 'index']);
+    Route::post('/products', [\App\Http\Controllers\Admin\ProductController::class, 'store']);
+    Route::get('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'show']);
+    Route::put('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'update']);
+    Route::delete('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'destroy']);
+    Route::post('/products/{id}/toggle-status', [\App\Http\Controllers\Admin\ProductController::class, 'toggleStatus']);
+    Route::post('/products/bulk-delete', [\App\Http\Controllers\Admin\ProductController::class, 'bulkDelete']);
+    Route::post('/products/bulk-update-status', [\App\Http\Controllers\Admin\ProductController::class, 'bulkUpdateStatus']);
+    Route::post('/products/bulk-update-stock', [\App\Http\Controllers\Admin\ProductController::class, 'bulkUpdateStock']);
 });
 
 /*

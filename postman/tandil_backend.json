@@ -2178,6 +2178,364 @@
             "name": "9. Admin & HR Routes",
             "item": [
                 {
+                    "name": "Admin - Products Management",
+                    "item": [
+                        {
+                            "name": "Products - List (Admin)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('product_id')) {",
+                                            "        pm.environment.set('product_id', jsonData.data[0].id);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products?search=&category_id=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "category_id",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "filter",
+                                            "value": "all",
+                                            "disabled": true,
+                                            "description": "Filter: all, active, draft, archived"
+                                        }
+                                    ]
+                                },
+                                "description": "List all products (Admin only - requires admin role)"
+                            }
+                        },
+                        {
+                            "name": "Products - Create (Admin)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.data && jsonData.data.id) {",
+                                            "        pm.environment.set('product_id', jsonData.data.id);",
+                                            "        console.log('Product created with ID:', jsonData.data.id);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Premium Organic Fertilizer 5kg\",\n  \"description\": \"High-quality organic fertilizer perfect for all types of plants. Rich in nutrients and eco-friendly.\",\n  \"vendor\": \"Tandil Supplies\",\n  \"type\": \"Physical\",\n  \"sku\": \"SKU-000001\",\n  \"barcode\": \"BAR123456\",\n  \"price\": 150.00,\n  \"compare_at_price\": 180.00,\n  \"cost_per_item\": 100.00,\n  \"stock\": 100,\n  \"status\": \"active\",\n  \"track_quantity\": true,\n  \"allow_backorder\": false,\n  \"weight\": \"5\",\n  \"weight_unit\": \"kg\",\n  \"tags\": \"fertilizer, organic, gardening\",\n  \"meta_title\": \"Premium Organic Fertilizer\",\n  \"meta_description\": \"Best organic fertilizer for your garden\",\n  \"handle\": \"premium-organic-fertilizer-5kg\",\n  \"requires_shipping\": true,\n  \"taxable\": true,\n  \"category_id\": 1,\n  \"image_urls\": [\n    \"https://via.placeholder.com/500x500?text=Product+Image\"\n  ]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products"
+                                    ]
+                                },
+                                "description": "✅ Create a new product (Admin only - requires admin role). Supports image_urls array for API or multipart/form-data with images[] for file uploads."
+                            }
+                        },
+                        {
+                            "name": "Products - Get Details (Admin)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "{{product_id}}"
+                                    ]
+                                },
+                                "description": "Get product details (Admin only)"
+                            }
+                        },
+                        {
+                            "name": "Products - Update (Admin)",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Updated Product Name\",\n  \"description\": \"Updated description\",\n  \"price\": 200.00,\n  \"stock\": 150,\n  \"status\": \"active\",\n  \"category_id\": 1\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "{{product_id}}"
+                                    ]
+                                },
+                                "description": "Update product (Admin only)"
+                            }
+                        },
+                        {
+                            "name": "Products - Delete (Admin)",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "{{product_id}}"
+                                    ]
+                                },
+                                "description": "Delete product (Admin only)"
+                            }
+                        },
+                        {
+                            "name": "Products - Toggle Status (Admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}/toggle-status",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "{{product_id}}",
+                                        "toggle-status"
+                                    ]
+                                },
+                                "description": "Toggle product status (active/draft) (Admin only)"
+                            }
+                        },
+                        {
+                            "name": "Products - Bulk Delete (Admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [1, 2, 3]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/bulk-delete",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "bulk-delete"
+                                    ]
+                                },
+                                "description": "Bulk delete products (Admin only)"
+                            }
+                        },
+                        {
+                            "name": "Products - Bulk Update Status (Admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"status\": \"active\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/bulk-update-status",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "bulk-update-status"
+                                    ]
+                                },
+                                "description": "Bulk update product status (Admin only)"
+                            }
+                        },
+                        {
+                            "name": "Products - Bulk Update Stock (Admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"stock\": 100\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/bulk-update-stock",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "bulk-update-stock"
+                                    ]
+                                },
+                                "description": "Bulk update product stock (Admin only)"
+                            }
+                        }
+                    ],
+                    "description": "Admin product management APIs - Create, Read, Update, Delete products"
+                },
+            "item": [
+                {
                     "name": "Users - List",
                     "request": {
                         "method": "GET",
