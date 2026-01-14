@@ -148,7 +148,9 @@ class RoleController extends Controller
     {
         $role = Role::with('permissions')->findOrFail($id);
         $permissions = \Spatie\Permission\Models\Permission::all()->groupBy('guard_name');
-        return view('admin.roles.edit', compact('role', 'permissions'));
+        // Get all existing roles from database for dropdown
+        $existingRoles = Role::orderBy('name')->get();
+        return view('admin.roles.edit', compact('role', 'permissions', 'existingRoles'));
     }
 
     /**

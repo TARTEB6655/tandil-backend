@@ -2339,7 +2339,7 @@
                             }
                         },
                         {
-                            "name": "Products - Create (Admin)",
+                            "name": "Add Product (Admin)",
                             "event": [
                                 {
                                     "listen": "test",

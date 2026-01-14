@@ -11,8 +11,19 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Role Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" value="{{ old('name', $role->name) }}" required class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition @error('name') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror">
+                    <select name="name" required class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition @error('name') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror">
+                        <option value="">Select a role...</option>
+                        @foreach($existingRoles as $existingRole)
+                            <option value="{{ $existingRole->name }}" {{ old('name', $role->name) == $existingRole->name ? 'selected' : '' }}>
+                                {{ ucfirst(str_replace('_', ' ', $existingRole->name)) }}
+                                @if($existingRole->description)
+                                    - {{ Str::limit($existingRole->description, 50) }}
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
                     @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    <p class="mt-1.5 text-xs text-gray-500">Select from existing roles defined in the database</p>
                 </div>
 
                 <div class="mb-4">

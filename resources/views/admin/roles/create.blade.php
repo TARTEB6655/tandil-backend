@@ -35,17 +35,24 @@
                             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
                                 Role Name <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" 
-                                   id="name"
-                                   name="name" 
-                                   value="{{ old('name') }}" 
-                                   required 
-                                   placeholder="e.g., content_manager, sales_representative"
-                                   class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition @error('name') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror">
+                            <select id="name"
+                                    name="name" 
+                                    required 
+                                    class="block w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition @error('name') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror">
+                                <option value="">Select a role...</option>
+                                @foreach($existingRoles as $existingRole)
+                                    <option value="{{ $existingRole->name }}" {{ old('name') == $existingRole->name ? 'selected' : '' }}>
+                                        {{ ucfirst(str_replace('_', ' ', $existingRole->name)) }}
+                                        @if($existingRole->description)
+                                            - {{ Str::limit($existingRole->description, 50) }}
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
                             @error('name')
                                 <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                             @enderror
-                            <p class="mt-1.5 text-xs text-gray-500">Use lowercase letters and underscores (e.g., content_manager)</p>
+                            <p class="mt-1.5 text-xs text-gray-500">Select from existing roles defined in the database</p>
                         </div>
 
                         <!-- Description -->
