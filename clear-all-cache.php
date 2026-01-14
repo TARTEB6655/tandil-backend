@@ -32,10 +32,32 @@ try {
 try {
     // Clear view cache
     echo "3. Clearing view cache...\n";
+    $viewPath = storage_path('framework/views');
+    if (!is_dir($viewPath)) {
+        @mkdir($viewPath, 0755, true);
+    }
     $app->make('Illuminate\Contracts\Console\Kernel')->call('view:clear');
     echo "   ✅ View cache cleared\n\n";
 } catch (\Exception $e) {
-    echo "   ⚠️  View cache: " . $e->getMessage() . "\n\n";
+    // Fallback: manually clear view cache
+    echo "   ⚠️  View cache (artisan): " . $e->getMessage() . "\n";
+    try {
+        $viewPath = storage_path('framework/views');
+        if (is_dir($viewPath)) {
+            $files = glob($viewPath . '/*');
+            foreach ($files as $file) {
+                if (is_file($file) && basename($file) !== '.gitignore') {
+                    @unlink($file);
+                }
+            }
+            echo "   ✅ View cache manually cleared\n\n";
+        } else {
+            @mkdir($viewPath, 0755, true);
+            echo "   ✅ View cache directory created\n\n";
+        }
+    } catch (\Exception $e2) {
+        echo "   ❌ View cache: " . $e2->getMessage() . "\n\n";
+    }
 }
 
 try {
