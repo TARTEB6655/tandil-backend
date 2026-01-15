@@ -283,6 +283,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager|hr
     Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipsController::class, 'show']);
     Route::get('/notifications', [\App\Http\Controllers\Notification\NotificationController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Notification\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Notification\NotificationController::class, 'markAllAsRead']);
 });
 
 /*

@@ -43,4 +43,15 @@ class NotificationController extends Controller
 
         return ApiResponse::success('Notification marked as read.');
     }
+
+    /**
+     * Mark all notifications as read
+     */
+    public function markAllAsRead(Request $request)
+    {
+        $user = $request->user();
+        $user->unreadNotifications->markAsRead();
+
+        return ApiResponse::success('All notifications marked as read.');
+    }
 }
