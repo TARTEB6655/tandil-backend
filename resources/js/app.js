@@ -1,4 +1,5 @@
 import './bootstrap';
+import './toast-handler';
 
 import Alpine from 'alpinejs';
 
