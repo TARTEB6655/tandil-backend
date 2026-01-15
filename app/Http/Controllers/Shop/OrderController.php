@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use Illuminate\Http\Request;
 
@@ -45,6 +47,19 @@ class OrderController extends Controller
                     'subtotal' => $product->price * ($item['qty'] ?? 1),
                 ]);
             }
+        }
+
+        // 🔔 Send notification to admin about new order
+        try {
+            $admins = User::role('admin')->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification(
+                    'New Order Received',
+                    "A new order #{$order->id} has been placed by {$user->name} for AED {$total}."
+                ));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send order notification: ' . $e->getMessage());
         }
 
         $res = $this->paypal->createOrder(
@@ -116,12 +131,27 @@ class OrderController extends Controller
 
     public function markPaid(Request $request, $id)
     {
-        $order = Order::find($id);
+        $order = Order::with('user')->find($id);
         if (! $order) return response()->json(['success'=>false,'message'=>'Not found'],404);
+        
+        $oldPaymentStatus = $order->payment_status;
         $order->payment_status = 'paid';
         $order->order_status = 'paid';
         $order->paid_at = now();
         $order->save();
+
+        // 🔔 Notify client when order is paid
+        try {
+            if ($oldPaymentStatus !== 'paid' && $order->user) {
+                $order->user->notify(new AdminNotification(
+                    'Order Payment Confirmed',
+                    "Your order #{$order->id} payment has been confirmed. Amount: AED {$order->total_amount}."
+                ));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send payment confirmation notification: ' . $e->getMessage());
+        }
+
         return response()->json(['status'=>true,'data'=>$order],200);
     }
 
@@ -187,6 +217,28 @@ class OrderController extends Controller
             'order_status' => 'cancelled',
             'payment_status' => $order->payment_status === 'paid' ? 'refunded' : 'pending',
         ]);
+
+        // 🔔 Notify admin and client about cancellation
+        try {
+            // Notify admins
+            $admins = User::role('admin')->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification(
+                    'Order Cancelled',
+                    "Order #{$order->id} has been cancelled by {$user->name}."
+                ));
+            }
+
+            // Notify client (if different from user who cancelled)
+            if ($order->user && $order->user_id !== $user->id) {
+                $order->user->notify(new AdminNotification(
+                    'Order Cancelled',
+                    "Your order #{$order->id} has been cancelled."
+                ));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send order cancellation notification: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Helpers\ApiResponse;
 use App\Models\Complaint;
 use App\Models\Visit;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -62,6 +64,43 @@ class ComplaintController extends Controller
             'status' => 'open',
         ]);
 
+        // 🔔 Send notifications to relevant users
+        try {
+            // Notify all admins
+            $admins = User::role('admin')->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification(
+                    'New Complaint Received',
+                    "A new complaint has been filed by {$user->name} for visit #{$visit->id}. Notes: " . substr($request->input('notes'), 0, 100)
+                ));
+            }
+
+            // Notify supervisors if visit has area
+            if ($visit->area_id) {
+                $area = \App\Models\Area::with('supervisors')->find($visit->area_id);
+                if ($area && $area->supervisors) {
+                    foreach ($area->supervisors as $supervisor) {
+                        $supervisor->notify(new AdminNotification(
+                            'New Complaint in Your Area',
+                            "A new complaint has been filed for visit #{$visit->id} in your area."
+                        ));
+                    }
+                }
+            }
+
+            // Notify area managers
+            $areaManagers = User::role('area_manager')->get();
+            foreach ($areaManagers as $areaManager) {
+                $areaManager->notify(new AdminNotification(
+                    'New Complaint Filed',
+                    "A new complaint has been filed. Please review complaint #{$complaint->id}."
+                ));
+            }
+        } catch (\Exception $e) {
+            // Log error but don't break the flow
+            \Log::error('Failed to send complaint notifications: ' . $e->getMessage());
+        }
+
         return ApiResponse::success('Complaint created successfully.', $complaint, 201);
     }
 
@@ -107,6 +146,8 @@ class ComplaintController extends Controller
             return ApiResponse::error('Validation failed', 422, $validator->errors()->toArray());
         }
 
+        $oldStatus = $complaint->status;
+        
         if ($request->has('status')) {
             $complaint->status = $request->input('status');
         }
@@ -115,6 +156,44 @@ class ComplaintController extends Controller
         }
 
         $complaint->save();
+
+        // 🔔 Send notifications based on status change
+        try {
+            if ($request->has('status') && $oldStatus !== $complaint->status) {
+                // Notify client when complaint status changes
+                $client = User::find($complaint->client_id);
+                if ($client) {
+                    $client->notify(new AdminNotification(
+                        'Complaint Status Updated',
+                        "Your complaint #{$complaint->id} status has been changed to: " . ucfirst(str_replace('_', ' ', $complaint->status))
+                    ));
+                }
+
+                // If escalated, notify area manager
+                if ($complaint->status === 'escalated') {
+                    $areaManagers = User::role('area_manager')->get();
+                    foreach ($areaManagers as $areaManager) {
+                        $areaManager->notify(new AdminNotification(
+                            'Complaint Escalated',
+                            "Complaint #{$complaint->id} has been escalated and requires your attention."
+                        ));
+                    }
+                }
+
+                // If resolved, notify admins
+                if ($complaint->status === 'resolved') {
+                    $admins = User::role('admin')->get();
+                    foreach ($admins as $admin) {
+                        $admin->notify(new AdminNotification(
+                            'Complaint Resolved',
+                            "Complaint #{$complaint->id} has been resolved."
+                        ));
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send complaint update notifications: ' . $e->getMessage());
+        }
 
         return ApiResponse::success('Complaint updated successfully.', $complaint);
     }

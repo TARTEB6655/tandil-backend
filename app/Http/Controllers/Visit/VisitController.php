@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
@@ -128,6 +130,41 @@ class VisitController extends Controller
 
             // Load relationships
             $visit->load(['subscription.client', 'technician', 'supervisor', 'area', 'photos']);
+
+            // 🔔 Send notifications
+            try {
+                // Notify client
+                if ($visit->subscription && $visit->subscription->client) {
+                    $visit->subscription->client->notify(new AdminNotification(
+                        'New Visit Scheduled',
+                        "A new visit has been scheduled for {$visit->scheduled_date}."
+                    ));
+                }
+
+                // Notify technician if assigned
+                if ($visit->technician_id) {
+                    $technician = User::find($visit->technician_id);
+                    if ($technician) {
+                        $technician->notify(new AdminNotification(
+                            'New Visit Assigned',
+                            "You have been assigned a new visit scheduled for {$visit->scheduled_date}."
+                        ));
+                    }
+                }
+
+                // Notify supervisor if assigned
+                if ($visit->supervisor_id) {
+                    $supervisor = User::find($visit->supervisor_id);
+                    if ($supervisor) {
+                        $supervisor->notify(new AdminNotification(
+                            'New Visit Created',
+                            "A new visit has been created in your area, scheduled for {$visit->scheduled_date}."
+                        ));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send visit creation notifications: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'status' => true,
@@ -328,7 +365,56 @@ class VisitController extends Controller
                 }
             }
 
+            $oldStatus = $visit->getOriginal('status');
             $visit->save();
+
+            // 🔔 Send notifications based on status change
+            try {
+                if ($request->has('status') && $oldStatus !== $visit->status) {
+                    // Notify client when visit status changes
+                    if ($visit->subscription && $visit->subscription->client) {
+                        $visit->subscription->client->notify(new AdminNotification(
+                            'Visit Status Updated',
+                            "Your visit scheduled for {$visit->scheduled_date} status has been changed to: " . ucfirst(str_replace('_', ' ', $visit->status))
+                        ));
+                    }
+
+                    // Notify technician if status is completed
+                    if ($visit->status === 'completed' && $visit->technician_id) {
+                        $technician = User::find($visit->technician_id);
+                        if ($technician) {
+                            $technician->notify(new AdminNotification(
+                                'Visit Completed',
+                                "Visit #{$visit->id} has been marked as completed."
+                            ));
+                        }
+                    }
+
+                    // Notify supervisor when visit needs approval
+                    if ($visit->status === 'completed' && $visit->supervisor_id) {
+                        $supervisor = User::find($visit->supervisor_id);
+                        if ($supervisor) {
+                            $supervisor->notify(new AdminNotification(
+                                'Visit Awaiting Approval',
+                                "Visit #{$visit->id} has been completed and is awaiting your approval."
+                            ));
+                        }
+                    }
+                }
+
+                // Notify technician if assigned
+                if ($request->has('technician_id') && $visit->technician_id) {
+                    $technician = User::find($visit->technician_id);
+                    if ($technician) {
+                        $technician->notify(new AdminNotification(
+                            'Visit Assigned to You',
+                            "You have been assigned to visit #{$visit->id} scheduled for {$visit->scheduled_date}."
+                        ));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send visit update notifications: ' . $e->getMessage());
+            }
 
             return response()->json(['status' => true, 'data' => $visit->load(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])], 200);
         } catch (\Exception $e) {
@@ -390,6 +476,7 @@ class VisitController extends Controller
         }
 
         // Save status
+        $oldStatus = $visit->status;
         $visit->status = $status;
 
         if ($status === 'completed') {
@@ -397,6 +484,55 @@ class VisitController extends Controller
         }
 
         $visit->save();
+
+        // 🔔 Send notifications based on status change
+        try {
+            // Notify client when visit is completed
+            if ($status === 'completed' && $oldStatus !== 'completed') {
+                if ($visit->subscription && $visit->subscription->client) {
+                    $visit->subscription->client->notify(new AdminNotification(
+                        'Visit Completed',
+                        "Your visit scheduled for {$visit->scheduled_date} has been completed. Thank you!"
+                    ));
+                }
+
+                // Notify supervisor for approval
+                if ($visit->supervisor_id) {
+                    $supervisor = User::find($visit->supervisor_id);
+                    if ($supervisor) {
+                        $supervisor->notify(new AdminNotification(
+                            'Visit Completed - Awaiting Approval',
+                            "Visit #{$visit->id} has been completed and requires your approval."
+                        ));
+                    }
+                }
+            }
+
+            // Notify when visit is approved
+            if ($status === 'approved' && $oldStatus !== 'approved') {
+                if ($visit->subscription && $visit->subscription->client) {
+                    $visit->subscription->client->notify(new AdminNotification(
+                        'Visit Approved',
+                        "Your visit #{$visit->id} has been approved by the supervisor."
+                    ));
+                }
+            }
+
+            // Notify when visit is rejected
+            if ($status === 'rejected' && $oldStatus !== 'rejected') {
+                if ($visit->technician_id) {
+                    $technician = User::find($visit->technician_id);
+                    if ($technician) {
+                        $technician->notify(new AdminNotification(
+                            'Visit Rejected',
+                            "Visit #{$visit->id} has been rejected. Please review and resubmit."
+                        ));
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send visit status notifications: ' . $e->getMessage());
+        }
 
         return response()->json(['status' => true, 'message' => 'Status updated', 'data' => $visit], 200);
     }

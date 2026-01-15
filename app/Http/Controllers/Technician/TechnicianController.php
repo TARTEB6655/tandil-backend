@@ -7,6 +7,8 @@ use App\Http\Requests\UploadVisitPhotoRequest;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
 use App\Models\Complaint;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Notification;
@@ -59,7 +61,29 @@ class TechnicianController extends Controller
         $visit->accepted_at = now();
         $visit->save();
 
-        // TODO: send notification about acceptance (if needed)
+        // 🔔 Send notifications
+        try {
+            // Notify client
+            if ($visit->subscription && $visit->subscription->client) {
+                $visit->subscription->client->notify(new AdminNotification(
+                    'Visit Accepted',
+                    "The technician has accepted your visit scheduled for {$visit->scheduled_date}."
+                ));
+            }
+
+            // Notify supervisor
+            if ($visit->supervisor_id) {
+                $supervisor = User::find($visit->supervisor_id);
+                if ($supervisor) {
+                    $supervisor->notify(new AdminNotification(
+                        'Visit Accepted by Technician',
+                        "Visit #{$visit->id} has been accepted by the assigned technician."
+                    ));
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send visit acceptance notification: ' . $e->getMessage());
+        }
 
         return response()->json(['status' => true, 'data' => $visit], 200);
     }
@@ -76,6 +100,18 @@ class TechnicianController extends Controller
         $visit->status = 'in_progress';
         $visit->started_at = now();
         $visit->save();
+
+        // 🔔 Notify client that visit has started
+        try {
+            if ($visit->subscription && $visit->subscription->client) {
+                $visit->subscription->client->notify(new AdminNotification(
+                    'Visit Started',
+                    "The technician has started your visit scheduled for {$visit->scheduled_date}."
+                ));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send visit start notification: ' . $e->getMessage());
+        }
 
         return response()->json(['status' => true, 'data' => $visit], 200);
     }
@@ -118,6 +154,30 @@ class TechnicianController extends Controller
         $visit->completed_at = now();
         $visit->notes = $request->input('notes', $visit->notes);
         $visit->save();
+
+        // 🔔 Send notifications
+        try {
+            // Notify client
+            if ($visit->subscription && $visit->subscription->client) {
+                $visit->subscription->client->notify(new AdminNotification(
+                    'Visit Completed',
+                    "Your visit scheduled for {$visit->scheduled_date} has been completed by the technician."
+                ));
+            }
+
+            // Notify supervisor for approval
+            if ($visit->supervisor_id) {
+                $supervisor = User::find($visit->supervisor_id);
+                if ($supervisor) {
+                    $supervisor->notify(new AdminNotification(
+                        'Visit Completed - Awaiting Approval',
+                        "Visit #{$visit->id} has been completed and is awaiting your approval."
+                    ));
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send visit completion notification: ' . $e->getMessage());
+        }
 
         return response()->json(['status' => true, 'data' => $visit], 200);
     }

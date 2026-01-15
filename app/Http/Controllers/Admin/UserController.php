@@ -116,6 +116,18 @@ class UserController extends Controller
             $user->assignRole($role);
         }
 
+        // 🔔 Notify the new user (if active)
+        try {
+            if ($user->status === 'active') {
+                $user->notify(new \App\Notifications\AdminNotification(
+                    'Account Created',
+                    "Your account has been created. You can now login with your credentials. Role: " . ucfirst($data['role'])
+                ));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send user creation notification: ' . $e->getMessage());
+        }
+
         // Return JSON for API requests
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([

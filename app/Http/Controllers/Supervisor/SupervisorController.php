@@ -194,6 +194,7 @@ class SupervisorController extends Controller
             return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
         }
 
+        $oldStatus = $visit->status;
         $status = $request->input('status');
         $visit->status = $status;
 
@@ -202,6 +203,34 @@ class SupervisorController extends Controller
         $visit->approved_at = now();
 
         $visit->save();
+
+        // 🔔 Send notifications
+        try {
+            // Notify client
+            if ($visit->subscription && $visit->subscription->client) {
+                $visit->subscription->client->notify(new \App\Notifications\AdminNotification(
+                    $status === 'approved' ? 'Visit Approved' : 'Visit Rejected',
+                    $status === 'approved' 
+                        ? "Your visit #{$visit->id} has been approved by the supervisor."
+                        : "Your visit #{$visit->id} has been rejected. Please contact support."
+                ));
+            }
+
+            // Notify technician
+            if ($visit->technician_id) {
+                $technician = \App\Models\User::find($visit->technician_id);
+                if ($technician) {
+                    $technician->notify(new \App\Notifications\AdminNotification(
+                        $status === 'approved' ? 'Visit Approved' : 'Visit Rejected',
+                        $status === 'approved'
+                            ? "Visit #{$visit->id} has been approved by the supervisor."
+                            : "Visit #{$visit->id} has been rejected. Please review and resubmit."
+                    ));
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send visit status notification: ' . $e->getMessage());
+        }
 
         return response()->json(['status' => true, 'message' => "Visit status updated to {$status}", 'data' => $visit], 200);
     }
