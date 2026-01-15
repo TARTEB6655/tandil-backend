@@ -69,7 +69,7 @@ class ProductController extends Controller
         $products = $query->paginate($perPage > 0 ? $perPage : 12);
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Products retrieved successfully',
             'data' => $products->items(),
             'pagination' => [
@@ -96,13 +96,13 @@ class ProductController extends Controller
 
         if (! $product) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Product not found'
             ], 404);
         }
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Product retrieved successfully',
             'data' => $product
         ]);
@@ -120,7 +120,7 @@ class ProductController extends Controller
         ->get();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Categories retrieved successfully',
             'data' => $categories
         ]);
@@ -135,7 +135,7 @@ class ProductController extends Controller
         
         if (!$category) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Category not found'
             ], 404);
         }
@@ -146,7 +146,7 @@ class ProductController extends Controller
             ->paginate(12);
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Products retrieved successfully',
             'data' => [
                 'category' => $category,

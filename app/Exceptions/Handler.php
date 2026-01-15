@@ -56,10 +56,10 @@ class Handler extends ExceptionHandler
         $line = $e->getLine();
         $message = $e->getMessage() ?: 'An error occurred';
 
-        // Handle ValidationException - Use Laravel's standard format with status
+        // Handle ValidationException - Use standardized format with success
         if ($e instanceof \Illuminate\Validation\ValidationException) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'The given data was invalid.',
                 'errors' => $e->errors(),
             ], 422);
@@ -68,7 +68,7 @@ class Handler extends ExceptionHandler
         // Handle AuthenticationException
         if ($e instanceof \Illuminate\Auth\AuthenticationException) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Unauthenticated',
             ], 401);
         }
@@ -76,7 +76,7 @@ class Handler extends ExceptionHandler
         // Handle AuthorizationException
         if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Unauthorized. You do not have permission to perform this action.',
             ], 403);
         }
@@ -84,7 +84,7 @@ class Handler extends ExceptionHandler
         // Handle ModelNotFoundException
         if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Resource not found.',
             ], 404);
         }
@@ -93,7 +93,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof \Illuminate\Database\QueryException) {
             $dbMessage = $isDebug ? $message : 'Database error occurred.';
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => $dbMessage,
             ], 500);
         }
@@ -101,7 +101,7 @@ class Handler extends ExceptionHandler
         // Handle NotFoundHttpException
         if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Route not found.',
             ], 404);
         }
@@ -109,7 +109,7 @@ class Handler extends ExceptionHandler
         // Handle MethodNotAllowedHttpException
         if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Method not allowed for this route.',
             ], 405);
         }
@@ -118,7 +118,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
             $statusCode = $e->getStatusCode();
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => $message,
             ], $statusCode);
         }
@@ -127,7 +127,7 @@ class Handler extends ExceptionHandler
         $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
         
         $payload = [
-            'status' => false,
+            'success' => false,
             'message' => $isDebug ? $message : ($statusCode === 500 ? 'An error occurred. Please try again later.' : $message),
         ];
 
@@ -148,7 +148,7 @@ class Handler extends ExceptionHandler
     protected function unauthenticated($request, AuthenticationException $exception)
     {
         if ($request->expectsJson() || $request->is('api/*')) {
-            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
         return redirect()->guest(route('login'));

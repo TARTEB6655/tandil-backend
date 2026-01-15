@@ -79,7 +79,7 @@ class OrderController extends Controller
         $orders = $query->paginate($perPage);
         
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Orders retrieved successfully',
             'data' => $orders->items(),
             'pagination' => [
@@ -99,16 +99,16 @@ class OrderController extends Controller
         $order = Order::with(['items.product.category', 'user', 'transactions'])->find($id);
         
         if (!$order) {
-            return response()->json(['status' => false, 'message' => 'Order not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
         
         // Check if user owns the order or is admin
         if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
         
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Order retrieved successfully',
             'data' => $order
         ], 200);
@@ -117,7 +117,7 @@ class OrderController extends Controller
     public function markPaid(Request $request, $id)
     {
         $order = Order::find($id);
-        if (! $order) return response()->json(['status'=>false,'message'=>'Not found'],404);
+        if (! $order) return response()->json(['success'=>false,'message'=>'Not found'],404);
         $order->payment_status = 'paid';
         $order->order_status = 'paid';
         $order->paid_at = now();
@@ -134,12 +134,12 @@ class OrderController extends Controller
         $order = Order::find($id);
         
         if (!$order) {
-            return response()->json(['status' => false, 'message' => 'Order not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
         
         // Check if user owns the order or is admin
         if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
         $validated = $request->validate([
@@ -152,7 +152,7 @@ class OrderController extends Controller
         $order->update($validated);
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Order updated successfully',
             'data' => $order->load(['items.product', 'user'])
         ], 200);
@@ -167,18 +167,18 @@ class OrderController extends Controller
         $order = Order::find($id);
         
         if (!$order) {
-            return response()->json(['status' => false, 'message' => 'Order not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
         
         // Check if user owns the order or is admin
         if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
         // Only allow cancellation if order is not already delivered or cancelled
         if (in_array($order->order_status, ['delivered', 'cancelled'])) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Cannot cancel order with status: ' . $order->order_status
             ], 400);
         }
@@ -189,7 +189,7 @@ class OrderController extends Controller
         ]);
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Order cancelled successfully',
             'data' => $order->load(['items.product', 'user'])
         ], 200);
@@ -204,16 +204,16 @@ class OrderController extends Controller
         $order = Order::with(['items.product', 'user'])->find($id);
         
         if (!$order) {
-            return response()->json(['status' => false, 'message' => 'Order not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
         
         // Check if user owns the order or is admin
         if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Order tracking information retrieved successfully',
             'data' => [
                 'order' => $order,
@@ -237,12 +237,12 @@ class OrderController extends Controller
         $order = Order::find($id);
         
         if (!$order) {
-            return response()->json(['status' => false, 'message' => 'Order not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
         
         // Check if user owns the order
         if ($order->user_id !== $user->id) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
         $validated = $request->validate([
@@ -275,7 +275,7 @@ class OrderController extends Controller
         }
 
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'Order rated successfully',
             'data' => [
                 'order' => $order->load(['items.product', 'user']),

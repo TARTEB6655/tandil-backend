@@ -88,14 +88,14 @@ class ComplaintController extends Controller
         $complaint = Complaint::find($id);
 
         if (! $complaint) {
-            return response()->json(['status' => false, 'message' => 'Complaint not found'], 404);
+            return ApiResponse::error('Complaint not found', 404);
         }
 
         $user = $request->user();
 
         // Only admin, area_manager, or supervisor can update complaint status
         if (! $user->hasAnyRole(['admin', 'area_manager', 'supervisor'])) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return ApiResponse::error('Forbidden', 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -104,7 +104,7 @@ class ComplaintController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            return ApiResponse::error('Validation failed', 422, $validator->errors()->toArray());
         }
 
         if ($request->has('status')) {

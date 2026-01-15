@@ -39,27 +39,6 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::post('payments/paypal/create', [\App\Http\Controllers\PaymentController::class, 'createPaypalOrder']);
     Route::post('payments/paypal/webhook', [\App\Http\Controllers\PaymentController::class, 'paypalWebhook']);
 
-    // Technician routes (under /api/auth/tech)
-    Route::middleware('role:technician')->prefix('tech')->group(function () {
-        Route::get('/visits', [\App\Http\Controllers\Technician\TechnicianController::class, 'assigned']);
-        Route::post('/visits/{id}/accept', [\App\Http\Controllers\Technician\TechnicianController::class, 'accept']);
-        Route::post('/visits/{id}/start', [\App\Http\Controllers\Technician\TechnicianController::class, 'start']);
-        Route::post('/visits/{id}/complete', [\App\Http\Controllers\Technician\TechnicianController::class, 'complete']);
-        Route::post('/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
-    });
-
-    // Supervisor routes (under /api/auth/supervisor)
-    Route::middleware('role:supervisor')->prefix('supervisor')->group(function () {
-        Route::get('/visits', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listVisits']);
-        Route::get('/visits/{id}', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'reviewVisit']);
-        Route::post('/visits/{id}/recommend', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'recommendProducts']);
-        Route::post('/visits/{id}/finalize', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'finalizeReport']);
-        Route::post('/visits/{id}/status', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'updateVisitStatus']);
-        Route::get('/areas', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listAreas']);
-        Route::get('/complaints', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listComplaints']);
-        Route::post('/complaints/{id}/escalate', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'escalateComplaint']);
-    });
-
     // Shop / Orders (under /api/auth/shop)
     Route::middleware('role:client|admin|supervisor|area_manager')->prefix('shop')->group(function () {
         Route::post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);

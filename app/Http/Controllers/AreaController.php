@@ -30,12 +30,13 @@ class AreaController extends Controller
             $areas = Area::with(['supervisors', 'technicians', 'visits'])->get();
 
             return response()->json([
-                'status' => true,
+                'success' => true,
+                'message' => 'Areas retrieved successfully.',
                 'data' => $areas
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Failed to fetch areas: ' . $e->getMessage()
             ], 500);
         }
@@ -52,14 +53,14 @@ class AreaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status'=>false, 'errors'=>$validator->errors()], 422);
+            return response()->json(['success'=>false, 'message' => 'Validation failed', 'errors'=>$validator->errors()], 422);
         }
 
         $area = Area::create($request->only(['name', 'description']));
 
         $this->logAction("Created new area: {$area->name}");
 
-        return response()->json(['status' => true, 'data' => $area], 201);
+        return response()->json(['success' => true, 'message' => 'Area created successfully.', 'data' => $area], 201);
     }
 
     /**
@@ -70,7 +71,7 @@ class AreaController extends Controller
         $area = Area::with(['supervisors', 'technicians', 'visits.client', 'visits.technician'])->find($id);
 
         if (!$area) {
-            return response()->json(['status' => false, 'message' => 'Area not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Area not found'], 404);
         }
 
         // Performance metrics
@@ -79,7 +80,8 @@ class AreaController extends Controller
         $teamSize = $area->supervisors()->count() + $area->technicians()->count();
 
         return response()->json([
-            'status' => true,
+            'success' => true,
+            'message' => 'Area retrieved successfully.',
             'data' => [
                 'area' => $area,
                 'metrics' => [
@@ -99,7 +101,7 @@ class AreaController extends Controller
         $area = Area::find($id);
 
         if (!$area) {
-            return response()->json(['status' => false, 'message' => 'Area not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Area not found'], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -108,14 +110,14 @@ class AreaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status'=>false, 'errors'=>$validator->errors()], 422);
+            return response()->json(['success'=>false, 'message' => 'Validation failed', 'errors'=>$validator->errors()], 422);
         }
 
         $area->update($request->only(['name', 'description']));
 
         $this->logAction("Updated area: {$area->name}");
 
-        return response()->json(['status' => true, 'data' => $area]);
+        return response()->json(['success' => true, 'message' => 'Area updated successfully.', 'data' => $area]);
     }
 
     /**
@@ -126,14 +128,14 @@ class AreaController extends Controller
         $area = Area::find($id);
 
         if (!$area) {
-            return response()->json(['status' => false, 'message' => 'Area not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Area not found'], 404);
         }
 
         $area->delete();
 
         $this->logAction("Deleted area: {$area->name}");
 
-        return response()->json(['status' => true, 'message' => 'Area deleted successfully']);
+        return response()->json(['success' => true, 'message' => 'Area deleted successfully']);
     }
 
     /**
@@ -145,7 +147,7 @@ class AreaController extends Controller
         $area = Area::find($id);
 
         if (!$area) {
-            return response()->json(['status' => false, 'message' => 'Area not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Area not found'], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -156,7 +158,7 @@ class AreaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status'=>false, 'errors'=>$validator->errors()], 422);
+            return response()->json(['success'=>false, 'message' => 'Validation failed', 'errors'=>$validator->errors()], 422);
         }
 
         // Sync supervisors and technicians
@@ -169,7 +171,7 @@ class AreaController extends Controller
 
         $this->logAction("Assigned users to area: {$area->name}");
 
-        return response()->json(['status' => true, 'message' => 'Users assigned successfully']);
+        return response()->json(['success' => true, 'message' => 'Users assigned successfully']);
     }
 
     /**
@@ -179,7 +181,7 @@ class AreaController extends Controller
     {
         $area = Area::find($id);
         if (!$area) {
-            return response()->json(['status' => false, 'message' => 'Area not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Area not found'], 404);
         }
 
         // Complaints associated with visits in this area
@@ -187,7 +189,7 @@ class AreaController extends Controller
             $query->where('area_id', $id);
         })->with(['visit', 'client'])->get();
 
-        return response()->json(['status' => true, 'data' => $complaints]);
+        return response()->json(['success' => true, 'message' => 'Complaints retrieved successfully.', 'data' => $complaints]);
     }
 
     /**
@@ -198,7 +200,7 @@ class AreaController extends Controller
         $complaint = Complaint::find($complaintId);
 
         if (!$complaint) {
-            return response()->json(['status' => false, 'message' => 'Complaint not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Complaint not found'], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -207,7 +209,7 @@ class AreaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
         if ($request->has('status')) {
@@ -220,7 +222,7 @@ class AreaController extends Controller
 
         $this->logAction("Escalated complaint ID {$complaintId}");
 
-        return response()->json(['status' => true, 'data' => $complaint]);
+        return response()->json(['success' => true, 'message' => 'Complaint escalated successfully.', 'data' => $complaint]);
     }
 
     /**
@@ -231,7 +233,7 @@ class AreaController extends Controller
         $area = Area::with(['supervisors', 'technicians'])->find($id);
 
         if (!$area) {
-            return response()->json(['status' => false, 'message' => 'Area not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Area not found'], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -240,7 +242,7 @@ class AreaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
         $message = $request->input('message');
@@ -259,7 +261,7 @@ class AreaController extends Controller
 
         $this->logAction("Sent notification to {$userType} in area {$area->name}");
 
-        return response()->json(['status' => true, 'message' => 'Notification sent']);
+        return response()->json(['success' => true, 'message' => 'Notification sent']);
     }
 
     /**

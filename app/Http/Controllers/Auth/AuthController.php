@@ -24,11 +24,12 @@ class AuthController extends Controller
         ]);
 
         // Create user
+        // Note: User model has 'password' => 'hashed' cast, so password is auto-hashed
         $user = User::create([
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'phone'    => $validated['phone'] ?? null,
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'], // Auto-hashed by model cast
             'role'     => $validated['role'],
             'status'   => 'active',
         ]);
@@ -40,12 +41,13 @@ class AuthController extends Controller
         $token = $user->createToken('api_token')->plainTextToken;
 
         return response()->json([
-            'status'  => true,
+            'success' => true,
             'message' => 'User registered successfully.',
-            'token'   => $token,
-            'role'    => $user->role,
-            'user'    => $user,
-            'data'    => $user
+            'data'    => [
+                'token' => $token,
+                'role'  => $user->role,
+                'user'  => $user
+            ]
         ], 201);
     }
 
@@ -73,12 +75,13 @@ class AuthController extends Controller
         $token = $user->createToken('api_token')->plainTextToken;
 
         return response()->json([
-            'status'  => true,
+            'success' => true,
             'message' => 'Login successful.',
-            'token'   => $token,
-            'role'    => $user->role,
-            'user'    => $user,
-            'data'    => $user
+            'data'    => [
+                'token' => $token,
+                'role'  => $user->role,
+                'user'  => $user
+            ]
         ]);
     }
 
@@ -89,11 +92,12 @@ class AuthController extends Controller
     {
         $user = $request->user();
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => 'User retrieved successfully.',
-            'role'   => $user->role,
-            'user'   => $user,
-            'data'   => $user
+            'data'    => [
+                'role' => $user->role,
+                'user' => $user
+            ]
         ]);
     }
 
