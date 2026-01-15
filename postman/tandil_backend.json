@@ -365,7 +365,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"plan\": \"1_month\",\n  \"start_date\": \"2025-01-15\"\n}"
+                            "raw": "{\n  \"plan\": \"1_month\",\n  \"start_date\": \"2025-01-15\",\n  \"end_date\": \"2025-02-14\",\n  \"amount\": 500.00,\n  \"payment_status\": \"pending\",\n  \"payment_reference\": null,\n  \"client_id\": null,\n  \"total_visits\": 1,\n  \"completed_visits\": 0\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/subscriptions",
@@ -377,7 +377,7 @@
                                 "subscriptions"
                             ]
                         },
-                        "description": "✅ STEP 5: Create a new subscription (visits will be auto-generated)"
+                        "description": "✅ STEP 5: Create a new subscription (visits will be auto-generated)\n\n**Required Fields:**\n- `plan` (string): Subscription plan - one of: `1_month`, `3_month`, `6_month`, `12_month`\n\n**Optional Fields:**\n- `start_date` (date): Start date of subscription (defaults to today)\n- `end_date` (date): End date of subscription (auto-calculated if not provided)\n- `amount` (decimal): Subscription amount in AED (auto-calculated from plan if not provided)\n- `payment_status` (string): Payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled` (defaults to `pending`)\n- `payment_reference` (string): Payment reference number (optional)\n- `client_id` (integer): Client user ID (only admins can set this, defaults to authenticated user)\n- `total_visits` (integer): Total number of visits (defaults to plan months)\n- `completed_visits` (integer): Number of completed visits (defaults to 0)\n\n**Note:** If `payment_status` is `paid` and `paid_at` is not provided, it will be automatically set to current timestamp."
                     }
                 },
                 {
@@ -500,7 +500,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"payment_status\": \"paid\"\n}"
+                            "raw": "{\n  \"start_date\": \"2025-01-15\",\n  \"end_date\": \"2025-02-14\",\n  \"payment_status\": \"paid\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
@@ -513,7 +513,7 @@
                                 "{{subscription_id}}"
                             ]
                         },
-                        "description": "Update subscription details"
+                        "description": "Update subscription details\n\n**Updatable Fields:**\n- `start_date` (date): Update subscription start date\n- `end_date` (date): Update subscription end date\n- `payment_status` (string): Update payment status - one of: `pending`, `paid`, `failed`, `refunded`\n\n**Note:** Only admins can update `payment_status`. Regular users can only update dates for their own subscriptions."
                     }
                 },
                 {
