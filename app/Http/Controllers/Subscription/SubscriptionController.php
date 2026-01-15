@@ -72,7 +72,14 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        $data['client_id'] = $user->id;
+        
+        // Set client_id: admins can set it, others use their own ID
+        if (!isset($data['client_id'])) {
+            $data['client_id'] = $user->id;
+        } elseif (!$user->hasRole('admin')) {
+            // Non-admins cannot set client_id to another user
+            $data['client_id'] = $user->id;
+        }
 
         // Determine start_date (default to today if missing)
         $start = isset($data['start_date']) && $data['start_date']
@@ -80,35 +87,86 @@ class SubscriptionController extends Controller
             : Carbon::today();
         $data['start_date'] = $start->toDateString();
 
-        // Compute end_date based on plan length
-        $planMap = [
-            '1_month' => 1,
-            '3_month' => 3,
-            '6_month' => 6,
-            '12_month' => 12,
-        ];
-        $months = $planMap[$data['plan']] ?? 1;
+        // Compute end_date based on plan length (if not provided)
+        if (!isset($data['end_date']) || !$data['end_date']) {
+            $planMap = [
+                '1_month' => 1,
+                '3_month' => 3,
+                '6_month' => 6,
+                '12_month' => 12,
+            ];
+            $months = $planMap[$data['plan']] ?? 1;
+            // End date is last day of the last month of subscription
+            $end = $start->copy()->addMonthsNoOverflow($months)->subDay();
+            $data['end_date'] = $end->toDateString();
+        } else {
+            $data['end_date'] = Carbon::parse($data['end_date'])->toDateString();
+        }
+
+        // Set default payment_status if not provided
+        if (!isset($data['payment_status'])) {
+            $data['payment_status'] = 'pending';
+        }
 
         // Load prices from config (fallback to hardcoded price if config missing)
-        $plansConfig = config('subscriptions.plans', []);
-        if (empty($data['amount'])) {
+        if (!isset($data['amount']) || empty($data['amount'])) {
+            $planMap = [
+                '1_month' => 1,
+                '3_month' => 3,
+                '6_month' => 6,
+                '12_month' => 12,
+            ];
+            $months = $planMap[$data['plan']] ?? 1;
+            $plansConfig = config('subscriptions.plans', []);
             $data['amount'] = isset($plansConfig[$data['plan']]['price'])
                 ? (float) $plansConfig[$data['plan']]['price']
                 : (500.00 * $months);
         }
 
-        // End date is last day of the last month of subscription
-        $end = $start->copy()->addMonthsNoOverflow($months)->subDay();
-        $data['end_date'] = $end->toDateString();
+        // Set total_visits if not provided (default to plan months)
+        if (!isset($data['total_visits']) || $data['total_visits'] === null) {
+            $planMap = [
+                '1_month' => 1,
+                '3_month' => 3,
+                '6_month' => 6,
+                '12_month' => 12,
+            ];
+            $data['total_visits'] = $planMap[$data['plan']] ?? 1;
+        }
 
-        $data['total_visits'] = $months;
+        // Set completed_visits default to 0 if not provided
+        if (!isset($data['completed_visits']) || $data['completed_visits'] === null) {
+            $data['completed_visits'] = 0;
+        }
+
+        // Set paid_at if payment_status is paid and paid_at is not set
+        if ($data['payment_status'] === 'paid' && !isset($data['paid_at'])) {
+            $data['paid_at'] = now();
+        }
 
         $sub = Subscription::create($data);
 
-        // Generate visits synchronously based on plan's total_visits
+        // Generate visits synchronously based on total_visits
         $visits = [];
-        for ($i = 0; $i < $months; $i++) {
-            $scheduled = $start->copy()->addMonthsNoOverflow($i)->toDateString();
+        $totalVisits = $data['total_visits'];
+        
+        // Calculate visit interval based on subscription duration
+        $startDate = Carbon::parse($data['start_date']);
+        $endDate = Carbon::parse($data['end_date']);
+        $daysDiff = $startDate->diffInDays($endDate);
+        $visitInterval = $totalVisits > 1 ? floor($daysDiff / ($totalVisits - 1)) : 0;
+        
+        for ($i = 0; $i < $totalVisits; $i++) {
+            if ($i === 0) {
+                $scheduled = $startDate->toDateString();
+            } else {
+                $scheduled = $startDate->copy()->addDays($visitInterval * $i)->toDateString();
+                // Ensure scheduled date doesn't exceed end_date
+                if (Carbon::parse($scheduled)->gt($endDate)) {
+                    $scheduled = $endDate->toDateString();
+                }
+            }
+            
             $visit = Visit::create([
                 'subscription_id' => $sub->id,
                 'scheduled_date' => $scheduled,

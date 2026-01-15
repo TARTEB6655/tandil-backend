@@ -41,13 +41,40 @@ class UserController extends Controller
 
         $users = $query->orderBy('created_at', 'desc')->paginate(15);
 
+        // Return JSON for API requests
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Users retrieved successfully.',
+                'data' => $users->items(),
+                'pagination' => [
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                    'from' => $users->firstItem(),
+                    'to' => $users->lastItem(),
+                ]
+            ]);
+        }
+
         return view('admin.users.index', compact('users'));
     }
 
     // Show user details by ID
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $user = User::with('roles')->findOrFail($id);
+        
+        // Return JSON for API requests
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User retrieved successfully.',
+                'data' => $user
+            ]);
+        }
+        
         return view('admin.users.show', compact('user'));
     }
 
@@ -89,6 +116,15 @@ class UserController extends Controller
             $user->assignRole($role);
         }
 
+        // Return JSON for API requests
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User created successfully.',
+                'data' => $user->load('roles')
+            ], 201);
+        }
+
         return redirect()->route('admin.users.index')
             ->with('success', 'User created successfully.');
     }
@@ -107,7 +143,12 @@ class UserController extends Controller
         $user = User::find($id);
 
         if (!$user) {
-            return response()->json(['status' => false, 'message' => 'User not found'], 404);
+            $isApi = $request->expectsJson() || $request->is('api/*');
+            if ($isApi) {
+                return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            }
+            return redirect()->route('admin.users.index')
+                ->with('error', 'User not found');
         }
 
         $data = $request->validate([
@@ -143,6 +184,15 @@ class UserController extends Controller
 
         $user->save();
 
+        // Return JSON for API requests
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User updated successfully.',
+                'data' => $user->load('roles')
+            ]);
+        }
+
         // Redirect based on request
         if ($request->has('redirect_to') && $request->redirect_to === 'dashboard') {
             return redirect()->route('admin.dashboard')
@@ -157,8 +207,15 @@ class UserController extends Controller
     public function destroy($id, Request $request)
     {
         $admin = $request->user();
+        $isApi = $request->expectsJson() || $request->is('api/*');
 
         if ((int)$admin->id === (int)$id) {
+            if ($isApi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot delete your own account'
+                ], 403);
+            }
             return redirect()->route('admin.users.index')
                 ->with('error', 'You cannot delete your own account');
         }
@@ -166,11 +223,24 @@ class UserController extends Controller
         $user = User::find($id);
 
         if (!$user) {
+            if ($isApi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
             return redirect()->route('admin.users.index')
                 ->with('error', 'User not found');
         }
 
         $user->delete();
+
+        if ($isApi) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User deleted successfully.'
+            ]);
+        }
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User deleted successfully.');
@@ -184,20 +254,39 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
-        $user->password = bcrypt($request->password);
+        // Model will auto-hash due to 'hashed' cast
+        $user->password = $request->password;
         $user->save();
+
+        // Return JSON for API requests
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset successfully.'
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Password reset successfully');
     }
 
     // Ban/Deactivate user
-    public function toggleStatus($id)
+    public function toggleStatus(Request $request, $id)
     {
         $user = User::findOrFail($id);
         $user->status = $user->status === 'active' ? 'inactive' : 'active';
         $user->save();
 
         $status = $user->status === 'active' ? 'activated' : 'deactivated';
+        
+        // Return JSON for API requests
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => "User {$status} successfully.",
+                'data' => $user
+            ]);
+        }
+
         return redirect()->back()->with('success', "User {$status} successfully");
     }
 }
