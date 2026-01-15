@@ -36,8 +36,7 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e): Response
     {
-        // For API requests or when Accept: application/json header is present, always return JSON
-        // Also check if request wants JSON or is an API route
+        // For API requests, ALWAYS return JSON (never HTML, even in debug mode)
         if ($request->is('api/*') || $request->expectsJson() || $request->wantsJson() || $request->header('Accept') === 'application/json') {
             return $this->handleApiException($request, $e);
         }
@@ -58,10 +57,14 @@ class Handler extends ExceptionHandler
 
         // Handle ValidationException - Use standardized format with success
         if ($e instanceof \Illuminate\Validation\ValidationException) {
+            $errors = $e->errors();
+            $firstError = collect($errors)->flatten()->first();
+            $message = $e->getMessage() ?: ($firstError ?: 'The given data was invalid.');
+            
             return response()->json([
                 'success' => false,
-                'message' => 'The given data was invalid.',
-                'errors' => $e->errors(),
+                'message' => $message,
+                'errors' => $errors,
             ], 422);
         }
 
@@ -98,11 +101,22 @@ class Handler extends ExceptionHandler
             ], 500);
         }
 
-        // Handle NotFoundHttpException
+        // Handle NotFoundHttpException - Always return clean JSON
         if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+            // Extract route from exception message if available
+            $routeMessage = $e->getMessage();
+            $route = 'unknown';
+            
+            // Try to extract route path from various message formats
+            if (preg_match('/route\s+([^\s]+)\s+could not be found/i', $routeMessage, $matches)) {
+                $route = $matches[1];
+            } elseif (preg_match('/([^\s]+)\s+could not be found/i', $routeMessage, $matches)) {
+                $route = $matches[1];
+            }
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Route not found.',
+                'message' => "The route {$route} could not be found.",
             ], 404);
         }
 
@@ -126,17 +140,15 @@ class Handler extends ExceptionHandler
         // Generic error handling
         $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
         
+        // For API routes, always return clean JSON (no trace in production, minimal in debug)
         $payload = [
             'success' => false,
             'message' => $isDebug ? $message : ($statusCode === 500 ? 'An error occurred. Please try again later.' : $message),
         ];
 
-        // Add debug info only in debug mode
-        if ($isDebug) {
-            $payload['type'] = $exceptionClass;
-            $payload['line'] = $line;
-            $payload['file'] = $file;
-            $payload['trace'] = $e->getTraceAsString();
+        // Only add minimal debug info for API routes (never full trace)
+        if ($isDebug && $statusCode >= 500) {
+            $payload['error'] = $exceptionClass;
         }
 
         return response()->json($payload, $statusCode);
