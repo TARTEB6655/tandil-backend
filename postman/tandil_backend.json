@@ -3357,7 +3357,7 @@
                                 "notifications"
                             ]
                         },
-                        "description": "List all notifications for authenticated user"
+                        "description": "List all notifications for the authenticated user. Returns paginated list with unread count. Use this endpoint to get notification IDs for marking as read."
                     }
                 },
                 {
@@ -3386,7 +3386,35 @@
                                 "mark-read"
                             ]
                         },
-                        "description": "Mark notification as read"
+                        "description": "Mark a specific notification as read. Use the notification ID from the list endpoint."
+                    }
+                },
+                {
+                    "name": "Notifications - Mark All as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/notifications/mark-all-read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "mark-all-read"
+                            ]
+                        },
+                        "description": "Mark all notifications as read for the authenticated user. This will mark all unread notifications as read."
                     }
                 },
                 {
@@ -4684,7 +4712,7 @@
                                 "notifications"
                             ]
                         },
-                        "description": "Get user notifications (Alternative route /api/user/notifications)"
+                        "description": "Get user notifications (Alternative route /api/user/notifications). Returns paginated list of notifications for the authenticated user."
                     }
                 },
                 {
@@ -4714,7 +4742,7 @@
                                 "read"
                             ]
                         },
-                        "description": "Mark a notification as read"
+                        "description": "Mark a specific notification as read. Use the notification ID from the list endpoint. Alternative route: /api/user/notifications/{id}/read"
                     }
                 },
                 {
