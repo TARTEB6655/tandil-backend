@@ -9,6 +9,18 @@
                 @csrf
                 @method('PUT')
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Start Date</label>
+                        <input type="date" name="start_date" value="{{ old('start_date', $subscription->start_date) }}" class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">End Date</label>
+                        <input type="date" name="end_date" value="{{ old('end_date', $subscription->end_date) }}" class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                </div>
+
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700">Payment Status</label>
                     <select name="payment_status" required class="mt-1 block w-full rounded-md border-gray-300">
@@ -16,12 +28,31 @@
                         <option value="paid" {{ old('payment_status', $subscription->payment_status) == 'paid' ? 'selected' : '' }}>Paid</option>
                         <option value="failed" {{ old('payment_status', $subscription->payment_status) == 'failed' ? 'selected' : '' }}>Failed</option>
                         <option value="refunded" {{ old('payment_status', $subscription->payment_status) == 'refunded' ? 'selected' : '' }}>Refunded</option>
+                        <option value="cancelled" {{ old('payment_status', $subscription->payment_status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                     </select>
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">Amount (AED)</label>
-                    <input type="number" name="amount" step="0.01" value="{{ old('amount', $subscription->amount) }}" class="mt-1 block w-full rounded-md border-gray-300">
+                    <label class="block text-sm font-medium text-gray-700">Amount (AED) <span class="text-red-500">*</span></label>
+                    <input type="number" name="amount" step="0.01" min="0" value="{{ old('amount', $subscription->amount) }}" required class="mt-1 block w-full rounded-md border-gray-300">
+                    <p class="mt-1 text-xs text-gray-500">Update the subscription price/amount</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Total Visits</label>
+                        <input type="number" name="total_visits" min="0" value="{{ old('total_visits', $subscription->total_visits) }}" class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Completed Visits</label>
+                        <input type="number" name="completed_visits" min="0" value="{{ old('completed_visits', $subscription->completed_visits) }}" class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">Payment Reference</label>
+                    <input type="text" name="payment_reference" value="{{ old('payment_reference', $subscription->payment_reference ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300" placeholder="Payment transaction ID or reference">
                 </div>
 
                 <div class="flex gap-4">

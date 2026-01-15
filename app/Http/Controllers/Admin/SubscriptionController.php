@@ -61,8 +61,13 @@ class SubscriptionController extends Controller
         $subscription = Subscription::findOrFail($id);
 
         $validated = $request->validate([
-            'payment_status' => 'required|in:pending,paid,failed,refunded',
-            'amount' => 'nullable|numeric|min:0',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'payment_status' => 'required|in:pending,paid,failed,refunded,cancelled',
+            'amount' => 'required|numeric|min:0',
+            'total_visits' => 'nullable|integer|min:0',
+            'completed_visits' => 'nullable|integer|min:0',
+            'payment_reference' => 'nullable|string|max:255',
         ]);
 
         $subscription->update($validated);

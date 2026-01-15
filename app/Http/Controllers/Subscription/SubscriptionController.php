@@ -205,7 +205,11 @@ class SubscriptionController extends Controller
         $request->validate([
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
-            'payment_status' => 'nullable|string|in:pending,paid,failed,refunded',
+            'payment_status' => 'nullable|string|in:pending,paid,failed,refunded,cancelled',
+            'amount' => 'nullable|numeric|min:0',
+            'total_visits' => 'nullable|integer|min:0',
+            'completed_visits' => 'nullable|integer|min:0',
+            'payment_reference' => 'nullable|string|max:255',
         ]);
 
         if ($request->has('start_date')) {
@@ -216,6 +220,18 @@ class SubscriptionController extends Controller
         }
         if ($request->has('payment_status') && $user->hasRole('admin')) {
             $sub->payment_status = $request->input('payment_status');
+        }
+        if ($request->has('amount') && $user->hasRole('admin')) {
+            $sub->amount = $request->input('amount');
+        }
+        if ($request->has('total_visits') && $user->hasRole('admin')) {
+            $sub->total_visits = $request->input('total_visits');
+        }
+        if ($request->has('completed_visits') && $user->hasRole('admin')) {
+            $sub->completed_visits = $request->input('completed_visits');
+        }
+        if ($request->has('payment_reference') && $user->hasRole('admin')) {
+            $sub->payment_reference = $request->input('payment_reference');
         }
 
         $sub->save();
