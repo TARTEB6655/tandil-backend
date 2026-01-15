@@ -420,7 +420,7 @@
                                 "subscriptions"
                             ]
                         },
-                        "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)"
+                        "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n- Includes subscription details and client info\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
                     }
                 },
                 {
@@ -448,7 +448,7 @@
                                 "{{subscription_id}}"
                             ]
                         },
-                        "description": "✅ STEP 7: Get subscription details with visits"
+                        "description": "✅ STEP 7: Get subscription details with visits\n\n**Returns:**\n- Full subscription information\n- Associated visits with status\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Check visit schedule\n- Review payment status"
                     }
                 },
                 {
@@ -477,7 +477,7 @@
                                 "mark-paid"
                             ]
                         },
-                        "description": "Mark subscription as paid"
+                        "description": "Mark subscription as paid\n\n**Purpose:**\n- Updates subscription payment_status to 'paid'\n- Sends notification to client about payment confirmation\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- After payment gateway webhook confirmation\n- Manual payment confirmation by admin\n- Client confirming their own payment"
                     }
                 },
                 {
@@ -541,7 +541,7 @@
                                 "{{subscription_id}}"
                             ]
                         },
-                        "description": "Cancel/delete subscription"
+                        "description": "Cancel/delete subscription\n\n**Purpose:**\n- Permanently deletes a subscription\n- Can be used by admin or subscription owner\n- All associated visits will be deleted (cascade)\n\n**Use Cases:**\n- Client cancelling their subscription\n- Admin removing invalid subscriptions\n- Refund processing"
                     }
                 }
             ],
