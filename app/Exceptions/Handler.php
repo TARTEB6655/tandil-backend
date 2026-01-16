@@ -36,6 +36,15 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e): Response
     {
+        // Handle AuthorizationException for web requests - redirect to login instead of showing error
+        if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->handleApiException($request, $e);
+            }
+            // For web requests, redirect to login (no error shown)
+            return redirect()->guest(route('login'))->with('error', 'You do not have permission to access this page.');
+        }
+
         // For API requests, ALWAYS return JSON (never HTML, even in debug mode)
         if ($request->is('api/*') || $request->expectsJson() || $request->wantsJson() || $request->header('Accept') === 'application/json') {
             return $this->handleApiException($request, $e);
