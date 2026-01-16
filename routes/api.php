@@ -135,12 +135,8 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
-    // User Management
-    Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index']);
-    Route::post('/users', [\App\Http\Controllers\Admin\UserController::class, 'store']);
-    Route::get('/users/{id}', [\App\Http\Controllers\Admin\UserController::class, 'show']);
-    Route::put('/users/{id}', [\App\Http\Controllers\Admin\UserController::class, 'update']);
-    Route::delete('/users/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy']);
+    // User Management - Moved to dedicated admin/users group below to avoid route conflicts
+    // Routes are now defined at lines 297-302 under 'admin/users' prefix
 
     // Roles
     Route::get('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'index']);
@@ -297,9 +293,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->gr
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/users')->group(function () {
     // Statistics route MUST be before {id} route to avoid route conflict
     Route::get('statistics', [\App\Http\Controllers\Admin\UserController::class, 'statistics'])->name('admin.users.statistics');
-    Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index']);
+    Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users.index');
+    Route::post('/', [\App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store');
     // {id} route must be LAST to avoid catching 'statistics' as an ID
-    Route::get('{id}', [\App\Http\Controllers\Admin\UserController::class, 'show']);
+    Route::get('{id}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('admin.users.show');
+    Route::put('{id}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update');
+    Route::delete('{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.users.destroy');
 });
 
 /*
