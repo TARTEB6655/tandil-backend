@@ -548,7 +548,36 @@
             "description": "Subscription management - Get plans, create, view, update subscriptions"
         },
         {
-            "name": "5. Visits",
+            "name": "5. Banners (Public)",
+            "item": [
+                {
+                    "name": "Get Active Banners",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/banners",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "banners"
+                            ]
+                        },
+                        "description": "Get all active banners for customer home screen\n\n**Purpose:**\n- Returns all active banners ordered by priority\n- Public endpoint - no authentication required\n- Used by customer mobile app to display home screen banners\n\n**Response:**\n- Array of banner objects with:\n  - `id`: Banner ID\n  - `title`: Banner title (optional)\n  - `image_url`: Full URL to banner image\n  - `action_type`: Type of action (link, route, none)\n  - `action_value`: URL or route name for banner click action\n  - `priority`: Display order (lower = first)\n\n**Use Cases:**\n- Customer app home screen\n- Display promotional banners\n- Show featured content\n- Link to specific pages/products"
+                    }
+                }
+            ],
+            "description": "Banner management - Get active banners for customer home screen (Public - no auth required)"
+        },
+        {
+            "name": "6. Visits",
             "item": [
                 {
                     "name": "List Visits",
@@ -737,7 +766,7 @@
             "description": "Visit management - Track maintenance visits"
         },
         {
-            "name": "6. Reports",
+            "name": "7. Reports",
             "item": [
                 {
                     "name": "List Reports",
@@ -849,7 +878,7 @@
             "description": "Report management - Supervisor reports with recommendations"
         },
         {
-            "name": "7. Shop & Orders",
+            "name": "8. Shop & Orders",
             "item": [
                 {
                     "name": "Products - List (Public)",
@@ -1833,7 +1862,7 @@
             "description": "Shop and e-commerce - Browse products, manage cart, place orders, view categories and payments"
         },
         {
-            "name": "8. Technician & Supervisor Routes",
+            "name": "9. Technician & Supervisor Routes",
             "item": [
                 {
                     "name": "Technician - Get Assigned Visits",
@@ -2271,7 +2300,7 @@
             "description": "Technician and Supervisor endpoints - Manage visits and reports"
         },
         {
-            "name": "9. Admin & HR Routes",
+            "name": "10. Admin & HR Routes",
             "item": [
                 {
                     "name": "Admin - Products Management",
@@ -3053,7 +3082,7 @@
             "description": "Admin and HR endpoints - User management, roles, employee management"
         },
         {
-            "name": "10. Other Modules",
+            "name": "11. Other Modules",
             "item": [
                 {
                     "name": "Complaints - List",
