@@ -469,4 +469,158 @@ class AdminDashboardController extends Controller
                 return 'This Month';
         }
     }
+
+    /**
+     * Get dashboard statistics for API (Mobile App)
+     * GET /api/admin/dashboard/statistics
+     */
+    public function statistics(Request $request)
+    {
+        $now = Carbon::now();
+
+        // Calculate date ranges
+        $todayStart = $now->copy()->startOfDay();
+        $todayEnd = $now->copy()->endOfDay();
+        $yesterdayStart = $now->copy()->subDay()->startOfDay();
+        $yesterdayEnd = $now->copy()->subDay()->endOfDay();
+
+        $weekStart = $now->copy()->startOfWeek();
+        $weekEnd = $now->copy()->endOfWeek();
+        $lastWeekStart = $now->copy()->subWeek()->startOfWeek();
+        $lastWeekEnd = $now->copy()->subWeek()->endOfWeek();
+
+        $monthStart = $now->copy()->startOfMonth();
+        $monthEnd = $now->copy()->endOfMonth();
+        $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
+
+        $yearStart = $now->copy()->startOfYear();
+        $yearEnd = $now->copy()->endOfYear();
+        $lastYearStart = $now->copy()->subYear()->startOfYear();
+        $lastYearEnd = $now->copy()->subYear()->endOfYear();
+
+        // Customers Statistics
+        $customersTotal = User::where('role', 'client')->count();
+        $customersDaily = User::where('role', 'client')
+            ->whereBetween('created_at', [$todayStart, $todayEnd])->count();
+        $customersWeekly = User::where('role', 'client')
+            ->whereBetween('created_at', [$weekStart, $weekEnd])->count();
+        $customersMonthly = User::where('role', 'client')
+            ->whereBetween('created_at', [$monthStart, $monthEnd])->count();
+        $customersYearly = User::where('role', 'client')
+            ->whereBetween('created_at', [$yearStart, $yearEnd])->count();
+
+        $customersDailyPrev = User::where('role', 'client')
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
+        $customersWeeklyPrev = User::where('role', 'client')
+            ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
+        $customersMonthlyPrev = User::where('role', 'client')
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        $customersYearlyPrev = User::where('role', 'client')
+            ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
+
+        // Technicians Statistics
+        $techniciansTotal = User::where('role', 'technician')->count();
+        $techniciansDaily = User::where('role', 'technician')
+            ->whereBetween('created_at', [$todayStart, $todayEnd])->count();
+        $techniciansWeekly = User::where('role', 'technician')
+            ->whereBetween('created_at', [$weekStart, $weekEnd])->count();
+        $techniciansMonthly = User::where('role', 'technician')
+            ->whereBetween('created_at', [$monthStart, $monthEnd])->count();
+        $techniciansYearly = User::where('role', 'technician')
+            ->whereBetween('created_at', [$yearStart, $yearEnd])->count();
+
+        $techniciansDailyPrev = User::where('role', 'technician')
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
+        $techniciansWeeklyPrev = User::where('role', 'technician')
+            ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
+        $techniciansMonthlyPrev = User::where('role', 'technician')
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        $techniciansYearlyPrev = User::where('role', 'technician')
+            ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
+
+        // Employees Statistics (Technicians + Supervisors + Area Managers + HR)
+        $employeesTotal = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])->count()
+            + Employee::count();
+        
+        $employeesDaily = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$todayStart, $todayEnd])->count()
+            + Employee::whereBetween('created_at', [$todayStart, $todayEnd])->count();
+        $employeesWeekly = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$weekStart, $weekEnd])->count()
+            + Employee::whereBetween('created_at', [$weekStart, $weekEnd])->count();
+        $employeesMonthly = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$monthStart, $monthEnd])->count()
+            + Employee::whereBetween('created_at', [$monthStart, $monthEnd])->count();
+        $employeesYearly = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$yearStart, $yearEnd])->count()
+            + Employee::whereBetween('created_at', [$yearStart, $yearEnd])->count();
+
+        $employeesDailyPrev = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count()
+            + Employee::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
+        $employeesWeeklyPrev = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count()
+            + Employee::whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
+        $employeesMonthlyPrev = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count()
+            + Employee::whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        $employeesYearlyPrev = User::whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
+            ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count()
+            + Employee::whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
+
+        // Format growth as string with + or - sign
+        $formatGrowth = function($current, $previous) {
+            if ($previous == 0) {
+                return $current > 0 ? '+' . $current : '0';
+            }
+            $growth = round((($current - $previous) / $previous) * 100, 0);
+            return ($growth >= 0 ? '+' : '') . $growth;
+        };
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'customers' => [
+                    'total' => $customersTotal,
+                    'daily' => $customersDaily,
+                    'weekly' => $customersWeekly,
+                    'monthly' => $customersMonthly,
+                    'yearly' => $customersYearly,
+                    'growth' => [
+                        'daily' => $formatGrowth($customersDaily, $customersDailyPrev),
+                        'weekly' => $formatGrowth($customersWeekly, $customersWeeklyPrev),
+                        'monthly' => $formatGrowth($customersMonthly, $customersMonthlyPrev),
+                        'yearly' => $formatGrowth($customersYearly, $customersYearlyPrev),
+                    ],
+                ],
+                'technicians' => [
+                    'total' => $techniciansTotal,
+                    'daily' => $techniciansDaily,
+                    'weekly' => $techniciansWeekly,
+                    'monthly' => $techniciansMonthly,
+                    'yearly' => $techniciansYearly,
+                    'growth' => [
+                        'daily' => $formatGrowth($techniciansDaily, $techniciansDailyPrev),
+                        'weekly' => $formatGrowth($techniciansWeekly, $techniciansWeeklyPrev),
+                        'monthly' => $formatGrowth($techniciansMonthly, $techniciansMonthlyPrev),
+                        'yearly' => $formatGrowth($techniciansYearly, $techniciansYearlyPrev),
+                    ],
+                ],
+                'employees' => [
+                    'total' => $employeesTotal,
+                    'daily' => $employeesDaily,
+                    'weekly' => $employeesWeekly,
+                    'monthly' => $employeesMonthly,
+                    'yearly' => $employeesYearly,
+                    'growth' => [
+                        'daily' => $formatGrowth($employeesDaily, $employeesDailyPrev),
+                        'weekly' => $formatGrowth($employeesWeekly, $employeesWeeklyPrev),
+                        'monthly' => $formatGrowth($employeesMonthly, $employeesMonthlyPrev),
+                        'yearly' => $formatGrowth($employeesYearly, $employeesYearlyPrev),
+                    ],
+                ],
+            ],
+        ]);
+    }
 }
