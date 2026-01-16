@@ -27,7 +27,8 @@ class Banner extends Model
     public function getImageUrlAttribute()
     {
         if ($this->image) {
-            if (str_starts_with($this->image, 'http')) {
+            // Check if image is a full URL (compatible with PHP 7.x)
+            if (filter_var($this->image, FILTER_VALIDATE_URL) || substr($this->image, 0, 4) === 'http') {
                 return $this->image;
             }
             return asset('storage/' . $this->image);
