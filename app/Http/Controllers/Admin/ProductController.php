@@ -14,6 +14,11 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role:admin');
+    }
+
     /**
      * List products (with search, category filter, pagination).
      */

@@ -20,6 +20,11 @@ use Illuminate\Support\Facades\Log;
 
 class AdminDashboardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role:admin');
+    }
+
     public function index(Request $request)
     {
         // Handle search - redirect to users page if search query exists
