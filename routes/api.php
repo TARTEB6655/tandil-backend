@@ -291,6 +291,17 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->gr
 
 /*
 |--------------------------------------------------------------------------
+| ADMIN USERS MANAGEMENT
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/users')->group(function () {
+    Route::get('/statistics', [\App\Http\Controllers\Admin\UserController::class, 'statistics']);
+    Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Admin\UserController::class, 'show']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | TIPS & NOTIFICATIONS
 |--------------------------------------------------------------------------
 */

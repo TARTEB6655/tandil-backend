@@ -34,6 +34,25 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
 
+        // Filter by category (for mobile app)
+        if ($request->has('category') && $request->category) {
+            switch ($request->category) {
+                case 'workers':
+                    $query->where('role', 'technician');
+                    break;
+                case 'supervisors':
+                    $query->where('role', 'supervisor');
+                    break;
+                case 'managers':
+                    $query->where('role', 'area_manager');
+                    break;
+                case 'all':
+                default:
+                    // No filter - show all users
+                    break;
+            }
+        }
+
         // Filter by status
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -43,10 +62,37 @@ class UserController extends Controller
 
         // Return JSON for API requests
         if ($request->expectsJson() || $request->is('api/*')) {
+            $formattedUsers = $users->map(function($user) {
+                // Get role from Spatie Permission or fallback to role field
+                $spatieRole = $user->roles->first();
+                $roleName = $spatieRole ? $spatieRole->name : ($user->role ?? 'No Role');
+                
+                // Format user ID based on role
+                $userIdPrefix = $this->getUserIdPrefix($roleName);
+                $formattedId = $userIdPrefix . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
+                
+                // Get role display name
+                $roleDisplay = $this->getRoleDisplayName($roleName);
+                
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $roleName,
+                    'role_display' => $roleDisplay,
+                    'employee_id' => $formattedId,
+                    'status' => $user->status,
+                    'avatar' => strtoupper(substr($user->name, 0, 1)),
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
+                ];
+            });
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Users retrieved successfully.',
-                'data' => $users->items(),
+                'data' => $formattedUsers,
                 'pagination' => [
                     'current_page' => $users->currentPage(),
                     'last_page' => $users->lastPage(),
@@ -59,6 +105,28 @@ class UserController extends Controller
         }
 
         return view('admin.users.index', compact('users'));
+    }
+
+    /**
+     * Get user statistics for mobile app
+     * GET /api/admin/users/statistics
+     */
+    public function statistics(Request $request)
+    {
+        $allUsers = User::count();
+        $workers = User::where('role', 'technician')->count();
+        $supervisors = User::where('role', 'supervisor')->count();
+        $managers = User::where('role', 'area_manager')->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'all_users' => $allUsers,
+                'workers' => $workers,
+                'supervisors' => $supervisors,
+                'managers' => $managers,
+            ]
+        ]);
     }
 
     // Show user details by ID
@@ -300,5 +368,39 @@ class UserController extends Controller
         }
 
         return redirect()->back()->with('success', "User {$status} successfully");
+    }
+
+    /**
+     * Get user ID prefix based on role
+     */
+    private function getUserIdPrefix($role)
+    {
+        $prefixes = [
+            'client' => 'CLT',
+            'technician' => 'EMP',
+            'supervisor' => 'SUP',
+            'area_manager' => 'AM',
+            'hr' => 'HR',
+            'admin' => 'ADM',
+        ];
+        
+        return $prefixes[strtolower($role)] ?? 'USR';
+    }
+
+    /**
+     * Get role display name
+     */
+    private function getRoleDisplayName($role)
+    {
+        $displayNames = [
+            'client' => 'Client',
+            'technician' => 'Field Worker',
+            'supervisor' => 'Supervisor',
+            'area_manager' => 'Area Manager',
+            'hr' => 'HR Manager',
+            'admin' => 'Administrator',
+        ];
+        
+        return $displayNames[strtolower($role)] ?? ucfirst($role);
     }
 }

@@ -2332,6 +2332,119 @@
                     }
                 },
                 {
+                    "name": "Admin Users Statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/dashboard/statistics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "dashboard",
+                                "statistics"
+                            ]
+                        },
+                        "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for customers, technicians, and employees\n- Includes counts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with + or - sign (e.g., \"+15\", \"-5\")\n- Represents percentage change vs previous period\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards\n- Show growth trends\n- Analytics overview"
+                    }
+                },
+                {
+                    "name": "Admin Users Statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/users/statistics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "statistics"
+                            ]
+                        },
+                        "description": "Get user statistics for mobile app tabs\n\n**Purpose:**\n- Returns counts for All Users, Workers, Supervisors, and Managers\n- Used to display tab counts in user management screen\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"all_users\": 1258,\n    \"workers\": 506,\n    \"supervisors\": 12,\n    \"managers\": 4\n  }\n}\n```\n\n**Use Cases:**\n- Display tab counts in user management\n- Show statistics in admin mobile app"
+                    }
+                },
+                {
+                    "name": "Admin Users List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/users?category=all&status=active&page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "category",
+                                    "value": "all",
+                                    "description": "Filter by category: all, workers, supervisors, managers"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "active",
+                                    "description": "Filter by status: active, inactive, suspended"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search by name, email, or phone"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page"
+                                }
+                            ]
+                        },
+                        "description": "Get list of users with filtering and pagination\n\n**Purpose:**\n- Returns paginated list of users\n- Supports filtering by category, status, and search\n- Formatted for mobile app display\n\n**Query Parameters:**\n- `category`: all, workers, supervisors, managers\n- `status`: active, inactive, suspended\n- `search`: Search by name, email, or phone\n- `page`: Page number (default: 1)\n- `per_page`: Items per page (default: 15)\n\n**Response:**\n- Each user includes: id, name, email, phone, role, role_display, employee_id (formatted), status, avatar (first letter), created_at\n\n**Use Cases:**\n- Display user list in admin mobile app\n- Filter users by category\n- Search functionality"
+                    }
+                },
+                {
                     "name": "Admin - Products Management",
                     "item": [
                         {
