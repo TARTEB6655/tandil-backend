@@ -295,9 +295,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->gr
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/users')->group(function () {
-    Route::get('/statistics', [\App\Http\Controllers\Admin\UserController::class, 'statistics']);
+    // Statistics route must be before {id} route to avoid route conflict
+    Route::get('statistics', [\App\Http\Controllers\Admin\UserController::class, 'statistics'])->name('admin.users.statistics');
     Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index']);
-    Route::get('/{id}', [\App\Http\Controllers\Admin\UserController::class, 'show']);
+    Route::get('{id}', [\App\Http\Controllers\Admin\UserController::class, 'show']);
 });
 
 /*
