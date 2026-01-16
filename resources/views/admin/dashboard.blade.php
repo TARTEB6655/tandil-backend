@@ -951,8 +951,14 @@
         </div>
 
         <!-- Desktop Table View -->
-        <div class="hidden lg:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
+        <div id="users-table-container" class="hidden lg:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div id="users-table-wrapper" class="overflow-x-auto">
+                <div id="users-loading" class="hidden absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-xl">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        <p class="text-sm text-gray-600">Loading users...</p>
+                    </div>
+                </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -976,7 +982,7 @@
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody id="users-table-body" class="bg-white divide-y divide-gray-200">
                         @forelse($allActiveUsers ?? [] as $user)
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
@@ -1034,94 +1040,106 @@
             </div>
             
             <!-- Pagination - Desktop -->
-            @if(isset($allActiveUsersPaginated) && $allActiveUsersPaginated->hasPages())
-                <div class="px-4 xl:px-6 py-4 border-t border-gray-200 bg-gray-50">
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
-                        <div class="text-xs sm:text-sm text-gray-600">
-                            Showing 
-                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->firstItem() ?? 0 }}</span>
-                            to 
-                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->lastItem() ?? 0 }}</span>
-                            of 
-                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->total() }}</span>
-                            users
-                        </div>
-                        <div class="flex items-center justify-center">
-                            {{ $allActiveUsersPaginated->appends(request()->except('users_page'))->links() }}
+            <div id="users-pagination-desktop">
+                @if(isset($allActiveUsersPaginated) && $allActiveUsersPaginated->hasPages())
+                    <div class="px-4 xl:px-6 py-4 border-t border-gray-200 bg-gray-50">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <div class="text-xs sm:text-sm text-gray-600">
+                                Showing 
+                                <span class="font-medium text-gray-900" id="users-from">{{ $allActiveUsersPaginated->firstItem() ?? 0 }}</span>
+                                to 
+                                <span class="font-medium text-gray-900" id="users-to">{{ $allActiveUsersPaginated->lastItem() ?? 0 }}</span>
+                                of 
+                                <span class="font-medium text-gray-900" id="users-total">{{ $allActiveUsersPaginated->total() }}</span>
+                                users
+                            </div>
+                            <div class="flex items-center justify-center" id="users-pagination-links-desktop">
+                                {{ $allActiveUsersPaginated->appends(request()->except('users_page'))->links() }}
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endif
+                @endif
+            </div>
         </div>
 
         <!-- Mobile/Tablet Card View -->
-        <div class="lg:hidden space-y-3">
-            @forelse($allActiveUsers ?? [] as $user)
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <div class="flex items-start gap-3">
-                        <div class="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                            {{ strtoupper(substr($user['name'], 0, 1)) }}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-start justify-between gap-2 mb-2">
-                                <div class="flex-1 min-w-0">
-                                    <h3 class="text-sm font-semibold text-gray-900 truncate">{{ $user['name'] }}</h3>
-                                    <p class="text-xs text-gray-500 truncate mt-0.5">{{ $user['email'] }}</p>
+        <div id="users-cards-container" class="lg:hidden space-y-3">
+            <div id="users-loading-mobile" class="hidden fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                    <p class="text-sm text-gray-600">Loading users...</p>
+                </div>
+            </div>
+            <div id="users-cards-wrapper">
+                @forelse($allActiveUsers ?? [] as $user)
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                                {{ strtoupper(substr($user['name'], 0, 1)) }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between gap-2 mb-2">
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-sm font-semibold text-gray-900 truncate">{{ $user['name'] }}</h3>
+                                        <p class="text-xs text-gray-500 truncate mt-0.5">{{ $user['email'] }}</p>
+                                    </div>
+                                    <button 
+                                        onclick="openRoleModal({{ $user['id'] }}, '{{ addslashes($user['name']) }}', '{{ addslashes($user['email']) }}', '{{ $user['role'] }}')"
+                                        class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors flex-shrink-0"
+                                        title="Change Role">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </button>
                                 </div>
-                                <button 
-                                    onclick="openRoleModal({{ $user['id'] }}, '{{ addslashes($user['name']) }}', '{{ addslashes($user['email']) }}', '{{ $user['role'] }}')"
-                                    class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors flex-shrink-0"
-                                    title="Change Role">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-2 mt-2">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                    {{ ucfirst(str_replace('_', ' ', $user['role'])) }}
-                                </span>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium 
-                                    {{ $user['status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                    {{ ucfirst($user['status']) }}
-                                </span>
-                                @if($user['phone'])
-                                    <span class="text-xs text-gray-500">📞 {{ $user['phone'] }}</span>
-                                @endif
+                                <div class="flex flex-wrap items-center gap-2 mt-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                        {{ ucfirst(str_replace('_', ' ', $user['role'])) }}
+                                    </span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium 
+                                        {{ $user['status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                        {{ ucfirst($user['status']) }}
+                                    </span>
+                                    @if($user['phone'])
+                                        <span class="text-xs text-gray-500">📞 {{ $user['phone'] }}</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            @empty
-                <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
+                @empty
+                    <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </div>
+                        <p class="text-sm text-gray-500 font-medium">No active users found</p>
                     </div>
-                    <p class="text-sm text-gray-500 font-medium">No active users found</p>
-                </div>
-            @endforelse
+                @endforelse
+            </div>
             
             <!-- Pagination - Mobile/Tablet -->
-            @if(isset($allActiveUsersPaginated) && $allActiveUsersPaginated->hasPages())
-                <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4">
-                    <div class="flex flex-col items-center justify-between gap-3">
-                        <div class="text-xs text-gray-600 text-center">
-                            Showing 
-                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->firstItem() ?? 0 }}</span>
-                            to 
-                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->lastItem() ?? 0 }}</span>
-                            of 
-                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->total() }}</span>
-                            users
-                        </div>
-                        <div class="flex items-center justify-center w-full">
-                            {{ $allActiveUsersPaginated->appends(request()->except('users_page'))->links() }}
+            <div id="users-pagination-mobile">
+                @if(isset($allActiveUsersPaginated) && $allActiveUsersPaginated->hasPages())
+                    <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4">
+                        <div class="flex flex-col items-center justify-between gap-3">
+                            <div class="text-xs text-gray-600 text-center">
+                                Showing 
+                                <span class="font-medium text-gray-900" id="users-from-mobile">{{ $allActiveUsersPaginated->firstItem() ?? 0 }}</span>
+                                to 
+                                <span class="font-medium text-gray-900" id="users-to-mobile">{{ $allActiveUsersPaginated->lastItem() ?? 0 }}</span>
+                                of 
+                                <span class="font-medium text-gray-900" id="users-total-mobile">{{ $allActiveUsersPaginated->total() }}</span>
+                                users
+                            </div>
+                            <div class="flex items-center justify-center w-full" id="users-pagination-links-mobile">
+                                {{ $allActiveUsersPaginated->appends(request()->except('users_page'))->links() }}
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endif
+                @endif
+            </div>
         </div>
     </div>
 
@@ -1197,6 +1215,158 @@
             if (e.target === this) {
                 closeRoleModal();
             }
+        });
+
+        // AJAX Pagination for Active Users
+        document.addEventListener('DOMContentLoaded', function() {
+            const usersTableContainer = document.getElementById('users-table-container');
+            const usersCardsContainer = document.getElementById('users-cards-container');
+            const usersLoading = document.getElementById('users-loading');
+            const usersLoadingMobile = document.getElementById('users-loading-mobile');
+            
+            // Function to handle pagination clicks
+            function handlePaginationClick(e) {
+                const link = e.target.closest('a');
+                if (!link || !link.href || link.href.includes('#')) return;
+                
+                e.preventDefault();
+                const url = link.href;
+                
+                // Show loading state
+                if (usersTableContainer && !usersTableContainer.classList.contains('hidden')) {
+                    usersTableContainer.style.position = 'relative';
+                    if (usersLoading) usersLoading.classList.remove('hidden');
+                }
+                if (usersCardsContainer && !usersCardsContainer.classList.contains('hidden')) {
+                    if (usersLoadingMobile) usersLoadingMobile.classList.remove('hidden');
+                }
+                
+                // Make AJAX request
+                fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'text/html',
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    // Create a temporary container to parse the HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    
+                    // Extract users table/cards and pagination
+                    const newTableBody = tempDiv.querySelector('#users-table-body');
+                    const newCardsWrapper = tempDiv.querySelector('#users-cards-wrapper');
+                    const newPaginationDesktop = tempDiv.querySelector('#users-pagination-desktop');
+                    const newPaginationMobile = tempDiv.querySelector('#users-pagination-mobile');
+                    const newUsersFrom = tempDiv.querySelector('#users-from');
+                    const newUsersTo = tempDiv.querySelector('#users-to');
+                    const newUsersTotal = tempDiv.querySelector('#users-total');
+                    const newUsersFromMobile = tempDiv.querySelector('#users-from-mobile');
+                    const newUsersToMobile = tempDiv.querySelector('#users-to-mobile');
+                    const newUsersTotalMobile = tempDiv.querySelector('#users-total-mobile');
+                    
+                    // Update desktop table with fade animation
+                    if (usersTableContainer && newTableBody) {
+                        const currentTableBody = document.getElementById('users-table-body');
+                        if (currentTableBody) {
+                            currentTableBody.style.opacity = '0';
+                            currentTableBody.style.transition = 'opacity 0.3s ease-out';
+                            
+                            setTimeout(() => {
+                                currentTableBody.innerHTML = newTableBody.innerHTML;
+                                currentTableBody.style.opacity = '1';
+                                
+                                // Update pagination
+                                const paginationDesktop = document.getElementById('users-pagination-desktop');
+                                if (paginationDesktop && newPaginationDesktop) {
+                                    paginationDesktop.innerHTML = newPaginationDesktop.innerHTML;
+                                }
+                                
+                                // Update pagination info
+                                if (newUsersFrom) document.getElementById('users-from').textContent = newUsersFrom.textContent;
+                                if (newUsersTo) document.getElementById('users-to').textContent = newUsersTo.textContent;
+                                if (newUsersTotal) document.getElementById('users-total').textContent = newUsersTotal.textContent;
+                                
+                                // Re-attach event listeners
+                                attachPaginationListeners();
+                                
+                                // Hide loading
+                                if (usersLoading) usersLoading.classList.add('hidden');
+                            }, 150);
+                        }
+                    }
+                    
+                    // Update mobile cards with fade animation
+                    if (usersCardsContainer && newCardsWrapper) {
+                        const currentCardsWrapper = document.getElementById('users-cards-wrapper');
+                        if (currentCardsWrapper) {
+                            currentCardsWrapper.style.opacity = '0';
+                            currentCardsWrapper.style.transition = 'opacity 0.3s ease-out';
+                            
+                            setTimeout(() => {
+                                currentCardsWrapper.innerHTML = newCardsWrapper.innerHTML;
+                                currentCardsWrapper.style.opacity = '1';
+                                
+                                // Update pagination
+                                const paginationMobile = document.getElementById('users-pagination-mobile');
+                                if (paginationMobile && newPaginationMobile) {
+                                    paginationMobile.innerHTML = newPaginationMobile.innerHTML;
+                                }
+                                
+                                // Update pagination info
+                                if (newUsersFromMobile) document.getElementById('users-from-mobile').textContent = newUsersFromMobile.textContent;
+                                if (newUsersToMobile) document.getElementById('users-to-mobile').textContent = newUsersToMobile.textContent;
+                                if (newUsersTotalMobile) document.getElementById('users-total-mobile').textContent = newUsersTotalMobile.textContent;
+                                
+                                // Re-attach event listeners
+                                attachPaginationListeners();
+                                
+                                // Hide loading
+                                if (usersLoadingMobile) usersLoadingMobile.classList.add('hidden');
+                            }, 150);
+                        }
+                    }
+                    
+                    // Update URL without page reload
+                    window.history.pushState({}, '', url);
+                    
+                    // Scroll to top of users section smoothly
+                    const usersSection = document.querySelector('#users-table-container, #users-cards-container');
+                    if (usersSection) {
+                        usersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading users:', error);
+                    // Hide loading on error
+                    if (usersLoading) usersLoading.classList.add('hidden');
+                    if (usersLoadingMobile) usersLoadingMobile.classList.add('hidden');
+                    
+                    // Show error message
+                    if (window.toast) {
+                        window.toast.error('Failed to load users. Please try again.');
+                    }
+                });
+            }
+            
+            // Function to attach pagination listeners
+            function attachPaginationListeners() {
+                // Desktop pagination
+                const desktopPagination = document.getElementById('users-pagination-links-desktop');
+                if (desktopPagination) {
+                    desktopPagination.addEventListener('click', handlePaginationClick);
+                }
+                
+                // Mobile pagination
+                const mobilePagination = document.getElementById('users-pagination-links-mobile');
+                if (mobilePagination) {
+                    mobilePagination.addEventListener('click', handlePaginationClick);
+                }
+            }
+            
+            // Initial attachment
+            attachPaginationListeners();
         });
     </script>
 </x-admin-layout>
