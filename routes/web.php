@@ -145,9 +145,11 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('settings/integrations', [SettingController::class, 'updateIntegrationsSettings'])->name('settings.integrations');
         
         Route::resource('audit-logs', AuditLogController::class)->only(['index', 'show']);
-        Route::resource('banners', BannerController::class);
+        
+        // Banner routes - define specific routes before resource to avoid conflicts
         Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
+        Route::resource('banners', BannerController::class);
         Route::resource('tips', TipController::class);
         Route::post('tips/{id}/toggle-status', [TipController::class, 'toggleStatus'])->name('tips.toggle-status');
         
