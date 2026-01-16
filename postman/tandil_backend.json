@@ -2346,35 +2346,6 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/admin/dashboard/statistics",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "dashboard",
-                                "statistics"
-                            ]
-                        },
-                        "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for customers, technicians, and employees\n- Includes counts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with + or - sign (e.g., \"+15\", \"-5\")\n- Represents percentage change vs previous period\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards\n- Show growth trends\n- Analytics overview"
-                    }
-                },
-                {
-                    "name": "Admin Users Statistics",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
                             "raw": "{{base_url}}/api/admin/users/statistics",
                             "host": [
                                 "{{base_url}}"
