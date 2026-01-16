@@ -614,6 +614,66 @@ class AdminDashboardController extends Controller
             ->where('end_date', '>=', $now->copy()->subYear())
             ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
 
+        // Monthly Revenue Statistics (Orders + Subscriptions)
+        $revenueTotal = Order::where('payment_status', 'paid')->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')->sum('amount');
+        
+        $revenueDaily = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$todayStart, $todayEnd])
+                ->sum('amount');
+        
+        $revenueWeekly = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$weekStart, $weekEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$weekStart, $weekEnd])
+                ->sum('amount');
+        
+        $revenueMonthly = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
+                ->sum('amount');
+        
+        $revenueYearly = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$yearStart, $yearEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$yearStart, $yearEnd])
+                ->sum('amount');
+
+        $revenueDailyPrev = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
+                ->sum('amount');
+        
+        $revenueWeeklyPrev = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
+                ->sum('amount');
+        
+        $revenueMonthlyPrev = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+                ->sum('amount');
+        
+        $revenueYearlyPrev = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
+            ->sum('total_amount')
+            + Subscription::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
+                ->sum('amount');
+
         // Format growth as string with + or - sign
         $formatGrowth = function($current, $previous) {
             if ($previous == 0) {
@@ -650,6 +710,19 @@ class AdminDashboardController extends Controller
                         'weekly' => $formatGrowth($subscriptionsWeekly, $subscriptionsWeeklyPrev),
                         'monthly' => $formatGrowth($subscriptionsMonthly, $subscriptionsMonthlyPrev),
                         'yearly' => $formatGrowth($subscriptionsYearly, $subscriptionsYearlyPrev),
+                    ],
+                ],
+                'monthly_revenue' => [
+                    'total' => round($revenueTotal, 2),
+                    'daily' => round($revenueDaily, 2),
+                    'weekly' => round($revenueWeekly, 2),
+                    'monthly' => round($revenueMonthly, 2),
+                    'yearly' => round($revenueYearly, 2),
+                    'growth' => [
+                        'daily' => $formatGrowth($revenueDaily, $revenueDailyPrev),
+                        'weekly' => $formatGrowth($revenueWeekly, $revenueWeeklyPrev),
+                        'monthly' => $formatGrowth($revenueMonthly, $revenueMonthlyPrev),
+                        'yearly' => $formatGrowth($revenueYearly, $revenueYearlyPrev),
                     ],
                 ],
                 'customers' => [
