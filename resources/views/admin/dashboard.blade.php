@@ -1227,9 +1227,17 @@
             // Function to handle pagination clicks
             function handlePaginationClick(e) {
                 const link = e.target.closest('a');
-                if (!link || !link.href || link.href.includes('#')) return;
+                if (!link || !link.href || link.href.includes('#') || link.classList.contains('cursor-not-allowed')) {
+                    return;
+                }
+                
+                // Check if it's a pagination link
+                if (!link.href.includes('users_page') && !link.getAttribute('rel')) {
+                    return;
+                }
                 
                 e.preventDefault();
+                e.stopPropagation();
                 const url = link.href;
                 
                 // Show loading state
@@ -1350,23 +1358,43 @@
                 });
             }
             
-            // Function to attach pagination listeners
+            // Function to attach pagination listeners using event delegation
             function attachPaginationListeners() {
-                // Desktop pagination
+                // Remove old listeners to prevent duplicates
                 const desktopPagination = document.getElementById('users-pagination-links-desktop');
+                const mobilePagination = document.getElementById('users-pagination-links-mobile');
+                
+                // Use event delegation on the pagination containers
                 if (desktopPagination) {
-                    desktopPagination.addEventListener('click', handlePaginationClick);
+                    // Remove any existing listeners by cloning
+                    const newDesktop = desktopPagination.cloneNode(true);
+                    desktopPagination.parentNode.replaceChild(newDesktop, desktopPagination);
+                    document.getElementById('users-pagination-links-desktop').addEventListener('click', handlePaginationClick);
                 }
                 
-                // Mobile pagination
-                const mobilePagination = document.getElementById('users-pagination-links-mobile');
                 if (mobilePagination) {
-                    mobilePagination.addEventListener('click', handlePaginationClick);
+                    // Remove any existing listeners by cloning
+                    const newMobile = mobilePagination.cloneNode(true);
+                    mobilePagination.parentNode.replaceChild(newMobile, mobilePagination);
+                    document.getElementById('users-pagination-links-mobile').addEventListener('click', handlePaginationClick);
                 }
             }
             
-            // Initial attachment
+            // Use event delegation on document for better reliability
+            document.addEventListener('click', function(e) {
+                // Check if click is on a pagination link within our users section
+                const link = e.target.closest('a[href*="users_page"]');
+                if (!link) return;
+                
+                const paginationContainer = link.closest('#users-pagination-links-desktop, #users-pagination-links-mobile');
+                if (paginationContainer) {
+                    handlePaginationClick(e);
+                }
+            });
+            
+            // Initial attachment (backup)
             attachPaginationListeners();
         });
     </script>
 </x-admin-layout>
+
