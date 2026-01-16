@@ -572,6 +572,48 @@ class AdminDashboardController extends Controller
             ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count()
             + Employee::whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
 
+        // Total Users Statistics (All users regardless of role)
+        $totalUsersTotal = User::count();
+        $totalUsersDaily = User::whereBetween('created_at', [$todayStart, $todayEnd])->count();
+        $totalUsersWeekly = User::whereBetween('created_at', [$weekStart, $weekEnd])->count();
+        $totalUsersMonthly = User::whereBetween('created_at', [$monthStart, $monthEnd])->count();
+        $totalUsersYearly = User::whereBetween('created_at', [$yearStart, $yearEnd])->count();
+
+        $totalUsersDailyPrev = User::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
+        $totalUsersWeeklyPrev = User::whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
+        $totalUsersMonthlyPrev = User::whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        $totalUsersYearlyPrev = User::whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
+
+        // Active Subscriptions Statistics
+        $subscriptionsTotal = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now)
+            ->count();
+        $subscriptionsDaily = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now)
+            ->whereBetween('created_at', [$todayStart, $todayEnd])->count();
+        $subscriptionsWeekly = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now)
+            ->whereBetween('created_at', [$weekStart, $weekEnd])->count();
+        $subscriptionsMonthly = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now)
+            ->whereBetween('created_at', [$monthStart, $monthEnd])->count();
+        $subscriptionsYearly = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now)
+            ->whereBetween('created_at', [$yearStart, $yearEnd])->count();
+
+        $subscriptionsDailyPrev = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now->copy()->subDay())
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
+        $subscriptionsWeeklyPrev = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now->copy()->subWeek())
+            ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
+        $subscriptionsMonthlyPrev = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now->copy()->subMonth())
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        $subscriptionsYearlyPrev = Subscription::where('payment_status', 'paid')
+            ->where('end_date', '>=', $now->copy()->subYear())
+            ->whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
+
         // Format growth as string with + or - sign
         $formatGrowth = function($current, $previous) {
             if ($previous == 0) {
@@ -584,6 +626,32 @@ class AdminDashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'total_users' => [
+                    'total' => $totalUsersTotal,
+                    'daily' => $totalUsersDaily,
+                    'weekly' => $totalUsersWeekly,
+                    'monthly' => $totalUsersMonthly,
+                    'yearly' => $totalUsersYearly,
+                    'growth' => [
+                        'daily' => $formatGrowth($totalUsersDaily, $totalUsersDailyPrev),
+                        'weekly' => $formatGrowth($totalUsersWeekly, $totalUsersWeeklyPrev),
+                        'monthly' => $formatGrowth($totalUsersMonthly, $totalUsersMonthlyPrev),
+                        'yearly' => $formatGrowth($totalUsersYearly, $totalUsersYearlyPrev),
+                    ],
+                ],
+                'active_subscriptions' => [
+                    'total' => $subscriptionsTotal,
+                    'daily' => $subscriptionsDaily,
+                    'weekly' => $subscriptionsWeekly,
+                    'monthly' => $subscriptionsMonthly,
+                    'yearly' => $subscriptionsYearly,
+                    'growth' => [
+                        'daily' => $formatGrowth($subscriptionsDaily, $subscriptionsDailyPrev),
+                        'weekly' => $formatGrowth($subscriptionsWeekly, $subscriptionsWeeklyPrev),
+                        'monthly' => $formatGrowth($subscriptionsMonthly, $subscriptionsMonthlyPrev),
+                        'yearly' => $formatGrowth($subscriptionsYearly, $subscriptionsYearlyPrev),
+                    ],
+                ],
                 'customers' => [
                     'total' => $customersTotal,
                     'daily' => $customersDaily,
