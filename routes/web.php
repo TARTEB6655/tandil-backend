@@ -146,6 +146,8 @@ Route::middleware(['auth', 'role:admin'])
         
         Route::resource('audit-logs', AuditLogController::class)->only(['index', 'show']);
         Route::resource('banners', BannerController::class);
+        Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
+        Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
         Route::resource('tips', TipController::class);
         Route::post('tips/{id}/toggle-status', [TipController::class, 'toggleStatus'])->name('tips.toggle-status');
         

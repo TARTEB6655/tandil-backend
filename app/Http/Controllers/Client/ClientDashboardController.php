@@ -10,6 +10,7 @@ use App\Models\Visit;
 use App\Models\Report;
 use App\Models\Order;
 use App\Models\Complaint;
+use App\Models\Banner;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -191,6 +192,9 @@ class ClientDashboardController extends Controller
             ->values()
             ->sortBy('month');
 
+        // Get active banners for home screen
+        $banners = Banner::active()->ordered()->get();
+
         return view('client.dashboard', compact(
             'totalSubscriptions',
             'activeSubscriptions',
@@ -215,7 +219,8 @@ class ClientDashboardController extends Controller
             'visitsByStatus',
             'ordersByStatus',
             'monthlySpending',
-            'search'
+            'search',
+            'banners'
         ));
     }
 }

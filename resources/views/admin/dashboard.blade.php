@@ -108,6 +108,141 @@
         </div>
     </div>
 
+    <!-- Statistics Section -->
+    <div class="mb-6 md:mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">User Statistics</h2>
+                    <p class="mt-1 text-sm text-gray-500">Track growth of customers, technicians, and employees</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="stats_range" class="text-sm font-medium text-gray-700">Time Range:</label>
+                    <select id="stats_range" name="stats_range" onchange="updateStatistics()" 
+                            class="rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <option value="daily" {{ ($timeRange ?? 'monthly') == 'daily' ? 'selected' : '' }}>Daily</option>
+                        <option value="weekly" {{ ($timeRange ?? 'monthly') == 'weekly' ? 'selected' : '' }}>Weekly</option>
+                        <option value="monthly" {{ ($timeRange ?? 'monthly') == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                        <option value="yearly" {{ ($timeRange ?? 'monthly') == 'yearly' ? 'selected' : '' }}>Yearly</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Customers Card -->
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 bg-blue-500 rounded-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-sm font-medium text-gray-700">Customers</h3>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <p class="text-3xl font-bold text-blue-600">{{ number_format($stats['customers']['current'] ?? 0) }}</p>
+                        <p class="text-xs text-gray-600 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                    </div>
+                    @if(isset($stats['customers']['growth']))
+                        <div class="flex items-center gap-2">
+                            @if($stats['customers']['growth'] >= 0)
+                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                                <span class="text-sm font-medium text-green-600">+{{ $stats['customers']['growth'] }}%</span>
+                            @else
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                </svg>
+                                <span class="text-sm font-medium text-red-600">{{ $stats['customers']['growth'] }}%</span>
+                            @endif
+                            <span class="text-xs text-gray-500">vs previous period</span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Technicians Card -->
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 bg-green-500 rounded-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-sm font-medium text-gray-700">Technicians</h3>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <p class="text-3xl font-bold text-green-600">{{ number_format($stats['technicians']['current'] ?? 0) }}</p>
+                        <p class="text-xs text-gray-600 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                    </div>
+                    @if(isset($stats['technicians']['growth']))
+                        <div class="flex items-center gap-2">
+                            @if($stats['technicians']['growth'] >= 0)
+                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                                <span class="text-sm font-medium text-green-600">+{{ $stats['technicians']['growth'] }}%</span>
+                            @else
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                </svg>
+                                <span class="text-sm font-medium text-red-600">{{ $stats['technicians']['growth'] }}%</span>
+                            @endif
+                            <span class="text-xs text-gray-500">vs previous period</span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Employees/Staff Card -->
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 bg-purple-500 rounded-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-sm font-medium text-gray-700">Employees/Staff</h3>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <p class="text-3xl font-bold text-purple-600">{{ number_format($stats['employees']['current'] ?? 0) }}</p>
+                        <p class="text-xs text-gray-600 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                    </div>
+                    @if(isset($stats['employees']['growth']))
+                        <div class="flex items-center gap-2">
+                            @if($stats['employees']['growth'] >= 0)
+                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                                <span class="text-sm font-medium text-green-600">+{{ $stats['employees']['growth'] }}%</span>
+                            @else
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                </svg>
+                                <span class="text-sm font-medium text-red-600">{{ $stats['employees']['growth'] }}%</span>
+                            @endif
+                            <span class="text-xs text-gray-500">vs previous period</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateStatistics() {
+            const range = document.getElementById('stats_range').value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('stats_range', range);
+            window.location.href = url.toString();
+        }
+    </script>
+
     <!-- E-Commerce Section -->
     <div class="mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">

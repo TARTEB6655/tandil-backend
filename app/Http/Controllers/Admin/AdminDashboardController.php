@@ -12,9 +12,11 @@ use App\Models\Subscription;
 use App\Models\Visit;
 use App\Models\Area;
 use App\Models\Report;
+use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class AdminDashboardController extends Controller
 {
@@ -230,6 +232,10 @@ class AdminDashboardController extends Controller
             ->groupBy('payment_status')
             ->get();
 
+        // Statistics with time range (for new statistics section)
+        $timeRange = $request->get('stats_range', 'monthly'); // daily, weekly, monthly, yearly
+        $stats = $this->getStatisticsByTimeRange($timeRange);
+
         // Get all active users with their roles
         $allActiveUsers = User::where('status', 'active')
             ->with('roles')
@@ -335,7 +341,132 @@ class AdminDashboardController extends Controller
             'areaPerformance',
             // Users and roles
             'allActiveUsers',
-            'rolesWithUsers'
+            'rolesWithUsers',
+            // Statistics
+            'stats',
+            'timeRange'
         ));
+    }
+
+    /**
+     * Get statistics by time range
+     */
+    private function getStatisticsByTimeRange($range = 'monthly')
+    {
+        $now = Carbon::now();
+        $startDate = null;
+        $previousStartDate = null;
+        $previousEndDate = null;
+
+        switch ($range) {
+            case 'daily':
+                $startDate = $now->copy()->startOfDay();
+                $endDate = $now->copy()->endOfDay();
+                $previousStartDate = $now->copy()->subDay()->startOfDay();
+                $previousEndDate = $now->copy()->subDay()->endOfDay();
+                break;
+            case 'weekly':
+                $startDate = $now->copy()->startOfWeek();
+                $endDate = $now->copy()->endOfWeek();
+                $previousStartDate = $now->copy()->subWeek()->startOfWeek();
+                $previousEndDate = $now->copy()->subWeek()->endOfWeek();
+                break;
+            case 'monthly':
+                $startDate = $now->copy()->startOfMonth();
+                $endDate = $now->copy()->endOfMonth();
+                $previousStartDate = $now->copy()->subMonth()->startOfMonth();
+                $previousEndDate = $now->copy()->subMonth()->endOfMonth();
+                break;
+            case 'yearly':
+                $startDate = $now->copy()->startOfYear();
+                $endDate = $now->copy()->endOfYear();
+                $previousStartDate = $now->copy()->subYear()->startOfYear();
+                $previousEndDate = $now->copy()->subYear()->endOfYear();
+                break;
+            default:
+                $startDate = $now->copy()->startOfMonth();
+                $endDate = $now->copy()->endOfMonth();
+                $previousStartDate = $now->copy()->subMonth()->startOfMonth();
+                $previousEndDate = $now->copy()->subMonth()->endOfMonth();
+        }
+
+        // Customers (users with client role)
+        $customersCurrent = User::where('role', 'client')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+        $customersPrevious = User::where('role', 'client')
+            ->whereBetween('created_at', [$previousStartDate, $previousEndDate])
+            ->count();
+        $customersGrowth = $this->calculateGrowth($customersCurrent, $customersPrevious);
+
+        // Technicians
+        $techniciansCurrent = User::where('role', 'technician')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+        $techniciansPrevious = User::where('role', 'technician')
+            ->whereBetween('created_at', [$previousStartDate, $previousEndDate])
+            ->count();
+        $techniciansGrowth = $this->calculateGrowth($techniciansCurrent, $techniciansPrevious);
+
+        // Employees/Staff (from Employee model or users with hr role)
+        $employeesCurrent = Employee::whereBetween('created_at', [$startDate, $endDate])->count() 
+            + User::where('role', 'hr')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count();
+        $employeesPrevious = Employee::whereBetween('created_at', [$previousStartDate, $previousEndDate])->count()
+            + User::where('role', 'hr')
+                ->whereBetween('created_at', [$previousStartDate, $previousEndDate])
+                ->count();
+        $employeesGrowth = $this->calculateGrowth($employeesCurrent, $employeesPrevious);
+
+        return [
+            'customers' => [
+                'current' => $customersCurrent,
+                'previous' => $customersPrevious,
+                'growth' => $customersGrowth,
+            ],
+            'technicians' => [
+                'current' => $techniciansCurrent,
+                'previous' => $techniciansPrevious,
+                'growth' => $techniciansGrowth,
+            ],
+            'employees' => [
+                'current' => $employeesCurrent,
+                'previous' => $employeesPrevious,
+                'growth' => $employeesGrowth,
+            ],
+            'range' => $range,
+            'period_label' => $this->getPeriodLabel($range),
+        ];
+    }
+
+    /**
+     * Calculate growth percentage
+     */
+    private function calculateGrowth($current, $previous)
+    {
+        if ($previous == 0) {
+            return $current > 0 ? 100 : 0;
+        }
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    /**
+     * Get period label
+     */
+    private function getPeriodLabel($range)
+    {
+        switch ($range) {
+            case 'daily':
+                return 'Today';
+            case 'weekly':
+                return 'This Week';
+            case 'monthly':
+                return 'This Month';
+            case 'yearly':
+                return 'This Year';
+            default:
+                return 'This Month';
+        }
     }
 }

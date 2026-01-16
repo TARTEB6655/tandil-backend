@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Banner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,11 +16,7 @@ class BannerController extends Controller
 
     public function index()
     {
-        // Note: You'd need a banners table/model for production
-        // For now, this is a placeholder structure
-        
-        $banners = []; // Banner::orderBy('priority', 'asc')->get();
-        
+        $banners = Banner::ordered()->get();
         return view('admin.banners.index', compact('banners'));
     }
 
@@ -31,50 +28,125 @@ class BannerController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string|max:255',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'link' => 'nullable|url',
-            'priority' => 'nullable|integer|min:1',
-            'status' => 'required|in:active,inactive',
+            'title' => 'nullable|string|max:255',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'link' => 'nullable|string|max:500',
+            'action_type' => 'nullable|in:link,route,none',
+            'action_value' => 'nullable|string|max:500',
+            'priority' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
         ]);
 
-        // Save banner
-        // $banner = Banner::create([...]);
-        
+        $imagePath = $request->file('image')->store('banners', 'public');
+
+        $banner = Banner::create([
+            'title' => $request->title,
+            'image' => $imagePath,
+            'link' => $request->link,
+            'action_type' => $request->action_type ?? 'link',
+            'action_value' => $request->action_value ?? $request->link,
+            'priority' => $request->priority ?? 0,
+            'is_active' => $request->has('is_active') ? (bool)$request->is_active : true,
+        ]);
+
         return redirect()->route('admin.banners.index')
             ->with('success', 'Banner created successfully');
     }
 
     public function edit($id)
     {
-        // $banner = Banner::findOrFail($id);
-        // return view('admin.banners.edit', compact('banner'));
-        
-        return view('admin.banners.edit');
+        $banner = Banner::findOrFail($id);
+        return view('admin.banners.edit', compact('banner'));
     }
 
     public function update(Request $request, $id)
     {
+        $banner = Banner::findOrFail($id);
+
         $request->validate([
-            'title' => 'required|string|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'link' => 'nullable|url',
-            'priority' => 'nullable|integer|min:1',
-            'status' => 'required|in:active,inactive',
+            'title' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'link' => 'nullable|string|max:500',
+            'action_type' => 'nullable|in:link,route,none',
+            'action_value' => 'nullable|string|max:500',
+            'priority' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
         ]);
 
-        // Update banner
+        $data = [
+            'title' => $request->title,
+            'link' => $request->link,
+            'action_type' => $request->action_type ?? 'link',
+            'action_value' => $request->action_value ?? $request->link,
+            'priority' => $request->priority ?? $banner->priority,
+            'is_active' => $request->has('is_active') ? (bool)$request->is_active : $banner->is_active,
+        ];
+
+        if ($request->hasFile('image')) {
+            // Delete old image
+            if ($banner->image && Storage::disk('public')->exists($banner->image)) {
+                Storage::disk('public')->delete($banner->image);
+            }
+            $data['image'] = $request->file('image')->store('banners', 'public');
+        }
+
+        $banner->update($data);
+
         return redirect()->route('admin.banners.index')
             ->with('success', 'Banner updated successfully');
     }
 
     public function destroy($id)
     {
-        // $banner = Banner::findOrFail($id);
-        // $banner->delete();
+        $banner = Banner::findOrFail($id);
+        
+        // Delete image
+        if ($banner->image && Storage::disk('public')->exists($banner->image)) {
+            Storage::disk('public')->delete($banner->image);
+        }
+        
+        $banner->delete();
         
         return redirect()->route('admin.banners.index')
             ->with('success', 'Banner deleted successfully');
+    }
+
+    /**
+     * Update banner order (priority)
+     */
+    public function updateOrder(Request $request)
+    {
+        $request->validate([
+            'banners' => 'required|array',
+            'banners.*.id' => 'required|exists:banners,id',
+            'banners.*.priority' => 'required|integer',
+        ]);
+
+        foreach ($request->banners as $bannerData) {
+            Banner::where('id', $bannerData['id'])
+                ->update(['priority' => $bannerData['priority']]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Banner order updated successfully'
+        ]);
+    }
+
+    /**
+     * Toggle banner status
+     */
+    public function toggleStatus($id)
+    {
+        $banner = Banner::findOrFail($id);
+        $banner->is_active = !$banner->is_active;
+        $banner->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Banner status updated successfully',
+            'is_active' => $banner->is_active
+        ]);
     }
 }
 

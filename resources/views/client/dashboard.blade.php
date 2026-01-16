@@ -5,6 +5,44 @@
                 <p class="mt-1 text-xs sm:text-sm text-gray-500">Welcome back! Here's an overview of your subscriptions, visits, and orders.</p>
             </div>
 
+            <!-- Banners Section -->
+            @if(isset($banners) && $banners->count() > 0)
+                <div class="mb-4 sm:mb-6 md:mb-8">
+                    <div class="relative">
+                        <div class="overflow-x-auto scrollbar-hide">
+                            <div class="flex gap-4 pb-2" style="scroll-snap-type: x mandatory;">
+                                @foreach($banners as $banner)
+                                    <div class="flex-shrink-0 w-full sm:w-4/5 md:w-2/3 lg:w-1/2" style="scroll-snap-align: start;">
+                                        @if($banner->action_type === 'link' && $banner->action_value)
+                                            <a href="{{ $banner->action_value }}" target="_blank" class="block">
+                                        @elseif($banner->action_type === 'route' && $banner->action_value)
+                                            <a href="{{ route($banner->action_value) ?? $banner->action_value }}" class="block">
+                                        @else
+                                            <div class="block">
+                                        @endif
+                                            <div class="relative rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                                                <img src="{{ $banner->image_url }}" 
+                                                     alt="{{ $banner->title ?: 'Banner' }}" 
+                                                     class="w-full h-40 sm:h-48 md:h-56 object-cover">
+                                                @if($banner->title)
+                                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                                        <h3 class="text-white font-medium text-sm sm:text-base">{{ $banner->title }}</h3>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @if($banner->action_type !== 'none' && ($banner->action_value || $banner->link))
+                                            </a>
+                                        @else
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Key Metrics Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
                 <!-- Total Subscriptions Card -->
