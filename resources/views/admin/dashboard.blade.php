@@ -1032,6 +1032,26 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination - Desktop -->
+            @if(isset($allActiveUsersPaginated) && $allActiveUsersPaginated->hasPages())
+                <div class="px-4 xl:px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="text-xs sm:text-sm text-gray-600">
+                            Showing 
+                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->firstItem() ?? 0 }}</span>
+                            to 
+                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->lastItem() ?? 0 }}</span>
+                            of 
+                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->total() }}</span>
+                            users
+                        </div>
+                        <div class="flex items-center justify-center">
+                            {{ $allActiveUsersPaginated->appends(request()->except('users_page'))->links() }}
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Mobile/Tablet Card View -->
@@ -1082,6 +1102,26 @@
                     <p class="text-sm text-gray-500 font-medium">No active users found</p>
                 </div>
             @endforelse
+            
+            <!-- Pagination - Mobile/Tablet -->
+            @if(isset($allActiveUsersPaginated) && $allActiveUsersPaginated->hasPages())
+                <div class="mt-4 bg-white rounded-xl border border-gray-200 p-4">
+                    <div class="flex flex-col items-center justify-between gap-3">
+                        <div class="text-xs text-gray-600 text-center">
+                            Showing 
+                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->firstItem() ?? 0 }}</span>
+                            to 
+                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->lastItem() ?? 0 }}</span>
+                            of 
+                            <span class="font-medium text-gray-900">{{ $allActiveUsersPaginated->total() }}</span>
+                            users
+                        </div>
+                        <div class="flex items-center justify-center w-full">
+                            {{ $allActiveUsersPaginated->appends(request()->except('users_page'))->links() }}
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 

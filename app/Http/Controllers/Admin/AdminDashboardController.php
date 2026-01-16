@@ -236,28 +236,30 @@ class AdminDashboardController extends Controller
         $timeRange = $request->get('stats_range', 'monthly'); // daily, weekly, monthly, yearly
         $stats = $this->getStatisticsByTimeRange($timeRange);
 
-        // Get all active users with their roles
-        $allActiveUsers = User::where('status', 'active')
+        // Get active users with pagination (5 per page)
+        $activeUsersQuery = User::where('status', 'active')
             ->with('roles')
             ->select('id', 'name', 'email', 'phone', 'role', 'status', 'created_at')
-            ->orderBy('name')
-            ->get()
-            ->map(function($user) {
-                // Get role from Spatie Permission or fallback to role field
-                $spatieRole = $user->roles->first();
-                $roleName = $spatieRole ? $spatieRole->name : ($user->role ?? 'No Role');
-                
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'role' => $roleName,
-                    'role_id' => $spatieRole ? $spatieRole->id : null,
-                    'status' => $user->status,
-                    'created_at' => $user->created_at,
-                ];
-            });
+            ->orderBy('name');
+        
+        $allActiveUsersPaginated = $activeUsersQuery->paginate(5, ['*'], 'users_page');
+        
+        $allActiveUsers = $allActiveUsersPaginated->map(function($user) {
+            // Get role from Spatie Permission or fallback to role field
+            $spatieRole = $user->roles->first();
+            $roleName = $spatieRole ? $spatieRole->name : ($user->role ?? 'No Role');
+            
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'role' => $roleName,
+                'role_id' => $spatieRole ? $spatieRole->id : null,
+                'status' => $user->status,
+                'created_at' => $user->created_at,
+            ];
+        });
 
         // Roles with assigned users - Get users both from Spatie roles and role field
         $rolesWithUsers = \Spatie\Permission\Models\Role::orderBy('name')->get()->map(function($role) {
@@ -297,6 +299,7 @@ class AdminDashboardController extends Controller
         return view('admin.dashboard', compact(
             'totalUsers',
             'totalTechnicians',
+            'allActiveUsersPaginated',
             'totalSupervisors',
             'activeSubscriptions',
             'visitsToday',
