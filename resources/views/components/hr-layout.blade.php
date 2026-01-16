@@ -7,6 +7,11 @@
 
     <title>{{ config('app.name', 'Tandil') }} - HR Dashboard</title>
 
+    <!-- Favicon with cache busting -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
