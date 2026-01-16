@@ -25,7 +25,7 @@
         <div class="max-w-md w-full text-center">
             <!-- Logo -->
             <div class="mb-8 flex justify-center">
-                <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name', 'Tandil') }}" class="h-auto w-auto max-h-24">
+                <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name', 'Tandil') }}" style="width: 100px; height: auto;">
             </div>
 
             <!-- 404 Illustration -->
