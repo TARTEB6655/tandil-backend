@@ -292,13 +292,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->gr
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/users')->group(function () {
     // Statistics route MUST be before {id} route to avoid route conflict
-    Route::get('statistics', [\App\Http\Controllers\Admin\UserController::class, 'statistics'])->name('admin.users.statistics');
-    Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users.index');
-    Route::post('/', [\App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store');
+    Route::get('statistics', [\App\Http\Controllers\Admin\UserController::class, 'statistics'])->name('api.admin.users.statistics');
+    Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('api.admin.users.index');
+    Route::post('/', [\App\Http\Controllers\Admin\UserController::class, 'store'])->name('api.admin.users.store');
     // {id} route must be LAST to avoid catching 'statistics' as an ID
-    Route::get('{id}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('admin.users.show');
-    Route::put('{id}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update');
-    Route::delete('{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.users.destroy');
+    Route::get('{id}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('api.admin.users.show');
+    Route::put('{id}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('api.admin.users.update');
+    Route::delete('{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('api.admin.users.destroy');
 });
 
 /*
