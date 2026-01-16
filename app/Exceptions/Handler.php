@@ -72,7 +72,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof \Illuminate\Auth\AuthenticationException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated',
+                'message' => 'Unauthenticated. Please provide a valid authentication token.',
             ], 401);
         }
 
@@ -160,7 +160,10 @@ class Handler extends ExceptionHandler
     protected function unauthenticated($request, AuthenticationException $exception)
     {
         if ($request->expectsJson() || $request->is('api/*')) {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please provide a valid authentication token.',
+            ], 401);
         }
 
         return redirect()->guest(route('login'));
