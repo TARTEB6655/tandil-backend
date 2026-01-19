@@ -922,4 +922,179 @@ class AdminDashboardController extends Controller
             'total' => count($activities),
         ]);
     }
+
+    /**
+     * Get quick overview for React Native dashboard
+     * Returns counts for new orders, support tickets, and other quick stats
+     * with percentage changes vs previous period
+     */
+    public function quickOverview(Request $request)
+    {
+        $now = Carbon::now();
+        $todayStart = $now->copy()->startOfDay();
+        $todayEnd = $now->copy()->endOfDay();
+        
+        // Previous period (same period last time)
+        $yesterdayStart = $now->copy()->subDay()->startOfDay();
+        $yesterdayEnd = $now->copy()->subDay()->endOfDay();
+        
+        // This week
+        $thisWeekStart = $now->copy()->startOfWeek();
+        $thisWeekEnd = $now->copy()->endOfWeek();
+        
+        // Last week
+        $lastWeekStart = $now->copy()->subWeek()->startOfWeek();
+        $lastWeekEnd = $now->copy()->subWeek()->endOfWeek();
+
+        // Helper function to calculate percentage change
+        $calculateGrowth = function($current, $previous) {
+            if ($previous == 0) {
+                return $current > 0 ? '+100' : '0';
+            }
+            $change = (($current - $previous) / $previous) * 100;
+            return $change >= 0 ? '+' . round($change, 0) : round($change, 0);
+        };
+
+        // 1. New Orders (today)
+        $newOrdersToday = Order::whereBetween('created_at', [$todayStart, $todayEnd])->count();
+        $newOrdersYesterday = Order::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
+        $newOrdersGrowth = $calculateGrowth($newOrdersToday, $newOrdersYesterday);
+
+        // 2. Support Tickets (open and in_progress complaints)
+        $supportTicketsOpen = Complaint::whereIn('status', ['open', 'in_progress'])->count();
+        $supportTicketsOpenYesterday = Complaint::whereIn('status', ['open', 'in_progress'])
+            ->where('created_at', '<', $todayStart)
+            ->where('created_at', '>=', $yesterdayStart)
+            ->count();
+        // For support tickets, we compare current open tickets vs yesterday's open tickets
+        $supportTicketsYesterday = Complaint::whereIn('status', ['open', 'in_progress'])
+            ->where('updated_at', '<', $todayStart)
+            ->where('updated_at', '>=', $yesterdayStart)
+            ->count();
+        $supportTicketsGrowth = $calculateGrowth($supportTicketsOpen, $supportTicketsYesterday > 0 ? $supportTicketsYesterday : $supportTicketsOpen);
+
+        // 3. New Customers (today)
+        $newCustomersToday = User::where('role', 'client')
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->count();
+        $newCustomersYesterday = User::where('role', 'client')
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
+            ->count();
+        $newCustomersGrowth = $calculateGrowth($newCustomersToday, $newCustomersYesterday);
+
+        // 4. New Subscriptions (today)
+        $newSubscriptionsToday = Subscription::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->count();
+        $newSubscriptionsYesterday = Subscription::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
+            ->count();
+        $newSubscriptionsGrowth = $calculateGrowth($newSubscriptionsToday, $newSubscriptionsYesterday);
+
+        // 5. Revenue Today
+        $revenueToday = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->sum('total_amount');
+        $revenueYesterday = Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
+            ->sum('total_amount');
+        $revenueGrowth = $calculateGrowth($revenueToday, $revenueYesterday);
+
+        // 6. Pending Visits (scheduled but not completed)
+        $pendingVisits = Visit::where('status', '!=', 'completed')
+            ->where('scheduled_date', '>=', Carbon::today())
+            ->count();
+        $pendingVisitsYesterday = Visit::where('status', '!=', 'completed')
+            ->where('scheduled_date', '>=', Carbon::yesterday())
+            ->where('scheduled_date', '<', Carbon::today())
+            ->count();
+        $pendingVisitsGrowth = $calculateGrowth($pendingVisits, $pendingVisitsYesterday);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'new_orders' => [
+                    'count' => $newOrdersToday,
+                    'growth' => $newOrdersGrowth,
+                    'label' => 'New Orders',
+                ],
+                'support_tickets' => [
+                    'count' => $supportTicketsOpen,
+                    'growth' => $supportTicketsGrowth,
+                    'label' => 'Support Tickets',
+                ],
+                'new_customers' => [
+                    'count' => $newCustomersToday,
+                    'growth' => $newCustomersGrowth,
+                    'label' => 'New Customers',
+                ],
+                'new_subscriptions' => [
+                    'count' => $newSubscriptionsToday,
+                    'growth' => $newSubscriptionsGrowth,
+                    'label' => 'New Subscriptions',
+                ],
+                'revenue_today' => [
+                    'amount' => round($revenueToday, 2),
+                    'growth' => $revenueGrowth,
+                    'label' => 'Revenue Today',
+                ],
+                'pending_visits' => [
+                    'count' => $pendingVisits,
+                    'growth' => $pendingVisitsGrowth,
+                    'label' => 'Pending Visits',
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Get admin user profile with formatted ID for React Native dashboard
+     */
+    public function profile(Request $request)
+    {
+        $user = $request->user();
+        
+        // Format user ID (e.g., ADMIN-5001)
+        $rolePrefix = strtoupper(substr($user->role ?? 'USER', 0, 5));
+        $formattedId = $rolePrefix . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
+        
+        // Get user's role display name
+        $roleDisplayNames = [
+            'admin' => 'Executive Management',
+            'supervisor' => 'Supervisor',
+            'technician' => 'Technician',
+            'client' => 'Customer',
+            'hr' => 'HR Manager',
+            'area_manager' => 'Area Manager',
+        ];
+        $roleDisplayName = $roleDisplayNames[$user->role] ?? ucfirst($user->role ?? 'User');
+        
+        // Get greeting based on time of day
+        $hour = Carbon::now()->hour;
+        $greeting = 'Good morning!';
+        if ($hour >= 12 && $hour < 17) {
+            $greeting = 'Good afternoon!';
+        } elseif ($hour >= 17 && $hour < 21) {
+            $greeting = 'Good evening!';
+        } elseif ($hour >= 21 || $hour < 5) {
+            $greeting = 'Good night!';
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $user->id,
+                'formatted_id' => $formattedId,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'role' => $user->role,
+                'role_display_name' => $roleDisplayName,
+                'status' => $user->status,
+                'greeting' => $greeting,
+                'avatar' => null, // You can add avatar URL if you have one
+                'created_at' => $user->created_at->toISOString(),
+            ],
+        ]);
+    }
 }
