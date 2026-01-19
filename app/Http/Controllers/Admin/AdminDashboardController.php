@@ -819,7 +819,7 @@ class AdminDashboardController extends Controller
         foreach ($recentCustomers as $customer) {
             $activities[] = [
                 'type' => 'customer',
-                'icon_type' => 'user', // User icon
+                'icon_type' => 'user_add', // User icon with plus sign
                 'description' => "New customer registered - {$customer->name}",
                 'timestamp' => $customer->created_at->diffForHumans(),
                 'created_at' => $customer->created_at->toISOString(),
