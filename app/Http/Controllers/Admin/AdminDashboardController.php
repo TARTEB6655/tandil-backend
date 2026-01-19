@@ -1000,7 +1000,20 @@ class AdminDashboardController extends Controller
             ->sum('total_amount');
         $revenueGrowth = $calculateGrowth($revenueToday, $revenueYesterday);
 
-        // 6. Pending Visits (scheduled but not completed)
+        // 6. Pending Reports
+        $pendingReports = Report::where('status', 'pending')->count();
+        $pendingReportsYesterday = Report::where('status', 'pending')
+            ->where('updated_at', '<', $todayStart)
+            ->where('updated_at', '>=', $yesterdayStart)
+            ->count();
+        // For pending reports, compare current pending vs yesterday's pending count
+        $pendingReportsYesterdayCount = Report::where('status', 'pending')
+            ->where('created_at', '<', $todayStart)
+            ->where('created_at', '>=', $yesterdayStart)
+            ->count();
+        $pendingReportsGrowth = $calculateGrowth($pendingReports, $pendingReportsYesterdayCount > 0 ? $pendingReportsYesterdayCount : $pendingReports);
+
+        // 7. Pending Visits (scheduled but not completed)
         $pendingVisits = Visit::where('status', '!=', 'completed')
             ->where('scheduled_date', '>=', Carbon::today())
             ->count();
@@ -1022,6 +1035,11 @@ class AdminDashboardController extends Controller
                     'count' => $supportTicketsOpen,
                     'growth' => $supportTicketsGrowth,
                     'label' => 'Support Tickets',
+                ],
+                'pending_reports' => [
+                    'count' => $pendingReports,
+                    'growth' => $pendingReportsGrowth,
+                    'label' => 'Pending Reports',
                 ],
                 'new_customers' => [
                     'count' => $newCustomersToday,
