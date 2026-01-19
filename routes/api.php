@@ -283,6 +283,7 @@ Route::get('/banners', [\App\Http\Controllers\Api\BannerController::class, 'inde
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->group(function () {
     Route::get('/statistics', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'statistics']);
+    Route::get('/recent-activities', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'recentActivities']);
 });
 
 /*

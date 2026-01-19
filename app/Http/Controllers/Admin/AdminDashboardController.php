@@ -772,4 +772,154 @@ class AdminDashboardController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Get recent activities for React Native dashboard
+     * Returns a list of recent activities including subscriptions, customer registrations, 
+     * inventory alerts, orders, and visits
+     */
+    public function recentActivities(Request $request)
+    {
+        $limit = $request->input('limit', 20); // Default 20 activities
+        $activities = [];
+
+        // 1. Recent Subscriptions (paid subscriptions)
+        $recentSubscriptions = Subscription::where('payment_status', 'paid')
+            ->with('client')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        foreach ($recentSubscriptions as $subscription) {
+            $planNames = [
+                '1_month' => '1-month',
+                '3_month' => '3-month',
+                '6_month' => '6-month',
+                '12_month' => '12-month',
+            ];
+            $planName = $planNames[$subscription->plan] ?? $subscription->plan;
+            
+            $activities[] = [
+                'type' => 'subscription',
+                'icon_type' => 'success', // Green checkmark icon
+                'description' => "New {$planName} subscription by " . ($subscription->client->name ?? 'Unknown'),
+                'timestamp' => $subscription->created_at->diffForHumans(),
+                'created_at' => $subscription->created_at->toISOString(),
+                'related_id' => $subscription->id,
+                'related_type' => 'subscription',
+            ];
+        }
+
+        // 2. New Customer Registrations
+        $recentCustomers = User::where('role', 'client')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        foreach ($recentCustomers as $customer) {
+            $activities[] = [
+                'type' => 'customer',
+                'icon_type' => 'user', // User icon
+                'description' => "New customer registered - {$customer->name}",
+                'timestamp' => $customer->created_at->diffForHumans(),
+                'created_at' => $customer->created_at->toISOString(),
+                'related_id' => $customer->id,
+                'related_type' => 'user',
+            ];
+        }
+
+        // 3. Low Inventory Alerts
+        $lowStockProducts = Product::where('stock', '<', 10)
+            ->where('stock', '>', 0)
+            ->orderBy('stock', 'asc')
+            ->orderBy('updated_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        foreach ($lowStockProducts as $product) {
+            $activities[] = [
+                'type' => 'inventory',
+                'icon_type' => 'warning', // Yellow/orange warning icon
+                'description' => "Low inventory alert: {$product->name}",
+                'timestamp' => $product->updated_at->diffForHumans(),
+                'created_at' => $product->updated_at->toISOString(),
+                'related_id' => $product->id,
+                'related_type' => 'product',
+                'stock' => $product->stock, // Additional info for inventory alerts
+            ];
+        }
+
+        // 4. Out of Stock Alerts
+        $outOfStockProducts = Product::where('stock', 0)
+            ->orderBy('updated_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        foreach ($outOfStockProducts as $product) {
+            $activities[] = [
+                'type' => 'inventory',
+                'icon_type' => 'error', // Red error icon
+                'description' => "Out of stock: {$product->name}",
+                'timestamp' => $product->updated_at->diffForHumans(),
+                'created_at' => $product->updated_at->toISOString(),
+                'related_id' => $product->id,
+                'related_type' => 'product',
+                'stock' => 0,
+            ];
+        }
+
+        // 5. Recent Orders
+        $recentOrders = Order::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        foreach ($recentOrders as $order) {
+            $activities[] = [
+                'type' => 'order',
+                'icon_type' => 'order', // Shopping cart/order icon
+                'description' => "New order #{$order->id} by " . ($order->user->name ?? 'Unknown'),
+                'timestamp' => $order->created_at->diffForHumans(),
+                'created_at' => $order->created_at->toISOString(),
+                'related_id' => $order->id,
+                'related_type' => 'order',
+                'amount' => (float) $order->total_amount,
+                'status' => $order->order_status,
+            ];
+        }
+
+        // 6. Completed Visits
+        $completedVisits = Visit::where('status', 'completed')
+            ->with(['subscription.client', 'technician'])
+            ->orderBy('completed_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        foreach ($completedVisits as $visit) {
+            $clientName = $visit->subscription->client->name ?? 'Unknown';
+            $activities[] = [
+                'type' => 'visit',
+                'icon_type' => 'check', // Checkmark icon
+                'description' => "Visit completed for {$clientName}",
+                'timestamp' => $visit->completed_at ? $visit->completed_at->diffForHumans() : $visit->created_at->diffForHumans(),
+                'created_at' => $visit->completed_at ? $visit->completed_at->toISOString() : $visit->created_at->toISOString(),
+                'related_id' => $visit->id,
+                'related_type' => 'visit',
+            ];
+        }
+
+        // Sort all activities by created_at (most recent first)
+        usort($activities, function ($a, $b) {
+            return strtotime($b['created_at']) - strtotime($a['created_at']);
+        });
+
+        // Limit the results
+        $activities = array_slice($activities, 0, $limit);
+
+        return response()->json([
+            'success' => true,
+            'data' => $activities,
+            'total' => count($activities),
+        ]);
+    }
 }
