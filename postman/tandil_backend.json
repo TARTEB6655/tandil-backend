@@ -3289,7 +3289,177 @@
             "description": "Admin and HR endpoints - User management, roles, employee management"
         },
         {
-            "name": "11. Other Modules",
+            "name": "11. Admin Reports Management",
+            "item": [
+                {
+                    "name": "Get All Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports?page=1&per_page=15",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports"],
+                            "query": [
+                                { "key": "status", "value": "", "description": "Filter: pending, generated, scheduled, failed", "disabled": true },
+                                { "key": "type", "value": "", "description": "Filter: financial, performance, customer, operational, user, subscription", "disabled": true },
+                                { "key": "page", "value": "1" },
+                                { "key": "per_page", "value": "15" }
+                            ]
+                        },
+                        "description": "GET /api/admin/reports - List all admin reports with optional filters (status, type) and pagination."
+                    }
+                },
+                {
+                    "name": "Get Report Statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/statistics",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "statistics"]
+                        },
+                        "description": "GET /api/admin/reports/statistics - Counts by status (total, pending, generated, scheduled, failed) and by_type."
+                    }
+                },
+                {
+                    "name": "Generate Report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"financial\",\n  \"title\": \"Monthly Financial Report\",\n  \"parameters\": {\n    \"start_date\": \"2024-01-01\",\n    \"end_date\": \"2024-01-31\",\n    \"format\": \"pdf\",\n    \"include_charts\": true,\n    \"include_details\": true\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/generate",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "generate"]
+                        },
+                        "description": "POST /api/admin/reports/generate - Start async report generation. Types: financial, performance, customer, operational, user, subscription."
+                    }
+                },
+                {
+                    "name": "Schedule Report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"financial\",\n  \"title\": \"Weekly Financial Report\",\n  \"scheduled_at\": \"2024-01-20 09:00:00\",\n  \"recurrence\": \"weekly\",\n  \"parameters\": {\n    \"start_date\": \"2024-01-15\",\n    \"end_date\": \"2024-01-21\",\n    \"format\": \"pdf\",\n    \"include_charts\": true\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/schedule",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "schedule"]
+                        },
+                        "description": "POST /api/admin/reports/schedule - Schedule report. recurrence: daily, weekly, monthly, yearly or null."
+                    }
+                },
+                {
+                    "name": "Get Single Report",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "1"]
+                        },
+                        "description": "GET /api/admin/reports/{id} - Get one report with creator email and parameters."
+                    }
+                },
+                {
+                    "name": "Download Report",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/1/download",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "1", "download"]
+                        },
+                        "description": "GET /api/admin/reports/{id}/download - Returns file (PDF/CSV/Excel). Replace 1 with report id."
+                    }
+                },
+                {
+                    "name": "Cancel Scheduled Report",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/1/cancel",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "1", "cancel"]
+                        },
+                        "description": "DELETE /api/admin/reports/{id}/cancel - Cancel a scheduled report only."
+                    }
+                },
+                {
+                    "name": "Share Report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"method\": \"email\",\n  \"recipients\": [\"user1@example.com\", \"user2@example.com\"],\n  \"message\": \"Please find the attached report\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/1/share",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "1", "share"]
+                        },
+                        "description": "POST /api/admin/reports/{id}/share - method: email (recipients required) or link. Replace 1 with report id."
+                    }
+                },
+                {
+                    "name": "Delete Report",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/reports/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "reports", "1"]
+                        },
+                        "description": "DELETE /api/admin/reports/{id} - Delete report and its file. Replace 1 with report id."
+                    }
+                }
+            ],
+            "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
+        },
+        {
+            "name": "12. Other Modules",
             "item": [
                 {
                     "name": "Complaints - List",

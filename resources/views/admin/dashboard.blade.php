@@ -8,9 +8,25 @@
 
 <x-admin-layout>
     <!-- Page Header -->
-    <div class="mb-6">
-        <h1 class="text-xl font-medium text-gray-900">Dashboard Overview</h1>
+    <div class="mb-4 md:mb-6">
+        <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">Dashboard Overview</h1>
         <p class="mt-1 text-sm text-gray-500">Welcome back! Here's what's happening with your business today.</p>
+    </div>
+
+    <!-- Jump to Section - Sticky quick navigation -->
+    <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-3 py-2 md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 mb-4 md:mb-6 bg-gray-100/98 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Jump to section</p>
+        <div class="flex flex-wrap gap-2">
+            <a href="#key-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Key Metrics</a>
+            <a href="#user-statistics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">User Statistics</a>
+            <a href="#ecommerce" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">E-Commerce</a>
+            <a href="#secondary-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Visits & Alerts</a>
+            <a href="#performance" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Performance</a>
+            <a href="#charts" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Charts</a>
+            <a href="#roles-users" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Roles & Users</a>
+            <a href="#all-users" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">All Active Users</a>
+            <a href="#distribution-charts" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Distribution</a>
+        </div>
     </div>
 
     <!-- Success Message -->
@@ -34,7 +50,7 @@
     @endif
 
     <!-- Key Metrics Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+    <div id="key-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <!-- Total Users Card -->
         <a href="{{ route('admin.users.index') }}" class="block bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-blue-300">
             <div class="flex items-center justify-between">
@@ -109,7 +125,7 @@
     </div>
 
     <!-- Statistics Section -->
-    <div class="mb-6 md:mb-8">
+    <div id="user-statistics" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <div class="flex items-center justify-between mb-6">
                 <div>
@@ -244,7 +260,7 @@
     </script>
 
     <!-- E-Commerce Section -->
-    <div class="mb-6 md:mb-8">
+    <div id="ecommerce" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-medium text-gray-900">E-Commerce Overview</h2>
             <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View All Orders →</a>
@@ -364,7 +380,7 @@
     </div>
 
     <!-- Secondary Metrics Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+    <div id="secondary-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <!-- Total Visits -->
         <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
@@ -414,7 +430,7 @@
         </div>
 
         <!-- Pending Reports -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
+        <a href="{{ route('admin.reports.index') }}" class="block bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm hover:border-yellow-300 transition-colors">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-medium text-gray-500 mb-1">Pending Reports</p>
@@ -426,7 +442,7 @@
                     </svg>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- Active Regions -->
         <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
@@ -445,7 +461,7 @@
     </div>
 
     <!-- Performance Sections -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
+    <div id="performance" class="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
         <!-- Technician Performance Summary -->
         <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
@@ -509,7 +525,7 @@
     </div>
 
     <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
+    <div id="charts" class="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
         <!-- Revenue Growth Chart -->
         <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
@@ -534,7 +550,7 @@
     </div>
 
     <!-- Distribution Chart Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
+    <div id="distribution-charts" class="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
         <!-- Subscription Distribution -->
         <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
@@ -821,7 +837,7 @@
     </script>
 
     <!-- Roles & Users Management Section -->
-    <div class="mt-6 md:mt-8">
+    <div id="roles-users" class="scroll-mt-24 mt-6 md:mt-8">
         <div class="mb-4 md:mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -933,7 +949,7 @@
     </div>
 
     <!-- All Active Users Section -->
-    <div class="mt-6 md:mt-8">
+    <div id="all-users" class="scroll-mt-24 mt-6 md:mt-8">
         <div class="mb-4 md:mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -1395,6 +1411,26 @@
             // Initial attachment (backup)
             attachPaginationListeners();
         });
+    </script>
+
+    <!-- Back to top button -->
+    <button type="button" id="back-to-top" class="fixed bottom-6 right-6 z-40 hidden p-3 rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all" aria-label="Back to top">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+    </button>
+    <script>
+        (function() {
+            var backToTop = document.getElementById('back-to-top');
+            if (!backToTop) return;
+            function toggle() {
+                if (window.scrollY > 400) backToTop.classList.remove('hidden');
+                else backToTop.classList.add('hidden');
+            }
+            window.addEventListener('scroll', toggle);
+            toggle();
+            backToTop.addEventListener('click', function() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        })();
     </script>
 </x-admin-layout>
 

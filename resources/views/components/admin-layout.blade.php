@@ -42,7 +42,7 @@
         @include('components.admin.sidebar')
 
         <!-- Main Content Area -->
-        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden w-full max-[991px]:ml-0 min-[992px]:ml-[250px]">
+        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden w-full max-[991px]:ml-0 min-[992px]:ml-[250px] scroll-smooth">
             <!-- Header -->
             @include('components.admin.header')
 

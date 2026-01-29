@@ -290,6 +290,23 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->gr
 
 /*
 |--------------------------------------------------------------------------
+| ADMIN REPORTS MANAGEMENT
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/reports')->group(function () {
+    Route::get('/statistics', [\App\Http\Controllers\Admin\AdminReportController::class, 'statistics']);
+    Route::post('/generate', [\App\Http\Controllers\Admin\AdminReportController::class, 'generate']);
+    Route::post('/schedule', [\App\Http\Controllers\Admin\AdminReportController::class, 'schedule']);
+    Route::get('/', [\App\Http\Controllers\Admin\AdminReportController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'show']);
+    Route::get('/{id}/download', [\App\Http\Controllers\Admin\AdminReportController::class, 'download'])->name('api.admin.reports.download');
+    Route::delete('/{id}/cancel', [\App\Http\Controllers\Admin\AdminReportController::class, 'cancel']);
+    Route::post('/{id}/share', [\App\Http\Controllers\Admin\AdminReportController::class, 'share']);
+    Route::delete('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN USERS MANAGEMENT
 |--------------------------------------------------------------------------
 */

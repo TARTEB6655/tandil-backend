@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             RolePermissionSeeder::class,
             CompleteDataSeeder::class,
+            DummyReportsSeeder::class,
         ]);
 
         $this->command->info('');

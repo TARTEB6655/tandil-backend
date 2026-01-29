@@ -24,7 +24,7 @@
                     <div>
                         <p class="text-sm text-gray-500">Status</p>
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {{ ucfirst($report->visit->status) }}
+                            {{ ucwords(str_replace('_', ' ', $report->visit->status ?? '')) }}
                         </span>
                     </div>
                 </div>
