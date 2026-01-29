@@ -250,7 +250,7 @@ php artisan migrate --seed
 ```
 
 This will:
-- ✅ Create all database tables
+- ✅ Create all database tables (including `admin_reports` for Admin Reports Management API)
 - ✅ Seed roles and permissions
 - ✅ Create admin user (see credentials below)
 - ✅ Seed sample data (products, categories, etc.)
