@@ -10,6 +10,8 @@ class ProductImage extends Model
 {
     use HasFactory;
 
+    protected $appends = ['image_url'];
+
     protected $fillable = [
         'product_id',
         'image_path',
@@ -43,7 +45,24 @@ class ProductImage extends Model
         if (strpos($imagePath, 'products/') !== 0) {
             $imagePath = 'products/' . $imagePath;
         }
-        return Storage::disk('public')->url($imagePath);
+        return self::normalizeStorageUrl(Storage::disk('public')->url($imagePath));
+    }
+
+    /**
+     * Ensure URL uses clean /media/ path (no "storage" in URL; professional public path).
+     */
+    public static function normalizeStorageUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        if (str_contains($url, '/storage/')) {
+            return str_replace('/storage/', '/media/', $url);
+        }
+        if (str_contains($url, '/app-storage/')) {
+            return str_replace('/app-storage/', '/media/', $url);
+        }
+        return $url;
     }
 
     /**

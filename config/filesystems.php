@@ -41,7 +41,9 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            // Clean public URL: https://your-domain.com/media/products/xxx.jpg (no "storage" in path).
+            // Set STORAGE_PUBLIC_URL in .env to override (e.g. https://your-domain.com/media).
+            'url' => env('STORAGE_PUBLIC_URL', rtrim(env('APP_URL', 'http://localhost'), '/').'/media'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

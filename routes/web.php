@@ -38,8 +38,16 @@ use App\Http\Controllers\HR\HrDashboardController;
 |--------------------------------------------------------------------------
 */
 
-// Serve storage files when symlink is missing (e.g. on Cloudways)
+// Redirect old URLs to clean /media/ path (for existing bookmarks/API responses)
 Route::get('/storage/{path}', function (string $path) {
+    return redirect('/media/'.$path, 301);
+})->where('path', '.*');
+Route::get('/app-storage/{path}', function (string $path) {
+    return redirect('/media/'.$path, 301);
+})->where('path', '.*');
+
+// Serve public files at clean URL: https://your-domain.com/media/products/xxx.jpg
+Route::get('/media/{path}', function (string $path) {
     $path = str_replace(['..', '\\'], ['', '/'], $path);
     if (! Storage::disk('public')->exists($path)) {
         abort(404);

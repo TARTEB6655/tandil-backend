@@ -107,7 +107,7 @@ Backend merges these URLs with any images uploaded as files and stores all as pr
 4. **Response (201 Created):**
 
 - **data.image:** relative path, e.g. `products/D97SENdF8XLunEzu0DDSGypmJs2YvljzLrrtzQPu.jpg`
-- **data.image_url:** full URL, e.g. `https://phpstack-1180784-6050385.cloudwaysapps.com/storage/products/...`
+- **data.image_url:** full URL, e.g. `https://your-domain.com/media/products/...` (clean path; no "storage" in URL)
 - **data.images:** array of `{ id, product_id, image_path, sort_order, is_primary, created_at, updated_at }` where **image_path** is relative (e.g. `products/...`). Each item may also include **image_url** (full URL) when present.
 - **data.primary_image:** same shape as one entry in **images** (one object with id, product_id, image_path, sort_order, is_primary, created_at, updated_at).
 
@@ -127,7 +127,7 @@ Backend merges these URLs with any images uploaded as files and stores all as pr
     "handle": "test-product-unique",
     "category_id": 2,
     "image": "products/D97SENdF8XLunEzu0DDSGypmJs2YvljzLrrtzQPu.jpg",
-    "image_url": "https://your-domain.com/storage/products/D97SENdF8XLunEzu0DDSGypmJs2YvljzLrrtzQPu.jpg",
+    "image_url": "https://your-domain.com/media/products/D97SENdF8XLunEzu0DDSGypmJs2YvljzLrrtzQPu.jpg",
     "images": [
       { "id": 1, "product_id": 2, "image_path": "products/...", "sort_order": 0, "is_primary": true, "created_at": "...", "updated_at": "..." }
     ],
@@ -138,7 +138,7 @@ Backend merges these URLs with any images uploaded as files and stores all as pr
 }
 ```
 
-**App behaviour:** The app uses **image_url** when present (full URL). For list/detail, if only **image** or **image_path** (relative) is returned, the app builds the full URL as `{{origin}}/storage/{{path}}`. List/detail APIs return the same image data.
+**App behaviour:** The app uses **image_url** when present (full URL). For list/detail, if only **image** or **image_path** (relative) is returned, the app builds the full URL as `{{origin}}/media/{{path}}`. List/detail APIs return the same image data.
 
 ---
 
