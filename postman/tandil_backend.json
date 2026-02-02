@@ -2194,14 +2194,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\"\n}"
+                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": null,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\",\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product. Required: name, price. You can add a product without any category—omit category_id (see example body); the product is always created. Assign a category later via Update Product (PUT) if needed. Optional: category_id (integer); if the category does not exist, product is still created without a category. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage options (optional):\n- JSON body: add \"image_urls\": [\"https://...\", \"https://...\"]\n- File upload: use Body type \"form-data\" instead of raw JSON; add key \"image\" (file) or \"images[]\" (files). First image is set as primary."
+                                "description": "Create product. Required: name, price. Optional: category_id (set to a category id, or null/omit to leave empty—assign later via Update Product); image_urls (array of image URLs). Product is always created; if category_id is invalid or null, product has no category. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage: JSON body \"image_urls\" (see example) or form-data keys \"image\" (file) / \"images[]\" (files). First image is primary."
                             }
                         },
                         {
@@ -2253,7 +2253,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product (partial update). All fields optional: name, description, price, stock, status, category_id. Set category_id to assign a category; omit or send null/empty string to clear category. Only send fields you want to change."
+                                "description": "Update product (partial update). All fields optional: name, description, price, stock, status, category_id. Set category_id to a category id to assign, or null/empty to clear (no category). Only send fields you want to change."
                             }
                         },
                         {
