@@ -2213,11 +2213,10 @@
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "category_id", "value": "", "type": "text"},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
-                                        {"key": "sku", "value": "SKU-UNIQUE-001", "type": "text"},
-                                        {"key": "handle", "value": "test-product-unique", "type": "text"},
-                                        {"key": "images[]", "type": "file", "src": []},
-                                        {"key": "images[]", "type": "file", "src": []},
-                                        {"key": "image_urls", "value": "[\"https://example.com/extra.jpg\"]", "type": "text", "description": "Optional: pasted URLs as JSON string. Merge with file uploads."}
+                                        {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
+                                        {"key": "handle", "value": "test-product-uniquee", "type": "text"},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "One or more image files. Add another row with key images[] for multiple images."},
+                                        {"key": "image_urls", "value": "", "type": "text", "description": "Optional: pasted URLs as JSON string, e.g. [\"https://example.com/a.jpg\"]. Merge with file uploads."}
                                     ]
                                 },
                                 "url": {
