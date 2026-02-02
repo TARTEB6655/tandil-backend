@@ -21,7 +21,7 @@ class SubscriptionTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data' => [
                     '*' => ['plan', 'price', 'label']
                 ]
@@ -43,7 +43,7 @@ class SubscriptionTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data' => ['id', 'plan', 'client_id']
             ]);
     }
@@ -62,7 +62,7 @@ class SubscriptionTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data'
             ]);
     }
@@ -82,7 +82,7 @@ class SubscriptionTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data'
             ]);
     }
@@ -101,7 +101,7 @@ class SubscriptionTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data' => ['id', 'plan', 'client_id']
             ]);
     }
@@ -135,7 +135,7 @@ class SubscriptionTest extends TestCase
         $response = $this->postJson("/api/subscriptions/{$subscription->id}/mark-paid");
 
         $response->assertStatus(200)
-            ->assertJson(['status' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('subscriptions', [
             'id' => $subscription->id,

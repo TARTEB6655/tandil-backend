@@ -21,7 +21,7 @@ class ComplaintController extends Controller
     {
         $user = Auth::user();
         $search = $request->get('search', '');
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         if (empty($areaIds)) {
             $complaints = collect();
@@ -51,7 +51,7 @@ class ComplaintController extends Controller
     public function show($id): View
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         $complaint = Complaint::whereHas('visit', function($q) use ($areaIds) {
             $q->whereIn('area_id', $areaIds);
@@ -65,7 +65,7 @@ class ComplaintController extends Controller
     public function update(Request $request, $id): RedirectResponse
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         $complaint = Complaint::whereHas('visit', function($q) use ($areaIds) {
             $q->whereIn('area_id', $areaIds);

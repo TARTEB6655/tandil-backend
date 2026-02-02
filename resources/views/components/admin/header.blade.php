@@ -5,7 +5,7 @@
     $unreadCount = $user->unreadNotifications()->count();
 @endphp
 
-<header class="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm py-4">
+<header class="sticky top-0 z-40 bg-white dark:bg-gray-900 dark:border-gray-700/80 border-b border-gray-200 dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] shadow-sm py-4">
     <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
             
@@ -14,7 +14,7 @@
                 <!-- Mobile Menu Button (visible only on < 992px) -->
                 <button
                     @click="$store.sidebar.toggle()"
-                    class="max-[991px]:block min-[992px]:hidden p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200"
+                    class="max-[991px]:block min-[992px]:hidden p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-200"
                     aria-label="Toggle sidebar"
                 >
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
@@ -48,8 +48,8 @@
                             x-model="searchValue"
                             value="{{ $searchValue }}"
                             placeholder="Search users, orders, visits..."
-                            class="w-full h-11 pl-12 pr-10 text-sm placeholder:text-xs bg-gray-50 border border-gray-200 rounded-lg
-                                   focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300 focus:bg-white
+                            class="w-full h-11 pl-12 pr-10 text-sm placeholder:text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg
+                                   focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-300 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-gray-800 text-gray-900 dark:text-gray-100
                                    transition-all duration-200"
                             @keydown.enter.prevent="if(searchValue.trim()) { $el.closest('form').submit(); } else { alert('Please enter a search term'); }"
                         />
@@ -59,7 +59,7 @@
                         <button
                             type="button"
                             @click="searchValue=''; $el.closest('form').submit();"
-                            class="absolute inset-y-0 right-0 flex items-center justify-center pr-3 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                            class="absolute inset-y-0 right-0 flex items-center justify-center pr-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
                             aria-label="Clear search"
                         >
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
@@ -74,7 +74,7 @@
                 <div class="relative flex-shrink-0" x-data="{ open: false }">
                     <button
                         @click="open = !open"
-                        class="relative p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex-shrink-0"
+                        class="relative p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-200 flex-shrink-0"
                         aria-label="Notifications"
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@
                         </svg>
                         <!-- Notification Dot -->
                         @if($unreadCount > 0)
-                            <span class="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
+                            <span class="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
                         @endif
                     </button>
 
@@ -96,15 +96,15 @@
                         x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                         x-transition:leave-end="opacity-0 scale-95 translate-y-2"
                         @click.away="open = false"
-                        class="absolute right-0 mt-3 w-[360px] bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[500px] overflow-hidden flex flex-col"
+                        class="absolute right-0 mt-3 w-[360px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden flex flex-col"
                         style="display: none;"
                     >
                         <!-- Header -->
-                        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+                        <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between flex-shrink-0">
                             <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
                                 @if($unreadCount > 0)
-                                    <span class="px-2 py-0.5 text-xs font-medium text-gray-600 bg-gray-200 rounded-full">{{ $unreadCount }}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-full">{{ $unreadCount }}</span>
                                 @endif
                             </div>
                             @if($unreadCount > 0)
@@ -112,7 +112,7 @@
                                     @csrf
                                     <button 
                                         type="submit"
-                                        class="text-xs text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded hover:bg-gray-200"
+                                        class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                                         @click.stop
                                     >
                                         Mark all read
@@ -151,7 +151,7 @@
                                 @endphp
                                 <a 
                                     href="{{ route('admin.notifications.index') }}" 
-                                    class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150 group"
+                                    class="block px-4 py-3 border-b border-gray-100 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 group"
                                     @click.stop="open = false"
                                 >
                                     <div class="flex items-start gap-3">
@@ -165,7 +165,7 @@
                                                     default => 'text-blue-600'
                                                 };
                                             @endphp
-                                            <div class="h-9 w-9 rounded-full {{ $iconBg }} flex items-center justify-center {{ $iconBorder }} border">
+                                            <div class="h-9 w-9 rounded-full {{ $iconBg }} {{ $iconBorder }} border flex items-center justify-center dark:bg-gray-700/60 dark:border-gray-600">
                                                 @if(str_contains($type, 'Order'))
                                                     <svg class="w-4 h-4 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -188,15 +188,15 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-start justify-between gap-2">
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-sm font-medium text-gray-900 leading-snug mb-0.5">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug mb-0.5">
                                                         {{ $data['message'] ?? class_basename($type) }}
                                                     </p>
                                                     @if(isset($data['visit_id']))
-                                                        <p class="text-xs text-gray-600 leading-relaxed line-clamp-2">Visit ID: #{{ $data['visit_id'] }}</p>
+                                                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">Visit ID: #{{ $data['visit_id'] }}</p>
                                                     @elseif(isset($data['subscription_id']))
-                                                        <p class="text-xs text-gray-600 leading-relaxed line-clamp-2">Subscription ID: #{{ $data['subscription_id'] }}</p>
+                                                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">Subscription ID: #{{ $data['subscription_id'] }}</p>
                                                     @elseif(isset($data['order_id']))
-                                                        <p class="text-xs text-gray-600 leading-relaxed line-clamp-2">Order ID: #{{ $data['order_id'] }}</p>
+                                                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">Order ID: #{{ $data['order_id'] }}</p>
                                                     @endif
                                                 </div>
                                                 <span class="flex-shrink-0 h-2 w-2 bg-red-500 rounded-full mt-1.5"></span>
@@ -208,20 +208,20 @@
                             @empty
                                 <!-- Empty State -->
                                 <div class="px-4 py-10 text-center">
-                                    <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                    <svg class="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                                     </svg>
-                                    <p class="text-sm font-medium text-gray-900 mb-1">No notifications</p>
-                                    <p class="text-xs text-gray-500">You're all caught up!</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No notifications</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">You're all caught up!</p>
                                 </div>
                             @endforelse
                         </div>
 
                         <!-- Footer -->
-                        <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 flex-shrink-0">
+                        <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600 flex-shrink-0">
                             <a 
                                 href="{{ route('admin.notifications.index') }}" 
-                                class="text-xs font-medium text-gray-700 hover:text-gray-900 transition-colors text-center block py-1.5 rounded-md hover:bg-gray-200"
+                                class="text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-center block py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                                 @click.stop="open = false"
                             >
                                 View all notifications
@@ -234,7 +234,7 @@
                 <div class="relative flex-shrink-0" x-data="{ open: false }">
                     <button
                         @click="open = !open"
-                        class="flex items-center gap-2 sm:gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                        class="flex items-center gap-2 sm:gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                         aria-label="User menu"
                     >
                         <!-- Avatar - Fixed Size (Never Collapses) -->
@@ -244,7 +244,7 @@
 
                         <!-- User Info (hidden on mobile, visible on desktop) -->
                         <div class="hidden lg:flex flex-col items-start text-left min-w-0">
-                            <span class="text-sm font-medium text-gray-900 leading-tight truncate max-w-[140px]">
+                            <span class="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight truncate max-w-[140px]">
                                 {{ $user->name ?? 'User' }}
                             </span>
                             <span class="text-xs text-gray-500 leading-tight truncate max-w-[140px]">
@@ -277,19 +277,19 @@
                         x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                         x-transition:leave-end="opacity-0 scale-95 translate-y-1"
                         @click.away="open = false"
-                        class="absolute right-0 mt-2.5 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50"
+                        class="absolute right-0 mt-2.5 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-2 z-50"
                         style="display: none;"
                     >
                         <!-- User Info Section -->
-                        <div class="px-5 py-3.5 border-b border-gray-100">
-                            <p class="text-sm font-semibold text-gray-900 leading-tight">{{ $user->name ?? 'User' }}</p>
-                            <p class="text-xs text-gray-500 mt-1 leading-tight">{{ $user->email ?? '' }}</p>
+                        <div class="px-5 py-3.5 border-b border-gray-100 dark:border-gray-600">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{{ $user->name ?? 'User' }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">{{ $user->email ?? '' }}</p>
                         </div>
 
                         <!-- My Profile Link -->
                         <a 
                             href="{{ route('profile.edit') }}" 
-                            class="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                            class="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150"
                             @click.stop="open = false"
                             onclick="event.stopPropagation();"
                         >
@@ -304,7 +304,7 @@
                             @csrf
                             <button 
                                 type="submit" 
-                                class="flex items-center gap-3 w-full px-5 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                                class="flex items-center gap-3 w-full px-5 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
                             >
                                 <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                                     <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>

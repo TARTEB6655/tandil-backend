@@ -30,7 +30,7 @@ class SupervisorTest extends TestCase
 
         $visit = $this->createVisit(['area_id' => $area->id]);
 
-        $response = $this->getJson('/api/auth/supervisor/visits');
+        $response = $this->getJson('/api/supervisor/visits');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -52,7 +52,7 @@ class SupervisorTest extends TestCase
 
         $visit = $this->createVisit(['area_id' => $area->id]);
 
-        $response = $this->getJson("/api/auth/supervisor/visits/{$visit->id}");
+        $response = $this->getJson("/api/supervisor/visits/{$visit->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -76,7 +76,7 @@ class SupervisorTest extends TestCase
         $product1 = $this->createProduct();
         $product2 = $this->createProduct();
 
-        $response = $this->postJson("/api/auth/supervisor/visits/{$visit->id}/recommend", [
+        $response = $this->postJson("/api/supervisor/visits/{$visit->id}/recommend", [
             'product_ids' => [$product1->id, $product2->id],
         ]);
 
@@ -97,7 +97,7 @@ class SupervisorTest extends TestCase
 
         $visit = $this->createVisit(['area_id' => $area->id]);
 
-        $response = $this->postJson("/api/auth/supervisor/visits/{$visit->id}/finalize", [
+        $response = $this->postJson("/api/supervisor/visits/{$visit->id}/finalize", [
             'notes' => 'Report finalized',
             'status' => 'finalized',
         ]);
@@ -119,7 +119,7 @@ class SupervisorTest extends TestCase
 
         $visit = $this->createVisit(['area_id' => $area->id]);
 
-        $response = $this->postJson("/api/auth/supervisor/visits/{$visit->id}/status", [
+        $response = $this->postJson("/api/supervisor/visits/{$visit->id}/status", [
             'status' => 'approved',
         ]);
 
@@ -141,7 +141,7 @@ class SupervisorTest extends TestCase
         $visit = $this->createVisit(['area_id' => $area->id]);
         $complaint = $this->createComplaint(['visit_id' => $visit->id]);
 
-        $response = $this->getJson('/api/auth/supervisor/complaints');
+        $response = $this->getJson('/api/supervisor/complaints');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -164,7 +164,7 @@ class SupervisorTest extends TestCase
         $visit = $this->createVisit(['area_id' => $area->id]);
         $complaint = $this->createComplaint(['visit_id' => $visit->id]);
 
-        $response = $this->postJson("/api/auth/supervisor/complaints/{$complaint->id}/escalate", [
+        $response = $this->postJson("/api/supervisor/complaints/{$complaint->id}/escalate", [
             'status' => 'escalated',
             'note' => 'Escalated to management',
         ]);
@@ -181,7 +181,7 @@ class SupervisorTest extends TestCase
         $customer = $this->createCustomer();
         Sanctum::actingAs($customer);
 
-        $response = $this->getJson('/api/auth/supervisor/visits');
+        $response = $this->getJson('/api/supervisor/visits');
         $response->assertStatus(403);
     }
 }

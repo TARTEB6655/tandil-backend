@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ReportManagementController;
 use App\Http\Controllers\Admin\AreaController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -78,12 +79,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Admin routes
-Route::middleware(['auth', 'role:admin'])
+// Admin routes (prevent.admin.cache so theme/settings changes show immediately)
+Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/recent-activities', [AdminDashboardController::class, 'recentActivitiesPage'])->name('recent-activities.index');
 
         // Resource routes
         Route::resource('users', UserController::class);
@@ -115,6 +117,19 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('reports', ReportController::class);
         Route::post('reports/{id}/approve', [ReportController::class, 'approve'])->name('reports.approve');
         Route::post('reports/{id}/send-to-client', [ReportController::class, 'sendToClient'])->name('reports.send-to-client');
+
+        // Generated reports (AdminReport) – generate, schedule, download, share
+        Route::get('report-management', [ReportManagementController::class, 'index'])->name('report-management.index');
+        Route::get('report-management/create', [ReportManagementController::class, 'create'])->name('report-management.create');
+        Route::post('report-management', [ReportManagementController::class, 'store'])->name('report-management.store');
+        Route::get('report-management/schedule', [ReportManagementController::class, 'createSchedule'])->name('report-management.schedule.create');
+        Route::post('report-management/schedule', [ReportManagementController::class, 'storeSchedule'])->name('report-management.schedule.store');
+        Route::get('report-management/{id}', [ReportManagementController::class, 'show'])->name('report-management.show');
+        Route::get('report-management/{id}/download', [ReportManagementController::class, 'download'])->name('report-management.download');
+        Route::get('report-management/{id}/share', [ReportManagementController::class, 'createShare'])->name('report-management.share.create');
+        Route::post('report-management/{id}/share', [ReportManagementController::class, 'storeShare'])->name('report-management.share.store');
+        Route::post('report-management/{id}/cancel', [ReportManagementController::class, 'cancel'])->name('report-management.cancel');
+        Route::delete('report-management/{id}', [ReportManagementController::class, 'destroy'])->name('report-management.destroy');
         
         Route::resource('areas', AreaController::class);
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
@@ -133,10 +148,32 @@ Route::middleware(['auth', 'role:admin'])
         
         Route::resource('hr', HrController::class);
         Route::resource('settings', SettingController::class)->only(['index']);
+        Route::get('settings/all', [SettingController::class, 'all'])->name('settings.all');
+        Route::get('settings/theme', [SettingController::class, 'theme'])->name('settings.theme');
+        Route::post('settings/theme', [SettingController::class, 'updateTheme'])->name('settings.theme.store');
+        Route::get('settings/language', [SettingController::class, 'language'])->name('settings.language');
+        Route::post('settings/language', [SettingController::class, 'updateLanguage'])->name('settings.language.store');
+        Route::get('settings/privacy-policy', [SettingController::class, 'privacyPolicy'])->name('settings.privacy-policy');
+        Route::post('settings/privacy-policy', [SettingController::class, 'updatePrivacyPolicy'])->name('settings.privacy-policy.store');
+        Route::get('settings/terms', [SettingController::class, 'termsOfService'])->name('settings.terms');
+        Route::post('settings/terms', [SettingController::class, 'updateTermsOfService'])->name('settings.terms.store');
+        Route::post('settings/clear-cache', [SettingController::class, 'clearCache'])->name('settings.clear-cache');
+        Route::get('settings/developer-options', [SettingController::class, 'developerOptions'])->name('settings.developer-options');
+        Route::get('settings/debug-logs', [SettingController::class, 'debugLogs'])->name('settings.debug-logs');
+        Route::post('settings/export-data', [SettingController::class, 'exportData'])->name('settings.export-data');
+        Route::post('settings/system', [SettingController::class, 'updateSystem'])->name('settings.system.store');
+        Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
+        Route::get('settings/contact', [SettingController::class, 'contact'])->name('settings.contact');
+        Route::get('settings/social', [SettingController::class, 'social'])->name('settings.social');
+        Route::get('settings/payment', [SettingController::class, 'payment'])->name('settings.payment');
+        Route::get('settings/email', [SettingController::class, 'email'])->name('settings.email');
+        Route::get('settings/notifications', [SettingController::class, 'notifications'])->name('settings.notifications');
+        Route::get('settings/security', [SettingController::class, 'security'])->name('settings.security');
+        Route::get('settings/integrations', [SettingController::class, 'integrations'])->name('settings.integrations');
         Route::post('settings/app', [SettingController::class, 'updateAppSettings'])->name('settings.app');
         Route::post('settings/payment', [SettingController::class, 'updatePaymentSettings'])->name('settings.payment');
         Route::post('settings/notification', [SettingController::class, 'updateNotificationSettings'])->name('settings.notification');
-        Route::post('settings/email', [SettingController::class, 'updateEmailSettings'])->name('settings.email');
+        Route::post('settings/email', [SettingController::class, 'updateEmailSettings'])->name('settings.email.store');
         Route::post('settings/social', [SettingController::class, 'updateSocialSettings'])->name('settings.social');
         Route::post('settings/contact', [SettingController::class, 'updateContactSettings'])->name('settings.contact');
         Route::get('settings/email-templates', [SettingController::class, 'emailTemplates'])->name('settings.email-templates');

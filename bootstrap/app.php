@@ -16,20 +16,56 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class, // Custom role middleware that checks both Spatie and role field
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'prevent.admin.cache' => \App\Http\Middleware\PreventAdminCache::class,
         ]);
         
-        // Enable CORS for API routes (React Native compatibility)
-        // Force JSON responses for all API routes
+        // All routes in routes/api.php use the api middleware group (prefix /api/).
+        // Force JSON for every API; ensure no API ever returns HTML or raw error.
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\ForceJsonResponse::class,
+        ], append: [
+            \App\Http\Middleware\EnsureApiJsonResponse::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Ensure all API routes return clean JSON errors, never HTML or full trace
         $exceptions->render(function (Throwable $e, $request) {
             if ($request->is('api/*') || $request->expectsJson() || $request->wantsJson() || $request->header('Accept') === 'application/json') {
-                // Handle NotFoundHttpException with clean JSON
+                // ValidationException: return 422 with errors (getResponse() can be null when thrown from validate())
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    $response = $e->getResponse();
+                    if ($response !== null) {
+                        return $response;
+                    }
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage(),
+                        'errors' => $e->errors(),
+                    ], 422);
+                }
+                // AuthenticationException: return 401 for unauthenticated API requests
+                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage() ?: 'Unauthenticated.',
+                    ], 401);
+                }
+                // AuthorizationException: return 403
+                if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage() ?: 'This action is unauthorized.',
+                    ], 403);
+                }
+                // ModelNotFoundException (e.g. findOrFail): return 404
+                if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Resource not found.',
+                    ], 404);
+                }
+                // NotFoundHttpException with clean JSON
                 if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
                     $routeMessage = $e->getMessage();
                     $route = 'unknown';
@@ -43,12 +79,26 @@ return Application::configure(basePath: dirname(__DIR__))
                         'message' => "The route {$route} could not be found.",
                     ], 404);
                 }
-                
-                // Handle other exceptions with clean JSON (no trace)
+                // MethodNotAllowedHttpException: return 405
+                if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Method not allowed for this route.',
+                    ], 405);
+                }
+                // HttpException (403, etc.): use its status code
+                if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage() ?: 'An error occurred.',
+                    ], $e->getStatusCode());
+                }
+                // Other exceptions: clean JSON (no trace, no sensitive message in production)
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+                $message = config('app.debug') ? ($e->getMessage() ?: 'An error occurred.') : ($statusCode === 500 ? 'An error occurred. Please try again later.' : ($e->getMessage() ?: 'An error occurred.'));
                 return response()->json([
                     'success' => false,
-                    'message' => $e->getMessage() ?: 'An error occurred.',
+                    'message' => $message,
                 ], $statusCode);
             }
             return null;

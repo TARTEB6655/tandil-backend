@@ -30,12 +30,13 @@ class UserFlowTest extends TestCase
         ]);
 
         $registerResponse->assertStatus(201);
-        $token = $registerResponse->json('token');
+        $token = $registerResponse->json('data.token');
 
-        // 2. View Profile
-        $profileResponse = $this->getJson('/api/auth/profile', [
+        // 2. View Profile (pass Bearer token in header)
+        $profileResponse = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ]);
+            'Accept' => 'application/json',
+        ])->getJson('/api/auth/profile');
         $profileResponse->assertStatus(200);
 
         // 3. Create Subscription
@@ -65,21 +66,21 @@ class UserFlowTest extends TestCase
         // 1. View assigned visits
         $visit = $this->createVisit(['technician_id' => $technician->id, 'status' => 'pending']);
 
-        $visitsResponse = $this->getJson('/api/auth/tech/visits');
+        $visitsResponse = $this->getJson('/api/tech/visits');
         $visitsResponse->assertStatus(200);
 
         // 2. Accept visit
-        $acceptResponse = $this->postJson("/api/auth/tech/visits/{$visit->id}/accept");
+        $acceptResponse = $this->postJson("/api/tech/visits/{$visit->id}/accept");
         $acceptResponse->assertStatus(200);
 
         // 3. Start visit
         $visit->refresh();
-        $startResponse = $this->postJson("/api/auth/tech/visits/{$visit->id}/start");
+        $startResponse = $this->postJson("/api/tech/visits/{$visit->id}/start");
         $startResponse->assertStatus(200);
 
         // 4. Complete visit
         $visit->refresh();
-        $completeResponse = $this->postJson("/api/auth/tech/visits/{$visit->id}/complete", [
+        $completeResponse = $this->postJson("/api/tech/visits/{$visit->id}/complete", [
             'notes' => 'Visit completed successfully',
         ]);
         $completeResponse->assertStatus(200);

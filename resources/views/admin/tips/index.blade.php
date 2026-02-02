@@ -1,10 +1,15 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-medium text-gray-900">
-                Tips & Messages Management
-            </h1>
-            <a href="{{ route('admin.tips.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-2">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    Back to Dashboard
+                </a>
+                <h1 class="text-xl font-semibold text-gray-900">Tips Management</h1>
+                <p class="mt-1 text-sm text-gray-500">Create, edit, publish, and manage tips for users.</p>
+            </div>
+            <a href="{{ route('admin.tips.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm shadow-sm">
                 Create New Tip
             </a>
         </div>
@@ -38,7 +43,7 @@
         </div>
 
         <!-- Tips Table -->
-        <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>

@@ -36,7 +36,7 @@ class RolePermissionsTest extends TestCase
         Sanctum::actingAs($technician);
 
         // Can access technician routes
-        $response = $this->getJson('/api/auth/tech/visits');
+        $response = $this->getJson('/api/tech/visits');
         $response->assertStatus(200);
 
         // Cannot access admin routes
@@ -53,7 +53,7 @@ class RolePermissionsTest extends TestCase
         Sanctum::actingAs($supervisor);
 
         // Can access supervisor routes
-        $response = $this->getJson('/api/auth/supervisor/visits');
+        $response = $this->getJson('/api/supervisor/visits');
         $response->assertStatus(200);
 
         // Cannot access admin routes

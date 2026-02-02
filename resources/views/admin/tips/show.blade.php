@@ -1,10 +1,18 @@
 <x-admin-layout>
-    <h1 class="text-xl font-medium text-gray-900 mb-6">
-            Tip Details
-        </h1>
+    <div class="mb-6">
+        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-2">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Dashboard
+        </a>
+        <a href="{{ route('admin.tips.index') }}" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Tips
+        </a>
+    </div>
+    <h1 class="text-xl font-semibold text-gray-900 mb-6">Tip Details</h1>
 
     <div class="space-y-6">
-        <div class="bg-white shadow rounded-lg p-6 space-y-6">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
             <div>
                 <h2 class="text-lg font-medium text-gray-900 mb-2">{{ $tip->title }}</h2>
                 <div class="flex gap-4 mb-4">
@@ -40,9 +48,10 @@
                 </div>
             </div>
 
-            <div class="pt-4 flex gap-4">
-                <a href="{{ route('admin.tips.edit', $tip) }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Edit</a>
-                <a href="{{ route('admin.tips.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Back to Tips</a>
+            <div class="pt-4 flex flex-wrap gap-3">
+                <a href="{{ route('admin.tips.edit', $tip) }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm">Edit</a>
+                <a href="{{ route('admin.tips.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-sm">Back to Tips</a>
+                <a href="{{ route('admin.dashboard') }}" class="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium text-sm">Dashboard</a>
             </div>
         </div>
     </div>

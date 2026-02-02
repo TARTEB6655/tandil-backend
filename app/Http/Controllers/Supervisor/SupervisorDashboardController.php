@@ -27,7 +27,7 @@ class SupervisorDashboardController extends Controller
         $search = $request->get('search', '');
 
         // Get IDs of supervised areas
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
 
         if (empty($areaIds)) {
             // If supervisor has no areas, return empty dashboard

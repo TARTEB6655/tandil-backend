@@ -23,7 +23,7 @@ class NotificationTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data' => ['notifications', 'unread_count']
             ]);
     }

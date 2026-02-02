@@ -4,7 +4,9 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "start": "concurrently -n server,vite \"php artisan serve\" \"vite\"",
+        "start:win": "concurrently -n server,vite \"php artisan serve\" \"vite\""
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.10",

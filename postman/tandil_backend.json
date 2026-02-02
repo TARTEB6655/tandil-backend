@@ -1,9 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Complete Postman collection organized by logical user flow - follow the order for best testing experience",
+        "description": "Complete Tandil API backend collection. All API responses are JSON only (no HTML or raw error). Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin), Technician & Supervisor, Admin Dashboard, Admin Users/Roles/HR, Admin Reports, Admin Settings (Mobile), Tips, Notifications, Complaints, Categories, Areas, Services, User Profile. Use flow order for best testing. Set base_url (e.g. http://127.0.0.1:8000) and token (from Login) in collection variables.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-        "_exporter_id": "tandil-backend"
+        "_exporter_id": "tandil-backend",
+        "version": "2.1.0"
     },
     "item": [
         {
@@ -29,7 +30,7 @@
                                 "health"
                             ]
                         },
-                        "description": "✅ STEP 1: ALWAYS TEST THIS FIRST - Verify API server is running before testing any other endpoints"
+                        "description": "\u2705 STEP 1: ALWAYS TEST THIS FIRST - Verify API server is running before testing any other endpoints"
                     }
                 }
             ],
@@ -86,7 +87,7 @@
                                 "register"
                             ]
                         },
-                        "description": "✅ STEP 2: Register a new user account"
+                        "description": "\u2705 STEP 2: Register a new user account"
                     }
                 },
                 {
@@ -137,7 +138,7 @@
                                 "login"
                             ]
                         },
-                        "description": "✅ STEP 2 (Alternative): Login with existing account"
+                        "description": "\u2705 STEP 2 (Alternative): Login with existing account"
                     }
                 }
             ],
@@ -171,7 +172,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "✅ STEP 3: Get authenticated user profile"
+                        "description": "\u2705 STEP 3: Get authenticated user profile"
                     }
                 },
                 {
@@ -325,7 +326,7 @@
                                 "plans"
                             ]
                         },
-                        "description": "✅ STEP 4: Get available subscription plans (Public - no auth needed)"
+                        "description": "\u2705 STEP 4: Get available subscription plans (Public - no auth needed)"
                     }
                 },
                 {
@@ -377,7 +378,7 @@
                                 "subscriptions"
                             ]
                         },
-                        "description": "✅ STEP 5: Create a new subscription (visits will be auto-generated)\n\n**Required Fields:**\n- `plan` (string): Subscription plan - one of: `1_month`, `3_month`, `6_month`, `12_month`\n\n**Optional Fields:**\n- `start_date` (date): Start date of subscription (defaults to today)\n- `end_date` (date): End date of subscription (auto-calculated if not provided)\n- `amount` (decimal): Subscription amount in AED (auto-calculated from plan if not provided)\n- `payment_status` (string): Payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled` (defaults to `pending`)\n- `payment_reference` (string): Payment reference number (optional)\n- `client_id` (integer): Client user ID (only admins can set this, defaults to authenticated user)\n- `total_visits` (integer): Total number of visits (defaults to plan months)\n- `completed_visits` (integer): Number of completed visits (defaults to 0)\n\n**Note:** If `payment_status` is `paid` and `paid_at` is not provided, it will be automatically set to current timestamp."
+                        "description": "\u2705 STEP 5: Create a new subscription (visits will be auto-generated)\n\n**Required Fields:**\n- `plan` (string): Subscription plan - one of: `1_month`, `3_month`, `6_month`, `12_month`\n\n**Optional Fields:**\n- `start_date` (date): Start date of subscription (defaults to today)\n- `end_date` (date): End date of subscription (auto-calculated if not provided)\n- `amount` (decimal): Subscription amount in AED (auto-calculated from plan if not provided)\n- `payment_status` (string): Payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled` (defaults to `pending`)\n- `payment_reference` (string): Payment reference number (optional)\n- `client_id` (integer): Client user ID (only admins can set this, defaults to authenticated user)\n- `total_visits` (integer): Total number of visits (defaults to plan months)\n- `completed_visits` (integer): Number of completed visits (defaults to 0)\n\n**Note:** If `payment_status` is `paid` and `paid_at` is not provided, it will be automatically set to current timestamp."
                     }
                 },
                 {
@@ -420,7 +421,7 @@
                                 "subscriptions"
                             ]
                         },
-                        "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n- Includes subscription details and client info\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
+                        "description": "\u2705 STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n- Includes subscription details and client info\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
                     }
                 },
                 {
@@ -448,7 +449,7 @@
                                 "{{subscription_id}}"
                             ]
                         },
-                        "description": "✅ STEP 7: Get subscription details with visits\n\n**Returns:**\n- Full subscription information\n- Associated visits with status\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Check visit schedule\n- Review payment status"
+                        "description": "\u2705 STEP 7: Get subscription details with visits\n\n**Returns:**\n- Full subscription information\n- Associated visits with status\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Check visit schedule\n- Review payment status"
                     }
                 },
                 {
@@ -620,7 +621,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "✅ STEP 8: List all visits (role-based: client sees own, technician sees assigned)"
+                        "description": "\u2705 STEP 8: List all visits (role-based: client sees own, technician sees assigned)"
                     }
                 },
                 {
@@ -648,7 +649,7 @@
                                 "{{visit_id}}"
                             ]
                         },
-                        "description": "✅ STEP 9: Get visit details with photos and related data"
+                        "description": "\u2705 STEP 9: Get visit details with photos and related data"
                     }
                 },
                 {
@@ -808,7 +809,7 @@
                                 "reports"
                             ]
                         },
-                        "description": "✅ STEP 10: List all reports (role-based access)"
+                        "description": "\u2705 STEP 10: List all reports (role-based access)"
                     }
                 },
                 {
@@ -836,7 +837,7 @@
                                 "{{report_id}}"
                             ]
                         },
-                        "description": "✅ STEP 11: Get report details with recommendations"
+                        "description": "\u2705 STEP 11: Get report details with recommendations"
                     }
                 },
                 {
@@ -880,259 +881,6 @@
         {
             "name": "8. Shop & Orders",
             "item": [
-                {
-                    "name": "Products - List (Public)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    if (jsonData.data && jsonData.data.data && jsonData.data.data.length > 0 && !pm.environment.get('product_id')) {",
-                                    "        pm.environment.set('product_id', jsonData.data.data[0].id);",
-                                    "    }",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/products?per_page=12",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "products"
-                            ],
-                            "query": [
-                                {
-                                    "key": "per_page",
-                                    "value": "12"
-                                },
-                                {
-                                    "key": "search",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "category_id",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "status",
-                                    "value": "active",
-                                    "disabled": true,
-                                    "description": "Filter by status: active, draft, archived"
-                                },
-                                {
-                                    "key": "min_price",
-                                    "value": "",
-                                    "disabled": true,
-                                    "description": "Minimum price filter"
-                                },
-                                {
-                                    "key": "max_price",
-                                    "value": "",
-                                    "disabled": true,
-                                    "description": "Maximum price filter"
-                                },
-                                {
-                                    "key": "in_stock",
-                                    "value": "true",
-                                    "disabled": true,
-                                    "description": "Filter by stock availability: true, false"
-                                },
-                                {
-                                    "key": "sort_by",
-                                    "value": "price",
-                                    "disabled": true,
-                                    "description": "Sort by: name, price, created_at, stock"
-                                },
-                                {
-                                    "key": "sort_dir",
-                                    "value": "asc",
-                                    "disabled": true,
-                                    "description": "Sort direction: asc, desc"
-                                }
-                            ]
-                        },
-                        "description": "✅ STEP 12: Browse products (Public - no auth needed)"
-                    }
-                },
-                {
-                    "name": "Products - Get Details (Public)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/products/{{product_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "products",
-                                "{{product_id}}"
-                            ]
-                        },
-                        "description": "✅ STEP 13: Get product details (Public)"
-                    }
-                },
-                {
-                    "name": "Products - Search (Public)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/products/search?q=fertilizer",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "products",
-                                "search"
-                            ],
-                            "query": [
-                                {
-                                    "key": "q",
-                                    "value": "fertilizer",
-                                    "description": "Search query"
-                                },
-                                {
-                                    "key": "per_page",
-                                    "value": "12",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "category_id",
-                                    "value": "",
-                                    "disabled": true
-                                }
-                            ]
-                        },
-                        "description": "Search products by query string (Public - alternative route)"
-                    }
-                },
-                {
-                    "name": "Products - Get Categories (Public)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/products/categories",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "products",
-                                "categories"
-                            ]
-                        },
-                        "description": "Get all product categories (Public - alternative route)"
-                    }
-                },
-                {
-                    "name": "Products - Get by Category (Public)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/products/category/{{category_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "products",
-                                "category",
-                                "{{category_id}}"
-                            ],
-                            "query": [
-                                {
-                                    "key": "per_page",
-                                    "value": "12",
-                                    "disabled": true
-                                }
-                            ]
-                        },
-                        "description": "Get products by category ID (Public - alternative route)"
-                    }
-                },
-                {
-                    "name": "Products - List (Alternative Route)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/products?per_page=12",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "products"
-                            ],
-                            "query": [
-                                {
-                                    "key": "per_page",
-                                    "value": "12"
-                                },
-                                {
-                                    "key": "search",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "category_id",
-                                    "value": "",
-                                    "disabled": true
-                                }
-                            ]
-                        },
-                        "description": "List products (Public - alternative route /api/products)"
-                    }
-                },
                 {
                     "name": "Cart - Add Item",
                     "event": [
@@ -1183,7 +931,7 @@
                                 "add"
                             ]
                         },
-                        "description": "✅ STEP 14: Add product to cart"
+                        "description": "\u2705 STEP 14: Add product to cart"
                     }
                 },
                 {
@@ -1211,7 +959,7 @@
                                 "cart"
                             ]
                         },
-                        "description": "✅ STEP 15: View shopping cart with items and total"
+                        "description": "\u2705 STEP 15: View shopping cart with items and total"
                     }
                 },
                 {
@@ -1292,7 +1040,7 @@
                                 "checkout"
                             ]
                         },
-                        "description": "✅ STEP 16: Create order from cart items"
+                        "description": "\u2705 STEP 16: Create order from cart items"
                     }
                 },
                 {
@@ -1320,7 +1068,7 @@
                                 "orders"
                             ]
                         },
-                        "description": "✅ STEP 17: List all orders for authenticated user"
+                        "description": "\u2705 STEP 17: List all orders for authenticated user"
                     }
                 },
                 {
@@ -2300,6 +2048,355 @@
             "description": "Technician and Supervisor endpoints - Manage visits and reports"
         },
         {
+            "name": "Products - All APIs",
+            "item": [
+                {
+                    "name": "Public (no auth)",
+                    "item": [
+                        {
+                            "name": "List Products",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/products?per_page=12",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "shop", "products"],
+                                    "query": [{"key": "per_page", "value": "12"}]
+                                },
+                                "description": "List products for shop/customer app. Query: per_page, search, category_id, status, sort_by, sort_dir."
+                            }
+                        },
+                        {
+                            "name": "Get Product Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/products/{{product_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "shop", "products", "{{product_id}}"]
+                                },
+                                "description": "Get single product by ID or handle."
+                            }
+                        },
+                        {
+                            "name": "Search Products",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/products?search=fertilizer&per_page=12",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "shop", "products"],
+                                    "query": [{"key": "search", "value": "fertilizer"}, {"key": "per_page", "value": "12"}]
+                                },
+                                "description": "Search by name, description, tags. Use query param: search."
+                            }
+                        },
+                        {
+                            "name": "Get Categories",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/products/categories",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "shop", "products", "categories"]
+                                },
+                                "description": "Get all product categories with product count."
+                            }
+                        },
+                        {
+                            "name": "Get Products by Category",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/products/category/{{category_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "shop", "products", "category", "{{category_id}}"]
+                                },
+                                "description": "Get products in a category. Set category_id (e.g. 1)."
+                            }
+                        }
+                    ],
+                    "description": "Public product APIs \u2013 no Authorization header. Use for customer/storefront app."
+                },
+                {
+                    "name": "Admin (Bearer token)",
+                    "item": [
+                        {
+                            "name": "List Products",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products?search=&category_id=&filter=all",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products"],
+                                    "query": [{"key": "search", "value": ""}, {"key": "category_id", "value": ""}, {"key": "filter", "value": "all"}]
+                                },
+                                "description": "List all products (admin). Query: search, category_id, filter (all|active|draft|archived)."
+                            }
+                        },
+                        {
+                            "name": "Add Product",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 1,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products"]
+                                },
+                                "description": "Create product. Required: name, price, category_id. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500). Optional: description, stock, status, weight_unit, etc."
+                            }
+                        },
+                        {
+                            "name": "Get Product Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products", "{{product_id}}"]
+                                },
+                                "description": "Get single product (admin)."
+                            }
+                        },
+                        {
+                            "name": "Update Product",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Updated Name\",\n  \"price\": 149.99,\n  \"stock\": 20,\n  \"status\": \"active\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products", "{{product_id}}"]
+                                },
+                                "description": "Update product."
+                            }
+                        },
+                        {
+                            "name": "Delete Product",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products", "{{product_id}}"]
+                                },
+                                "description": "Delete product."
+                            }
+                        },
+                        {
+                            "name": "Toggle Status",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}/toggle-status",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products", "{{product_id}}", "toggle-status"]
+                                },
+                                "description": "Toggle product status (active/draft/archived)."
+                            }
+                        },
+                        {
+                            "name": "Bulk Delete",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [1, 2, 3]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/bulk-delete",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products", "bulk-delete"]
+                                },
+                                "description": "Bulk delete products."
+                            }
+                        },
+                        {
+                            "name": "Bulk Update Status",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"status\": \"active\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/bulk-update-status",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products", "bulk-update-status"]
+                                },
+                                "description": "Bulk update product status."
+                            }
+                        },
+                        {
+                            "name": "Bulk Update Stock",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"stock\": 100\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/bulk-update-stock",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products", "bulk-update-stock"]
+                                },
+                                "description": "Bulk update product stock."
+                            }
+                        }
+                    ],
+                    "description": "Admin product APIs – require Authorization: Bearer {{token}}. Get token from POST /api/auth/login (admin user). All responses JSON only."
+                }
+            ],
+            "description": "Single module for all product APIs. Public (no auth) and Admin (Bearer token). Set token from Login for Admin requests."
+        },
+        {
             "name": "10. Admin & HR Routes",
             "item": [
                 {
@@ -2328,7 +2425,7 @@
                                 "statistics"
                             ]
                         },
-                        "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for total users, active subscriptions, monthly revenue, customers, technicians, and employees\n- Includes counts/amounts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods with automatic + and - signs\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `total_users`: All users regardless of role (total, daily, weekly, monthly, yearly + growth)\n- `active_subscriptions`: Paid subscriptions that haven't expired (total, daily, weekly, monthly, yearly + growth)\n- `monthly_revenue`: Total revenue from orders + subscriptions (total, daily, weekly, monthly, yearly + growth)\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"+8\", \"+15\", \"-5\")\n- Positive growth: Always includes '+' sign (e.g., \"+12\", \"+8\", \"+15\")\n- Negative growth: Always includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"+0\" or \"0\"\n- Represents percentage change vs previous period\n- No need to add + or - sign in frontend, it's already included\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards (Total Users, Active Subscriptions, Monthly Revenue, Total Employees)\n- Show growth trends with visual indicators (green for +, red for -)\n- Analytics overview\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_users\": {\n      \"total\": 1245,\n      \"daily\": 5,\n      \"weekly\": 25,\n      \"monthly\": 120,\n      \"yearly\": 1245,\n      \"growth\": {\n        \"daily\": \"+2\",\n        \"weekly\": \"+15\",\n        \"monthly\": \"+12\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"active_subscriptions\": {\n      \"total\": 892,\n      \"daily\": 3,\n      \"weekly\": 15,\n      \"monthly\": 60,\n      \"yearly\": 892,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+8\",\n        \"monthly\": \"+8\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"monthly_revenue\": {\n      \"total\": 245000,\n      \"daily\": 5000,\n      \"weekly\": 25000,\n      \"monthly\": 245000,\n      \"yearly\": 2450000,\n      \"growth\": {\n        \"daily\": \"+5\",\n        \"weekly\": \"+12\",\n        \"monthly\": \"+15\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"customers\": {\n      \"total\": 850,\n      \"daily\": 3,\n      \"weekly\": 18,\n      \"monthly\": 85,\n      \"yearly\": 850,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+10\",\n        \"monthly\": \"+40\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"technicians\": {\n      \"total\": 506,\n      \"daily\": 2,\n      \"weekly\": 10,\n      \"monthly\": 45,\n      \"yearly\": 506,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+5\",\n        \"monthly\": \"+20\",\n        \"yearly\": \"+180\"\n      }\n    },\n    \"employees\": {\n      \"total\": 48,\n      \"daily\": 1,\n      \"weekly\": 5,\n      \"monthly\": 20,\n      \"yearly\": 48,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+3\",\n        \"monthly\": \"+3\",\n        \"yearly\": \"+10\"\n      }\n    }\n  }\n}\n```\n\n**Mobile App Usage:**\n- `data.total_users.growth.monthly` → \"+12\" (display directly, no need to add + sign)\n- `data.active_subscriptions.growth.monthly` → \"+8\" (display directly)\n- `data.monthly_revenue.growth.monthly` → \"+15\" (display directly)\n- `data.employees.growth.monthly` → \"+3\" (display directly)\n- Use green color for positive growth (+), red for negative growth (-)"
+                        "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for total users, active subscriptions, monthly revenue, customers, technicians, and employees\n- Includes counts/amounts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods with automatic + and - signs\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `total_users`: All users regardless of role (total, daily, weekly, monthly, yearly + growth)\n- `active_subscriptions`: Paid subscriptions that haven't expired (total, daily, weekly, monthly, yearly + growth)\n- `monthly_revenue`: Total revenue from orders + subscriptions (total, daily, weekly, monthly, yearly + growth)\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"+8\", \"+15\", \"-5\")\n- Positive growth: Always includes '+' sign (e.g., \"+12\", \"+8\", \"+15\")\n- Negative growth: Always includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"+0\" or \"0\"\n- Represents percentage change vs previous period\n- No need to add + or - sign in frontend, it's already included\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards (Total Users, Active Subscriptions, Monthly Revenue, Total Employees)\n- Show growth trends with visual indicators (green for +, red for -)\n- Analytics overview\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_users\": {\n      \"total\": 1245,\n      \"daily\": 5,\n      \"weekly\": 25,\n      \"monthly\": 120,\n      \"yearly\": 1245,\n      \"growth\": {\n        \"daily\": \"+2\",\n        \"weekly\": \"+15\",\n        \"monthly\": \"+12\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"active_subscriptions\": {\n      \"total\": 892,\n      \"daily\": 3,\n      \"weekly\": 15,\n      \"monthly\": 60,\n      \"yearly\": 892,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+8\",\n        \"monthly\": \"+8\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"monthly_revenue\": {\n      \"total\": 245000,\n      \"daily\": 5000,\n      \"weekly\": 25000,\n      \"monthly\": 245000,\n      \"yearly\": 2450000,\n      \"growth\": {\n        \"daily\": \"+5\",\n        \"weekly\": \"+12\",\n        \"monthly\": \"+15\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"customers\": {\n      \"total\": 850,\n      \"daily\": 3,\n      \"weekly\": 18,\n      \"monthly\": 85,\n      \"yearly\": 850,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+10\",\n        \"monthly\": \"+40\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"technicians\": {\n      \"total\": 506,\n      \"daily\": 2,\n      \"weekly\": 10,\n      \"monthly\": 45,\n      \"yearly\": 506,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+5\",\n        \"monthly\": \"+20\",\n        \"yearly\": \"+180\"\n      }\n    },\n    \"employees\": {\n      \"total\": 48,\n      \"daily\": 1,\n      \"weekly\": 5,\n      \"monthly\": 20,\n      \"yearly\": 48,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+3\",\n        \"monthly\": \"+3\",\n        \"yearly\": \"+10\"\n      }\n    }\n  }\n}\n```\n\n**Mobile App Usage:**\n- `data.total_users.growth.monthly` \u2192 \"+12\" (display directly, no need to add + sign)\n- `data.active_subscriptions.growth.monthly` \u2192 \"+8\" (display directly)\n- `data.monthly_revenue.growth.monthly` \u2192 \"+15\" (display directly)\n- `data.employees.growth.monthly` \u2192 \"+3\" (display directly)\n- Use green color for positive growth (+), red for negative growth (-)"
                     }
                 },
                 {
@@ -2364,7 +2461,7 @@
                                 }
                             ]
                         },
-                        "description": "Get recent activities for React Native dashboard\n\n**Purpose:**\n- Returns a list of recent activities including subscriptions, customer registrations, inventory alerts, orders, and visits\n- Used to display the \"Recent Activities\" section in admin mobile app\n\n**Activity Types:**\n- `subscription`: New paid subscriptions (icon_type: success - green checkmark)\n- `customer`: New customer registrations (icon_type: user_add - user icon with plus sign)\n- `inventory`: Low stock or out of stock alerts (icon_type: warning/error - yellow/red icon)\n- `order`: New orders placed (icon_type: order - shopping cart icon)\n- `visit`: Completed visits (icon_type: check - checkmark icon)\n\n**Response Structure:**\nEach activity contains:\n- `type`: Activity type (subscription, customer, inventory, order, visit)\n- `icon_type`: Icon type for frontend rendering (success, user_add, warning, error, order, check)\n- `description`: Human-readable activity description\n- `timestamp`: Human-readable time (e.g., \"5 min ago\", \"1 hour ago\")\n- `created_at`: ISO 8601 timestamp for sorting\n- `related_id`: ID of related entity\n- `related_type`: Type of related entity (subscription, user, product, order, visit)\n- Additional fields for specific types (e.g., `stock` for inventory, `amount` and `status` for orders)\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"type\": \"subscription\",\n      \"icon_type\": \"success\",\n      \"description\": \"New 12-month subscription by Palm Grove Estate\",\n      \"timestamp\": \"5 min ago\",\n      \"created_at\": \"2025-01-15T10:30:00Z\",\n      \"related_id\": 123,\n      \"related_type\": \"subscription\"\n    },\n    {\n      \"type\": \"customer\",\n      \"icon_type\": \"user_add\",\n      \"description\": \"New customer registered - Mohammed Ali Farm\",\n      \"timestamp\": \"1 hour ago\",\n      \"created_at\": \"2025-01-15T09:30:00Z\",\n      \"related_id\": 456,\n      \"related_type\": \"user\"\n    },\n    {\n      \"type\": \"inventory\",\n      \"icon_type\": \"warning\",\n      \"description\": \"Low inventory alert: Organic Fertilizer\",\n      \"timestamp\": \"2 hours ago\",\n      \"created_at\": \"2025-01-15T08:30:00Z\",\n      \"related_id\": 789,\n      \"related_type\": \"product\",\n      \"stock\": 5\n    },\n    {\n      \"type\": \"order\",\n      \"icon_type\": \"order\",\n      \"description\": \"New order #101 by John Doe\",\n      \"timestamp\": \"3 hours ago\",\n      \"created_at\": \"2025-01-15T07:30:00Z\",\n      \"related_id\": 101,\n      \"related_type\": \"order\",\n      \"amount\": 150.50,\n      \"status\": \"pending\"\n    },\n    {\n      \"type\": \"visit\",\n      \"icon_type\": \"check\",\n      \"description\": \"Visit completed for Palm Grove Estate\",\n      \"timestamp\": \"4 hours ago\",\n      \"created_at\": \"2025-01-15T06:30:00Z\",\n      \"related_id\": 234,\n      \"related_type\": \"visit\"\n    }\n  ],\n  \"total\": 5\n}\n```\n\n**Use Cases:**\n- Display recent activities in admin mobile app dashboard\n- Show activity feed with icons and timestamps\n- Navigate to related entities using `related_id` and `related_type`\n- Filter or group activities by type\n\n**Query Parameters:**\n- `limit` (optional): Number of activities to return (default: 20, max recommended: 50)\n\n**Frontend Implementation:**\n- Use `icon_type` to render appropriate icons (success=green checkmark, user_add=user icon with plus, warning=yellow alert, error=red alert, order=shopping cart, check=checkmark)\n- Display `description` as main text\n- Show `timestamp` as secondary text (e.g., \"5 min ago\")\n- Use `related_id` and `related_type` for navigation when user taps on activity"
+                        "description": "Get recent activities for React Native dashboard\n\n**Purpose:**\n- Returns a list of recent activities including subscriptions, customer registrations, inventory alerts, and orders (real data only; no visit data)\n- Used to display the \"Recent Activities\" section in admin mobile app\n\n**Activity Types:**\n- `subscription`: New paid subscriptions (icon_type: success - green checkmark)\n- `customer`: New customer registrations (icon_type: user_add - user icon with plus sign)\n- `inventory`: Low stock or out of stock alerts (icon_type: warning/error - yellow/red icon)\n- `order`: New orders placed (icon_type: order - shopping cart icon)\n\n**Response Structure:**\nEach activity contains:\n- `type`: Activity type (subscription, customer, inventory, order)\n- `icon_type`: Icon type for frontend rendering (success, user_add, warning, error, order)\n- `description`: Human-readable activity description\n- `timestamp`: Human-readable time (e.g., \"5 min ago\", \"1 hour ago\")\n- `created_at`: ISO 8601 timestamp for sorting\n- `related_id`: ID of related entity\n- `related_type`: Type of related entity (subscription, user, product, order)\n- Additional fields for specific types (e.g., `stock` for inventory, `amount` and `status` for orders)\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"type\": \"subscription\",\n      \"icon_type\": \"success\",\n      \"description\": \"New 12-month subscription by Palm Grove Estate\",\n      \"timestamp\": \"5 min ago\",\n      \"created_at\": \"2025-01-15T10:30:00Z\",\n      \"related_id\": 123,\n      \"related_type\": \"subscription\"\n    },\n    {\n      \"type\": \"customer\",\n      \"icon_type\": \"user_add\",\n      \"description\": \"New customer registered - Mohammed Ali Farm\",\n      \"timestamp\": \"1 hour ago\",\n      \"created_at\": \"2025-01-15T09:30:00Z\",\n      \"related_id\": 456,\n      \"related_type\": \"user\"\n    },\n    {\n      \"type\": \"inventory\",\n      \"icon_type\": \"warning\",\n      \"description\": \"Low inventory alert: Organic Fertilizer\",\n      \"timestamp\": \"2 hours ago\",\n      \"created_at\": \"2025-01-15T08:30:00Z\",\n      \"related_id\": 789,\n      \"related_type\": \"product\",\n      \"stock\": 5\n    },\n    {\n      \"type\": \"order\",\n      \"icon_type\": \"order\",\n      \"description\": \"New order #101 by John Doe\",\n      \"timestamp\": \"3 hours ago\",\n      \"created_at\": \"2025-01-15T07:30:00Z\",\n      \"related_id\": 101,\n      \"related_type\": \"order\",\n      \"amount\": 150.50,\n      \"status\": \"pending\"\n    }\n  ],\n  \"total\": 4\n}\n```\n\n**Use Cases:**\n- Display recent activities in admin mobile app dashboard\n- Show activity feed with icons and timestamps\n- Navigate to related entities using `related_id` and `related_type`\n- Filter or group activities by type\n\n**Query Parameters:**\n- `limit` (optional): Number of activities to return (default: 20, max recommended: 50)\n\n**Frontend Implementation:**\n- Use `icon_type` to render appropriate icons (success=green checkmark, user_add=user icon with plus, warning=yellow alert, error=red alert, order=shopping cart)\n- Display `description` as main text\n- Show `timestamp` as secondary text (e.g., \"5 min ago\")\n- Use `related_id` and `related_type` for navigation when user taps on activity"
                     }
                 },
                 {
@@ -2422,7 +2519,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "Get admin user profile with formatted ID for React Native dashboard\n\n**Purpose:**\n- Returns current admin user's profile information\n- Includes formatted ID (e.g., \"ADMIN-5001\") for display\n- Includes time-based greeting (Good morning/afternoon/evening/night)\n- Used to display user info at top of admin mobile app dashboard\n\n**Response Structure:**\n- `id`: User ID\n- `formatted_id`: Formatted ID with role prefix (e.g., \"ADMIN-5001\")\n- `name`: User's full name\n- `email`: User's email\n- `phone`: User's phone number\n- `role`: User's role (admin, supervisor, etc.)\n- `role_display_name`: Human-readable role name (e.g., \"Executive Management\")\n- `status`: User status (active, inactive, etc.)\n- `greeting`: Time-based greeting (Good morning/afternoon/evening/night)\n- `avatar`: Avatar URL (null if not set)\n- `created_at`: Account creation timestamp\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 5001,\n    \"formatted_id\": \"ADMIN-5001\",\n    \"name\": \"Abdullah Al Mazrouei\",\n    \"email\": \"admin@example.com\",\n    \"phone\": \"+971501234567\",\n    \"role\": \"admin\",\n    \"role_display_name\": \"Executive Management\",\n    \"status\": \"active\",\n    \"greeting\": \"Good afternoon!\",\n    \"avatar\": null,\n    \"created_at\": \"2025-01-01T10:00:00Z\"\n  }\n}\n```\n\n**Use Cases:**\n- Display user profile section at top of admin mobile app dashboard\n- Show greeting, name, role, and formatted ID\n- Display user avatar if available\n\n**Frontend Implementation:**\n- Display `greeting` as greeting text\n- Show `name` as main heading\n- Display `role_display_name` as subtitle\n- Show `formatted_id` as ID label (e.g., \"ID: ADMIN-5001\")\n- Use `avatar` for profile picture (show default if null)\n\n**Role Display Names:**\n- `admin` → \"Executive Management\"\n- `supervisor` → \"Supervisor\"\n- `technician` → \"Technician\"\n- `client` → \"Customer\"\n- `hr` → \"HR Manager\"\n- `area_manager` → \"Area Manager\""
+                        "description": "Get admin user profile with formatted ID for React Native dashboard\n\n**Purpose:**\n- Returns current admin user's profile information\n- Includes formatted ID (e.g., \"ADMIN-5001\") for display\n- Includes time-based greeting (Good morning/afternoon/evening/night)\n- Used to display user info at top of admin mobile app dashboard\n\n**Response Structure:**\n- `id`: User ID\n- `formatted_id`: Formatted ID with role prefix (e.g., \"ADMIN-5001\")\n- `name`: User's full name\n- `email`: User's email\n- `phone`: User's phone number\n- `role`: User's role (admin, supervisor, etc.)\n- `role_display_name`: Human-readable role name (e.g., \"Executive Management\")\n- `status`: User status (active, inactive, etc.)\n- `greeting`: Time-based greeting (Good morning/afternoon/evening/night)\n- `avatar`: Avatar URL (null if not set)\n- `created_at`: Account creation timestamp\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 5001,\n    \"formatted_id\": \"ADMIN-5001\",\n    \"name\": \"Abdullah Al Mazrouei\",\n    \"email\": \"admin@example.com\",\n    \"phone\": \"+971501234567\",\n    \"role\": \"admin\",\n    \"role_display_name\": \"Executive Management\",\n    \"status\": \"active\",\n    \"greeting\": \"Good afternoon!\",\n    \"avatar\": null,\n    \"created_at\": \"2025-01-01T10:00:00Z\"\n  }\n}\n```\n\n**Use Cases:**\n- Display user profile section at top of admin mobile app dashboard\n- Show greeting, name, role, and formatted ID\n- Display user avatar if available\n\n**Frontend Implementation:**\n- Display `greeting` as greeting text\n- Show `name` as main heading\n- Display `role_display_name` as subtitle\n- Show `formatted_id` as ID label (e.g., \"ID: ADMIN-5001\")\n- Use `avatar` for profile picture (show default if null)\n\n**Role Display Names:**\n- `admin` \u2192 \"Executive Management\"\n- `supervisor` \u2192 \"Supervisor\"\n- `technician` \u2192 \"Technician\"\n- `client` \u2192 \"Customer\"\n- `hr` \u2192 \"HR Manager\"\n- `area_manager` \u2192 \"Area Manager\""
                     }
                 },
                 {
@@ -2508,363 +2605,6 @@
                         },
                         "description": "Get list of users with filtering and pagination\n\n**Purpose:**\n- Returns paginated list of users\n- Supports filtering by category, status, and search\n- Formatted for mobile app display\n\n**Query Parameters:**\n- `category`: all, workers, supervisors, managers\n- `status`: active, inactive, suspended\n- `search`: Search by name, email, or phone\n- `page`: Page number (default: 1)\n- `per_page`: Items per page (default: 15)\n\n**Response:**\n- Each user includes: id, name, email, phone, role, role_display, employee_id (formatted), status, avatar (first letter), created_at\n\n**Use Cases:**\n- Display user list in admin mobile app\n- Filter users by category\n- Search functionality"
                     }
-                },
-                {
-                    "name": "Admin - Products Management",
-                    "item": [
-                        {
-                            "name": "Products - List (Admin)",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('product_id')) {",
-                                            "        pm.environment.set('product_id', jsonData.data[0].id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products?search=&category_id=",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "search",
-                                            "value": "",
-                                            "disabled": true
-                                        },
-                                        {
-                                            "key": "category_id",
-                                            "value": "",
-                                            "disabled": true
-                                        },
-                                        {
-                                            "key": "filter",
-                                            "value": "all",
-                                            "disabled": true,
-                                            "description": "Filter: all, active, draft, archived"
-                                        }
-                                    ]
-                                },
-                                "description": "List all products (Admin only - requires admin role)"
-                            }
-                        },
-                        {
-                            "name": "Add Product (Admin)",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 201) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.id) {",
-                                            "        pm.environment.set('product_id', jsonData.data.id);",
-                                            "        console.log('Product created with ID:', jsonData.data.id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Premium Organic Fertilizer 5kg\",\n  \"description\": \"High-quality organic fertilizer perfect for all types of plants. Rich in nutrients and eco-friendly. Made from natural ingredients.\",\n  \"vendor\": \"Tandil Supplies\",\n  \"type\": \"Physical\",\n  \"sku\": \"SKU-ORG-FERT-001\",\n  \"barcode\": \"1234567890123\",\n  \"price\": 150.00,\n  \"compare_at_price\": 180.00,\n  \"cost_per_item\": 100.00,\n  \"stock\": 100,\n  \"status\": \"active\",\n  \"track_quantity\": true,\n  \"allow_backorder\": false,\n  \"weight\": \"5\",\n  \"weight_unit\": \"kg\",\n  \"tags\": \"fertilizer, organic, gardening, plants, nutrients\",\n  \"meta_title\": \"Premium Organic Fertilizer 5kg - Tandil Supplies\",\n  \"meta_description\": \"Best organic fertilizer for your garden. Rich in nutrients and eco-friendly.\",\n  \"handle\": \"premium-organic-fertilizer-5kg\",\n  \"requires_shipping\": true,\n  \"taxable\": true,\n  \"category_id\": 1,\n  \"image_urls\": [\n    \"https://via.placeholder.com/800x800/4CAF50/FFFFFF?text=Organic+Fertilizer\",\n    \"https://via.placeholder.com/800x800/8BC34A/FFFFFF?text=Product+Detail\"\n  ]\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products"
-                                    ]
-                                },
-                                "description": "✅ Create a new product (Admin only - requires admin role).\n\n**Required Fields:**\n- `name` (string, required)\n- `price` (numeric, required, min: 0)\n\n**Optional Fields:**\n- `description` (string)\n- `vendor` (string)\n- `type` (string)\n- `sku` (string, unique)\n- `barcode` (string)\n- `compare_at_price` (numeric)\n- `cost_per_item` (numeric)\n- `stock` (integer, default: 0)\n- `status` (enum: draft, active, archived, default: draft)\n- `track_quantity` (boolean, default: true)\n- `allow_backorder` (boolean, default: false)\n- `weight` (string)\n- `weight_unit` (enum: kg, g, lb, oz, default: kg)\n- `tags` (string)\n- `meta_title` (string)\n- `meta_description` (string)\n- `handle` (string, unique, auto-generated from name if not provided)\n- `requires_shipping` (boolean, default: true)\n- `taxable` (boolean, default: true)\n- `category_id` (integer, must exist in categories table)\n- `image_urls` (array of strings) - For API requests\n- `images` (array of files) - For multipart/form-data requests\n\n**Note:** If `handle` is not provided, it will be auto-generated from the product name. The API supports both JSON with `image_urls` array and multipart/form-data with `images[]` file uploads."
-                            }
-                        },
-                        {
-                            "name": "Products - Get Details (Admin)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products",
-                                        "{{product_id}}"
-                                    ]
-                                },
-                                "description": "Get product details (Admin only)"
-                            }
-                        },
-                        {
-                            "name": "Products - Update (Admin)",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Updated Product Name\",\n  \"description\": \"Updated description\",\n  \"price\": 200.00,\n  \"stock\": 150,\n  \"status\": \"active\",\n  \"category_id\": 1\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products",
-                                        "{{product_id}}"
-                                    ]
-                                },
-                                "description": "Update product (Admin only)"
-                            }
-                        },
-                        {
-                            "name": "Products - Delete (Admin)",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products",
-                                        "{{product_id}}"
-                                    ]
-                                },
-                                "description": "Delete product (Admin only)"
-                            }
-                        },
-                        {
-                            "name": "Products - Toggle Status (Admin)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}/toggle-status",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products",
-                                        "{{product_id}}",
-                                        "toggle-status"
-                                    ]
-                                },
-                                "description": "Toggle product status (active/draft) (Admin only)"
-                            }
-                        },
-                        {
-                            "name": "Products - Bulk Delete (Admin)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"ids\": [1, 2, 3]\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products/bulk-delete",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products",
-                                        "bulk-delete"
-                                    ]
-                                },
-                                "description": "Bulk delete products (Admin only)"
-                            }
-                        },
-                        {
-                            "name": "Products - Bulk Update Status (Admin)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"status\": \"active\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products/bulk-update-status",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products",
-                                        "bulk-update-status"
-                                    ]
-                                },
-                                "description": "Bulk update product status (Admin only)"
-                            }
-                        },
-                        {
-                            "name": "Products - Bulk Update Stock (Admin)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"stock\": 100\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products/bulk-update-stock",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products",
-                                        "bulk-update-stock"
-                                    ]
-                                },
-                                "description": "Bulk update product stock (Admin only)"
-                            }
-                        }
-                    ],
-                    "description": "Admin product management APIs - Create, Read, Update, Delete products"
                 },
                 {
                     "name": "Users - List",
@@ -3296,18 +3036,46 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports?page=1&per_page=15",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports"],
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports"
+                            ],
                             "query": [
-                                { "key": "status", "value": "", "description": "Filter: pending, generated, scheduled, failed", "disabled": true },
-                                { "key": "type", "value": "", "description": "Filter: financial, performance, customer, operational, user, subscription", "disabled": true },
-                                { "key": "page", "value": "1" },
-                                { "key": "per_page", "value": "15" }
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter: pending, generated, scheduled, failed",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "",
+                                    "description": "Filter: financial, performance, customer, operational, user, subscription",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                }
                             ]
                         },
                         "description": "GET /api/admin/reports - List all admin reports with optional filters (status, type) and pagination."
@@ -3318,13 +3086,26 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/statistics",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "statistics"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "statistics"
+                            ]
                         },
                         "description": "GET /api/admin/reports/statistics - Counts by status (total, pending, generated, scheduled, failed) and by_type."
                     }
@@ -3334,9 +3115,18 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
@@ -3344,8 +3134,15 @@
                         },
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/generate",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "generate"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "generate"
+                            ]
                         },
                         "description": "POST /api/admin/reports/generate - Start async report generation. Types: financial, performance, customer, operational, user, subscription."
                     }
@@ -3355,9 +3152,18 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
@@ -3365,8 +3171,15 @@
                         },
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/schedule",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "schedule"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "schedule"
+                            ]
                         },
                         "description": "POST /api/admin/reports/schedule - Schedule report. recurrence: daily, weekly, monthly, yearly or null."
                     }
@@ -3376,13 +3189,26 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/1",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "1"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "1"
+                            ]
                         },
                         "description": "GET /api/admin/reports/{id} - Get one report with creator email and parameters."
                     }
@@ -3392,12 +3218,23 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/1/download",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "1", "download"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "1",
+                                "download"
+                            ]
                         },
                         "description": "GET /api/admin/reports/{id}/download - Returns file (PDF/CSV/Excel). Replace 1 with report id."
                     }
@@ -3407,13 +3244,27 @@
                     "request": {
                         "method": "DELETE",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/1/cancel",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "1", "cancel"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "1",
+                                "cancel"
+                            ]
                         },
                         "description": "DELETE /api/admin/reports/{id}/cancel - Cancel a scheduled report only."
                     }
@@ -3423,9 +3274,18 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
@@ -3433,8 +3293,16 @@
                         },
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/1/share",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "1", "share"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "1",
+                                "share"
+                            ]
                         },
                         "description": "POST /api/admin/reports/{id}/share - method: email (recipients required) or link. Replace 1 with report id."
                     }
@@ -3444,13 +3312,26 @@
                     "request": {
                         "method": "DELETE",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/reports/1",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "reports", "1"]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "1"
+                            ]
                         },
                         "description": "DELETE /api/admin/reports/{id} - Delete report and its file. Replace 1 with report id."
                     }
@@ -3459,7 +3340,414 @@
             "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
         },
         {
-            "name": "12. Other Modules",
+            "name": "12. Admin Settings (Mobile)",
+            "item": [
+                {
+                    "name": "Get All Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings"
+                            ]
+                        },
+                        "description": "GET /api/admin/settings - All settings for React Native Settings screen (system, app_config, payment, legal)."
+                    }
+                },
+                {
+                    "name": "Get System Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/system",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "system"
+                            ]
+                        },
+                        "description": "GET /api/admin/settings/system - Push notifications, auto-assign tasks, maintenance mode toggles."
+                    }
+                },
+                {
+                    "name": "Update System Settings",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"push_notifications_enabled\": true,\n  \"auto_assign_tasks\": false,\n  \"maintenance_mode\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/system",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "system"
+                            ]
+                        },
+                        "description": "PUT /api/admin/settings/system - Update toggles (all optional)."
+                    }
+                },
+                {
+                    "name": "Get Theme",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/theme",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "theme"
+                            ]
+                        },
+                        "description": "GET /api/admin/settings/theme - Current theme and available (system, light, dark)."
+                    }
+                },
+                {
+                    "name": "Update Theme",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"theme\": \"dark\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/theme",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "theme"
+                            ]
+                        },
+                        "description": "PUT /api/admin/settings/theme - theme: system|light|dark."
+                    }
+                },
+                {
+                    "name": "Get Language",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/language",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "language"
+                            ]
+                        },
+                        "description": "GET /api/admin/settings/language - Current language/region and available languages."
+                    }
+                },
+                {
+                    "name": "Update Language",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"language\": \"en\",\n  \"region\": \"\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/language",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "language"
+                            ]
+                        },
+                        "description": "PUT /api/admin/settings/language - language (required), region (optional)."
+                    }
+                },
+                {
+                    "name": "Get Payment Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/payment",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "payment"
+                            ]
+                        },
+                        "description": "GET /api/admin/settings/payment - Gateway and whether keys set (no secrets)."
+                    }
+                },
+                {
+                    "name": "Update Payment Settings",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"payment_gateway\": \"stripe\",\n  \"api_key\": \"pk_xxx\",\n  \"api_secret\": \"sk_xxx\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/payment",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "payment"
+                            ]
+                        },
+                        "description": "PUT /api/admin/settings/payment - payment_gateway, api_key, api_secret (stripe|paymob|ccavenue|tap)."
+                    }
+                },
+                {
+                    "name": "Get Legal (Privacy or Terms)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/legal?type=privacy",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "legal"
+                            ],
+                            "query": [
+                                {
+                                    "key": "type",
+                                    "value": "privacy",
+                                    "description": "privacy or terms"
+                                }
+                            ]
+                        },
+                        "description": "GET /api/admin/settings/legal?type=privacy|terms - URL and content for Privacy Policy or Terms."
+                    }
+                },
+                {
+                    "name": "Export Data",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"format\": \"json\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/export-data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "export-data"
+                            ]
+                        },
+                        "description": "POST /api/admin/settings/export-data - format: json|csv. Returns export_id and status (202)."
+                    }
+                },
+                {
+                    "name": "Debug Logs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/debug-logs?lines=100",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "debug-logs"
+                            ],
+                            "query": [
+                                {
+                                    "key": "lines",
+                                    "value": "100",
+                                    "description": "10-500"
+                                }
+                            ]
+                        },
+                        "description": "GET /api/admin/settings/debug-logs?lines=100 - Recent Laravel log lines (admin only)."
+                    }
+                }
+            ],
+            "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, legal, export, debug logs."
+        },
+        {
+            "name": "13. Other Modules",
             "item": [
                 {
                     "name": "Complaints - List",
@@ -3692,7 +3980,58 @@
                                 "tips"
                             ]
                         },
-                        "description": "List all published agricultural tips"
+                        "description": "GET /api/tips - List all published tips. Auth: Bearer token (client, admin, supervisor, area_manager, hr). Response: success, message, data (array of tips with id, title, content, type, status, language, created_at)."
+                    }
+                },
+                {
+                    "name": "Tips - Create/Send",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.id && !pm.environment.get('tip_id')) {",
+                                    "        pm.environment.set('tip_id', jsonData.data.id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Water early morning to reduce evaporation\",\n  \"content\": \"Water your plants early in the morning to reduce evaporation and help roots absorb moisture better.\",\n  \"type\": \"general\",\n  \"status\": \"published\",\n  \"language\": \"en\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/tips",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tips"
+                            ]
+                        },
+                        "description": "POST /api/tips - Create/send a new tip. Admin or supervisor only (403 for others). Body: title (required), content (required), type (optional: weekly|monthly|seasonal|general), status (optional: draft|published|archived), language (optional: en|ar|ur). Defaults: type=general, status=published, language=en. Response: 201 with created tip."
                     }
                 },
                 {
@@ -3720,7 +4059,7 @@
                                 "{{tip_id}}"
                             ]
                         },
-                        "description": "Get tip details"
+                        "description": "GET /api/tips/{id} - Get a single published tip by ID. Auth: Bearer token. Uses variable {{tip_id}} (set by Tips - List or Create/Send)."
                     }
                 },
                 {
@@ -5191,6 +5530,11 @@
             "type": "string"
         },
         {
+            "key": "baseUrl",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
             "key": "token",
             "value": "",
             "type": "string"
@@ -5257,11 +5601,6 @@
         },
         {
             "key": "employee_id",
-            "value": "1",
-            "type": "string"
-        },
-        {
-            "key": "category_id",
             "value": "1",
             "type": "string"
         },

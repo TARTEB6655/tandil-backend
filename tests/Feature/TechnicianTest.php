@@ -31,7 +31,7 @@ class TechnicianTest extends TestCase
 
         $visit = $this->createVisit(['technician_id' => $technician->id]);
 
-        $response = $this->getJson('/api/auth/tech/visits');
+        $response = $this->getJson('/api/tech/visits');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -55,7 +55,7 @@ class TechnicianTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $response = $this->postJson("/api/auth/tech/visits/{$visit->id}/accept");
+        $response = $this->postJson("/api/tech/visits/{$visit->id}/accept");
 
         $response->assertStatus(200)
             ->assertJson(['status' => true]);
@@ -77,7 +77,7 @@ class TechnicianTest extends TestCase
 
         $visit = $this->createVisit(['technician_id' => $technician2->id]);
 
-        $response = $this->postJson("/api/auth/tech/visits/{$visit->id}/accept");
+        $response = $this->postJson("/api/tech/visits/{$visit->id}/accept");
 
         $response->assertStatus(403);
     }
@@ -95,7 +95,7 @@ class TechnicianTest extends TestCase
             'status' => 'accepted',
         ]);
 
-        $response = $this->postJson("/api/auth/tech/visits/{$visit->id}/start");
+        $response = $this->postJson("/api/tech/visits/{$visit->id}/start");
 
         $response->assertStatus(200)
             ->assertJson(['status' => true]);
@@ -119,7 +119,7 @@ class TechnicianTest extends TestCase
             'status' => 'in_progress',
         ]);
 
-        $response = $this->postJson("/api/auth/tech/visits/{$visit->id}/complete", [
+        $response = $this->postJson("/api/tech/visits/{$visit->id}/complete", [
             'notes' => 'Visit completed successfully',
         ]);
 
@@ -148,7 +148,7 @@ class TechnicianTest extends TestCase
 
         $file = UploadedFile::fake()->image('visit.jpg');
 
-        $response = $this->postJson("/api/auth/tech/visits/{$visit->id}/photos", [
+        $response = $this->postJson("/api/tech/visits/{$visit->id}/photos", [
             'photo' => $file,
             'type' => 'after',
         ]);
@@ -170,7 +170,7 @@ class TechnicianTest extends TestCase
 
         $visit = $this->createVisit();
 
-        $response = $this->getJson('/api/auth/tech/visits');
+        $response = $this->getJson('/api/tech/visits');
         $response->assertStatus(403);
     }
 }

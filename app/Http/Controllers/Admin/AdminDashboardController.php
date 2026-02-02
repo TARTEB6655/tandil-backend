@@ -12,9 +12,12 @@ use App\Models\Subscription;
 use App\Models\Visit;
 use App\Models\Area;
 use App\Models\Report;
+use App\Models\AdminReport;
+use App\Models\Tip;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -228,6 +231,21 @@ class AdminDashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Recent activities for dashboard (only 5; "View All" goes to dedicated page)
+        $recentActivities = $this->getRecentActivitiesForDashboard(5);
+
+        // Recent tips (latest 5 for dashboard)
+        $recentTips = Tip::with('creator')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        $totalTips = Tip::count();
+        $totalAdminReports = AdminReport::count();
+
+        // Orders today (for "New Orders" summary card)
+        $ordersToday = Order::whereDate('created_at', Carbon::today())->count();
+
         // Status breakdowns
         $visitsByStatus = Visit::select('status', DB::raw('COUNT(*) as count'))
             ->groupBy('status')
@@ -302,6 +320,10 @@ class AdminDashboardController extends Controller
         });
 
         return view('admin.dashboard', compact(
+            'recentActivities',
+            'recentTips',
+            'totalTips',
+            'totalAdminReports',
             'totalUsers',
             'totalTechnicians',
             'allActiveUsersPaginated',
@@ -328,6 +350,7 @@ class AdminDashboardController extends Controller
             'recentOrders',
             'recentSubscriptions',
             'recentVisits',
+            'ordersToday',
             'visitsByStatus',
             'subscriptionsByStatus',
             // E-commerce stats
@@ -354,6 +377,29 @@ class AdminDashboardController extends Controller
             'stats',
             'timeRange'
         ));
+    }
+
+    /**
+     * Dedicated page: all recent activities with pagination
+     * GET /admin/recent-activities
+     */
+    public function recentActivitiesPage(Request $request)
+    {
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = 15;
+        $allActivities = $this->getRecentActivitiesForDashboard(200);
+        $total = count($allActivities);
+        $paginator = new LengthAwarePaginator(
+            array_slice($allActivities, ($page - 1) * $perPage, $perPage),
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('admin.recent-activities.index', [
+            'activities' => $paginator,
+        ]);
     }
 
     /**
@@ -774,13 +820,11 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Get recent activities for React Native dashboard
-     * Returns a list of recent activities including subscriptions, customer registrations, 
-     * inventory alerts, orders, and visits
+     * Build recent activities array (shared by web dashboard and API).
+     * Returns subscriptions, customers, inventory alerts, orders, visits sorted by date.
      */
-    public function recentActivities(Request $request)
+    protected function getRecentActivitiesForDashboard(int $limit = 20): array
     {
-        $limit = $request->input('limit', 20); // Default 20 activities
         $activities = [];
 
         // 1. Recent Subscriptions (paid subscriptions)
@@ -888,33 +932,21 @@ class AdminDashboardController extends Controller
             ];
         }
 
-        // 6. Completed Visits
-        $completedVisits = Visit::where('status', 'completed')
-            ->with(['subscription.client', 'technician'])
-            ->orderBy('completed_at', 'desc')
-            ->limit(10)
-            ->get();
-
-        foreach ($completedVisits as $visit) {
-            $clientName = $visit->subscription->client->name ?? 'Unknown';
-            $activities[] = [
-                'type' => 'visit',
-                'icon_type' => 'check', // Checkmark icon
-                'description' => "Visit completed for {$clientName}",
-                'timestamp' => $visit->completed_at ? $visit->completed_at->diffForHumans() : $visit->created_at->diffForHumans(),
-                'created_at' => $visit->completed_at ? $visit->completed_at->toISOString() : $visit->created_at->toISOString(),
-                'related_id' => $visit->id,
-                'related_type' => 'visit',
-            ];
-        }
-
         // Sort all activities by created_at (most recent first)
         usort($activities, function ($a, $b) {
             return strtotime($b['created_at']) - strtotime($a['created_at']);
         });
 
-        // Limit the results
-        $activities = array_slice($activities, 0, $limit);
+        return array_slice($activities, 0, $limit);
+    }
+
+    /**
+     * Get recent activities for React Native dashboard (API)
+     */
+    public function recentActivities(Request $request)
+    {
+        $limit = (int) $request->input('limit', 20);
+        $activities = $this->getRecentActivitiesForDashboard($limit);
 
         return response()->json([
             'success' => true,

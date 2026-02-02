@@ -79,6 +79,12 @@ class User extends Authenticatable
         return $this->belongsToMany(Area::class, 'area_supervisor', 'user_id', 'area_id');
     }
 
+    /** Get IDs of areas supervised by this user (avoids ambiguous column in join). */
+    public function supervisedAreaIds(): array
+    {
+        return $this->supervisedAreas()->selectRaw('areas.id as id')->pluck('id')->toArray();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | ROLE HELPERS

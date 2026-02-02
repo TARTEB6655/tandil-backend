@@ -41,7 +41,7 @@ class VisitController extends Controller
                     ->get();
             } elseif ($user->hasRole('area_manager')) {
                 // Area Manager → visits in their managed areas
-                $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+                $areaIds = $user->supervisedAreaIds();
 
                 $visits = Visit::whereIn('area_id', $areaIds)
                     ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
@@ -49,7 +49,7 @@ class VisitController extends Controller
                     ->get();
             } elseif ($user->hasRole('supervisor')) {
                 // Supervisor → visits in areas they supervise
-                $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+                $areaIds = $user->supervisedAreaIds();
 
                 $visits = Visit::whereIn('area_id', $areaIds)
                     ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
@@ -198,8 +198,8 @@ class VisitController extends Controller
             $user->hasRole('admin') ||
             ($user->hasRole('technician') && $visit->technician_id === $user->id) ||
             ($user->hasRole('client') && $visit->subscription->client_id === $user->id) ||
-            ($user->hasRole('supervisor') && in_array($visit->area_id, $user->supervisedAreas()->pluck('areas.id')->toArray())) ||
-            ($user->hasRole('area_manager') && in_array($visit->area_id, $user->supervisedAreas()->pluck('areas.id')->toArray()))
+            ($user->hasRole('supervisor') && in_array($visit->area_id, $user->supervisedAreaIds())) ||
+            ($user->hasRole('area_manager') && in_array($visit->area_id, $user->supervisedAreaIds()))
         ) {
             return response()->json(['status' => true, 'data' => $visit], 200);
         }
@@ -290,7 +290,7 @@ class VisitController extends Controller
             } elseif ($user->hasRole('supervisor') || $user->hasRole('area_manager')) {
                 // Supervisor/Area Manager can update if area is supervised
                 if ($visit->area_id) {
-                    $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+                    $areaIds = $user->supervisedAreaIds();
                     if (in_array($visit->area_id, $areaIds)) {
                         $isAuthorized = true;
                     }
@@ -455,7 +455,7 @@ class VisitController extends Controller
         }
 
         if ($user->hasRole('supervisor')) {
-            $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+            $areaIds = $user->supervisedAreaIds();
             if (!in_array($visit->area_id, $areaIds)) {
                 return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
             }

@@ -25,11 +25,9 @@ class ShopTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data' => [
-                    'data' => [
-                        '*' => ['id', 'name', 'price']
-                    ]
+                    '*' => ['id', 'name', 'price']
                 ]
             ]);
     }
@@ -45,8 +43,43 @@ class ShopTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data' => ['id', 'name', 'price']
+            ]);
+    }
+
+    /**
+     * Test anyone can view product categories
+     */
+    public function test_anyone_can_view_product_categories()
+    {
+        $response = $this->getJson('/api/shop/products/categories');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data'
+            ]);
+    }
+
+    /**
+     * Test anyone can view products by category
+     */
+    public function test_anyone_can_view_products_by_category()
+    {
+        $category = \App\Models\Category::factory()->create();
+        $this->createProduct(['category_id' => $category->id]);
+
+        $response = $this->getJson("/api/shop/products/category/{$category->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'category',
+                    'products',
+                    'pagination'
+                ]
             ]);
     }
 
@@ -88,7 +121,7 @@ class ShopTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data'
             ]);
     }
@@ -107,7 +140,7 @@ class ShopTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
                 'data'
             ]);
     }

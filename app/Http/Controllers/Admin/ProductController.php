@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -101,10 +102,13 @@ class ProductController extends Controller
             'category_id'         => 'nullable|exists:categories,id',
             'images'              => 'nullable|array',
             'images.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [
+            'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
+            'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
         ]);
 
         // Generate handle from name if not provided
-        if (empty($validated['handle']) && !empty($validated['name'])) {
+        if (empty($validated['handle']) && ! empty($validated['name'])) {
             $validated['handle'] = Str::slug($validated['name']);
             // Ensure uniqueness
             $counter = 1;
@@ -124,8 +128,30 @@ class ProductController extends Controller
         $validated['weight_unit'] = $validated['weight_unit'] ?? 'kg';
         $validated['stock'] = $validated['stock'] ?? 0;
 
-        // Create product
-        $product = Product::create($validated);
+        try {
+            $product = Product::create($validated);
+        } catch (\Illuminate\Database\QueryException $e) {
+            $msg = strtolower($e->getMessage());
+            // Only treat as duplicate when it's clearly a UNIQUE constraint (not NOT NULL, etc.)
+            if (str_contains($msg, 'unique')) {
+                $errors = [];
+                if (Product::where('handle', $validated['handle'] ?? '')->exists()) {
+                    $errors['handle'] = ['The handle has already been taken. Please use a different handle or leave it blank to auto-generate.'];
+                }
+                if (! empty($validated['sku']) && Product::where('sku', $validated['sku'])->exists()) {
+                    $errors['sku'] = ['The SKU has already been taken. Please use a unique SKU.'];
+                }
+                if ($errors === []) {
+                    $errors['handle'] = ['The handle or SKU has already been taken.'];
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed. Handle or SKU may already exist.',
+                    'errors'  => $errors,
+                ], 422);
+            }
+            throw $e;
+        }
 
         // Handle multiple images
         if ($request->hasFile('images')) {

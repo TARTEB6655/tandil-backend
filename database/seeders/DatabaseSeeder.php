@@ -19,12 +19,12 @@ class DatabaseSeeder extends Seeder
         $this->command->info('========================================');
         $this->command->info('');
 
-        // Seed in order: Roles -> Users -> Data
+        // Roles + one admin user only. No dummy subscriptions, orders, visits, reports, or tips.
+        // Recent Activities and dashboard will show only real data from app usage.
         $this->call([
             RoleSeeder::class,
             RolePermissionSeeder::class,
-            CompleteDataSeeder::class,
-            DummyReportsSeeder::class,
+            AdminUserSeeder::class,
         ]);
 
         $this->command->info('');

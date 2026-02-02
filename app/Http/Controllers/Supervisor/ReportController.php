@@ -22,7 +22,7 @@ class ReportController extends Controller
     {
         $user = Auth::user();
         $search = $request->get('search', '');
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         if (empty($areaIds)) {
             $reports = collect();
@@ -52,7 +52,7 @@ class ReportController extends Controller
     public function show($id): View
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         $visitIds = Visit::whereIn('area_id', $areaIds)->pluck('id');
         
         $report = Report::whereIn('visit_id', $visitIds)
@@ -65,7 +65,7 @@ class ReportController extends Controller
     public function review($id): View
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         $visitIds = Visit::whereIn('area_id', $areaIds)->pluck('id');
         
         $report = Report::whereIn('visit_id', $visitIds)
@@ -80,7 +80,7 @@ class ReportController extends Controller
     public function finalize(Request $request, $id): RedirectResponse
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         $visitIds = Visit::whereIn('area_id', $areaIds)->pluck('id');
         
         $report = Report::whereIn('visit_id', $visitIds)->findOrFail($id);

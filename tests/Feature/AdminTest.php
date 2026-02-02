@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Product;
+use App\Models\Category;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -45,7 +47,7 @@ class AdminTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response->assertStatus(302); // Redirect after creation
+        $response->assertStatus(201)->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'newuser@example.com',
@@ -83,7 +85,7 @@ class AdminTest extends TestCase
             'role' => 'client',
         ]);
 
-        $response->assertStatus(302); // Redirect after update
+        $response->assertStatus(200)->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
@@ -103,7 +105,7 @@ class AdminTest extends TestCase
 
         $response = $this->deleteJson("/api/admin/users/{$user->id}");
 
-        $response->assertStatus(302); // Redirect after delete
+        $response->assertStatus(200)->assertJson(['success' => true]);
 
         $this->assertDatabaseMissing('users', [
             'id' => $user->id,
@@ -150,6 +152,183 @@ class AdminTest extends TestCase
 
         $response = $this->getJson('/api/admin/users');
         $response->assertStatus(403);
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin Product APIs (ensure no 500 on duplicate handle/SKU; proper 422)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Test admin can list products
+     */
+    public function test_admin_can_list_products()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $this->createProduct();
+        $this->createProduct();
+
+        $response = $this->getJson('/api/admin/products');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonStructure(['data', 'pagination']);
+    }
+
+    /**
+     * Test admin can create product (valid payload)
+     */
+    public function test_admin_can_create_product()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $category = Category::factory()->create();
+        $unique = 'test-product-' . uniqid();
+        $payload = [
+            'name'             => 'Test Product ' . $unique,
+            'description'      => 'Test description',
+            'handle'           => $unique,
+            'sku'              => 'SKU-TEST-' . uniqid(),
+            'barcode'          => '1234567890123',
+            'price'            => 99.99,
+            'compare_at_price' => 129.99,
+            'cost_per_item'    => 50,
+            'stock'            => 100,
+            'status'           => 'active',
+            'track_quantity'   => true,
+            'allow_backorder'  => false,
+            'weight'           => '1',
+            'weight_unit'      => 'kg',
+            'tags'             => 'test, sample',
+            'meta_title'       => 'Test Product Meta',
+            'meta_description' => 'Test meta description',
+            'category_id'      => $category->id,
+        ];
+
+        $response = $this->postJson('/api/admin/products', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', $payload['name'])
+            ->assertJsonPath('data.price', 99.99);
+
+        $this->assertDatabaseHas('products', [
+            'name'   => $payload['name'],
+            'sku'    => $payload['sku'],
+            'handle' => $unique,
+        ]);
+    }
+
+    /**
+     * Test duplicate handle returns 422 (not 500)
+     */
+    public function test_admin_product_duplicate_handle_returns_422()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $existing = $this->createProduct([
+            'name'   => 'Existing Product',
+            'handle' => 'existing-product-handle',
+            'sku'    => 'SKU-EXISTING-' . uniqid(),
+        ]);
+
+        $response = $this->postJson('/api/admin/products', [
+            'name'             => 'New Product',
+            'handle'           => 'existing-product-handle',
+            'sku'              => 'SKU-NEW-' . uniqid(),
+            'price'            => 50,
+            'status'           => 'active',
+            'track_quantity'   => true,
+            'allow_backorder'  => false,
+            'weight_unit'      => 'kg',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('errors.handle.0', 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.');
+    }
+
+    /**
+     * Test duplicate SKU returns 422 (not 500)
+     */
+    public function test_admin_product_duplicate_sku_returns_422()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $this->createProduct([
+            'name' => 'Existing Product',
+            'sku'  => 'SKU-DUP-001',
+        ]);
+
+        $response = $this->postJson('/api/admin/products', [
+            'name'             => 'Another Product',
+            'sku'              => 'SKU-DUP-001',
+            'price'            => 50,
+            'status'           => 'active',
+            'track_quantity'   => true,
+            'allow_backorder'  => false,
+            'weight_unit'      => 'kg',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('errors.sku.0', 'The SKU has already been taken. Please use a unique SKU.');
+    }
+
+    /**
+     * Test admin can show single product
+     */
+    public function test_admin_can_show_product()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $product = $this->createProduct(['name' => 'Show Me']);
+
+        $response = $this->getJson("/api/admin/products/{$product->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', 'Show Me');
+    }
+
+    /**
+     * Test admin can update product
+     */
+    public function test_admin_can_update_product()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $product = $this->createProduct(['name' => 'Original Name']);
+
+        $response = $this->putJson("/api/admin/products/{$product->id}", [
+            'name'  => 'Updated Name',
+            'price' => 199.99,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.price', 199.99);
+
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'name' => 'Updated Name']);
+    }
+
+    /**
+     * Test admin can delete product
+     */
+    public function test_admin_can_delete_product()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $product = $this->createProduct();
+
+        $response = $this->deleteJson("/api/admin/products/{$product->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true);
+
+        $this->assertDatabaseMissing('products', ['id' => $product->id]);
     }
 }
 

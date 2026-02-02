@@ -21,7 +21,7 @@ class VisitController extends Controller
         $search = $request->get('search', '');
         
         // Get IDs of supervised areas
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         if (empty($areaIds)) {
             $visits = collect();
@@ -55,7 +55,7 @@ class VisitController extends Controller
     public function show($id): View
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         $visit = Visit::whereIn('area_id', $areaIds)
             ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos', 'report', 'complaints'])
@@ -67,7 +67,7 @@ class VisitController extends Controller
     public function approve(Request $request, $id): \Illuminate\Http\RedirectResponse
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         $visit = Visit::whereIn('area_id', $areaIds)->findOrFail($id);
         
@@ -82,7 +82,7 @@ class VisitController extends Controller
     public function reject(Request $request, $id): \Illuminate\Http\RedirectResponse
     {
         $user = Auth::user();
-        $areaIds = $user->supervisedAreas()->pluck('areas.id')->toArray();
+        $areaIds = $user->supervisedAreaIds();
         
         $visit = Visit::whereIn('area_id', $areaIds)->findOrFail($id);
         

@@ -3,7 +3,7 @@
     "name": "Tandil Backend - Full API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.2.0",
-    "description": "Full Tandil backend API collection for frontend integration and smoke tests. Import this into Postman and import the accompanying environment."
+    "description": "Full Tandil backend API collection for frontend integration and smoke tests. Includes Health, Auth, Admin (Users, Reports, Settings), Tips & Notifications, Admin Reports, Admin Settings (system, theme, language, payment, legal, export, debug logs). Import this into Postman and import the accompanying environment."
   },
   "item": [
     {
@@ -274,7 +274,9 @@
     {
       "name": "Tips & Notifications",
       "item": [
-        { "name": "Tips - List", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/tips", "host": ["{{base_url}}"], "path": ["api","tips"] } } },
+        { "name": "Tips - List", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/tips", "host": ["{{base_url}}"], "path": ["api","tips"] } } },
+        { "name": "Tips - Create/Send", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Water early morning to reduce evaporation\",\n  \"content\": \"Water your plants early in the morning to reduce evaporation.\",\n  \"type\": \"general\",\n  \"status\": \"published\",\n  \"language\": \"en\"\n}" }, "url": { "raw": "{{base_url}}/api/tips", "host": ["{{base_url}}"], "path": ["api","tips"] } } },
+        { "name": "Tips - Get Details", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/tips/{{tip_id}}", "host": ["{{base_url}}"], "path": ["api","tips","{{tip_id}}"] } } },
         { "name": "Notifications - List", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{base_url}}/api/notifications", "host": ["{{base_url}}"], "path": ["api","notifications"] } } }
       ]
     },
@@ -291,6 +293,24 @@
         { "name": "Cancel", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/reports/{{report_id}}/cancel", "host": ["{{base_url}}"], "path": ["api","admin","reports","{{report_id}}","cancel"] } } },
         { "name": "Share", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"method\": \"email\",\n  \"recipients\": [\"user1@example.com\", \"user2@example.com\"],\n  \"message\": \"Please find the attached report\"\n}" }, "url": { "raw": "{{base_url}}/api/admin/reports/{{report_id}}/share", "host": ["{{base_url}}"], "path": ["api","admin","reports","{{report_id}}","share"] } } },
         { "name": "Delete", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/reports/{{report_id}}", "host": ["{{base_url}}"], "path": ["api","admin","reports","{{report_id}}"] } } }
+      ]
+    },
+
+    {
+      "name": "Admin Settings",
+      "item": [
+        { "name": "Get All Settings", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/settings", "host": ["{{base_url}}"], "path": ["api","admin","settings"] } } },
+        { "name": "Get System", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/settings/system", "host": ["{{base_url}}"], "path": ["api","admin","settings","system"] } } },
+        { "name": "Update System", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"push_notifications_enabled\": true,\n  \"auto_assign_tasks\": false,\n  \"maintenance_mode\": false\n}" }, "url": { "raw": "{{base_url}}/api/admin/settings/system", "host": ["{{base_url}}"], "path": ["api","admin","settings","system"] } } },
+        { "name": "Get Theme", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/settings/theme", "host": ["{{base_url}}"], "path": ["api","admin","settings","theme"] } } },
+        { "name": "Update Theme", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"theme\": \"dark\"\n}" }, "url": { "raw": "{{base_url}}/api/admin/settings/theme", "host": ["{{base_url}}"], "path": ["api","admin","settings","theme"] } } },
+        { "name": "Get Language", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/settings/language", "host": ["{{base_url}}"], "path": ["api","admin","settings","language"] } } },
+        { "name": "Update Language", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"language\": \"en\",\n  \"region\": \"\"\n}" }, "url": { "raw": "{{base_url}}/api/admin/settings/language", "host": ["{{base_url}}"], "path": ["api","admin","settings","language"] } } },
+        { "name": "Get Payment", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/settings/payment", "host": ["{{base_url}}"], "path": ["api","admin","settings","payment"] } } },
+        { "name": "Update Payment", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"payment_gateway\": \"stripe\",\n  \"api_key\": \"pk_xxx\",\n  \"api_secret\": \"sk_xxx\"\n}" }, "url": { "raw": "{{base_url}}/api/admin/settings/payment", "host": ["{{base_url}}"], "path": ["api","admin","settings","payment"] } } },
+        { "name": "Get Legal", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/settings/legal?type=privacy", "host": ["{{base_url}}"], "path": ["api","admin","settings","legal"], "query": [{ "key": "type", "value": "privacy" }] } } },
+        { "name": "Export Data", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"format\": \"json\"\n}" }, "url": { "raw": "{{base_url}}/api/admin/settings/export-data", "host": ["{{base_url}}"], "path": ["api","admin","settings","export-data"] } } },
+        { "name": "Debug Logs", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Accept", "value": "application/json" }], "url": { "raw": "{{base_url}}/api/admin/settings/debug-logs?lines=100", "host": ["{{base_url}}"], "path": ["api","admin","settings","debug-logs"], "query": [{ "key": "lines", "value": "100" }] } } }
       ]
     }
   ],

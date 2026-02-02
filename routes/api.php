@@ -184,10 +184,12 @@ Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manag
 |--------------------------------------------------------------------------
 */
 Route::prefix('shop')->group(function () {
-    // Public product routes
+    // Public product routes (single canonical API for public products)
+    Route::get('/products/categories', [\App\Http\Controllers\Shop\ProductController::class, 'getCategories']);
+    Route::get('/products/category/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'getByCategory']);
     Route::get('/products', [\App\Http\Controllers\Shop\ProductController::class, 'index']);
     Route::get('/products/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'show']);
-    
+
     // Public category routes
     Route::get('/categories', [\App\Http\Controllers\Shop\CategoryController::class, 'index']);
     Route::get('/categories/{id}', [\App\Http\Controllers\Shop\CategoryController::class, 'show']);
@@ -209,19 +211,6 @@ Route::prefix('shop')->group(function () {
         Route::get('/transactions', [\App\Http\Controllers\Shop\PaymentController::class, 'index']); // Alias
         Route::get('/transactions/{id}', [\App\Http\Controllers\Shop\PaymentController::class, 'show']); // Alias
     });
-});
-
-/*
-|--------------------------------------------------------------------------
-| PRODUCTS (Frontend-compatible routes)
-|--------------------------------------------------------------------------
-*/
-Route::prefix('products')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Shop\ProductController::class, 'index']);
-    Route::get('/search', [\App\Http\Controllers\Shop\ProductController::class, 'index']); // Search via query param
-    Route::get('/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'show']);
-    Route::get('/categories', [\App\Http\Controllers\Shop\ProductController::class, 'getCategories']);
-    Route::get('/category/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'getByCategory']);
 });
 
 /*
@@ -323,11 +312,32 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/users')->group(
 
 /*
 |--------------------------------------------------------------------------
+| ADMIN SETTINGS (MOBILE / REACT NATIVE)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'index']);
+    Route::get('/system', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getSystem']);
+    Route::put('/system', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateSystem']);
+    Route::get('/theme', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getTheme']);
+    Route::put('/theme', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateTheme']);
+    Route::get('/language', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getLanguage']);
+    Route::put('/language', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateLanguage']);
+    Route::get('/payment', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getPayment']);
+    Route::put('/payment', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updatePayment']);
+    Route::get('/legal', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getLegal']);
+    Route::post('/export-data', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'exportData']);
+    Route::get('/debug-logs', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'debugLogs']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | TIPS & NOTIFICATIONS
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager|hr'])->group(function () {
     Route::get('/tips', [\App\Http\Controllers\Tips\TipsController::class, 'index']);
+    Route::post('/tips', [\App\Http\Controllers\Tips\TipsController::class, 'store']);
     Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipsController::class, 'show']);
     Route::get('/notifications', [\App\Http\Controllers\Notification\NotificationController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Notification\NotificationController::class, 'markAsRead']);

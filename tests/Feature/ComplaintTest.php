@@ -31,9 +31,11 @@ class ComplaintTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'status',
+                'success',
+                'message',
                 'data' => ['id', 'visit_id', 'client_id', 'notes']
-            ]);
+            ])
+            ->assertJson(['success' => true]);
     }
 
     /**
@@ -56,9 +58,11 @@ class ComplaintTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
+                'message',
                 'data'
-            ]);
+            ])
+            ->assertJson(['success' => true]);
     }
 
     /**
@@ -76,9 +80,11 @@ class ComplaintTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'status',
+                'success',
+                'message',
                 'data'
-            ]);
+            ])
+            ->assertJson(['success' => true]);
     }
 
     /**
@@ -97,7 +103,7 @@ class ComplaintTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson(['status' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('complaints', [
             'id' => $complaint->id,
@@ -118,7 +124,7 @@ class ComplaintTest extends TestCase
         $response = $this->deleteJson("/api/auth/complaints/{$complaint->id}");
 
         $response->assertStatus(200)
-            ->assertJson(['status' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseMissing('complaints', [
             'id' => $complaint->id,

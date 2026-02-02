@@ -9,30 +9,135 @@
 <x-admin-layout>
     <!-- Page Header -->
     <div class="mb-4 md:mb-6">
-        <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">Dashboard Overview</h1>
-        <p class="mt-1 text-sm text-gray-500">Welcome back! Here's what's happening with your business today.</p>
+        <h1 class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100">Dashboard Overview</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Welcome back! Here's what's happening with your business today.</p>
     </div>
 
     <!-- Jump to Section - Sticky quick navigation -->
-    <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-3 py-2 md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 mb-4 md:mb-6 bg-gray-100/98 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Jump to section</p>
+    <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-3 py-2 md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 mb-4 md:mb-6 bg-gray-100/98 dark:bg-gray-800/98 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
+        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Jump to section</p>
         <div class="flex flex-wrap gap-2">
-            <a href="#key-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Key Metrics</a>
-            <a href="#user-statistics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">User Statistics</a>
-            <a href="#ecommerce" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">E-Commerce</a>
-            <a href="#secondary-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Visits & Alerts</a>
-            <a href="#performance" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Performance</a>
-            <a href="#charts" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Charts</a>
-            <a href="#roles-users" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Roles & Users</a>
-            <a href="#all-users" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">All Active Users</a>
-            <a href="#distribution-charts" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors">Distribution</a>
+            <a href="#key-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Key Metrics</a>
+            <a href="#user-statistics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">User Statistics</a>
+            <a href="#secondary-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Visits & Alerts</a>
+            <a href="#ecommerce" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">E-Commerce</a>
+            <a href="#performance" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Performance</a>
+            <a href="#charts" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Charts</a>
+            <a href="#distribution-charts" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Distribution</a>
+            <a href="#roles-users" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Roles & Users</a>
+            <a href="#all-users" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">All Active Users</a>
+            <a href="#recent-tips" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Recent Tips</a>
+            <a href="{{ route('admin.tips.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Manage Tips</a>
+            <a href="{{ route('admin.report-management.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Report Management</a>
+            <a href="#recent-activities" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Recent Activities</a>
         </div>
+    </div>
+
+    @php
+        $hour = (int) now()->format('G');
+        $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+        $adminUser = auth()->user();
+        $adminRole = $adminUser ? (ucwords(str_replace('_', ' ', $adminUser->role ?? 'Admin'))) : 'Admin';
+        $adminId = $adminUser ? ('ID: ' . strtoupper(substr($adminUser->role ?? 'ADMIN', 0, 5)) . '-' . $adminUser->id) : '';
+    @endphp
+
+    <!-- Welcome + action cards (same style as Key Metrics below) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
+        <!-- Welcome card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ $greeting }}</p>
+                    <p class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ $adminUser->name ?? 'Administrator' }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $adminRole }} @if($adminId) · {{ $adminId }} @endif</p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-emerald-50">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Reports card -->
+        <a href="{{ route('admin.reports.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-amber-300 dark:hover:border-amber-600">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pending Reports</p>
+                    <p class="text-lg font-medium text-amber-600">{{ number_format($pendingReports ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500">View reports</p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- New Orders card -->
+        <a href="{{ route('admin.orders.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-green-300 dark:hover:border-green-600">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">New Orders</p>
+                    <p class="text-lg font-medium text-green-600">{{ number_format($ordersToday ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500">Manage orders</p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Tips Management card (dedicated CRUD page) -->
+        <a href="{{ route('admin.tips.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-emerald-300 dark:hover:border-emerald-600">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Tips</p>
+                    <p class="text-lg font-medium text-emerald-600">{{ number_format($totalTips ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500">Manage tips</p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-emerald-50">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Report Management card (generate/schedule reports) -->
+        <a href="{{ route('admin.report-management.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-violet-300 dark:hover:border-violet-600">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Report Management</p>
+                    <p class="text-lg font-medium text-violet-600">{{ number_format($totalAdminReports ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500">Generate & schedule</p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-violet-50">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
     </div>
 
     <!-- Success Message -->
     @if(session('success'))
-        <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
-            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span class="text-sm">{{ session('success') }}</span>
@@ -41,18 +146,18 @@
 
     <!-- Info Message -->
     @if(session('info'))
-        <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
-            <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
+            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span class="text-sm">{{ session('info') }}</span>
         </div>
     @endif
 
-    <!-- Key Metrics Cards -->
+    <!-- 1. Key Metrics -->
     <div id="key-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <!-- Total Users Card -->
-        <a href="{{ route('admin.users.index') }}" class="block bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-blue-300">
+        <a href="{{ route('admin.users.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-blue-300 dark:hover:border-blue-600">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Users</p>
@@ -70,7 +175,7 @@
         </a>
 
         <!-- Active Subscriptions Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Active Subscriptions</p>
@@ -88,7 +193,7 @@
         </div>
 
         <!-- Total Revenue Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Revenue</p>
@@ -106,7 +211,7 @@
         </div>
 
         <!-- Total Orders Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Orders</p>
@@ -124,7 +229,7 @@
         </div>
     </div>
 
-    <!-- Statistics Section -->
+    <!-- 2. User Statistics -->
     <div id="user-statistics" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <div class="flex items-center justify-between mb-6">
@@ -144,7 +249,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <!-- Customers Card -->
                 <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
                     <div class="flex items-center justify-between mb-4">
@@ -259,7 +364,88 @@
         }
     </script>
 
-    <!-- E-Commerce Section -->
+    <!-- 3. Visits & Alerts (Secondary Metrics) -->
+    <div id="secondary-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        <!-- Total Visits -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 mb-1">Total Visits</p>
+                    <p class="text-lg font-medium text-indigo-600">{{ number_format($totalVisits ?? 0) }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ $visitsToday ?? 0 }} today</p>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Visits -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 mb-1">Today's Visits</p>
+                    <p class="text-lg font-medium text-indigo-600">{{ $visitsToday ?? 0 }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Scheduled today</p>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Complaints -->
+        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 mb-1">Pending Complaints</p>
+                    <p class="text-lg font-medium text-red-600">{{ $pendingComplaints ?? 0 }}</p>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Reports -->
+        <a href="{{ route('admin.reports.index') }}" class="block bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm hover:border-yellow-300 transition-colors">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 mb-1">Pending Reports</p>
+                    <p class="text-lg font-medium text-yellow-600">{{ $pendingReports ?? 0 }}</p>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50">
+                    <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+            </div>
+        </a>
+
+        <!-- Active Regions -->
+        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 mb-1">Active Regions</p>
+                    <p class="text-lg font-medium text-teal-600">{{ $activeRegions ?? 0 }}</p>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50">
+                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. E-Commerce Section -->
     <div id="ecommerce" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-medium text-gray-900">E-Commerce Overview</h2>
@@ -379,91 +565,10 @@
 
     </div>
 
-    <!-- Secondary Metrics Row -->
-    <div id="secondary-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-        <!-- Total Visits -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Total Visits</p>
-                    <p class="text-lg font-medium text-indigo-600">{{ number_format($totalVisits ?? 0) }}</p>
-                    <p class="text-xs text-gray-500 mt-1">{{ $visitsToday ?? 0 }} today</p>
-                </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
-                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Today's Visits -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Today's Visits</p>
-                    <p class="text-lg font-medium text-indigo-600">{{ $visitsToday ?? 0 }}</p>
-                    <p class="text-xs text-gray-500 mt-1">Scheduled today</p>
-                </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
-                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pending Complaints -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Pending Complaints</p>
-                    <p class="text-lg font-medium text-red-600">{{ $pendingComplaints ?? 0 }}</p>
-                </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
-                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pending Reports -->
-        <a href="{{ route('admin.reports.index') }}" class="block bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm hover:border-yellow-300 transition-colors">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Pending Reports</p>
-                    <p class="text-lg font-medium text-yellow-600">{{ $pendingReports ?? 0 }}</p>
-                </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50">
-                    <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-            </div>
-        </a>
-
-        <!-- Active Regions -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Active Regions</p>
-                    <p class="text-lg font-medium text-teal-600">{{ $activeRegions ?? 0 }}</p>
-                </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50">
-                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Performance Sections -->
+    <!-- 5. Performance Sections -->
     <div id="performance" class="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
         <!-- Technician Performance Summary -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
                 <h3 class="text-base font-medium text-gray-900">Technician Performance</h3>
                 <p class="text-sm text-gray-500 mt-1">Top 10 technicians by completed visits</p>
@@ -492,7 +597,7 @@
         </div>
 
         <!-- Area Performance Summary -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
                 <h3 class="text-base font-medium text-gray-900">Area Performance</h3>
                 <p class="text-sm text-gray-500 mt-1">Visits by area/region</p>
@@ -524,10 +629,10 @@
         </div>
     </div>
 
-    <!-- Charts Section -->
+    <!-- 6. Charts -->
     <div id="charts" class="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
         <!-- Revenue Growth Chart -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
                 <h3 class="text-base font-medium text-gray-900">Revenue Growth</h3>
                 <p class="text-sm text-gray-500 mt-1">Monthly revenue over the last 6 months</p>
@@ -538,7 +643,7 @@
         </div>
 
         <!-- Visits Activity Chart -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
                 <h3 class="text-base font-medium text-gray-900">Visits Activity</h3>
                 <p class="text-sm text-gray-500 mt-1">Weekly visits over the last 8 weeks</p>
@@ -549,10 +654,10 @@
         </div>
     </div>
 
-    <!-- Distribution Chart Row -->
+    <!-- 7. Distribution -->
     <div id="distribution-charts" class="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
         <!-- Subscription Distribution -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
                 <h3 class="text-base font-medium text-gray-900">Subscription Distribution</h3>
                 <p class="text-sm text-gray-500 mt-1">Active subscriptions by plan type</p>
@@ -563,7 +668,7 @@
         </div>
 
         <!-- Visit Status Distribution -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5 md:p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
                 <h3 class="text-base font-medium text-gray-900">Visit Status</h3>
                 <p class="text-sm text-gray-500 mt-1">Distribution of visits by status</p>
@@ -836,7 +941,7 @@
         });
     </script>
 
-    <!-- Roles & Users Management Section -->
+    <!-- 8. Roles & Users -->
     <div id="roles-users" class="scroll-mt-24 mt-6 md:mt-8">
         <div class="mb-4 md:mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -948,7 +1053,7 @@
         </div>
     </div>
 
-    <!-- All Active Users Section -->
+    <!-- 9. All Active Users -->
     <div id="all-users" class="scroll-mt-24 mt-6 md:mt-8">
         <div class="mb-4 md:mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1155,6 +1260,85 @@
                         </div>
                     </div>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Tips -->
+    <div id="recent-tips" class="scroll-mt-24 mb-6 md:mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Tips</h2>
+                <a href="{{ route('admin.tips.index') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors">
+                    View All
+                </a>
+            </div>
+            <div class="divide-y divide-gray-100">
+                @forelse($recentTips ?? [] as $tip)
+                    <a href="{{ route('admin.tips.show', $tip->id) }}" class="block px-5 py-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-start gap-3">
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-900">{{ $tip->title }}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">{{ Str::limit($tip->content, 100) }}</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ $tip->created_at?->format('M d, Y') }} · {{ ucfirst($tip->status) }}</p>
+                            </div>
+                        </div>
+                    </a>
+                @empty
+                    <div class="px-5 py-8 text-center text-sm text-gray-500">No tips yet. <a href="{{ route('admin.tips.create') }}" class="text-emerald-600 hover:underline">Create one</a></div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. Recent Activities -->
+    <div id="recent-activities" class="scroll-mt-24 mb-6 md:mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Activities</h2>
+                <a href="{{ route('admin.recent-activities.index') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors">
+                    View All
+                </a>
+            </div>
+            <div class="divide-y divide-gray-100">
+                @forelse($recentActivities ?? [] as $activity)
+                    <div class="px-5 py-4 flex items-start gap-4 hover:bg-gray-50 transition-colors">
+                        @if(($activity['icon_type'] ?? '') === 'success' || ($activity['icon_type'] ?? '') === 'check')
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            </div>
+                        @elseif(($activity['icon_type'] ?? '') === 'user_add')
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-700/10">
+                                <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3z" /></svg>
+                            </div>
+                        @elseif(($activity['icon_type'] ?? '') === 'warning')
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                        @elseif(($activity['icon_type'] ?? '') === 'error')
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                        @elseif(($activity['icon_type'] ?? '') === 'order')
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                            </div>
+                        @else
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                        @endif
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900">{{ $activity['description'] ?? '' }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">{{ $activity['timestamp'] ?? '' }}</p>
+                        </div>
+                    </div>
+                @empty
+                    <div class="px-5 py-8 text-center text-sm text-gray-500">No recent activities yet.</div>
+                @endforelse
             </div>
         </div>
     </div>

@@ -2,7 +2,17 @@
 
 ## ✅ All APIs Tested and Working
 
-### 1. Banner API (Public)
+### 1. Tips API (Authenticated – client, admin, supervisor, area_manager, hr)
+- **GET /api/tips** – List all published tips. Auth: Bearer token.
+- **GET /api/tips/{id}** – Get a single tip by ID. Auth: Bearer token.
+- **POST /api/tips** – Create/send a new tip. **Admin or supervisor only.**  
+  - Body: `title` (required), `content` (required), `type` (optional: weekly|monthly|seasonal|general), `status` (optional: draft|published|archived), `language` (optional: en|ar|ur).  
+  - Defaults: type=general, status=published, language=en.  
+  - Response: 201 with created tip.
+
+---
+
+### 2. Banner API (Public)
 **Endpoint:** `GET /api/banners`
 - **Auth:** Not required (Public)
 - **Purpose:** Get active banners for customer home screen
@@ -10,7 +20,7 @@
 
 ---
 
-### 2. Admin Dashboard Statistics API
+### 3. Admin Dashboard Statistics API
 **Endpoint:** `GET /api/admin/dashboard/statistics`
 - **Auth:** Required (Admin only)
 - **Purpose:** Get comprehensive statistics for dashboard
@@ -40,7 +50,7 @@
 
 ---
 
-### 3. User Statistics API
+### 4. User Statistics API
 **Endpoint:** `GET /api/admin/users/statistics`
 - **Auth:** Required (Admin only)
 - **Purpose:** Get user counts for tabs (All Users, Workers, Supervisors, Managers)
@@ -59,7 +69,7 @@
 
 ---
 
-### 4. User List API
+### 5. User List API
 **Endpoint:** `GET /api/admin/users`
 - **Auth:** Required (Admin only)
 - **Query Parameters:**

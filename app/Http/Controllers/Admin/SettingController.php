@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\EmailTemplate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class SettingController extends Controller
@@ -15,12 +17,195 @@ class SettingController extends Controller
         $this->middleware('role:admin');
     }
 
+    /**
+     * Main settings dashboard (mobile-style: System, App Config, Data & Privacy, Advanced).
+     */
     public function index()
     {
-        // Get all settings grouped
+        $system = [
+            'push_notifications_enabled' => (bool) (Setting::get('push_notifications_enabled', '1') === '1'),
+            'auto_assign_tasks' => (bool) (Setting::get('auto_assign_tasks', '0') === '1'),
+            'maintenance_mode' => (bool) (Setting::get('maintenance_mode', '0') === '1'),
+        ];
+        return view('admin.settings.dashboard', compact('system'));
+    }
+
+    /**
+     * Full settings page (all sections: General, Contact, Payment, etc.).
+     */
+    public function all()
+    {
         $settings = Setting::all()->groupBy('group');
-        
-        return view('admin.settings.index', compact('settings'));
+        return view('admin.settings.all', compact('settings'));
+    }
+
+    public function updateSystem(Request $request)
+    {
+        $request->validate([
+            'push_notifications_enabled' => 'nullable|boolean',
+            'auto_assign_tasks' => 'nullable|boolean',
+            'maintenance_mode' => 'nullable|boolean',
+        ]);
+        if ($request->has('push_notifications_enabled')) {
+            Setting::set('push_notifications_enabled', $request->boolean('push_notifications_enabled') ? '1' : '0', 'text', 'system');
+        }
+        if ($request->has('auto_assign_tasks')) {
+            Setting::set('auto_assign_tasks', $request->boolean('auto_assign_tasks') ? '1' : '0', 'text', 'system');
+        }
+        if ($request->has('maintenance_mode')) {
+            Setting::set('maintenance_mode', $request->boolean('maintenance_mode') ? '1' : '0', 'text', 'system');
+        }
+        return redirect()->back()->with('success', 'System settings updated.');
+    }
+
+    public function theme()
+    {
+        $current = Setting::get('app_theme', 'system');
+        $available = ['system' => 'System default', 'light' => 'Light', 'dark' => 'Dark'];
+        return view('admin.settings.theme', compact('current', 'available'));
+    }
+
+    public function updateTheme(Request $request)
+    {
+        $request->validate(['theme' => 'required|in:system,light,dark']);
+        Setting::set('app_theme', trim($request->theme), 'text', 'app_config');
+        return redirect()
+            ->back()
+            ->with('success', 'Theme updated.')
+            ->withHeaders([
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+            ]);
+    }
+
+    public function language()
+    {
+        $language = Setting::get('app_language', 'en');
+        $region = Setting::get('app_region', '');
+        $available = [['code' => 'en', 'name' => 'English'], ['code' => 'ar', 'name' => 'العربية']];
+        return view('admin.settings.language', compact('language', 'region', 'available'));
+    }
+
+    public function updateLanguage(Request $request)
+    {
+        $request->validate(['language' => 'required|string|max:10', 'region' => 'nullable|string|max:10']);
+        Setting::set('app_language', $request->language, 'text', 'app_config');
+        Setting::set('app_region', $request->region ?? '', 'text', 'app_config');
+        return redirect()->back()->with('success', 'Language & region updated.');
+    }
+
+    public function privacyPolicy()
+    {
+        $url = Setting::get('privacy_policy_url', '');
+        $content = Setting::get('privacy_policy_content', '');
+        return view('admin.settings.privacy-policy', compact('url', 'content'));
+    }
+
+    public function updatePrivacyPolicy(Request $request)
+    {
+        $request->validate(['privacy_policy_url' => 'nullable|url', 'privacy_policy_content' => 'nullable|string']);
+        Setting::set('privacy_policy_url', $request->privacy_policy_url ?? '', 'text', 'legal');
+        Setting::set('privacy_policy_content', $request->privacy_policy_content ?? '', 'text', 'legal');
+        return redirect()->back()->with('success', 'Privacy policy updated.');
+    }
+
+    public function termsOfService()
+    {
+        $url = Setting::get('terms_of_service_url', '');
+        $content = Setting::get('terms_of_service_content', '');
+        return view('admin.settings.terms', compact('url', 'content'));
+    }
+
+    public function updateTermsOfService(Request $request)
+    {
+        $request->validate(['terms_of_service_url' => 'nullable|url', 'terms_of_service_content' => 'nullable|string']);
+        Setting::set('terms_of_service_url', $request->terms_of_service_url ?? '', 'text', 'legal');
+        Setting::set('terms_of_service_content', $request->terms_of_service_content ?? '', 'text', 'legal');
+        return redirect()->back()->with('success', 'Terms of service updated.');
+    }
+
+    public function clearCache(Request $request)
+    {
+        Cache::flush();
+        Artisan::call('cache:clear');
+        Artisan::call('config:clear');
+        Artisan::call('view:clear');
+        return redirect()->back()->with('success', 'Cache cleared successfully.');
+    }
+
+    public function developerOptions()
+    {
+        $debug = config('app.debug');
+        $env = app()->environment();
+        return view('admin.settings.developer-options', compact('debug', 'env'));
+    }
+
+    public function debugLogs(Request $request)
+    {
+        $lines = min(max((int) $request->input('lines', 100), 10), 500);
+        $path = storage_path('logs/laravel.log');
+        $log = '';
+        if (file_exists($path)) {
+            $log = implode('', array_slice(file($path), -$lines));
+        }
+        return view('admin.settings.debug-logs', compact('lines', 'log'));
+    }
+
+    public function exportData(Request $request)
+    {
+        $format = $request->input('format', 'json');
+        if (! in_array($format, ['json', 'csv'], true)) {
+            return redirect()->back()->with('error', 'Invalid format.');
+        }
+        $exportId = 'export-' . uniqid();
+        Setting::set('last_export_id', $exportId, 'text', 'system');
+        Setting::set('last_export_at', now()->toIso8601String(), 'text', 'system');
+        return redirect()->back()->with('success', 'Export requested. ID: ' . $exportId);
+    }
+
+    public function general()
+    {
+        $appName = Setting::get('app_name', config('app.name'));
+        $logo = Setting::get('logo');
+        $primaryColor = Setting::get('primary_color', '#6366f1');
+        $secondaryColor = Setting::get('secondary_color', '#8b5cf6');
+        return view('admin.settings.general', compact('appName', 'logo', 'primaryColor', 'secondaryColor'));
+    }
+
+    public function contact()
+    {
+        return view('admin.settings.contact');
+    }
+
+    public function social()
+    {
+        return view('admin.settings.social');
+    }
+
+    public function payment()
+    {
+        return view('admin.settings.payment');
+    }
+
+    public function email()
+    {
+        $appName = Setting::get('app_name', config('app.name'));
+        return view('admin.settings.email', compact('appName'));
+    }
+
+    public function notifications()
+    {
+        return view('admin.settings.notifications');
+    }
+
+    public function security()
+    {
+        return view('admin.settings.security');
+    }
+
+    public function integrations()
+    {
+        return view('admin.settings.integrations');
     }
 
     public function updateAppSettings(Request $request)

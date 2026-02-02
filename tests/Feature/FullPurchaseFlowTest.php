@@ -108,11 +108,11 @@ class FullPurchaseFlowTest extends TestCase
         
         $this->actingAs($supervisor, 'sanctum');
 
-        $response = $this->postJson("/api/auth/supervisor/visits/{$visit->id}/finalize", ['notes' => 'Approved', 'status' => 'finalized']);
+        $response = $this->postJson("/api/supervisor/visits/{$visit->id}/finalize", ['notes' => 'Approved', 'status' => 'finalized']);
         if ($response->status() !== 200) {
             fwrite(STDERR, "FINALIZE_RESPONSE: " . $response->getContent() . PHP_EOL);
             fwrite(STDERR, "VISIT_AREA_ID: " . $visit->area_id . PHP_EOL);
-            fwrite(STDERR, "SUPERVISOR_AREAS: " . json_encode($supervisor->supervisedAreas()->pluck('id')->toArray()) . PHP_EOL);
+            fwrite(STDERR, "SUPERVISOR_AREAS: " . json_encode($supervisor->supervisedAreaIds()) . PHP_EOL);
         }
         $response->assertStatus(200);
 
