@@ -74,9 +74,15 @@ class ProductController extends Controller
 
     /**
      * Create a product.
+     * category_id is optional; can be set or updated later.
      */
     public function store(Request $request)
     {
+        // Normalize empty category_id so validation accepts it (optional category)
+        if ($request->has('category_id') && $request->category_id === '') {
+            $request->merge(['category_id' => null]);
+        }
+
         $validated = $request->validate([
             'name'                => 'required|string|max:255',
             'description'         => 'nullable|string',
@@ -261,6 +267,11 @@ class ProductController extends Controller
                 'status' => false,
                 'message' => 'Product not found'
             ], 404);
+        }
+
+        // Normalize empty category_id so it can be cleared or set later
+        if ($request->has('category_id') && $request->category_id === '') {
+            $request->merge(['category_id' => null]);
         }
 
         $validated = $request->validate([

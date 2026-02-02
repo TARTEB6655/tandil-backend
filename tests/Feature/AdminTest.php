@@ -270,6 +270,46 @@ class AdminTest extends TestCase
     }
 
     /**
+     * Test admin can create product without category_id (category optional)
+     */
+    public function test_admin_can_create_product_without_category_id()
+    {
+        $driver = \Illuminate\Support\Facades\Schema::getConnection()->getDriverName();
+        if ($driver === 'sqlite') {
+            $this->markTestSkipped('SQLite keeps category_id NOT NULL in this migration; use MySQL/PostgreSQL for optional category.');
+        }
+
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $unique = 'no-cat-' . uniqid();
+        $payload = [
+            'name'             => 'Product Without Category ' . $unique,
+            'description'      => 'No category at creation',
+            'handle'           => $unique,
+            'sku'              => 'SKU-NOCAT-' . uniqid(),
+            'price'            => 29.99,
+            'status'           => 'active',
+            'track_quantity'   => true,
+            'allow_backorder'  => false,
+            'weight_unit'      => 'kg',
+        ];
+
+        $response = $this->postJson('/api/admin/products', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', $payload['name'])
+            ->assertJsonPath('data.price', 29.99);
+
+        $this->assertDatabaseHas('products', [
+            'name'        => $payload['name'],
+            'handle'      => $unique,
+            'category_id' => null,
+        ]);
+    }
+
+    /**
      * Test duplicate handle returns 422 (not 500)
      */
     public function test_admin_product_duplicate_handle_returns_422()

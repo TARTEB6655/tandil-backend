@@ -2201,7 +2201,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product. Required: name, price, category_id. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage options (optional):\n- JSON body: use \"image_urls\" array of image URLs (e.g. [\"https://...\", \"https://...\"]).\n- File upload: use Body type \"form-data\" instead of raw JSON; add key \"image\" (file) for single image or \"images[]\" (files) for multiple. First image is set as primary."
+                                "description": "Create product. Required: name, price. Optional: category_id (can be omitted and set or updated later). Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage options (optional):\n- JSON body: use \"image_urls\" array of image URLs (e.g. [\"https://...\", \"https://...\"]).\n- File upload: use Body type \"form-data\" instead of raw JSON; add key \"image\" (file) for single image or \"images[]\" (files) for multiple. First image is set as primary."
                             }
                         },
                         {
