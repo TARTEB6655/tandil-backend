@@ -2192,7 +2192,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Option A – Create product with JSON body. Use when user only adds image URLs (no device upload). Required: name, price. Optional: description, stock, status, category_id, weight_unit, sku, handle, image_urls (array of URLs). Auth: Bearer {{token}}."
+                                "description": "Option A – Create product with JSON body. Use when user only adds image URLs (no device upload). Required: name, price. Optional: description, stock, status, category_id, weight_unit, sku, handle, image_urls (array of URLs). Response 201: data.image (relative path), data.image_url (full URL), data.images (array with image_path, sort_order, is_primary), data.primary_image (same shape as one entry in images). Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2225,7 +2225,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Option B – Create product with multipart/form-data. Use when user uploads images from device. Form fields: name (required), price (required), description, stock, status, category_id, weight_unit, sku, handle. Image files: images[] (multiple) or image (single). Optional: image_urls as JSON string or image_url[] repeated – merged with file uploads. Accepted files: jpg, jpeg, png, webp, max 5MB. Auth: Bearer {{token}}."
+                                "description": "Option B – Create product with multipart/form-data. Form fields (all text): name, description, price, stock, status, category_id (empty or e.g. 2), weight_unit, sku, handle; image_urls (optional JSON string array of URLs); images[] (one or more image files, e.g. JPEG). Response 201: data.image (relative path, e.g. products/xxx.jpg), data.image_url (full URL), data.images (array of { id, product_id, image_path, sort_order, is_primary, created_at, updated_at }), data.primary_image (same shape as one entry in images). Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2247,7 +2247,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Get single product (admin)."
+                                "description": "Get single product (admin). Response includes data.image (relative path), data.image_url (full URL), data.images, data.primary_image. App uses image_url when present; else builds full URL as {{origin}}/storage/{{path}}."
                             }
                         },
                         {
@@ -2415,7 +2415,7 @@
                             }
                         }
                     ],
-                    "description": "Admin product APIs – require Authorization: Bearer {{token}}. Create product: same endpoint, two ways. (1) JSON: product fields + optional image_urls (array of URLs). (2) Multipart/form-data: product fields as form fields + images[] (or image) for file upload + optional image_urls (JSON string) or image_url[] repeated. All responses JSON."
+                    "description": "Admin product APIs – require Authorization: Bearer {{token}}. Create product: same endpoint, two ways. (1) JSON: product fields + optional image_urls. (2) Multipart: form fields (name, description, price, stock, status, category_id, weight_unit, sku, handle) + image_urls (optional JSON string) + images[] (files). Response 201: data.image (relative path), data.image_url (full URL), data.images, data.primary_image. All responses JSON."
                 }
             ],
             "description": "Single module for all product APIs. Public (no auth) and Admin (Bearer token). Set token from Login for Admin requests. Add Product: you can create without any category (omit category_id); product is always created. Assign category later via Update Product. category_id is optional on create and update."

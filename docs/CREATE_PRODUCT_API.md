@@ -104,7 +104,12 @@ Backend merges these URLs with any images uploaded as files and stores all as pr
    - If `Content-Type: application/json` → parse JSON, use `image_urls` (array of URLs) if present. No file handling.
    - If `Content-Type: multipart/form-data` → read product fields from form data and image files from `images[]` or `image`. Optionally read `image_urls` (JSON string) or `image_url[]` (repeated) and **merge** with file uploads.
 3. **Storage:** Uploaded files are saved to `storage/app/public/products`; public URLs are generated. External `image_urls` are stored as-is (path = URL). All are linked to the product via `product_images`.
-4. **Response:** Same as current create-product response:
+4. **Response (201 Created):**
+
+- **data.image:** relative path, e.g. `products/D97SENdF8XLunEzu0DDSGypmJs2YvljzLrrtzQPu.jpg`
+- **data.image_url:** full URL, e.g. `https://phpstack-1180784-6050385.cloudwaysapps.com/storage/products/...`
+- **data.images:** array of `{ id, product_id, image_path, sort_order, is_primary, created_at, updated_at }` where **image_path** is relative (e.g. `products/...`). Each item may also include **image_url** (full URL) when present.
+- **data.primary_image:** same shape as one entry in **images** (one object with id, product_id, image_path, sort_order, is_primary, created_at, updated_at).
 
 ```json
 {
@@ -121,17 +126,19 @@ Backend merges these URLs with any images uploaded as files and stores all as pr
     "weight_unit": "kg",
     "handle": "test-product-unique",
     "category_id": 2,
-    "image": "products/xyz.jpg",
-    "image_url": "https://your-domain.com/storage/products/xyz.jpg",
-    "images": [ { "id": 1, "image_path": "...", "image_url": "...", "sort_order": 0, "is_primary": true } ],
-    "primaryImage": { ... },
+    "image": "products/D97SENdF8XLunEzu0DDSGypmJs2YvljzLrrtzQPu.jpg",
+    "image_url": "https://your-domain.com/storage/products/D97SENdF8XLunEzu0DDSGypmJs2YvljzLrrtzQPu.jpg",
+    "images": [
+      { "id": 1, "product_id": 2, "image_path": "products/...", "sort_order": 0, "is_primary": true, "created_at": "...", "updated_at": "..." }
+    ],
+    "primary_image": { "id": 1, "product_id": 2, "image_path": "products/...", "sort_order": 0, "is_primary": true, "created_at": "...", "updated_at": "..." },
     "created_at": "...",
     "updated_at": "..."
   }
 }
 ```
 
-List/detail APIs return the same image data (`image`, `image_url`, `images`, `primaryImage`) so the app can show product images.
+**App behaviour:** The app uses **image_url** when present (full URL). For list/detail, if only **image** or **image_path** (relative) is returned, the app builds the full URL as `{{origin}}/storage/{{path}}`. List/detail APIs return the same image data.
 
 ---
 
@@ -143,7 +150,7 @@ List/detail APIs return the same image data (`image`, `image_url`, `images`, `pr
 | **No separate upload API** | All product data + images go in this one request when user uploads from device. |
 | **Two ways to send** | (1) **JSON:** product fields + optional `image_urls` (array of URLs). (2) **Multipart:** product fields as form fields + image files in **`images[]`** or **`image`** + optional `image_urls` (JSON string) or **`image_url[]`** (repeated). |
 | **Auth** | Admin Bearer token for both. |
-| **Response** | Same success/error JSON as current create product; includes `image`, `image_url`, `images`, `primaryImage` in `data`. |
+| **Response** | Same success/error JSON; includes `image` (relative path), `image_url` (full URL), `images` (array with image_path relative), `primary_image` (same shape as one entry in images). |
 
 ---
 

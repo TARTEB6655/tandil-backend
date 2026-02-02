@@ -37,9 +37,12 @@ class Product extends Model
     ];
 
     /**
-     * Append image_url to array/JSON representation.
+     * Append image_url and primary_image to array/JSON representation.
+     * API response: data.image (relative path), data.image_url (full URL),
+     * data.images (array of { id, product_id, image_path, sort_order, is_primary, ... }),
+     * data.primary_image (same shape as one entry in images).
      */
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'primary_image'];
 
     /**
      * Define relationship with Category model
@@ -59,11 +62,20 @@ class Product extends Model
     }
 
     /**
-     * Get the primary image.
+     * Get the primary image (relation).
      */
     public function primaryImage()
     {
         return $this->hasOne(ProductImage::class)->where('is_primary', true);
+    }
+
+    /**
+     * Same as primaryImage relation; exposed as primary_image in API response (snake_case).
+     * Use relation query to avoid circular accessor when serializing.
+     */
+    public function getPrimaryImageAttribute()
+    {
+        return $this->getRelationValue('primaryImage') ?? $this->primaryImage()->first();
     }
 
     /**
