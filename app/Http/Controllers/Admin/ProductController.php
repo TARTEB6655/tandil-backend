@@ -105,7 +105,7 @@ class ProductController extends Controller
             'handle'              => 'nullable|string|max:255|unique:products,handle',
             'requires_shipping'   => 'nullable|boolean',
             'taxable'             => 'nullable|boolean',
-            'category_id'         => 'nullable|exists:categories,id',
+            'category_id'         => 'nullable|integer',
             'images'              => 'nullable|array',
             'images.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
             'image_urls'          => 'nullable|array',
@@ -135,6 +135,13 @@ class ProductController extends Controller
         $validated['taxable'] = $validated['taxable'] ?? true;
         $validated['weight_unit'] = $validated['weight_unit'] ?? 'kg';
         $validated['stock'] = $validated['stock'] ?? 0;
+
+        // If category_id is set but category doesn't exist, leave product without category (assign later)
+        if (isset($validated['category_id']) && $validated['category_id'] !== null) {
+            if (! Category::find($validated['category_id'])) {
+                $validated['category_id'] = null;
+            }
+        }
 
         try {
             $product = Product::create($validated);
@@ -278,7 +285,7 @@ class ProductController extends Controller
             'name'        => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price'       => 'nullable|numeric|min:0',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => 'nullable|integer',
             'image'       => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -290,6 +297,13 @@ class ProductController extends Controller
             }
 
             $validated['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        // If category_id is set but category doesn't exist, leave product without category (assign later)
+        if (array_key_exists('category_id', $validated) && $validated['category_id'] !== null) {
+            if (! Category::find($validated['category_id'])) {
+                $validated['category_id'] = null;
+            }
         }
 
         $product->update($validated);

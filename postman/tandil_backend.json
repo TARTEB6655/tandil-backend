@@ -2194,14 +2194,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 1,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\",\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
+                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\"\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product. Required: name, price. Optional: category_id (can be omitted and set or updated later). Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage options (optional):\n- JSON body: use \"image_urls\" array of image URLs (e.g. [\"https://...\", \"https://...\"]).\n- File upload: use Body type \"form-data\" instead of raw JSON; add key \"image\" (file) for single image or \"images[]\" (files) for multiple. First image is set as primary."
+                                "description": "Create product. Required: name, price. You can add a product without any category—omit category_id (see example body); the product is always created. Assign a category later via Update Product (PUT) if needed. Optional: category_id (integer); if the category does not exist, product is still created without a category. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage options (optional):\n- JSON body: add \"image_urls\": [\"https://...\", \"https://...\"]\n- File upload: use Body type \"form-data\" instead of raw JSON; add key \"image\" (file) or \"images[]\" (files). First image is set as primary."
                             }
                         },
                         {
@@ -2246,14 +2246,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Updated Name\",\n  \"price\": 149.99,\n  \"stock\": 20,\n  \"status\": \"active\"\n}"
+                                    "raw": "{\n  \"name\": \"Updated Name\",\n  \"description\": \"Updated description\",\n  \"price\": 149.99,\n  \"stock\": 20,\n  \"status\": \"active\",\n  \"category_id\": 1\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products/{{product_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product."
+                                "description": "Update product (partial update). All fields optional: name, description, price, stock, status, category_id. Set category_id to assign a category; omit or send null/empty string to clear category. Only send fields you want to change."
                             }
                         },
                         {
@@ -2394,7 +2394,7 @@
                     "description": "Admin product APIs – require Authorization: Bearer {{token}}. Get token from POST /api/auth/login (admin user). All responses JSON only."
                 }
             ],
-            "description": "Single module for all product APIs. Public (no auth) and Admin (Bearer token). Set token from Login for Admin requests."
+            "description": "Single module for all product APIs. Public (no auth) and Admin (Bearer token). Set token from Login for Admin requests. Add Product: you can create without any category (omit category_id); product is always created. Assign category later via Update Product. category_id is optional on create and update."
         },
         {
             "name": "10. Admin & HR Routes",
