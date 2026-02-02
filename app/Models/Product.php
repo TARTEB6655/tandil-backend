@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -99,11 +100,7 @@ class Product extends Model
             if (strpos($imagePath, 'products/') !== 0) {
                 $imagePath = 'products/' . $imagePath;
             }
-            $url = asset('storage/' . $imagePath);
-            if (app()->environment('local') && strpos($url, ':8000') === false && strpos($url, 'localhost') !== false) {
-                $url = str_replace('http://localhost', 'http://localhost:8000', $url);
-            }
-            return $url;
+            return Storage::disk('public')->url($imagePath);
         }
         return null;
     }
@@ -130,11 +127,7 @@ class Product extends Model
             if (strpos($imagePath, 'products/') !== 0) {
                 $imagePath = 'products/' . $imagePath;
             }
-            $url = asset('storage/' . $imagePath);
-            if (app()->environment('local') && strpos($url, ':8000') === false && strpos($url, 'localhost') !== false) {
-                $url = str_replace('http://localhost', 'http://localhost:8000', $url);
-            }
-            return $url;
+            return Storage::disk('public')->url($imagePath);
         }
         return null;
     }

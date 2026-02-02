@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\ProfileController;
 
 // Dashboard Controllers for roles
@@ -36,6 +37,17 @@ use App\Http\Controllers\HR\HrDashboardController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
+// Serve storage files when symlink is missing (e.g. on Cloudways)
+Route::get('/storage/{path}', function (string $path) {
+    $path = str_replace(['..', '\\'], ['', '/'], $path);
+    if (! Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $fullPath = Storage::disk('public')->path($path);
+    $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
+    return response()->file($fullPath, ['Content-Type' => $mime]);
+})->where('path', '.*')->name('storage.serve');
 
 // Redirect root '/' to login or dashboard redirect
 Route::get('/', function () {

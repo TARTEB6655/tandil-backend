@@ -268,7 +268,7 @@ class ProductController extends Controller
      */
     public function edit($id)
     {
-        $product = Product::with('category')->findOrFail($id);
+        $product = Product::with(['category', 'images'])->findOrFail($id);
         $categories = \App\Models\Category::all();
         return view('admin.products.edit', compact('product', 'categories'));
     }
@@ -332,6 +332,7 @@ class ProductController extends Controller
 
         // New image uploads: single "image" or multiple "images[]"
         if ($request->hasFile('images')) {
+            ProductImage::where('product_id', $product->id)->update(['is_primary' => false]);
             $maxOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order');
             foreach ($request->file('images') as $index => $file) {
                 $imagePath = $file->store('products', 'public');
@@ -339,14 +340,15 @@ class ProductController extends Controller
                     'product_id' => $product->id,
                     'image_path' => $imagePath,
                     'sort_order' => $maxOrder + 1 + $index,
-                    'is_primary' => $index === 0 && ! $product->image,
+                    'is_primary' => $index === 0,
                 ]);
             }
-            $firstNew = ProductImage::where('product_id', $product->id)->orderBy('sort_order', 'desc')->first();
-            if ($firstNew && ! $product->image) {
-                $validated['image'] = $firstNew->image_path;
+            $primary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
+            if ($primary) {
+                $validated['image'] = $primary->image_path;
             }
         } elseif ($request->hasFile('image')) {
+            ProductImage::where('product_id', $product->id)->update(['is_primary' => false]);
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }

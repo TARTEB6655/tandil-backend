@@ -1,14 +1,22 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
+        <!-- Breadcrumb & Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-                <h1 class="text-xl font-medium text-gray-900">Add product</h1>
-                <p class="mt-1 text-sm text-gray-500">Create a new product to add to your store</p>
+                <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                    <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Dashboard</a>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    <a href="{{ route('admin.products.index') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Products</a>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">Add product</span>
+                </nav>
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Add product</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a new product to add to your store</p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.products.index') }}" 
-                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                   class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     Cancel
                 </a>
             </div>
@@ -439,11 +447,11 @@
         const imageInput = document.getElementById('imageInput');
 
         function handleImageUpload(event) {
-            const files = Array.from(event.target.files);
+            const files = Array.from(event.target.files || []);
             const previewGrid = document.getElementById('imagePreviewGrid');
             const uploadArea = document.getElementById('imageUploadArea');
-            
-            files.forEach((file, index) => {
+
+            files.forEach((file) => {
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
@@ -452,6 +460,10 @@
                             preview: e.target.result
                         });
                         updateImagePreview();
+                        // Sync all uploaded images back to the file input so form submits them all
+                        const dt = new DataTransfer();
+                        uploadedImages.forEach(img => dt.items.add(img.file));
+                        imageInput.files = dt.files;
                     };
                     reader.readAsDataURL(file);
                 }
@@ -487,7 +499,6 @@
 
         function removeImage(index) {
             uploadedImages.splice(index, 1);
-            // Update the file input
             const dt = new DataTransfer();
             uploadedImages.forEach(img => dt.items.add(img.file));
             imageInput.files = dt.files;
