@@ -1380,7 +1380,7 @@
                                 "categories"
                             ]
                         },
-                        "description": "List all categories with product counts (Public - no auth needed)"
+                        "description": "List all categories with product counts and image_url (Public - no auth needed)"
                     }
                 },
                 {
@@ -1432,7 +1432,7 @@
                                 }
                             ]
                         },
-                        "description": "Get category details with products (Public - no auth needed)"
+                        "description": "Get category details with products; includes image_url (Public - no auth needed)"
                     }
                 },
                 {
@@ -2194,14 +2194,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 1,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\"\n}"
+                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 1,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\",\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product. Required: name, price, category_id. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500). Optional: description, stock, status, weight_unit, etc."
+                                "description": "Create product. Required: name, price, category_id. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage options (optional):\n- JSON body: use \"image_urls\" array of image URLs (e.g. [\"https://...\", \"https://...\"]).\n- File upload: use Body type \"form-data\" instead of raw JSON; add key \"image\" (file) for single image or \"images[]\" (files) for multiple. First image is set as primary."
                             }
                         },
                         {
@@ -4203,7 +4203,7 @@
                                 "categories"
                             ]
                         },
-                        "description": "List all categories"
+                        "description": "List all categories. Response includes id, name, slug, description, image, image_url (full URL), products_count. Auth required."
                     }
                 },
                 {
@@ -4239,7 +4239,7 @@
                                 "categories"
                             ]
                         },
-                        "description": "Create a new category"
+                        "description": "Create a new category. Body: name (required), slug (optional, auto from name), description (optional). Optional image: use Body type 'form-data' instead of raw JSON; add keys name, slug, description (text) and image (file). Allowed: jpeg, jpg, png, webp; max 5MB. Response includes image_url."
                     }
                 },
                 {
@@ -4268,7 +4268,7 @@
                                 "{{category_id}}"
                             ]
                         },
-                        "description": "Get category details"
+                        "description": "Get category details. Response includes id, name, slug, description, image, image_url (full URL), products_count. Auth required."
                     }
                 },
                 {
@@ -4305,7 +4305,7 @@
                                 "{{category_id}}"
                             ]
                         },
-                        "description": "Update category"
+                        "description": "Update category. Body: name, slug, description (all optional). To change image: use Body type 'form-data' with name, slug, description (text) and image (file). New image replaces old; allowed: jpeg, jpg, png, webp; max 5MB. Response includes image_url."
                     }
                 },
                 {
@@ -4334,7 +4334,7 @@
                                 "{{category_id}}"
                             ]
                         },
-                        "description": "Delete category"
+                        "description": "Delete category. Also removes the category image file from storage if present. Auth required."
                     }
                 },
                 {

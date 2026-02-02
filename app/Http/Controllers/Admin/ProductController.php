@@ -102,6 +102,8 @@ class ProductController extends Controller
             'category_id'         => 'nullable|exists:categories,id',
             'images'              => 'nullable|array',
             'images.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image_urls'          => 'nullable|array',
+            'image_urls.*'         => 'nullable|string|url',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',

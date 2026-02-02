@@ -221,6 +221,55 @@ class AdminTest extends TestCase
     }
 
     /**
+     * Test admin can create product with image_urls (JSON API image parameter)
+     */
+    public function test_admin_can_create_product_with_image_urls()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $category = Category::factory()->create();
+        $unique = 'test-product-img-' . uniqid();
+        $imageUrl1 = 'https://example.com/product1.jpg';
+        $imageUrl2 = 'https://example.com/product2.jpg';
+
+        $payload = [
+            'name'             => 'Product With Images ' . $unique,
+            'description'      => 'Has image_urls',
+            'handle'           => $unique,
+            'sku'              => 'SKU-IMG-' . uniqid(),
+            'price'            => 49.99,
+            'status'           => 'active',
+            'track_quantity'   => true,
+            'allow_backorder'  => false,
+            'weight_unit'      => 'kg',
+            'category_id'      => $category->id,
+            'image_urls'       => [$imageUrl1, $imageUrl2],
+        ];
+
+        $response = $this->postJson('/api/admin/products', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', $payload['name'])
+            ->assertJsonPath('data.image', $imageUrl1);
+
+        $product = \App\Models\Product::where('handle', $unique)->first();
+        $this->assertNotNull($product);
+        $this->assertSame($imageUrl1, $product->image);
+        $this->assertSame(2, $product->images()->count());
+        $this->assertDatabaseHas('product_images', [
+            'product_id' => $product->id,
+            'image_path' => $imageUrl1,
+            'is_primary' => true,
+        ]);
+        $this->assertDatabaseHas('product_images', [
+            'product_id' => $product->id,
+            'image_path' => $imageUrl2,
+        ]);
+    }
+
+    /**
      * Test duplicate handle returns 422 (not 500)
      */
     public function test_admin_product_duplicate_handle_returns_422()
