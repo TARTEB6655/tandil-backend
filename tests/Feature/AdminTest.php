@@ -419,5 +419,87 @@ class AdminTest extends TestCase
 
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
     }
+
+    /**
+     * Test admin can bulk delete products
+     */
+    public function test_admin_can_bulk_delete_products()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $p1 = $this->createProduct(['name' => 'Bulk Delete 1']);
+        $p2 = $this->createProduct(['name' => 'Bulk Delete 2']);
+
+        $response = $this->postJson('/api/admin/products/bulk-delete', [
+            'product_ids' => [$p1->id, $p2->id],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('count', 2);
+        $this->assertDatabaseMissing('products', ['id' => $p1->id]);
+        $this->assertDatabaseMissing('products', ['id' => $p2->id]);
+    }
+
+    /**
+     * Test admin can bulk update product status
+     */
+    public function test_admin_can_bulk_update_product_status()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $p1 = $this->createProduct(['name' => 'Bulk Status 1', 'status' => 'draft']);
+        $p2 = $this->createProduct(['name' => 'Bulk Status 2', 'status' => 'draft']);
+
+        $response = $this->postJson('/api/admin/products/bulk-update-status', [
+            'product_ids' => [$p1->id, $p2->id],
+            'status'      => 'active',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('count', 2);
+        $this->assertDatabaseHas('products', ['id' => $p1->id, 'status' => 'active']);
+        $this->assertDatabaseHas('products', ['id' => $p2->id, 'status' => 'active']);
+    }
+
+    /**
+     * Test admin can bulk update product stock
+     */
+    public function test_admin_can_bulk_update_product_stock()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $p1 = $this->createProduct(['name' => 'Bulk Stock 1', 'stock' => 0]);
+        $p2 = $this->createProduct(['name' => 'Bulk Stock 2', 'stock' => 0]);
+
+        $response = $this->postJson('/api/admin/products/bulk-update-stock', [
+            'product_ids' => [$p1->id, $p2->id],
+            'stock'       => 50,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('count', 2);
+        $this->assertDatabaseHas('products', ['id' => $p1->id, 'stock' => 50]);
+        $this->assertDatabaseHas('products', ['id' => $p2->id, 'stock' => 50]);
+    }
+
+    /**
+     * Test admin can toggle product status
+     */
+    public function test_admin_can_toggle_product_status()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $product = $this->createProduct(['name' => 'Toggle Me', 'status' => 'draft']);
+
+        $response = $this->postJson("/api/admin/products/{$product->id}/toggle-status");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.status', 'active');
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'status' => 'active']);
+    }
 }
 

@@ -26,28 +26,27 @@ class ProductImage extends Model
 
     /**
      * Get the full URL for the image.
-     * Works both locally and in production.
+     * Returns image_path as-is when it is already a full URL (http/https).
+     * Otherwise builds storage URL for local paths.
      */
     public function getImageUrl()
     {
-        if ($this->image_path) {
-            // Ensure the path is correct
-            $imagePath = $this->image_path;
-            if (strpos($imagePath, 'products/') !== 0) {
-                $imagePath = 'products/' . $imagePath;
-            }
-            
-            // Use asset() which automatically handles the base URL
-            $url = asset('storage/' . $imagePath);
-            
-            // For local development, ensure port 8000 is included if not already
-            if (app()->environment('local') && strpos($url, ':8000') === false && strpos($url, 'localhost') !== false) {
-                $url = str_replace('http://localhost', 'http://localhost:8000', $url);
-            }
-            
-            return $url;
+        if (! $this->image_path) {
+            return null;
         }
-        return null;
+        $imagePath = $this->image_path;
+        // Already a full URL (e.g. from image_urls)
+        if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+            return $imagePath;
+        }
+        if (strpos($imagePath, 'products/') !== 0) {
+            $imagePath = 'products/' . $imagePath;
+        }
+        $url = asset('storage/' . $imagePath);
+        if (app()->environment('local') && strpos($url, ':8000') === false && strpos($url, 'localhost') !== false) {
+            $url = str_replace('http://localhost', 'http://localhost:8000', $url);
+        }
+        return $url;
     }
 
     /**

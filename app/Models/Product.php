@@ -73,32 +73,26 @@ class Product extends Model
      */
     public function getImageUrlAttribute()
     {
-        // Try primary image first (need to load relationship if not already loaded)
         if (!$this->relationLoaded('primaryImage')) {
             $this->load('primaryImage');
         }
-        
         if ($this->primaryImage && $this->primaryImage->image_path) {
             return $this->primaryImage->getImageUrl();
         }
-        
-        // Fall back to main image field
         if ($this->image) {
             $imagePath = $this->image;
+            if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+                return $imagePath;
+            }
             if (strpos($imagePath, 'products/') !== 0) {
                 $imagePath = 'products/' . $imagePath;
             }
-            
             $url = asset('storage/' . $imagePath);
-            
-            // For local development, ensure port 8000 is included if not already
             if (app()->environment('local') && strpos($url, ':8000') === false && strpos($url, 'localhost') !== false) {
                 $url = str_replace('http://localhost', 'http://localhost:8000', $url);
             }
-            
             return $url;
         }
-        
         return null;
     }
 
@@ -116,24 +110,20 @@ class Product extends Model
         if ($this->primaryImage && $this->primaryImage->image_path) {
             return $this->primaryImage->getImageUrl();
         }
-        
-        // Fall back to main image field
         if ($this->image) {
             $imagePath = $this->image;
+            if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+                return $imagePath;
+            }
             if (strpos($imagePath, 'products/') !== 0) {
                 $imagePath = 'products/' . $imagePath;
             }
-            
             $url = asset('storage/' . $imagePath);
-            
-            // For local development, ensure port 8000 is included if not already
             if (app()->environment('local') && strpos($url, ':8000') === false && strpos($url, 'localhost') !== false) {
                 $url = str_replace('http://localhost', 'http://localhost:8000', $url);
             }
-            
             return $url;
         }
-        
         return null;
     }
 

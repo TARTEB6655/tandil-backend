@@ -74,13 +74,34 @@ class ProductController extends Controller
 
     /**
      * Create a product.
-     * category_id is optional; can be set or updated later.
+     * Same endpoint for (1) JSON body: product fields + optional image_urls (array of URLs).
+     * (2) Multipart/form-data: product fields as form fields + image files in images[] (or image for single)
+     *     + optional image_urls (JSON string) or image_url[] (repeated) to merge with file uploads.
+     * Auth: Authorization: Bearer {{admin_token}}.
      */
     public function store(Request $request)
     {
         // Normalize empty category_id so validation accepts it (optional category)
         if ($request->has('category_id') && $request->category_id === '') {
             $request->merge(['category_id' => null]);
+        }
+
+        // Normalize image_urls for multipart: Option 1 = JSON string; Option 2 = repeated image_url[]
+        $imageUrls = null;
+        if ($request->has('image_urls')) {
+            $v = $request->input('image_urls');
+            if (is_string($v)) {
+                $decoded = json_decode($v, true);
+                $imageUrls = is_array($decoded) ? array_values($decoded) : null;
+            } elseif (is_array($v)) {
+                $imageUrls = array_values($v);
+            }
+        }
+        if ($imageUrls === null && $request->has('image_url')) {
+            $imageUrls = array_values((array) $request->input('image_url'));
+        }
+        if ($imageUrls !== null) {
+            $request->merge(['image_urls' => $imageUrls]);
         }
 
         $validated = $request->validate([
@@ -106,10 +127,13 @@ class ProductController extends Controller
             'requires_shipping'   => 'nullable|boolean',
             'taxable'             => 'nullable|boolean',
             'category_id'         => 'nullable|integer',
+            // File upload (primary): use multipart/form-data with "image" (single) or "images[]" (multiple)
             'images'              => 'nullable|array',
             'images.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image'               => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            // Optional: pass URLs instead (e.g. JSON body)
             'image_urls'          => 'nullable|array',
-            'image_urls.*'         => 'nullable|string|url',
+            'image_urls.*'        => 'nullable|string|url',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
@@ -143,72 +167,87 @@ class ProductController extends Controller
             }
         }
 
+        // Only pass fillable attributes to create (exclude image_urls, images, etc.)
+        $createData = array_intersect_key($validated, array_flip((new Product)->getFillable()));
+
         try {
-            $product = Product::create($validated);
+            $product = Product::create($createData);
         } catch (\Illuminate\Database\QueryException $e) {
             $msg = strtolower($e->getMessage());
-            // Only treat as duplicate when it's clearly a UNIQUE constraint (not NOT NULL, etc.)
-            if (str_contains($msg, 'unique')) {
-                $errors = [];
-                if (Product::where('handle', $validated['handle'] ?? '')->exists()) {
+            if (! str_contains($msg, 'unique')) {
+                throw $e;
+            }
+            $errors = [];
+            // Try to detect which column from exception message (e.g. "products_handle_unique" or "products.handle")
+            if (str_contains($msg, 'handle')) {
+                $errors['handle'] = ['The handle has already been taken. Please use a different handle or leave it blank to auto-generate.'];
+            }
+            if (str_contains($msg, 'sku')) {
+                $errors['sku'] = ['The SKU has already been taken. Please use a unique SKU.'];
+            }
+            // Fallback: check DB for which one exists
+            if ($errors === []) {
+                if (! empty($createData['handle']) && Product::where('handle', $createData['handle'])->exists()) {
                     $errors['handle'] = ['The handle has already been taken. Please use a different handle or leave it blank to auto-generate.'];
                 }
-                if (! empty($validated['sku']) && Product::where('sku', $validated['sku'])->exists()) {
+                if (! empty($createData['sku']) && Product::where('sku', $createData['sku'])->exists()) {
                     $errors['sku'] = ['The SKU has already been taken. Please use a unique SKU.'];
                 }
-                if ($errors === []) {
-                    $errors['handle'] = ['The handle or SKU has already been taken.'];
-                }
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed. Handle or SKU may already exist.',
-                    'errors'  => $errors,
-                ], 422);
             }
-            throw $e;
+            if ($errors === []) {
+                $errors['handle'] = ['A product with this handle or SKU already exists. Please use a unique handle and a unique SKU.'];
+                $errors['sku'] = ['A product with this handle or SKU already exists. Please use a unique handle and a unique SKU.'];
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed. Handle or SKU may already exist.',
+                'errors'  => $errors,
+            ], 422);
         }
 
-        // Handle multiple images
+        // Handle image file uploads: multipart uses "images[]" (multiple) or "image" (single)
+        $sortOrder = 0;
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
+            foreach ($request->file('images') as $image) {
                 $imagePath = $image->store('products', 'public');
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image_path' => $imagePath,
-                    'sort_order' => $index,
-                    'is_primary' => $index === 0, // First image is primary
+                    'sort_order' => $sortOrder,
+                    'is_primary' => $sortOrder === 0,
                 ]);
-            }
-            // Set first image as main product image
-            $firstImage = ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
-            if ($firstImage) {
-                $product->update(['image' => $firstImage->image_path]);
+                $sortOrder++;
             }
         } elseif ($request->hasFile('image')) {
-            // Fallback for single image
             $imagePath = $request->file('image')->store('products', 'public');
             ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => $imagePath,
-                'sort_order' => 0,
+                'sort_order' => $sortOrder,
                 'is_primary' => true,
             ]);
-            $product->update(['image' => $imagePath]);
+            $sortOrder++;
         }
 
-        // Handle image URLs (for API requests)
+        // Merge image URLs (from JSON body or multipart image_urls / image_url[] with file uploads
         if ($request->has('image_urls') && is_array($request->image_urls)) {
-            foreach ($request->image_urls as $index => $imageUrl) {
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image_path' => $imageUrl,
-                    'sort_order' => $index,
-                    'is_primary' => $index === 0,
-                ]);
+            foreach ($request->image_urls as $imageUrl) {
+                if (is_string($imageUrl) && $imageUrl !== '') {
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $imageUrl,
+                        'sort_order' => $sortOrder,
+                        'is_primary' => $sortOrder === 0,
+                    ]);
+                    $sortOrder++;
+                }
             }
-            if (!empty($request->image_urls[0])) {
-                $product->update(['image' => $request->image_urls[0]]);
-            }
+        }
+
+        // Set product main image from first image (file or URL)
+        $firstImage = ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
+        if ($firstImage) {
+            $product->update(['image' => $firstImage->image_path]);
         }
 
         // Check if this is an API request
@@ -286,17 +325,38 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'price'       => 'nullable|numeric|min:0',
             'category_id' => 'nullable|integer',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images'      => 'nullable|array',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
-        // If new image uploaded → delete old image
-        if ($request->hasFile('image')) {
-
+        // New image uploads: single "image" or multiple "images[]"
+        if ($request->hasFile('images')) {
+            $maxOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order');
+            foreach ($request->file('images') as $index => $file) {
+                $imagePath = $file->store('products', 'public');
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imagePath,
+                    'sort_order' => $maxOrder + 1 + $index,
+                    'is_primary' => $index === 0 && ! $product->image,
+                ]);
+            }
+            $firstNew = ProductImage::where('product_id', $product->id)->orderBy('sort_order', 'desc')->first();
+            if ($firstNew && ! $product->image) {
+                $validated['image'] = $firstNew->image_path;
+            }
+        } elseif ($request->hasFile('image')) {
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
-
             $validated['image'] = $request->file('image')->store('products', 'public');
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $validated['image'],
+                'sort_order' => (int) ProductImage::where('product_id', $product->id)->max('sort_order') + 1,
+                'is_primary' => true,
+            ]);
         }
 
         // If category_id is set but category doesn't exist, leave product without category (assign later)
@@ -392,12 +452,12 @@ class ProductController extends Controller
                 'Image Path'
             ]);
 
-            // Add product data
+            // Add product data (category may be null when product has no category)
             foreach ($products as $product) {
                 fputcsv($file, [
                     $product->name,
                     $product->description ?? '',
-                    $product->category->name ?? '',
+                    $product->category?->name ?? '',
                     $product->price,
                     $product->stock ?? 0,
                     $product->image ?? '',
@@ -524,6 +584,13 @@ class ProductController extends Controller
 
         $count = Product::whereIn('id', $request->product_ids)->delete();
 
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status'  => true,
+                'message' => "{$count} product(s) deleted successfully.",
+                'count'   => $count,
+            ]);
+        }
         return redirect()->route('admin.products.index')
             ->with('success', "{$count} product(s) deleted successfully.");
     }
@@ -542,6 +609,13 @@ class ProductController extends Controller
         $count = Product::whereIn('id', $request->product_ids)
             ->update(['status' => $request->status]);
 
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status'  => true,
+                'message' => "Status updated for {$count} product(s).",
+                'count'   => $count,
+            ]);
+        }
         return redirect()->route('admin.products.index')
             ->with('success', "Status updated for {$count} product(s).");
     }
@@ -560,6 +634,13 @@ class ProductController extends Controller
         $count = Product::whereIn('id', $request->product_ids)
             ->update(['stock' => $request->stock]);
 
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status'  => true,
+                'message' => "Stock updated for {$count} product(s).",
+                'count'   => $count,
+            ]);
+        }
         return redirect()->route('admin.products.index')
             ->with('success', "Stock updated for {$count} product(s).");
     }
@@ -567,7 +648,7 @@ class ProductController extends Controller
     /**
      * Toggle product publish status.
      */
-    public function toggleStatus($id)
+    public function toggleStatus(Request $request, $id)
     {
         $product = Product::findOrFail($id);
         
@@ -575,7 +656,14 @@ class ProductController extends Controller
         $product->update(['status' => $newStatus]);
 
         $message = $newStatus === 'active' ? 'Product published successfully.' : 'Product unpublished successfully.';
-        
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status'  => true,
+                'message' => $message,
+                'data'    => $product->fresh()->load(['category', 'images', 'primaryImage']),
+            ]);
+        }
         return redirect()->back()->with('success', $message);
     }
 }

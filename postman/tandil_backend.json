@@ -2171,37 +2171,61 @@
                                     "path": ["api", "admin", "products"],
                                     "query": [{"key": "search", "value": ""}, {"key": "category_id", "value": ""}, {"key": "filter", "value": "all"}]
                                 },
-                                "description": "List all products (admin). Query: search, category_id, filter (all|active|draft|archived)."
+                                "description": "List all products (admin). Requires: Login first (POST /api/auth/login) with an admin user; use the returned token in Authorization: Bearer {{token}}. Set base_url and token in collection/environment variables. Query: search, category_id, filter (all|active|draft|archived)."
                             }
                         },
                         {
-                            "name": "Add Product",
+                            "name": "Add Product (JSON – URL-only images)",
                             "request": {
                                 "method": "POST",
                                 "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Content-Type", "value": "application/json"},
+                                    {"key": "Accept", "value": "application/json"}
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": null,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-001\",\n  \"handle\": \"test-product-unique\",\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
+                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 2,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-002\",\n  \"handle\": \"test-product-unique\",\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product. Required: name, price. Optional: category_id (set to a category id, or null/omit to leave empty—assign later via Update Product); image_urls (array of image URLs). Product is always created; if category_id is invalid or null, product has no category. Use unique sku/handle or leave handle blank to auto-generate. Duplicate handle or SKU returns 422 (not 500).\n\nImage: JSON body \"image_urls\" (see example) or form-data keys \"image\" (file) / \"images[]\" (files). First image is primary."
+                                "description": "Option A – Create product with JSON body. Use when user only adds image URLs (no device upload). Required: name, price. Optional: description, stock, status, category_id, weight_unit, sku, handle, image_urls (array of URLs). Auth: Bearer {{token}}."
+                            }
+                        },
+                        {
+                            "name": "Add Product (Multipart – with image files)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "name", "value": "Test Product", "type": "text"},
+                                        {"key": "description", "value": "Description here", "type": "text"},
+                                        {"key": "price", "value": "99.99", "type": "text"},
+                                        {"key": "stock", "value": "10", "type": "text"},
+                                        {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "category_id", "value": "", "type": "text"},
+                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "sku", "value": "SKU-UNIQUE-001", "type": "text"},
+                                        {"key": "handle", "value": "test-product-unique", "type": "text"},
+                                        {"key": "images[]", "type": "file", "src": []},
+                                        {"key": "images[]", "type": "file", "src": []},
+                                        {"key": "image_urls", "value": "[\"https://example.com/extra.jpg\"]", "type": "text", "description": "Optional: pasted URLs as JSON string. Merge with file uploads."}
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "products"]
+                                },
+                                "description": "Option B – Create product with multipart/form-data. Use when user uploads images from device. Form fields: name (required), price (required), description, stock, status, category_id, weight_unit, sku, handle. Image files: images[] (multiple) or image (single). Optional: image_urls as JSON string or image_url[] repeated – merged with file uploads. Accepted files: jpg, jpeg, png, webp, max 5MB. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2297,7 +2321,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}", "toggle-status"]
                                 },
-                                "description": "Toggle product status (active/draft/archived)."
+                                "description": "Toggle product status (active/draft). POST with no body. Returns JSON: status, message, data (product)."
                             }
                         },
                         {
@@ -2320,14 +2344,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"ids\": [1, 2, 3]\n}"
+                                    "raw": "{\n  \"product_ids\": [1, 2, 3]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products/bulk-delete",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "bulk-delete"]
                                 },
-                                "description": "Bulk delete products."
+                                "description": "Bulk delete products. Body: product_ids (array of product IDs). Returns JSON: status, message, count."
                             }
                         },
                         {
@@ -2350,14 +2374,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"status\": \"active\"\n}"
+                                    "raw": "{\n  \"product_ids\": [1, 2, 3],\n  \"status\": \"active\"\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products/bulk-update-status",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "bulk-update-status"]
                                 },
-                                "description": "Bulk update product status."
+                                "description": "Bulk update product status. Body: product_ids (array), status (active|draft|archived). Returns JSON: status, message, count."
                             }
                         },
                         {
@@ -2380,18 +2404,18 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"ids\": [1, 2, 3],\n  \"stock\": 100\n}"
+                                    "raw": "{\n  \"product_ids\": [1, 2, 3],\n  \"stock\": 100\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products/bulk-update-stock",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "bulk-update-stock"]
                                 },
-                                "description": "Bulk update product stock."
+                                "description": "Bulk update product stock. Body: product_ids (array), stock (integer). Returns JSON: status, message, count."
                             }
                         }
                     ],
-                    "description": "Admin product APIs – require Authorization: Bearer {{token}}. Get token from POST /api/auth/login (admin user). All responses JSON only."
+                    "description": "Admin product APIs – require Authorization: Bearer {{token}}. Create product: same endpoint, two ways. (1) JSON: product fields + optional image_urls (array of URLs). (2) Multipart/form-data: product fields as form fields + images[] (or image) for file upload + optional image_urls (JSON string) or image_url[] repeated. All responses JSON."
                 }
             ],
             "description": "Single module for all product APIs. Public (no auth) and Admin (Bearer token). Set token from Login for Admin requests. Add Product: you can create without any category (omit category_id); product is always created. Assign category later via Update Product. category_id is optional on create and update."
