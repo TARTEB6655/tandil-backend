@@ -11,12 +11,14 @@ class CategoryRequest extends BaseFormRequest
 
     public function rules(): array
     {
-        $id = $this->route('category')?->id;
+        $category = $this->route('category');
+        $id = $category instanceof \App\Models\Category ? $category->id : $category;
 
         return [
             'name'        => 'required|string|max:255',
-            'slug'        => 'nullable|string|max:255|unique:categories,slug,' . $id, // Made optional - will auto-generate if not provided
+            'slug'        => 'nullable|string|max:255|unique:categories,slug,' . $id,
             'description' => 'nullable|string',
+            'image'       => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
         ];
     }
 }

@@ -210,6 +210,7 @@ tandil-backend/
 
 ### Prerequisites
 - ✅ PHP 8.2+
+- ✅ **PHP GD extension** (for image uploads: category/product images, visit photos; see [PHP GD Setup](docs/PHP_GD_SETUP.md))
 - ✅ Composer
 - ✅ Node.js & NPM
 - ✅ MySQL/SQLite
