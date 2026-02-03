@@ -152,6 +152,104 @@ class ProductController extends Controller
         }
     }
 
+    /** Max size in bytes for stored product images; larger files are compressed automatically. */
+    private const PRODUCT_IMAGE_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+
+    /**
+     * Compress a stored product image to at most 2 MB if larger. Uses GD. No-op if GD missing or file already small.
+     *
+     * @param string $relativePath Path under storage/app/public (e.g. products/abc.jpg)
+     */
+    private function compressProductImageIfNeeded(string $relativePath): void
+    {
+        if (! extension_loaded('gd')) {
+            return;
+        }
+        $disk = Storage::disk('public');
+        if (! $disk->exists($relativePath)) {
+            return;
+        }
+        $fullPath = $disk->path($relativePath);
+        if (! is_file($fullPath) || filesize($fullPath) <= self::PRODUCT_IMAGE_MAX_BYTES) {
+            return;
+        }
+        $info = @getimagesize($fullPath);
+        if ($info === false || ! isset($info[0], $info[1], $info[2])) {
+            return;
+        }
+        $width = (int) $info[0];
+        $height = (int) $info[1];
+        $type = $info[2];
+        $img = null;
+        if ($type === \IMAGETYPE_JPEG || $type === \IMAGETYPE_JPEG) {
+            $img = @imagecreatefromjpeg($fullPath);
+        } elseif ($type === \IMAGETYPE_PNG) {
+            $img = @imagecreatefrompng($fullPath);
+        } elseif ($type === \IMAGETYPE_WEBP && function_exists('imagecreatefromwebp')) {
+            $img = @imagecreatefromwebp($fullPath);
+        }
+        if ($img === false || $img === null) {
+            return;
+        }
+        $maxBytes = self::PRODUCT_IMAGE_MAX_BYTES;
+        $scale = 1.0;
+        $currentSize = filesize($fullPath);
+        if ($currentSize > $maxBytes) {
+            $ratio = sqrt($maxBytes / $currentSize);
+            $scale = max(0.1, min(1.0, $ratio * 0.95));
+        }
+        $newW = (int) round($width * $scale);
+        $newH = (int) round($height * $scale);
+        if ($newW < 1) {
+            $newW = 1;
+        }
+        if ($newH < 1) {
+            $newH = 1;
+        }
+        $resized = imagecreatetruecolor($newW, $newH);
+        if ($resized === false) {
+            imagedestroy($img);
+            return;
+        }
+        if ($type === \IMAGETYPE_PNG) {
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+            $transparent = imagecolorallocatealpha($resized, 255, 255, 255, 127);
+            imagefilledrectangle($resized, 0, 0, $newW, $newH, $transparent);
+        }
+        imagecopyresampled($resized, $img, 0, 0, 0, 0, $newW, $newH, $width, $height);
+        imagedestroy($img);
+        $quality = 88;
+        $saved = false;
+        $ext = strtolower(pathinfo($fullPath, \PATHINFO_EXTENSION));
+        if ($type === \IMAGETYPE_JPEG || $type === \IMAGETYPE_JPEG || $ext === 'jpg' || $ext === 'jpeg') {
+            while ($quality >= 50) {
+                $saved = imagejpeg($resized, $fullPath, $quality);
+                if ($saved && is_file($fullPath) && filesize($fullPath) <= $maxBytes) {
+                    break;
+                }
+                $quality -= 10;
+            }
+        } elseif ($type === \IMAGETYPE_PNG) {
+            $saved = imagepng($resized, $fullPath, 8);
+        } elseif ($type === \IMAGETYPE_WEBP && function_exists('imagewebp')) {
+            while ($quality >= 50) {
+                $saved = imagewebp($resized, $fullPath, $quality);
+                if ($saved && is_file($fullPath) && filesize($fullPath) <= $maxBytes) {
+                    break;
+                }
+                $quality -= 10;
+            }
+        } else {
+            $saved = imagejpeg($resized, $fullPath, 85);
+        }
+        imagedestroy($resized);
+        // If still over limit (e.g. large PNG), one more compression pass
+        if (is_file($fullPath) && filesize($fullPath) > $maxBytes && ($newW > 400 || $newH > 400)) {
+            $this->compressProductImageIfNeeded($relativePath);
+        }
+    }
+
     /**
      * List products (with search, category filter, pagination).
      */
@@ -249,10 +347,10 @@ class ProductController extends Controller
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku',
             'handle'      => 'nullable|string|max:255|unique:products,handle',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'images'      => 'nullable|array',
-            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'image_urls'  => 'nullable|array',
             'image_urls.*'=> 'nullable|string|url',
         ], [
@@ -538,10 +636,10 @@ class ProductController extends Controller
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,
             'handle'      => 'nullable|string|max:255|unique:products,handle,' . $id,
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
             'images'      => 'nullable|array',
-            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'image_urls'  => 'nullable|array',
             'image_urls.*'=> 'nullable|string|url',
         ], [
@@ -616,6 +714,7 @@ class ProductController extends Controller
                 $oldPrimary->delete();
             }
             $imagePath = $mainFile->store('products', 'public');
+            $this->compressProductImageIfNeeded($imagePath);
             $maxOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order');
             ProductImage::create([
                 'product_id' => $product->id,
@@ -648,6 +747,7 @@ class ProductController extends Controller
             $sortOrder = $mainFile !== null ? 1 : 0;
             foreach ($extraFiles as $index => $file) {
                 $imagePath = $file->store('products', 'public');
+                $this->compressProductImageIfNeeded($imagePath);
                 $isPrimary = ($mainFile === null && $index === 0);
                 ProductImage::create([
                     'product_id' => $product->id,
