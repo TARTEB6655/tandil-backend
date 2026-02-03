@@ -15,9 +15,30 @@ use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
+    /** Product API allowed fields only (name, description, price, stock, status, category_id, weight_unit, sku, handle). No extra fields. */
+    private const PRODUCT_API_FIELDS = [
+        'name', 'description', 'price', 'stock', 'status', 'category_id', 'weight_unit', 'sku', 'handle',
+    ];
+
+    /** Response keys for product API (allowed fields + id, image, image_url, images, primary_image, category, timestamps). */
+    private const PRODUCT_API_RESPONSE_KEYS = [
+        'id', 'name', 'description', 'price', 'stock', 'status', 'category_id', 'weight_unit', 'sku', 'handle',
+        'image', 'image_url', 'images', 'primary_image', 'category', 'created_at', 'updated_at',
+    ];
+
     public function __construct()
     {
         $this->middleware('role:admin');
+    }
+
+    /**
+     * Return product data with only allowed API fields (no extra fields in response).
+     */
+    private function productToApiData(Product $product): array
+    {
+        $product->loadMissing(['category', 'images', 'primaryImage']);
+        $data = $product->toArray();
+        return array_intersect_key($data, array_flip(self::PRODUCT_API_RESPONSE_KEYS));
     }
 
     /**
@@ -59,7 +80,7 @@ class ProductController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Products retrieved successfully.',
-                'data' => $products->items(),
+                'data' => array_map(fn (Product $p) => $this->productToApiData($p), $products->items()),
                 'pagination' => [
                     'current_page' => $products->currentPage(),
                     'last_page' => $products->lastPage(),
@@ -108,75 +129,50 @@ class ProductController extends Controller
         }
 
         $validated = $request->validate([
-            'name'                => 'required|string|max:255',
-            'description'         => 'nullable|string',
-            'vendor'              => 'nullable|string|max:255',
-            'type'                => 'nullable|string|max:255',
-            'sku'                 => 'nullable|string|max:255|unique:products,sku',
-            'barcode'             => 'nullable|string|max:255',
-            'price'               => 'required|numeric|min:0',
-            'compare_at_price'    => 'nullable|numeric|min:0',
-            'cost_per_item'       => 'nullable|numeric|min:0',
-            'stock'               => 'nullable|integer|min:0',
-            'status'              => 'nullable|in:draft,active,archived',
-            'track_quantity'      => 'nullable|boolean',
-            'allow_backorder'     => 'nullable|boolean',
-            'weight'              => 'nullable|string|max:50',
-            'weight_unit'         => 'nullable|in:kg,g,lb,oz',
-            'tags'                => 'nullable|string',
-            'meta_title'          => 'nullable|string|max:255',
-            'meta_description'    => 'nullable|string|max:500',
-            'handle'              => 'nullable|string|max:255|unique:products,handle',
-            'requires_shipping'   => 'nullable|boolean',
-            'taxable'             => 'nullable|boolean',
-            'category_id'         => 'nullable|integer',
-            // File upload (primary): use multipart/form-data with "image" (single) or "images[]" (multiple)
-            'images'              => 'nullable|array',
-            'images.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
-            'image'               => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            // Optional: pass URLs instead (e.g. JSON body)
-            'image_urls'          => 'nullable|array',
-            'image_urls.*'        => 'nullable|string|url',
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price'       => 'required|numeric|min:0',
+            'stock'       => 'nullable|integer|min:0',
+            'status'      => 'nullable|in:draft,active,archived',
+            'category_id' => 'nullable|integer',
+            'weight_unit' => 'nullable|in:kg,g,lb,oz',
+            'sku'         => 'nullable|string|max:255|unique:products,sku',
+            'handle'      => 'nullable|string|max:255|unique:products,handle',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images'      => 'nullable|array',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image_urls'  => 'nullable|array',
+            'image_urls.*'=> 'nullable|string|url',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
         ]);
 
-        // Generate handle from name if not provided
-        if (empty($validated['handle']) && ! empty($validated['name'])) {
-            $validated['handle'] = Str::slug($validated['name']);
-            // Ensure uniqueness
+        // Build create data from allowed fields only (no extra fields)
+        $createData = [];
+        foreach (self::PRODUCT_API_FIELDS as $key) {
+            $value = $request->input($key) ?? $request->request->get($key) ?? ($validated[$key] ?? null);
+            if ($value instanceof \Illuminate\Http\UploadedFile || is_array($value)) {
+                continue;
+            }
+            if ($value !== null && $value !== '') {
+                $createData[$key] = $value;
+            }
+        }
+        $createData['name'] = $createData['name'] ?? $validated['name'] ?? '';
+        $createData['price'] = $createData['price'] ?? $validated['price'] ?? 0;
+        $createData['status'] = $createData['status'] ?? $validated['status'] ?? 'draft';
+        $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
+        $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
+        if (empty($createData['handle']) && ! empty($createData['name'])) {
+            $createData['handle'] = Str::slug($createData['name']);
             $counter = 1;
-            $originalHandle = $validated['handle'];
-            while (Product::where('handle', $validated['handle'])->exists()) {
-                $validated['handle'] = $originalHandle . '-' . $counter;
-                $counter++;
+            $original = $createData['handle'];
+            while (Product::where('handle', $createData['handle'])->exists()) {
+                $createData['handle'] = $original . '-' . $counter++;
             }
         }
-
-        // Set defaults
-        $validated['status'] = $validated['status'] ?? 'draft';
-        $validated['track_quantity'] = $validated['track_quantity'] ?? true;
-        $validated['allow_backorder'] = $validated['allow_backorder'] ?? false;
-        $validated['requires_shipping'] = $validated['requires_shipping'] ?? true;
-        $validated['taxable'] = $validated['taxable'] ?? true;
-        $validated['weight_unit'] = $validated['weight_unit'] ?? 'kg';
-        $validated['stock'] = $validated['stock'] ?? 0;
-
-        // If category_id is set but category doesn't exist, leave product without category (assign later)
-        if (isset($validated['category_id']) && $validated['category_id'] !== null) {
-            if (! Category::find($validated['category_id'])) {
-                $validated['category_id'] = null;
-            }
-        }
-
-        // Only pass fillable attributes to create (exclude image_urls, images, etc.)
-        $createData = array_intersect_key($validated, array_flip((new Product)->getFillable()));
-
-        // category_id: when provided and valid → save it; when not provided → null (MySQL/PostgreSQL allow null)
-        $rawCategoryId = $request->input('category_id')
-            ?? $request->request->get('category_id')
-            ?? ($validated['category_id'] ?? null);
+        $rawCategoryId = $request->input('category_id') ?? $request->request->get('category_id') ?? ($validated['category_id'] ?? null);
         if (is_array($rawCategoryId)) {
             $rawCategoryId = $rawCategoryId[0] ?? null;
         }
@@ -236,26 +232,34 @@ class ProductController extends Controller
             ], 422);
         }
 
-        // Handle image file uploads: multipart uses "images[]" (multiple) or "image" (single)
-        $sortOrder = 0;
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $imagePath = $image->store('products', 'public');
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image_path' => $imagePath,
-                    'sort_order' => $sortOrder,
-                    'is_primary' => $sortOrder === 0,
-                ]);
-                $sortOrder++;
+        // Handle image file uploads: support 'image', 'images', or 'images[]' (Postman)
+        $uploadedFiles = [];
+        if ($request->hasFile('image')) {
+            $f = $request->file('image');
+            if ($f && $f->isValid()) {
+                $uploadedFiles[] = $f;
             }
-        } elseif ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
+        }
+        if ($request->hasFile('images')) {
+            $files = $request->file('images');
+            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+        }
+        if ($request->hasFile('images[]')) {
+            $files = $request->file('images[]');
+            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+        }
+        $uploadedFiles = array_values(array_filter($uploadedFiles, function ($f) {
+            return $f && $f->isValid();
+        }));
+
+        $sortOrder = 0;
+        foreach ($uploadedFiles as $image) {
+            $imagePath = $image->store('products', 'public');
             ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => $imagePath,
                 'sort_order' => $sortOrder,
-                'is_primary' => true,
+                'is_primary' => $sortOrder === 0,
             ]);
             $sortOrder++;
         }
@@ -283,10 +287,11 @@ class ProductController extends Controller
 
         // Check if this is an API request
         if ($request->expectsJson() || $request->is('api/*')) {
+            $product->load(['category', 'images', 'primaryImage']);
             return response()->json([
                 'status' => true,
                 'message' => 'Product created successfully.',
-                'data' => $product->load(['category', 'images', 'primaryImage'])
+                'data' => $this->productToApiData($product),
             ], 201);
         }
 
@@ -316,7 +321,7 @@ class ProductController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Product retrieved successfully.',
-                'data' => $product
+                'data' => $this->productToApiData($product),
             ]);
         }
         
@@ -375,54 +380,47 @@ class ProductController extends Controller
         }
 
         $validated = $request->validate([
-            'name'                => 'nullable|string|max:255',
-            'description'         => 'nullable|string',
-            'vendor'              => 'nullable|string|max:255',
-            'type'                => 'nullable|string|max:255',
-            'sku'                 => 'nullable|string|max:255|unique:products,sku,' . $id,
-            'barcode'             => 'nullable|string|max:255',
-            'price'               => 'nullable|numeric|min:0',
-            'compare_at_price'    => 'nullable|numeric|min:0',
-            'cost_per_item'       => 'nullable|numeric|min:0',
-            'stock'               => 'nullable|integer|min:0',
-            'status'              => 'nullable|in:draft,active,archived',
-            'track_quantity'      => 'nullable|boolean',
-            'allow_backorder'     => 'nullable|boolean',
-            'weight'              => 'nullable|string|max:50',
-            'weight_unit'         => 'nullable|in:kg,g,lb,oz',
-            'tags'                => 'nullable|string',
-            'meta_title'          => 'nullable|string|max:255',
-            'meta_description'    => 'nullable|string|max:500',
-            'handle'              => 'nullable|string|max:255|unique:products,handle,' . $id,
-            'requires_shipping'   => 'nullable|boolean',
-            'taxable'             => 'nullable|boolean',
-            'category_id'         => 'nullable|integer',
-            'image'               => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'images'              => 'nullable|array',
-            'images.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
-            'image_urls'          => 'nullable|array',
-            'image_urls.*'        => 'nullable|string|url',
+            'name'        => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'price'       => 'nullable|numeric|min:0',
+            'stock'       => 'nullable|integer|min:0',
+            'status'      => 'nullable|in:draft,active,archived',
+            'category_id' => 'nullable|integer',
+            'weight_unit' => 'nullable|in:kg,g,lb,oz',
+            'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,
+            'handle'      => 'nullable|string|max:255|unique:products,handle,' . $id,
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images'      => 'nullable|array',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image_urls'  => 'nullable|array',
+            'image_urls.*'=> 'nullable|string|url',
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
         ]);
 
-        // Build update payload: only fillable keys that are present in validated (partial update)
-        $updateData = array_intersect_key($validated, array_flip((new Product)->getFillable()));
-        // Do not pass file objects to update(); we set image path in file-upload blocks below
-        if (isset($updateData['image']) && $updateData['image'] instanceof \Illuminate\Http\UploadedFile) {
-            unset($updateData['image']);
-        }
-        if (isset($updateData['images'])) {
-            unset($updateData['images']);
+        // Build update payload from allowed fields only (no extra fields)
+        $updateData = [];
+        foreach (self::PRODUCT_API_FIELDS as $key) {
+            $value = $request->input($key) ?? $request->request->get($key);
+            if ($value === null && ! $request->has($key) && ! $request->request->has($key)) {
+                continue;
+            }
+            if ($value instanceof \Illuminate\Http\UploadedFile) {
+                continue;
+            }
+            if (is_array($value)) {
+                continue;
+            }
+            $updateData[$key] = $value;
         }
 
-        // category_id: from request / validated (form-data sends string)
-        $rawCategoryId = $request->input('category_id') ?? $request->request->get('category_id') ?? ($validated['category_id'] ?? null);
+        // category_id: normalize (form-data sends string; empty = null)
+        $rawCategoryId = $request->input('category_id') ?? $request->request->get('category_id');
         if (is_array($rawCategoryId)) {
             $rawCategoryId = $rawCategoryId[0] ?? null;
         }
-        if (array_key_exists('category_id', $validated) || $request->has('category_id')) {
+        if ($request->has('category_id')) {
             if ($rawCategoryId !== null && $rawCategoryId !== '' && is_numeric($rawCategoryId)) {
                 $cid = (int) $rawCategoryId;
                 $updateData['category_id'] = Category::find($cid) ? $cid : null;
@@ -505,12 +503,14 @@ class ProductController extends Controller
         }
 
         if ($request->expectsJson() || $request->is('api/*')) {
-            // Reload from DB by ID so image_url and all relations reflect the update (no stale in-memory state)
+            // Reload from DB so response shows all updated values (name, description, price, image, etc.)
             $fresh = Product::with(['category', 'images', 'primaryImage'])->find($product->id);
+            $updatedFields = array_keys($updateData);
             return response()->json([
                 'status' => true,
                 'message' => 'Product updated successfully.',
-                'data' => $fresh,
+                'updated_fields' => $updatedFields,
+                'data' => $this->productToApiData($fresh),
             ]);
         }
         return redirect()->route('admin.products.index')
@@ -794,10 +794,12 @@ class ProductController extends Controller
         $message = $newStatus === 'active' ? 'Product published successfully.' : 'Product unpublished successfully.';
 
         if ($request->expectsJson() || $request->is('api/*')) {
+            $product->refresh();
+            $product->load(['category', 'images', 'primaryImage']);
             return response()->json([
                 'status'  => true,
                 'message' => $message,
-                'data'    => $product->fresh()->load(['category', 'images', 'primaryImage']),
+                'data'    => $this->productToApiData($product),
             ]);
         }
         return redirect()->back()->with('success', $message);

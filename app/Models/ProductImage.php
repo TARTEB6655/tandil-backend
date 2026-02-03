@@ -47,8 +47,8 @@ class ProductImage extends Model
             $imagePath = 'products/' . $imagePath;
         }
         $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-        // Full URL via asset() – uses APP_URL or ASSET_URL so domain/CDN change is config-only
-        return asset('media/' . $imagePath);
+        // Full URL: {{origin}}/storage/{{path}} so app can build same from relative image_path
+        return asset('storage/' . $imagePath);
     }
 
     /**
