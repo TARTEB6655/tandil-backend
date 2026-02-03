@@ -472,6 +472,7 @@ class ProductController extends Controller
         $sortOrder = 0;
         if ($mainFile !== null) {
             $imagePath = $mainFile->store('products', 'public');
+            $this->compressProductImageIfNeeded($imagePath);
             ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => $imagePath,
@@ -482,6 +483,7 @@ class ProductController extends Controller
         }
         foreach ($extraFiles as $image) {
             $imagePath = $image->store('products', 'public');
+            $this->compressProductImageIfNeeded($imagePath);
             ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => $imagePath,

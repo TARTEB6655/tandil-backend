@@ -19,7 +19,7 @@ class CategoryRequest extends BaseFormRequest
             'name'        => $isUpdate ? 'nullable|string|max:255' : 'required|string|max:255',
             'slug'        => 'nullable|string|max:255|unique:categories,slug,' . $id,
             'description' => 'nullable|string',
-            'image'       => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
+            'image'       => 'nullable|image|mimes:jpeg,jpg,png,webp',
         ];
     }
 }

@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nRequest (multipart): name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), main_image (main product image), images[] (extra images). Legacy: image = main image.\n\nResponse 201/200: data.image (relative path), data.image_url (full URL .../media/products/...), data.images, data.primary_image. Env: base_url, token, category_id, product_id. Update Product: PUT form-data; main_image sets/updates main image only; images[] replace extra images.\n\nFlow: Health → Login → List Categories → Add/Update Product → etc.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nRequest (multipart): name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), main_image (main product image), images[] (extra images). Product and category images: any size accepted; stored files are auto-compressed to max 2 MB. Legacy: image = main image.\n\nResponse 201/200: data.image, data.image_url, data.images, data.primary_image. Env: base_url, token, category_id, product_id. Update Product: PUT form-data; main_image sets/updates main image only; images[] replace extra images.\n\nFlow: Health → Login → List Categories → Add/Update Product → etc.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.4.4"
+        "version": "2.4.6"
     },
     "item": [
         {
@@ -2216,8 +2216,8 @@
                                         {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
                                         {"key": "handle", "value": "test-product-uniquee", "type": "text"},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string array of URLs."},
-                                        {"key": "main_image", "type": "file", "src": [], "description": "Main product image (primary). Optional."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "Extra product images (one or more files). Optional."}
+                                        {"key": "main_image", "type": "file", "src": [], "description": "Main product image (primary). Any size; auto-compressed to max 2 MB. Optional."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Extra product images. Any size; auto-compressed to max 2 MB. Optional."}
                                     ]
                                 },
                                 "url": {
@@ -2225,7 +2225,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), image (single file) or images[] (one or more files). Response 201: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
+                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), main_image, images[] (any size; stored images auto-compressed to max 2 MB). Response 201: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2271,8 +2271,8 @@
                                         {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
                                         {"key": "handle", "value": "updated-product-handle", "type": "text"},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string array of URLs."},
-                                        {"key": "main_image", "type": "file", "src": [], "description": "Set or update main product image only. Optional."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "Replace extra images. Optional."}
+                                        {"key": "main_image", "type": "file", "src": [], "description": "Set or update main product image only. Any size; auto-compressed to max 2 MB. Optional."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Replace extra images. Any size; auto-compressed to max 2 MB. Optional."}
                                     ]
                                 },
                                 "url": {
@@ -2280,7 +2280,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product (PUT multipart/form-data). Fields: same as Add Product. main_image = set/update main product image only (keeps existing extras). images[] = replace extra images. Send main_image and/or images[] as needed. Set product_id in env. Response: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
+                                "description": "Update product (PUT multipart/form-data). Fields: same as Add Product. main_image = set/update main image only; images[] = replace extras. Images: any size; auto-compressed to max 2 MB. Set product_id in env. Response: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2418,7 +2418,7 @@
                             }
                         }
                     ],
-                    "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image (main product image), images[] (extra images). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST. Update: main_image = update main only; images[] = replace extras."
+                    "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
                 }
             ],
             "description": "Single module for all product APIs. Public: list/shop/products (optional ?category_id=), get by category, get categories. Admin: list (?category_id=), create (JSON or multipart with category_id), get, update (category_id optional), delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id is optional on create and update; response always includes data.category_id and data.category when set."
@@ -4247,11 +4247,11 @@
                                 {"key": "name", "value": "Fertilizers", "type": "text", "description": "Required"},
                                 {"key": "slug", "value": "fertilizers", "type": "text", "description": "Optional"},
                                 {"key": "description", "value": "Organic and chemical fertilizers", "type": "text", "description": "Optional"},
-                                {"key": "image", "type": "file", "src": [], "description": "Optional. Add image: select File and choose image (jpeg/png/webp max 5MB)."}
+                                {"key": "image", "type": "file", "src": [], "description": "Optional. Add image (jpeg/png/webp). Any size; auto-compressed to max 2 MB."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories", "host": ["{{base_url}}"], "path": ["api", "admin", "categories"]},
-                        "description": "Create category (admin). Use form-data: name (required), slug (optional), description (optional), image (optional – choose File and select image). Do not set Content-Type; Postman sets it for form-data. Response: success, message, data (id, name, slug, description, image, image_url). Use returned id as category_id in Add Product. For JSON-only use \"Categories - Create (JSON)\"."
+                        "description": "Create category (admin). Form-data: name (required), slug (optional), description (optional), image (optional – any size; auto-compressed to max 2 MB). Response: success, message, data (id, name, slug, description, image, image_url). Use returned id as category_id in Add Product. For JSON-only use \"Categories - Create (JSON)\"."
                     }
                 },
                 {
@@ -4314,11 +4314,11 @@
                                 {"key": "name", "value": "Updated Category Name", "type": "text"},
                                 {"key": "slug", "value": "updated-slug", "type": "text"},
                                 {"key": "description", "value": "Updated description", "type": "text"},
-                                {"key": "image", "type": "file", "src": [], "description": "Optional. Select File to change image (replaces existing). jpeg/png/webp max 5MB."}
+                                {"key": "image", "type": "file", "src": [], "description": "Optional. Replace image (jpeg/png/webp). Any size; auto-compressed to max 2 MB."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category (admin). Use form-data: name, slug, description (optional), image (optional – select File to replace image). Set category_id in env. Response: success, message, data (id, name, slug, description, image, image_url). For JSON-only use \"Categories - Update (JSON)\"."
+                        "description": "Update category (admin). Form-data: name, slug, description (optional), image (optional – any size; auto-compressed to max 2 MB). Set category_id in env. Response: success, message, data (id, name, slug, description, image, image_url). For JSON-only use \"Categories - Update (JSON)\"."
                     }
                 },
                 {
