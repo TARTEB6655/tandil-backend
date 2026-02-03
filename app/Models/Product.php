@@ -101,7 +101,7 @@ class Product extends Model
                 $imagePath = 'products/' . $imagePath;
             }
             $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-            return '/media/' . $imagePath;
+            return asset('media/' . $imagePath);
         }
         return null;
     }
@@ -109,6 +109,7 @@ class Product extends Model
     /**
      * Get the image URL (helper method for views).
      * Returns the primary image URL or the main image URL.
+     * Uses asset() so APP_URL / ASSET_URL control the base when domain or CDN changes.
      */
     public function getImageUrl()
     {
@@ -129,7 +130,7 @@ class Product extends Model
                 $imagePath = 'products/' . $imagePath;
             }
             $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-            return '/media/' . $imagePath;
+            return asset('media/' . $imagePath);
         }
         return null;
     }

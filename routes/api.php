@@ -142,6 +142,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'index']);
     Route::post('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'store']);
 
+    // Categories Management (add / list / show / update / delete)
+    Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+    Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
+    Route::get('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show']);
+    Route::put('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
+    Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
+
     // Products Management
     Route::get('/products', [\App\Http\Controllers\Admin\ProductController::class, 'index']);
     Route::post('/products', [\App\Http\Controllers\Admin\ProductController::class, 'store']);

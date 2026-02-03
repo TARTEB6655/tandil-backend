@@ -23,7 +23,7 @@ class Category extends Model
 
     /**
      * Get the full URL for the category image.
-     * Returns relative /media/ path for local storage so images load on any host/port.
+     * Uses asset() so APP_URL or ASSET_URL control the base when domain or CDN changes.
      */
     public function getImageUrlAttribute(): ?string
     {
@@ -35,7 +35,7 @@ class Category extends Model
             return $image;
         }
         $path = ltrim(str_replace('\\', '/', $image), '/');
-        return '/media/' . $path;
+        return asset('media/' . $path);
     }
 
     public function products()

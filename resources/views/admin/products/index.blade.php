@@ -22,18 +22,18 @@
                 </a>
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open" 
-                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         More actions
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="open" @click.away="open = false" x-cloak
-                         class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                         class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-600">
                         <div class="py-1">
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bulk edit</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Print barcodes</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export selected</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Bulk edit</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Print barcodes</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Export selected</a>
                         </div>
                     </div>
                 </div>
@@ -57,15 +57,15 @@
         @endif
 
         <!-- Bulk Actions Bar -->
-        <div id="bulkActionsBar" class="hidden bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
+        <div id="bulkActionsBar" class="hidden bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl p-4 mb-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
-                    <span class="text-sm font-medium text-indigo-900">
+                    <span class="text-sm font-medium text-indigo-900 dark:text-indigo-200">
                         <span id="selectedCount">0</span> product(s) selected
                     </span>
                     <div class="flex items-center gap-2">
                         <button onclick="bulkEdit()" 
-                                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors">
+                                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 dark:text-indigo-300 bg-white dark:bg-gray-800 border border-indigo-300 dark:border-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
@@ -80,16 +80,16 @@
                                 Change Status
                             </button>
                             <div x-show="open" @click.away="open = false" x-cloak
-                                 class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                 class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-600">
                                 <div class="py-1">
-                                    <button onclick="bulkChangeStatus('active')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set to Active</button>
-                                    <button onclick="bulkChangeStatus('draft')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set to Draft</button>
-                                    <button onclick="bulkChangeStatus('archived')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set to Archived</button>
+                                    <button onclick="bulkChangeStatus('active')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Set to Active</button>
+                                    <button onclick="bulkChangeStatus('draft')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Set to Draft</button>
+                                    <button onclick="bulkChangeStatus('archived')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Set to Archived</button>
                                 </div>
                             </div>
                         </div>
                         <button onclick="bulkDelete()" 
-                                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors">
+                                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-800 border border-red-300 dark:border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -98,7 +98,7 @@
                     </div>
                 </div>
                 <button onclick="clearSelection()" 
-                        class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                        class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">
                     Clear selection
                 </button>
             </div>

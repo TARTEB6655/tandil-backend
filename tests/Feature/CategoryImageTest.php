@@ -143,7 +143,9 @@ class CategoryImageTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.image', 'categories/test.jpg')
             ->assertJsonStructure(['data' => ['image_url']]);
-        $this->assertStringContainsString('storage/categories/test.jpg', $response->json('data.image_url'));
+        $imageUrl = $response->json('data.image_url');
+        $this->assertNotNull($imageUrl);
+        $this->assertStringContainsString('/media/categories/test.jpg', $imageUrl);
     }
 
     /**

@@ -11,8 +11,8 @@ class CategoryRequest extends BaseFormRequest
 
     public function rules(): array
     {
-        $category = $this->route('category');
-        $id = $category instanceof \App\Models\Category ? $category->id : $category;
+        $param = $this->route('category') ?? $this->route('id');
+        $id = $param instanceof \App\Models\Category ? $param->id : $param;
         $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
 
         return [

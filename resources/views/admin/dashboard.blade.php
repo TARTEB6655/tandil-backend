@@ -67,11 +67,11 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pending Reports</p>
                     <p class="text-lg font-medium text-amber-600">{{ number_format($pendingReports ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">View reports</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">View reports</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                     </div>
@@ -85,11 +85,11 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">New Orders</p>
                     <p class="text-lg font-medium text-green-600">{{ number_format($ordersToday ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">Manage orders</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Manage orders</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
                     </div>
@@ -103,11 +103,11 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Tips</p>
                     <p class="text-lg font-medium text-emerald-600">{{ number_format($totalTips ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">Manage tips</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Manage tips</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-emerald-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                     </div>
@@ -121,11 +121,11 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Report Management</p>
                     <p class="text-lg font-medium text-violet-600">{{ number_format($totalAdminReports ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">Generate & schedule</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Generate & schedule</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-violet-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                     </div>

@@ -139,16 +139,23 @@ class CategoryController extends Controller
     public function destroy($id)
     {
         $category = Category::findOrFail($id);
+
+        if ($category->products()->count() > 0) {
+            if (request()->expectsJson() || request()->is('api/*')) {
+                return ApiResponse::error('Cannot delete category with existing products. Reassign or delete products first.', 422);
+            }
+            return redirect()->route('admin.categories.index')
+                ->with('error', 'Cannot delete category with existing products. Please reassign or delete products first.');
+        }
+
         if ($category->image && Storage::disk('public')->exists($category->image)) {
             Storage::disk('public')->delete($category->image);
         }
         $category->delete();
-        
-        // Return view redirect for web requests, JSON for API requests
+
         if (request()->expectsJson() || request()->is('api/*')) {
             return ApiResponse::success('Category deleted successfully.');
         }
-        
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category deleted successfully.');
     }

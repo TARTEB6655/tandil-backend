@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 class AdminTest extends TestCase
@@ -285,7 +287,8 @@ class AdminTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonPath('status', true)
             ->assertJsonPath('data.name', $payload['name'])
-            ->assertJsonPath('data.image', $imageUrl1);
+            ->assertJsonPath('data.image', $imageUrl1)
+            ->assertJsonPath('data.image_url', $imageUrl1);
 
         $product = \App\Models\Product::where('handle', $unique)->first();
         $this->assertNotNull($product);
@@ -300,6 +303,51 @@ class AdminTest extends TestCase
             'product_id' => $product->id,
             'image_path' => $imageUrl2,
         ]);
+    }
+
+    /**
+     * Test add product API returns correct image_url when image file is uploaded.
+     */
+    public function test_add_product_with_image_file_returns_image_url()
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension required for image fake.');
+        }
+        Storage::fake('public');
+
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $category = Category::factory()->create();
+        $unique = 'test-product-file-' . uniqid();
+        $file = UploadedFile::fake()->image('product.jpg', 100, 100);
+
+        $response = $this->post('/api/admin/products', [
+            'name'        => 'Product With File ' . $unique,
+            'description' => 'Has image file',
+            'handle'      => $unique,
+            'sku'         => 'SKU-FILE-' . uniqid(),
+            'price'       => 29.99,
+            'status'      => 'active',
+            'category_id' => (string) $category->id,
+            'image'       => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', 'Product With File ' . $unique);
+
+        $data = $response->json('data');
+        $this->assertArrayHasKey('image_url', $data);
+        $imageUrl = $data['image_url'];
+        $this->assertNotNull($imageUrl);
+        $this->assertStringContainsString('/media/products/', $imageUrl);
+        $this->assertStringEndsWith('.jpg', $imageUrl);
+
+        $product = Product::where('handle', $unique)->first();
+        $this->assertNotNull($product->image);
+        $this->assertStringContainsString('products/', $product->image);
     }
 
     /**
@@ -546,6 +594,128 @@ class AdminTest extends TestCase
             ->assertJsonPath('status', true)
             ->assertJsonPath('data.status', 'active');
         $this->assertDatabaseHas('products', ['id' => $product->id, 'status' => 'active']);
+    }
+
+    /**
+     * Test admin can list categories (GET /api/admin/categories)
+     */
+    public function test_admin_can_list_categories()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        Category::factory()->create(['name' => 'Cat A', 'slug' => 'cat-a']);
+        Category::factory()->create(['name' => 'Cat B', 'slug' => 'cat-b']);
+
+        $response = $this->getJson('/api/admin/categories');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['data' => [['id', 'name', 'slug']]]]);
+        $data = $response->json('data');
+        $this->assertGreaterThanOrEqual(2, count($data['data'] ?? []));
+    }
+
+    /**
+     * Test admin can add category (POST /api/admin/categories)
+     */
+    public function test_admin_can_add_category()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson('/api/admin/categories', [
+            'name' => 'New Category',
+            'description' => 'Description here',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'New Category')
+            ->assertJsonPath('data.slug', 'new-category');
+        $this->assertDatabaseHas('categories', ['name' => 'New Category', 'slug' => 'new-category']);
+    }
+
+    /**
+     * Test admin can get category (GET /api/admin/categories/{id})
+     */
+    public function test_admin_can_get_category()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $category = Category::factory()->create(['name' => 'Get Me', 'slug' => 'get-me']);
+
+        $response = $this->getJson('/api/admin/categories/' . $category->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $category->id)
+            ->assertJsonPath('data.name', 'Get Me');
+    }
+
+    /**
+     * Test admin can update category (PUT /api/admin/categories/{id})
+     */
+    public function test_admin_can_update_category()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $category = Category::factory()->create(['name' => 'Original', 'slug' => 'original']);
+
+        $response = $this->putJson('/api/admin/categories/' . $category->id, [
+            'name' => 'Updated Name',
+            'description' => 'Updated description',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Updated Name');
+        $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Updated Name']);
+    }
+
+    /**
+     * Test admin can delete category (DELETE /api/admin/categories/{id})
+     */
+    public function test_admin_can_delete_category()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $category = Category::factory()->create(['name' => 'To Delete', 'slug' => 'to-delete']);
+        $id = $category->id;
+
+        $response = $this->deleteJson('/api/admin/categories/' . $id);
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertDatabaseMissing('categories', ['id' => $id]);
+    }
+
+    /**
+     * Test admin can update product with multipart form-data (PUT /api/admin/products/{id})
+     */
+    public function test_admin_can_update_product_with_multipart()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $category = Category::factory()->create(['name' => 'Cat', 'slug' => 'cat']);
+        $product = $this->createProduct(['name' => 'Original', 'category_id' => $category->id]);
+
+        $response = $this->call('PUT', '/api/admin/products/' . $product->id, [
+            'name' => 'Updated via multipart',
+            'price' => '79.99',
+            'stock' => '15',
+            'category_id' => (string) $category->id,
+        ], [], [], [
+            'HTTP_Accept' => 'application/json',
+            'HTTP_Authorization' => 'Bearer ' . $admin->createToken('test')->plainTextToken,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', 'Updated via multipart')
+            ->assertJsonPath('data.category_id', $category->id);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'name' => 'Updated via multipart',
+        ]);
     }
 }
 

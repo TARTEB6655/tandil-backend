@@ -30,8 +30,8 @@ class ProductImage extends Model
     /**
      * Get the full URL for the image.
      * Returns image_path as-is when it is already a full URL (http/https).
-     * Otherwise builds a URL for local paths. Uses relative path (/media/...) so
-     * images load correctly on any host/port (e.g. 127.0.0.1:8000 vs localhost).
+     * Otherwise builds a full URL using asset() so when domain or ASSET_URL
+     * changes in the future, all API responses stay correct (APP_URL / ASSET_URL).
      */
     public function getImageUrl()
     {
@@ -47,8 +47,8 @@ class ProductImage extends Model
             $imagePath = 'products/' . $imagePath;
         }
         $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-        // Relative URL under /media/ so images load on current host (fixes edit page when APP_URL differs)
-        return '/media/' . $imagePath;
+        // Full URL via asset() – uses APP_URL or ASSET_URL so domain/CDN change is config-only
+        return asset('media/' . $imagePath);
     }
 
     /**
