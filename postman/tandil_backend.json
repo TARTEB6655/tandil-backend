@@ -4,7 +4,7 @@
         "description": "Complete Tandil API backend collection. All API responses are JSON only. Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin: list/create/update/delete with category_id, multipart form-data for images), Categories (admin: list/add/get/edit/delete at /api/admin/categories), Technician & Supervisor, Admin Users/Roles/HR, Admin Reports, Admin Settings, Tips, Notifications, Complaints, Areas, Services, User Profile. Image URLs in responses are full URLs (APP_URL or ASSET_URL). Set base_url (e.g. http://127.0.0.1:8000), token (from Login), and optionally category_id (from List Categories). Use flow: Health → Login → List Categories → Add Product (with category_id) → etc.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.3.0"
+        "version": "2.3.1"
     },
     "item": [
         {
@@ -2250,33 +2250,36 @@
                             }
                         },
                         {
-                            "name": "Update Product",
+                            "name": "Update Product (Multipart – same as Add Product)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Updated Name\",\n  \"description\": \"Updated description\",\n  \"price\": 149.99,\n  \"stock\": 20,\n  \"status\": \"active\",\n  \"category_id\": 1\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "name", "value": "Updated Name", "type": "text"},
+                                        {"key": "description", "value": "Updated description", "type": "text"},
+                                        {"key": "price", "value": "149.99", "type": "text"},
+                                        {"key": "stock", "value": "20", "type": "text"},
+                                        {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Category ID or leave empty to clear."},
+                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
+                                        {"key": "handle", "value": "updated-product-handle", "type": "text"},
+                                        {"key": "image", "type": "file", "src": [], "description": "Single image (replaces/adds as primary)."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Multiple images. Add another row with key images[] for more."},
+                                        {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string of URLs, e.g. [\"https://example.com/a.jpg\"]."}
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products/{{product_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product (partial update). Supports JSON (raw) or multipart/form-data. Optional: name, description, price, stock, status, sku, handle, weight_unit, category_id, image (file), images[] (files), image_urls. Set category_id to assign or omit/empty to clear. For multipart: Body → form-data, send only fields to change + optional image/images[]. Response: status, message, data (image_url as full URL). Auth: Bearer {{token}}."
+                                "description": "Update product with multipart/form-data (same as Add Product). Send only fields you want to change. Form fields: name, description, price, stock, status, category_id ({{category_id}} or empty to clear), weight_unit, sku, handle; image (single file), images[] (multiple files), image_urls (optional JSON string). Do not set Content-Type header. Response: status, message, data (image_url as full URL). Auth: Bearer {{token}}."
                             }
                         },
                         {
