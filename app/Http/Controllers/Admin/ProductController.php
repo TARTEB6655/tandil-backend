@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
@@ -42,8 +43,36 @@ class ProductController extends Controller
     }
 
     /**
-     * PHP does not populate $_POST for PUT/PATCH requests. Parse multipart/form-data body
-     * and merge form fields into the request so $request->input() works in update().
+     * Validate product id from URL. Returns JSON error response or null if valid.
+     */
+    private function invalidProductIdResponse($id, Request $request): ?\Illuminate\Http\JsonResponse
+    {
+        if ($request->expectsJson() || $request->is('api/*')) {
+            if ($id === null || $id === '' || (string) $id === '0') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid product id. Use a numeric id (e.g. 1). If using Postman, set the product_id environment variable to an existing product id.',
+                ], 400);
+            }
+            if (! is_numeric($id) || (int) $id < 1) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid product id. Use a numeric id (e.g. 1). If using Postman, set the product_id environment variable.',
+                ], 400);
+            }
+            if (is_string($id) && (str_contains($id, '{{') || str_contains($id, '}}'))) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Product id looks like an unresolved variable. Set product_id in your Postman environment (e.g. from the List Products or Add Product response).',
+                ], 400);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * PHP does not populate $_POST or $_FILES for PUT/PATCH requests. Parse multipart/form-data
+     * body and merge form fields + file uploads into the request so update() works with both.
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -54,38 +83,72 @@ class ProductController extends Controller
         if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
             return;
         }
-        $boundary = $m[1] ?? $m[2];
+        $boundary = trim($m[1] ?? $m[2]);
         $raw = $request->getContent();
         if ($raw === '' || $raw === false) {
             return;
         }
         $params = [];
-        $parts = array_slice(explode('--' . trim($boundary), $raw), 1, -1);
+        $filesSingle = [];   // 'image' => UploadedFile
+        $filesMulti = [];    // 'images' => [UploadedFile, ...]
+        $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
         foreach ($parts as $part) {
-            if (trim($part) === '' || trim($part) === '--') {
+            $part = trim($part, "\r\n");
+            if ($part === '' || $part === '--') {
                 continue;
             }
-            $pos = strpos($part, "\r\n\r\n");
-            if ($pos === false) {
-                $pos = strpos($part, "\n\n");
+            $headerEnd = strpos($part, "\r\n\r\n");
+            if ($headerEnd === false) {
+                $headerEnd = strpos($part, "\n\n");
             }
-            if ($pos === false) {
+            if ($headerEnd === false) {
                 continue;
             }
-            $headers = substr($part, 0, $pos);
-            $value = ltrim(substr($part, $pos + 4), "\r\n");
+            $headers = substr($part, 0, $headerEnd);
+            $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
+            $value = substr($part, $bodyStart);
             $value = preg_replace('/\r?\n--\s*$/', '', $value);
             if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
                 continue;
             }
             $name = $nameMatch[1];
-            if (preg_match('/filename="([^"]*)"/', $headers, $fileMatch)) {
+            $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
+            if ($isFile) {
+                $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
+                $mimeType = null;
+                if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {
+                    $mimeType = trim($ctMatch[1]);
+                }
+                $tmpPath = tempnam(sys_get_temp_dir(), 'put_');
+                if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false) {
+                    $uploaded = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
+                    if ($name === 'image') {
+                        $filesSingle['image'] = $uploaded;
+                    } elseif ($name === 'images' || $name === 'images[]') {
+                        $filesMulti['images'] = $filesMulti['images'] ?? [];
+                        $filesMulti['images'][] = $uploaded;
+                    }
+                } else {
+                    if ($tmpPath !== false) {
+                        @unlink($tmpPath);
+                    }
+                }
                 continue;
             }
             $params[$name] = $value;
         }
         if ($params !== []) {
             $request->merge($params);
+        }
+        foreach ($filesSingle as $key => $file) {
+            $request->files->set($key, $file);
+        }
+        foreach ($filesMulti as $key => $fileArray) {
+            $request->files->set($key, $fileArray);
+            // Same as Add Product: support both 'images' and 'images[]' so single or multiple files work
+            if ($key === 'images') {
+                $request->files->set('images[]', $fileArray);
+            }
         }
     }
 
@@ -362,8 +425,11 @@ class ProductController extends Controller
      */
     public function show(Request $request, $id)
     {
+        if ($err = $this->invalidProductIdResponse($id, $request)) {
+            return $err;
+        }
         $product = Product::with(['category', 'images', 'primaryImage'])->findOrFail($id);
-        
+
         // Check if this is an API request
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
@@ -392,6 +458,9 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if ($err = $this->invalidProductIdResponse($id, $request)) {
+            return $err;
+        }
         $product = Product::find($id);
 
         if (! $product) {
@@ -482,7 +551,7 @@ class ProductController extends Controller
             }
         }
 
-        // Collect uploaded files: support 'image', 'images', or 'images[]' (Postman may send images[] as separate key)
+        // Same as Add Product: single image ('image') or multiple ('images[]' / 'images'); PUT multipart parsed in parsePutMultipartIntoRequest
         $uploadedFiles = [];
         if ($request->hasFile('image')) {
             $f = $request->file('image');
@@ -575,6 +644,9 @@ class ProductController extends Controller
      */
     public function destroy(Request $request, $id)
     {
+        if ($err = $this->invalidProductIdResponse($id, $request)) {
+            return $err;
+        }
         $product = Product::find($id);
 
         if (! $product) {
@@ -839,8 +911,11 @@ class ProductController extends Controller
      */
     public function toggleStatus(Request $request, $id)
     {
+        if ($err = $this->invalidProductIdResponse($id, $request)) {
+            return $err;
+        }
         $product = Product::findOrFail($id);
-        
+
         $newStatus = $product->status === 'active' ? 'draft' : 'active';
         $product->update(['status' => $newStatus]);
 
