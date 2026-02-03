@@ -616,7 +616,7 @@ class AdminTest extends TestCase
     }
 
     /**
-     * Test admin can add category (POST /api/admin/categories)
+     * Test admin can add category with JSON (POST /api/admin/categories)
      */
     public function test_admin_can_add_category()
     {
@@ -631,8 +631,50 @@ class AdminTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.name', 'New Category')
-            ->assertJsonPath('data.slug', 'new-category');
+            ->assertJsonPath('data.slug', 'new-category')
+            ->assertJsonStructure(['data' => ['id', 'name', 'slug', 'description']]);
         $this->assertDatabaseHas('categories', ['name' => 'New Category', 'slug' => 'new-category']);
+    }
+
+    /**
+     * Test admin can create category with multipart/form-data (POST /api/admin/categories) including image
+     */
+    public function test_admin_can_create_category_with_multipart()
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension required for image fake.');
+        }
+        Storage::fake('public');
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $file = UploadedFile::fake()->image('category-multipart.jpg', 100, 100);
+
+        $response = $this->post('/api/admin/categories', [
+            'name'        => 'Multipart Category',
+            'slug'        => 'multipart-category',
+            'description' => 'Created via form-data',
+            'image'       => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Multipart Category')
+            ->assertJsonPath('data.slug', 'multipart-category')
+            ->assertJsonStructure(['data' => ['id', 'name', 'slug', 'description', 'image', 'image_url']]);
+
+        $data = $response->json('data');
+        $this->assertNotNull($data['image']);
+        $this->assertStringContainsString('categories/', $data['image']);
+        $this->assertNotNull($data['image_url']);
+        $this->assertStringContainsString('/media/categories/', $data['image_url']);
+
+        $category = Category::where('slug', 'multipart-category')->first();
+        $this->assertNotNull($category);
+        $this->assertNotNull($category->image);
+        Storage::disk('public')->assertExists($category->image);
     }
 
     /**
@@ -653,7 +695,7 @@ class AdminTest extends TestCase
     }
 
     /**
-     * Test admin can update category (PUT /api/admin/categories/{id})
+     * Test admin can update category with JSON (PUT /api/admin/categories/{id})
      */
     public function test_admin_can_update_category()
     {
@@ -668,8 +710,57 @@ class AdminTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.name', 'Updated Name');
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonStructure(['data' => ['id', 'name', 'slug', 'description', 'image', 'image_url']]);
         $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Updated Name']);
+    }
+
+    /**
+     * Test admin can update category with multipart/form-data (PUT /api/admin/categories/{id}) including new image
+     */
+    public function test_admin_can_update_category_with_multipart()
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension required for image fake.');
+        }
+        Storage::fake('public');
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $category = Category::factory()->create([
+            'name'  => 'Original',
+            'slug'  => 'original',
+            'image' => 'categories/old-cat.jpg',
+        ]);
+        Storage::disk('public')->put('categories/old-cat.jpg', 'fake');
+
+        $file = UploadedFile::fake()->image('updated-category.jpg', 100, 100);
+
+        $response = $this->call('PUT', '/api/admin/categories/' . $category->id, [
+            'name'        => 'Updated Via Multipart',
+            'slug'        => 'updated-via-multipart',
+            'description' => 'Updated with form-data and image',
+            'image'       => $file,
+        ], [], [], [
+            'HTTP_Accept' => 'application/json',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Updated Via Multipart')
+            ->assertJsonPath('data.slug', 'updated-via-multipart');
+
+        $data = $response->json('data');
+        $this->assertNotNull($data['image']);
+        $this->assertStringContainsString('categories/', $data['image']);
+        $this->assertNotNull($data['image_url']);
+        $this->assertStringContainsString('/media/categories/', $data['image_url']);
+
+        $category->refresh();
+        $this->assertSame('Updated Via Multipart', $category->name);
+        $this->assertNotSame('categories/old-cat.jpg', $category->image);
+        Storage::disk('public')->assertMissing('categories/old-cat.jpg');
+        Storage::disk('public')->assertExists($category->image);
     }
 
     /**

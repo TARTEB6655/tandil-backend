@@ -4228,7 +4228,7 @@
                                 "categories"
                             ]
                         },
-                        "description": "List all categories (admin). Response: success, message, data (paginated: id, name, slug, description, image, image_url as full URL, products_count). Test script sets category_id from first category for use in Add Product. Auth: Bearer {{token}}, admin role."
+                        "description": "List all categories (admin). Response: success, message, data (paginated). Each category has id, name, slug, description, image (relative path), image_url (full URL e.g. .../media/categories/xxx.jpg), products_count. Set category_id in env from response for Add Product. Auth: Bearer {{token}}, admin role."
                     }
                 },
                 {
@@ -4264,7 +4264,28 @@
                                 "categories"
                             ]
                         },
-                        "description": "Add category (admin). Body: name (required), slug (optional), description (optional). Optional image: Body → form-data, name, description, image (file). jpeg/png/webp max 5MB. Response: success, message, data (id, name, slug, image_url as full URL). Use returned id as category_id in Add Product."
+                        "description": "Add category (admin) with JSON body. For multipart with image use \"Categories - Create (Multipart)\". Response: success, message, data (id, name, slug, description, image, image_url)."
+                    }
+                },
+                {
+                    "name": "Categories - Create (Multipart)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "name", "value": "Fertilizers", "type": "text", "description": "Required"},
+                                {"key": "slug", "value": "fertilizers", "type": "text", "description": "Optional"},
+                                {"key": "description", "value": "Organic and chemical fertilizers", "type": "text", "description": "Optional"},
+                                {"key": "image", "type": "file", "src": [], "description": "Optional. jpeg/png/webp max 5MB."}
+                            ]
+                        },
+                        "url": {"raw": "{{base_url}}/api/admin/categories", "host": ["{{base_url}}"], "path": ["api", "admin", "categories"]},
+                        "description": "Add category (admin) with multipart/form-data. Fields: name (required), slug (optional), description (optional), image (optional file). Response: success, message, data (id, name, slug, description, image, image_url). Set category_id from response for Add Product."
                     }
                 },
                 {
@@ -4293,7 +4314,7 @@
                                 "{{category_id}}"
                             ]
                         },
-                        "description": "Get one category by id (admin). Response: success, message, data (id, name, slug, description, image_url, products_count). Auth: Bearer token, admin role."
+                        "description": "Get one category by id (admin). Set category_id in env. Response: success, message, data (id, name, slug, description, image, image_url full URL, products_count). Auth: Bearer token, admin role."
                     }
                 },
                 {
@@ -4330,7 +4351,28 @@
                                 "{{category_id}}"
                             ]
                         },
-                        "description": "Edit/update category (admin). Body: name, slug, description (all optional – partial update). To change image: use form-data with image (file). Allowed: jpeg, jpg, png, webp; max 5MB. Response: success, message, data. Auth: Bearer token, admin role."
+                        "description": "Update category (admin) with JSON body. For multipart with image use \"Categories - Update (Multipart)\". Set category_id in env."
+                    }
+                },
+                {
+                    "name": "Categories - Update (Multipart)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "name", "value": "Updated Category Name", "type": "text"},
+                                {"key": "slug", "value": "updated-slug", "type": "text"},
+                                {"key": "description", "value": "Updated description", "type": "text"},
+                                {"key": "image", "type": "file", "src": [], "description": "Optional. New image replaces old. jpeg/png/webp max 5MB."}
+                            ]
+                        },
+                        "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
+                        "description": "Update category (admin) with multipart/form-data. Fields: name, slug, description (optional), image (optional file – replaces existing). Response: success, message, data (id, name, slug, description, image, image_url). Set category_id in env."
                     }
                 },
                 {

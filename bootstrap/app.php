@@ -68,15 +68,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 // NotFoundHttpException with clean JSON
                 if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
                     $routeMessage = $e->getMessage();
-                    $route = 'unknown';
                     if (preg_match('/route\s+([^\s]+)\s+could not be found/i', $routeMessage, $matches)) {
-                        $route = $matches[1];
+                        $message = "The route {$matches[1]} could not be found.";
                     } elseif (preg_match('/([^\s]+)\s+could not be found/i', $routeMessage, $matches)) {
-                        $route = $matches[1];
+                        $message = "The route {$matches[1]} could not be found.";
+                    } else {
+                        $message = 'Endpoint not found. Check the URL and HTTP method (e.g. PUT for update).';
                     }
                     return response()->json([
                         'success' => false,
-                        'message' => "The route {$route} could not be found.",
+                        'message' => $message,
                     ], 404);
                 }
                 // MethodNotAllowedHttpException: return 405

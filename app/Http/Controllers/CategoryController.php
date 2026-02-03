@@ -5,10 +5,109 @@ namespace App\Http\Controllers;
 use App\Helpers\ApiResponse;
 use App\Models\Category;
 use App\Http\Requests\CategoryRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 
 class CategoryController extends Controller
 {
+    /**
+     * Parse PUT/PATCH multipart body and merge form fields + image file into request
+     * (PHP does not populate $_POST/$_FILES for PUT).
+     */
+    private function parsePutMultipartIntoRequest(Request $request): void
+    {
+        $contentType = $request->header('Content-Type');
+        if (! $contentType || ! str_contains($contentType, 'multipart/form-data')) {
+            return;
+        }
+        if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
+            return;
+        }
+        $boundary = trim($m[1] ?? $m[2]);
+        $raw = $request->getContent();
+        if ($raw === '' || $raw === false) {
+            return;
+        }
+        $params = [];
+        $uploadedFile = null;
+        $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
+        foreach ($parts as $part) {
+            $part = trim($part, "\r\n");
+            if ($part === '' || $part === '--') {
+                continue;
+            }
+            $headerEnd = strpos($part, "\r\n\r\n");
+            if ($headerEnd === false) {
+                $headerEnd = strpos($part, "\n\n");
+            }
+            if ($headerEnd === false) {
+                continue;
+            }
+            $headers = substr($part, 0, $headerEnd);
+            $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
+            $value = substr($part, $bodyStart);
+            $value = preg_replace('/\r?\n--\s*$/', '', $value);
+            if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
+                continue;
+            }
+            $name = $nameMatch[1];
+            $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
+            if ($isFile) {
+                $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
+                $mimeType = null;
+                if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {
+                    $mimeType = trim($ctMatch[1]);
+                }
+                $tmpPath = tempnam(sys_get_temp_dir(), 'putcat_');
+                if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false && $name === 'image') {
+                    $uploadedFile = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
+                } else {
+                    if ($tmpPath !== false) {
+                        @unlink($tmpPath);
+                    }
+                }
+                continue;
+            }
+            $params[$name] = $value;
+        }
+        if ($params !== []) {
+            $request->merge($params);
+        }
+        if ($uploadedFile !== null) {
+            $request->files->set('image', $uploadedFile);
+        }
+    }
+
+    /**
+     * Validate category id for API. Returns JSON error response or null if valid.
+     */
+    private function invalidCategoryIdResponse($id, Request $request): ?\Illuminate\Http\JsonResponse
+    {
+        if (! $request->expectsJson() && ! $request->is('api/*')) {
+            return null;
+        }
+        if ($id === null || $id === '' || (string) $id === '0') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid category id. Use a numeric id. If using Postman, set the category_id environment variable (e.g. from List Categories).',
+            ], 400);
+        }
+        if (! is_numeric($id) || (int) $id < 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid category id. Use a numeric id. Set category_id in Postman environment if needed.',
+            ], 400);
+        }
+        if (is_string($id) && (str_contains($id, '{{') || str_contains($id, '}}'))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category id looks like an unresolved variable. Set category_id in your Postman environment (e.g. from List Categories).',
+            ], 400);
+        }
+        return null;
+    }
+
     // GET /categories
     public function index()
     {
@@ -68,8 +167,11 @@ class CategoryController extends Controller
     }
 
     // GET /categories/{id}
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        if ($err = $this->invalidCategoryIdResponse($id, $request)) {
+            return $err;
+        }
         $category = Category::findOrFail($id);
         
         // Return view for web requests, JSON for API requests
@@ -96,7 +198,16 @@ class CategoryController extends Controller
     // PUT /categories/{id}
     public function update(CategoryRequest $request, $id)
     {
+        if ($err = $this->invalidCategoryIdResponse($id, $request)) {
+            return $err;
+        }
         $category = Category::findOrFail($id);
+
+        // PHP does not populate $_POST/$_FILES for PUT; parse multipart so fields + image work
+        if ($request->isMethod('PUT') || $request->isMethod('PATCH')) {
+            $this->parsePutMultipartIntoRequest($request);
+        }
+
         $validated = $request->validated();
 
         // Auto-generate slug from name only when name is present and slug is empty
@@ -125,9 +236,10 @@ class CategoryController extends Controller
         // Only update fillable attributes present in validated (supports partial update)
         $updateData = array_intersect_key($validated, array_flip($category->getFillable()));
         $category->update($updateData);
-        
-        // Return view redirect for web requests, JSON for API requests
+
+        // Return view redirect for web requests, JSON for API requests (includes image, image_url)
         if (request()->expectsJson() || request()->is('api/*')) {
+            $category->refresh();
             return ApiResponse::success('Category updated successfully.', $category);
         }
         
@@ -136,8 +248,11 @@ class CategoryController extends Controller
     }
 
     // DELETE /categories/{id}
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        if ($err = $this->invalidCategoryIdResponse($id, $request)) {
+            return $err;
+        }
         $category = Category::findOrFail($id);
 
         if ($category->products()->count() > 0) {
