@@ -170,14 +170,16 @@ class ProductController extends Controller
         // Only pass fillable attributes to create (exclude image_urls, images, etc.)
         $createData = array_intersect_key($validated, array_flip((new Product)->getFillable()));
 
-        // Ensure category_id is set from request or validated (multipart sends string; cast to int or null)
-        $createData['category_id'] = null;
-        $rawCategoryId = $request->filled('category_id') ? $request->category_id : ($validated['category_id'] ?? null);
+        // Resolve category_id from request then validated (form-data sends string "2"; ensure it's used)
+        $rawCategoryId = $request->input('category_id') ?? ($validated['category_id'] ?? null);
+        if (is_array($rawCategoryId)) {
+            $rawCategoryId = $rawCategoryId[0] ?? null;
+        }
         if ($rawCategoryId !== null && $rawCategoryId !== '' && is_numeric($rawCategoryId)) {
             $cid = (int) $rawCategoryId;
-            if (Category::find($cid)) {
-                $createData['category_id'] = $cid;
-            }
+            $createData['category_id'] = Category::find($cid) ? $cid : null;
+        } else {
+            $createData['category_id'] = null;
         }
 
         // SQLite keeps category_id NOT NULL; use first category (or create Uncategorized) when none selected
