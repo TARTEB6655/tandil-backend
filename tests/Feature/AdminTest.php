@@ -610,9 +610,9 @@ class AdminTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['data' => [['id', 'name', 'slug']]]]);
+            ->assertJsonStructure(['data' => [['id', 'name', 'slug']], 'pagination' => ['current_page', 'last_page', 'per_page', 'total']]);
         $data = $response->json('data');
-        $this->assertGreaterThanOrEqual(2, count($data['data'] ?? []));
+        $this->assertGreaterThanOrEqual(2, count($data));
     }
 
     /**

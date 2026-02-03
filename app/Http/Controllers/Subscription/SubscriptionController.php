@@ -24,13 +24,19 @@ class SubscriptionController extends Controller
         $user = $request->user();
 
         if ($user->hasRole('admin')) {
-            $subs = Subscription::with('client')->get();
+            $subs = Subscription::with('client')->orderBy('created_at', 'desc')->get();
         } else {
             // Clients only see their own subscriptions
-            $subs = Subscription::where('client_id', $user->id)->with('visits')->get();
+            $subs = Subscription::where('client_id', $user->id)->with('visits')->orderBy('created_at', 'desc')->get();
         }
 
-        return ApiResponse::success('Subscriptions retrieved successfully.', $subs);
+        // Return full data array so list APIs show all fields in Postman
+        return response()->json([
+            'success' => true,
+            'message' => 'Subscriptions retrieved successfully.',
+            'data' => $subs->toArray(),
+            'total' => $subs->count(),
+        ]);
     }
 
     /**

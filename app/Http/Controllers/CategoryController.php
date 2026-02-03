@@ -205,15 +205,28 @@ class CategoryController extends Controller
     }
 
     // GET /categories
-    public function index()
+    public function index(Request $request)
     {
-        $categories = Category::withCount('products')->orderBy('id', 'desc')->paginate(10);
-        
-        // Return view for web requests, JSON for API requests
+        $perPage = (int) $request->query('per_page', 15);
+        $perPage = $perPage > 0 ? min($perPage, 100) : 15;
+        $categories = Category::withCount('products')->orderBy('id', 'desc')->paginate($perPage);
+
+        // Return view for web requests, JSON for API requests (data = full list, pagination = meta)
         if (request()->expectsJson() || request()->is('api/*')) {
-            return ApiResponse::success('Categories retrieved successfully.', $categories);
+            $items = $categories->items();
+            return response()->json([
+                'success' => true,
+                'message' => 'Categories retrieved successfully.',
+                'data' => array_map(fn (Category $c) => $c->toArray(), $items),
+                'pagination' => [
+                    'current_page' => $categories->currentPage(),
+                    'last_page' => $categories->lastPage(),
+                    'per_page' => $categories->perPage(),
+                    'total' => $categories->total(),
+                ],
+            ]);
         }
-        
+
         return view('admin.categories.index', compact('categories'));
     }
 

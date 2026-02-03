@@ -58,7 +58,9 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
+        $perPage = $perPage > 0 ? min($perPage, 100) : 15;
+        $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         // Return JSON for API requests
         if ($request->expectsJson() || $request->is('api/*')) {

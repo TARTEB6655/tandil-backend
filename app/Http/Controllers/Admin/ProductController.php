@@ -281,7 +281,9 @@ class ProductController extends Controller
             $query->where('stock', '<=', 0);
         }
 
-        $products = $query->orderBy('created_at', 'desc')->paginate(15);
+        $perPage = (int) $request->query('per_page', 15);
+        $perPage = $perPage > 0 ? min($perPage, 100) : 15;
+        $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
         $categories = \App\Models\Category::all();
 
         // Check if this is an API request

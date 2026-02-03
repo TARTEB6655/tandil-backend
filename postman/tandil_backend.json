@@ -4,7 +4,7 @@
         "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nRequest (multipart): name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), main_image (main product image), images[] (extra images). Product and category images: any size accepted; stored files are auto-compressed to max 2 MB. Legacy: image = main image.\n\nResponse 201/200: data.image, data.image_url, data.images, data.primary_image. Env: base_url, token, category_id, product_id. Update Product: PUT form-data; main_image sets/updates main image only; images[] replace extra images.\n\nFlow: Health → Login → List Categories → Add/Update Product → etc.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.4.6"
+        "version": "2.4.7"
     },
     "item": [
         {
@@ -2166,12 +2166,12 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/admin/products?search=&category_id={{category_id}}&filter=all",
+                                    "raw": "{{base_url}}/api/admin/products?search=&category_id={{category_id}}&filter=all&per_page=50",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"],
-                                    "query": [{"key": "search", "value": ""}, {"key": "category_id", "value": "{{category_id}}", "description": "Filter by category ID (from List Categories)"}, {"key": "filter", "value": "all"}]
+                                    "query": [{"key": "search", "value": ""}, {"key": "category_id", "value": "{{category_id}}", "description": "Filter by category ID (from List Categories)"}, {"key": "filter", "value": "all"}, {"key": "per_page", "value": "50", "description": "Items per page (1-100); use 50 or 100 to see more in Postman"}]
                                 },
-                                "description": "List all products (admin). Query: search, category_id (optional; use {{category_id}} from List Categories), filter (all|active|draft|archived). Response: data array; each product has data.image (relative), data.image_url (full URL e.g. .../storage/products/...), data.images, data.primary_image. Auth: Bearer {{token}}."
+                                "description": "List all products (admin). Query: search, category_id (optional), filter (all|active|draft|archived), per_page (1-100, default 15). Response: data = array of full product objects (id, name, description, price, stock, status, category_id, image, image_url, images, primary_image, category, etc.); pagination = current_page, last_page, per_page, total. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2192,7 +2192,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, category_id (integer; use id from List Categories; omit or null for no category), weight_unit, sku, handle, image_urls (array of URLs). Response 201: data.image (relative path), data.image_url (full URL e.g. .../storage/products/...), data.images (array of { id, product_id, image_path, sort_order, is_primary, created_at, updated_at }), data.primary_image (same shape). Auth: Bearer {{token}}."
+                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, category_id (integer; use id from List Categories; omit or null for no category), weight_unit, sku, handle, image_urls (array of URLs). Response 201: data.image (relative path), data.image_url (full URL e.g. .../media/products/...), data.images (array of { id, product_id, image_path, sort_order, is_primary, created_at, updated_at }), data.primary_image (same shape). Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -4220,7 +4220,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/admin/categories",
+                            "raw": "{{base_url}}/api/admin/categories?per_page=50",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -4228,9 +4228,10 @@
                                 "api",
                                 "admin",
                                 "categories"
-                            ]
+                            ],
+                            "query": [{"key": "per_page", "value": "50", "description": "Items per page (1-100); use 50 or 100 to see more in Postman"}]
                         },
-                        "description": "List all categories (admin). Response: success, message, data (paginated). Each category has id, name, slug, description, image (relative path), image_url (full URL e.g. .../media/categories/xxx.jpg), products_count. Set category_id in env from response for Add Product. Auth: Bearer {{token}}, admin role."
+                        "description": "List all categories (admin). Query: per_page (1-100, default 15). Response: success, message, data = array of full category objects (id, name, slug, description, image, image_url, products_count); pagination = current_page, last_page, per_page, total. Set category_id from response for Add Product. Auth: Bearer {{token}}, admin role."
                     }
                 },
                 {
