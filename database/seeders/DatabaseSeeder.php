@@ -19,11 +19,11 @@ class DatabaseSeeder extends Seeder
         $this->command->info('========================================');
         $this->command->info('');
 
-        // Roles + admin user + dummy subscriptions & reports (so admin Subscriptions/Reports pages show data)
+        // Roles + only the 6 fixed users (admin, client1, technician1, supervisor1, areamanager1, hr1) + dummy data for client1
         $this->call([
             RoleSeeder::class,
             RolePermissionSeeder::class,
-            AdminUserSeeder::class,
+            FixedUsersOnlySeeder::class,
             SubscriptionAndReportDummySeeder::class,
         ]);
 

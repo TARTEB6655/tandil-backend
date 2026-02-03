@@ -10,6 +10,9 @@ use App\Models\Subscription;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
 use App\Models\Report;
+use App\Models\Tip;
+use App\Models\Complaint;
+use App\Notifications\AdminNotification;
 
 class SampleDataSeeder extends Seeder
 {
@@ -21,8 +24,15 @@ class SampleDataSeeder extends Seeder
         // Create sample products
         Product::factory()->count(50)->create();
 
-        // Create sample clients
-        $clients = User::factory()->count(20)->create();
+        // Use only the fixed client (client1@test.com) for dummy subscriptions/visits
+        $client = User::where('email', 'client1@test.com')->first();
+        if (!$client) {
+            $this->command->warn('Client client1@test.com not found. Run FixedUsersOnlySeeder first. Skipping subscription/visit data.');
+            return;
+        }
+        $clients = collect([$client]);
+
+        $allVisits = [];
 
         foreach ($clients as $client) {
             $subscription = Subscription::factory()->create([
@@ -35,14 +45,50 @@ class SampleDataSeeder extends Seeder
             ]);
 
             foreach ($visits as $visit) {
+                $allVisits[] = $visit;
                 VisitPhoto::factory()->create(['visit_id' => $visit->id, 'type' => 'before']);
                 VisitPhoto::factory()->create(['visit_id' => $visit->id, 'type' => 'after']);
 
-                $report = Report::factory()->create([
+                Report::factory()->create([
                     'visit_id' => $visit->id,
                     'supervisor_id' => null,
                 ]);
             }
+        }
+
+        // Complaints (for ~20% of visits)
+        foreach ($allVisits as $visit) {
+            if (random_int(0, 9) < 2) {
+                Complaint::create([
+                    'visit_id' => $visit->id,
+                    'client_id' => $visit->subscription->client_id,
+                    'notes' => 'Sample complaint about visit #' . $visit->id,
+                    'status' => ['open', 'in_progress', 'resolved', 'escalated'][array_rand(['open', 'in_progress', 'resolved', 'escalated'])],
+                ]);
+            }
+        }
+
+        // Tips (created by admin)
+        $admin = User::where('role', 'admin')->first();
+        if ($admin) {
+            Tip::factory()->count(12)->create(['created_by' => $admin->id]);
+        } else {
+            Tip::factory()->count(12)->create();
+        }
+
+        // Notifications (database) for some clients and admin
+        $notificationExamples = [
+            ['title' => 'Welcome to Tandil', 'message' => 'Your account is set up. Explore your dashboard.'],
+            ['title' => 'Subscription reminder', 'message' => 'Your subscription will renew in 7 days.'],
+            ['title' => 'Visit scheduled', 'message' => 'A technician visit has been scheduled for next week.'],
+            ['title' => 'Report ready', 'message' => 'Your service report is now available to view.'],
+        ];
+        foreach ($clients as $client) {
+            $n = $notificationExamples[array_rand($notificationExamples)];
+            $client->notify(new AdminNotification($n['title'], $n['message']));
+        }
+        if ($admin) {
+            $admin->notify(new AdminNotification('System', 'New complaints and reports are available for review.'));
         }
     }
 }
