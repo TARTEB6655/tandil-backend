@@ -13,9 +13,10 @@ class CategoryRequest extends BaseFormRequest
     {
         $category = $this->route('category');
         $id = $category instanceof \App\Models\Category ? $category->id : $category;
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
 
         return [
-            'name'        => 'required|string|max:255',
+            'name'        => $isUpdate ? 'nullable|string|max:255' : 'required|string|max:255',
             'slug'        => 'nullable|string|max:255|unique:categories,slug,' . $id,
             'description' => 'nullable|string',
             'image'       => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',

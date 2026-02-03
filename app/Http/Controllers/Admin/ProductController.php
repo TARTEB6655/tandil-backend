@@ -170,6 +170,16 @@ class ProductController extends Controller
         // Only pass fillable attributes to create (exclude image_urls, images, etc.)
         $createData = array_intersect_key($validated, array_flip((new Product)->getFillable()));
 
+        // Ensure category_id is set from request or validated (multipart sends string; cast to int or null)
+        $createData['category_id'] = null;
+        $rawCategoryId = $request->filled('category_id') ? $request->category_id : ($validated['category_id'] ?? null);
+        if ($rawCategoryId !== null && $rawCategoryId !== '' && is_numeric($rawCategoryId)) {
+            $cid = (int) $rawCategoryId;
+            if (Category::find($cid)) {
+                $createData['category_id'] = $cid;
+            }
+        }
+
         try {
             $product = Product::create($createData);
         } catch (\Illuminate\Database\QueryException $e) {
@@ -368,7 +378,18 @@ class ProductController extends Controller
             }
         }
 
-        $product->update($validated);
+        // Build update payload: only fillable keys; ensure category_id from request (form/API can send string)
+        $updateData = array_intersect_key($validated, array_flip((new Product)->getFillable()));
+        if ($request->has('category_id')) {
+            if ($request->filled('category_id') && is_numeric($request->category_id)) {
+                $cid = (int) $request->category_id;
+                $updateData['category_id'] = Category::find($cid) ? $cid : null;
+            } else {
+                $updateData['category_id'] = null;
+            }
+        }
+
+        $product->update($updateData);
 
         // Check if this is an API request
         if ($request->expectsJson() || $request->is('api/*')) {

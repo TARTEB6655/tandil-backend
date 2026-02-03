@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Complete Tandil API backend collection. All API responses are JSON only (no HTML or raw error). Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin), Technician & Supervisor, Admin Dashboard, Admin Users/Roles/HR, Admin Reports, Admin Settings (Mobile), Tips, Notifications, Complaints, Categories, Areas, Services, User Profile. Use flow order for best testing. Set base_url (e.g. http://127.0.0.1:8000) and token (from Login) in collection variables.",
+        "description": "Complete Tandil API backend collection. All API responses are JSON only (no HTML or raw error). Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin with category_id/category), Technician & Supervisor, Admin Dashboard, Admin Users/Roles/HR, Admin Reports, Admin Settings (Mobile), Tips, Notifications, Complaints, Categories (create/update/delete; update supports partial body), Areas, Services, User Profile. Use flow order for best testing. Set base_url (e.g. http://127.0.0.1:8000) and token (from Login) in collection variables.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.1.0"
+        "version": "2.2.0"
     },
     "item": [
         {
@@ -2064,12 +2064,12 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/shop/products?per_page=12",
+                                    "raw": "{{base_url}}/api/shop/products?per_page=12&category_id=",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "shop", "products"],
-                                    "query": [{"key": "per_page", "value": "12"}]
+                                    "query": [{"key": "per_page", "value": "12"}, {"key": "category_id", "value": "", "description": "Optional: filter by category ID"}]
                                 },
-                                "description": "List products for shop/customer app. Query: per_page, search, category_id, status, sort_by, sort_dir."
+                                "description": "List products for shop/customer app. Query: per_page, search, category_id (optional filter), status, sort_by, sort_dir. Response: each product includes category_id and category (id, name)."
                             }
                         },
                         {
@@ -2142,7 +2142,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "shop", "products", "category", "{{category_id}}"]
                                 },
-                                "description": "Get products in a category. Set category_id (e.g. 1)."
+                                "description": "Get products in a category. Set category_id (e.g. 1). Response: data.category, data.products (each with category_id and category), data.pagination."
                             }
                         }
                     ],
@@ -2171,7 +2171,7 @@
                                     "path": ["api", "admin", "products"],
                                     "query": [{"key": "search", "value": ""}, {"key": "category_id", "value": ""}, {"key": "filter", "value": "all"}]
                                 },
-                                "description": "List all products (admin). Requires: Login first (POST /api/auth/login) with an admin user; use the returned token in Authorization: Bearer {{token}}. Set base_url and token in collection/environment variables. Query: search, category_id, filter (all|active|draft|archived)."
+                                "description": "List all products (admin). Requires: Login first (POST /api/auth/login) with an admin user; use the returned token in Authorization: Bearer {{token}}. Query: search, category_id (filter by category), filter (all|active|draft|archived). Response: each product includes category_id and category (id, name, etc.)."
                             }
                         },
                         {
@@ -2192,7 +2192,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Option A – Create product with JSON body. Use when user only adds image URLs (no device upload). Required: name, price. Optional: description, stock, status, category_id, weight_unit, sku, handle, image_urls (array of URLs). Response 201: data.image (relative path), data.image_url (full URL), data.images (array with image_path, sort_order, is_primary), data.primary_image (same shape as one entry in images). Auth: Bearer {{token}}."
+                                "description": "Option A – Create product with JSON body. Use when user only adds image URLs (no device upload). Required: name, price. Optional: description, stock, status, category_id (integer; omit or null for no category), weight_unit, sku, handle, image_urls (array of URLs). Response 201: data.category_id, data.category (id, name), data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2224,7 +2224,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Option B – Create product with multipart/form-data. Form fields (all text): name, description, price, stock, status, category_id (empty or e.g. 2), weight_unit, sku, handle; image_urls (optional JSON string array of URLs); images[] (one or more image files, e.g. JPEG). Response 201: data.image (relative path, e.g. products/xxx.jpg), data.image_url (full URL), data.images (array of { id, product_id, image_path, sort_order, is_primary, created_at, updated_at }), data.primary_image (same shape as one entry in images). Auth: Bearer {{token}}."
+                                "description": "Option B – Create product with multipart/form-data. Form fields (all text): name, description, price, stock, status, category_id (empty or e.g. 2; set to category ID to assign), weight_unit, sku, handle; image_urls (optional JSON string); images[] (one or more image files). Response 201: data.category_id, data.category (id, name), data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2246,7 +2246,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Get single product (admin). Response includes data.image (relative path), data.image_url (full URL), data.images, data.primary_image. App uses image_url when present; else builds full URL as {{origin}}/storage/{{path}}."
+                                "description": "Get single product (admin). Response includes data.category_id, data.category (id, name), data.image, data.image_url, data.images, data.primary_image."
                             }
                         },
                         {
@@ -2276,7 +2276,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product (partial update). All fields optional: name, description, price, stock, status, category_id. Set category_id to a category id to assign, or null/empty to clear (no category). Only send fields you want to change."
+                                "description": "Update product (partial update). All fields optional: name, description, price, stock, status, category_id. Set category_id to a category ID to assign, or omit/empty to clear. Response includes data.category_id, data.category (id, name). Only send fields you want to change."
                             }
                         },
                         {
@@ -2414,10 +2414,10 @@
                             }
                         }
                     ],
-                    "description": "Admin product APIs – require Authorization: Bearer {{token}}. Create product: same endpoint, two ways. (1) JSON: product fields + optional image_urls. (2) Multipart: form fields (name, description, price, stock, status, category_id, weight_unit, sku, handle) + image_urls (optional JSON string) + images[] (files). Response 201: data.image (relative path), data.image_url (full URL), data.images, data.primary_image. All responses JSON."
+                    "description": "Admin product APIs – require Authorization: Bearer {{token}}. Create: (1) JSON: product fields + optional category_id, image_urls. (2) Multipart: form fields including category_id (empty or ID) + images[]. List: use ?category_id= to filter. All product responses include category_id and category (id, name) when set. Bulk: product_ids array; toggle-status POST with no body."
                 }
             ],
-            "description": "Single module for all product APIs. Public (no auth) and Admin (Bearer token). Set token from Login for Admin requests. Add Product: you can create without any category (omit category_id); product is always created. Assign category later via Update Product. category_id is optional on create and update."
+            "description": "Single module for all product APIs. Public: list/shop/products (optional ?category_id=), get by category, get categories. Admin: list (?category_id=), create (JSON or multipart with category_id), get, update (category_id optional), delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id is optional on create and update; response always includes data.category_id and data.category when set."
         },
         {
             "name": "10. Admin & HR Routes",
@@ -4328,7 +4328,7 @@
                                 "{{category_id}}"
                             ]
                         },
-                        "description": "Update category. Body: name, slug, description (all optional). To change image: use Body type 'form-data' with name, slug, description (text) and image (file). New image replaces old; allowed: jpeg, jpg, png, webp; max 5MB. Response includes image_url."
+                        "description": "Update category (partial update). Body: name, slug, description (all optional – send only fields you want to change). To change image only: use Body type form-data with image (file). New image replaces old; allowed: jpeg, jpg, png, webp; max 5MB. Response includes image_url."
                     }
                 },
                 {

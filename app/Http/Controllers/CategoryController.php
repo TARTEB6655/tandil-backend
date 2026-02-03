@@ -98,20 +98,22 @@ class CategoryController extends Controller
     {
         $category = Category::findOrFail($id);
         $validated = $request->validated();
-        
-        // Auto-generate slug from name if not provided
-        if (empty($validated['slug'])) {
+
+        // Auto-generate slug from name only when name is present and slug is empty
+        if (!empty($validated['name']) && (empty($validated['slug']) || !array_key_exists('slug', $validated))) {
             $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
         }
-        
-        // Ensure slug is unique (excluding current category)
-        $counter = 1;
-        $originalSlug = $validated['slug'];
-        while (Category::where('slug', $validated['slug'])->where('id', '!=', $category->id)->exists()) {
-            $validated['slug'] = $originalSlug . '-' . $counter;
-            $counter++;
+
+        // Ensure slug is unique when we have a slug to update (excluding current category)
+        if (!empty($validated['slug'])) {
+            $counter = 1;
+            $originalSlug = $validated['slug'];
+            while (Category::where('slug', $validated['slug'])->where('id', '!=', $category->id)->exists()) {
+                $validated['slug'] = $originalSlug . '-' . $counter;
+                $counter++;
+            }
         }
-        
+
         // Handle image upload: delete old image if new one provided
         if ($request->hasFile('image')) {
             if ($category->image && Storage::disk('public')->exists($category->image)) {
@@ -119,8 +121,10 @@ class CategoryController extends Controller
             }
             $validated['image'] = $request->file('image')->store('categories', 'public');
         }
-        
-        $category->update($validated);
+
+        // Only update fillable attributes present in validated (supports partial update)
+        $updateData = array_intersect_key($validated, array_flip($category->getFillable()));
+        $category->update($updateData);
         
         // Return view redirect for web requests, JSON for API requests
         if (request()->expectsJson() || request()->is('api/*')) {

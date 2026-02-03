@@ -67,12 +67,17 @@ class ShopTest extends TestCase
      */
     public function test_anyone_can_view_products_by_category()
     {
-        $category = \App\Models\Category::factory()->create();
-        $this->createProduct(['category_id' => $category->id]);
+        $category = \App\Models\Category::factory()->create(['name' => 'Fertilizers']);
+        $this->createProduct(['category_id' => $category->id, 'name' => 'Product In Category', 'status' => 'active']);
+        $otherCategory = \App\Models\Category::factory()->create();
+        $this->createProduct(['category_id' => $otherCategory->id, 'name' => 'Other Product', 'status' => 'active']);
 
         $response = $this->getJson("/api/shop/products/category/{$category->id}");
 
         $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.category.id', $category->id)
+            ->assertJsonPath('data.category.name', 'Fertilizers')
             ->assertJsonStructure([
                 'success',
                 'data' => [
@@ -81,6 +86,33 @@ class ShopTest extends TestCase
                     'pagination'
                 ]
             ]);
+
+        $products = $response->json('data.products');
+        $this->assertCount(1, $products);
+        $this->assertSame($category->id, $products[0]['category_id']);
+    }
+
+    /**
+     * Test anyone can list shop products filtered by category_id query param
+     */
+    public function test_anyone_can_list_shop_products_filter_by_category_id()
+    {
+        $category = \App\Models\Category::factory()->create(['name' => 'Seeds']);
+        $this->createProduct(['category_id' => $category->id, 'name' => 'Seed Product', 'status' => 'active']);
+        $this->createProduct(['category_id' => $category->id, 'name' => 'Another Seed', 'status' => 'active']);
+        $otherCat = \App\Models\Category::factory()->create();
+        $this->createProduct(['category_id' => $otherCat->id, 'name' => 'Other', 'status' => 'active']);
+
+        $response = $this->getJson('/api/shop/products?category_id=' . $category->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $data = $response->json('data');
+        $this->assertCount(2, $data);
+        foreach ($data as $product) {
+            $this->assertSame($category->id, $product['category_id']);
+        }
     }
 
     /**

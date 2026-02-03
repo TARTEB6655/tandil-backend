@@ -176,6 +176,35 @@ class AdminTest extends TestCase
     }
 
     /**
+     * Test admin can list products filtered by category_id
+     */
+    public function test_admin_can_list_products_filter_by_category_id()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+
+        $catA = Category::factory()->create(['name' => 'Category A']);
+        $catB = Category::factory()->create(['name' => 'Category B']);
+        $this->createProduct(['name' => 'Product In A', 'category_id' => $catA->id]);
+        $this->createProduct(['name' => 'Product In B', 'category_id' => $catB->id]);
+        $this->createProduct(['name' => 'Another In A', 'category_id' => $catA->id]);
+
+        $response = $this->getJson('/api/admin/products?category_id=' . $catA->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('pagination.total', 2);
+
+        $data = $response->json('data');
+        $this->assertCount(2, $data);
+        foreach ($data as $product) {
+            $this->assertSame($catA->id, $product['category_id']);
+            $this->assertArrayHasKey('category', $product);
+            $this->assertSame($catA->id, $product['category']['id']);
+        }
+    }
+
+    /**
      * Test admin can create product (valid payload)
      */
     public function test_admin_can_create_product()
@@ -211,12 +240,16 @@ class AdminTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonPath('status', true)
             ->assertJsonPath('data.name', $payload['name'])
-            ->assertJsonPath('data.price', 99.99);
+            ->assertJsonPath('data.price', 99.99)
+            ->assertJsonPath('data.category_id', $category->id)
+            ->assertJsonPath('data.category.id', $category->id)
+            ->assertJsonPath('data.category.name', $category->name);
 
         $this->assertDatabaseHas('products', [
-            'name'   => $payload['name'],
-            'sku'    => $payload['sku'],
-            'handle' => $unique,
+            'name'        => $payload['name'],
+            'sku'         => $payload['sku'],
+            'handle'      => $unique,
+            'category_id' => $category->id,
         ]);
     }
 
@@ -366,41 +399,54 @@ class AdminTest extends TestCase
     }
 
     /**
-     * Test admin can show single product
+     * Test admin can show single product (includes category)
      */
     public function test_admin_can_show_product()
     {
         $admin = $this->createAdmin();
         Sanctum::actingAs($admin);
-        $product = $this->createProduct(['name' => 'Show Me']);
+        $category = Category::factory()->create(['name' => 'Electronics']);
+        $product = $this->createProduct(['name' => 'Show Me', 'category_id' => $category->id]);
 
         $response = $this->getJson("/api/admin/products/{$product->id}");
 
         $response->assertStatus(200)
             ->assertJsonPath('status', true)
-            ->assertJsonPath('data.name', 'Show Me');
+            ->assertJsonPath('data.name', 'Show Me')
+            ->assertJsonPath('data.category_id', $category->id)
+            ->assertJsonPath('data.category.id', $category->id)
+            ->assertJsonPath('data.category.name', 'Electronics');
     }
 
     /**
-     * Test admin can update product
+     * Test admin can update product (including category_id)
      */
     public function test_admin_can_update_product()
     {
         $admin = $this->createAdmin();
         Sanctum::actingAs($admin);
+        $category = Category::factory()->create(['name' => 'Updated Category']);
         $product = $this->createProduct(['name' => 'Original Name']);
 
         $response = $this->putJson("/api/admin/products/{$product->id}", [
-            'name'  => 'Updated Name',
-            'price' => 199.99,
+            'name'        => 'Updated Name',
+            'price'       => 199.99,
+            'category_id' => $category->id,
         ]);
 
         $response->assertStatus(200)
             ->assertJsonPath('status', true)
             ->assertJsonPath('data.name', 'Updated Name')
-            ->assertJsonPath('data.price', 199.99);
+            ->assertJsonPath('data.price', 199.99)
+            ->assertJsonPath('data.category_id', $category->id)
+            ->assertJsonPath('data.category.id', $category->id)
+            ->assertJsonPath('data.category.name', 'Updated Category');
 
-        $this->assertDatabaseHas('products', ['id' => $product->id, 'name' => 'Updated Name']);
+        $this->assertDatabaseHas('products', [
+            'id'          => $product->id,
+            'name'        => 'Updated Name',
+            'category_id' => $category->id,
+        ]);
     }
 
     /**
