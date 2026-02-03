@@ -100,7 +100,8 @@ class Product extends Model
             if (strpos($imagePath, 'products/') !== 0) {
                 $imagePath = 'products/' . $imagePath;
             }
-            return \App\Models\ProductImage::normalizeStorageUrl(Storage::disk('public')->url($imagePath));
+            $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
+            return '/media/' . $imagePath;
         }
         return null;
     }
@@ -127,7 +128,8 @@ class Product extends Model
             if (strpos($imagePath, 'products/') !== 0) {
                 $imagePath = 'products/' . $imagePath;
             }
-            return \App\Models\ProductImage::normalizeStorageUrl(Storage::disk('public')->url($imagePath));
+            $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
+            return '/media/' . $imagePath;
         }
         return null;
     }

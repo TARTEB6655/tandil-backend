@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Facades\Storage;
 
 class Category extends Model
 {
@@ -24,6 +23,7 @@ class Category extends Model
 
     /**
      * Get the full URL for the category image.
+     * Returns relative /media/ path for local storage so images load on any host/port.
      */
     public function getImageUrlAttribute(): ?string
     {
@@ -34,7 +34,8 @@ class Category extends Model
         if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
             return $image;
         }
-        return Storage::disk('public')->url($image);
+        $path = ltrim(str_replace('\\', '/', $image), '/');
+        return '/media/' . $path;
     }
 
     public function products()

@@ -180,6 +180,20 @@ class ProductController extends Controller
             }
         }
 
+        // SQLite keeps category_id NOT NULL; use first category (or create Uncategorized) when none selected
+        if ($createData['category_id'] === null && \Illuminate\Support\Facades\Schema::getConnection()->getDriverName() === 'sqlite') {
+            $firstCategory = Category::orderBy('id')->first();
+            if ($firstCategory) {
+                $createData['category_id'] = $firstCategory->id;
+            } else {
+                $uncategorized = Category::firstOrCreate(
+                    ['slug' => 'uncategorized'],
+                    ['name' => 'Uncategorized', 'description' => null]
+                );
+                $createData['category_id'] = $uncategorized->id;
+            }
+        }
+
         try {
             $product = Product::create($createData);
         } catch (\Illuminate\Database\QueryException $e) {

@@ -74,6 +74,8 @@
     <!-- Toast Notifications -->
     <x-toast-notifications />
 
+    @stack('scripts')
+
     <!-- Apply theme so dashboard colors match Theme Settings (dark / light / system) -->
     <script>
         (function() {

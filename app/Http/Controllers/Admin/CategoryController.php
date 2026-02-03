@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
@@ -39,6 +40,7 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
             'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -49,6 +51,10 @@ class CategoryController extends Controller
         while (Category::where('slug', $validated['slug'])->exists()) {
             $validated['slug'] = $originalSlug . '-' . $counter;
             $counter++;
+        }
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('categories', 'public');
         }
 
         Category::create($validated);
@@ -76,6 +82,8 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
             'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'remove_image' => 'nullable|boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -87,6 +95,17 @@ class CategoryController extends Controller
             $validated['slug'] = $originalSlug . '-' . $counter;
             $counter++;
         }
+
+        if (!empty($validated['remove_image']) || $request->hasFile('image')) {
+            if ($category->image && Storage::disk('public')->exists($category->image)) {
+                Storage::disk('public')->delete($category->image);
+            }
+            $validated['image'] = null;
+        }
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('categories', 'public');
+        }
+        unset($validated['remove_image']);
 
         $category->update($validated);
 
@@ -105,6 +124,10 @@ class CategoryController extends Controller
         if ($category->products()->count() > 0) {
             return redirect()->route('admin.categories.index')
                 ->with('error', 'Cannot delete category with existing products. Please reassign or delete products first.');
+        }
+
+        if ($category->image && Storage::disk('public')->exists($category->image)) {
+            Storage::disk('public')->delete($category->image);
         }
 
         $category->delete();

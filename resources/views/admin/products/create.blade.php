@@ -28,41 +28,51 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Main Content (Left Column - 2/3) -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- Product Images -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
-                        <h2 class="text-lg font-medium text-gray-900 mb-4">Media</h2>
-                        <div class="space-y-4">
-                            <!-- Image Upload Area -->
-                            <div id="imageUploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-400 transition-colors">
-                                <input type="file" 
-                                       id="imageInput" 
-                                       name="images[]" 
-                                       multiple 
-                                       accept="image/*" 
-                                       class="hidden"
-                                       onchange="handleImageUpload(event)">
-                                <div class="flex flex-col items-center">
-                                    <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <p class="text-sm text-gray-600 mb-2">Add images to your product</p>
-                                    <button type="button" 
-                                            onclick="document.getElementById('imageInput').click()"
-                                            class="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                                        Add images
-                                    </button>
+                    <!-- Product media (Shopify-style) -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Media</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">First image is the main product image. Drag to reorder, or click a thumbnail to set as main.</p>
+                        </div>
+                        <div class="p-5">
+                            <input type="file" id="imageInput" name="images[]" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="sr-only">
+
+                            <!-- Empty state: label opens file picker (works without JS) -->
+                            <label id="imageUploadArea" for="imageInput" class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/30 min-h-[280px] cursor-pointer transition-colors hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 block">
+                                <div class="flex flex-col items-center text-center pointer-events-none">
+                                    <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mb-4">
+                                        <svg class="w-8 h-8 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Add product photos</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">or drop files here</p>
+                                    <p id="dropHint" class="text-xs text-indigo-600 dark:text-indigo-400 mt-2 hidden font-medium">Drop to add</p>
                                 </div>
-                            </div>
-                            
-                            <!-- Image Preview Grid -->
-                            <div id="imagePreviewGrid" class="grid grid-cols-4 gap-4 hidden">
-                                <!-- Images will be dynamically added here -->
+                            </label>
+
+                            <!-- With images: Shopify-style — large main + thumbnail strip (drag to reorder, click to set main) -->
+                            <div id="imagePreviewSection" class="hidden">
+                                <div class="flex flex-col gap-4">
+                                    <!-- Large main image (like Shopify) -->
+                                    <div id="primaryPreviewWrap" class="w-full aspect-square max-w-md rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                        <img id="primaryPreviewImg" src="" alt="Main product image" class="w-full h-full object-cover">
+                                    </div>
+                                    <!-- Thumbnail strip: drag to reorder, click to set main, + Add more -->
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div id="imagePreviewGrid" class="flex flex-wrap gap-2 items-center">
+                                            <!-- Thumbs filled by JS (draggable, clickable) -->
+                                        </div>
+                                        <button type="button" id="addMoreBtn" class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors gap-0.5 bg-transparent" title="Add more photos">
+                                            <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">Add</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Product Title & Description -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <div class="mb-4">
                             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
                                 Product title <span class="text-red-500">*</span>
@@ -92,7 +102,7 @@
                     </div>
 
                     <!-- Pricing -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Pricing</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -159,7 +169,7 @@
                     </div>
 
                     <!-- Inventory -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Inventory</h2>
                         <div class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -231,7 +241,7 @@
                     </div>
 
                     <!-- Shipping -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Shipping</h2>
                         <div class="space-y-4">
                             <div class="flex items-center">
@@ -273,7 +283,7 @@
                     </div>
 
                     <!-- Search Engine Listing -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Search engine listing preview</h2>
                         <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                             <div class="text-sm">
@@ -337,7 +347,7 @@
                 <!-- Sidebar (Right Column - 1/3) -->
                 <div class="lg:col-span-1 space-y-6">
                     <!-- Status -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Status</h2>
                         <select id="status" 
                                 name="status"
@@ -349,7 +359,7 @@
                     </div>
 
                     <!-- Product Organization -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Product organization</h2>
                         <div class="space-y-4">
                             <div>
@@ -408,7 +418,7 @@
                     </div>
 
                     <!-- Tax -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Tax</h2>
                         <div class="flex items-center">
                             <input type="checkbox" 
@@ -424,10 +434,10 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <div class="space-y-3">
-                            <button type="submit" 
-                                    class="w-full px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors">
+                            <button type="submit" id="submitProductBtn"
+                                    class="w-full px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                                 Save product
                             </button>
                             <a href="{{ route('admin.products.index') }}" 
@@ -443,92 +453,208 @@
 
     @push('scripts')
     <script>
-        let uploadedImages = [];
-        const imageInput = document.getElementById('imageInput');
+        (function() {
+            var uploadedImages = [];
+            var imageInput = document.getElementById('imageInput');
+            var imageUploadArea = document.getElementById('imageUploadArea');
+            var imagePreviewSection = document.getElementById('imagePreviewSection');
+            var imagePreviewGrid = document.getElementById('imagePreviewGrid');
+            var primaryPreviewImg = document.getElementById('primaryPreviewImg');
 
-        function handleImageUpload(event) {
-            const files = Array.from(event.target.files || []);
-            const previewGrid = document.getElementById('imagePreviewGrid');
-            const uploadArea = document.getElementById('imageUploadArea');
-
-            files.forEach((file) => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
+            function addFiles(files) {
+                var list = Array.from(files || []).filter(function(f) { return f.type && f.type.indexOf('image/') === 0; });
+                if (list.length === 0) return;
+                var pending = list.length;
+                list.forEach(function(file) {
+                    var reader = new FileReader();
                     reader.onload = function(e) {
-                        uploadedImages.push({
-                            file: file,
-                            preview: e.target.result
-                        });
-                        updateImagePreview();
-                        // Sync all uploaded images back to the file input so form submits them all
-                        const dt = new DataTransfer();
-                        uploadedImages.forEach(img => dt.items.add(img.file));
-                        imageInput.files = dt.files;
+                        uploadedImages.push({ file: file, preview: e.target.result });
+                        if (--pending === 0) {
+                            updateImagePreview();
+                            syncFileInput();
+                        }
                     };
                     reader.readAsDataURL(file);
-                }
-            });
-        }
-
-        function updateImagePreview() {
-            const previewGrid = document.getElementById('imagePreviewGrid');
-            const uploadArea = document.getElementById('imageUploadArea');
-            
-            if (uploadedImages.length > 0) {
-                previewGrid.classList.remove('hidden');
-                uploadArea.classList.add('hidden');
-                
-                previewGrid.innerHTML = uploadedImages.map((img, index) => `
-                    <div class="relative group">
-                        <img src="${img.preview}" alt="Preview" class="w-full h-32 object-cover rounded-lg border border-gray-200">
-                        <button type="button" 
-                                onclick="removeImage(${index})"
-                                class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        ${index === 0 ? '<div class="absolute bottom-2 left-2 px-2 py-1 bg-blue-500 text-white text-xs rounded">Primary</div>' : ''}
-                    </div>
-                `).join('');
-            } else {
-                previewGrid.classList.add('hidden');
-                uploadArea.classList.remove('hidden');
+                });
             }
-        }
 
-        function removeImage(index) {
-            uploadedImages.splice(index, 1);
-            const dt = new DataTransfer();
-            uploadedImages.forEach(img => dt.items.add(img.file));
-            imageInput.files = dt.files;
-            updateImagePreview();
-        }
-
-        // Allow drag and drop
-        const uploadArea = document.getElementById('imageUploadArea');
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('border-indigo-400', 'bg-indigo-50');
-        });
-
-        uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50');
-            const files = Array.from(e.dataTransfer.files);
-            const imageFiles = files.filter(f => f.type.startsWith('image/'));
-            if (imageFiles.length > 0) {
-                const dt = new DataTransfer();
-                imageFiles.forEach(f => dt.items.add(f));
+            function syncFileInput() {
+                var dt = new DataTransfer();
+                uploadedImages.forEach(function(img) { dt.items.add(img.file); });
                 imageInput.files = dt.files;
-                handleImageUpload({ target: { files: imageInput.files } });
             }
-        });
+
+            function handleImageUpload(event) {
+                addFiles(event.target.files);
+                event.target.value = '';
+            }
+
+            function updateImagePreview() {
+                if (uploadedImages.length > 0) {
+                    imageUploadArea.classList.add('hidden');
+                    imagePreviewSection.classList.remove('hidden');
+                    if (primaryPreviewImg) primaryPreviewImg.src = uploadedImages[0].preview;
+                    imagePreviewGrid.innerHTML = uploadedImages.map(function(img, index) {
+                        var isPrimary = index === 0;
+                        return '<div class="media-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-move ' + (isPrimary ? 'border-indigo-500 ring-2 ring-indigo-500/40' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500') + '" data-index="' + index + '" draggable="true" title="Drag to reorder, click to set as main">' +
+                            '<img src="' + img.preview + '" alt="" class="w-full h-full object-cover pointer-events-none">' +
+                            '<span class="absolute top-0.5 left-0.5 w-5 h-5 flex items-center justify-center bg-black/50 rounded cursor-move text-white text-[10px] font-bold leading-none" title="Drag to reorder">⋮⋮</span>' +
+                            (isPrimary ? '<span class="absolute bottom-0 left-0 right-0 bg-indigo-600 text-white text-[10px] font-medium text-center py-0.5">Main</span>' : '') +
+                            '<button type="button" class="media-remove absolute top-0.5 right-0.5 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity" data-index="' + index + '" title="Remove"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>' +
+                            '</div>';
+                    }).join('');
+                    bindMediaButtons();
+                    bindThumbDrag();
+                } else {
+                    imagePreviewSection.classList.add('hidden');
+                    imageUploadArea.classList.remove('hidden');
+                    if (primaryPreviewImg) primaryPreviewImg.src = '';
+                }
+            }
+
+            function bindMediaButtons() {
+                if (!imagePreviewGrid) return;
+                imagePreviewGrid.querySelectorAll('.media-thumb').forEach(function(thumb) {
+                    thumb.addEventListener('click', function(e) {
+                        if (e.target.closest('.media-remove')) return;
+                        var idx = parseInt(thumb.getAttribute('data-index'), 10);
+                        if (idx !== 0) setPrimary(idx);
+                    });
+                });
+                imagePreviewGrid.querySelectorAll('.media-remove').forEach(function(btn) {
+                    btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); removeImage(parseInt(btn.getAttribute('data-index'), 10)); };
+                });
+            }
+
+            var draggedIndex = null;
+            function bindThumbDrag() {
+                if (!imagePreviewGrid) return;
+                var thumbs = imagePreviewGrid.querySelectorAll('.media-thumb');
+                thumbs.forEach(function(thumb) {
+                    thumb.setAttribute('draggable', 'true');
+                    thumb.ondragstart = function(e) {
+                        draggedIndex = parseInt(thumb.getAttribute('data-index'), 10);
+                        e.dataTransfer.setData('text/plain', draggedIndex);
+                        e.dataTransfer.effectAllowed = 'move';
+                        thumb.classList.add('opacity-50');
+                    };
+                    thumb.ondragend = function() {
+                        thumb.classList.remove('opacity-50');
+                        draggedIndex = null;
+                    };
+                    thumb.ondragover = function(e) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        var idx = parseInt(thumb.getAttribute('data-index'), 10);
+                        if (draggedIndex !== null && draggedIndex !== idx) thumb.classList.add('ring-2', 'ring-indigo-400');
+                    };
+                    thumb.ondragleave = function() {
+                        thumb.classList.remove('ring-2', 'ring-indigo-400');
+                    };
+                    thumb.ondrop = function(e) {
+                        e.preventDefault();
+                        thumb.classList.remove('ring-2', 'ring-indigo-400');
+                        var toIndex = parseInt(thumb.getAttribute('data-index'), 10);
+                        if (draggedIndex === null || draggedIndex === toIndex) { draggedIndex = null; return; }
+                        var item = uploadedImages.splice(draggedIndex, 1)[0];
+                        uploadedImages.splice(toIndex, 0, item);
+                        draggedIndex = null;
+                        syncFileInput();
+                        updateImagePreview();
+                    };
+                });
+            }
+
+            function moveImage(index, direction) {
+                var newIndex = index + direction;
+                if (newIndex < 0 || newIndex >= uploadedImages.length) return;
+                var item = uploadedImages.splice(index, 1)[0];
+                uploadedImages.splice(newIndex, 0, item);
+                syncFileInput();
+                updateImagePreview();
+            }
+
+            function setPrimary(index) {
+                if (index <= 0) return;
+                var item = uploadedImages.splice(index, 1)[0];
+                uploadedImages.unshift(item);
+                syncFileInput();
+                updateImagePreview();
+            }
+
+            function removeImage(index) {
+                uploadedImages.splice(index, 1);
+                syncFileInput();
+                updateImagePreview();
+            }
+
+            function openFilePicker() {
+                if (imageInput) imageInput.click();
+            }
+
+            function setupDropZone(el, onDrop) {
+                if (!el) return;
+                if (el.tagName !== 'LABEL') {
+                    el.addEventListener('click', function(e) {
+                        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                        openFilePicker();
+                    });
+                }
+                el.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    el.classList.add('border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/20');
+                    var hint = document.getElementById('dropHint');
+                    if (hint) hint.classList.remove('hidden');
+                });
+                el.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    el.classList.remove('border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/20');
+                    var hint = document.getElementById('dropHint');
+                    if (hint) hint.classList.add('hidden');
+                });
+                el.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    el.classList.remove('border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/20');
+                    var hint = document.getElementById('dropHint');
+                    if (hint) hint.classList.add('hidden');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length) onDrop(e.dataTransfer.files);
+                });
+            }
+
+            function initMediaUpload() {
+                imageInput = document.getElementById('imageInput');
+                imageUploadArea = document.getElementById('imageUploadArea');
+                imagePreviewSection = document.getElementById('imagePreviewSection');
+                imagePreviewGrid = document.getElementById('imagePreviewGrid');
+                primaryPreviewImg = document.getElementById('primaryPreviewImg');
+                var addMoreBtnEl = document.getElementById('addMoreBtn');
+                if (!imageInput || !imageUploadArea) return;
+                imageInput.addEventListener('change', handleImageUpload);
+                if (addMoreBtnEl) {
+                    addMoreBtnEl.addEventListener('click', function(e) { e.preventDefault(); openFilePicker(); });
+                    setupDropZone(addMoreBtnEl, addFiles);
+                }
+                setupDropZone(imageUploadArea, addFiles);
+            }
+
+            var form = document.getElementById('productForm');
+            if (form) form.addEventListener('submit', function() {
+                var btn = document.getElementById('submitProductBtn');
+                if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+            });
+
+            window.moveImage = moveImage;
+            window.setPrimary = setPrimary;
+            window.removeImage = removeImage;
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initMediaUpload);
+            } else {
+                initMediaUpload();
+            }
+        })();
 
         function generateHandle(name) {
             if (!document.getElementById('handle').value) {

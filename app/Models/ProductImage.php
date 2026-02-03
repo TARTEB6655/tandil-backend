@@ -30,7 +30,8 @@ class ProductImage extends Model
     /**
      * Get the full URL for the image.
      * Returns image_path as-is when it is already a full URL (http/https).
-     * Otherwise builds storage URL for local paths.
+     * Otherwise builds a URL for local paths. Uses relative path (/media/...) so
+     * images load correctly on any host/port (e.g. 127.0.0.1:8000 vs localhost).
      */
     public function getImageUrl()
     {
@@ -45,7 +46,9 @@ class ProductImage extends Model
         if (strpos($imagePath, 'products/') !== 0) {
             $imagePath = 'products/' . $imagePath;
         }
-        return self::normalizeStorageUrl(Storage::disk('public')->url($imagePath));
+        $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
+        // Relative URL under /media/ so images load on current host (fixes edit page when APP_URL differs)
+        return '/media/' . $imagePath;
     }
 
     /**
