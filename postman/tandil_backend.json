@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Complete Tandil API backend collection. All responses are JSON. Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin: list/create/update/delete), Categories (admin at /api/admin/categories). Products: Add and Update use the same multipart form-data fields (name, description, price, stock, status, category_id, vendor, type, sku, barcode, compare_at_price, cost_per_item, weight, weight_unit, tags, meta_title, meta_description, handle, track_quantity, allow_backorder, requires_shipping, taxable; image or images[]; image_urls). Update product: send only fields to change; new image(s) replace existing. Image URLs in responses are full URLs (APP_URL/ASSET_URL). Env: base_url, token (from Login), category_id, product_id. Flow: Health → Login → List Categories → Add/Update Product → etc.",
+        "description": "Complete Tandil API backend collection. All responses are JSON. Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin: list/create/update/delete), Categories (admin at /api/admin/categories). Products: Add and Update use the same multipart form-data. Single image field: set 'image' to type File, then Select Files from your computer (JPG/PNG/WebP, max 5MB). All fields supported: name, description, price, stock, status, category_id, vendor, type, sku, barcode, compare_at_price, cost_per_item, weight, weight_unit, tags, meta_title, meta_description, handle, track_quantity, allow_backorder, requires_shipping, taxable; image_urls (JSON array of URLs). Update: send only fields to change; new image replaces existing. Response image_url is full URL (APP_URL/ASSET_URL). Env: base_url, token, category_id, product_id. Flow: Health → Login → List Categories → Add/Update Product → etc.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.4.0"
+        "version": "2.4.1"
     },
     "item": [
         {
@@ -2228,8 +2228,7 @@
                                         {"key": "allow_backorder", "value": "0", "type": "text", "description": "1 or 0"},
                                         {"key": "requires_shipping", "value": "1", "type": "text", "description": "1 or 0"},
                                         {"key": "taxable", "value": "1", "type": "text", "description": "1 or 0"},
-                                        {"key": "image", "type": "file", "src": [], "description": "Single image file"},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "Or multiple: add rows with key images[]"},
+                                        {"key": "image", "type": "file", "src": [], "description": "IMAGE: In the dropdown choose 'File' (not Text), then click 'Select Files' and pick a image from your computer. JPG/PNG/WebP, max 5MB."},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON array of URLs e.g. [\"https://example.com/a.jpg\"]"}
                                     ]
                                 },
@@ -2238,7 +2237,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product with multipart/form-data. Same fields as Update Product. Required: name, price. Optional: description, stock, status, category_id, vendor, type, sku, barcode, compare_at_price, cost_per_item, weight, weight_unit, tags, meta_title, meta_description, handle, track_quantity (1/0), allow_backorder (1/0), requires_shipping (1/0), taxable (1/0); image or images[] (files); image_urls (JSON array of URLs). Response 201: data with image_url (full URL). Auth: Bearer {{token}}."
+                                "description": "Create product with multipart/form-data. Same fields as Update Product. Required: name, price. To add image from your computer: in form-data set 'image' type to File (dropdown), then click Select Files and choose a file. Optional: image_urls (JSON array of URLs). Response 201: data with image_url (full URL). Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2296,8 +2295,7 @@
                                         {"key": "allow_backorder", "value": "0", "type": "text", "description": "1 or 0"},
                                         {"key": "requires_shipping", "value": "1", "type": "text", "description": "1 or 0"},
                                         {"key": "taxable", "value": "1", "type": "text", "description": "1 or 0"},
-                                        {"key": "image", "type": "file", "src": [], "description": "Single image (replaces existing)."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "Or multiple: add rows with key images[]"},
+                                        {"key": "image", "type": "file", "src": [], "description": "IMAGE: Choose 'File' in dropdown, then Select Files to pick from your computer. Replaces existing image. JPG/PNG/WebP, max 5MB."},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON array of URLs e.g. [\"https://example.com/a.jpg\"]"}
                                     ]
                                 },
@@ -2306,7 +2304,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product with multipart/form-data — same fields as Add Product (Multipart). Send only fields you want to change. All fields optional: name, description, price, stock, status, category_id, vendor, type, sku, barcode, compare_at_price, cost_per_item, weight, weight_unit, tags, meta_title, meta_description, handle, track_quantity (1/0), allow_backorder (1/0), requires_shipping (1/0), taxable (1/0); image or images[] (files replace existing); image_urls (JSON array). Response: status, message, data (all updated fields, image_url as full URL). Auth: Bearer {{token}}."
+                                "description": "Update product with multipart/form-data — same fields as Add Product. To add image: set 'image' to type File, then Select Files from your computer (replaces existing). Response: data with image_url (full URL). Auth: Bearer {{token}}."
                             }
                         },
                         {

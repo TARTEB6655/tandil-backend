@@ -498,13 +498,14 @@ class ProductController extends Controller
 
         $product->update($updateData);
 
-        // Ensure product.image points to primary image if we have images
+        // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
         if ($primaryImage && $product->image !== $primaryImage->image_path) {
             $product->update(['image' => $primaryImage->image_path]);
         }
 
         if ($request->expectsJson() || $request->is('api/*')) {
+            // Return fresh product with relations so all updated fields (including image_url) are correct
             return response()->json([
                 'status' => true,
                 'message' => 'Product updated successfully.',

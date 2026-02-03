@@ -717,5 +717,62 @@ class AdminTest extends TestCase
             'name' => 'Updated via multipart',
         ]);
     }
+
+    /**
+     * Test admin can update product with new image (PUT multipart) and all fields are applied.
+     */
+    public function test_admin_can_update_product_with_image_and_all_fields()
+    {
+        Storage::fake('public');
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $category = Category::factory()->create(['name' => 'Cat', 'slug' => 'cat']);
+        $product = $this->createProduct([
+            'name' => 'Original',
+            'price' => 10,
+            'category_id' => $category->id,
+            'sku' => 'SKU-ORIG-' . uniqid(),
+        ]);
+        $file = UploadedFile::fake()->image('updated-product.jpg', 100, 100);
+
+        $response = $this->call('PUT', '/api/admin/products/' . $product->id, [
+            'name' => 'Updated Name',
+            'description' => 'Updated description',
+            'price' => '99.99',
+            'stock' => '25',
+            'status' => 'active',
+            'category_id' => (string) $category->id,
+            'vendor' => 'New Vendor',
+            'sku' => 'SKU-UPD-' . uniqid(),
+        ], [], [
+            'image' => $file,
+        ], [
+            'HTTP_Accept' => 'application/json',
+            'HTTP_Authorization' => 'Bearer ' . $admin->createToken('test')->plainTextToken,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.description', 'Updated description')
+            ->assertJsonPath('data.price', 99.99)
+            ->assertJsonPath('data.stock', 25)
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.category_id', $category->id)
+            ->assertJsonPath('data.vendor', 'New Vendor');
+
+        $data = $response->json('data');
+        $this->assertArrayHasKey('image_url', $data);
+        $this->assertNotNull($data['image_url']);
+        $this->assertStringContainsString('/media/products/', $data['image_url']);
+        $this->assertStringContainsString('.jpg', $data['image_url']);
+
+        $product->refresh();
+        $this->assertSame('Updated Name', $product->name);
+        $this->assertSame(99.99, (float) $product->price);
+        $this->assertSame(25, $product->stock);
+        $this->assertNotNull($product->image);
+        $this->assertStringContainsString('products/', $product->image);
+    }
 }
 
