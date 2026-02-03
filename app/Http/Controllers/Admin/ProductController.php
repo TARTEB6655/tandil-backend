@@ -431,8 +431,27 @@ class ProductController extends Controller
             }
         }
 
-        // New image uploads: images[] (multiple) or image (single). When updating, replace existing images so response shows new URL.
-        if ($request->hasFile('images') || $request->hasFile('image')) {
+        // Collect uploaded files: support 'image', 'images', or 'images[]' (Postman may send images[] as separate key)
+        $uploadedFiles = [];
+        if ($request->hasFile('image')) {
+            $f = $request->file('image');
+            if ($f && $f->isValid()) {
+                $uploadedFiles[] = $f;
+            }
+        }
+        if ($request->hasFile('images')) {
+            $files = $request->file('images');
+            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+        }
+        if ($request->hasFile('images[]')) {
+            $files = $request->file('images[]');
+            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+        }
+        $uploadedFiles = array_values(array_filter($uploadedFiles, function ($f) {
+            return $f && $f->isValid();
+        }));
+
+        if ($uploadedFiles !== []) {
             // Delete existing product images and their files from storage (replace behavior)
             $existingImages = ProductImage::where('product_id', $product->id)->get();
             foreach ($existingImages as $old) {
@@ -445,34 +464,15 @@ class ProductController extends Controller
             ProductImage::where('product_id', $product->id)->delete();
 
             $newPrimaryPath = null;
-            if ($request->hasFile('images')) {
-                $files = $request->file('images');
-                $files = is_array($files) ? $files : [$files];
-                foreach ($files as $index => $file) {
-                    if (! $file || ! $file->isValid()) {
-                        continue;
-                    }
-                    $imagePath = $file->store('products', 'public');
-                    ProductImage::create([
-                        'product_id' => $product->id,
-                        'image_path' => $imagePath,
-                        'sort_order' => $index + 1,
-                        'is_primary' => $index === 0,
-                    ]);
-                    if ($index === 0) {
-                        $newPrimaryPath = $imagePath;
-                    }
-                }
-            } elseif ($request->hasFile('image')) {
-                $file = $request->file('image');
-                if ($file->isValid()) {
-                    $imagePath = $file->store('products', 'public');
-                    ProductImage::create([
-                        'product_id' => $product->id,
-                        'image_path' => $imagePath,
-                        'sort_order' => 1,
-                        'is_primary' => true,
-                    ]);
+            foreach ($uploadedFiles as $index => $file) {
+                $imagePath = $file->store('products', 'public');
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imagePath,
+                    'sort_order' => $index + 1,
+                    'is_primary' => $index === 0,
+                ]);
+                if ($index === 0) {
                     $newPrimaryPath = $imagePath;
                 }
             }
@@ -505,11 +505,12 @@ class ProductController extends Controller
         }
 
         if ($request->expectsJson() || $request->is('api/*')) {
-            // Return fresh product with relations so all updated fields (including image_url) are correct
+            // Reload from DB by ID so image_url and all relations reflect the update (no stale in-memory state)
+            $fresh = Product::with(['category', 'images', 'primaryImage'])->find($product->id);
             return response()->json([
                 'status' => true,
                 'message' => 'Product updated successfully.',
-                'data' => $product->fresh()->load(['category', 'images', 'primaryImage']),
+                'data' => $fresh,
             ]);
         }
         return redirect()->route('admin.products.index')
