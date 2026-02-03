@@ -342,7 +342,7 @@ class AdminTest extends TestCase
         $this->assertArrayHasKey('image_url', $data);
         $imageUrl = $data['image_url'];
         $this->assertNotNull($imageUrl);
-        $this->assertStringContainsString('/storage/products/', $imageUrl);
+        $this->assertStringContainsString('/media/products/', $imageUrl);
         $this->assertStringEndsWith('.jpg', $imageUrl);
 
         $product = Product::where('handle', $unique)->first();
@@ -764,7 +764,7 @@ class AdminTest extends TestCase
         $data = $response->json('data');
         $this->assertArrayHasKey('image_url', $data);
         $this->assertNotNull($data['image_url']);
-        $this->assertStringContainsString('/storage/products/', $data['image_url']);
+        $this->assertStringContainsString('/media/products/', $data['image_url']);
         $this->assertStringContainsString('.jpg', $data['image_url']);
 
         $product->refresh();

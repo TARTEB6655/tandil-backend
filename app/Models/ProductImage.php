@@ -47,8 +47,8 @@ class ProductImage extends Model
             $imagePath = 'products/' . $imagePath;
         }
         $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-        // Full URL: {{origin}}/storage/{{path}} so app can build same from relative image_path
-        return asset('storage/' . $imagePath);
+        // Direct serve URL: /media/ serves files (no redirect); app can also build {{origin}}/media/{{path}} from relative image_path
+        return asset('media/' . $imagePath);
     }
 
     /**

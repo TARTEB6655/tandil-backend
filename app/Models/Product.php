@@ -112,7 +112,7 @@ class Product extends Model
                 $imagePath = 'products/' . $imagePath;
             }
             $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-            return asset('storage/' . $imagePath);
+            return asset('media/' . $imagePath);
         }
         return null;
     }
@@ -141,7 +141,7 @@ class Product extends Model
                 $imagePath = 'products/' . $imagePath;
             }
             $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-            return asset('storage/' . $imagePath);
+            return asset('media/' . $imagePath);
         }
         return null;
     }
