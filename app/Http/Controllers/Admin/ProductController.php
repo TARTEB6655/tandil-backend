@@ -42,6 +42,54 @@ class ProductController extends Controller
     }
 
     /**
+     * PHP does not populate $_POST for PUT/PATCH requests. Parse multipart/form-data body
+     * and merge form fields into the request so $request->input() works in update().
+     */
+    private function parsePutMultipartIntoRequest(Request $request): void
+    {
+        $contentType = $request->header('Content-Type');
+        if (! $contentType || ! str_contains($contentType, 'multipart/form-data')) {
+            return;
+        }
+        if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
+            return;
+        }
+        $boundary = $m[1] ?? $m[2];
+        $raw = $request->getContent();
+        if ($raw === '' || $raw === false) {
+            return;
+        }
+        $params = [];
+        $parts = array_slice(explode('--' . trim($boundary), $raw), 1, -1);
+        foreach ($parts as $part) {
+            if (trim($part) === '' || trim($part) === '--') {
+                continue;
+            }
+            $pos = strpos($part, "\r\n\r\n");
+            if ($pos === false) {
+                $pos = strpos($part, "\n\n");
+            }
+            if ($pos === false) {
+                continue;
+            }
+            $headers = substr($part, 0, $pos);
+            $value = ltrim(substr($part, $pos + 4), "\r\n");
+            $value = preg_replace('/\r?\n--\s*$/', '', $value);
+            if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
+                continue;
+            }
+            $name = $nameMatch[1];
+            if (preg_match('/filename="([^"]*)"/', $headers, $fileMatch)) {
+                continue;
+            }
+            $params[$name] = $value;
+        }
+        if ($params !== []) {
+            $request->merge($params);
+        }
+    }
+
+    /**
      * List products (with search, category filter, pagination).
      */
     public function index(Request $request)
@@ -351,6 +399,11 @@ class ProductController extends Controller
                 'status' => false,
                 'message' => 'Product not found'
             ], 404);
+        }
+
+        // PHP does not populate $_POST for PUT/PATCH; parse multipart body so input() works
+        if ($request->isMethod('PUT') || $request->isMethod('PATCH')) {
+            $this->parsePutMultipartIntoRequest($request);
         }
 
         // Capture category_id from form-data early (multipart + files can hide it)
