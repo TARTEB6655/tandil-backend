@@ -716,6 +716,35 @@ class AdminTest extends TestCase
     }
 
     /**
+     * Test admin can update category with form-data only (PUT, no image) - mirrors Postman form-data update.
+     * Ensures name and slug from request are applied and returned in response.
+     */
+    public function test_admin_can_update_category_with_form_data_only()
+    {
+        $admin = $this->createAdmin();
+        Sanctum::actingAs($admin);
+        $category = Category::factory()->create(['name' => 'Fertilizers', 'slug' => 'fertilizers', 'description' => 'Organic and chemical fertilizers']);
+
+        $response = $this->call('PUT', '/api/admin/categories/' . $category->id, [
+            'name' => 'test category',
+            'slug' => 'updated-slug',
+        ], [], [], [
+            'HTTP_Accept' => 'application/json',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Category updated successfully.')
+            ->assertJsonPath('data.name', 'test category')
+            ->assertJsonPath('data.slug', 'updated-slug');
+        $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'test category', 'slug' => 'updated-slug']);
+
+        $category->refresh();
+        $this->assertSame('test category', $category->name);
+        $this->assertSame('updated-slug', $category->slug);
+    }
+
+    /**
      * Test admin can update category with multipart/form-data (PUT /api/admin/categories/{id}) including new image
      */
     public function test_admin_can_update_category_with_multipart()

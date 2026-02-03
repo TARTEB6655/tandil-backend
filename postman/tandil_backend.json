@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nRequest (multipart): name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional JSON string), image (single file) or images[] (one or more files). No extra fields.\n\nResponse 201/200: data.image (relative path), data.image_url (full URL .../storage/products/...), data.images, data.primary_image. App builds full URL as {{origin}}/storage/{{path}} when only relative path returned.\n\nEnv: base_url, token, category_id, product_id. Set product_id from List Products or Add Product response (required for Get/Update/Delete single product). Invalid or missing product_id returns 400. Update Product: PUT with form-data; fields and images (image or images[]) work same as Add Product.\n\nFlow: Health → Login → List Categories → Add/Update Product → etc.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nRequest (multipart): name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), main_image (main product image), images[] (extra images). Legacy: image = main image.\n\nResponse 201/200: data.image (relative path), data.image_url (full URL .../media/products/...), data.images, data.primary_image. Env: base_url, token, category_id, product_id. Update Product: PUT form-data; main_image sets/updates main image only; images[] replace extra images.\n\nFlow: Health → Login → List Categories → Add/Update Product → etc.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.4.4"
@@ -2216,7 +2216,8 @@
                                         {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
                                         {"key": "handle", "value": "test-product-uniquee", "type": "text"},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string array of URLs."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "One or more image files (e.g. JPEG)."}
+                                        {"key": "main_image", "type": "file", "src": [], "description": "Main product image (primary). Optional."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Extra product images (one or more files). Optional."}
                                     ]
                                 },
                                 "url": {
@@ -2270,7 +2271,8 @@
                                         {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
                                         {"key": "handle", "value": "updated-product-handle", "type": "text"},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string array of URLs."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "One or more image files (e.g. JPEG). Replaces existing."}
+                                        {"key": "main_image", "type": "file", "src": [], "description": "Set or update main product image only. Optional."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Replace extra images. Optional."}
                                     ]
                                 },
                                 "url": {
@@ -2278,7 +2280,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product (PUT multipart/form-data). Same as Add Product: fields name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls; single image (image or one file in images[]) or multiple (images[]). New images replace existing. Set product_id in env. Response: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
+                                "description": "Update product (PUT multipart/form-data). Fields: same as Add Product. main_image = set/update main product image only (keeps existing extras). images[] = replace extra images. Send main_image and/or images[] as needed. Set product_id in env. Response: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2416,7 +2418,7 @@
                             }
                         }
                     ],
-                    "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; image (single) or images[] (single/multiple). Set product_id for Get/Update/Delete single product. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search, filter. Bulk: product_ids array; toggle-status POST with no body."
+                    "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image (main product image), images[] (extra images). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST. Update: main_image = update main only; images[] = replace extras."
                 }
             ],
             "description": "Single module for all product APIs. Public: list/shop/products (optional ?category_id=), get by category, get categories. Admin: list (?category_id=), create (JSON or multipart with category_id), get, update (category_id optional), delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id is optional on create and update; response always includes data.category_id and data.category when set."

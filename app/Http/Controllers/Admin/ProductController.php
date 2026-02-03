@@ -250,6 +250,7 @@ class ProductController extends Controller
             'sku'         => 'nullable|string|max:255|unique:products,sku',
             'handle'      => 'nullable|string|max:255|unique:products,handle',
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'images'      => 'nullable|array',
             'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
             'image_urls'  => 'nullable|array',
@@ -343,39 +344,64 @@ class ProductController extends Controller
             ], 422);
         }
 
-        // Handle image file uploads: support 'image', 'images', or 'images[]' (Postman)
-        $uploadedFiles = [];
-        if ($request->hasFile('image')) {
-            $f = $request->file('image');
+        // Handle images: main_image (or image) = primary; images[] = extra only
+        $mainFile = null;
+        if ($request->hasFile('main_image')) {
+            $f = $request->file('main_image');
             if ($f && $f->isValid()) {
-                $uploadedFiles[] = $f;
+                $mainFile = $f;
             }
         }
+        if ($mainFile === null && $request->hasFile('image')) {
+            $f = $request->file('image');
+            if ($f && $f->isValid()) {
+                $mainFile = $f;
+            }
+        }
+        $extraFiles = [];
         if ($request->hasFile('images')) {
             $files = $request->file('images');
-            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+            $extraFiles = is_array($files) ? $files : [$files];
         }
         if ($request->hasFile('images[]')) {
             $files = $request->file('images[]');
-            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+            $extraFiles = array_merge($extraFiles, is_array($files) ? $files : [$files]);
         }
-        $uploadedFiles = array_values(array_filter($uploadedFiles, function ($f) {
+        $extraFiles = array_values(array_filter($extraFiles, function ($f) {
             return $f && $f->isValid();
         }));
 
         $sortOrder = 0;
-        foreach ($uploadedFiles as $image) {
+        if ($mainFile !== null) {
+            $imagePath = $mainFile->store('products', 'public');
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $imagePath,
+                'sort_order' => $sortOrder++,
+                'is_primary' => true,
+            ]);
+            $product->update(['image' => $imagePath]);
+        }
+        foreach ($extraFiles as $image) {
             $imagePath = $image->store('products', 'public');
             ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => $imagePath,
-                'sort_order' => $sortOrder,
-                'is_primary' => $sortOrder === 0,
+                'sort_order' => $sortOrder++,
+                'is_primary' => false,
             ]);
-            $sortOrder++;
+        }
+        // If no main file but we have extras, first extra becomes primary (backward compat)
+        if ($mainFile === null && $extraFiles !== []) {
+            $first = ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
+            if ($first) {
+                $first->update(['is_primary' => true]);
+                $product->update(['image' => $first->image_path]);
+            }
         }
 
-        // Merge image URLs (from JSON body or multipart image_urls / image_url[] with file uploads
+        // Merge image URLs (from JSON body or multipart image_urls / image_url[])
+        $primaryAlreadySet = ($mainFile !== null || $extraFiles !== []);
         if ($request->has('image_urls') && is_array($request->image_urls)) {
             foreach ($request->image_urls as $imageUrl) {
                 if (is_string($imageUrl) && $imageUrl !== '') {
@@ -383,16 +409,17 @@ class ProductController extends Controller
                         'product_id' => $product->id,
                         'image_path' => $imageUrl,
                         'sort_order' => $sortOrder,
-                        'is_primary' => $sortOrder === 0,
+                        'is_primary' => ! $primaryAlreadySet && $sortOrder === 0,
                     ]);
                     $sortOrder++;
                 }
             }
         }
 
-        // Set product main image from first image (file or URL)
-        $firstImage = ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
-        if ($firstImage) {
+        // Ensure product.image is set from primary when we only had image_urls
+        $firstImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first()
+            ?? ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
+        if ($firstImage && ! $product->image) {
             $product->update(['image' => $firstImage->image_path]);
         }
 
@@ -512,6 +539,7 @@ class ProductController extends Controller
             'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,
             'handle'      => 'nullable|string|max:255|unique:products,handle,' . $id,
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'images'      => 'nullable|array',
             'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
             'image_urls'  => 'nullable|array',
@@ -551,53 +579,85 @@ class ProductController extends Controller
             }
         }
 
-        // Same as Add Product: single image ('image') or multiple ('images[]' / 'images'); PUT multipart parsed in parsePutMultipartIntoRequest
-        $uploadedFiles = [];
-        if ($request->hasFile('image')) {
+        // main_image = primary only; images[] = extra only. Backward compat: image or images[] without main_image = replace all (first = primary)
+        $mainFile = null;
+        if ($request->hasFile('main_image')) {
+            $f = $request->file('main_image');
+            if ($f && $f->isValid()) {
+                $mainFile = $f;
+            }
+        }
+        $extraFiles = [];
+        if ($request->hasFile('image') && $mainFile === null) {
             $f = $request->file('image');
             if ($f && $f->isValid()) {
-                $uploadedFiles[] = $f;
+                $extraFiles[] = $f;
             }
         }
         if ($request->hasFile('images')) {
             $files = $request->file('images');
-            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+            $extraFiles = array_merge($extraFiles, is_array($files) ? $files : [$files]);
         }
         if ($request->hasFile('images[]')) {
             $files = $request->file('images[]');
-            $uploadedFiles = array_merge($uploadedFiles, is_array($files) ? $files : [$files]);
+            $extraFiles = array_merge($extraFiles, is_array($files) ? $files : [$files]);
         }
-        $uploadedFiles = array_values(array_filter($uploadedFiles, function ($f) {
+        $extraFiles = array_values(array_filter($extraFiles, function ($f) {
             return $f && $f->isValid();
         }));
 
-        if ($uploadedFiles !== []) {
-            // Delete existing product images and their files from storage (replace behavior)
-            $existingImages = ProductImage::where('product_id', $product->id)->get();
-            foreach ($existingImages as $old) {
-                if ($old->image_path && ! str_starts_with($old->image_path, 'http')) {
-                    if (Storage::disk('public')->exists($old->image_path)) {
-                        Storage::disk('public')->delete($old->image_path);
+        if ($mainFile !== null) {
+            // Replace only the primary image; keep existing extra images unless images[] also sent
+            $oldPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
+            if ($oldPrimary && $oldPrimary->image_path && ! str_starts_with($oldPrimary->image_path, 'http') && Storage::disk('public')->exists($oldPrimary->image_path)) {
+                Storage::disk('public')->delete($oldPrimary->image_path);
+            }
+            if ($oldPrimary) {
+                $oldPrimary->delete();
+            }
+            $imagePath = $mainFile->store('products', 'public');
+            $maxOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order');
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $imagePath,
+                'sort_order' => 0,
+                'is_primary' => true,
+            ]);
+            $updateData['image'] = $imagePath;
+        }
+
+        if ($extraFiles !== []) {
+            // Replace all non-primary images with new extra files (or set first as primary if no main_image was sent)
+            $existingNonPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', false)->get();
+            foreach ($existingNonPrimary as $old) {
+                if ($old->image_path && ! str_starts_with($old->image_path, 'http') && Storage::disk('public')->exists($old->image_path)) {
+                    Storage::disk('public')->delete($old->image_path);
+                }
+                $old->delete();
+            }
+            if ($mainFile === null) {
+                // No main_image sent: replace primary too (backward compat), first of extraFiles = primary
+                $oldPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
+                if ($oldPrimary) {
+                    if ($oldPrimary->image_path && ! str_starts_with($oldPrimary->image_path, 'http') && Storage::disk('public')->exists($oldPrimary->image_path)) {
+                        Storage::disk('public')->delete($oldPrimary->image_path);
                     }
+                    $oldPrimary->delete();
                 }
             }
-            ProductImage::where('product_id', $product->id)->delete();
-
-            $newPrimaryPath = null;
-            foreach ($uploadedFiles as $index => $file) {
+            $sortOrder = $mainFile !== null ? 1 : 0;
+            foreach ($extraFiles as $index => $file) {
                 $imagePath = $file->store('products', 'public');
+                $isPrimary = ($mainFile === null && $index === 0);
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image_path' => $imagePath,
-                    'sort_order' => $index + 1,
-                    'is_primary' => $index === 0,
+                    'sort_order' => $sortOrder++,
+                    'is_primary' => $isPrimary,
                 ]);
-                if ($index === 0) {
-                    $newPrimaryPath = $imagePath;
+                if ($isPrimary) {
+                    $updateData['image'] = $imagePath;
                 }
-            }
-            if ($newPrimaryPath !== null) {
-                $updateData['image'] = $newPrimaryPath;
             }
         }
 

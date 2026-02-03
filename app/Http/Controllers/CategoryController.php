@@ -208,19 +208,37 @@ class CategoryController extends Controller
             $this->parsePutMultipartIntoRequest($request);
         }
 
-        $validated = $request->validated();
-
-        // Auto-generate slug from name only when name is present and slug is empty
-        if (!empty($validated['name']) && (empty($validated['slug']) || !array_key_exists('slug', $validated))) {
-            $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
+        // Validate (for rules/errors); then build update payload from request input so PUT form-data is applied
+        $request->validate($request->rules());
+        $fillable = array_flip($category->getFillable());
+        $updateData = [];
+        foreach (['name', 'slug', 'description'] as $key) {
+            if (! array_key_exists($key, $fillable)) {
+                continue;
+            }
+            $value = $request->input($key) ?? $request->request->get($key);
+            if ($value === null && ! $request->has($key)) {
+                continue;
+            }
+            if (is_string($value) || is_numeric($value)) {
+                $updateData[$key] = $value;
+            }
         }
 
-        // Ensure slug is unique when we have a slug to update (excluding current category)
-        if (!empty($validated['slug'])) {
+        // Auto-generate slug from name when name is present and slug is empty
+        if (! empty($updateData['name']) && (empty($updateData['slug']) ?? true)) {
+            $updateData['slug'] = \Illuminate\Support\Str::slug($updateData['name']);
+        }
+        if (array_key_exists('slug', $updateData) && $updateData['slug'] === '') {
+            $updateData['slug'] = \Illuminate\Support\Str::slug($updateData['name'] ?? $category->name);
+        }
+
+        // Ensure slug is unique (excluding current category)
+        if (! empty($updateData['slug'])) {
             $counter = 1;
-            $originalSlug = $validated['slug'];
-            while (Category::where('slug', $validated['slug'])->where('id', '!=', $category->id)->exists()) {
-                $validated['slug'] = $originalSlug . '-' . $counter;
+            $originalSlug = $updateData['slug'];
+            while (Category::where('slug', $updateData['slug'])->where('id', '!=', $category->id)->exists()) {
+                $updateData['slug'] = $originalSlug . '-' . $counter;
                 $counter++;
             }
         }
@@ -230,11 +248,9 @@ class CategoryController extends Controller
             if ($category->image && Storage::disk('public')->exists($category->image)) {
                 Storage::disk('public')->delete($category->image);
             }
-            $validated['image'] = $request->file('image')->store('categories', 'public');
+            $updateData['image'] = $request->file('image')->store('categories', 'public');
         }
 
-        // Only update fillable attributes present in validated (supports partial update)
-        $updateData = array_intersect_key($validated, array_flip($category->getFillable()));
         $category->update($updateData);
 
         // Return view redirect for web requests, JSON for API requests (includes image, image_url)
