@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Subscription;
@@ -14,6 +15,9 @@ class SampleDataSeeder extends Seeder
 {
     public function run(): void
     {
+        // Create categories first (products require valid category_id)
+        Category::factory()->count(8)->create();
+
         // Create sample products
         Product::factory()->count(50)->create();
 

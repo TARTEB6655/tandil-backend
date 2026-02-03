@@ -14,7 +14,7 @@ class ProductFactory extends Factory
         $price = $this->faker->randomFloat(2, 10, 1000);
         
         return [
-            'category_id' => Category::inRandomOrder()->first()->id ?? 1,
+            'category_id' => Category::inRandomOrder()->first()?->id,
             'name' => $name,
             'vendor' => $this->faker->optional()->company(),
             'type' => $this->faker->optional()->randomElement(['physical', 'digital', 'service']),
