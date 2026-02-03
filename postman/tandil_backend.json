@@ -4236,42 +4236,6 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Fertilizers\",\n  \"slug\": \"fertilizers\",\n  \"description\": \"Organic and chemical fertilizers\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/admin/categories",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "categories"
-                            ]
-                        },
-                        "description": "Add category (admin) with JSON body. For multipart with image use \"Categories - Create (Multipart)\". Response: success, message, data (id, name, slug, description, image, image_url)."
-                    }
-                },
-                {
-                    "name": "Categories - Create (Multipart)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
                             {"key": "Authorization", "value": "Bearer {{token}}"},
                             {"key": "Accept", "value": "application/json"}
                         ],
@@ -4281,11 +4245,28 @@
                                 {"key": "name", "value": "Fertilizers", "type": "text", "description": "Required"},
                                 {"key": "slug", "value": "fertilizers", "type": "text", "description": "Optional"},
                                 {"key": "description", "value": "Organic and chemical fertilizers", "type": "text", "description": "Optional"},
-                                {"key": "image", "type": "file", "src": [], "description": "Optional. jpeg/png/webp max 5MB."}
+                                {"key": "image", "type": "file", "src": [], "description": "Optional. Add image: select File and choose image (jpeg/png/webp max 5MB)."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories", "host": ["{{base_url}}"], "path": ["api", "admin", "categories"]},
-                        "description": "Add category (admin) with multipart/form-data. Fields: name (required), slug (optional), description (optional), image (optional file). Response: success, message, data (id, name, slug, description, image, image_url). Set category_id from response for Add Product."
+                        "description": "Create category (admin). Use form-data: name (required), slug (optional), description (optional), image (optional – choose File and select image). Do not set Content-Type; Postman sets it for form-data. Response: success, message, data (id, name, slug, description, image, image_url). Use returned id as category_id in Add Product. For JSON-only use \"Categories - Create (JSON)\"."
+                    }
+                },
+                {
+                    "name": "Categories - Create (JSON)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Fertilizers\",\n  \"slug\": \"fertilizers\",\n  \"description\": \"Organic and chemical fertilizers\"\n}"
+                        },
+                        "url": {"raw": "{{base_url}}/api/admin/categories", "host": ["{{base_url}}"], "path": ["api", "admin", "categories"]},
+                        "description": "Create category with JSON body (no image). For image use \"Categories - Create\" with form-data."
                     }
                 },
                 {
@@ -4322,43 +4303,6 @@
                     "request": {
                         "method": "PUT",
                         "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"slug\": \"updated-slug\",\n  \"description\": \"Updated description\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/admin/categories/{{category_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "categories",
-                                "{{category_id}}"
-                            ]
-                        },
-                        "description": "Update category (admin) with JSON body. For multipart with image use \"Categories - Update (Multipart)\". Set category_id in env."
-                    }
-                },
-                {
-                    "name": "Categories - Update (Multipart)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
                             {"key": "Authorization", "value": "Bearer {{token}}"},
                             {"key": "Accept", "value": "application/json"}
                         ],
@@ -4368,11 +4312,28 @@
                                 {"key": "name", "value": "Updated Category Name", "type": "text"},
                                 {"key": "slug", "value": "updated-slug", "type": "text"},
                                 {"key": "description", "value": "Updated description", "type": "text"},
-                                {"key": "image", "type": "file", "src": [], "description": "Optional. New image replaces old. jpeg/png/webp max 5MB."}
+                                {"key": "image", "type": "file", "src": [], "description": "Optional. Select File to change image (replaces existing). jpeg/png/webp max 5MB."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category (admin) with multipart/form-data. Fields: name, slug, description (optional), image (optional file – replaces existing). Response: success, message, data (id, name, slug, description, image, image_url). Set category_id in env."
+                        "description": "Update category (admin). Use form-data: name, slug, description (optional), image (optional – select File to replace image). Set category_id in env. Response: success, message, data (id, name, slug, description, image, image_url). For JSON-only use \"Categories - Update (JSON)\"."
+                    }
+                },
+                {
+                    "name": "Categories - Update (JSON)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"slug\": \"updated-slug\",\n  \"description\": \"Updated description\"\n}"
+                        },
+                        "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
+                        "description": "Update category with JSON body (no image). For image use \"Categories - Update\" with form-data. Set category_id in env."
                     }
                 },
                 {
