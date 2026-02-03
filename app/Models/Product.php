@@ -37,6 +37,17 @@ class Product extends Model
         'image',
     ];
 
+    protected $casts = [
+        'track_quantity' => 'boolean',
+        'allow_backorder' => 'boolean',
+        'requires_shipping' => 'boolean',
+        'taxable' => 'boolean',
+        'stock' => 'integer',
+        'price' => 'float',
+        'compare_at_price' => 'float',
+        'cost_per_item' => 'float',
+    ];
+
     /**
      * Append image_url and primary_image to array/JSON representation.
      * API response: data.image (relative path), data.image_url (full URL),

@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Complete Tandil API backend collection. All API responses are JSON only. Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin: list/create/update/delete with category_id, multipart form-data for images), Categories (admin: list/add/get/edit/delete at /api/admin/categories), Technician & Supervisor, Admin Users/Roles/HR, Admin Reports, Admin Settings, Tips, Notifications, Complaints, Areas, Services, User Profile. Image URLs in responses are full URLs (APP_URL or ASSET_URL). Set base_url (e.g. http://127.0.0.1:8000), token (from Login), and optionally category_id (from List Categories). Use flow: Health → Login → List Categories → Add Product (with category_id) → etc.",
+        "description": "Complete Tandil API backend collection. All responses are JSON. Includes: Health, Auth, Subscriptions, Banners, Visits, Reports, Shop/Orders, Products (public + admin: list/create/update/delete), Categories (admin at /api/admin/categories). Products: Add and Update use the same multipart form-data fields (name, description, price, stock, status, category_id, vendor, type, sku, barcode, compare_at_price, cost_per_item, weight, weight_unit, tags, meta_title, meta_description, handle, track_quantity, allow_backorder, requires_shipping, taxable; image or images[]; image_urls). Update product: send only fields to change; new image(s) replace existing. Image URLs in responses are full URLs (APP_URL/ASSET_URL). Env: base_url, token (from Login), category_id, product_id. Flow: Health → Login → List Categories → Add/Update Product → etc.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.3.1"
+        "version": "2.4.0"
     },
     "item": [
         {
@@ -2206,17 +2206,31 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {"key": "name", "value": "Test Product", "type": "text"},
+                                        {"key": "name", "value": "Test Product", "type": "text", "description": "Required"},
                                         {"key": "description", "value": "Description here", "type": "text"},
-                                        {"key": "price", "value": "99.99", "type": "text"},
+                                        {"key": "price", "value": "99.99", "type": "text", "description": "Required"},
                                         {"key": "stock", "value": "10", "type": "text"},
-                                        {"key": "status", "value": "active", "type": "text"},
-                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Category ID from List Categories. Leave empty for no category."},
-                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "status", "value": "active", "type": "text", "description": "draft|active|archived"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Category ID. Leave empty for no category."},
+                                        {"key": "vendor", "value": "Acme Corp", "type": "text"},
+                                        {"key": "type", "value": "T-Shirt", "type": "text", "description": "Product type"},
                                         {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
+                                        {"key": "barcode", "value": "", "type": "text"},
+                                        {"key": "compare_at_price", "value": "", "type": "text"},
+                                        {"key": "cost_per_item", "value": "", "type": "text"},
+                                        {"key": "weight", "value": "", "type": "text"},
+                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "tags", "value": "summer, sale", "type": "text"},
+                                        {"key": "meta_title", "value": "", "type": "text"},
+                                        {"key": "meta_description", "value": "", "type": "text"},
                                         {"key": "handle", "value": "test-product-uniquee", "type": "text"},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "One or more image files. Add another row with key images[] for multiple images."},
-                                        {"key": "image_urls", "value": "", "type": "text", "description": "Optional: pasted URLs as JSON string, e.g. [\"https://example.com/a.jpg\"]. Merge with file uploads."}
+                                        {"key": "track_quantity", "value": "1", "type": "text", "description": "1 or 0"},
+                                        {"key": "allow_backorder", "value": "0", "type": "text", "description": "1 or 0"},
+                                        {"key": "requires_shipping", "value": "1", "type": "text", "description": "1 or 0"},
+                                        {"key": "taxable", "value": "1", "type": "text", "description": "1 or 0"},
+                                        {"key": "image", "type": "file", "src": [], "description": "Single image file"},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Or multiple: add rows with key images[]"},
+                                        {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON array of URLs e.g. [\"https://example.com/a.jpg\"]"}
                                     ]
                                 },
                                 "url": {
@@ -2224,7 +2238,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product with multipart/form-data. Form fields: name, description, price, stock, status, category_id (set to {{category_id}} or run List Categories first; leave empty for no category), weight_unit, sku, handle; images[] (file(s)); image_urls (optional JSON string). Do not set Content-Type header (Postman sends boundary). Response 201: data.category_id, data.category, data.image_url (full URL). Auth: Bearer {{token}}."
+                                "description": "Create product with multipart/form-data. Same fields as Update Product. Required: name, price. Optional: description, stock, status, category_id, vendor, type, sku, barcode, compare_at_price, cost_per_item, weight, weight_unit, tags, meta_title, meta_description, handle, track_quantity (1/0), allow_backorder (1/0), requires_shipping (1/0), taxable (1/0); image or images[] (files); image_urls (JSON array of URLs). Response 201: data with image_url (full URL). Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2264,14 +2278,27 @@
                                         {"key": "description", "value": "Updated description", "type": "text"},
                                         {"key": "price", "value": "149.99", "type": "text"},
                                         {"key": "stock", "value": "20", "type": "text"},
-                                        {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "status", "value": "active", "type": "text", "description": "draft|active|archived"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Category ID or leave empty to clear."},
-                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "vendor", "value": "Acme Corp", "type": "text"},
+                                        {"key": "type", "value": "T-Shirt", "type": "text", "description": "Product type"},
                                         {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
+                                        {"key": "barcode", "value": "", "type": "text"},
+                                        {"key": "compare_at_price", "value": "", "type": "text"},
+                                        {"key": "cost_per_item", "value": "", "type": "text"},
+                                        {"key": "weight", "value": "", "type": "text"},
+                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "tags", "value": "summer, sale", "type": "text"},
+                                        {"key": "meta_title", "value": "", "type": "text"},
+                                        {"key": "meta_description", "value": "", "type": "text"},
                                         {"key": "handle", "value": "updated-product-handle", "type": "text"},
-                                        {"key": "image", "type": "file", "src": [], "description": "Single image (replaces/adds as primary)."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "Multiple images. Add another row with key images[] for more."},
-                                        {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string of URLs, e.g. [\"https://example.com/a.jpg\"]."}
+                                        {"key": "track_quantity", "value": "1", "type": "text", "description": "1 or 0"},
+                                        {"key": "allow_backorder", "value": "0", "type": "text", "description": "1 or 0"},
+                                        {"key": "requires_shipping", "value": "1", "type": "text", "description": "1 or 0"},
+                                        {"key": "taxable", "value": "1", "type": "text", "description": "1 or 0"},
+                                        {"key": "image", "type": "file", "src": [], "description": "Single image (replaces existing)."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Or multiple: add rows with key images[]"},
+                                        {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON array of URLs e.g. [\"https://example.com/a.jpg\"]"}
                                     ]
                                 },
                                 "url": {
@@ -2279,7 +2306,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product with multipart/form-data (same as Add Product). Send only fields you want to change. Form fields: name, description, price, stock, status, category_id ({{category_id}} or empty to clear), weight_unit, sku, handle; image (single file), images[] (multiple files), image_urls (optional JSON string). Do not set Content-Type header. Response: status, message, data (image_url as full URL). Auth: Bearer {{token}}."
+                                "description": "Update product with multipart/form-data — same fields as Add Product (Multipart). Send only fields you want to change. All fields optional: name, description, price, stock, status, category_id, vendor, type, sku, barcode, compare_at_price, cost_per_item, weight, weight_unit, tags, meta_title, meta_description, handle, track_quantity (1/0), allow_backorder (1/0), requires_shipping (1/0), taxable (1/0); image or images[] (files replace existing); image_urls (JSON array). Response: status, message, data (all updated fields, image_url as full URL). Auth: Bearer {{token}}."
                             }
                         },
                         {

@@ -26,9 +26,39 @@
             @csrf
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Main Content (Left Column - 2/3) -->
+                <!-- Main Content (Left Column - 2/3) — Shopify order: Title → Description → Media → rest -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- Product media (Shopify-style) -->
+                    <!-- 1. Product Title & Description (top, like Shopify) -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                        <div class="mb-4">
+                            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Product title <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   id="name" 
+                                   name="name" 
+                                   value="{{ old('name') }}" 
+                                   required
+                                   placeholder="e.g. Acme Cotton T-Shirt"
+                                   class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                                   oninput="generateHandle(this.value)">
+                            @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Description
+                            </label>
+                            <textarea id="description" 
+                                      name="description" 
+                                      rows="6"
+                                      placeholder="Describe your product..."
+                                      class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">{{ old('description') }}</textarea>
+                            @error('description') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
+                    <!-- 2. Media (after title & description, like Shopify) -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
                             <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Media</h2>
@@ -68,36 +98,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Product Title & Description -->
-                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <div class="mb-4">
-                            <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-                                Product title <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" 
-                                   id="name" 
-                                   name="name" 
-                                   value="{{ old('name') }}" 
-                                   required
-                                   placeholder="e.g. Acme Cotton T-Shirt"
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                   oninput="generateHandle(this.value)">
-                            @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                                Description
-                            </label>
-                            <textarea id="description" 
-                                      name="description" 
-                                      rows="6"
-                                      placeholder="Describe your product..."
-                                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description') }}</textarea>
-                            @error('description') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 

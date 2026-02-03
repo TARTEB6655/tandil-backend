@@ -413,6 +413,9 @@ class ProductController extends Controller
         if (isset($updateData['image']) && $updateData['image'] instanceof \Illuminate\Http\UploadedFile) {
             unset($updateData['image']);
         }
+        if (isset($updateData['images'])) {
+            unset($updateData['images']);
+        }
 
         // category_id: from request / validated (form-data sends string)
         $rawCategoryId = $request->input('category_id') ?? $request->request->get('category_id') ?? ($validated['category_id'] ?? null);
@@ -428,33 +431,54 @@ class ProductController extends Controller
             }
         }
 
-        // New image uploads: images[] (multiple) or image (single) – same as create
-        if ($request->hasFile('images')) {
-            ProductImage::where('product_id', $product->id)->update(['is_primary' => false]);
-            $maxOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order');
-            foreach ($request->file('images') as $index => $file) {
-                $imagePath = $file->store('products', 'public');
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image_path' => $imagePath,
-                    'sort_order' => $maxOrder + 1 + $index,
-                    'is_primary' => $index === 0,
-                ]);
+        // New image uploads: images[] (multiple) or image (single). When updating, replace existing images so response shows new URL.
+        if ($request->hasFile('images') || $request->hasFile('image')) {
+            // Delete existing product images and their files from storage (replace behavior)
+            $existingImages = ProductImage::where('product_id', $product->id)->get();
+            foreach ($existingImages as $old) {
+                if ($old->image_path && ! str_starts_with($old->image_path, 'http')) {
+                    if (Storage::disk('public')->exists($old->image_path)) {
+                        Storage::disk('public')->delete($old->image_path);
+                    }
+                }
             }
-            $firstNew = ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
-            if ($firstNew) {
-                $updateData['image'] = $firstNew->image_path;
+            ProductImage::where('product_id', $product->id)->delete();
+
+            $newPrimaryPath = null;
+            if ($request->hasFile('images')) {
+                $files = $request->file('images');
+                $files = is_array($files) ? $files : [$files];
+                foreach ($files as $index => $file) {
+                    if (! $file || ! $file->isValid()) {
+                        continue;
+                    }
+                    $imagePath = $file->store('products', 'public');
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $imagePath,
+                        'sort_order' => $index + 1,
+                        'is_primary' => $index === 0,
+                    ]);
+                    if ($index === 0) {
+                        $newPrimaryPath = $imagePath;
+                    }
+                }
+            } elseif ($request->hasFile('image')) {
+                $file = $request->file('image');
+                if ($file->isValid()) {
+                    $imagePath = $file->store('products', 'public');
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $imagePath,
+                        'sort_order' => 1,
+                        'is_primary' => true,
+                    ]);
+                    $newPrimaryPath = $imagePath;
+                }
             }
-        } elseif ($request->hasFile('image')) {
-            ProductImage::where('product_id', $product->id)->update(['is_primary' => false]);
-            $imagePath = $request->file('image')->store('products', 'public');
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_path' => $imagePath,
-                'sort_order' => (int) ProductImage::where('product_id', $product->id)->max('sort_order') + 1,
-                'is_primary' => true,
-            ]);
-            $updateData['image'] = $imagePath;
+            if ($newPrimaryPath !== null) {
+                $updateData['image'] = $newPrimaryPath;
+            }
         }
 
         // Optional: add image URLs (multipart image_urls or image_url[])

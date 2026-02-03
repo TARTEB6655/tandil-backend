@@ -38,17 +38,17 @@
             @method('PUT')
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Main content (2/3) -->
+                <!-- Main content (2/3) — Shopify order: Title → Description → Media → rest -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- Product details card -->
+                    <!-- 1. Product title & Description (top, like Shopify) -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30">
                             <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Product details</h2>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Name, description, price and category</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Title and description</p>
                         </div>
                         <div class="p-6 space-y-4">
                             <div>
-                                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name <span class="text-red-500">*</span></label>
+                                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product title <span class="text-red-500">*</span></label>
                                 <input type="text" id="name" name="name" value="{{ old('name', $product->name) }}" required
                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 dark:text-gray-100">
                                 @error('name') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
@@ -60,31 +60,10 @@
                                           placeholder="Describe your product...">{{ old('description', $product->description) }}</textarea>
                                 @error('description') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (AED) <span class="text-red-500">*</span></label>
-                                    <input type="number" id="price" name="price" step="0.01" value="{{ old('price', $product->price) }}" required
-                                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 dark:text-gray-100">
-                                    @error('price') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                                </div>
-                                <div>
-                                    <label for="category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-                                    <select id="category_id" name="category_id"
-                                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 dark:text-gray-100">
-                                        <option value="">No category</option>
-                                        @foreach($categories as $category)
-                                            <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Sidebar (1/3) -->
-                <div class="space-y-6">
-                    <!-- Media card -->
+                    <!-- 2. Media (after title & description, like Shopify) -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30">
                             <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Media</h2>
@@ -123,6 +102,36 @@
                         </div>
                     </div>
 
+                    <!-- 3. Pricing & category (other options) -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30">
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Pricing & category</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (AED) <span class="text-red-500">*</span></label>
+                                    <input type="number" id="price" name="price" step="0.01" value="{{ old('price', $product->price) }}" required
+                                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 dark:text-gray-100">
+                                    @error('price') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                                    <select id="category_id" name="category_id"
+                                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 dark:text-gray-100">
+                                        <option value="">No category</option>
+                                        @foreach($categories as $category)
+                                            <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar (1/3) — Status, organization, actions -->
+                <div class="space-y-6">
                     <!-- Actions card -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                         <div class="p-6 flex flex-col gap-3">
