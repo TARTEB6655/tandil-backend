@@ -32,8 +32,8 @@ class CategoryController extends Controller
         }
         $params = [];
         $uploadedFile = null;
-        $lineDelimiter = "\r\n--" . $boundary;
-        $parts = explode($lineDelimiter, $raw);
+        // Split on line-boundary so binary content is never split; support both \r\n and \n (e.g. Postman)
+        $parts = preg_split('/\r?\n--' . preg_quote($boundary, '/') . '/', $raw);
         $firstPrefix = '--' . $boundary;
         foreach ($parts as $i => $segment) {
             $part = $segment;
