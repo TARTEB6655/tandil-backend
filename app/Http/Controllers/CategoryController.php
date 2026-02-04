@@ -22,10 +22,10 @@ class CategoryController extends Controller
         if (! $contentType || ! str_contains($contentType, 'multipart/form-data')) {
             return;
         }
-        if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
+        if (! preg_match('/boundary\s*=\s*(?:"([^"]+)"|([^\s;]+))/i', $contentType, $m)) {
             return;
         }
-        $boundary = trim($m[1] ?? $m[2]);
+        $boundary = trim($m[1] ?? $m[2], " \t\"");
         $raw = $request->getContent();
         if ($raw === '' || $raw === false) {
             return;
@@ -253,8 +253,12 @@ class CategoryController extends Controller
         }
         $category = Category::findOrFail($id);
 
-        // PHP does not populate $_POST/$_FILES for PUT; parse multipart so fields + image work
-        if ($request->isMethod('PUT') || $request->isMethod('PATCH')) {
+        // Parse multipart body when: PUT/PATCH (PHP never populates $_FILES), or POST with multipart but no file yet (e.g. server didn't parse body)
+        $isPutOrPatch = $request->isMethod('PUT') || $request->isMethod('PATCH');
+        $isPostMultipartNoFile = $request->isMethod('POST')
+            && str_contains($request->header('Content-Type', ''), 'multipart/form-data')
+            && ! $request->hasFile('image');
+        if ($isPutOrPatch || $isPostMultipartNoFile) {
             $this->parsePutMultipartIntoRequest($request);
         }
 
@@ -307,7 +311,18 @@ class CategoryController extends Controller
         // Return view redirect for web requests, JSON for API requests (includes image, image_url)
         if (request()->expectsJson() || request()->is('api/*')) {
             $category->refresh();
-            return ApiResponse::success('Category updated successfully.', $category);
+            // Return explicit data so image/image_url are always from DB (no cached/old URL)
+            $data = [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'description' => $category->description,
+                'image' => $category->image,
+                'image_url' => $category->image_url,
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+            return ApiResponse::success('Category updated successfully.', $data);
         }
         
         return redirect()->route('admin.categories.index')
