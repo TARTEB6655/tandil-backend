@@ -103,6 +103,47 @@ class CategoryController extends Controller
     }
 
     /**
+     * Save category image from base64 string (data URL or raw base64).
+     * Use when multipart file upload doesn't work (e.g. PUT body not passed by server).
+     * Returns stored path or null on failure.
+     */
+    private function storeCategoryImageFromBase64(Request $request): ?string
+    {
+        $input = $request->input('image_base64');
+        if (! is_string($input) || $input === '') {
+            return null;
+        }
+        $data = $input;
+        if (str_starts_with($input, 'data:')) {
+            if (! preg_match('/^data:image\/(\w+);base64,(.+)$/s', $input, $m)) {
+                return null;
+            }
+            $data = $m[2];
+        }
+        $decoded = base64_decode($data, true);
+        if ($decoded === false || strlen($decoded) < 10) {
+            return null;
+        }
+        $ext = 'jpg';
+        if (str_starts_with($decoded, "\x89PNG")) {
+            $ext = 'png';
+        } elseif (str_starts_with($decoded, 'GIF8')) {
+            $ext = 'gif';
+        } elseif (str_starts_with($decoded, "\xff\xd8\xff")) {
+            $ext = 'jpg';
+        } elseif (str_starts_with($decoded, 'RIFF') && substr($decoded, 8, 4) === 'WEBP') {
+            $ext = 'webp';
+        }
+        $filename = 'cat_' . uniqid() . '.' . $ext;
+        $path = 'categories/' . $filename;
+        if (Storage::disk('public')->put($path, $decoded) === false) {
+            return null;
+        }
+        $this->compressCategoryImageIfNeeded($path);
+        return $path;
+    }
+
+    /**
      * Validate category id for API. Returns JSON error response or null if valid.
      */
     private function invalidCategoryIdResponse($id, Request $request): ?\Illuminate\Http\JsonResponse
@@ -297,13 +338,19 @@ class CategoryController extends Controller
             }
         }
 
-        // Handle image upload: delete old image if new one provided (any size; auto-compress to max 2 MB)
+        // Handle image: file upload (multipart) OR base64 (when file upload doesn't work on server)
+        $newImagePath = null;
         if ($request->hasFile('image')) {
+            $newImagePath = $request->file('image')->store('categories', 'public');
+        } else {
+            $newImagePath = $this->storeCategoryImageFromBase64($request);
+        }
+        if ($newImagePath !== null) {
             if ($category->image && Storage::disk('public')->exists($category->image)) {
                 Storage::disk('public')->delete($category->image);
             }
-            $updateData['image'] = $request->file('image')->store('categories', 'public');
-            $this->compressCategoryImageIfNeeded($updateData['image']);
+            $updateData['image'] = $newImagePath;
+            $this->compressCategoryImageIfNeeded($newImagePath);
         }
 
         $category->update($updateData);

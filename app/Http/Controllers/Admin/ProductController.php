@@ -38,11 +38,22 @@ class ProductController extends Controller
      */
     private function productToApiData(Product $product): array
     {
-        $images = $product->relationLoaded('images') ? ProductImage::uniqueByPath($product->images) : [];
+        $imagesCollection = $product->relationLoaded('images') ? $product->images : collect([]);
+        $images = ProductImage::toApiImagesArray($imagesCollection);
         $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
-        if ($primaryImage === null && count($images) > 0) {
-            $primaryImage = $images[0];
+        $primaryImageArray = null;
+        if ($primaryImage && $primaryImage->image_path) {
+            $primaryImageArray = [
+                'id' => $primaryImage->id,
+                'image_path' => $primaryImage->image_path,
+                'image_url' => ProductImage::buildFullUrl($primaryImage->image_path),
+                'sort_order' => (int) $primaryImage->sort_order,
+                'is_primary' => (bool) $primaryImage->is_primary,
+            ];
+        } elseif (count($images) > 0) {
+            $primaryImageArray = $images[0];
         }
+        $rootImagePath = $product->image ?? ($primaryImageArray['image_path'] ?? null);
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -55,9 +66,9 @@ class ProductController extends Controller
             'sku' => $product->sku,
             'handle' => $product->handle,
             'image' => $product->image,
-            'image_url' => $product->image_url,
+            'image_url' => ProductImage::buildFullUrl($rootImagePath),
             'images' => $images,
-            'primary_image' => $primaryImage,
+            'primary_image' => $primaryImageArray,
             'category' => $product->relationLoaded('category') ? $product->category : null,
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at,
@@ -113,7 +124,8 @@ class ProductController extends Controller
             return;
         }
         $params = [];
-        $filesSingle = [];
+        $filesMainImage = [];
+        $filesImage = [];
         $filesMulti = [];
         $lineDelimiter = "\r\n--" . $boundary;
         $parts = explode($lineDelimiter, $raw);
@@ -160,9 +172,9 @@ class ProductController extends Controller
                 if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false) {
                     $uploaded = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
                     if ($name === 'main_image') {
-                        $filesSingle['main_image'] = $uploaded;
+                        $filesMainImage[] = $uploaded;
                     } elseif ($name === 'image') {
-                        $filesSingle['image'] = $uploaded;
+                        $filesImage[] = $uploaded;
                     } elseif ($name === 'images' || $name === 'images[]') {
                         $filesMulti['images'] = $filesMulti['images'] ?? [];
                         $filesMulti['images'][] = $uploaded;
@@ -179,8 +191,11 @@ class ProductController extends Controller
         if ($params !== []) {
             $request->merge($params);
         }
-        foreach ($filesSingle as $key => $file) {
-            $request->files->set($key, $file);
+        if ($filesMainImage !== []) {
+            $request->files->set('main_image', $filesMainImage);
+        }
+        if ($filesImage !== []) {
+            $request->files->set('image', $filesImage);
         }
         foreach ($filesMulti as $key => $fileArray) {
             $request->files->set($key, $fileArray);
@@ -198,6 +213,70 @@ class ProductController extends Controller
     {
         // Compression disabled for performance - images stored as uploaded
         return;
+    }
+
+    /**
+     * Validation rule for main_image: accept single file or array of files (each image|mimes).
+     */
+    private function mainImageValidationRule(): \Closure
+    {
+        return function ($attribute, $value, $fail) {
+            if ($value === null) {
+                return;
+            }
+            $files = is_array($value) ? $value : [$value];
+            $allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            foreach ($files as $f) {
+                if (! $f instanceof \Illuminate\Http\UploadedFile) {
+                    $fail(__('The main image must be a valid image file.'));
+                    return;
+                }
+                if (! $f->isValid()) {
+                    $fail(__('The main image file is invalid.'));
+                    return;
+                }
+                $mime = $f->getMimeType();
+                if (! in_array($mime, $allowed, true)) {
+                    $fail(__('The main image must be a file of type: jpeg, jpg, png, webp.'));
+                    return;
+                }
+            }
+        };
+    }
+
+    /**
+     * Normalize main_image input: if multiple files sent as main_image (or main_image[]), first = primary, rest = extra.
+     * Returns [mainFile|null, extraFilesFromMain[]].
+     */
+    private function normalizeMainImageInput(Request $request): array
+    {
+        $mainFile = null;
+        $extraFromMain = [];
+        if ($request->hasFile('main_image')) {
+            $f = $request->file('main_image');
+            if (is_array($f)) {
+                $valid = array_values(array_filter($f, fn ($file) => $file && $file->isValid()));
+                if (count($valid) > 0) {
+                    $mainFile = $valid[0];
+                    $extraFromMain = array_slice($valid, 1);
+                }
+            } elseif ($f && $f->isValid()) {
+                $mainFile = $f;
+            }
+        }
+        if ($mainFile === null && $request->hasFile('image')) {
+            $f = $request->file('image');
+            if (is_array($f)) {
+                $valid = array_values(array_filter($f, fn ($file) => $file && $file->isValid()));
+                if (count($valid) > 0) {
+                    $mainFile = $valid[0];
+                    $extraFromMain = array_slice($valid, 1);
+                }
+            } elseif ($f && $f->isValid()) {
+                $mainFile = $f;
+            }
+        }
+        return [$mainFile, $extraFromMain];
     }
 
     /**
@@ -316,7 +395,8 @@ class ProductController extends Controller
             'sku'         => 'nullable|string|max:255|unique:products,sku',
             'handle'      => 'nullable|string|max:255|unique:products,handle',
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'main_image'  => ['nullable', $this->mainImageValidationRule()],
+            'main_image.*'=> 'nullable|image|mimes:jpg,jpeg,png,webp',
             'images'      => 'nullable|array',
             'images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'image_urls'  => 'nullable|array',
@@ -410,24 +490,12 @@ class ProductController extends Controller
             ], 422);
         }
 
-        // Handle images: main_image (or image) = primary; images[] = extra only
-        $mainFile = null;
-        if ($request->hasFile('main_image')) {
-            $f = $request->file('main_image');
-            if ($f && $f->isValid()) {
-                $mainFile = $f;
-            }
-        }
-        if ($mainFile === null && $request->hasFile('image')) {
-            $f = $request->file('image');
-            if ($f && $f->isValid()) {
-                $mainFile = $f;
-            }
-        }
-        $extraFiles = [];
+        // Handle images: main_image (single or multiple) = first is primary, rest go to images; images[] = extra
+        [$mainFile, $extraFromMain] = $this->normalizeMainImageInput($request);
+        $extraFiles = $extraFromMain;
         if ($request->hasFile('images')) {
             $files = $request->file('images');
-            $extraFiles = is_array($files) ? $files : [$files];
+            $extraFiles = array_merge($extraFiles, is_array($files) ? $files : [$files]);
         }
         if ($request->hasFile('images[]')) {
             $files = $request->file('images[]');
@@ -608,7 +676,8 @@ class ProductController extends Controller
             'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,
             'handle'      => 'nullable|string|max:255|unique:products,handle,' . $id,
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp',
-            'main_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'main_image'  => ['nullable', $this->mainImageValidationRule()],
+            'main_image.*'=> 'nullable|image|mimes:jpg,jpeg,png,webp',
             'images'      => 'nullable|array',
             'images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'image_urls'  => 'nullable|array',
@@ -648,22 +717,10 @@ class ProductController extends Controller
             }
         }
 
-        // When any new images are sent (main_image and/or images[]), replace ALL product images with the new set
-        // so we never end up with old + new (e.g. 2 sent -> 2 in DB, not 4).
-        $mainFile = null;
-        if ($request->hasFile('main_image')) {
-            $f = $request->file('main_image');
-            if ($f && $f->isValid()) {
-                $mainFile = $f;
-            }
-        }
-        $extraFiles = [];
-        if ($request->hasFile('image') && $mainFile === null) {
-            $f = $request->file('image');
-            if ($f && $f->isValid()) {
-                $extraFiles[] = $f;
-            }
-        }
+        // When any new images are sent (main_image single/multiple and/or images[]), replace ALL product images.
+        // If multiple files under main_image: first = primary, rest go to images array.
+        [$mainFile, $extraFromMain] = $this->normalizeMainImageInput($request);
+        $extraFiles = $extraFromMain;
         if ($request->hasFile('images')) {
             $files = $request->file('images');
             $extraFiles = array_merge($extraFiles, is_array($files) ? $files : [$files]);

@@ -93,15 +93,26 @@ class ProductController extends Controller
     }
 
     /**
-     * Build product data for public API with deduplicated images (same image_path only once).
+     * Build product data for public API with deduplicated images and working full image_url for each.
      */
     private function productToPublicData(Product $product): array
     {
-        $images = $product->relationLoaded('images') ? ProductImage::uniqueByPath($product->images) : [];
+        $imagesCollection = $product->relationLoaded('images') ? $product->images : collect([]);
+        $images = ProductImage::toApiImagesArray($imagesCollection);
         $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
-        if ($primaryImage === null && count($images) > 0) {
-            $primaryImage = $images[0];
+        $primaryImageArray = null;
+        if ($primaryImage && $primaryImage->image_path) {
+            $primaryImageArray = [
+                'id' => $primaryImage->id,
+                'image_path' => $primaryImage->image_path,
+                'image_url' => ProductImage::buildFullUrl($primaryImage->image_path),
+                'sort_order' => (int) $primaryImage->sort_order,
+                'is_primary' => (bool) $primaryImage->is_primary,
+            ];
+        } elseif (count($images) > 0) {
+            $primaryImageArray = $images[0];
         }
+        $rootImagePath = $product->image ?? ($primaryImageArray['image_path'] ?? null);
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -114,9 +125,9 @@ class ProductController extends Controller
             'sku' => $product->sku,
             'handle' => $product->handle,
             'image' => $product->image,
-            'image_url' => $product->image_url,
+            'image_url' => ProductImage::buildFullUrl($rootImagePath),
             'images' => $images,
-            'primary_image' => $primaryImage,
+            'primary_image' => $primaryImageArray,
             'category' => $product->relationLoaded('category') ? $product->category : null,
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at,

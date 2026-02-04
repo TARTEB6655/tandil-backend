@@ -351,6 +351,67 @@ class AdminProductApiTest extends TestCase
     }
 
     /**
+     * Create product with multiple files under main_image only: first = primary, rest in images array.
+     */
+    public function test_product_create_multiple_main_image_first_primary_rest_in_images(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['role' => 'admin']);
+        if (method_exists($admin, 'assignRole')) {
+            $admin->assignRole('admin');
+        }
+        $category = Category::factory()->create();
+        $token = $admin->createToken('test')->plainTextToken;
+        $file1 = UploadedFile::fake()->image('first.jpg', 100, 100);
+        $file2 = UploadedFile::fake()->image('second.jpg', 80, 80);
+        $file3 = UploadedFile::fake()->image('third.jpg', 60, 60);
+
+        $response = $this->call(
+            'POST',
+            '/api/admin/products',
+            [
+                'name' => 'Product Multi Main',
+                'description' => 'Desc',
+                'price' => 10,
+                'stock' => 0,
+                'status' => 'draft',
+                'category_id' => $category->id,
+                'sku' => 'sku-multi-main-' . uniqid(),
+                'handle' => 'handle-multi-main-' . uniqid(),
+            ],
+            [],
+            ['main_image' => [$file1, $file2, $file3]],
+            [
+                'HTTP_Authorization' => 'Bearer ' . $token,
+                'HTTP_Accept' => 'application/json',
+            ]
+        );
+
+        $response->assertStatus(201);
+        $productId = $response->json('data.id');
+        $data = $response->json('data');
+        $this->assertCount(3, $data['images'] ?? [], 'All 3 main_image files must be saved (first primary, rest in images)');
+        $this->assertNotEmpty($data['image']);
+        $this->assertNotEmpty($data['image_url']);
+        $primary = $data['primary_image'] ?? null;
+        $this->assertNotNull($primary);
+        $this->assertTrue($primary['is_primary'] ?? false);
+
+        $product = Product::find($productId);
+        $product->load('images');
+        $this->assertCount(3, $product->images);
+        $primaryImg = $product->images->where('is_primary', true)->first();
+        $this->assertNotNull($primaryImg);
+        $this->assertSame($product->image, $primaryImg->image_path);
+        foreach ($product->images as $img) {
+            $fullPath = Storage::disk('public')->path($img->image_path);
+            $this->assertFileExists($fullPath);
+            $size = filesize($fullPath);
+            $this->assertGreaterThan(0, $size, 'Stored image must not be empty (no truncation)');
+        }
+    }
+
+    /**
      * End-to-end: create product (all fields + images) -> get -> update -> get -> shop detail -> delete;
      * then create category with image -> get -> update category with image -> get.
      * Asserts images are full size and no duplication in every response.
@@ -615,5 +676,43 @@ class AdminProductApiTest extends TestCase
         $data = $response->json('data');
         $this->assertNotEmpty($data['image'], 'Category image must be set after POST with image');
         $this->assertStringContainsString('categories/', $data['image']);
+    }
+
+    /**
+     * PUT/POST with image_base64 (JSON) must update the category image when file upload doesn't work on server.
+     */
+    public function test_category_update_with_image_base64_api(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['role' => 'admin']);
+        if (method_exists($admin, 'assignRole')) {
+            $admin->assignRole('admin');
+        }
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $catRes = $this->postJson('/api/admin/categories', [
+            'name' => 'Category Base64 Update',
+            'slug' => 'cat-b64-' . uniqid(),
+            'description' => 'No image',
+        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
+        $catRes->assertStatus(201);
+        $categoryId = $catRes->json('data.id');
+        $this->assertNull($catRes->json('data.image'));
+
+        $file = UploadedFile::fake()->image('b64.jpg', 80, 80);
+        $base64 = 'data:image/jpeg;base64,' . base64_encode($file->get());
+
+        $response = $this->putJson('/api/admin/categories/' . $categoryId, [
+            'name' => 'Category Base64 Update',
+            'slug' => $catRes->json('data.slug'),
+            'description' => 'With image via base64',
+            'image_base64' => $base64,
+        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
+
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertNotEmpty($data['image'], 'Category image must be set after update with image_base64');
+        $this->assertStringContainsString('categories/', $data['image']);
+        $this->assertNotEmpty($data['image_url']);
     }
 }

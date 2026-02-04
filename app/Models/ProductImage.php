@@ -28,27 +28,35 @@ class ProductImage extends Model
     }
 
     /**
+     * Build a full absolute image URL from path (uses request host when available so URLs work behind proxy).
+     */
+    public static function buildFullUrl(?string $imagePath): ?string
+    {
+        if (! $imagePath || ! is_string($imagePath)) {
+            return null;
+        }
+        $path = $imagePath;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        if (strpos($path, 'products/') !== 0) {
+            $path = 'products/' . $path;
+        }
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        $path = 'media/' . $path;
+        if (function_exists('request') && request() && request()->getHttpHost()) {
+            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $path;
+        }
+        return asset($path);
+    }
+
+    /**
      * Get the full URL for the image.
-     * Returns image_path as-is when it is already a full URL (http/https).
-     * Otherwise builds a full URL using asset() so when domain or ASSET_URL
-     * changes in the future, all API responses stay correct (APP_URL / ASSET_URL).
+     * Uses request host when available so API image URLs work behind proxy / correct domain.
      */
     public function getImageUrl()
     {
-        if (! $this->image_path) {
-            return null;
-        }
-        $imagePath = $this->image_path;
-        // Already a full URL (e.g. from image_urls)
-        if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
-            return $imagePath;
-        }
-        if (strpos($imagePath, 'products/') !== 0) {
-            $imagePath = 'products/' . $imagePath;
-        }
-        $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-        // Direct serve URL: /media/ serves files (no redirect); app can also build {{origin}}/media/{{path}} from relative image_path
-        return asset('media/' . $imagePath);
+        return self::buildFullUrl($this->image_path);
     }
 
     /**
@@ -93,6 +101,25 @@ class ProductImage extends Model
                 $seen[$path] = true;
                 $out[] = $img;
             }
+        }
+        return $out;
+    }
+
+    /**
+     * Return deduplicated images as API-ready array (no duplication, full image_url for each).
+     */
+    public static function toApiImagesArray($images): array
+    {
+        $unique = self::uniqueByPath($images);
+        $out = [];
+        foreach ($unique as $img) {
+            $out[] = [
+                'id' => $img->id,
+                'image_path' => $img->image_path,
+                'image_url' => self::buildFullUrl($img->image_path),
+                'sort_order' => (int) $img->sort_order,
+                'is_primary' => (bool) $img->is_primary,
+            ];
         }
         return $out;
     }
