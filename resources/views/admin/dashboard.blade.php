@@ -14,8 +14,8 @@
     </div>
 
     <!-- Jump to Section - Sticky quick navigation -->
-    <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-3 py-2 md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 mb-4 md:mb-6 bg-gray-100/98 dark:bg-gray-800/98 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
-        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Jump to section</p>
+    <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-3 py-3 md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 mb-4 md:mb-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl shadow-md">
+        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Quick navigation</p>
         <div class="flex flex-wrap gap-2">
             <a href="#key-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Key Metrics</a>
             <a href="#user-statistics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">User Statistics</a>
@@ -157,16 +157,16 @@
     <!-- 1. Key Metrics -->
     <div id="key-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <!-- Total Users Card -->
-        <a href="{{ route('admin.users.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-blue-300 dark:hover:border-blue-600">
+        <a href="{{ route('admin.users.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-600 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Users</p>
-                    <p class="text-lg font-medium text-blue-600">{{ number_format($totalUsers ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">All registered users</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Users</p>
+                    <p class="text-lg font-medium text-blue-600 dark:text-blue-400">{{ number_format($totalUsers ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">All registered users</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-blue-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                         </svg>
                     </div>
@@ -175,16 +175,16 @@
         </a>
 
         <!-- Active Subscriptions Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Active Subscriptions</p>
-                    <p class="text-lg font-medium text-green-600">{{ number_format($activeSubscriptions ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">Currently active</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Active Subscriptions</p>
+                    <p class="text-lg font-medium text-green-600 dark:text-green-400">{{ number_format($activeSubscriptions ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Currently active</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -193,16 +193,16 @@
         </div>
 
         <!-- Total Revenue Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Revenue</p>
-                    <p class="text-lg font-medium text-amber-600">AED {{ number_format($totalRevenue ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">All time revenue</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Revenue</p>
+                    <p class="text-lg font-medium text-amber-600 dark:text-amber-400">AED {{ number_format($totalRevenue ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">All time revenue</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -211,16 +211,16 @@
         </div>
 
         <!-- Total Orders Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Orders</p>
-                    <p class="text-lg font-medium text-purple-600">{{ number_format($totalOrders ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500">{{ $ordersToday ?? 0 }} today</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Orders</p>
+                    <p class="text-lg font-medium text-purple-600 dark:text-purple-400">{{ number_format($totalOrders ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $ordersToday ?? 0 }} today</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
-                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-purple-50">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
                     </div>
@@ -231,16 +231,16 @@
 
     <!-- 2. User Statistics -->
     <div id="user-statistics" class="scroll-mt-24 mb-6 md:mb-8">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-lg font-medium text-gray-900">User Statistics</h2>
-                    <p class="mt-1 text-sm text-gray-500">Track growth of customers, technicians, and employees</p>
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">User Statistics</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Track growth of customers, technicians, and employees</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <label for="stats_range" class="text-sm font-medium text-gray-700">Time Range:</label>
+                    <label for="stats_range" class="text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</label>
                     <select id="stats_range" name="stats_range" onchange="updateStatistics()" 
-                            class="rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                            class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                         <option value="daily" {{ ($timeRange ?? 'monthly') == 'daily' ? 'selected' : '' }}>Daily</option>
                         <option value="weekly" {{ ($timeRange ?? 'monthly') == 'weekly' ? 'selected' : '' }}>Weekly</option>
                         <option value="monthly" {{ ($timeRange ?? 'monthly') == 'monthly' ? 'selected' : '' }}>Monthly</option>
@@ -251,7 +251,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <!-- Customers Card -->
-                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 rounded-xl border border-blue-200 dark:border-blue-700 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2">
                             <div class="p-2 bg-blue-500 rounded-lg">
@@ -259,12 +259,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-medium text-gray-700">Customers</h3>
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Customers</h3>
                         </div>
                     </div>
                     <div class="mb-2">
-                        <p class="text-3xl font-bold text-blue-600">{{ number_format($stats['customers']['current'] ?? 0) }}</p>
-                        <p class="text-xs text-gray-600 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($stats['customers']['current'] ?? 0) }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
                     </div>
                     @if(isset($stats['customers']['growth']))
                         <div class="flex items-center gap-2">
@@ -285,7 +285,7 @@
                 </div>
 
                 <!-- Technicians Card -->
-                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6">
+                <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/30 rounded-xl border border-green-200 dark:border-green-700 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2">
                             <div class="p-2 bg-green-500 rounded-lg">
@@ -293,12 +293,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-medium text-gray-700">Technicians</h3>
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Technicians</h3>
                         </div>
                     </div>
                     <div class="mb-2">
-                        <p class="text-3xl font-bold text-green-600">{{ number_format($stats['technicians']['current'] ?? 0) }}</p>
-                        <p class="text-xs text-gray-600 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ number_format($stats['technicians']['current'] ?? 0) }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
                     </div>
                     @if(isset($stats['technicians']['growth']))
                         <div class="flex items-center gap-2">
@@ -319,7 +319,7 @@
                 </div>
 
                 <!-- Employees/Staff Card -->
-                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/30 rounded-xl border border-purple-200 dark:border-purple-700 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2">
                             <div class="p-2 bg-purple-500 rounded-lg">
@@ -327,12 +327,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-medium text-gray-700">Employees/Staff</h3>
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Employees/Staff</h3>
                         </div>
                     </div>
                     <div class="mb-2">
-                        <p class="text-3xl font-bold text-purple-600">{{ number_format($stats['employees']['current'] ?? 0) }}</p>
-                        <p class="text-xs text-gray-600 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ number_format($stats['employees']['current'] ?? 0) }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
                     </div>
                     @if(isset($stats['employees']['growth']))
                         <div class="flex items-center gap-2">
@@ -367,15 +367,15 @@
     <!-- 3. Visits & Alerts (Secondary Metrics) -->
     <div id="secondary-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <!-- Total Visits -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Total Visits</p>
-                    <p class="text-lg font-medium text-indigo-600">{{ number_format($totalVisits ?? 0) }}</p>
-                    <p class="text-xs text-gray-500 mt-1">{{ $visitsToday ?? 0 }} today</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Total Visits</p>
+                    <p class="text-lg font-medium text-indigo-600 dark:text-indigo-400">{{ number_format($totalVisits ?? 0) }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $visitsToday ?? 0 }} today</p>
                 </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
-                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
+                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -384,15 +384,15 @@
         </div>
 
         <!-- Today's Visits -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Today's Visits</p>
-                    <p class="text-lg font-medium text-indigo-600">{{ $visitsToday ?? 0 }}</p>
-                    <p class="text-xs text-gray-500 mt-1">Scheduled today</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Today's Visits</p>
+                    <p class="text-lg font-medium text-indigo-600 dark:text-indigo-400">{{ $visitsToday ?? 0 }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Scheduled today</p>
                 </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50">
-                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
+                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                 </div>
@@ -400,14 +400,14 @@
         </div>
 
         <!-- Pending Complaints -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Pending Complaints</p>
-                    <p class="text-lg font-medium text-red-600">{{ $pendingComplaints ?? 0 }}</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Pending Complaints</p>
+                    <p class="text-lg font-medium text-red-600 dark:text-red-400">{{ $pendingComplaints ?? 0 }}</p>
                 </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
-                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/30">
+                    <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
@@ -415,14 +415,14 @@
         </div>
 
         <!-- Pending Reports -->
-        <a href="{{ route('admin.reports.index') }}" class="block bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm hover:border-yellow-300 transition-colors">
+        <a href="{{ route('admin.reports.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md hover:border-yellow-300 dark:hover:border-yellow-600 transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Pending Reports</p>
-                    <p class="text-lg font-medium text-yellow-600">{{ $pendingReports ?? 0 }}</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Pending Reports</p>
+                    <p class="text-lg font-medium text-yellow-600 dark:text-yellow-400">{{ $pendingReports ?? 0 }}</p>
                 </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50">
-                    <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50 dark:bg-yellow-900/30">
+                    <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 </div>
@@ -430,14 +430,14 @@
         </a>
 
         <!-- Active Regions -->
-        <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-5 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">Active Regions</p>
-                    <p class="text-lg font-medium text-teal-600">{{ $activeRegions ?? 0 }}</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Active Regions</p>
+                    <p class="text-lg font-medium text-teal-600 dark:text-teal-400">{{ $activeRegions ?? 0 }}</p>
                 </div>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50">
-                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 dark:bg-teal-900/30">
+                    <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
@@ -448,22 +448,22 @@
     <!-- 4. E-Commerce Section -->
     <div id="ecommerce" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900">E-Commerce Overview</h2>
-            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View All Orders →</a>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">E-Commerce Overview</h2>
+            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">View All Orders →</a>
         </div>
 
         <!-- E-Commerce Stats Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
             <!-- Paid Orders -->
-            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Paid Orders</p>
-                        <p class="text-lg font-medium text-green-600">{{ number_format($paidOrders ?? 0) }}</p>
-                        <p class="mt-1 text-xs text-gray-500">{{ number_format(($paidOrders ?? 0) / max($totalOrders ?? 1, 1) * 100, 1) }}% of total</p>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Paid Orders</p>
+                        <p class="text-lg font-medium text-green-600 dark:text-green-400">{{ number_format($paidOrders ?? 0) }}</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ number_format(($paidOrders ?? 0) / max($totalOrders ?? 1, 1) * 100, 1) }}% of total</p>
                     </div>
-                    <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-green-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -471,15 +471,15 @@
             </div>
 
             <!-- Pending Payments -->
-            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pending Payments</p>
-                        <p class="text-lg font-medium text-yellow-600">{{ number_format($pendingPayments ?? 0) }}</p>
-                        <p class="mt-1 text-xs text-gray-500">Awaiting payment</p>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Pending Payments</p>
+                        <p class="text-lg font-medium text-yellow-600 dark:text-yellow-400">{{ number_format($pendingPayments ?? 0) }}</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Awaiting payment</p>
                     </div>
-                    <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-yellow-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -487,15 +487,15 @@
             </div>
 
             <!-- Revenue This Month -->
-            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Revenue (Month)</p>
-                        <p class="text-lg font-medium text-indigo-600">AED {{ number_format($revenueThisMonth ?? 0) }}</p>
-                        <p class="mt-1 text-xs text-gray-500">This month</p>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Revenue (Month)</p>
+                        <p class="text-lg font-medium text-indigo-600 dark:text-indigo-400">AED {{ number_format($revenueThisMonth ?? 0) }}</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This month</p>
                     </div>
-                    <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-indigo-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 md:w-6 md:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -522,8 +522,8 @@
         <!-- Order Status -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- Order Status Breakdown -->
-            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h3 class="text-base font-medium text-gray-900 mb-4">Order Status</h3>
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">Order Status</h3>
                 <div class="space-y-3">
                     @foreach($ordersByStatus ?? [] as $status)
                         <div class="flex items-center justify-between">
@@ -543,8 +543,8 @@
             </div>
 
             <!-- Payment Status Breakdown -->
-            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h3 class="text-base font-medium text-gray-900 mb-4">Payment Status</h3>
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">Payment Status</h3>
                 <div class="space-y-3">
                     @foreach($ordersByPaymentStatus ?? [] as $payment)
                         <div class="flex items-center justify-between">
