@@ -34,12 +34,30 @@ class ProductController extends Controller
 
     /**
      * Return product data with only allowed API fields (no extra fields in response).
+     * Optimized: expects relations already loaded, no lazy loading.
      */
     private function productToApiData(Product $product): array
     {
-        $product->loadMissing(['category', 'images', 'primaryImage']);
-        $data = $product->toArray();
-        return array_intersect_key($data, array_flip(self::PRODUCT_API_RESPONSE_KEYS));
+        // Build response directly without calling toArray() to avoid overhead
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'price' => $product->price,
+            'stock' => $product->stock,
+            'status' => $product->status,
+            'category_id' => $product->category_id,
+            'weight_unit' => $product->weight_unit,
+            'sku' => $product->sku,
+            'handle' => $product->handle,
+            'image' => $product->image,
+            'image_url' => $product->image_url,
+            'images' => $product->relationLoaded('images') ? $product->images : [],
+            'primary_image' => $product->relationLoaded('primaryImage') ? $product->primaryImage : null,
+            'category' => $product->relationLoaded('category') ? $product->category : null,
+            'created_at' => $product->created_at,
+            'updated_at' => $product->updated_at,
+        ];
     }
 
     /**
@@ -164,42 +182,44 @@ class ProductController extends Controller
 
     /**
      * List products (with search, category filter, pagination).
+     * Optimized: minimal eager loading, direct response building.
      */
     public function index(Request $request)
     {
-        $search     = $request->query('search');
+        $isApi = $request->expectsJson() || $request->is('api/*');
+        $search = $request->query('search');
         $categoryId = $request->query('category_id');
 
-        $query = Product::with(['category', 'images', 'primaryImage']);
+        // Optimized: only load what's needed
+        $query = Product::with(['category:id,name,slug', 'primaryImage:id,product_id,image_path,is_primary']);
+        
+        // Add images relation only if needed (API requests)
+        if ($isApi) {
+            $query->with('images:id,product_id,image_path,sort_order,is_primary');
+        }
 
         if ($search) {
-            $query->where('name', 'LIKE', "%{$search}%")
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
                   ->orWhere('description', 'LIKE', "%{$search}%");
+            });
         }
 
         if ($categoryId) {
             $query->where('category_id', $categoryId);
         }
 
-        // Apply filter tabs
         $filter = $request->get('filter', 'all');
         if ($filter === 'active') {
             $query->where('stock', '>', 0);
-        } elseif ($filter === 'draft') {
-            // You can add a status field to products table later
-            $query->where('stock', '<=', 0);
-        } elseif ($filter === 'archived') {
-            // You can add an archived field to products table later
+        } elseif ($filter === 'draft' || $filter === 'archived') {
             $query->where('stock', '<=', 0);
         }
 
-        $perPage = (int) $request->query('per_page', 15);
-        $perPage = $perPage > 0 ? min($perPage, 100) : 15;
-        $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
-        $categories = \App\Models\Category::all();
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        $products = $query->orderByDesc('id')->paginate($perPage);
 
-        // Check if this is an API request
-        if ($request->expectsJson() || $request->is('api/*')) {
+        if ($isApi) {
             return response()->json([
                 'status' => true,
                 'message' => 'Products retrieved successfully.',
@@ -213,6 +233,7 @@ class ProductController extends Controller
             ]);
         }
 
+        $categories = Category::select('id', 'name')->get();
         return view('admin.products.index', compact('products', 'categories'));
     }
 

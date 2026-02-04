@@ -4,37 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
     use HasFactory;
 
-    // Specify the fields that can be mass-assigned
     protected $fillable = [
-        'category_id',
-        'name',
-        'vendor',
-        'type',
-        'sku',
-        'barcode',
-        'description',
-        'price',
-        'compare_at_price',
-        'cost_per_item',
-        'stock',
-        'status',
-        'track_quantity',
-        'allow_backorder',
-        'weight',
-        'weight_unit',
-        'tags',
-        'meta_title',
-        'meta_description',
-        'handle',
-        'requires_shipping',
-        'taxable',
-        'image',
+        'category_id', 'name', 'vendor', 'type', 'sku', 'barcode', 'description',
+        'price', 'compare_at_price', 'cost_per_item', 'stock', 'status',
+        'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
+        'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
     ];
 
     protected $casts = [
@@ -48,139 +27,71 @@ class Product extends Model
         'cost_per_item' => 'float',
     ];
 
-    /**
-     * Append image_url and primary_image to array/JSON representation.
-     * API response: data.image (relative path), data.image_url (full URL),
-     * data.images (array of { id, product_id, image_path, sort_order, is_primary, ... }),
-     * data.primary_image (same shape as one entry in images).
-     */
-    protected $appends = ['image_url', 'primary_image'];
+    // Optimized: Only append image_url (primary_image loaded via relation)
+    protected $appends = ['image_url'];
 
-    /**
-     * Define relationship with Category model
-     * Each product belongs to one category.
-     */
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    /**
-     * Get all images for this product.
-     */
     public function images()
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
-    /**
-     * Get the primary image (relation).
-     */
     public function primaryImage()
     {
         return $this->hasOne(ProductImage::class)->where('is_primary', true);
     }
 
     /**
-     * Same as primaryImage relation; exposed as primary_image in API response (snake_case).
-     * Use relation query to avoid circular accessor when serializing.
+     * Get primary_image from already-loaded relation (no extra query).
      */
     public function getPrimaryImageAttribute()
     {
-        return $this->getRelationValue('primaryImage') ?? $this->primaryImage()->first();
+        // Only return if relation already loaded - never trigger lazy load
+        return $this->relationLoaded('primaryImage') ? $this->getRelation('primaryImage') : null;
     }
 
     /**
-     * Get the full URL for the product image.
-     * Works both locally and in production.
-     * This is used by the $appends array for API responses.
+     * Get image URL without triggering lazy loads.
      */
-    public function getImageUrlAttribute()
+    public function getImageUrlAttribute(): ?string
     {
-        if (!$this->relationLoaded('primaryImage')) {
-            $this->load('primaryImage');
+        // Check already-loaded primaryImage relation first
+        if ($this->relationLoaded('primaryImage')) {
+            $primary = $this->getRelation('primaryImage');
+            if ($primary && $primary->image_path) {
+                return $this->buildImageUrl($primary->image_path);
+            }
         }
-        if ($this->primaryImage && $this->primaryImage->image_path) {
-            return $this->primaryImage->getImageUrl();
-        }
+        // Fallback to image field
         if ($this->image) {
-            $imagePath = $this->image;
-            if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
-                return $imagePath;
-            }
-            if (strpos($imagePath, 'products/') !== 0) {
-                $imagePath = 'products/' . $imagePath;
-            }
-            $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-            return asset('media/' . $imagePath);
+            return $this->buildImageUrl($this->image, 'products/');
         }
         return null;
     }
 
     /**
-     * Get the image URL (helper method for views).
-     * Returns the primary image URL or the main image URL.
-     * Uses asset() so APP_URL / ASSET_URL control the base when domain or CDN changes.
+     * Build full image URL from path.
      */
-    public function getImageUrl()
+    private function buildImageUrl(string $path, string $prefix = ''): string
     {
-        // Try primary image first (need to load relationship if not already loaded)
-        if (!$this->relationLoaded('primaryImage')) {
-            $this->load('primaryImage');
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
         }
-        
-        if ($this->primaryImage && $this->primaryImage->image_path) {
-            return $this->primaryImage->getImageUrl();
+        if ($prefix && strpos($path, $prefix) !== 0) {
+            $path = $prefix . $path;
         }
-        if ($this->image) {
-            $imagePath = $this->image;
-            if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
-                return $imagePath;
-            }
-            if (strpos($imagePath, 'products/') !== 0) {
-                $imagePath = 'products/' . $imagePath;
-            }
-            $imagePath = ltrim(str_replace('\\', '/', $imagePath), '/');
-            return asset('media/' . $imagePath);
-        }
-        return null;
+        return asset('media/' . ltrim(str_replace('\\', '/', $path), '/'));
     }
 
     /**
-     * Get all image URLs for API responses.
+     * Helper for views - same as image_url accessor.
      */
-    public function getImageUrlsAttribute()
+    public function getImageUrl(): ?string
     {
-        $urls = [];
-        
-        // Load relationships if not already loaded
-        if (!$this->relationLoaded('primaryImage')) {
-            $this->load('primaryImage');
-        }
-        if (!$this->relationLoaded('images')) {
-            $this->load('images');
-        }
-        
-        // Add primary image
-        if ($this->primaryImage && $this->primaryImage->image_path) {
-            $urls[] = [
-                'url' => $this->primaryImage->getImageUrl(),
-                'is_primary' => true,
-                'path' => $this->primaryImage->image_path,
-            ];
-        }
-        
-        // Add other images
-        foreach ($this->images as $image) {
-            if (!$image->is_primary) {
-                $urls[] = [
-                    'url' => $image->getImageUrl(),
-                    'is_primary' => false,
-                    'path' => $image->image_path,
-                ];
-            }
-        }
-        
-        return $urls;
+        return $this->image_url;
     }
 }

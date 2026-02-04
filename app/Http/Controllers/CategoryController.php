@@ -117,20 +117,33 @@ class CategoryController extends Controller
         return null;
     }
 
-    // GET /categories
+    // GET /categories - Optimized
     public function index(Request $request)
     {
-        $perPage = (int) $request->query('per_page', 15);
-        $perPage = $perPage > 0 ? min($perPage, 100) : 15;
-        $categories = Category::withCount('products')->orderBy('id', 'desc')->paginate($perPage);
+        $isApi = $request->expectsJson() || $request->is('api/*');
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        
+        // Optimized: skip products count for API if not needed, use orderByDesc for index scan
+        $query = $isApi ? Category::query() : Category::withCount('products');
+        $categories = $query->orderByDesc('id')->paginate($perPage);
 
-        // Return view for web requests, JSON for API requests (data = full list, pagination = meta)
-        if (request()->expectsJson() || request()->is('api/*')) {
-            $items = $categories->items();
+        if ($isApi) {
+            // Build response directly without toArray() overhead
+            $data = array_map(fn (Category $c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'slug' => $c->slug,
+                'description' => $c->description,
+                'image' => $c->image,
+                'image_url' => $c->image_url,
+                'created_at' => $c->created_at,
+                'updated_at' => $c->updated_at,
+            ], $categories->items());
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Categories retrieved successfully.',
-                'data' => array_map(fn (Category $c) => $c->toArray(), $items),
+                'data' => $data,
                 'pagination' => [
                     'current_page' => $categories->currentPage(),
                     'last_page' => $categories->lastPage(),

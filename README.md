@@ -497,13 +497,36 @@ APP_ADMIN_PASSWORD=password123
 
 ### Production Commands
 ```bash
-# Optimize for production
+# Optimize for production (REQUIRED for fast API responses)
 php artisan optimize
 
-# Clear and cache
+# Clear and rebuild all caches
 php artisan optimize:clear
-php artisan optimize
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 ```
+
+### Performance Optimization (IMPORTANT)
+
+For fast API responses (2-3 seconds instead of 20+ seconds), ensure:
+
+1. **Enable PHP OPcache** - Add to `php.ini`:
+   ```ini
+   opcache.enable=1
+   opcache.memory_consumption=128
+   opcache.max_accelerated_files=10000
+   opcache.validate_timestamps=0  ; Set to 1 for development
+   ```
+
+2. **Run optimization after every deployment**:
+   ```bash
+   php artisan optimize
+   ```
+
+3. **Use a proper web server** (nginx + PHP-FPM, not `php artisan serve`)
+
+4. **Test API performance** - Call `/api/debug/performance` to diagnose slowness
 
 ---
 
