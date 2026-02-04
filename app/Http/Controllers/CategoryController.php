@@ -79,100 +79,13 @@ class CategoryController extends Controller
         }
     }
 
-    /** Max size in bytes for stored category images; larger files are compressed automatically. */
-    private const CATEGORY_IMAGE_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
-
     /**
-     * Compress a stored category image to at most 2 MB if larger. Uses GD. No-op if GD missing or file already small.
-     *
-     * @param string $relativePath Path under storage/app/public (e.g. categories/abc.jpg)
+     * Image compression disabled - images are stored as-is for faster uploads.
      */
     private function compressCategoryImageIfNeeded(string $relativePath): void
     {
-        if (! extension_loaded('gd')) {
-            return;
-        }
-        $disk = Storage::disk('public');
-        if (! $disk->exists($relativePath)) {
-            return;
-        }
-        $fullPath = $disk->path($relativePath);
-        if (! is_file($fullPath) || filesize($fullPath) <= self::CATEGORY_IMAGE_MAX_BYTES) {
-            return;
-        }
-        $info = @getimagesize($fullPath);
-        if ($info === false || ! isset($info[0], $info[1], $info[2])) {
-            return;
-        }
-        $width = (int) $info[0];
-        $height = (int) $info[1];
-        $type = $info[2];
-        $img = null;
-        if ($type === \IMAGETYPE_JPEG) {
-            $img = @imagecreatefromjpeg($fullPath);
-        } elseif ($type === \IMAGETYPE_PNG) {
-            $img = @imagecreatefrompng($fullPath);
-        } elseif ($type === \IMAGETYPE_WEBP && function_exists('imagecreatefromwebp')) {
-            $img = @imagecreatefromwebp($fullPath);
-        }
-        if ($img === false || $img === null) {
-            return;
-        }
-        $maxBytes = self::CATEGORY_IMAGE_MAX_BYTES;
-        $currentSize = filesize($fullPath);
-        $scale = 1.0;
-        if ($currentSize > $maxBytes) {
-            $ratio = sqrt($maxBytes / $currentSize);
-            $scale = max(0.1, min(1.0, $ratio * 0.95));
-        }
-        $newW = (int) round($width * $scale);
-        $newH = (int) round($height * $scale);
-        if ($newW < 1) {
-            $newW = 1;
-        }
-        if ($newH < 1) {
-            $newH = 1;
-        }
-        $resized = imagecreatetruecolor($newW, $newH);
-        if ($resized === false) {
-            imagedestroy($img);
-            return;
-        }
-        if ($type === \IMAGETYPE_PNG) {
-            imagealphablending($resized, false);
-            imagesavealpha($resized, true);
-            $transparent = imagecolorallocatealpha($resized, 255, 255, 255, 127);
-            imagefilledrectangle($resized, 0, 0, $newW, $newH, $transparent);
-        }
-        imagecopyresampled($resized, $img, 0, 0, 0, 0, $newW, $newH, $width, $height);
-        imagedestroy($img);
-        $quality = 88;
-        $ext = strtolower(pathinfo($fullPath, \PATHINFO_EXTENSION));
-        if ($type === \IMAGETYPE_JPEG || $ext === 'jpg' || $ext === 'jpeg') {
-            while ($quality >= 50) {
-                imagejpeg($resized, $fullPath, $quality);
-                if (is_file($fullPath) && filesize($fullPath) <= $maxBytes) {
-                    break;
-                }
-                $quality -= 10;
-            }
-        } elseif ($type === \IMAGETYPE_PNG) {
-            imagepng($resized, $fullPath, 8);
-        } elseif ($type === \IMAGETYPE_WEBP && function_exists('imagewebp')) {
-            while ($quality >= 50) {
-                imagewebp($resized, $fullPath, $quality);
-                if (is_file($fullPath) && filesize($fullPath) <= $maxBytes) {
-                    break;
-                }
-                $quality -= 10;
-            }
-        } else {
-            imagejpeg($resized, $fullPath, 85);
-        }
-        imagedestroy($resized);
-        if (is_file($fullPath) && filesize($fullPath) > $maxBytes && ($newW > 400 || $newH > 400)) {
-            $this->compressCategoryImageIfNeeded($relativePath);
-        }
+        // Compression disabled for performance - images stored as uploaded
+        return;
     }
 
     /**
