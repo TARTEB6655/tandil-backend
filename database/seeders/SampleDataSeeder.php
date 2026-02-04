@@ -16,13 +16,21 @@ use App\Notifications\AdminNotification;
 
 class SampleDataSeeder extends Seeder
 {
+    /**
+     * Only seed products/categories if tables are empty (e.g. fresh install).
+     * Prevents re-running db:seed from adding 50 products again after you delete them.
+     */
     public function run(): void
     {
-        // Create categories first (products require valid category_id)
-        Category::factory()->count(8)->create();
+        // Only create categories if none exist (prevents duplicate categories on re-seed)
+        if (Category::count() === 0) {
+            Category::factory()->count(8)->create();
+        }
 
-        // Create sample products
-        Product::factory()->count(50)->create();
+        // Only create products if none exist (prevents products re-appearing after delete)
+        if (Product::count() === 0) {
+            Product::factory()->count(50)->create();
+        }
 
         // Use only the fixed client (client1@test.com) for dummy subscriptions/visits
         $client = User::where('email', 'client1@test.com')->first();
@@ -30,8 +38,13 @@ class SampleDataSeeder extends Seeder
             $this->command->warn('Client client1@test.com not found. Run FixedUsersOnlySeeder first. Skipping subscription/visit data.');
             return;
         }
-        $clients = collect([$client]);
 
+        // Only create subscriptions/visits if client has none (prevents duplicates on re-seed)
+        if (Subscription::where('client_id', $client->id)->exists()) {
+            return;
+        }
+
+        $clients = collect([$client]);
         $allVisits = [];
 
         foreach ($clients as $client) {
