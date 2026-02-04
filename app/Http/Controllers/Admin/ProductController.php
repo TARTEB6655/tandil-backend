@@ -183,6 +183,19 @@ class ProductController extends Controller
     }
 
     /**
+     * Renumber product_images sort_order: primary=0, then 1,2,3... so main image and gallery display consistently.
+     */
+    private function reorderProductImages(int $productId): void
+    {
+        $images = ProductImage::where('product_id', $productId)->orderByRaw('is_primary DESC')->orderBy('sort_order')->get();
+        foreach ($images as $index => $img) {
+            if ((int) $img->sort_order !== $index) {
+                $img->update(['sort_order' => $index]);
+            }
+        }
+    }
+
+    /**
      * List products (with search, category filter, pagination).
      * Optimized: minimal eager loading, direct response building.
      */
@@ -459,6 +472,7 @@ class ProductController extends Controller
         if ($firstImage && ! $product->image) {
             $product->update(['image' => $firstImage->image_path]);
         }
+        $this->reorderProductImages($product->id);
 
         // Check if this is an API request
         if ($request->expectsJson() || $request->is('api/*')) {
@@ -722,6 +736,8 @@ class ProductController extends Controller
         if ($primaryImage && $product->image !== $primaryImage->image_path) {
             $product->update(['image' => $primaryImage->image_path]);
         }
+        // Renumber sort_order so primary=0, others 1,2,3... (ensures main + gallery display consistently)
+        $this->reorderProductImages($product->id);
 
         if ($request->expectsJson() || $request->is('api/*')) {
             // Reload from DB so response shows all updated values (name, description, price, image, etc.)

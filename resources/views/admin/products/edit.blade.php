@@ -30,21 +30,21 @@
         @endif
 
         <form method="POST" action="{{ route('admin.products.update', $product) }}" enctype="multipart/form-data" id="productForm">
-            @csrf
-            @method('PUT')
+                @csrf
+                @method('PUT')
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Main Content (Left Column - 2/3) -->
                 <div class="lg:col-span-2 space-y-6">
                     <!-- 1. Product Title & Description -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <div class="mb-4">
+                <div class="mb-4">
                             <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Product title <span class="text-red-500">*</span></label>
                             <input type="text" id="name" name="name" value="{{ old('name', $product->name) }}" required placeholder="e.g. Acme Cotton T-Shirt"
                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
                                    oninput="generateHandle(this.value)">
-                            @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
+                    @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
                         <div>
                             <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
                             <textarea id="description" name="description" rows="6" placeholder="Describe your product..."
@@ -89,7 +89,7 @@
                                     </div>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">To replace the main image, use "Replace main image" below. New files added here will be appended.</p>
                                 </div>
-                                <div class="mb-4">
+                <div class="mb-4">
                                     <label for="main_image" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Replace main image (optional)</label>
                                     <label for="main_image" class="flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm text-gray-700 dark:text-gray-300">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /></svg>
@@ -277,14 +277,14 @@
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Product organization</h2>
                         <div class="space-y-4">
-                            <div>
+                    <div>
                                 <label for="category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                                 <select id="category_id" name="category_id" class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
                                     <option value="">No category</option>
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                            @endforeach
+                        </select>
                             </div>
                             <div>
                                 <label for="vendor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vendor</label>
@@ -302,8 +302,8 @@
                                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
                                 <p class="text-xs text-gray-500 mt-1">Separate tags with commas</p>
                             </div>
-                        </div>
                     </div>
+                </div>
 
                     <!-- Tax -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -311,8 +311,8 @@
                         <div class="flex items-center">
                             <input type="checkbox" id="taxable" name="taxable" value="1" {{ old('taxable', $product->taxable ?? true) ? 'checked' : '' }} class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                             <label for="taxable" class="ml-2 block text-sm text-gray-900 dark:text-gray-100">Charge tax on this product</label>
-                        </div>
-                    </div>
+                </div>
+                </div>
 
                     <!-- Actions -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -326,8 +326,8 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </form>
+                </div>
+            </form>
     </div>
 
     @push('scripts')
