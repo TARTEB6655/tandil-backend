@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url (e.g. https://your-domain.com), token (Bearer after Login), category_id, product_id (numeric; use 1 or from List Products / Add Product).\n\nProducts: GET {{base_url}}/api/admin/products/{{product_id}} returns single product (admin). List Products test script auto-sets product_id from first item. Create/Update (multipart): name, description, price, stock, status, category_id, main_image, images[]; response: data.image, data.image_url, data.images, data.primary_image.\n\nFlow: Health → Login (saves token) → List Categories → List Products (saves product_id) → Get Product Details / Add / Update / Delete.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image can be single or multiple files — first = primary, rest saved to images array. images[] = extra images. Response: data.image, data.image_url, data.images (deduplicated, full URLs), data.primary_image. Get Product Details (admin & shop): images array has no duplicates; each image has image_url (full URL).\n\nCategories: Update accepts PUT or POST. If image doesn't update with form-data, use \"Categories - Update (JSON + image_base64)\" with body: name, slug, description, image_base64 (data:image/jpeg;base64,...).\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.4.9"
+        "version": "2.5.0"
     },
     "item": [
         {
@@ -2087,7 +2087,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "shop", "products", "{{product_id}}"]
                                 },
-                                "description": "Get single product by ID or handle."
+                                "description": "Get single product by ID or handle (public). Response: data.images deduplicated; each has image_path, image_url (full URL). data.image_url = primary."
                             }
                         },
                         {
@@ -2233,8 +2233,8 @@
                                         {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
                                         {"key": "handle", "value": "test-product-uniquee", "type": "text"},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string array of URLs."},
-                                        {"key": "main_image", "type": "file", "src": [], "description": "Main product image (primary). Any size; auto-compressed to max 2 MB. Optional."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "Extra product images. Any size; auto-compressed to max 2 MB. Optional."}
+                                        {"key": "main_image", "type": "file", "src": [], "description": "Main product image. Single or multiple: first = primary, rest auto-saved to images array. Optional."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Extra product images. Optional."}
                                     ]
                                 },
                                 "url": {
@@ -2242,7 +2242,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), main_image, images[] (any size; stored images auto-compressed to max 2 MB). Response 201: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
+                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, weight_unit, sku, handle, main_image (single or multiple — first = primary, rest in images), images[]. Response 201: data.image, data.image_url, data.images (deduplicated), data.primary_image. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2264,7 +2264,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "GET single product by ID (admin). URL: {{base_url}}/api/admin/products/{{product_id}}. Ensure product_id is a numeric ID (e.g. 1); set in env or run List Products first (test script sets product_id). 200 = success (data: id, name, price, image_url, images, primary_image, etc.); 404 = product not found; 401 = missing/invalid token. Auth: Bearer {{token}}."
+                                "description": "GET single product by ID (admin). Response: data.images = deduplicated array; each has image_path, image_url (full URL). data.image_url = primary image URL. 200 = success; 404 = not found; 401 = missing token. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2288,8 +2288,8 @@
                                         {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
                                         {"key": "handle", "value": "updated-product-handle", "type": "text"},
                                         {"key": "image_urls", "value": "", "type": "text", "description": "Optional: JSON string array of URLs."},
-                                        {"key": "main_image", "type": "file", "src": [], "description": "Set or update main product image only. Any size; auto-compressed to max 2 MB. Optional."},
-                                        {"key": "images[]", "type": "file", "src": [], "description": "Replace extra images. Any size; auto-compressed to max 2 MB. Optional."}
+                                        {"key": "main_image", "type": "file", "src": [], "description": "Single or multiple: first = primary, rest in images array. Optional."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Extra images. Optional. Use POST if PUT doesn't send file."}
                                     ]
                                 },
                                 "url": {
@@ -2297,7 +2297,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product (PUT multipart/form-data). Fields: same as Add Product. main_image = set/update main image only; images[] = replace extras. Images: any size; auto-compressed to max 2 MB. Set product_id in env. Response: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
+                                "description": "Update product: PUT or POST multipart. main_image single or multiple (first = primary, rest in images); images[] = extras. Set product_id. Response: data.images deduplicated, full image_url. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -4336,7 +4336,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category (admin). Form-data: name, slug, description (optional), image (optional – any size; auto-compressed to max 2 MB). Set category_id in env. Response: success, message, data (id, name, slug, description, image, image_url). For JSON-only use \"Categories - Update (JSON)\"."
+                        "description": "Update category (admin). PUT or POST with form-data: name, slug, description (optional), image (optional). Set category_id. If image doesn't update on server, use \"Categories - Update (JSON + image_base64)\". Response: data.image, data.image_url."
                     }
                 },
                 {
@@ -4353,7 +4353,24 @@
                             "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"slug\": \"updated-slug\",\n  \"description\": \"Updated description\"\n}"
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category with JSON body (no image). For image use \"Categories - Update\" with form-data. Set category_id in env."
+                        "description": "Update category with JSON body (no image). For image use \"Categories - Update\" (form-data) or \"Categories - Update (JSON + image_base64)\". Set category_id in env."
+                    }
+                },
+                {
+                    "name": "Categories - Update (JSON + image_base64)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"slug\": \"updated-slug\",\n  \"description\": \"Updated description\",\n  \"image_base64\": \"data:image/jpeg;base64,/9j/4AAQSkZJRg...\"\n}"
+                        },
+                        "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
+                        "description": "Update category with JSON. Use when form-data image doesn't work on server. Body: name, slug, description (optional), image_base64 = data URL (data:image/jpeg;base64,...) or raw base64. PUT or POST. Set category_id."
                     }
                 },
                 {

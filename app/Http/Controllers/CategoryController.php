@@ -103,6 +103,24 @@ class CategoryController extends Controller
     }
 
     /**
+     * Build full image URL from path (uses request host when available so live server returns correct URL).
+     */
+    private function buildCategoryImageUrl(?string $path): ?string
+    {
+        if (! $path || ! is_string($path)) {
+            return null;
+        }
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        if (function_exists('request') && request() && request()->getHttpHost()) {
+            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path;
+        }
+        return asset('media/' . $path);
+    }
+
+    /**
      * Save category image from base64 string (data URL or raw base64).
      * Use when multipart file upload doesn't work (e.g. PUT body not passed by server).
      * Returns stored path or null on failure.
@@ -183,18 +201,20 @@ class CategoryController extends Controller
         $categories = $query->orderByDesc('id')->paginate($perPage);
 
         if ($isApi) {
-            // Build response directly without toArray() overhead
-            $data = array_map(fn (Category $c) => [
-                'id' => $c->id,
-                'name' => $c->name,
-                'slug' => $c->slug,
-                'description' => $c->description,
-                'image' => $c->image,
-                'image_url' => $c->image_url,
-                'created_at' => $c->created_at,
-                'updated_at' => $c->updated_at,
-            ], $categories->items());
-            
+            // Build response with explicit image_url from request host (correct on live/proxy)
+            $data = [];
+            foreach ($categories->items() as $c) {
+                $data[] = [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'slug' => $c->slug,
+                    'description' => $c->description,
+                    'image' => $c->image,
+                    'image_url' => $this->buildCategoryImageUrl($c->image),
+                    'created_at' => $c->created_at,
+                    'updated_at' => $c->updated_at,
+                ];
+            }
             return response()->json([
                 'success' => true,
                 'message' => 'Categories retrieved successfully.',
@@ -211,35 +231,45 @@ class CategoryController extends Controller
         return view('admin.categories.index', compact('categories'));
     }
 
-    // POST /categories
+    // POST /categories – create with minimal data (only name required); slug/description/image optional
     public function store(CategoryRequest $request)
     {
         $validated = $request->validated();
-        
-        // Auto-generate slug from name if not provided
-        if (empty($validated['slug'])) {
-            $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
+        $name = $validated['name'] ?? '';
+        $slug = isset($validated['slug']) && (string) $validated['slug'] !== '' ? $validated['slug'] : \Illuminate\Support\Str::slug($name);
+        $description = array_key_exists('description', $validated) ? $validated['description'] : null;
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('categories', 'public');
+            $this->compressCategoryImageIfNeeded($imagePath);
         }
-        
         // Ensure slug is unique
         $counter = 1;
-        $originalSlug = $validated['slug'];
-        while (Category::where('slug', $validated['slug'])->exists()) {
-            $validated['slug'] = $originalSlug . '-' . $counter;
+        $originalSlug = $slug;
+        while (Category::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
             $counter++;
         }
+        $category = Category::create([
+            'name' => $name,
+            'slug' => $slug,
+            'description' => $description,
+            'image' => $imagePath,
+        ]);
         
-        // Handle image upload (any size; auto-compress to max 2 MB)
-        if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('categories', 'public');
-            $this->compressCategoryImageIfNeeded($validated['image']);
-        }
-        
-        $category = Category::create($validated);
-        
-        // Return view redirect for web requests, JSON for API requests
+        // Return view redirect for web requests, JSON for API requests (explicit image_url for correct URL on live)
         if (request()->expectsJson() || request()->is('api/*')) {
-            return ApiResponse::success('Category created successfully.', $category, 201);
+            $data = [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'description' => $category->description,
+                'image' => $category->image,
+                'image_url' => $this->buildCategoryImageUrl($category->image),
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+            return ApiResponse::success('Category created successfully.', $data, 201);
         }
         
         return redirect()->route('admin.categories.index')
@@ -265,9 +295,19 @@ class CategoryController extends Controller
         }
         $category = Category::findOrFail($id);
         
-        // Return view for web requests, JSON for API requests
+        // Return view for web requests, JSON for API requests (explicit image_url for correct URL on live)
         if (request()->expectsJson() || request()->is('api/*')) {
-            return ApiResponse::success('Category retrieved successfully.', $category);
+            $data = [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'description' => $category->description,
+                'image' => $category->image,
+                'image_url' => $this->buildCategoryImageUrl($category->image),
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+            return ApiResponse::success('Category retrieved successfully.', $data);
         }
         
         return view('admin.categories.show', compact('category'));
@@ -338,19 +378,26 @@ class CategoryController extends Controller
             }
         }
 
-        // Handle image: file upload (multipart) OR base64 (when file upload doesn't work on server)
+        // Handle image: remove (image_remove=true), or new file/base64; otherwise leave existing image
         $newImagePath = null;
-        if ($request->hasFile('image')) {
-            $newImagePath = $request->file('image')->store('categories', 'public');
-        } else {
-            $newImagePath = $this->storeCategoryImageFromBase64($request);
-        }
-        if ($newImagePath !== null) {
+        if ($request->boolean('image_remove')) {
             if ($category->image && Storage::disk('public')->exists($category->image)) {
                 Storage::disk('public')->delete($category->image);
             }
-            $updateData['image'] = $newImagePath;
-            $this->compressCategoryImageIfNeeded($newImagePath);
+            $updateData['image'] = null;
+        } else {
+            if ($request->hasFile('image')) {
+                $newImagePath = $request->file('image')->store('categories', 'public');
+            } else {
+                $newImagePath = $this->storeCategoryImageFromBase64($request);
+            }
+            if ($newImagePath !== null) {
+                if ($category->image && Storage::disk('public')->exists($category->image)) {
+                    Storage::disk('public')->delete($category->image);
+                }
+                $updateData['image'] = $newImagePath;
+                $this->compressCategoryImageIfNeeded($newImagePath);
+            }
         }
 
         $category->update($updateData);
@@ -358,14 +405,16 @@ class CategoryController extends Controller
         // Return view redirect for web requests, JSON for API requests (includes image, image_url)
         if (request()->expectsJson() || request()->is('api/*')) {
             $category->refresh();
-            // Return explicit data so image/image_url are always from DB (no cached/old URL)
+            // When we just saved a new image, use that path for response so live server always returns new URL
+            $responseImagePath = $newImagePath !== null ? $newImagePath : $category->image;
+            $responseImageUrl = $this->buildCategoryImageUrl($responseImagePath);
             $data = [
                 'id' => $category->id,
                 'name' => $category->name,
                 'slug' => $category->slug,
                 'description' => $category->description,
-                'image' => $category->image,
-                'image_url' => $category->image_url,
+                'image' => $responseImagePath,
+                'image_url' => $responseImageUrl,
                 'created_at' => $category->created_at,
                 'updated_at' => $category->updated_at,
             ];

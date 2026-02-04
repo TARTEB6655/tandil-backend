@@ -85,6 +85,8 @@ class CategoryController extends Controller
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'description' => $category->description,
+                    'image' => $category->image,
+                    'image_url' => $category->image_url,
                     'products_count' => $category->products()->where('status', 'active')->count(),
                 ],
                 'products' => $products->items(),

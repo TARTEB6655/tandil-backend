@@ -715,4 +715,55 @@ class AdminProductApiTest extends TestCase
         $this->assertStringContainsString('categories/', $data['image']);
         $this->assertNotEmpty($data['image_url']);
     }
+
+    /**
+     * Create category with minimal data (only name); then update with image; then update to remove image.
+     */
+    public function test_category_smooth_create_and_partial_update(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['role' => 'admin']);
+        if (method_exists($admin, 'assignRole')) {
+            $admin->assignRole('admin');
+        }
+        $token = $admin->createToken('test')->plainTextToken;
+
+        // Create with only name (no slug, description, image)
+        $createRes = $this->postJson('/api/admin/categories', [
+            'name' => 'Smooth Category ' . uniqid(),
+        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
+        $createRes->assertStatus(201);
+        $data = $createRes->json('data');
+        $this->assertNotEmpty($data['id']);
+        $this->assertNotEmpty($data['name']);
+        $this->assertNotEmpty($data['slug'], 'Slug should be auto-generated from name');
+        $this->assertNull($data['image']);
+        $this->assertNull($data['image_url']);
+        $categoryId = $data['id'];
+
+        // Partial update: add description only (no image)
+        $update1 = $this->putJson('/api/admin/categories/' . $categoryId, [
+            'description' => 'Added description later',
+        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
+        $update1->assertStatus(200);
+        $this->assertSame('Added description later', $update1->json('data.description'));
+
+        // Partial update: add image via base64
+        $file = UploadedFile::fake()->image('smooth.jpg', 60, 60);
+        $base64 = 'data:image/jpeg;base64,' . base64_encode($file->get());
+        $update2 = $this->putJson('/api/admin/categories/' . $categoryId, [
+            'image_base64' => $base64,
+        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
+        $update2->assertStatus(200);
+        $this->assertNotEmpty($update2->json('data.image'));
+        $this->assertNotEmpty($update2->json('data.image_url'));
+
+        // Partial update: remove image (image_remove=true)
+        $update3 = $this->putJson('/api/admin/categories/' . $categoryId, [
+            'image_remove' => true,
+        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
+        $update3->assertStatus(200);
+        $this->assertNull($update3->json('data.image'));
+        $this->assertNull($update3->json('data.image_url'));
+    }
 }

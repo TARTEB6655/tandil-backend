@@ -55,36 +55,46 @@
 
                     <!-- 2. Media (same layout as Add product: main image + thumb strip + Add more) -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-                            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Media</h2>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">First image is the main product image. Add or replace photos — drag to reorder, or click a thumbnail to set as main.</p>
+                        <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                                <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Media</h2>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">First image is the main product image. Add or replace photos — drag to reorder, or click a thumbnail to set as main.</p>
+                            </div>
+                            <a href="{{ route('admin.products.show', $product) }}" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors shrink-0" title="View product details page">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                View details
+                            </a>
                         </div>
                         <div class="p-5">
                             <input type="file" id="imageInput" name="images[]" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="sr-only">
 
                             @php
-                                $existingImages = $product->images->sortBy('sort_order')->values();
+                                $allImages = $product->images->sortBy('sort_order')->values();
+                                $existingImages = collect(\App\Models\ProductImage::uniqueByPath($allImages))->sortBy('sort_order')->values();
                                 $primaryExisting = $existingImages->firstWhere('is_primary', true) ?? $existingImages->first();
                             @endphp
 
                             @if($existingImages->isNotEmpty())
-                                <!-- Existing images: large main + thumb strip (same as create) -->
+                                <!-- Existing images: large main + scrollable thumb strip (show ALL images) -->
                                 <div id="existingMediaSection" class="mb-5">
                                     <div class="flex flex-col gap-4">
                                         <div class="w-full aspect-square max-w-md rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-700">
                                             <img id="existingPrimaryImg" src="{{ $primaryExisting ? $primaryExisting->getImageUrl() : '' }}" alt="Main product image" class="w-full h-full object-cover">
                                         </div>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            @foreach($existingImages as $img)
-                                                <div class="existing-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer {{ $img->is_primary ? 'border-indigo-500 ring-2 ring-indigo-500/40' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}" data-url="{{ $img->getImageUrl() }}" title="Current image (upload new to replace)">
-                                                    <img src="{{ $img->getImageUrl() }}" alt="" class="w-full h-full object-cover pointer-events-none">
-                                                    @if($img->is_primary)<span class="absolute bottom-0 left-0 right-0 bg-indigo-600 text-white text-[10px] font-medium text-center py-0.5">Main</span>@endif
-                                                </div>
-                                            @endforeach
-                                            <label for="imageInput" class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors gap-0.5 bg-transparent" title="Add more photos">
-                                                <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                                                <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">Add</span>
-                                            </label>
+                                        <div class="space-y-1">
+                                            <p class="text-xs font-medium text-gray-600 dark:text-gray-400">All images ({{ $existingImages->count() }}) — scroll to see all</p>
+                                            <div class="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 scrollbar-thin" style="scrollbar-width: thin;">
+                                                @foreach($existingImages as $img)
+                                                    <div class="existing-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer {{ $img->is_primary ? 'border-indigo-500 ring-2 ring-indigo-500/40' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}" data-url="{{ $img->getImageUrl() }}" title="Click to set as main (upload new to replace)">
+                                                        <img src="{{ $img->getImageUrl() }}" alt="" class="w-full h-full object-cover pointer-events-none">
+                                                        @if($img->is_primary)<span class="absolute bottom-0 left-0 right-0 bg-indigo-600 text-white text-[10px] font-medium text-center py-0.5">Main</span>@endif
+                                                    </div>
+                                                @endforeach
+                                                <label for="imageInput" class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors gap-0.5 bg-transparent" title="Add more photos">
+                                                    <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                                    <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">Add</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">To replace the main image, use "Replace main image" below. New files added here will be appended.</p>

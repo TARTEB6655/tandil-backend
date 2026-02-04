@@ -23,18 +23,21 @@ class Category extends Model
 
     /**
      * Get the full URL for the category image.
-     * Uses asset() so APP_URL or ASSET_URL control the base when domain or CDN changes.
+     * Uses request host when in HTTP context (so live/proxy URLs are correct), else asset().
      */
     public function getImageUrlAttribute(): ?string
     {
         $image = $this->attributes['image'] ?? null;
-        if (empty($image) || !is_string($image)) {
+        if (empty($image) || ! is_string($image)) {
             return null;
         }
         if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
             return $image;
         }
         $path = ltrim(str_replace('\\', '/', $image), '/');
+        if (function_exists('request') && request() && request()->getHttpHost()) {
+            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path;
+        }
         return asset('media/' . $path);
     }
 
