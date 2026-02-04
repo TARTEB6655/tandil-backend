@@ -645,7 +645,8 @@ class ProductController extends Controller
             }
         }
 
-        // main_image = primary only; images[] = extra only. Backward compat: image or images[] without main_image = replace all (first = primary)
+        // When any new images are sent (main_image and/or images[]), replace ALL product images with the new set
+        // so we never end up with old + new (e.g. 2 sent -> 2 in DB, not 4).
         $mainFile = null;
         if ($request->hasFile('main_image')) {
             $f = $request->file('main_image');
@@ -672,47 +673,29 @@ class ProductController extends Controller
             return $f && $f->isValid();
         }));
 
-        if ($mainFile !== null) {
-            // Replace only the primary image; keep existing extra images unless images[] also sent
-            $oldPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
-            if ($oldPrimary && $oldPrimary->image_path && ! str_starts_with($oldPrimary->image_path, 'http') && Storage::disk('public')->exists($oldPrimary->image_path)) {
-                Storage::disk('public')->delete($oldPrimary->image_path);
-            }
-            if ($oldPrimary) {
-                $oldPrimary->delete();
-            }
-            $imagePath = $mainFile->store('products', 'public');
-            $this->compressProductImageIfNeeded($imagePath);
-            $maxOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order');
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_path' => $imagePath,
-                'sort_order' => 0,
-                'is_primary' => true,
-            ]);
-            $updateData['image'] = $imagePath;
-        }
-
-        if ($extraFiles !== []) {
-            // Replace all non-primary images with new extra files (or set first as primary if no main_image was sent)
-            $existingNonPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', false)->get();
-            foreach ($existingNonPrimary as $old) {
+        $hasNewImages = $mainFile !== null || $extraFiles !== [];
+        if ($hasNewImages) {
+            // Remove ALL existing product images and their files first
+            $existingImages = ProductImage::where('product_id', $product->id)->get();
+            foreach ($existingImages as $old) {
                 if ($old->image_path && ! str_starts_with($old->image_path, 'http') && Storage::disk('public')->exists($old->image_path)) {
                     Storage::disk('public')->delete($old->image_path);
                 }
                 $old->delete();
             }
-            if ($mainFile === null) {
-                // No main_image sent: replace primary too (backward compat), first of extraFiles = primary
-                $oldPrimary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
-                if ($oldPrimary) {
-                    if ($oldPrimary->image_path && ! str_starts_with($oldPrimary->image_path, 'http') && Storage::disk('public')->exists($oldPrimary->image_path)) {
-                        Storage::disk('public')->delete($oldPrimary->image_path);
-                    }
-                    $oldPrimary->delete();
-                }
+            // Add new set: main_image = primary (sort_order 0), then extraFiles in order
+            $sortOrder = 0;
+            if ($mainFile !== null) {
+                $imagePath = $mainFile->store('products', 'public');
+                $this->compressProductImageIfNeeded($imagePath);
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imagePath,
+                    'sort_order' => $sortOrder++,
+                    'is_primary' => true,
+                ]);
+                $updateData['image'] = $imagePath;
             }
-            $sortOrder = $mainFile !== null ? 1 : 0;
             foreach ($extraFiles as $index => $file) {
                 $imagePath = $file->store('products', 'public');
                 $this->compressProductImageIfNeeded($imagePath);
