@@ -29,7 +29,8 @@ class AnalyticsController extends Controller
         $months = $request->get('months', 6);
         
         $driver = DB::connection()->getDriverName();
-        $dateFormat = $driver === 'sqlite'
+        $isSqlite = in_array($driver, ['sqlite', 'sqlite3'], true);
+        $dateFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
         
@@ -59,7 +60,8 @@ class AnalyticsController extends Controller
         $weeks = $request->get('weeks', 8);
         
         $driver = DB::connection()->getDriverName();
-        $weekFormat = $driver === 'sqlite'
+        $isSqlite = in_array($driver, ['sqlite', 'sqlite3'], true);
+        $weekFormat = $isSqlite
             ? DB::raw("strftime('%Y-%W', created_at) as week")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%u") as week');
         

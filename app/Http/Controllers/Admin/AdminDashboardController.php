@@ -110,7 +110,8 @@ class AdminDashboardController extends Controller
         
         // Revenue by month (last 6 months)
         $driver = DB::connection()->getDriverName();
-        $dateFormat = $driver === 'sqlite' 
+        $isSqlite = in_array($driver, ['sqlite', 'sqlite3'], true);
+        $dateFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
         
@@ -164,7 +165,8 @@ class AdminDashboardController extends Controller
         
         // Visits per week (last 8 weeks for better chart)
         $driver = DB::connection()->getDriverName();
-        $weekFormat = $driver === 'sqlite'
+        $isSqlite = in_array($driver, ['sqlite', 'sqlite3'], true);
+        $weekFormat = $isSqlite
             ? DB::raw("strftime('%Y-%W', created_at) as week")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%u") as week');
         
@@ -179,7 +181,8 @@ class AdminDashboardController extends Controller
 
         // Subscription growth (last 6 months)
         $driver = DB::connection()->getDriverName();
-        $monthFormat = $driver === 'sqlite'
+        $isSqlite = in_array($driver, ['sqlite', 'sqlite3'], true);
+        $monthFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
         
@@ -209,7 +212,8 @@ class AdminDashboardController extends Controller
 
         // Product sales analytics (last 6 months) - using order items
         $driver = DB::connection()->getDriverName();
-        $monthFormat = $driver === 'sqlite'
+        $isSqlite = in_array($driver, ['sqlite', 'sqlite3'], true);
+        $monthFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
         
