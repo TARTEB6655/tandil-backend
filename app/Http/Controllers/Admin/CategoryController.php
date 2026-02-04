@@ -143,8 +143,9 @@ class CategoryController extends Controller
     }
 
     /**
-     * Parse PUT/PATCH multipart/form-data body and merge form params + file into the request
-     * so category image update works when the web form submits PUT with enctype="multipart/form-data".
+     * Parse PUT/PATCH multipart/form-data body and merge form params + file into the request.
+     * Uses boundary-based extraction (not explode) so binary image content is never truncated
+     * when the boundary string appears inside the file.
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -162,10 +163,24 @@ class CategoryController extends Controller
         }
         $params = [];
         $imageFile = null;
-        $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
-        foreach ($parts as $part) {
+        $delimiter = '--' . $boundary;
+        $delimiterLen = strlen($delimiter);
+        $start = 0;
+        while (($pos = strpos($raw, $delimiter, $start)) !== false) {
+            $partStart = $pos + $delimiterLen;
+            if (substr($raw, $partStart, 2) === "\r\n") {
+                $partStart += 2;
+            } elseif (substr($raw, $partStart, 1) === "\n") {
+                $partStart += 1;
+            }
+            $nextPos = strpos($raw, $delimiter, $partStart);
+            if ($nextPos === false) {
+                break;
+            }
+            $part = substr($raw, $partStart, $nextPos - $partStart);
+            $start = $nextPos;
             $part = trim($part, "\r\n");
-            if ($part === '' || $part === '--') {
+            if ($part === '' || $part === '-') {
                 continue;
             }
             $headerEnd = strpos($part, "\r\n\r\n");
@@ -178,7 +193,7 @@ class CategoryController extends Controller
             $headers = substr($part, 0, $headerEnd);
             $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
             $value = substr($part, $bodyStart);
-            $value = preg_replace('/\r?\n--\s*$/', '', $value);
+            $value = preg_replace('/\r?\n$/s', '', $value);
             if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
                 continue;
             }

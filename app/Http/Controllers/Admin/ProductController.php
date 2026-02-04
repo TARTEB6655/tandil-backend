@@ -91,6 +91,8 @@ class ProductController extends Controller
     /**
      * PHP does not populate $_POST or $_FILES for PUT/PATCH requests. Parse multipart/form-data
      * body and merge form fields + file uploads into the request so update() works with both.
+     * Uses boundary-based extraction (not explode) so binary file content is never split when
+     * the boundary string accidentally appears inside the file (which would truncate images).
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -107,12 +109,26 @@ class ProductController extends Controller
             return;
         }
         $params = [];
-        $filesSingle = [];   // 'image' => UploadedFile
-        $filesMulti = [];    // 'images' => [UploadedFile, ...]
-        $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
-        foreach ($parts as $part) {
+        $filesSingle = [];
+        $filesMulti = [];
+        $delimiter = '--' . $boundary;
+        $delimiterLen = strlen($delimiter);
+        $start = 0;
+        while (($pos = strpos($raw, $delimiter, $start)) !== false) {
+            $partStart = $pos + $delimiterLen;
+            if (substr($raw, $partStart, 2) === "\r\n") {
+                $partStart += 2;
+            } elseif (substr($raw, $partStart, 1) === "\n") {
+                $partStart += 1;
+            }
+            $nextPos = strpos($raw, $delimiter, $partStart);
+            if ($nextPos === false) {
+                break;
+            }
+            $part = substr($raw, $partStart, $nextPos - $partStart);
+            $start = $nextPos;
             $part = trim($part, "\r\n");
-            if ($part === '' || $part === '--') {
+            if ($part === '' || $part === '-') {
                 continue;
             }
             $headerEnd = strpos($part, "\r\n\r\n");
@@ -125,7 +141,7 @@ class ProductController extends Controller
             $headers = substr($part, 0, $headerEnd);
             $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
             $value = substr($part, $bodyStart);
-            $value = preg_replace('/\r?\n--\s*$/', '', $value);
+            $value = preg_replace('/\r?\n$/s', '', $value);
             if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
                 continue;
             }
@@ -165,7 +181,6 @@ class ProductController extends Controller
         }
         foreach ($filesMulti as $key => $fileArray) {
             $request->files->set($key, $fileArray);
-            // Same as Add Product: support both 'images' and 'images[]' so single or multiple files work
             if ($key === 'images') {
                 $request->files->set('images[]', $fileArray);
             }
