@@ -95,8 +95,8 @@ class ProductController extends Controller
     /**
      * PHP does not populate $_POST or $_FILES for PUT/PATCH requests. Parse multipart/form-data
      * body and merge form fields + file uploads into the request so update() works with both.
-     * Uses boundary-based extraction (not explode) so binary file content is never split when
-     * the boundary string accidentally appears inside the file (which would truncate images).
+     * Splits only on "\r\n--boundary" (line-boundary) so binary file content is NEVER split when
+     * "--boundary" appears inside the file (which would truncate images to half-size).
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -115,22 +115,21 @@ class ProductController extends Controller
         $params = [];
         $filesSingle = [];
         $filesMulti = [];
-        $delimiter = '--' . $boundary;
-        $delimiterLen = strlen($delimiter);
-        $start = 0;
-        while (($pos = strpos($raw, $delimiter, $start)) !== false) {
-            $partStart = $pos + $delimiterLen;
-            if (substr($raw, $partStart, 2) === "\r\n") {
-                $partStart += 2;
-            } elseif (substr($raw, $partStart, 1) === "\n") {
-                $partStart += 1;
+        $lineDelimiter = "\r\n--" . $boundary;
+        $parts = explode($lineDelimiter, $raw);
+        $firstPrefix = '--' . $boundary;
+        foreach ($parts as $i => $segment) {
+            $part = $segment;
+            if ($i === 0) {
+                if ($part === '' || $part === '--') {
+                    continue;
+                }
+                if (str_starts_with($part, $firstPrefix . "\r\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 2);
+                } elseif (str_starts_with($part, $firstPrefix . "\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 1);
+                }
             }
-            $nextPos = strpos($raw, $delimiter, $partStart);
-            if ($nextPos === false) {
-                break;
-            }
-            $part = substr($raw, $partStart, $nextPos - $partStart);
-            $start = $nextPos;
             $part = trim($part, "\r\n");
             if ($part === '' || $part === '-') {
                 continue;
@@ -675,6 +674,17 @@ class ProductController extends Controller
         }
         $extraFiles = array_values(array_filter($extraFiles, function ($f) {
             return $f && $f->isValid();
+        }));
+        $seenPaths = [];
+        $extraFiles = array_values(array_filter($extraFiles, function ($f) use (&$seenPaths) {
+            $path = $f->getRealPath();
+            if ($path && isset($seenPaths[$path])) {
+                return false;
+            }
+            if ($path) {
+                $seenPaths[$path] = true;
+            }
+            return true;
         }));
 
         $hasNewImages = $mainFile !== null || $extraFiles !== [];

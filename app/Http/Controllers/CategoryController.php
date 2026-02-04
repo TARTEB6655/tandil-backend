@@ -14,6 +14,7 @@ class CategoryController extends Controller
     /**
      * Parse PUT/PATCH multipart body and merge form fields + image file into request
      * (PHP does not populate $_POST/$_FILES for PUT).
+     * Splits only on "\r\n--boundary" so binary image content is never truncated.
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -31,10 +32,23 @@ class CategoryController extends Controller
         }
         $params = [];
         $uploadedFile = null;
-        $parts = array_slice(explode('--' . $boundary, $raw), 1, -1);
-        foreach ($parts as $part) {
+        $lineDelimiter = "\r\n--" . $boundary;
+        $parts = explode($lineDelimiter, $raw);
+        $firstPrefix = '--' . $boundary;
+        foreach ($parts as $i => $segment) {
+            $part = $segment;
+            if ($i === 0) {
+                if ($part === '' || $part === '--') {
+                    continue;
+                }
+                if (str_starts_with($part, $firstPrefix . "\r\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 2);
+                } elseif (str_starts_with($part, $firstPrefix . "\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 1);
+                }
+            }
             $part = trim($part, "\r\n");
-            if ($part === '' || $part === '--') {
+            if ($part === '' || $part === '-') {
                 continue;
             }
             $headerEnd = strpos($part, "\r\n\r\n");
@@ -47,7 +61,7 @@ class CategoryController extends Controller
             $headers = substr($part, 0, $headerEnd);
             $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
             $value = substr($part, $bodyStart);
-            $value = preg_replace('/\r?\n--\s*$/', '', $value);
+            $value = preg_replace('/\r?\n$/s', '', $value);
             if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
                 continue;
             }

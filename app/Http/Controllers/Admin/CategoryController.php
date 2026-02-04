@@ -144,8 +144,7 @@ class CategoryController extends Controller
 
     /**
      * Parse PUT/PATCH multipart/form-data body and merge form params + file into the request.
-     * Uses boundary-based extraction (not explode) so binary image content is never truncated
-     * when the boundary string appears inside the file.
+     * Splits only on "\r\n--boundary" so binary image content is never truncated.
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -163,22 +162,21 @@ class CategoryController extends Controller
         }
         $params = [];
         $imageFile = null;
-        $delimiter = '--' . $boundary;
-        $delimiterLen = strlen($delimiter);
-        $start = 0;
-        while (($pos = strpos($raw, $delimiter, $start)) !== false) {
-            $partStart = $pos + $delimiterLen;
-            if (substr($raw, $partStart, 2) === "\r\n") {
-                $partStart += 2;
-            } elseif (substr($raw, $partStart, 1) === "\n") {
-                $partStart += 1;
+        $lineDelimiter = "\r\n--" . $boundary;
+        $parts = explode($lineDelimiter, $raw);
+        $firstPrefix = '--' . $boundary;
+        foreach ($parts as $i => $segment) {
+            $part = $segment;
+            if ($i === 0) {
+                if ($part === '' || $part === '--') {
+                    continue;
+                }
+                if (str_starts_with($part, $firstPrefix . "\r\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 2);
+                } elseif (str_starts_with($part, $firstPrefix . "\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 1);
+                }
             }
-            $nextPos = strpos($raw, $delimiter, $partStart);
-            if ($nextPos === false) {
-                break;
-            }
-            $part = substr($raw, $partStart, $nextPos - $partStart);
-            $start = $nextPos;
             $part = trim($part, "\r\n");
             if ($part === '' || $part === '-') {
                 continue;
