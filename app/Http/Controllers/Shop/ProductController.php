@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\ProductImage;
 
 class ProductController extends Controller
 {
@@ -72,7 +73,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Products retrieved successfully',
-                'data' => $products->items(),
+                'data' => array_map(fn (Product $p) => $this->productToPublicData($p), $products->items()),
                 'pagination' => [
                     'current_page' => $products->currentPage(),
                     'last_page' => $products->lastPage(),
@@ -89,6 +90,37 @@ class ProductController extends Controller
                 'message' => 'Unable to load products.',
             ], 500);
         }
+    }
+
+    /**
+     * Build product data for public API with deduplicated images (same image_path only once).
+     */
+    private function productToPublicData(Product $product): array
+    {
+        $images = $product->relationLoaded('images') ? ProductImage::uniqueByPath($product->images) : [];
+        $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
+        if ($primaryImage === null && count($images) > 0) {
+            $primaryImage = $images[0];
+        }
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'price' => $product->price,
+            'stock' => $product->stock,
+            'status' => $product->status,
+            'category_id' => $product->category_id,
+            'weight_unit' => $product->weight_unit,
+            'sku' => $product->sku,
+            'handle' => $product->handle,
+            'image' => $product->image,
+            'image_url' => $product->image_url,
+            'images' => $images,
+            'primary_image' => $primaryImage,
+            'category' => $product->relationLoaded('category') ? $product->category : null,
+            'created_at' => $product->created_at,
+            'updated_at' => $product->updated_at,
+        ];
     }
 
     /**
@@ -109,10 +141,11 @@ class ProductController extends Controller
                 ], 404);
             }
 
+            $data = $this->productToPublicData($product);
             return response()->json([
                 'success' => true,
                 'message' => 'Product retrieved successfully',
-                'data' => $product,
+                'data' => $data,
             ]);
         } catch (\Throwable $e) {
             \Log::error('ProductController::show ' . $e->getMessage());
@@ -175,7 +208,7 @@ class ProductController extends Controller
                 'message' => 'Products retrieved successfully',
                 'data' => [
                     'category' => $category,
-                    'products' => $products->items(),
+                    'products' => array_map(fn (Product $p) => $this->productToPublicData($p), $products->items()),
                     'pagination' => [
                         'current_page' => $products->currentPage(),
                         'last_page' => $products->lastPage(),

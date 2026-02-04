@@ -38,7 +38,11 @@ class ProductController extends Controller
      */
     private function productToApiData(Product $product): array
     {
-        // Build response directly without calling toArray() to avoid overhead
+        $images = $product->relationLoaded('images') ? ProductImage::uniqueByPath($product->images) : [];
+        $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
+        if ($primaryImage === null && count($images) > 0) {
+            $primaryImage = $images[0];
+        }
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -52,8 +56,8 @@ class ProductController extends Controller
             'handle' => $product->handle,
             'image' => $product->image,
             'image_url' => $product->image_url,
-            'images' => $product->relationLoaded('images') ? $product->images : [],
-            'primary_image' => $product->relationLoaded('primaryImage') ? $product->primaryImage : null,
+            'images' => $images,
+            'primary_image' => $primaryImage,
             'category' => $product->relationLoaded('category') ? $product->category : null,
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at,

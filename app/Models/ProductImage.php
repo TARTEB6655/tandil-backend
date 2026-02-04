@@ -75,4 +75,25 @@ class ProductImage extends Model
     {
         return $this->getImageUrl();
     }
+
+    /**
+     * Return unique images by image_path (first occurrence wins, order preserved).
+     * Use in API responses so duplicate DB rows (e.g. from old bug) don't return duplicate images.
+     */
+    public static function uniqueByPath($images): array
+    {
+        if ($images === null) {
+            return [];
+        }
+        $seen = [];
+        $out = [];
+        foreach ($images as $img) {
+            $path = $img->image_path ?? '';
+            if ($path !== '' && ! isset($seen[$path])) {
+                $seen[$path] = true;
+                $out[] = $img;
+            }
+        }
+        return $out;
+    }
 }
