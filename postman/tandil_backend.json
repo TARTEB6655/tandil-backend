@@ -4,7 +4,7 @@
         "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url (e.g. https://your-domain.com), token (Bearer after Login), category_id, product_id (numeric; use 1 or from List Products / Add Product).\n\nProducts: GET {{base_url}}/api/admin/products/{{product_id}} returns single product (admin). List Products test script auto-sets product_id from first item. Create/Update (multipart): name, description, price, stock, status, category_id, main_image, images[]; response: data.image, data.image_url, data.images, data.primary_image.\n\nFlow: Health → Login (saves token) → List Categories → List Products (saves product_id) → Get Product Details / Add / Update / Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.4.8"
+        "version": "2.4.9"
     },
     "item": [
         {
@@ -2064,12 +2064,12 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/shop/products?per_page=12&category_id=",
+                                    "raw": "{{base_url}}/api/shop/products?per_page=12",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "shop", "products"],
-                                    "query": [{"key": "per_page", "value": "12"}, {"key": "category_id", "value": "", "description": "Optional: filter by category ID"}]
+                                    "query": [{"key": "per_page", "value": "12", "description": "Items per page"}]
                                 },
-                                "description": "List products for shop/customer app. Query: per_page, search, category_id (optional filter), status, sort_by, sort_dir. Response: each product includes category_id and category (id, name)."
+                                "description": "List products for shop/customer app. GET {{base_url}}/api/shop/products. Query: per_page (default 12). No category required. Optional: search, category_id, status, sort_by, sort_dir. Response: data array; each product includes category when set."
                             }
                         },
                         {
@@ -2183,12 +2183,12 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/admin/products?search=&category_id={{category_id}}&filter=all&per_page=50",
+                                    "raw": "{{base_url}}/api/admin/products?per_page=50&filter=all",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"],
-                                    "query": [{"key": "search", "value": ""}, {"key": "category_id", "value": "{{category_id}}", "description": "Filter by category ID (from List Categories)"}, {"key": "filter", "value": "all"}, {"key": "per_page", "value": "50", "description": "Items per page (1-100); use 50 or 100 to see more in Postman"}]
+                                    "query": [{"key": "per_page", "value": "50", "description": "Items per page (1-100)"}, {"key": "filter", "value": "all", "description": "all|active|draft|archived"}, {"key": "search", "value": "", "description": "Optional: search by name or description", "disabled": true}]
                                 },
-                                "description": "List all products (admin). Query: search, category_id (optional), filter (all|active|draft|archived), per_page (1-100, default 15). Response: data = array of full product objects (id, name, description, price, stock, status, category_id, image, image_url, images, primary_image, category, etc.); pagination = current_page, last_page, per_page, total. Test script auto-sets product_id from first product so Get Product Details works. Auth: Bearer {{token}}."
+                                "description": "List all products (admin). GET {{base_url}}/api/admin/products. Query: per_page (1-100, default 15), filter (all|active|draft|archived), search (optional). No category required. Response: data = array of product objects (id, name, price, image_url, images, primary_image, category, etc.); pagination. Test script auto-sets product_id from first product. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2438,7 +2438,7 @@
                     "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
                 }
             ],
-            "description": "Single module for all product APIs. Public: list/shop/products (optional ?category_id=), get by category, get categories. Admin: list (?category_id=), create (JSON or multipart with category_id), get, update (category_id optional), delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id is optional on create and update; response always includes data.category_id and data.category when set."
+            "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter; no category required), create (JSON or multipart; category_id optional), get, update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id is optional on list, create, and update."
         },
         {
             "name": "10. Admin & HR Routes",

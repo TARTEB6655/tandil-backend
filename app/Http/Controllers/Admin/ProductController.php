@@ -140,7 +140,9 @@ class ProductController extends Controller
                 $tmpPath = tempnam(sys_get_temp_dir(), 'put_');
                 if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false) {
                     $uploaded = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
-                    if ($name === 'image') {
+                    if ($name === 'main_image') {
+                        $filesSingle['main_image'] = $uploaded;
+                    } elseif ($name === 'image') {
                         $filesSingle['image'] = $uploaded;
                     } elseif ($name === 'images' || $name === 'images[]') {
                         $filesMulti['images'] = $filesMulti['images'] ?? [];
