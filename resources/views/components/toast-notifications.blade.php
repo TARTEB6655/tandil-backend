@@ -74,22 +74,8 @@ function toastNotifications() {
         maxToasts: 4,
         
         init() {
-            // Listen for Laravel session flash messages
-            @if(session('success'))
-                this.show('{{ session('success') }}', 'success');
-            @endif
-            
-            @if(session('error'))
-                this.show('{{ session('error') }}', 'error');
-            @endif
-            
-            @if(session('info'))
-                this.show('{{ session('info') }}', 'info');
-            @endif
-            
-            @if(session('warning'))
-                this.show('{{ session('warning') }}', 'warning');
-            @endif
+            // Session flash messages are shown by each page's inline banner (e.g. @if(session('success'))).
+            // We do NOT show a toast for session flash here to avoid duplicate messages (banner + toast).
 
             // Listen for custom toast events from JavaScript
             window.addEventListener('toast', (e) => {

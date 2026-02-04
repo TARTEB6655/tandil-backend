@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nRequest (multipart): name, description, price, stock, status, category_id, weight_unit, sku, handle, image_urls (optional), main_image (main product image), images[] (extra images). Product and category images: any size accepted; stored files are auto-compressed to max 2 MB. Legacy: image = main image.\n\nResponse 201/200: data.image, data.image_url, data.images, data.primary_image. Env: base_url, token, category_id, product_id. Update Product: PUT form-data; main_image sets/updates main image only; images[] replace extra images.\n\nFlow: Health → Login → List Categories → Add/Update Product → etc.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url (e.g. https://your-domain.com), token (Bearer after Login), category_id, product_id (numeric; use 1 or from List Products / Add Product).\n\nProducts: GET {{base_url}}/api/admin/products/{{product_id}} returns single product (admin). List Products test script auto-sets product_id from first item. Create/Update (multipart): name, description, price, stock, status, category_id, main_image, images[]; response: data.image, data.image_url, data.images, data.primary_image.\n\nFlow: Health → Login (saves token) → List Categories → List Products (saves product_id) → Get Product Details / Add / Update / Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.4.7"
+        "version": "2.4.8"
     },
     "item": [
         {
@@ -2155,6 +2155,23 @@
                             "name": "List Products",
                             "request": {
                                 "method": "GET",
+                                "event": [
+                                    {
+                                        "listen": "test",
+                                        "script": {
+                                            "exec": [
+                                                "if (pm.response.code === 200) {",
+                                                "    var json = pm.response.json();",
+                                                "    if (json.data && json.data.length > 0) {",
+                                                "        pm.environment.set('product_id', json.data[0].id);",
+                                                "        console.log('product_id set to:', json.data[0].id);",
+                                                "    }",
+                                                "}"
+                                            ],
+                                            "type": "text/javascript"
+                                        }
+                                    }
+                                ],
                                 "header": [
                                     {
                                         "key": "Authorization",
@@ -2171,7 +2188,7 @@
                                     "path": ["api", "admin", "products"],
                                     "query": [{"key": "search", "value": ""}, {"key": "category_id", "value": "{{category_id}}", "description": "Filter by category ID (from List Categories)"}, {"key": "filter", "value": "all"}, {"key": "per_page", "value": "50", "description": "Items per page (1-100); use 50 or 100 to see more in Postman"}]
                                 },
-                                "description": "List all products (admin). Query: search, category_id (optional), filter (all|active|draft|archived), per_page (1-100, default 15). Response: data = array of full product objects (id, name, description, price, stock, status, category_id, image, image_url, images, primary_image, category, etc.); pagination = current_page, last_page, per_page, total. Auth: Bearer {{token}}."
+                                "description": "List all products (admin). Query: search, category_id (optional), filter (all|active|draft|archived), per_page (1-100, default 15). Response: data = array of full product objects (id, name, description, price, stock, status, category_id, image, image_url, images, primary_image, category, etc.); pagination = current_page, last_page, per_page, total. Test script auto-sets product_id from first product so Get Product Details works. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2247,7 +2264,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Get single product (admin). Set product_id in environment (e.g. from List Products or Add Product response). Invalid/missing product_id returns 400. Response: data.image, data.image_url, data.images, data.primary_image. Auth: Bearer {{token}}."
+                                "description": "GET single product by ID (admin). URL: {{base_url}}/api/admin/products/{{product_id}}. Ensure product_id is a numeric ID (e.g. 1); set in env or run List Products first (test script sets product_id). 200 = success (data: id, name, price, image_url, images, primary_image, etc.); 404 = product not found; 401 = missing/invalid token. Auth: Bearer {{token}}."
                             }
                         },
                         {

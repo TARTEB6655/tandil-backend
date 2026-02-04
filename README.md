@@ -488,19 +488,38 @@ APP_ADMIN_PASSWORD=password123
 
 - [ ] Set `APP_ENV=production` in `.env`
 - [ ] Set `APP_DEBUG=false` in `.env`
-- [ ] Run `php artisan config:cache`
-- [ ] Run `php artisan route:cache`
-- [ ] Run `php artisan view:cache`
 - [ ] Ensure storage link exists: `php artisan storage:link`
 - [ ] Run migrations: `php artisan migrate --force`
 - [ ] Ensure admin user: `php artisan admin:ensure`
+
+### After every deployment (IMPORTANT)
+
+If you get **404 "Endpoint not found"** for API routes (e.g. GET `/api/admin/products/{id}`), the server is using **old cached routes**. Run these on the server **after every deploy**:
+
+```bash
+# 1. Clear all caches so new routes are loaded
+php artisan optimize:clear
+
+# 2. Rebuild caches (optional but recommended for production)
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Or use the one-liner:
+
+```bash
+php artisan optimize:clear && php artisan config:cache && php artisan route:cache && php artisan view:cache
+```
+
+On Linux/Mac you can run the post-deploy script from the project root: `bash scripts/post-deploy.sh`
 
 ### Production Commands
 ```bash
 # Optimize for production (REQUIRED for fast API responses)
 php artisan optimize
 
-# Clear and rebuild all caches
+# Clear and rebuild all caches (run after every code deploy)
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
@@ -527,6 +546,30 @@ For fast API responses (2-3 seconds instead of 20+ seconds), ensure:
 3. **Use a proper web server** (nginx + PHP-FPM, not `php artisan serve`)
 
 4. **Test API performance** - Call `/api/debug/performance` to diagnose slowness
+
+---
+
+## 🔧 Troubleshooting
+
+### 404 "Endpoint not found" on the server (e.g. Get Product Details)
+
+The API works locally but returns 404 on the server when the route exists in code. This is almost always **stale route cache**.
+
+**Fix (run on the server):**
+```bash
+php artisan route:clear
+php artisan optimize:clear
+# Then rebuild if you use route caching:
+php artisan route:cache
+```
+
+**Verify routes on the server:**
+```bash
+php artisan route:list --path=api/admin/products
+```
+You should see `GET|HEAD api/admin/products/{id} ... Admin\ProductController@show`.
+
+**Postman:** Use a **numeric** `product_id` (e.g. `1`). Set `base_url` to your server root (e.g. `https://your-domain.com`). URL must be `{{base_url}}/api/admin/products/{{product_id}}`. Select an **environment** that has `base_url`, `token`, and `product_id` set.
 
 ---
 
