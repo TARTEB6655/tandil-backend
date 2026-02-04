@@ -11,6 +11,62 @@ Route::get('/health', function () {
     return ['status' => 'API is working'];
 });
 
+// Performance diagnostic endpoint - helps identify server slowness
+Route::get('/debug/performance', function () {
+    $start = microtime(true);
+    $results = [];
+    
+    // 1. Basic PHP speed
+    $phpStart = microtime(true);
+    for ($i = 0; $i < 10000; $i++) { $x = $i * $i; }
+    $results['php_loop_10k'] = round((microtime(true) - $phpStart) * 1000, 2) . 'ms';
+    
+    // 2. Database connection
+    $dbStart = microtime(true);
+    try {
+        \DB::select('SELECT 1');
+        $results['db_connection'] = round((microtime(true) - $dbStart) * 1000, 2) . 'ms';
+    } catch (\Exception $e) {
+        $results['db_connection'] = 'FAILED: ' . $e->getMessage();
+    }
+    
+    // 3. Simple query
+    $queryStart = microtime(true);
+    try {
+        $count = \App\Models\Product::count();
+        $results['product_count_query'] = round((microtime(true) - $queryStart) * 1000, 2) . 'ms (' . $count . ' products)';
+    } catch (\Exception $e) {
+        $results['product_count_query'] = 'FAILED: ' . $e->getMessage();
+    }
+    
+    // 4. Eager loading test
+    $eagerStart = microtime(true);
+    try {
+        $products = \App\Models\Product::with(['category', 'images', 'primaryImage'])->limit(10)->get();
+        $results['eager_load_10_products'] = round((microtime(true) - $eagerStart) * 1000, 2) . 'ms';
+    } catch (\Exception $e) {
+        $results['eager_load_10_products'] = 'FAILED: ' . $e->getMessage();
+    }
+    
+    // 5. OPcache status
+    $results['opcache_enabled'] = function_exists('opcache_get_status') && opcache_get_status() ? 'YES' : 'NO';
+    
+    // 6. PHP version
+    $results['php_version'] = PHP_VERSION;
+    
+    // 7. Total time
+    $results['total_time'] = round((microtime(true) - $start) * 1000, 2) . 'ms';
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Performance diagnostics',
+        'data' => $results,
+        'recommendation' => $results['opcache_enabled'] === 'NO' 
+            ? 'Enable OPcache on your server for 3-10x faster PHP performance' 
+            : 'OPcache is enabled - good!'
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | AUTHENTICATION (PUBLIC)
