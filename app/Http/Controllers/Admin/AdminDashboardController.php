@@ -114,6 +114,9 @@ class AdminDashboardController extends Controller
         $dateFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
+        $groupByMonth = $isSqlite
+            ? DB::raw("strftime('%Y-%m', created_at)")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%m")');
         
         $revenueByMonth = Order::select(
                 $dateFormat,
@@ -122,7 +125,7 @@ class AdminDashboardController extends Controller
             )
             ->where('payment_status', 'paid')
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
-            ->groupBy('month')
+            ->groupBy($groupByMonth)
             ->orderBy('month', 'asc')
             ->get();
         
@@ -169,13 +172,16 @@ class AdminDashboardController extends Controller
         $weekFormat = $isSqlite
             ? DB::raw("strftime('%Y-%W', created_at) as week")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%u") as week');
+        $groupByWeek = $isSqlite
+            ? DB::raw("strftime('%Y-%W', created_at)")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%u")');
         
         $visitsPerWeek = Visit::select(
                 $weekFormat,
                 DB::raw('COUNT(*) as count')
             )
             ->where('created_at', '>=', Carbon::now()->subWeeks(8))
-            ->groupBy('week')
+            ->groupBy($groupByWeek)
             ->orderBy('week', 'asc')
             ->get();
 
@@ -185,13 +191,16 @@ class AdminDashboardController extends Controller
         $monthFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
+        $groupByMonthSub = $isSqlite
+            ? DB::raw("strftime('%Y-%m', created_at)")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%m")');
         
         $subscriptionGrowth = Subscription::select(
                 $monthFormat,
                 DB::raw('COUNT(*) as count')
             )
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
-            ->groupBy('month')
+            ->groupBy($groupByMonthSub)
             ->orderBy('month', 'asc')
             ->get();
 
@@ -216,6 +225,9 @@ class AdminDashboardController extends Controller
         $monthFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
+        $groupByMonthProd = $isSqlite
+            ? DB::raw("strftime('%Y-%m', created_at)")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%m")');
         
         $productSales = OrderItem::select(
                 $monthFormat,
@@ -226,7 +238,7 @@ class AdminDashboardController extends Controller
                 $query->where('payment_status', 'paid');
             })
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
-            ->groupBy('month')
+            ->groupBy($groupByMonthProd)
             ->orderBy('month', 'asc')
             ->get();
         $recentSubscriptions = Subscription::with('client')->orderBy('created_at', 'desc')->take(5)->get();

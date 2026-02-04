@@ -33,6 +33,9 @@ class AnalyticsController extends Controller
         $dateFormat = $isSqlite
             ? DB::raw("strftime('%Y-%m', created_at) as month")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month');
+        $groupByMonth = $isSqlite
+            ? DB::raw("strftime('%Y-%m', created_at)")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%m")');
         
         $data = Order::select(
                 $dateFormat,
@@ -41,7 +44,7 @@ class AnalyticsController extends Controller
             )
             ->where('payment_status', 'paid')
             ->where('created_at', '>=', Carbon::now()->subMonths($months))
-            ->groupBy('month')
+            ->groupBy($groupByMonth)
             ->orderBy('month', 'asc')
             ->get();
 
@@ -64,13 +67,16 @@ class AnalyticsController extends Controller
         $weekFormat = $isSqlite
             ? DB::raw("strftime('%Y-%W', created_at) as week")
             : DB::raw('DATE_FORMAT(created_at, "%Y-%u") as week');
+        $groupByWeek = $isSqlite
+            ? DB::raw("strftime('%Y-%W', created_at)")
+            : DB::raw('DATE_FORMAT(created_at, "%Y-%u")');
         
         $data = Visit::select(
                 $weekFormat,
                 DB::raw('COUNT(*) as count')
             )
             ->where('created_at', '>=', Carbon::now()->subWeeks($weeks))
-            ->groupBy('week')
+            ->groupBy($groupByWeek)
             ->orderBy('week', 'asc')
             ->get();
 

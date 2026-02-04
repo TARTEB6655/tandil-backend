@@ -571,6 +571,58 @@ You should see `GET|HEAD api/admin/products/{id} ... Admin\ProductController@sho
 
 **Postman:** Use a **numeric** `product_id` (e.g. `1`). Set `base_url` to your server root (e.g. `https://your-domain.com`). URL must be `{{base_url}}/api/admin/products/{{product_id}}`. Select an **environment** that has `base_url`, `token`, and `product_id` set.
 
+### Live server not working (500, blank page, or errors)
+
+Run these checks **on the live server** (SSH into the server, `cd` to your project root, then run):
+
+| Issue | Check | Fix |
+|-------|--------|-----|
+| **500 or "No application encryption key"** | `.env` has `APP_KEY=` empty or missing | `php artisan key:generate` (then set `APP_KEY` in `.env` if it didn’t update) |
+| **500 or "no such table: cache"** | Using `CACHE_STORE=database` or `SESSION_DRIVER=database` | `php artisan migrate --force` (creates `cache` / `sessions` tables) |
+| **500 on admin dashboard** | Using SQLite on server | Code uses SQLite-safe date formatting; ensure you’ve deployed latest code. If using MySQL, set `DB_CONNECTION=mysql` and DB_* in `.env` |
+| **Blank page or 500** | Document root not pointing to `public/` | Point your web server (nginx/Apache) **document root** to the `public` folder (e.g. `/var/www/tandil-backend/public`) |
+| **403 / permission denied** | Web server can’t read or write | `storage` and `bootstrap/cache` must be writable: `chmod -R 775 storage bootstrap/cache` and set correct owner (e.g. `www-data`) |
+| **404 for all routes** | Stale route/config cache | Run **After every deployment** steps above (`php artisan optimize:clear` then `config:cache` + `route:cache`) |
+| **Images/links wrong** | Wrong base URL | In `.env` set `APP_URL=https://your-live-domain.com` (no trailing slash) |
+
+**One-time setup on the server (after deploy):**
+```bash
+# From project root on the server
+cp .env.example .env   # if .env doesn't exist
+php artisan key:generate
+php artisan migrate --force
+php artisan storage:link
+php artisan config:cache
+php artisan route:cache
+```
+
+**After every code deploy:**
+```bash
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+# Or: bash scripts/post-deploy.sh
+```
+
+**See the actual error:** On the server, set `APP_DEBUG=true` in `.env` temporarily and reload the page — the response will show the error. Check `storage/logs/laravel.log` for the stack trace. Set `APP_DEBUG=false` again after fixing.
+
+### 500 on Cloudways (e.g. /admin/dashboard)
+
+1. **Get the real error** – In Cloudways: **Server** → **Application** → **Access** (SSH), then:
+   ```bash
+   cd applications/your-app-name/public_html
+   tail -100 storage/logs/laravel.log
+   ```
+   Or use **File Manager** in Cloudways: open `storage/logs/laravel.log` and check the last entries.
+
+2. **Typical causes and fixes:**
+   - **"No application encryption key"** → SSH in and run: `php artisan key:generate`
+   - **"no such table: cache"** → Run: `php artisan migrate --force`
+   - **Document root** → In Cloudways, Application URL / document root must point to the **public** folder (e.g. `public_html` should be your Laravel `public` folder, or the server must route to it).
+   - **After code deploy** → Run: `php artisan optimize:clear` then `php artisan config:cache` and `php artisan route:cache`
+
+3. **Temporarily show errors in the browser** – In `.env` on the server set `APP_DEBUG=true`, reload the failing page to see the exception, then set `APP_DEBUG=false` again.
+
 ---
 
 ## 📚 Documentation

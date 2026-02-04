@@ -74,7 +74,7 @@ function toastNotifications() {
         maxToasts: 4,
         
         init() {
-            // Session flash messages are shown by each page's inline banner (e.g. @if(session('success'))).
+            // Session flash messages are shown by each page's inline banner (e.g. @@if(session('success'))).
             // We do NOT show a toast for session flash here to avoid duplicate messages (banner + toast).
 
             // Listen for custom toast events from JavaScript
