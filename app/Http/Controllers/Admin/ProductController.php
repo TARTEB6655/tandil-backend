@@ -181,7 +181,7 @@ class ProductController extends Controller
         $height = (int) $info[1];
         $type = $info[2];
         $img = null;
-        if ($type === \IMAGETYPE_JPEG || $type === \IMAGETYPE_JPEG) {
+        if ($type === \IMAGETYPE_JPEG) {
             $img = @imagecreatefromjpeg($fullPath);
         } elseif ($type === \IMAGETYPE_PNG) {
             $img = @imagecreatefrompng($fullPath);
@@ -222,7 +222,7 @@ class ProductController extends Controller
         $quality = 88;
         $saved = false;
         $ext = strtolower(pathinfo($fullPath, \PATHINFO_EXTENSION));
-        if ($type === \IMAGETYPE_JPEG || $type === \IMAGETYPE_JPEG || $ext === 'jpg' || $ext === 'jpeg') {
+        if ($type === \IMAGETYPE_JPEG || $ext === 'jpg' || $ext === 'jpeg') {
             while ($quality >= 50) {
                 $saved = imagejpeg($resized, $fullPath, $quality);
                 if ($saved && is_file($fullPath) && filesize($fullPath) <= $maxBytes) {
