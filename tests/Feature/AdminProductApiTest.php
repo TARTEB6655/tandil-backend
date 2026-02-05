@@ -201,9 +201,10 @@ class AdminProductApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('status', true);
         $data = $response->json('data');
-        $this->assertArrayHasKey('images', $data);
-        $this->assertCount(1, $data['images'], 'API should return deduplicated images (1 unique path, not 2 rows)');
-        $this->assertSame($path, $data['images'][0]['image_path'] ?? null);
+        $this->assertArrayHasKey('main_image', $data);
+        $this->assertArrayHasKey('gallery_images', $data);
+        $this->assertNotNull($data['main_image'], 'API should return deduplicated main image');
+        $this->assertSame($path, $data['main_image']['image_path'] ?? null);
     }
 
     /**
@@ -262,27 +263,26 @@ class AdminProductApiTest extends TestCase
 
         $this->assertArrayHasKey('image', $data);
         $this->assertArrayHasKey('image_url', $data);
-        $this->assertArrayHasKey('images', $data);
-        $this->assertArrayHasKey('primary_image', $data);
+        $this->assertArrayHasKey('main_image', $data);
+        $this->assertArrayHasKey('gallery_images', $data);
         $this->assertNotEmpty($data['image']);
         $this->assertNotEmpty($data['image_url']);
 
-        $images = $data['images'];
-        $this->assertCount(2, $images, 'Detail API must return exactly 2 images (no duplication)');
-
-        $paths = [];
-        foreach ($images as $img) {
+        $this->assertNotNull($data['main_image'], 'Detail API must return main image');
+        $this->assertCount(1, $data['gallery_images'], 'Detail API must return exactly 1 gallery image (no duplication)');
+        $this->assertSame($data['main_image']['image_path'] ?? null, $data['image']);
+        foreach ([$data['main_image']] as $img) {
             $this->assertArrayHasKey('image_path', $img);
             $this->assertArrayHasKey('image_url', $img);
-            $this->assertNotEmpty($img['image_url'], 'Each image must have full image_url (no truncation)');
+            $this->assertNotEmpty($img['image_url'], 'Main image must have full image_url');
             $this->assertStringContainsString('/media/', $img['image_url'] ?? '', 'image_url must be full URL with /media/');
-            $path = $img['image_path'] ?? '';
-            $this->assertNotContains($path, $paths, 'No duplicate image_path in response');
-            $paths[] = $path;
         }
-
-        $this->assertNotNull($data['primary_image']);
-        $this->assertSame($data['primary_image']['image_path'] ?? null, $data['image']);
+        foreach ($data['gallery_images'] as $img) {
+            $this->assertArrayHasKey('image_path', $img);
+            $this->assertArrayHasKey('image_url', $img);
+            $this->assertNotEmpty($img['image_url']);
+            $this->assertStringContainsString('/media/', $img['image_url'] ?? '');
+        }
     }
 
     /**
@@ -333,10 +333,13 @@ class AdminProductApiTest extends TestCase
         ]);
         $response->assertStatus(200);
         $data = $response->json('data');
-        $images = $data['images'] ?? [];
-        $this->assertCount(3, $images, 'Update with 3 files must return exactly 3 images (no duplication)');
-
-        $paths = array_column($images, 'image_path');
+        $this->assertNotNull($data['main_image'] ?? null, 'Update must return main image');
+        $gallery = $data['gallery_images'] ?? [];
+        $this->assertCount(2, $gallery, 'Update with 3 files must return 1 main + 2 gallery (no duplication)');
+        $paths = array_merge(
+            $data['main_image'] ? [$data['main_image']['image_path']] : [],
+            array_column($gallery, 'image_path')
+        );
         $this->assertCount(3, array_unique($paths), 'All image_path values must be unique');
 
         $product->refresh();
@@ -404,11 +407,9 @@ class AdminProductApiTest extends TestCase
         $data = $getAfterGallery->json('data');
         $this->assertSame($primaryPathBefore, $data['image'], 'Main image path must be unchanged when only gallery is updated');
         $this->assertNotEmpty($data['image_url']);
-        $images = $data['images'] ?? [];
-        $this->assertCount(3, $images, 'Should have 1 primary + 2 new gallery images');
-        $primaryInList = collect($images)->firstWhere('is_primary', true);
-        $this->assertNotNull($primaryInList);
-        $this->assertSame($primaryPathBefore, $primaryInList['image_path']);
+        $this->assertNotNull($data['main_image'], 'Should have main image');
+        $this->assertSame($primaryPathBefore, $data['main_image']['image_path']);
+        $this->assertCount(2, $data['gallery_images'] ?? [], 'Should have 2 gallery images');
     }
 
     /**
@@ -451,12 +452,10 @@ class AdminProductApiTest extends TestCase
         $response->assertStatus(201);
         $productId = $response->json('data.id');
         $data = $response->json('data');
-        $this->assertCount(3, $data['images'] ?? [], 'All 3 main_image files must be saved (first primary, rest in images)');
+        $this->assertNotNull($data['main_image'], 'First file must be main image');
+        $this->assertCount(2, $data['gallery_images'] ?? [], 'Other 2 files must be gallery images');
         $this->assertNotEmpty($data['image']);
         $this->assertNotEmpty($data['image_url']);
-        $primary = $data['primary_image'] ?? null;
-        $this->assertNotNull($primary);
-        $this->assertTrue($primary['is_primary'] ?? false);
 
         $product = Product::find($productId);
         $product->load('images');
@@ -523,16 +522,13 @@ class AdminProductApiTest extends TestCase
         $getRes = $this->getJson('/api/admin/products/' . $productId, $headers);
         $getRes->assertStatus(200);
         $data = $getRes->json('data');
-        $this->assertArrayHasKey('images', $data);
-        $images = $data['images'];
-        $this->assertCount(3, $images, 'Create with 3 files must return 3 images (no duplication)');
-        $paths = [];
-        foreach ($images as $img) {
+        $this->assertArrayHasKey('main_image', $data);
+        $this->assertArrayHasKey('gallery_images', $data);
+        $this->assertNotNull($data['main_image'], 'Create with 3 files must return main image');
+        $this->assertCount(2, $data['gallery_images'] ?? [], 'Create with 3 files must return 2 gallery images');
+        foreach (array_merge([$data['main_image']], $data['gallery_images'] ?? []) as $img) {
             $this->assertNotEmpty($img['image_url'] ?? null, 'Each image must have full image_url');
             $this->assertStringContainsString('/media/', $img['image_url'] ?? '');
-            $path = $img['image_path'] ?? '';
-            $this->assertNotContains($path, $paths);
-            $paths[] = $path;
         }
 
         // --- 3. Update product (new name + replace with 2 images) ---
@@ -554,25 +550,25 @@ class AdminProductApiTest extends TestCase
         $updateRes->assertStatus(200);
         $updateData = $updateRes->json('data');
         $this->assertSame('E2E Product Updated', $updateData['name']);
-        $updateImages = $updateData['images'] ?? [];
-        $this->assertCount(2, $updateImages, 'Update with 2 files must return 2 images (no duplication)');
-        $paths2 = array_column($updateImages, 'image_path');
-        $this->assertCount(2, array_unique($paths2));
+        $this->assertNotNull($updateData['main_image'], 'Update with 2 files must return main image');
+        $this->assertCount(1, $updateData['gallery_images'] ?? [], 'Update with 2 files must return 1 gallery image');
 
         // --- 4. Get product again (admin) ---
         $get2Res = $this->getJson('/api/admin/products/' . $productId, $headers);
         $get2Res->assertStatus(200);
         $data2 = $get2Res->json('data');
-        $this->assertCount(2, $data2['images'] ?? []);
+        $this->assertNotNull($data2['main_image']);
+        $this->assertCount(1, $data2['gallery_images'] ?? []);
 
         // --- 5. Product detail API (public shop) ---
         $shopRes = $this->getJson('/api/shop/products/' . $productId);
         $shopRes->assertStatus(200);
         $shopData = $shopRes->json('data');
-        $this->assertArrayHasKey('images', $shopData);
-        $shopImages = $shopData['images'];
-        $this->assertCount(2, $shopImages);
-        foreach ($shopImages as $img) {
+        $this->assertArrayHasKey('main_image', $shopData);
+        $this->assertArrayHasKey('gallery_images', $shopData);
+        $this->assertNotNull($shopData['main_image']);
+        $this->assertCount(1, $shopData['gallery_images'] ?? []);
+        foreach (array_merge([$shopData['main_image']], $shopData['gallery_images'] ?? []) as $img) {
             $this->assertNotEmpty($img['image_url'] ?? null);
             $this->assertStringContainsString('/media/', $img['image_url'] ?? '');
         }

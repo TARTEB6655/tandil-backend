@@ -21,10 +21,10 @@ class ProductController extends Controller
         'name', 'description', 'price', 'stock', 'status', 'category_id', 'weight_unit', 'sku', 'handle',
     ];
 
-    /** Response keys for product API (allowed fields + id, image, image_url, images, primary_image, category, timestamps). */
+    /** Response keys for product API (allowed fields + id, image, image_url, main_image, gallery_images, category, timestamps). */
     private const PRODUCT_API_RESPONSE_KEYS = [
         'id', 'name', 'description', 'price', 'stock', 'status', 'category_id', 'weight_unit', 'sku', 'handle',
-        'image', 'image_url', 'images', 'primary_image', 'category', 'created_at', 'updated_at',
+        'image', 'image_url', 'main_image', 'gallery_images', 'category', 'created_at', 'updated_at',
     ];
 
     public function __construct()
@@ -33,27 +33,42 @@ class ProductController extends Controller
     }
 
     /**
-     * Return product data with only allowed API fields (no extra fields in response).
-     * Optimized: expects relations already loaded, no lazy loading.
+     * Return product data with only allowed API fields.
+     * Main image shown once (main_image + root image_url); gallery images separate (gallery_images only).
      */
     private function productToApiData(Product $product): array
     {
         $imagesCollection = $product->relationLoaded('images') ? $product->images : collect([]);
-        $images = ProductImage::toApiImagesArray($imagesCollection);
         $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
-        $primaryImageArray = null;
+        $mainImage = null;
+        $galleryImages = [];
         if ($primaryImage && $primaryImage->image_path) {
-            $primaryImageArray = [
+            $mainImage = [
                 'id' => $primaryImage->id,
                 'image_path' => $primaryImage->image_path,
                 'image_url' => ProductImage::buildFullUrl($primaryImage->image_path),
-                'sort_order' => (int) $primaryImage->sort_order,
-                'is_primary' => (bool) $primaryImage->is_primary,
             ];
-        } elseif (count($images) > 0) {
-            $primaryImageArray = $images[0];
         }
-        $rootImagePath = $product->image ?? ($primaryImageArray['image_path'] ?? null);
+        $uniqueImages = ProductImage::uniqueByPath($imagesCollection);
+        foreach ($uniqueImages as $img) {
+            if ($img->is_primary) {
+                if ($mainImage === null) {
+                    $mainImage = [
+                        'id' => $img->id,
+                        'image_path' => $img->image_path,
+                        'image_url' => ProductImage::buildFullUrl($img->image_path),
+                    ];
+                }
+            } else {
+                $galleryImages[] = [
+                    'id' => $img->id,
+                    'image_path' => $img->image_path,
+                    'image_url' => ProductImage::buildFullUrl($img->image_path),
+                    'sort_order' => (int) $img->sort_order,
+                ];
+            }
+        }
+        $rootImagePath = $product->image ?? ($mainImage['image_path'] ?? null);
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -67,8 +82,8 @@ class ProductController extends Controller
             'handle' => $product->handle,
             'image' => $product->image,
             'image_url' => ProductImage::buildFullUrl($rootImagePath),
-            'images' => $images,
-            'primary_image' => $primaryImageArray,
+            'main_image' => $mainImage,
+            'gallery_images' => $galleryImages,
             'category' => $product->relationLoaded('category') ? $product->category : null,
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at,
@@ -560,8 +575,9 @@ class ProductController extends Controller
         }
         $this->reorderProductImages($product->id);
 
-        // Check if this is an API request
+        // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
         if ($request->expectsJson() || $request->is('api/*')) {
+            $product->refresh();
             $product->load(['category', 'images', 'primaryImage']);
             return response()->json([
                 'status' => true,

@@ -93,26 +93,41 @@ class ProductController extends Controller
     }
 
     /**
-     * Build product data for public API with deduplicated images and working full image_url for each.
+     * Build product data for public API. Main image once (main_image + image_url); gallery separate (gallery_images).
      */
     private function productToPublicData(Product $product): array
     {
         $imagesCollection = $product->relationLoaded('images') ? $product->images : collect([]);
-        $images = ProductImage::toApiImagesArray($imagesCollection);
         $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
-        $primaryImageArray = null;
+        $mainImage = null;
+        $galleryImages = [];
         if ($primaryImage && $primaryImage->image_path) {
-            $primaryImageArray = [
+            $mainImage = [
                 'id' => $primaryImage->id,
                 'image_path' => $primaryImage->image_path,
                 'image_url' => ProductImage::buildFullUrl($primaryImage->image_path),
-                'sort_order' => (int) $primaryImage->sort_order,
-                'is_primary' => (bool) $primaryImage->is_primary,
             ];
-        } elseif (count($images) > 0) {
-            $primaryImageArray = $images[0];
         }
-        $rootImagePath = $product->image ?? ($primaryImageArray['image_path'] ?? null);
+        $uniqueImages = ProductImage::uniqueByPath($imagesCollection);
+        foreach ($uniqueImages as $img) {
+            if ($img->is_primary) {
+                if ($mainImage === null) {
+                    $mainImage = [
+                        'id' => $img->id,
+                        'image_path' => $img->image_path,
+                        'image_url' => ProductImage::buildFullUrl($img->image_path),
+                    ];
+                }
+            } else {
+                $galleryImages[] = [
+                    'id' => $img->id,
+                    'image_path' => $img->image_path,
+                    'image_url' => ProductImage::buildFullUrl($img->image_path),
+                    'sort_order' => (int) $img->sort_order,
+                ];
+            }
+        }
+        $rootImagePath = $product->image ?? ($mainImage['image_path'] ?? null);
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -126,8 +141,8 @@ class ProductController extends Controller
             'handle' => $product->handle,
             'image' => $product->image,
             'image_url' => ProductImage::buildFullUrl($rootImagePath),
-            'images' => $images,
-            'primary_image' => $primaryImageArray,
+            'main_image' => $mainImage,
+            'gallery_images' => $galleryImages,
             'category' => $product->relationLoaded('category') ? $product->category : null,
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at,
