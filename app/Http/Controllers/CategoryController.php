@@ -123,16 +123,18 @@ class CategoryController extends Controller
     /**
      * Single place for category API response shape. Use in list, create, show, update – easy to update.
      * Returns: id, name, slug, description, image, image_url, created_at, updated_at.
+     * When $imagePathOverride is set (e.g. after update), use it so response always shows the new image URL.
      */
-    private function categoryToApiData(Category $category): array
+    private function categoryToApiData(Category $category, ?string $imagePathOverride = null): array
     {
+        $imagePath = $imagePathOverride !== null ? $imagePathOverride : $category->image;
         return [
             'id' => $category->id,
             'name' => $category->name,
             'slug' => $category->slug,
             'description' => $category->description,
-            'image' => $category->image,
-            'image_url' => $this->buildCategoryImageUrl($category->image),
+            'image' => $imagePath,
+            'image_url' => $this->buildCategoryImageUrl($imagePath),
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
         ];
@@ -387,7 +389,9 @@ class CategoryController extends Controller
 
         if (request()->expectsJson() || request()->is('api/*')) {
             $category->refresh();
-            return ApiResponse::success('Category updated successfully.', $this->categoryToApiData($category));
+            // Use the path we just saved when present, so response always shows the new image URL (avoids stale URL from cache/refresh)
+            $responseImagePath = $newImagePath !== null ? $newImagePath : ($updateData['image'] ?? $category->image);
+            return ApiResponse::success('Category updated successfully.', $this->categoryToApiData($category, $responseImagePath));
         }
         
         return redirect()->route('admin.categories.index')
