@@ -332,6 +332,22 @@ Route::get('/banners', [\App\Http\Controllers\Api\BannerController::class, 'inde
 
 /*
 |--------------------------------------------------------------------------
+| ADMIN BANNERS (upload, reorder, enable/disable, set link/action)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/banners')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\BannerController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\Admin\BannerController::class, 'store']);
+    Route::post('/update-order', [\App\Http\Controllers\Api\Admin\BannerController::class, 'updateOrder']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'update']);
+    Route::post('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'update']); // POST for multipart (image replace)
+    Route::post('/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\BannerController::class, 'toggleStatus']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN DASHBOARD STATISTICS
 |--------------------------------------------------------------------------
 */

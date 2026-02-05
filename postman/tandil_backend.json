@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id, tip_id, banner_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nTips: List (GET /api/tips), Create/Send (POST /api/tips: title, description), Get Details (GET /api/tips/{id}), Update (PUT /api/tips/{id}: title, description), Delete (DELETE /api/tips/{id}). Admin/supervisor for create, update, delete.\n\nAdmin Banners: List, Create (upload image), Get, Update (replace image), Update order, Toggle status, Delete. Customer home screen: GET /api/banners (active only).\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete; Tips: List → Create/Send → Get / Update / Delete; Admin Banners: List → Create/Update/Reorder/Toggle/Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.7.0"
+        "version": "2.10.0"
     },
     "item": [
         {
@@ -576,6 +576,170 @@
                 }
             ],
             "description": "Banner management - Get active banners for customer home screen (Public - no auth required)"
+        },
+        {
+            "name": "5b. Admin - Banners",
+            "item": [
+                {
+                    "name": "List All Banners (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('banner_id')) {",
+                                    "        pm.environment.set('banner_id', jsonData.data[0].id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners"]
+                        },
+                        "description": "GET /api/admin/banners - List all banners (admin). Auth: Bearer token. Response: success, message, data (array). Use for managing home screen images."
+                    }
+                },
+                {
+                    "name": "Create Banner",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "image", "type": "file", "src": "", "description": "Banner image (required)"},
+                                {"key": "title", "value": "Summer Sale", "description": "Optional title"},
+                                {"key": "link", "value": "https://example.com/promo", "description": "Optional URL"},
+                                {"key": "action_type", "value": "link", "description": "link | route | none"},
+                                {"key": "action_value", "value": "https://example.com/promo"},
+                                {"key": "priority", "value": "0", "description": "Display order (lower = first)"},
+                                {"key": "is_active", "value": "1", "description": "1 = active, 0 = inactive"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners"]
+                        },
+                        "description": "POST /api/admin/banners - Upload new banner. Multipart: image (required), title, link, action_type, action_value, priority, is_active. Response: 201, data (banner object with id, image_url, etc.)."
+                    }
+                },
+                {
+                    "name": "Get Banner (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners/{{banner_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners", "{{banner_id}}"]
+                        },
+                        "description": "GET /api/admin/banners/{id} - Get one banner. Set banner_id in env (or run List All Banners first to auto-set)."
+                    }
+                },
+                {
+                    "name": "Update Banner",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "_method", "value": "PUT", "description": "Method override for Laravel"},
+                                {"key": "image", "type": "file", "src": "", "description": "Optional - replace image"},
+                                {"key": "title", "value": "Updated Title"},
+                                {"key": "link", "value": "https://example.com/updated"},
+                                {"key": "action_type", "value": "link"},
+                                {"key": "action_value", "value": "https://example.com/updated"},
+                                {"key": "priority", "value": "1"},
+                                {"key": "is_active", "value": "1"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners/{{banner_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners", "{{banner_id}}"]
+                        },
+                        "description": "POST (or PUT) /api/admin/banners/{id} - Update banner. Use POST with form-data when replacing image. Send only fields to change. PUT with JSON also supported for non-image updates."
+                    }
+                },
+                {
+                    "name": "Update Banner Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"banners\": [\n    { \"id\": 1, \"priority\": 0 },\n    { \"id\": 2, \"priority\": 1 }\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners/update-order",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners", "update-order"]
+                        },
+                        "description": "POST /api/admin/banners/update-order - Reorder banners. Body: { \"banners\": [ { \"id\": 1, \"priority\": 0 }, ... ] }. Lower priority = shown first."
+                    }
+                },
+                {
+                    "name": "Toggle Banner Status",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners/{{banner_id}}/toggle-status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners", "{{banner_id}}", "toggle-status"]
+                        },
+                        "description": "POST /api/admin/banners/{id}/toggle-status - Enable/disable banner. Response: data.id, data.is_active."
+                    }
+                },
+                {
+                    "name": "Delete Banner",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners/{{banner_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners", "{{banner_id}}"]
+                        },
+                        "description": "DELETE /api/admin/banners/{id} - Delete banner and its image. Response: success, message."
+                    }
+                }
+            ],
+            "description": "Admin only. Upload/replace home screen images, reorder banners, enable/disable, set link/action per banner. Customer app loads latest via GET /api/banners."
         },
         {
             "name": "6. Visits",

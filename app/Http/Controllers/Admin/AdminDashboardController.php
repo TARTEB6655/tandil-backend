@@ -14,6 +14,7 @@ use App\Models\Area;
 use App\Models\Report;
 use App\Models\AdminReport;
 use App\Models\Tip;
+use App\Models\Banner;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -257,6 +258,8 @@ class AdminDashboardController extends Controller
             ->get();
 
         $totalTips = Tip::count();
+        $totalBanners = Banner::count();
+        $activeBannersCount = Banner::where('is_active', true)->count();
         $totalAdminReports = AdminReport::count();
 
         // Orders today (for "New Orders" summary card)
@@ -339,6 +342,8 @@ class AdminDashboardController extends Controller
             'recentActivities',
             'recentTips',
             'totalTips',
+            'totalBanners',
+            'activeBannersCount',
             'totalAdminReports',
             'totalUsers',
             'totalTechnicians',

@@ -206,7 +206,7 @@ class CategoryController extends Controller
                 ],
             ]);
         }
-
+        
         return view('admin.categories.index', compact('categories'));
     }
 
@@ -325,17 +325,17 @@ class CategoryController extends Controller
         if (array_key_exists('slug', $updateData) && $updateData['slug'] === '') {
             $updateData['slug'] = \Illuminate\Support\Str::slug($updateData['name'] ?? $category->name);
         }
-
+        
         // Ensure slug is unique (excluding current category)
         if (! empty($updateData['slug'])) {
-            $counter = 1;
+        $counter = 1;
             $originalSlug = $updateData['slug'];
             while (Category::where('slug', $updateData['slug'])->where('id', '!=', $category->id)->exists()) {
                 $updateData['slug'] = $originalSlug . '-' . $counter;
-                $counter++;
+            $counter++;
             }
         }
-
+        
         // Handle image: remove (image_remove=true), or new file via multipart only; otherwise leave existing image
         $newImagePath = null;
         if ($request->boolean('image_remove')) {
@@ -402,7 +402,7 @@ class CategoryController extends Controller
             Storage::disk('public')->delete($category->image);
         }
         $category->delete();
-
+        
         if (request()->expectsJson() || request()->is('api/*')) {
             return ApiResponse::success('Category deleted successfully.');
         }
