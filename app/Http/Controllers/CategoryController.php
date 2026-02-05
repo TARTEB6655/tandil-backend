@@ -63,13 +63,16 @@ class CategoryController extends Controller
             $headers = substr($part, 0, $headerEnd);
             $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
             $value = substr($part, $bodyStart);
-            if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
+            if (! preg_match('/name\s*=\s*(?:"([^"]+)"|\'([^\']+)\')/', $headers, $nameMatch)) {
                 continue;
             }
-            $name = $nameMatch[1];
-            $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
+            $name = $nameMatch[1] !== '' ? $nameMatch[1] : $nameMatch[2];
+            $isFile = preg_match('/filename\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s;]+))/i', $headers, $fileMatch);
             if ($isFile) {
-                $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
+                $originalName = trim($fileMatch[1] ?? $fileMatch[2] ?? $fileMatch[3] ?? '', " \t\"'");
+                if ($originalName === '') {
+                    $originalName = 'file';
+                }
                 $mimeType = null;
                 if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {
                     $mimeType = trim($ctMatch[1]);
@@ -88,6 +91,9 @@ class CategoryController extends Controller
                 continue;
             }
             $value = preg_replace('/\r?\n$/s', '', $value);
+            if ($name === 'image' && strlen($value) > 1000) {
+                continue;
+            }
             $params[$name] = $value;
         }
         if ($params !== []) {
@@ -397,7 +403,20 @@ class CategoryController extends Controller
         if (request()->expectsJson() || request()->is('api/*')) {
             $category->refresh();
             $responseImagePath = isset($updateData['image']) ? $updateData['image'] : $category->image;
-            return ApiResponse::success('Category updated successfully.', $this->categoryToApiData($category, $responseImagePath));
+            $data = $this->categoryToApiData($category, $responseImagePath);
+            $imageNotReceived = $request->isMethod('PUT') && $isMultipart && ! $request->hasFile('image') && ! $request->filled('image_base64') && ! $request->boolean('image_remove') && $newImagePath === null;
+            $response = [
+                'success' => true,
+                'message' => $imageNotReceived
+                    ? 'Category updated. Image was not changed — use POST (not PUT) with form-data to update the image.'
+                    : 'Category updated successfully.',
+                'data' => $data,
+            ];
+            if ($imageNotReceived) {
+                $response['image_updated'] = false;
+                $response['hint'] = 'In Postman: change method to POST and send the same form-data (name, slug, description, image file). The API accepts both PUT and POST for update.';
+            }
+            return response()->json($response);
         }
         
         return redirect()->route('admin.categories.index')

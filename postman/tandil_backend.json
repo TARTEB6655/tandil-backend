@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image can be single or multiple files — first = primary, rest saved to images array. images[] = extra images. Response: data.image, data.image_url, data.images (deduplicated, full URLs), data.primary_image. Get Product Details (admin & shop): images array has no duplicates; each image has image_url (full URL).\n\nCategories: Update accepts PUT or POST. If image doesn't update with form-data, use \"Categories - Update (JSON + image_base64)\" with body: name, slug, description, image_base64 (data:image/jpeg;base64,...).\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create with optional image; update with PUT or POST. For updating category image use \"Categories - Update (POST - use for image)\" with form-data (name, slug, description, image file), or \"Categories - Update (JSON + image_base64)\". Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.5.0"
+        "version": "2.6.0"
     },
     "item": [
         {
@@ -4319,7 +4319,28 @@
                     }
                 },
                 {
-                    "name": "Categories - Update",
+                    "name": "Categories - Update (POST - use for image)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "name", "value": "Updated Category Name", "type": "text"},
+                                {"key": "slug", "value": "updated-slug", "type": "text"},
+                                {"key": "description", "value": "Updated description", "type": "text"},
+                                {"key": "image", "type": "file", "src": [], "description": "Select file to replace category image. POST ensures server receives the file on all hosts."}
+                            ]
+                        },
+                        "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
+                        "description": "Update category including image. Use POST with form-data: name, slug, description, image (file). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, created_at, updated_at). If image does not update with PUT, use this request (POST) or \"Categories - Update (JSON + image_base64)\"."
+                    }
+                },
+                {
+                    "name": "Categories - Update (PUT)",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -4332,11 +4353,11 @@
                                 {"key": "name", "value": "Updated Category Name", "type": "text"},
                                 {"key": "slug", "value": "updated-slug", "type": "text"},
                                 {"key": "description", "value": "Updated description", "type": "text"},
-                                {"key": "image", "type": "file", "src": [], "description": "Optional. Replace image (jpeg/png/webp). Any size; auto-compressed to max 2 MB."}
+                                {"key": "image", "type": "file", "src": [], "description": "Optional. If image does not update, use \"Categories - Update (POST - use for image)\" instead."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category (admin). PUT or POST with form-data: name, slug, description (optional), image (optional). Set category_id. If image doesn't update on server, use \"Categories - Update (JSON + image_base64)\". Response: data.image, data.image_url."
+                        "description": "Update category with PUT and form-data. API accepts both PUT and POST. If response shows image: null or old image, use \"Categories - Update (POST - use for image)\" (same form-data, method POST) or \"Categories - Update (JSON + image_base64)\". Set category_id."
                     }
                 },
                 {
@@ -4353,7 +4374,7 @@
                             "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"slug\": \"updated-slug\",\n  \"description\": \"Updated description\"\n}"
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category with JSON body (no image). For image use \"Categories - Update\" (form-data) or \"Categories - Update (JSON + image_base64)\". Set category_id in env."
+                        "description": "Update category with JSON body (no image). For image use \"Categories - Update (POST - use for image)\" with form-data, or \"Categories - Update (JSON + image_base64)\". Set category_id in env."
                     }
                 },
                 {
