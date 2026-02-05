@@ -717,8 +717,10 @@ class ProductController extends Controller
             }
         }
 
-        // When any new images are sent (main_image single/multiple and/or images[]), replace ALL product images.
-        // If multiple files under main_image: first = primary, rest go to images array.
+        // Smooth partial image update: only change what you send.
+        // - Only main_image → replace primary image only; keep existing gallery.
+        // - Only images[] → replace gallery only; keep existing main image.
+        // - Both → replace all (new primary + new gallery).
         [$mainFile, $extraFromMain] = $this->normalizeMainImageInput($request);
         $extraFiles = $extraFromMain;
         if ($request->hasFile('images')) {
@@ -744,43 +746,80 @@ class ProductController extends Controller
             return true;
         }));
 
-        $hasNewImages = $mainFile !== null || $extraFiles !== [];
-        if ($hasNewImages) {
-            // Remove ALL existing product images and their files first
-            $existingImages = ProductImage::where('product_id', $product->id)->get();
+        $hasMain = $mainFile !== null;
+        $hasGallery = $extraFiles !== [];
+        $existingImages = ProductImage::where('product_id', $product->id)->orderByRaw('is_primary DESC')->orderBy('sort_order')->get();
+        $primaryImage = $existingImages->firstWhere('is_primary', true);
+        $galleryImages = $existingImages->filter(fn ($img) => ! $img->is_primary)->values();
+
+        if ($hasMain && $hasGallery) {
+            // Replace all: remove every existing image, add new primary + new gallery
             foreach ($existingImages as $old) {
                 if ($old->image_path && ! str_starts_with($old->image_path, 'http') && Storage::disk('public')->exists($old->image_path)) {
                     Storage::disk('public')->delete($old->image_path);
                 }
                 $old->delete();
             }
-            // Add new set: main_image = primary (sort_order 0), then extraFiles in order
             $sortOrder = 0;
-            if ($mainFile !== null) {
-                $imagePath = $mainFile->store('products', 'public');
-                $this->compressProductImageIfNeeded($imagePath);
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image_path' => $imagePath,
-                    'sort_order' => $sortOrder++,
-                    'is_primary' => true,
-                ]);
-                $updateData['image'] = $imagePath;
-            }
-            foreach ($extraFiles as $index => $file) {
+            $imagePath = $mainFile->store('products', 'public');
+            $this->compressProductImageIfNeeded($imagePath);
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $imagePath,
+                'sort_order' => $sortOrder++,
+                'is_primary' => true,
+            ]);
+            $updateData['image'] = $imagePath;
+            foreach ($extraFiles as $file) {
                 $imagePath = $file->store('products', 'public');
                 $this->compressProductImageIfNeeded($imagePath);
-                $isPrimary = ($mainFile === null && $index === 0);
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image_path' => $imagePath,
                     'sort_order' => $sortOrder++,
-                    'is_primary' => $isPrimary,
+                    'is_primary' => false,
                 ]);
-                if ($isPrimary) {
-                    $updateData['image'] = $imagePath;
-                }
             }
+        } elseif ($hasMain) {
+            // Replace primary only: remove old primary, add new primary; keep gallery
+            if ($primaryImage) {
+                if ($primaryImage->image_path && ! str_starts_with($primaryImage->image_path, 'http') && Storage::disk('public')->exists($primaryImage->image_path)) {
+                    Storage::disk('public')->delete($primaryImage->image_path);
+                }
+                $primaryImage->delete();
+            }
+            $imagePath = $mainFile->store('products', 'public');
+            $this->compressProductImageIfNeeded($imagePath);
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $imagePath,
+                'sort_order' => 0,
+                'is_primary' => true,
+            ]);
+            $updateData['image'] = $imagePath;
+            foreach ($galleryImages as $index => $img) {
+                $img->update(['sort_order' => $index + 1]);
+            }
+        } elseif ($hasGallery) {
+            // Replace gallery only: remove non-primary images, add new gallery; keep main image
+            foreach ($galleryImages as $old) {
+                if ($old->image_path && ! str_starts_with($old->image_path, 'http') && Storage::disk('public')->exists($old->image_path)) {
+                    Storage::disk('public')->delete($old->image_path);
+                }
+                $old->delete();
+            }
+            $sortOrder = 1;
+            foreach ($extraFiles as $file) {
+                $imagePath = $file->store('products', 'public');
+                $this->compressProductImageIfNeeded($imagePath);
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imagePath,
+                    'sort_order' => $sortOrder++,
+                    'is_primary' => false,
+                ]);
+            }
+            // Leave product.image and primary record unchanged
         }
 
         // Optional: add image URLs (multipart image_urls or image_url[])

@@ -351,6 +351,67 @@ class AdminProductApiTest extends TestCase
     }
 
     /**
+     * Update with only images[] (gallery): main image must stay unchanged; only gallery is replaced.
+     */
+    public function test_product_update_only_gallery_keeps_main_image(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['role' => 'admin']);
+        if (method_exists($admin, 'assignRole')) {
+            $admin->assignRole('admin');
+        }
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'Product With Main',
+            'sku' => 'sku-gallery-' . uniqid(),
+            'handle' => 'product-gallery-' . uniqid(),
+        ]);
+        $token = $admin->createToken('test')->plainTextToken;
+        $mainFile = UploadedFile::fake()->image('main.jpg', 300, 300);
+        $this->call(
+            'PUT',
+            '/api/admin/products/' . $product->id,
+            ['name' => $product->name, 'sku' => $product->sku, 'handle' => $product->handle],
+            [],
+            ['main_image' => $mainFile],
+            ['HTTP_Authorization' => 'Bearer ' . $token, 'HTTP_Accept' => 'application/json']
+        );
+        $getAfterMain = $this->getJson('/api/admin/products/' . $product->id, [
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ]);
+        $getAfterMain->assertStatus(200);
+        $primaryPathBefore = $getAfterMain->json('data.image');
+        $primaryUrlBefore = $getAfterMain->json('data.image_url');
+        $this->assertNotEmpty($primaryPathBefore, 'Product must have main image after first update');
+
+        $newGallery1 = UploadedFile::fake()->image('gallery1.jpg', 100, 100);
+        $newGallery2 = UploadedFile::fake()->image('gallery2.jpg', 100, 100);
+        $this->call(
+            'PUT',
+            '/api/admin/products/' . $product->id,
+            ['name' => $product->name, 'sku' => $product->sku, 'handle' => $product->handle],
+            [],
+            ['images' => [$newGallery1, $newGallery2]],
+            ['HTTP_Authorization' => 'Bearer ' . $token, 'HTTP_Accept' => 'application/json']
+        );
+        $getAfterGallery = $this->getJson('/api/admin/products/' . $product->id, [
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ]);
+        $getAfterGallery->assertStatus(200);
+        $data = $getAfterGallery->json('data');
+        $this->assertSame($primaryPathBefore, $data['image'], 'Main image path must be unchanged when only gallery is updated');
+        $this->assertNotEmpty($data['image_url']);
+        $images = $data['images'] ?? [];
+        $this->assertCount(3, $images, 'Should have 1 primary + 2 new gallery images');
+        $primaryInList = collect($images)->firstWhere('is_primary', true);
+        $this->assertNotNull($primaryInList);
+        $this->assertSame($primaryPathBefore, $primaryInList['image_path']);
+    }
+
+    /**
      * Create product with multiple files under main_image only: first = primary, rest in images array.
      */
     public function test_product_create_multiple_main_image_first_primary_rest_in_images(): void
