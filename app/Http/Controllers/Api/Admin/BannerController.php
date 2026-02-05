@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Banner;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class BannerController extends Controller
@@ -86,17 +87,17 @@ class BannerController extends Controller
 
         $buttonLink = $request->has('button_link')
             ? (trim((string) $request->input('button_link')) ?: null)
-            : ($banner->action_value ?: $banner->link);
+            : (trim((string) ($banner->action_value ?? $banner->link ?? '')) ?: null);
 
         $data = [
-            'title' => $request->has('title') ? $request->title : $banner->title,
+            'title' => $request->has('title') ? (string) $request->title : (string) ($banner->title ?? ''),
             'description' => $request->has('description') ? $request->description : $banner->description,
             'link' => $buttonLink,
             'action_type' => $buttonLink ? 'link' : 'none',
             'action_value' => $buttonLink,
-            'button_text' => $request->has('button_text') ? $request->button_text : $banner->button_text,
-            'priority' => $request->has('priority') ? (int) $request->priority : $banner->priority,
-            'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : $banner->is_active,
+            'button_text' => $request->has('button_text') ? (string) $request->button_text : (string) ($banner->button_text ?? ''),
+            'priority' => $request->has('priority') ? (int) $request->priority : (int) ($banner->priority ?? 0),
+            'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : (bool) $banner->is_active,
         ];
 
         if ($request->hasFile('image')) {
@@ -106,7 +107,12 @@ class BannerController extends Controller
             $data['image'] = $request->file('image')->store('banners', 'public');
         }
 
-        $banner->update($data);
+        try {
+            $banner->update($data);
+        } catch (\Throwable $e) {
+            Log::error('Banner update failed', ['banner_id' => $banner->id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            throw $e;
+        }
 
         return ApiResponse::success('Banner updated successfully.', $this->bannerToArray($banner->fresh()));
     }
