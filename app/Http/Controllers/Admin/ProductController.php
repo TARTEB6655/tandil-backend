@@ -524,9 +524,9 @@ class ProductController extends Controller
         if ($mainFile !== null) {
             $imagePath = $mainFile->store('products', 'public');
             $this->compressProductImageIfNeeded($imagePath);
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_path' => $imagePath,
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imagePath,
                 'sort_order' => $sortOrder++,
                 'is_primary' => true,
             ]);
@@ -556,9 +556,9 @@ class ProductController extends Controller
         if ($request->has('image_urls') && is_array($request->image_urls)) {
             foreach ($request->image_urls as $imageUrl) {
                 if (is_string($imageUrl) && $imageUrl !== '') {
-                    ProductImage::create([
-                        'product_id' => $product->id,
-                        'image_path' => $imageUrl,
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imageUrl,
                         'sort_order' => $sortOrder,
                         'is_primary' => ! $primaryAlreadySet && $sortOrder === 0,
                     ]);
@@ -610,7 +610,7 @@ class ProductController extends Controller
             return $err;
         }
         $product = Product::with(['category', 'images', 'primaryImage'])->findOrFail($id);
-
+        
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'status' => true,
@@ -1154,12 +1154,12 @@ class ProductController extends Controller
             return $err;
         }
         $product = Product::findOrFail($id);
-
+        
         $newStatus = $product->status === 'active' ? 'draft' : 'active';
         $product->update(['status' => $newStatus]);
 
         $message = $newStatus === 'active' ? 'Product published successfully.' : 'Product unpublished successfully.';
-
+        
         if ($request->expectsJson() || $request->is('api/*')) {
             $product->refresh();
             $product->load(['category', 'images', 'primaryImage']);

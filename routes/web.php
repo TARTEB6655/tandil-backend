@@ -259,6 +259,10 @@ Route::middleware(['auth', 'role:supervisor'])
         // Areas
         Route::get('/areas', [\App\Http\Controllers\Supervisor\AreaController::class, 'index'])->name('areas.index');
         
+        // Tips
+        Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
+        Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
+        
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Supervisor\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
@@ -290,6 +294,10 @@ Route::middleware(['auth', 'role:technician'])
         // Complaints
         Route::get('/complaints', [\App\Http\Controllers\Technician\ComplaintController::class, 'index'])->name('complaints.index');
         Route::get('/complaints/{id}', [\App\Http\Controllers\Technician\ComplaintController::class, 'show'])->name('complaints.show');
+        
+        // Tips
+        Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
+        Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
         
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Technician\NotificationController::class, 'index'])->name('notifications.index');
@@ -327,8 +335,8 @@ Route::middleware(['auth', 'role:client'])
         Route::get('/complaints/{id}', [\App\Http\Controllers\Client\ComplaintController::class, 'show'])->name('complaints.show');
         
         // Tips
-        Route::get('/tips', [\App\Http\Controllers\Client\TipController::class, 'index'])->name('tips.index');
-        Route::get('/tips/{id}', [\App\Http\Controllers\Client\TipController::class, 'show'])->name('tips.show');
+        Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
+        Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
 
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');
@@ -355,6 +363,10 @@ Route::middleware(['auth', 'role:area_manager'])
         Route::get('/reports', [\App\Http\Controllers\AreaManager\ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{id}', [\App\Http\Controllers\AreaManager\ReportController::class, 'show'])->name('reports.show');
         
+        // Tips
+        Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
+        Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
+        
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\AreaManager\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
@@ -378,6 +390,10 @@ Route::middleware(['auth', 'role:hr'])
         Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy'])->name('employees.destroy');
         Route::post('/employees/{id}/create-user', [\App\Http\Controllers\HR\EmployeeController::class, 'createUser'])->name('employees.create-user');
         Route::post('/employees/{id}/update-user-status', [\App\Http\Controllers\HR\EmployeeController::class, 'updateUserStatus'])->name('employees.update-user-status');
+        
+        // Tips
+        Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
+        Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
         
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\HR\NotificationController::class, 'index'])->name('notifications.index');

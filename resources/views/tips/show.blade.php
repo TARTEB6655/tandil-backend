@@ -1,7 +1,7 @@
-<x-client-layout>
+<x-dynamic-component :component="$layoutComponent">
     <!-- Back link -->
     <div class="mb-4">
-        <a href="{{ route('client.tips.index') }}" class="inline-flex items-center text-xs sm:text-sm text-gray-500 hover:text-gray-700">
+        <a href="{{ route($routeBase . '.index') }}" class="inline-flex items-center text-xs sm:text-sm text-gray-500 hover:text-gray-700">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -21,4 +21,4 @@
             <div class="prose prose-sm sm:prose max-w-none text-gray-700 whitespace-pre-wrap">{{ $tip->content }}</div>
         </div>
     </div>
-</x-client-layout>
+</x-dynamic-component>

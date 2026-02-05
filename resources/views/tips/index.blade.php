@@ -1,4 +1,4 @@
-<x-client-layout>
+<x-dynamic-component :component="$layoutComponent">
     <!-- Page Header -->
     <div class="mb-4 sm:mb-6">
         <h1 class="text-lg sm:text-xl font-medium text-gray-900">Tips</h1>
@@ -9,7 +9,7 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div class="divide-y divide-gray-200">
             @forelse($tips as $tip)
-                <a href="{{ route('client.tips.show', $tip->id) }}" class="block p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                <a href="{{ route($routeBase . '.show', $tip->id) }}" class="block p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                     <div class="flex items-start gap-3 sm:gap-4">
                         <div class="flex-shrink-0">
                             <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-100 flex items-center justify-center">
@@ -42,9 +42,9 @@
         </div>
 
         @if($tips->hasPages())
-            <div class="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
-                {{ $tips->links() }}
+            <div class="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50/50">
+                {{ $tips->withQueryString()->links('pagination::tailwind') }}
             </div>
         @endif
     </div>
-</x-client-layout>
+</x-dynamic-component>
