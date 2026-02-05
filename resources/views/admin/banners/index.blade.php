@@ -44,11 +44,13 @@
                                         {{ $banner->is_active ? 'Active' : 'Inactive' }}
                                     </span>
                                 </div>
-                                <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
                                     <span class="banner-priority">Position: {{ $banner->priority + 1 }}</span>
                                     @if($banner->link || $banner->action_value)
-                                        <span>{{ Str::limit($banner->action_value ?: $banner->link, 40) }}</span>
+                                        <span class="text-gray-400 dark:text-gray-500">·</span>
+                                        <a href="{{ $banner->action_value ?: $banner->link }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 dark:text-indigo-400 hover:underline">View</a>
                                     @else
+                                        <span class="text-gray-400 dark:text-gray-500">·</span>
                                         <span>No link</span>
                                     @endif
                                 </div>
