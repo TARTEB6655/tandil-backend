@@ -667,7 +667,6 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {"key": "_method", "value": "PUT", "description": "Method override for Laravel"},
                                 {"key": "image", "type": "file", "src": "", "description": "Optional - replace image"},
                                 {"key": "title", "value": "Updated Title"},
                                 {"key": "description", "value": "Updated description"},
