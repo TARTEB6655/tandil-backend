@@ -22,16 +22,15 @@ class Banner extends Model
     ];
 
     /**
-     * Get the image URL
+     * Get the image URL (uses /media/ path like Category and Product for reliable display).
      */
     public function getImageUrlAttribute()
     {
         if ($this->image) {
-            // Check if image is a full URL (compatible with PHP 7.x)
             if (filter_var($this->image, FILTER_VALIDATE_URL) || substr($this->image, 0, 4) === 'http') {
                 return $this->image;
             }
-            return asset('storage/' . $this->image);
+            return asset('media/' . ltrim(str_replace('\\', '/', $this->image), '/'));
         }
         return null;
     }
