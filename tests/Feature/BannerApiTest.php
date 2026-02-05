@@ -138,8 +138,7 @@ class BannerApiTest extends TestCase
                 'title' => 'Summer Sale',
                 'description' => 'Learn More',
                 'button_text' => 'Learn More',
-                'action_type' => 'link',
-                'action_value' => 'https://example.com/sale',
+                'button_link' => 'https://example.com/sale',
                 'priority' => 0,
                 'is_active' => 1,
             ],
@@ -224,8 +223,7 @@ class BannerApiTest extends TestCase
                 'title' => 'Updated Title',
                 'description' => 'Updated desc',
                 'button_text' => 'View',
-                'action_type' => 'none',
-                'action_value' => '',
+                'button_link' => '',
                 'priority' => 5,
                 'is_active' => 0,
             ],
@@ -243,16 +241,17 @@ class BannerApiTest extends TestCase
         $response->assertJsonPath('data.title', 'Updated Title');
         $response->assertJsonPath('data.description', 'Updated desc');
         $response->assertJsonPath('data.button_text', 'View');
-        $response->assertJsonPath('data.action_type', 'none');
         $response->assertJsonPath('data.priority', 5);
         $response->assertJsonPath('data.is_active', false);
         $response->assertJsonPath('data.image', 'banners/original.jpg');
+        $this->assertNull($response->json('data.action_value'));
 
         $banner->refresh();
         $this->assertSame('Updated Title', $banner->title);
         $this->assertSame('Updated desc', $banner->description);
         $this->assertSame('View', $banner->button_text);
         $this->assertSame('none', $banner->action_type);
+        $this->assertNull($banner->action_value);
         $this->assertSame(5, $banner->priority);
         $this->assertFalse($banner->is_active);
         $this->assertSame('banners/original.jpg', $banner->image);
@@ -451,8 +450,7 @@ class BannerApiTest extends TestCase
             'title' => 'Flow Banner',
             'description' => 'Flow description',
             'button_text' => 'View',
-            'action_type' => 'link',
-            'action_value' => 'https://flow.com',
+            'button_link' => 'https://flow.com',
             'priority' => 0,
             'is_active' => true,
         ], [], ['image' => $file], [
@@ -477,8 +475,7 @@ class BannerApiTest extends TestCase
             'title' => 'Flow Banner Updated',
             'description' => 'Flow description updated',
             'button_text' => 'Learn More',
-            'action_type' => 'link',
-            'action_value' => 'https://flow-updated.com',
+            'button_link' => 'https://flow-updated.com',
             'priority' => 0,
             'is_active' => true,
         ], [], [], [

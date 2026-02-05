@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id, tip_id, banner_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nTips: List (GET /api/tips), Create/Send (POST /api/tips: title, description), Get Details (GET /api/tips/{id}), Update (PUT /api/tips/{id}: title, description), Delete (DELETE /api/tips/{id}). Admin/supervisor for create, update, delete.\n\nAdmin Banners: Multipart only. Create (image required, title, description, button_text, link/action_value, priority, is_active), List, Get, Update (multipart), Update order, Toggle status, Delete. Customer app slider: GET /api/banners returns id, title, description, button_text, image_url, action_value (button link), priority.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete; Tips: List → Create/Send → Get / Update / Delete; Admin Banners: List → Create/Update/Reorder/Toggle/Delete.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id, tip_id, banner_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nTips: List (GET /api/tips), Create/Send (POST /api/tips: title, description), Get Details (GET /api/tips/{id}), Update (PUT /api/tips/{id}: title, description), Delete (DELETE /api/tips/{id}). Admin/supervisor for create, update, delete.\n\nAdmin Banners: Multipart only. Create/Update use single field button_link (optional URL for button). Fields: image (required on create), title, description, button_text, button_link, priority, is_active. List, Get, Update order, Toggle, Delete. Customer app: GET /api/banners returns id, title, description, button_text, image_url, action_value (button link), priority.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete; Tips: List → Create/Send → Get / Update / Delete; Admin Banners: List → Create/Update/Reorder/Toggle/Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.11.0"
+        "version": "2.12.0"
     },
     "item": [
         {
@@ -627,9 +627,7 @@
                                 {"key": "title", "value": "Summer Sale", "description": "Optional title"},
                                 {"key": "description", "value": "Learn More", "description": "Subtitle / description for app slider"},
                                 {"key": "button_text", "value": "Learn More", "description": "CTA button label (e.g. Learn More, View)"},
-                                {"key": "link", "value": "https://example.com/promo", "description": "Optional URL"},
-                                {"key": "action_type", "value": "link", "description": "link | route | none"},
-                                {"key": "action_value", "value": "https://example.com/promo", "description": "Button link URL"},
+                                {"key": "button_link", "value": "https://example.com/promo", "description": "Single URL for button (optional). Leave empty for no link."},
                                 {"key": "priority", "value": "0", "description": "Display order (lower = first)"},
                                 {"key": "is_active", "value": "1", "description": "1 = active, 0 = inactive"}
                             ]
@@ -639,7 +637,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "banners"]
                         },
-                        "description": "POST /api/admin/banners - Upload new banner. Multipart only: image (required), title, description, button_text, link, action_type, action_value, priority, is_active. App slider: title, description, button_text, image_url, action_value (button link). Response: 201, data (banner object)."
+                        "description": "POST /api/admin/banners - Upload new banner. Multipart only: image (required), title, description, button_text, button_link (single optional URL for button), priority, is_active. No other URL fields. Response: 201, data (banner object)."
                     }
                 },
                 {
@@ -674,9 +672,7 @@
                                 {"key": "title", "value": "Updated Title"},
                                 {"key": "description", "value": "Updated description"},
                                 {"key": "button_text", "value": "View"},
-                                {"key": "link", "value": "https://example.com/updated"},
-                                {"key": "action_type", "value": "link"},
-                                {"key": "action_value", "value": "https://example.com/updated"},
+                                {"key": "button_link", "value": "https://example.com/updated", "description": "Single URL for button (optional)"},
                                 {"key": "priority", "value": "1"},
                                 {"key": "is_active", "value": "1"}
                             ]
@@ -686,7 +682,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "banners", "{{banner_id}}"]
                         },
-                        "description": "POST (or PUT) /api/admin/banners/{id} - Update banner. Use POST with form-data when replacing image. Send only fields to change. PUT with JSON also supported for non-image updates."
+                        "description": "POST /api/admin/banners/{id} - Update banner (multipart). Optional: image, title, description, button_text, button_link (single URL), priority, is_active. Send only fields to change."
                     }
                 },
                 {
@@ -743,7 +739,7 @@
                     }
                 }
             ],
-            "description": "Admin only. Upload/replace home screen images, reorder banners, enable/disable, set link/action per banner. Customer app loads latest via GET /api/banners."
+            "description": "Admin only. Multipart: image, title, description, button_text, button_link (single URL for button). Reorder, toggle, delete. Customer app: GET /api/banners."
         },
         {
             "name": "6. Visits",

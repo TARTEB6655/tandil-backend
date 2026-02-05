@@ -29,22 +29,25 @@ class BannerController extends Controller
     {
         $request->validate([
             'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
-            'link' => 'nullable|string|max:500',
-            'action_type' => 'nullable|in:link,route,none',
-            'action_value' => 'nullable|string|max:500',
+            'button_link' => 'nullable|string|max:500',
+            'button_text' => 'nullable|string|max:100',
             'priority' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
         ]);
 
+        $buttonLink = $request->button_link ? trim($request->button_link) : null;
         $imagePath = $request->file('image')->store('banners', 'public');
 
         $banner = Banner::create([
             'title' => $request->title,
+            'description' => $request->description,
             'image' => $imagePath,
-            'link' => $request->link,
-            'action_type' => $request->action_type ?? 'link',
-            'action_value' => $request->action_value ?? $request->link,
+            'link' => $buttonLink,
+            'action_type' => $buttonLink ? 'link' : 'none',
+            'action_value' => $buttonLink,
+            'button_text' => $request->button_text,
             'priority' => $request->priority ?? 0,
             'is_active' => $request->has('is_active') ? (bool)$request->is_active : true,
         ]);
@@ -67,21 +70,22 @@ class BannerController extends Controller
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
-            'link' => 'nullable|string|max:500',
-            'action_type' => 'nullable|in:link,route,none',
-            'action_value' => 'nullable|string|max:500',
+            'button_link' => 'nullable|string|max:500',
             'button_text' => 'nullable|string|max:100',
             'priority' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
         ]);
 
+        $buttonLink = $request->has('button_link')
+            ? (trim((string) $request->button_link) ?: null)
+            : ($banner->action_value ?: $banner->link);
         $data = [
             'title' => $request->title,
             'description' => $request->description,
-            'link' => $request->link,
+            'link' => $buttonLink,
+            'action_type' => $buttonLink ? 'link' : 'none',
+            'action_value' => $buttonLink,
             'button_text' => $request->button_text,
-            'action_type' => $request->action_type ?? 'link',
-            'action_value' => $request->action_value ?? $request->link,
             'priority' => $request->priority ?? $banner->priority,
             'is_active' => $request->has('is_active') ? (bool)$request->is_active : $banner->is_active,
         ];

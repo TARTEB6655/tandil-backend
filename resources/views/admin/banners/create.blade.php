@@ -67,34 +67,17 @@
                     </div>
                 </div>
 
-                <!-- Action / Link -->
+                <!-- Button link -->
                 <div class="space-y-4">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2">Action when tapped</h2>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2">Button link</h2>
                     <div>
-                        <label for="action_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
-                        <select name="action_type" id="action_type"
-                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                onchange="toggleActionValue()">
-                            <option value="link" {{ old('action_type', 'link') == 'link' ? 'selected' : '' }}>External link (URL)</option>
-                            <option value="route" {{ old('action_type') == 'route' ? 'selected' : '' }}>Internal route</option>
-                            <option value="none" {{ old('action_type') == 'none' ? 'selected' : '' }}>No action</option>
-                        </select>
-                    </div>
-                    <div id="action-value-group">
-                        <label for="action_value" id="action-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL or route</label>
-                        <input type="text" name="action_value" id="action_value" value="{{ old('action_value') }}"
-                               placeholder="https://example.com or route name"
+                        <label for="button_link" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Button link (optional)</label>
+                        <input type="url" name="button_link" id="button_link" value="{{ old('button_link') }}" placeholder="https://example.com"
                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" id="action-hint">Enter a full URL (e.g. https://example.com)</p>
-                        @error('action_value')
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Single URL opened when the user taps the button. Leave empty for no link.</p>
+                        @error('button_link')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
-                    </div>
-                    <div>
-                        <label for="link" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Legacy link (optional)</label>
-                        <input type="url" name="link" id="link" value="{{ old('link') }}" placeholder="https://..."
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Used if action value is empty</p>
                     </div>
                 </div>
 
@@ -140,27 +123,5 @@
                 reader.readAsDataURL(input.files[0]);
             }
         }
-        function toggleActionValue() {
-            var actionType = document.getElementById('action_type').value;
-            var group = document.getElementById('action-value-group');
-            var label = document.getElementById('action-label');
-            var input = document.getElementById('action_value');
-            var hint = document.getElementById('action-hint');
-            if (actionType === 'none') {
-                group.style.display = 'none';
-            } else {
-                group.style.display = 'block';
-                if (actionType === 'link') {
-                    label.textContent = 'URL or route';
-                    input.placeholder = 'https://example.com';
-                    hint.textContent = 'Enter a full URL (e.g. https://example.com)';
-                } else {
-                    label.textContent = 'Route name';
-                    input.placeholder = 'e.g. client.dashboard or /client/products';
-                    hint.textContent = 'Enter a route name or path';
-                }
-            }
-        }
-        document.addEventListener('DOMContentLoaded', toggleActionValue);
     </script>
 </x-admin-layout>
