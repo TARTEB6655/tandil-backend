@@ -47,6 +47,24 @@
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description / subtitle (optional)</label>
+                        <textarea name="description" id="description" rows="2" placeholder="e.g. Learn More"
+                                  class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description') }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Shown below title on app slider.</p>
+                        @error('description')
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="button_text" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Button text (optional)</label>
+                        <input type="text" name="button_text" id="button_text" value="{{ old('button_text', 'Learn More') }}" placeholder="e.g. Learn More"
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 max-w-xs">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">CTA label on the banner (e.g. Learn More, View).</p>
+                        @error('button_text')
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
                 <!-- Action / Link -->

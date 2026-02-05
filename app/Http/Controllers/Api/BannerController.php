@@ -18,10 +18,12 @@ class BannerController extends Controller
         $banners = Banner::active()
             ->ordered()
             ->get()
-            ->map(function($banner) {
+            ->map(function ($banner) {
                 return [
                     'id' => $banner->id,
                     'title' => $banner->title,
+                    'description' => $banner->description,
+                    'button_text' => $banner->button_text,
                     'image_url' => $banner->image_url,
                     'action_type' => $banner->action_type,
                     'action_value' => $banner->action_value ?: $banner->link,

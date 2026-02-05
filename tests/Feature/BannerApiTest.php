@@ -50,6 +50,8 @@ class BannerApiTest extends TestCase
     {
         Banner::create([
             'title' => 'Active',
+            'description' => 'Learn More',
+            'button_text' => 'Learn More',
             'image' => 'banners/active.jpg',
             'priority' => 0,
             'is_active' => true,
@@ -66,6 +68,8 @@ class BannerApiTest extends TestCase
         $data = $response->json('data');
         $this->assertCount(1, $data);
         $this->assertSame('Active', $data[0]['title']);
+        $this->assertSame('Learn More', $data[0]['description']);
+        $this->assertSame('Learn More', $data[0]['button_text']);
         $this->assertArrayHasKey('image_url', $data[0]);
         $this->assertArrayHasKey('action_type', $data[0]);
         $this->assertArrayHasKey('action_value', $data[0]);
@@ -132,6 +136,8 @@ class BannerApiTest extends TestCase
             '/api/admin/banners',
             [
                 'title' => 'Summer Sale',
+                'description' => 'Learn More',
+                'button_text' => 'Learn More',
                 'action_type' => 'link',
                 'action_value' => 'https://example.com/sale',
                 'priority' => 0,
@@ -151,6 +157,8 @@ class BannerApiTest extends TestCase
         $data = $response->json('data');
         $this->assertArrayHasKey('id', $data);
         $this->assertSame('Summer Sale', $data['title']);
+        $this->assertSame('Learn More', $data['description']);
+        $this->assertSame('Learn More', $data['button_text']);
         $this->assertSame('link', $data['action_type']);
         $this->assertSame('https://example.com/sale', $data['action_value']);
         $this->assertSame(0, $data['priority']);
@@ -193,7 +201,7 @@ class BannerApiTest extends TestCase
         $response->assertStatus(404);
     }
 
-    // --- Admin: Update (no new image) ---
+    // --- Admin: Update (multipart, no new image) ---
 
     public function test_admin_banners_update_without_image_updates_fields(): void
     {
@@ -208,18 +216,33 @@ class BannerApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->putJson('/api/admin/banners/' . $banner->id, [
-            'title' => 'Updated Title',
-            'action_type' => 'none',
-            'action_value' => '',
-            'priority' => 5,
-            'is_active' => false,
-        ], $this->authHeaders($admin));
+        $response = $this->call(
+            'POST',
+            '/api/admin/banners/' . $banner->id,
+            [
+                '_method' => 'PUT',
+                'title' => 'Updated Title',
+                'description' => 'Updated desc',
+                'button_text' => 'View',
+                'action_type' => 'none',
+                'action_value' => '',
+                'priority' => 5,
+                'is_active' => 0,
+            ],
+            [],
+            [],
+            [
+                'HTTP_Authorization' => 'Bearer ' . $admin->createToken('test')->plainTextToken,
+                'HTTP_Accept' => 'application/json',
+            ]
+        );
 
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('message', 'Banner updated successfully.');
         $response->assertJsonPath('data.title', 'Updated Title');
+        $response->assertJsonPath('data.description', 'Updated desc');
+        $response->assertJsonPath('data.button_text', 'View');
         $response->assertJsonPath('data.action_type', 'none');
         $response->assertJsonPath('data.priority', 5);
         $response->assertJsonPath('data.is_active', false);
@@ -227,6 +250,8 @@ class BannerApiTest extends TestCase
 
         $banner->refresh();
         $this->assertSame('Updated Title', $banner->title);
+        $this->assertSame('Updated desc', $banner->description);
+        $this->assertSame('View', $banner->button_text);
         $this->assertSame('none', $banner->action_type);
         $this->assertSame(5, $banner->priority);
         $this->assertFalse($banner->is_active);
@@ -424,6 +449,8 @@ class BannerApiTest extends TestCase
 
         $create = $this->call('POST', '/api/admin/banners', [
             'title' => 'Flow Banner',
+            'description' => 'Flow description',
+            'button_text' => 'View',
             'action_type' => 'link',
             'action_value' => 'https://flow.com',
             'priority' => 0,
@@ -445,15 +472,23 @@ class BannerApiTest extends TestCase
         $this->assertSame('Flow Banner', $found['title']);
         $this->assertSame('https://flow.com', $found['action_value']);
 
-        $update = $this->putJson('/api/admin/banners/' . $id, [
+        $update = $this->call('POST', '/api/admin/banners/' . $id, [
+            '_method' => 'PUT',
             'title' => 'Flow Banner Updated',
+            'description' => 'Flow description updated',
+            'button_text' => 'Learn More',
             'action_type' => 'link',
             'action_value' => 'https://flow-updated.com',
             'priority' => 0,
             'is_active' => true,
-        ], $headers);
+        ], [], [], [
+            'HTTP_Authorization' => 'Bearer ' . $admin->createToken('test')->plainTextToken,
+            'HTTP_Accept' => 'application/json',
+        ]);
         $update->assertStatus(200);
         $update->assertJsonPath('data.title', 'Flow Banner Updated');
+        $update->assertJsonPath('data.description', 'Flow description updated');
+        $update->assertJsonPath('data.button_text', 'Learn More');
         $update->assertJsonPath('data.action_value', 'https://flow-updated.com');
 
         $toggle = $this->postJson('/api/admin/banners/' . $id . '/toggle-status', [], $headers);

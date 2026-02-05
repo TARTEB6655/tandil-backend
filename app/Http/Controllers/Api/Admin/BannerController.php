@@ -23,16 +23,18 @@ class BannerController extends Controller
     }
 
     /**
-     * Create a new banner. Multipart: image (required), title, link, action_type, action_value, priority, is_active.
+     * Create a new banner. Multipart only: image (required), title, description, button_text, link/action_value, action_type, priority, is_active.
      */
     public function store(Request $request)
     {
         $request->validate([
             'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'link' => 'nullable|string|max:500',
             'action_type' => 'nullable|in:link,route,none',
             'action_value' => 'nullable|string|max:500',
+            'button_text' => 'nullable|string|max:100',
             'priority' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
         ]);
@@ -41,10 +43,12 @@ class BannerController extends Controller
 
         $banner = Banner::create([
             'title' => $request->title,
+            'description' => $request->description,
             'image' => $imagePath,
             'link' => $request->link,
             'action_type' => $request->action_type ?? 'link',
             'action_value' => $request->action_value ?? $request->link,
+            'button_text' => $request->button_text,
             'priority' => (int) ($request->priority ?? 0),
             'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : true,
         ]);
@@ -62,7 +66,7 @@ class BannerController extends Controller
     }
 
     /**
-     * Update a banner. Multipart: image (optional), title, link, action_type, action_value, priority, is_active.
+     * Update a banner. Multipart only: image (optional), title, description, button_text, link, action_type, action_value, priority, is_active.
      */
     public function update(Request $request, $id)
     {
@@ -70,19 +74,23 @@ class BannerController extends Controller
 
         $request->validate([
             'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'link' => 'nullable|string|max:500',
             'action_type' => 'nullable|in:link,route,none',
             'action_value' => 'nullable|string|max:500',
+            'button_text' => 'nullable|string|max:100',
             'priority' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
         ]);
 
         $data = [
             'title' => $request->has('title') ? $request->title : $banner->title,
+            'description' => $request->has('description') ? $request->description : $banner->description,
             'link' => $request->has('link') ? $request->link : $banner->link,
             'action_type' => $request->action_type ?? $banner->action_type,
             'action_value' => $request->action_value ?? $request->link ?? $banner->action_value,
+            'button_text' => $request->has('button_text') ? $request->button_text : $banner->button_text,
             'priority' => $request->has('priority') ? (int) $request->priority : $banner->priority,
             'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : $banner->is_active,
         ];
@@ -153,6 +161,8 @@ class BannerController extends Controller
         return [
             'id' => $banner->id,
             'title' => $banner->title,
+            'description' => $banner->description,
+            'button_text' => $banner->button_text,
             'image' => $banner->image,
             'image_url' => $banner->image_url,
             'link' => $banner->link,
