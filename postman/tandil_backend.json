@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: PUT or POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.7.0"
@@ -4302,7 +4302,7 @@
                     }
                 },
                 {
-                    "name": "Categories - Update (POST - use for image)",
+                    "name": "Categories - Update",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -4315,32 +4315,11 @@
                                 {"key": "name", "value": "Updated Category Name", "type": "text"},
                                 {"key": "slug", "value": "updated-slug", "type": "text"},
                                 {"key": "description", "value": "Updated description", "type": "text"},
-                                {"key": "image", "type": "file", "src": [], "description": "Select file to replace category image. PUT and POST both support multipart form-data."}
+                                {"key": "image", "type": "file", "src": [], "description": "Select file to replace category image."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category including image. Use POST (or PUT) with form-data only: name, slug, description, image (file). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, created_at, updated_at)."
-                    }
-                },
-                {
-                    "name": "Categories - Update (PUT)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                            {"key": "Accept", "value": "application/json"}
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {"key": "name", "value": "Updated Category Name", "type": "text"},
-                                {"key": "slug", "value": "updated-slug", "type": "text"},
-                                {"key": "description", "value": "Updated description", "type": "text"},
-                                {"key": "image", "type": "file", "src": [], "description": "Optional. PUT with form-data now parses image the same as POST."}
-                            ]
-                        },
-                        "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category with PUT and form-data. API accepts both PUT and POST; form-data only: name, slug, description, image (file). Set category_id."
+                        "description": "Update category including image. Use POST with form-data only: name, slug, description, image (file). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, created_at, updated_at)."
                     }
                 },
                 {

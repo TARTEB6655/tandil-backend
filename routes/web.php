@@ -326,6 +326,10 @@ Route::middleware(['auth', 'role:client'])
         Route::post('/complaints', [\App\Http\Controllers\Client\ComplaintController::class, 'store'])->name('complaints.store');
         Route::get('/complaints/{id}', [\App\Http\Controllers\Client\ComplaintController::class, 'show'])->name('complaints.show');
         
+        // Tips
+        Route::get('/tips', [\App\Http\Controllers\Client\TipController::class, 'index'])->name('tips.index');
+        Route::get('/tips/{id}', [\App\Http\Controllers\Client\TipController::class, 'show'])->name('tips.show');
+
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');

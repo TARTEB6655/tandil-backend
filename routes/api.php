@@ -202,7 +202,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
     Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
     Route::get('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show']);
-    Route::match(['put', 'post'], '/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
+    Route::post('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
     // Products Management

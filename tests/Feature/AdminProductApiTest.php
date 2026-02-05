@@ -607,9 +607,9 @@ class AdminProductApiTest extends TestCase
         $this->assertNotEmpty($catData['image']);
         $this->assertNotEmpty($catData['image_url']);
 
-        // --- 9. Update category with new image (PUT multipart) ---
+        // --- 9. Update category with new image (POST multipart) ---
         $catImage2 = UploadedFile::fake()->image('category2.jpg', 140, 140);
-        $catUpdateRes = $this->call('PUT', '/api/admin/categories/' . $catId2, [
+        $catUpdateRes = $this->call('POST', '/api/admin/categories/' . $catId2, [
             'name' => 'E2E Category Image Updated',
             'slug' => $catData['slug'],
             'description' => $catData['description'] ?? '',
@@ -634,64 +634,7 @@ class AdminProductApiTest extends TestCase
     }
 
     /**
-     * PUT /api/admin/categories/{id} with image must update the category image.
-     * Sends a raw multipart body (like Postman) so parsePutMultipartIntoRequest runs.
-     */
-    public function test_category_update_with_image_put_api(): void
-    {
-        Storage::fake('public');
-        $admin = User::factory()->create(['role' => 'admin']);
-        if (method_exists($admin, 'assignRole')) {
-            $admin->assignRole('admin');
-        }
-        $token = $admin->createToken('test')->plainTextToken;
-
-        // Create category without image
-        $catRes = $this->postJson('/api/admin/categories', [
-            'name' => 'Category To Update',
-            'slug' => 'cat-update-' . uniqid(),
-            'description' => 'No image yet',
-        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
-        $catRes->assertStatus(201);
-        $categoryId = $catRes->json('data.id');
-        $originalName = $catRes->json('data.name');
-        $this->assertNull($catRes->json('data.image'));
-
-        // PUT with image: pass file in $files (Laravel sets it on request); parser runs when body is raw multipart (e.g. Postman)
-        $file = UploadedFile::fake()->image('updated.jpg', 120, 120);
-        $response = $this->call(
-            'PUT',
-            '/api/admin/categories/' . $categoryId,
-            [
-                'name' => $originalName,
-                'slug' => $catRes->json('data.slug'),
-                'description' => $catRes->json('data.description'),
-            ],
-            [],
-            ['image' => $file],
-            [
-                'HTTP_Authorization' => 'Bearer ' . $token,
-                'HTTP_Accept' => 'application/json',
-            ]
-        );
-
-        $response->assertStatus(200);
-        $data = $response->json('data');
-        $this->assertSame($originalName, $data['name'], 'Name should be unchanged when only image sent');
-        $this->assertNotEmpty($data['image'], 'Category image must be set after PUT with image');
-        $this->assertNotEmpty($data['image_url']);
-        $this->assertStringContainsString('categories/', $data['image']);
-
-        $category = Category::find($categoryId);
-        $this->assertNotEmpty($category->image);
-        $fullPath = Storage::disk('public')->path($category->image);
-        $this->assertFileExists($fullPath);
-        $this->assertGreaterThan(0, filesize($fullPath));
-    }
-
-    /**
-     * POST /api/admin/categories/{id} with form-data image (e.g. Postman) must update the category image.
-     * Use POST when PUT with multipart does not work on the server (PHP populates $_FILES for POST).
+     * POST /api/admin/categories/{id} with form-data image must update the category image.
      */
     public function test_category_update_with_image_post_api(): void
     {
@@ -719,7 +662,6 @@ class AdminProductApiTest extends TestCase
                 'name' => 'Category Post Update',
                 'slug' => $catRes->json('data.slug'),
                 'description' => 'With image',
-                '_method' => 'PUT',
             ],
             [],
             ['image' => $file],
@@ -761,7 +703,7 @@ class AdminProductApiTest extends TestCase
         $categoryId = $data['id'];
 
         // Partial update: add description only (no image)
-        $update1 = $this->putJson('/api/admin/categories/' . $categoryId, [
+        $update1 = $this->postJson('/api/admin/categories/' . $categoryId, [
             'description' => 'Added description later',
         ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
         $update1->assertStatus(200);
@@ -772,7 +714,7 @@ class AdminProductApiTest extends TestCase
         $update2 = $this->call(
             'POST',
             '/api/admin/categories/' . $categoryId,
-            ['name' => $createRes->json('data.name'), '_method' => 'PUT'],
+            ['name' => $createRes->json('data.name')],
             [],
             ['image' => $file],
             ['HTTP_Authorization' => 'Bearer ' . $token, 'HTTP_Accept' => 'application/json']
@@ -782,7 +724,7 @@ class AdminProductApiTest extends TestCase
         $this->assertNotEmpty($update2->json('data.image_url'));
 
         // Partial update: remove image (image_remove=true)
-        $update3 = $this->putJson('/api/admin/categories/' . $categoryId, [
+        $update3 = $this->postJson('/api/admin/categories/' . $categoryId, [
             'image_remove' => true,
         ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
         $update3->assertStatus(200);
