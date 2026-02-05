@@ -12,9 +12,10 @@ use Illuminate\Http\UploadedFile;
 class CategoryController extends Controller
 {
     /**
-     * Parse PUT/PATCH multipart body and merge form fields + image file into request
-     * (PHP does not populate $_POST/$_FILES for PUT).
-     * Splits only on "\r\n--boundary" so binary image content is never truncated.
+     * Parse multipart/form-data body and merge form fields + image file into the request.
+     * Used for PUT/PATCH (PHP does not populate $_POST/$_FILES) and for POST when server
+     * did not populate $_FILES. Ensures category image update works with both PUT and POST.
+     * Trims trailing boundary from file content so stored files are not corrupted.
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -32,9 +33,10 @@ class CategoryController extends Controller
         }
         $params = [];
         $uploadedFile = null;
-        // Split on line-boundary so binary content is never split; support both \r\n and \n (e.g. Postman)
         $parts = preg_split('/\r?\n--' . preg_quote($boundary, '/') . '/', $raw);
         $firstPrefix = '--' . $boundary;
+        $boundaryTrailer = "\r\n--" . $boundary . "--";
+        $boundaryTrailerAlt = "\n--" . $boundary . "--";
         foreach ($parts as $i => $segment) {
             $part = $segment;
             if ($i === 0) {
@@ -61,7 +63,6 @@ class CategoryController extends Controller
             $headers = substr($part, 0, $headerEnd);
             $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
             $value = substr($part, $bodyStart);
-            $value = preg_replace('/\r?\n$/s', '', $value);
             if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
                 continue;
             }
@@ -73,8 +74,11 @@ class CategoryController extends Controller
                 if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {
                     $mimeType = trim($ctMatch[1]);
                 }
+                $value = preg_replace('/\r?\n$/s', '', $value);
+                $value = str_ends_with($value, $boundaryTrailer) ? substr($value, 0, -strlen($boundaryTrailer)) : $value;
+                $value = str_ends_with($value, $boundaryTrailerAlt) ? substr($value, 0, -strlen($boundaryTrailerAlt)) : $value;
                 $tmpPath = tempnam(sys_get_temp_dir(), 'putcat_');
-                if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false && $name === 'image') {
+                if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false && $name === 'image' && strlen($value) > 0) {
                     $uploadedFile = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
                 } else {
                     if ($tmpPath !== false) {
@@ -83,6 +87,7 @@ class CategoryController extends Controller
                 }
                 continue;
             }
+            $value = preg_replace('/\r?\n$/s', '', $value);
             $params[$name] = $value;
         }
         if ($params !== []) {
@@ -311,7 +316,11 @@ class CategoryController extends Controller
         return view('admin.categories.edit', compact('category'));
     }
 
-    // PUT /categories/{id}
+    /**
+     * Update category. Supports PUT and POST (route: put|post).
+     * Image: send multipart "image" file, or JSON "image_base64", or "image_remove": true to clear.
+     * If PUT with form-data does not update the image on your server, use POST with the same form-data instead.
+     */
     public function update(CategoryRequest $request, $id)
     {
         if ($err = $this->invalidCategoryIdResponse($id, $request)) {
@@ -319,12 +328,10 @@ class CategoryController extends Controller
         }
         $category = Category::findOrFail($id);
 
-        // Parse multipart body when: PUT/PATCH (PHP never populates $_FILES), or POST with multipart but no file yet (e.g. server didn't parse body)
-        $isPutOrPatch = $request->isMethod('PUT') || $request->isMethod('PATCH');
-        $isPostMultipartNoFile = $request->isMethod('POST')
-            && str_contains($request->header('Content-Type', ''), 'multipart/form-data')
-            && ! $request->hasFile('image');
-        if ($isPutOrPatch || $isPostMultipartNoFile) {
+        // Always parse multipart body for PUT/PATCH (PHP never populates $_FILES) and for POST with multipart
+        // so that image is available even when server does not populate $_FILES (e.g. some hosts/proxies).
+        $isMultipart = str_contains($request->header('Content-Type', ''), 'multipart/form-data');
+        if ($isMultipart && ($request->isMethod('PUT') || $request->isMethod('PATCH') || $request->isMethod('POST'))) {
             $this->parsePutMultipartIntoRequest($request);
         }
 
@@ -389,8 +396,7 @@ class CategoryController extends Controller
 
         if (request()->expectsJson() || request()->is('api/*')) {
             $category->refresh();
-            // Use the path we just saved when present, so response always shows the new image URL (avoids stale URL from cache/refresh)
-            $responseImagePath = $newImagePath !== null ? $newImagePath : ($updateData['image'] ?? $category->image);
+            $responseImagePath = isset($updateData['image']) ? $updateData['image'] : $category->image;
             return ApiResponse::success('Category updated successfully.', $this->categoryToApiData($category, $responseImagePath));
         }
         
