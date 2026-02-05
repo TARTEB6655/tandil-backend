@@ -151,6 +151,7 @@ class ProductController extends Controller
 
     /**
      * Show single product by ID or handle.
+     * Same response shape as admin: data.main_image + data.gallery_images (no duplication).
      */
     public function show($id)
     {

@@ -602,6 +602,7 @@ class ProductController extends Controller
 
     /**
      * Show a single product.
+     * Same response shape as add/update: data.main_image + data.gallery_images (no duplication).
      */
     public function show(Request $request, $id)
     {
@@ -610,7 +611,6 @@ class ProductController extends Controller
         }
         $product = Product::with(['category', 'images', 'primaryImage'])->findOrFail($id);
 
-        // Check if this is an API request
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'status' => true,
