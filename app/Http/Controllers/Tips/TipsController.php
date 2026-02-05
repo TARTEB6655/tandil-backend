@@ -10,6 +10,20 @@ use Illuminate\Http\Request;
 class TipsController extends Controller
 {
     /**
+     * Format tip for API response (title + description for React Native; description = content).
+     */
+    private function tipToResponse(Tip $tip): array
+    {
+        return [
+            'id' => $tip->id,
+            'title' => $tip->title,
+            'description' => $tip->content,
+            'created_at' => $tip->created_at,
+            'updated_at' => $tip->updated_at,
+        ];
+    }
+
+    /**
      * List published tips
      */
     public function index(Request $request)
@@ -18,7 +32,9 @@ class TipsController extends Controller
             ->latest()
             ->get();
 
-        return ApiResponse::success('Tips retrieved successfully.', $tips);
+        $data = $tips->map(fn (Tip $t) => $this->tipToResponse($t))->values()->all();
+
+        return ApiResponse::success('Tips retrieved successfully.', $data);
     }
 
     /**
@@ -28,7 +44,7 @@ class TipsController extends Controller
     {
         $tip = Tip::where('status', 'published')->findOrFail($id);
 
-        return ApiResponse::success('Tip retrieved successfully.', $tip);
+        return ApiResponse::success('Tip retrieved successfully.', $this->tipToResponse($tip));
     }
 
     /**
@@ -44,21 +60,65 @@ class TipsController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'type' => 'nullable|in:weekly,monthly,seasonal,general',
-            'status' => 'nullable|in:draft,published,archived',
-            'language' => 'nullable|in:en,ar,ur',
+            'description' => 'required|string',
         ]);
 
         $tip = Tip::create([
             'title' => $validated['title'],
-            'content' => $validated['content'],
-            'type' => $validated['type'] ?? 'general',
-            'status' => $validated['status'] ?? 'published',
-            'language' => $validated['language'] ?? 'en',
+            'content' => $validated['description'],
+            'type' => 'general',
+            'status' => 'published',
+            'language' => 'en',
             'created_by' => $user->id,
         ]);
 
-        return ApiResponse::success('Tip sent successfully.', $tip, 201);
+        return ApiResponse::success('Tip sent successfully.', $this->tipToResponse($tip), 201);
+    }
+
+    /**
+     * Update a tip (admin or supervisor only). API accepts only title and/or description (partial update).
+     */
+    public function update(Request $request, $id)
+    {
+        $user = auth()->user();
+        $allowedRoles = ['admin', 'supervisor'];
+        if (! in_array($user->role ?? '', $allowedRoles, true)) {
+            return ApiResponse::error('Only admins or supervisors can update tips.', 403);
+        }
+
+        $tip = Tip::findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string',
+        ]);
+
+        $update = [];
+        if (array_key_exists('title', $validated)) {
+            $update['title'] = $validated['title'];
+        }
+        if (array_key_exists('description', $validated)) {
+            $update['content'] = $validated['description'];
+        }
+        $tip->update($update);
+
+        return ApiResponse::success('Tip updated successfully.', $this->tipToResponse($tip->fresh()));
+    }
+
+    /**
+     * Delete a tip (admin or supervisor only).
+     */
+    public function destroy($id)
+    {
+        $user = auth()->user();
+        $allowedRoles = ['admin', 'supervisor'];
+        if (! in_array($user->role ?? '', $allowedRoles, true)) {
+            return ApiResponse::error('Only admins or supervisors can delete tips.', 403);
+        }
+
+        $tip = Tip::findOrFail($id);
+        $tip->delete();
+
+        return ApiResponse::success('Tip deleted successfully.');
     }
 }

@@ -404,6 +404,8 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager|hr
     Route::get('/tips', [\App\Http\Controllers\Tips\TipsController::class, 'index']);
     Route::post('/tips', [\App\Http\Controllers\Tips\TipsController::class, 'store']);
     Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipsController::class, 'show']);
+    Route::put('/tips/{id}', [\App\Http\Controllers\Tips\TipsController::class, 'update']);
+    Route::delete('/tips/{id}', [\App\Http\Controllers\Tips\TipsController::class, 'destroy']);
     Route::get('/notifications', [\App\Http\Controllers\Notification\NotificationController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Notification\NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Notification\NotificationController::class, 'markAllAsRead']);

@@ -4063,7 +4063,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"title\": \"Water early morning to reduce evaporation\",\n  \"content\": \"Water your plants early in the morning to reduce evaporation and help roots absorb moisture better.\",\n  \"type\": \"general\",\n  \"status\": \"published\",\n  \"language\": \"en\"\n}"
+                            "raw": "{\n  \"title\": \"Water early morning to reduce evaporation\",\n  \"description\": \"Water your plants early in the morning to reduce evaporation and help roots absorb moisture better.\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/tips",
@@ -4075,7 +4075,7 @@
                                 "tips"
                             ]
                         },
-                        "description": "POST /api/tips - Create/send a new tip. Admin or supervisor only (403 for others). Body: title (required), content (required), type (optional: weekly|monthly|seasonal|general), status (optional: draft|published|archived), language (optional: en|ar|ur). Defaults: type=general, status=published, language=en. Response: 201 with created tip."
+                        "description": "POST /api/tips - Create/send a new tip (matches React Native Send Tips screen). Admin or supervisor only. Body: title (required), description (required). Response: 201 with { id, title, description, created_at, updated_at }."
                     }
                 },
                 {
@@ -4104,6 +4104,43 @@
                             ]
                         },
                         "description": "GET /api/tips/{id} - Get a single published tip by ID. Auth: Bearer token. Uses variable {{tip_id}} (set by Tips - List or Create/Send)."
+                    }
+                },
+                {
+                    "name": "Tips - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Tip Title\",\n  \"description\": \"Updated tip message.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/tips/{{tip_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "tips", "{{tip_id}}"]
+                        },
+                        "description": "PUT /api/tips/{id} - Update a tip. Admin or supervisor only. Body: title and/or description (optional, partial update). Set tip_id in env."
+                    }
+                },
+                {
+                    "name": "Tips - Delete",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tips/{{tip_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "tips", "{{tip_id}}"]
+                        },
+                        "description": "DELETE /api/tips/{id} - Delete a tip. Admin or supervisor only (403 for others). Set tip_id in env."
                     }
                 },
                 {
