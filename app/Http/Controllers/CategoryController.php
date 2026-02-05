@@ -121,6 +121,24 @@ class CategoryController extends Controller
     }
 
     /**
+     * Single place for category API response shape. Use in list, create, show, update – easy to update.
+     * Returns: id, name, slug, description, image, image_url, created_at, updated_at.
+     */
+    private function categoryToApiData(Category $category): array
+    {
+        return [
+            'id' => $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+            'description' => $category->description,
+            'image' => $category->image,
+            'image_url' => $this->buildCategoryImageUrl($category->image),
+            'created_at' => $category->created_at,
+            'updated_at' => $category->updated_at,
+        ];
+    }
+
+    /**
      * Save category image from base64 string (data URL or raw base64).
      * Use when multipart file upload doesn't work (e.g. PUT body not passed by server).
      * Returns stored path or null on failure.
@@ -201,20 +219,7 @@ class CategoryController extends Controller
         $categories = $query->orderByDesc('id')->paginate($perPage);
 
         if ($isApi) {
-            // Build response with explicit image_url from request host (correct on live/proxy)
-            $data = [];
-            foreach ($categories->items() as $c) {
-                $data[] = [
-                    'id' => $c->id,
-                    'name' => $c->name,
-                    'slug' => $c->slug,
-                    'description' => $c->description,
-                    'image' => $c->image,
-                    'image_url' => $this->buildCategoryImageUrl($c->image),
-                    'created_at' => $c->created_at,
-                    'updated_at' => $c->updated_at,
-                ];
-            }
+            $data = array_map(fn (Category $c) => $this->categoryToApiData($c), $categories->items());
             return response()->json([
                 'success' => true,
                 'message' => 'Categories retrieved successfully.',
@@ -257,19 +262,8 @@ class CategoryController extends Controller
             'image' => $imagePath,
         ]);
         
-        // Return view redirect for web requests, JSON for API requests (explicit image_url for correct URL on live)
         if (request()->expectsJson() || request()->is('api/*')) {
-            $data = [
-                'id' => $category->id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-                'description' => $category->description,
-                'image' => $category->image,
-                'image_url' => $this->buildCategoryImageUrl($category->image),
-                'created_at' => $category->created_at,
-                'updated_at' => $category->updated_at,
-            ];
-            return ApiResponse::success('Category created successfully.', $data, 201);
+            return ApiResponse::success('Category created successfully.', $this->categoryToApiData($category), 201);
         }
         
         return redirect()->route('admin.categories.index')
@@ -295,19 +289,8 @@ class CategoryController extends Controller
         }
         $category = Category::findOrFail($id);
         
-        // Return view for web requests, JSON for API requests (explicit image_url for correct URL on live)
         if (request()->expectsJson() || request()->is('api/*')) {
-            $data = [
-                'id' => $category->id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-                'description' => $category->description,
-                'image' => $category->image,
-                'image_url' => $this->buildCategoryImageUrl($category->image),
-                'created_at' => $category->created_at,
-                'updated_at' => $category->updated_at,
-            ];
-            return ApiResponse::success('Category retrieved successfully.', $data);
+            return ApiResponse::success('Category retrieved successfully.', $this->categoryToApiData($category));
         }
         
         return view('admin.categories.show', compact('category'));
@@ -402,23 +385,9 @@ class CategoryController extends Controller
 
         $category->update($updateData);
 
-        // Return view redirect for web requests, JSON for API requests (includes image, image_url)
         if (request()->expectsJson() || request()->is('api/*')) {
             $category->refresh();
-            // When we just saved a new image, use that path for response so live server always returns new URL
-            $responseImagePath = $newImagePath !== null ? $newImagePath : $category->image;
-            $responseImageUrl = $this->buildCategoryImageUrl($responseImagePath);
-            $data = [
-                'id' => $category->id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-                'description' => $category->description,
-                'image' => $responseImagePath,
-                'image_url' => $responseImageUrl,
-                'created_at' => $category->created_at,
-                'updated_at' => $category->updated_at,
-            ];
-            return ApiResponse::success('Category updated successfully.', $data);
+            return ApiResponse::success('Category updated successfully.', $this->categoryToApiData($category));
         }
         
         return redirect()->route('admin.categories.index')
