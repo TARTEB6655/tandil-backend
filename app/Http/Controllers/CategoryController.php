@@ -13,9 +13,8 @@ class CategoryController extends Controller
 {
     /**
      * Parse multipart/form-data body and merge form fields + image file into the request.
-     * Used for PUT/PATCH (PHP does not populate $_POST/$_FILES) and for POST when server
-     * did not populate $_FILES. Ensures category image update works with both PUT and POST.
-     * Trims trailing boundary from file content so stored files are not corrupted.
+     * Mirrors the product controller parser (same split, boundary, and file handling) so
+     * PUT with form-data works the same for category image update as for product.
      */
     private function parsePutMultipartIntoRequest(Request $request): void
     {
@@ -23,20 +22,19 @@ class CategoryController extends Controller
         if (! $contentType || ! str_contains($contentType, 'multipart/form-data')) {
             return;
         }
-        if (! preg_match('/boundary\s*=\s*(?:"([^"]+)"|([^\s;]+))/i', $contentType, $m)) {
+        if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
             return;
         }
-        $boundary = trim($m[1] ?? $m[2], " \t\"");
+        $boundary = trim($m[1] ?? $m[2]);
         $raw = $request->getContent();
         if ($raw === '' || $raw === false) {
             return;
         }
         $params = [];
         $uploadedFile = null;
-        $parts = preg_split('/\r?\n--' . preg_quote($boundary, '/') . '/', $raw);
+        $lineDelimiter = "\r\n--" . $boundary;
+        $parts = explode($lineDelimiter, $raw);
         $firstPrefix = '--' . $boundary;
-        $boundaryTrailer = "\r\n--" . $boundary . "--";
-        $boundaryTrailerAlt = "\n--" . $boundary . "--";
         foreach ($parts as $i => $segment) {
             $part = $segment;
             if ($i === 0) {
@@ -63,35 +61,26 @@ class CategoryController extends Controller
             $headers = substr($part, 0, $headerEnd);
             $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
             $value = substr($part, $bodyStart);
-            if (! preg_match('/name\s*=\s*(?:"([^"]+)"|\'([^\']+)\')/', $headers, $nameMatch)) {
+            $value = preg_replace('/\r?\n$/s', '', $value);
+            if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
                 continue;
             }
-            $name = $nameMatch[1] !== '' ? $nameMatch[1] : $nameMatch[2];
-            $isFile = preg_match('/filename\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s;]+))/i', $headers, $fileMatch);
+            $name = $nameMatch[1];
+            $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
             if ($isFile) {
-                $originalName = trim($fileMatch[1] ?? $fileMatch[2] ?? $fileMatch[3] ?? '', " \t\"'");
-                if ($originalName === '') {
-                    $originalName = 'file';
-                }
+                $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
                 $mimeType = null;
                 if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {
                     $mimeType = trim($ctMatch[1]);
                 }
-                $value = preg_replace('/\r?\n$/s', '', $value);
-                $value = str_ends_with($value, $boundaryTrailer) ? substr($value, 0, -strlen($boundaryTrailer)) : $value;
-                $value = str_ends_with($value, $boundaryTrailerAlt) ? substr($value, 0, -strlen($boundaryTrailerAlt)) : $value;
                 $tmpPath = tempnam(sys_get_temp_dir(), 'putcat_');
-                if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false && $name === 'image' && strlen($value) > 0) {
+                if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false && $name === 'image') {
                     $uploadedFile = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
                 } else {
                     if ($tmpPath !== false) {
                         @unlink($tmpPath);
                     }
                 }
-                continue;
-            }
-            $value = preg_replace('/\r?\n$/s', '', $value);
-            if ($name === 'image' && strlen($value) > 1000) {
                 continue;
             }
             $params[$name] = $value;
