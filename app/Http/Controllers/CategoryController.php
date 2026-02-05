@@ -26,8 +26,12 @@ class CategoryController extends Controller
             return;
         }
         $boundary = trim($m[1] ?? $m[2]);
-        $raw = $request->getContent();
-        if ($raw === '' || $raw === false) {
+        // Prefer body cached by CachePutRequestBody (first read of php://input)
+        $raw = $request->attributes->get('_put_multipart_raw');
+        if ($raw === null) {
+            $raw = $request->getContent();
+        }
+        if ($raw === '' || $raw === false || ! is_string($raw)) {
             return;
         }
         $params = [];
@@ -68,6 +72,15 @@ class CategoryController extends Controller
             $name = $nameMatch[1];
             $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
             if ($isFile) {
+                // Trim trailing multipart boundary so it is not written into the file
+                $trailingBoundary = "\r\n--" . $boundary . "--";
+                if (str_ends_with($value, $trailingBoundary)) {
+                    $value = substr($value, 0, -strlen($trailingBoundary));
+                }
+                $trailingBoundaryLf = "\n--" . $boundary . "--";
+                if (str_ends_with($value, $trailingBoundaryLf)) {
+                    $value = substr($value, 0, -strlen($trailingBoundaryLf));
+                }
                 $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
                 $mimeType = null;
                 if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {
@@ -138,47 +151,6 @@ class CategoryController extends Controller
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
         ];
-    }
-
-    /**
-     * Save category image from base64 string (data URL or raw base64).
-     * Use when multipart file upload doesn't work (e.g. PUT body not passed by server).
-     * Returns stored path or null on failure.
-     */
-    private function storeCategoryImageFromBase64(Request $request): ?string
-    {
-        $input = $request->input('image_base64');
-        if (! is_string($input) || $input === '') {
-            return null;
-        }
-        $data = $input;
-        if (str_starts_with($input, 'data:')) {
-            if (! preg_match('/^data:image\/(\w+);base64,(.+)$/s', $input, $m)) {
-                return null;
-            }
-            $data = $m[2];
-        }
-        $decoded = base64_decode($data, true);
-        if ($decoded === false || strlen($decoded) < 10) {
-            return null;
-        }
-        $ext = 'jpg';
-        if (str_starts_with($decoded, "\x89PNG")) {
-            $ext = 'png';
-        } elseif (str_starts_with($decoded, 'GIF8')) {
-            $ext = 'gif';
-        } elseif (str_starts_with($decoded, "\xff\xd8\xff")) {
-            $ext = 'jpg';
-        } elseif (str_starts_with($decoded, 'RIFF') && substr($decoded, 8, 4) === 'WEBP') {
-            $ext = 'webp';
-        }
-        $filename = 'cat_' . uniqid() . '.' . $ext;
-        $path = 'categories/' . $filename;
-        if (Storage::disk('public')->put($path, $decoded) === false) {
-            return null;
-        }
-        $this->compressCategoryImageIfNeeded($path);
-        return $path;
     }
 
     /**
@@ -313,8 +285,7 @@ class CategoryController extends Controller
 
     /**
      * Update category. Supports PUT and POST (route: put|post).
-     * Image: send multipart "image" file, or JSON "image_base64", or "image_remove": true to clear.
-     * If PUT with form-data does not update the image on your server, use POST with the same form-data instead.
+     * Image: multipart form-data only — send "image" file, or "image_remove": true (form field or JSON) to clear.
      */
     public function update(CategoryRequest $request, $id)
     {
@@ -365,7 +336,7 @@ class CategoryController extends Controller
             }
         }
 
-        // Handle image: remove (image_remove=true), or new file/base64; otherwise leave existing image
+        // Handle image: remove (image_remove=true), or new file via multipart only; otherwise leave existing image
         $newImagePath = null;
         if ($request->boolean('image_remove')) {
             if ($category->image && Storage::disk('public')->exists($category->image)) {
@@ -375,10 +346,6 @@ class CategoryController extends Controller
         } else {
             if ($request->hasFile('image')) {
                 $newImagePath = $request->file('image')->store('categories', 'public');
-            } else {
-                $newImagePath = $this->storeCategoryImageFromBase64($request);
-            }
-            if ($newImagePath !== null) {
                 if ($category->image && Storage::disk('public')->exists($category->image)) {
                     Storage::disk('public')->delete($category->image);
                 }
@@ -393,7 +360,8 @@ class CategoryController extends Controller
             $category->refresh();
             $responseImagePath = isset($updateData['image']) ? $updateData['image'] : $category->image;
             $data = $this->categoryToApiData($category, $responseImagePath);
-            $imageNotReceived = $request->isMethod('PUT') && $isMultipart && ! $request->hasFile('image') && ! $request->filled('image_base64') && ! $request->boolean('image_remove') && $newImagePath === null;
+            $imageNotReceived = $request->isMethod('PUT') && $isMultipart && ! $request->hasFile('image') && ! $request->boolean('image_remove') && $newImagePath === null;
+            $imageWasUpdated = $newImagePath !== null || (isset($updateData['image']) && $updateData['image'] === null && $request->boolean('image_remove'));
             $response = [
                 'success' => true,
                 'message' => $imageNotReceived
@@ -404,6 +372,8 @@ class CategoryController extends Controller
             if ($imageNotReceived) {
                 $response['image_updated'] = false;
                 $response['hint'] = 'In Postman: change method to POST and send the same form-data (name, slug, description, image file). The API accepts both PUT and POST for update.';
+            } elseif ($imageWasUpdated) {
+                $response['image_updated'] = true;
             }
             return response()->json($response);
         }

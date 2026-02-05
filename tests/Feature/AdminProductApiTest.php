@@ -736,45 +736,7 @@ class AdminProductApiTest extends TestCase
     }
 
     /**
-     * PUT/POST with image_base64 (JSON) must update the category image when file upload doesn't work on server.
-     */
-    public function test_category_update_with_image_base64_api(): void
-    {
-        Storage::fake('public');
-        $admin = User::factory()->create(['role' => 'admin']);
-        if (method_exists($admin, 'assignRole')) {
-            $admin->assignRole('admin');
-        }
-        $token = $admin->createToken('test')->plainTextToken;
-
-        $catRes = $this->postJson('/api/admin/categories', [
-            'name' => 'Category Base64 Update',
-            'slug' => 'cat-b64-' . uniqid(),
-            'description' => 'No image',
-        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
-        $catRes->assertStatus(201);
-        $categoryId = $catRes->json('data.id');
-        $this->assertNull($catRes->json('data.image'));
-
-        $file = UploadedFile::fake()->image('b64.jpg', 80, 80);
-        $base64 = 'data:image/jpeg;base64,' . base64_encode($file->get());
-
-        $response = $this->putJson('/api/admin/categories/' . $categoryId, [
-            'name' => 'Category Base64 Update',
-            'slug' => $catRes->json('data.slug'),
-            'description' => 'With image via base64',
-            'image_base64' => $base64,
-        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
-
-        $response->assertStatus(200);
-        $data = $response->json('data');
-        $this->assertNotEmpty($data['image'], 'Category image must be set after update with image_base64');
-        $this->assertStringContainsString('categories/', $data['image']);
-        $this->assertNotEmpty($data['image_url']);
-    }
-
-    /**
-     * Create category with minimal data (only name); then update with image; then update to remove image.
+     * Create category with minimal data (only name); then update with image (multipart); then update to remove image.
      */
     public function test_category_smooth_create_and_partial_update(): void
     {
@@ -805,12 +767,16 @@ class AdminProductApiTest extends TestCase
         $update1->assertStatus(200);
         $this->assertSame('Added description later', $update1->json('data.description'));
 
-        // Partial update: add image via base64
+        // Partial update: add image via multipart only
         $file = UploadedFile::fake()->image('smooth.jpg', 60, 60);
-        $base64 = 'data:image/jpeg;base64,' . base64_encode($file->get());
-        $update2 = $this->putJson('/api/admin/categories/' . $categoryId, [
-            'image_base64' => $base64,
-        ], ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json']);
+        $update2 = $this->call(
+            'POST',
+            '/api/admin/categories/' . $categoryId,
+            ['name' => $createRes->json('data.name'), '_method' => 'PUT'],
+            [],
+            ['image' => $file],
+            ['HTTP_Authorization' => 'Bearer ' . $token, 'HTTP_Accept' => 'application/json']
+        );
         $update2->assertStatus(200);
         $this->assertNotEmpty($update2->json('data.image'));
         $this->assertNotEmpty($update2->json('data.image_url'));

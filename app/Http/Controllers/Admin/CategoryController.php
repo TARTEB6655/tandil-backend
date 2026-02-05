@@ -156,8 +156,12 @@ class CategoryController extends Controller
             return;
         }
         $boundary = trim($m[1] ?? $m[2]);
-        $raw = $request->getContent();
-        if ($raw === '' || $raw === false) {
+        // Use body cached by CachePutRequestBody when present (e.g. if middleware runs for web)
+        $raw = $request->attributes->get('_put_multipart_raw');
+        if ($raw === null) {
+            $raw = $request->getContent();
+        }
+        if ($raw === '' || $raw === false || ! is_string($raw)) {
             return;
         }
         $params = [];
@@ -198,6 +202,15 @@ class CategoryController extends Controller
             $name = $nameMatch[1];
             $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
             if ($isFile) {
+                // Trim trailing multipart boundary so it is not written into the file
+                $trailingBoundary = "\r\n--" . $boundary . "--";
+                if (str_ends_with($value, $trailingBoundary)) {
+                    $value = substr($value, 0, -strlen($trailingBoundary));
+                }
+                $trailingBoundaryLf = "\n--" . $boundary . "--";
+                if (str_ends_with($value, $trailingBoundaryLf)) {
+                    $value = substr($value, 0, -strlen($trailingBoundaryLf));
+                }
                 $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
                 $mimeType = null;
                 if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {

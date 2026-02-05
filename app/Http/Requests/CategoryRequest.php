@@ -16,13 +16,12 @@ class CategoryRequest extends BaseFormRequest
         $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH') || ($this->isMethod('POST') && $this->route('id'));
 
         return [
-            // Create: only name required. Update: all optional (partial update).
+            // Create: only name required. Update: all optional (partial update). Image via multipart only.
             'name'         => $isUpdate ? 'nullable|string|max:255' : 'required|string|max:255',
             'slug'         => 'nullable|string|max:255|unique:categories,slug,' . $id,
             'description'  => 'nullable|string',
             'image'        => 'nullable|image|mimes:jpeg,jpg,png,webp',
-            'image_base64' => 'nullable|string', // fallback when multipart file upload doesn't work
-            'image_remove' => 'nullable|boolean', // set true to remove category image on update
+            'image_remove' => 'nullable|boolean', // set true to remove category image on update (form-data or JSON)
         ];
     }
 }

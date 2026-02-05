@@ -12,9 +12,12 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middlewareGroups = [
-        'web' => [],
+        'web' => [
+            \App\Http\Middleware\CachePutRequestBody::class,
+        ],
 
         'api' => [
+            \App\Http\Middleware\CachePutRequestBody::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,

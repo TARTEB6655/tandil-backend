@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create with optional image; update with PUT or POST. Both PUT and POST accept multipart/form-data (name, slug, description, image file). Use \"Categories - Update (PUT)\" or \"Categories - Update (POST - use for image)\" with form-data; or \"Categories - Update (JSON + image_base64)\". Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
+        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: PUT or POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.7.0"
@@ -4269,24 +4269,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories", "host": ["{{base_url}}"], "path": ["api", "admin", "categories"]},
-                        "description": "Create category (admin). Form-data: name (required), slug (optional), description (optional), image (optional – any size; auto-compressed to max 2 MB). Response: success, message, data (id, name, slug, description, image, image_url). Use returned id as category_id in Add Product. For JSON-only use \"Categories - Create (JSON)\"."
-                    }
-                },
-                {
-                    "name": "Categories - Create (JSON)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                            {"key": "Content-Type", "value": "application/json"},
-                            {"key": "Accept", "value": "application/json"}
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Fertilizers\",\n  \"slug\": \"fertilizers\",\n  \"description\": \"Organic and chemical fertilizers\"\n}"
-                        },
-                        "url": {"raw": "{{base_url}}/api/admin/categories", "host": ["{{base_url}}"], "path": ["api", "admin", "categories"]},
-                        "description": "Create category with JSON body (no image). For image use \"Categories - Create\" with form-data."
+                        "description": "Create category (admin). Form-data only: name (required), slug (optional), description (optional), image (optional). Response: success, message, data (id, name, slug, description, image, image_url). Use returned id as category_id in Add Product."
                     }
                 },
                 {
@@ -4336,7 +4319,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category including image. Use POST (or PUT) with form-data: name, slug, description, image (file). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, created_at, updated_at). Alternative: \"Categories - Update (PUT)\" with form-data, or \"Categories - Update (JSON + image_base64)\"."
+                        "description": "Update category including image. Use POST (or PUT) with form-data only: name, slug, description, image (file). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, created_at, updated_at)."
                     }
                 },
                 {
@@ -4357,41 +4340,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category with PUT and form-data. API accepts both PUT and POST; both parse multipart and update image. Form-data: name, slug, description, image (file). Set category_id. Alternative: \"Categories - Update (JSON + image_base64)\" for image via base64."
-                    }
-                },
-                {
-                    "name": "Categories - Update (JSON)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                            {"key": "Content-Type", "value": "application/json"},
-                            {"key": "Accept", "value": "application/json"}
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"slug\": \"updated-slug\",\n  \"description\": \"Updated description\"\n}"
-                        },
-                        "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category with JSON body (no image). For image use \"Categories - Update (PUT)\" or \"Categories - Update (POST - use for image)\" with form-data, or \"Categories - Update (JSON + image_base64)\". Set category_id in env."
-                    }
-                },
-                {
-                    "name": "Categories - Update (JSON + image_base64)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                            {"key": "Content-Type", "value": "application/json"},
-                            {"key": "Accept", "value": "application/json"}
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Updated Category Name\",\n  \"slug\": \"updated-slug\",\n  \"description\": \"Updated description\",\n  \"image_base64\": \"data:image/jpeg;base64,/9j/4AAQSkZJRg...\"\n}"
-                        },
-                        "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category with JSON. Use when form-data image doesn't work on server. Body: name, slug, description (optional), image_base64 = data URL (data:image/jpeg;base64,...) or raw base64. PUT or POST. Set category_id."
+                        "description": "Update category with PUT and form-data. API accepts both PUT and POST; form-data only: name, slug, description, image (file). Set category_id."
                     }
                 },
                 {
