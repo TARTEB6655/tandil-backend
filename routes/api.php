@@ -155,6 +155,7 @@ Route::middleware(['auth:sanctum', 'role:technician|supervisor|area_manager|clie
     Route::put('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'update']);
     Route::put('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
     Route::post('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
+    Route::delete('/{id}/photos/{photoId}', [\App\Http\Controllers\Visit\VisitController::class, 'deletePhoto']);
 });
 
 /*

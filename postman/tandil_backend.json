@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, order_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin. Use Bearer token for protected routes. Image/photo uploads: use multipart/form-data with POST or PUT (same flow as category image update). Validation errors return message + errors.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin. Use Bearer token for protected routes. Image/photo uploads: use multipart/form-data with POST or PUT (same flow as category image update). Validation errors return message + errors.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.18.0"
+        "version": "2.19.0"
     },
     "item": [
         {
@@ -1061,9 +1061,25 @@
                         },
                         "description": "Upload maintenance/visit photo. POST or PUT with multipart/form-data (same as category image update). Body: photo (file, required), type (optional: before|after). Auth: admin, assigned technician, or client (own visit). Response: status, data (id, visit_id, type, photo_path, photo_url, created_at). Set visit_id in env."
                     }
+                },
+                {
+                    "name": "Delete Visit Photo (Maintenance Photo)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/visits/{{visit_id}}/photos/{{photo_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "visits", "{{visit_id}}", "photos", "{{photo_id}}"]
+                        },
+                        "description": "Delete one maintenance/visit photo. Who can delete: Admin (any), Technician (photos of visits assigned to them), Client (photos of their own visits). Set visit_id and photo_id in env. Response: status, message."
+                    }
                 }
             ],
-            "description": "Visit management - Track maintenance visits"
+            "description": "Visit management – list, create, show, update. Upload photo: POST/PUT /api/visits/{id}/upload-photo (Admin, Technician assigned, Client own). Delete photo: DELETE /api/visits/{id}/photos/{photoId} (Admin, Technician assigned, Client own). Set visit_id, photo_id."
         },
         {
             "name": "7. Reports",
@@ -1952,9 +1968,25 @@
                         },
                         "description": "Get all maintenance photos for a specific visit. Client must own the visit. Response: visit (summary), photos[] with id, photo_url, type, created_at."
                     }
+                },
+                {
+                    "name": "Delete Maintenance Photo",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/visits/{{visit_id}}/photos/{{photo_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "visits", "{{visit_id}}", "photos", "{{photo_id}}"]
+                        },
+                        "description": "Delete one maintenance photo. Client can delete only photos of their own visits. Set visit_id and photo_id (from List or Get by Visit). Who can delete: Admin (any), Technician (assigned visits), Client (own visits)."
+                    }
                 }
             ],
-            "description": "Client app Home screen – Maintenance Photos section. Photos from service visits (uploaded by technicians). Auth: Bearer token (client role). Use visit_id from list or from Visits API for \"View Order\"."
+            "description": "Client app Home – Maintenance Photos. List (GET /api/maintenance-photos), get by visit, delete. Who can add photos: Admin, Technician (assigned visit), Client (own visit). Who can delete: same. Auth: Bearer (client for 8b)."
         },
         {
             "name": "9. Technician & Supervisor Routes",
@@ -2130,6 +2162,22 @@
                             ]
                         },
                         "description": "Upload maintenance/visit photo. POST or PUT with multipart/form-data (same as category image update). Body: photo (file), type (optional: before|during|after). Response: status, data (id, visit_id, type, photo_path, photo_url, created_at). Set visit_id."
+                    }
+                },
+                {
+                    "name": "Technician - Delete Photo",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/visits/{{visit_id}}/photos/{{photo_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "visits", "{{visit_id}}", "photos", "{{photo_id}}"]
+                        },
+                        "description": "Delete a maintenance/visit photo. Technician can delete only photos of visits assigned to them. Set visit_id and photo_id."
                     }
                 },
                 {
@@ -4147,7 +4195,11 @@
             "name": "13. Other Modules",
             "item": [
                 {
-                    "name": "Complaints - List",
+                    "name": "Complaints",
+                    "description": "Complaints API – List, Create, Get, Update, Delete. Auth: Bearer token.",
+                    "item": [
+                {
+                    "name": "List",
                     "event": [
                         {
                             "listen": "test",
@@ -4336,9 +4388,15 @@
                         },
                         "description": "Delete complaint (admin only)"
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "Tips - List",
+                    "name": "Tips",
+                    "description": "Tips API – List, Create, Get, Update, Delete. Auth: Bearer token.",
+                    "item": [
+                {
+                    "name": "List",
                     "event": [
                         {
                             "listen": "test",
@@ -4495,9 +4553,15 @@
                         },
                         "description": "DELETE /api/tips/{id} - Delete a tip. Admin or supervisor only (403 for others). Set tip_id in env."
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "Notifications - List",
+                    "name": "Notifications",
+                    "description": "App notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
+                    "item": [
+                {
+                    "name": "List",
                     "event": [
                         {
                             "listen": "test",
@@ -4595,9 +4659,15 @@
                         },
                         "description": "Mark all notifications as read for the authenticated user. This will mark all unread notifications as read."
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "Categories - List",
+                    "name": "Admin - Categories",
+                    "description": "Admin: Service categories (add/update/delete). Used for Services. Auth: Bearer token, admin role.",
+                    "item": [
+                {
+                    "name": "List",
                     "event": [
                         {
                             "listen": "test",
@@ -4741,9 +4811,15 @@
                         },
                         "description": "Delete category (admin). Removes category and its image from storage. Cannot delete if category has products – reassign or delete products first. Auth: Bearer token, admin role."
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "Areas - List",
+                    "name": "Areas",
+                    "description": "Areas API – List, Create, Get, Update, Delete. Auth: Bearer token (Area Manager for write).",
+                    "item": [
+                {
+                    "name": "List",
                     "event": [
                         {
                             "listen": "test",
@@ -4911,6 +4987,8 @@
                         },
                         "description": "Delete area (Area Manager only)"
                     }
+                }
+                    ]
                 },
                 {
                     "name": "Alternative Routes - Technician (under /api/auth/tech)",
@@ -5449,7 +5527,11 @@
                     "description": "Alternative shop routes under /api/auth/shop (duplicate of /api/shop routes)"
                 },
                 {
-                    "name": "Payment (PayPal) - Create Order",
+                    "name": "Payment (PayPal)",
+                    "description": "PayPal payment – Create Order, Webhook. Auth: Bearer for create.",
+                    "item": [
+                {
+                    "name": "Create Order",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -5487,7 +5569,7 @@
                     }
                 },
                 {
-                    "name": "Payment (PayPal) - Webhook",
+                    "name": "Webhook",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -5523,9 +5605,15 @@
                         },
                         "description": "PayPal webhook endpoint (for PayPal to call, not for manual testing)"
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "Services - List (Public)",
+                    "name": "Services (Public)",
+                    "description": "Public Services API – list categories and products. No auth. GET /api/services.",
+                    "item": [
+                {
+                    "name": "List",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5548,7 +5636,7 @@
                     }
                 },
                 {
-                    "name": "Services - Get Details (Public)",
+                    "name": "Get Details",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5572,7 +5660,7 @@
                     }
                 },
                 {
-                    "name": "Services - Get Categories (Public)",
+                    "name": "Get Categories",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5596,7 +5684,7 @@
                     }
                 },
                 {
-                    "name": "Services - Get by Category (Public)",
+                    "name": "Get by Category",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5619,9 +5707,15 @@
                         },
                         "description": "Get services by category (Public)"
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "User Profile - Get",
+                    "name": "User Profile",
+                    "description": "User profile – Get, Update. Auth: Bearer token.",
+                    "item": [
+                {
+                    "name": "Get",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5683,9 +5777,15 @@
                         },
                         "description": "Update user profile (Alternative route /api/user/profile)"
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "User Addresses - List",
+                    "name": "User Addresses",
+                    "description": "User addresses – List, Create, Update, Delete. Auth: Bearer token.",
+                    "item": [
+                {
+                    "name": "List",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5713,7 +5813,7 @@
                     }
                 },
                 {
-                    "name": "User Addresses - Create",
+                    "name": "Create",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -5749,7 +5849,7 @@
                     }
                 },
                 {
-                    "name": "User Addresses - Update",
+                    "name": "Update",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -5813,9 +5913,15 @@
                         },
                         "description": "Delete an address"
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "User Loyalty - Get",
+                    "name": "User Loyalty",
+                    "description": "User loyalty points. Auth: Bearer token.",
+                    "item": [
+                {
+                    "name": "Get",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5841,9 +5947,15 @@
                         },
                         "description": "Get user loyalty points and rewards"
                     }
+                }
+                    ]
                 },
                 {
-                    "name": "User Notifications - List",
+                    "name": "User Notifications",
+                    "description": "User notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
+                    "item": [
+                {
+                    "name": "List",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5871,7 +5983,7 @@
                     }
                 },
                 {
-                    "name": "User Notifications - Mark as Read",
+                    "name": "Mark as Read",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -5901,7 +6013,7 @@
                     }
                 },
                 {
-                    "name": "User Notifications - Mark All as Read",
+                    "name": "Mark All as Read",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -5929,8 +6041,10 @@
                         "description": "Mark all notifications as read"
                     }
                 }
+                    ]
+                }
             ],
-            "description": "Other modules - Complaints, Tips, Notifications, Categories, Areas, Payment, Services, User Profile"
+            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (PayPal), Services (Public), User Profile, User Addresses, User Loyalty, User Notifications."
         }
     ],
     "variable": [

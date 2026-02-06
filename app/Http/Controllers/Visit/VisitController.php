@@ -9,6 +9,7 @@ use App\Models\Visit;
 use App\Models\VisitPhoto;
 use App\Models\User;
 use App\Notifications\AdminNotification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
@@ -277,6 +278,48 @@ class VisitController extends Controller
         $data['photo_url'] = $photoUrl;
 
         return response()->json(['status' => true, 'data' => $data], 201);
+    }
+
+    /**
+     * Delete a maintenance/visit photo.
+     * Who can delete:
+     * - Admin: can delete any photo.
+     * - Technician: can delete only photos of visits assigned to them.
+     * - Client: can delete only photos of their own visits (their subscription).
+     */
+    public function deletePhoto(Request $request, $visitId, $photoId)
+    {
+        $visit = Visit::with('subscription')->find($visitId);
+        if (! $visit) {
+            return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
+        }
+
+        $photo = VisitPhoto::where('visit_id', $visitId)->where('id', $photoId)->first();
+        if (! $photo) {
+            return response()->json(['status' => false, 'message' => 'Photo not found'], 404);
+        }
+
+        $user = $request->user();
+        $isAuthorized = false;
+
+        if ($user->hasRole('admin')) {
+            $isAuthorized = true;
+        } elseif ($user->hasRole('technician') && $visit->technician_id == $user->id) {
+            $isAuthorized = true;
+        } elseif ($user->hasRole('client') && $visit->subscription && $visit->subscription->client_id === $user->id) {
+            $isAuthorized = true;
+        }
+
+        if (! $isAuthorized) {
+            return response()->json(['status' => false, 'message' => 'You are not allowed to delete this photo'], 403);
+        }
+
+        if ($photo->photo_path && Storage::disk('public')->exists($photo->photo_path)) {
+            Storage::disk('public')->delete($photo->photo_path);
+        }
+        $photo->delete();
+
+        return response()->json(['status' => true, 'message' => 'Photo deleted successfully'], 200);
     }
 
     /**
