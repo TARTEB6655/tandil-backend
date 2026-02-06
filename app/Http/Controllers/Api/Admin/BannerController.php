@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Banner;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -69,11 +70,109 @@ class BannerController extends Controller
     }
 
     /**
+     * Parse multipart/form-data and merge form fields + image file into the request.
+     * Needed so image upload works for PUT (PHP does not populate $_FILES for PUT) and for consistent behavior with POST.
+     * Same approach as CategoryController.
+     */
+    private function parseMultipartIntoRequest(Request $request): void
+    {
+        $contentType = $request->header('Content-Type');
+        if (! $contentType || ! str_contains($contentType, 'multipart/form-data')) {
+            return;
+        }
+        if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
+            return;
+        }
+        $boundary = trim($m[1] ?? $m[2]);
+        $raw = $request->attributes->get('_put_multipart_raw');
+        if ($raw === null) {
+            $raw = $request->getContent();
+        }
+        if ($raw === '' || $raw === false || ! is_string($raw)) {
+            return;
+        }
+        $params = [];
+        $uploadedFile = null;
+        $lineDelimiter = "\r\n--" . $boundary;
+        $parts = explode($lineDelimiter, $raw);
+        $firstPrefix = '--' . $boundary;
+        foreach ($parts as $i => $segment) {
+            $part = $segment;
+            if ($i === 0) {
+                if ($part === '' || $part === '--') {
+                    continue;
+                }
+                if (str_starts_with($part, $firstPrefix . "\r\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 2);
+                } elseif (str_starts_with($part, $firstPrefix . "\n")) {
+                    $part = substr($part, strlen($firstPrefix) + 1);
+                }
+            }
+            $part = trim($part, "\r\n");
+            if ($part === '' || $part === '-') {
+                continue;
+            }
+            $headerEnd = strpos($part, "\r\n\r\n");
+            if ($headerEnd === false) {
+                $headerEnd = strpos($part, "\n\n");
+            }
+            if ($headerEnd === false) {
+                continue;
+            }
+            $headers = substr($part, 0, $headerEnd);
+            $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
+            $value = substr($part, $bodyStart);
+            $value = preg_replace('/\r?\n$/s', '', $value);
+            if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
+                continue;
+            }
+            $name = $nameMatch[1];
+            $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
+            if ($isFile) {
+                $trailingBoundary = "\r\n--" . $boundary . "--";
+                if (str_ends_with($value, $trailingBoundary)) {
+                    $value = substr($value, 0, -strlen($trailingBoundary));
+                }
+                $trailingBoundaryLf = "\n--" . $boundary . "--";
+                if (str_ends_with($value, $trailingBoundaryLf)) {
+                    $value = substr($value, 0, -strlen($trailingBoundaryLf));
+                }
+                $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
+                $mimeType = null;
+                if (preg_match('/Content-Type:\s*([^\r\n]+)/i', $headers, $ctMatch)) {
+                    $mimeType = trim($ctMatch[1]);
+                }
+                $tmpPath = tempnam(sys_get_temp_dir(), 'putban_');
+                if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false && $name === 'image') {
+                    $uploadedFile = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
+                } else {
+                    if ($tmpPath !== false) {
+                        @unlink($tmpPath);
+                    }
+                }
+                continue;
+            }
+            $params[$name] = $value;
+        }
+        if ($params !== []) {
+            $request->merge($params);
+        }
+        if ($uploadedFile !== null) {
+            $request->files->set('image', $uploadedFile);
+        }
+    }
+
+    /**
      * Update a banner. Multipart only: image (optional), title, description, button_text, button_link (single URL), priority, is_active.
      */
     public function update(Request $request, $id)
     {
         $banner = Banner::findOrFail($id);
+
+        $isMultipart = str_contains($request->header('Content-Type', ''), 'multipart/form-data');
+        if ($isMultipart && ($request->isMethod('PUT') || $request->isMethod('PATCH') || $request->isMethod('POST'))) {
+            $this->parseMultipartIntoRequest($request);
+        }
 
         $request->validate([
             'title' => 'nullable|string|max:255',
