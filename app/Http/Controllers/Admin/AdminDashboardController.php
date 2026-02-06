@@ -1189,6 +1189,7 @@ class AdminDashboardController extends Controller
     {
         try {
             $limit = min(max((int) $request->input('limit', 10), 1), 50);
+            $includeUnsold = $request->boolean('include_unsold', true);
 
             $items = OrderItem::query()
                 ->join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -1205,23 +1206,26 @@ class AdminDashboardController extends Controller
 
             $productIds = $items->pluck('product_id')->filter()->unique()->values();
             $products = $productIds->isNotEmpty()
-                ? Product::whereIn('id', $productIds)->get()->keyBy('id')
+                ? Product::with('category')->whereIn('id', $productIds)->get()->keyBy('id')
                 : collect();
 
             $data = $items->map(function ($row) use ($products) {
-                $product = $products->get($row->product_id);
-                $revenue = (float) ($row->revenue ?? 0);
-                $sales = (int) ($row->sales ?? 0);
-                return [
-                    'product_id' => $row->product_id,
-                    'product_name' => $product ? $product->name : 'Unknown',
-                    'sales' => $sales,
-                    'sales_display' => $sales . ' sales',
-                    'revenue' => round($revenue, 2),
-                    'revenue_formatted' => number_format($revenue, 0) . ' AED',
-                    'revenue_display' => $this->formatRevenueShort($revenue),
-                ];
+                return $this->formatTopSellingItem($row, $products->get($row->product_id));
             })->values();
+
+            // When no paid orders have items, optionally return top products with 0 sales so dashboard can show something
+            if ($data->isEmpty() && $includeUnsold) {
+                $fallbackProducts = Product::with('category')
+                    ->orderBy('name')
+                    ->limit($limit)
+                    ->get();
+                foreach ($fallbackProducts as $product) {
+                    $data->push($this->formatTopSellingItem(
+                        (object) ['product_id' => $product->id, 'sales' => 0, 'revenue' => 0],
+                        $product
+                    ));
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -1237,6 +1241,34 @@ class AdminDashboardController extends Controller
                 'total' => 0,
             ], 500);
         }
+    }
+
+    /**
+     * Build a single top-selling item for API response (with full product details).
+     */
+    private function formatTopSellingItem($row, $product): array
+    {
+        $revenue = (float) ($row->revenue ?? 0);
+        $sales = (int) ($row->sales ?? 0);
+        $name = $product ? $product->name : 'Unknown';
+        $imageUrl = $product ? $product->image_url : null;
+        $categoryName = $product && $product->relationLoaded('category') && $product->category
+            ? $product->category->name
+            : null;
+        $price = $product ? (float) $product->price : null;
+
+        return [
+            'product_id' => $row->product_id,
+            'product_name' => $name,
+            'product_image_url' => $imageUrl,
+            'category_name' => $categoryName,
+            'price' => $price,
+            'sales' => $sales,
+            'sales_display' => $sales . ' sales',
+            'revenue' => round($revenue, 2),
+            'revenue_formatted' => number_format($revenue, 0) . ' AED',
+            'revenue_display' => $this->formatRevenueShort($revenue),
+        ];
     }
 
     /**

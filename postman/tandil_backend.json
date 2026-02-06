@@ -2999,12 +2999,15 @@
                             {"key": "Accept", "value": "application/json"}
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/admin/dashboard/top-selling-products?limit=10",
+                            "raw": "{{base_url}}/api/admin/dashboard/top-selling-products?limit=10&include_unsold=1",
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "dashboard", "top-selling-products"],
-                            "query": [{"key": "limit", "value": "10", "description": "Max 50, default 10"}]
+                            "query": [
+                                {"key": "limit", "value": "10", "description": "Max 50, default 10"},
+                                {"key": "include_unsold", "value": "1", "description": "When no paid orders: return products with 0 sales (1) or empty list (0). Default 1."}
+                            ]
                         },
-                        "description": "Top selling products for admin dashboard. Only paid orders (payment_status=paid). Query: limit (default 10, max 50). Auth: Bearer + admin.\n\n**Response:** success, data[], total.\n\n**Each item in data:**\n- product_id (int)\n- product_name (string)\n- sales (int) – quantity sold\n- sales_display (string) – e.g. \"245 sales\"\n- revenue (float)\n- revenue_formatted (string) – e.g. \"22,000 AED\"\n- revenue_display (string) – e.g. \"22K\" for UI (show as \"AED 22K\")"
+                        "description": "Top selling products for admin dashboard. Paid orders only (payment_status=paid). When none, returns fallback list of products with 0 sales if include_unsold=1. Auth: Bearer + admin.\n\n**Query:** limit (default 10, max 50), include_unsold (default 1).\n\n**Response:** success, data[], total.\n\n**Each item in data:**\n- product_id (int)\n- product_name (string)\n- product_image_url (string|null)\n- category_name (string|null)\n- price (float|null)\n- sales (int)\n- sales_display (string) – e.g. \"245 sales\"\n- revenue (float)\n- revenue_formatted (string) – e.g. \"22,000 AED\"\n- revenue_display (string) – e.g. \"22K\" (show as \"AED 22K\")"
                     }
                 },
                 {
