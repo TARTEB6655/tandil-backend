@@ -34,6 +34,7 @@ class BannerController extends Controller
         if ($isMultipart) {
             $this->parseMultipartIntoRequest($request);
         }
+        $this->normalizeImageFileToSingle($request, 'image');
 
         $request->validate([
             'title' => 'nullable|string|max:255',
@@ -48,11 +49,12 @@ class BannerController extends Controller
         $buttonLink = $request->input('button_link');
         $buttonLink = $buttonLink ? trim((string) $buttonLink) : null;
 
-        if (! $request->hasFile('image') || ! $request->file('image')->isValid()) {
-            return ApiResponse::error('Image is required and must be a valid image file.', 422);
+        $imageFile = $this->getSingleImageFile($request, 'image');
+        if (! $imageFile || ! $imageFile->isValid()) {
+            return ApiResponse::error('Image is required and must be a valid image file. Send only one image.', 422);
         }
 
-        $imagePath = $request->file('image')->store('banners', 'public');
+        $imagePath = $imageFile->store('banners', 'public');
 
         try {
             $banner = Banner::create([
@@ -180,6 +182,34 @@ class BannerController extends Controller
     }
 
     /**
+     * If the request sent multiple files for the given key (e.g. "2 files" in Postman), Laravel sets it as an array.
+     * Normalize so request->file($key) is a single UploadedFile (first one) for validation and storage.
+     */
+    private function normalizeImageFileToSingle(Request $request, string $key): void
+    {
+        $file = $request->file($key);
+        if (is_array($file) && isset($file[0]) && $file[0] instanceof UploadedFile) {
+            $request->files->set($key, $file[0]);
+        }
+    }
+
+    /**
+     * Get a single uploaded file for the given key. If the request sent multiple files (e.g. "2 files" in Postman),
+     * Laravel may return an array; we use the first file so the API doesn't throw a 500.
+     */
+    private function getSingleImageFile(Request $request, string $key): ?UploadedFile
+    {
+        $file = $request->file($key);
+        if ($file instanceof UploadedFile) {
+            return $file;
+        }
+        if (is_array($file) && isset($file[0]) && $file[0] instanceof UploadedFile) {
+            return $file[0];
+        }
+        return null;
+    }
+
+    /**
      * Update a banner. Multipart only: image (optional), title, description, button_text, button_link (single URL), priority, is_active.
      */
     public function update(Request $request, $id)
@@ -190,6 +220,7 @@ class BannerController extends Controller
         if ($isMultipart && ($request->isMethod('PUT') || $request->isMethod('PATCH') || $request->isMethod('POST'))) {
             $this->parseMultipartIntoRequest($request);
         }
+        $this->normalizeImageFileToSingle($request, 'image');
 
         $request->validate([
             'title' => 'nullable|string|max:255',
@@ -216,11 +247,12 @@ class BannerController extends Controller
             'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : (bool) $banner->is_active,
         ];
 
-        if ($request->hasFile('image')) {
+        $imageFile = $this->getSingleImageFile($request, 'image');
+        if ($imageFile && $imageFile->isValid()) {
             if ($banner->image && Storage::disk('public')->exists($banner->image)) {
                 Storage::disk('public')->delete($banner->image);
             }
-            $data['image'] = $request->file('image')->store('banners', 'public');
+            $data['image'] = $imageFile->store('banners', 'public');
         }
 
         try {
