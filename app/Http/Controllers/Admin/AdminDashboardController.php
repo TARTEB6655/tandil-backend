@@ -92,11 +92,11 @@ class AdminDashboardController extends Controller
         $lowStockProducts = Product::where('stock', '<', 10)->count();
         $outOfStockProducts = Product::where('stock', 0)->count();
         
-        // Top selling products
+        // Top selling products (orderByRaw for MySQL ONLY_FULL_GROUP_BY)
         $topProducts = OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'), DB::raw('SUM(subtotal) as total_revenue'))
             ->with('product')
             ->groupBy('product_id')
-            ->orderBy('total_sold', 'desc')
+            ->orderByRaw('SUM(quantity) DESC')
             ->take(10)
             ->get();
         
@@ -128,7 +128,7 @@ class AdminDashboardController extends Controller
             ->where('payment_status', 'paid')
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
             ->groupBy($groupByMonth)
-            ->orderBy('month', 'asc')
+            ->orderByRaw($isSqlite ? "strftime('%Y-%m', created_at) ASC" : "DATE_FORMAT(created_at, '%Y-%m') ASC")
             ->get();
         
         // Recent orders with items
@@ -137,12 +137,12 @@ class AdminDashboardController extends Controller
             ->take(10)
             ->get();
         
-        // Top customers (by order value)
+        // Top customers (by order value) (orderByRaw for MySQL ONLY_FULL_GROUP_BY)
         $topCustomers = Order::select('user_id', DB::raw('SUM(total_amount) as total_spent'), DB::raw('COUNT(*) as order_count'))
             ->with('user')
             ->where('payment_status', 'paid')
             ->groupBy('user_id')
-            ->orderBy('total_spent', 'desc')
+            ->orderByRaw('SUM(total_amount) DESC')
             ->take(10)
             ->get();
         
@@ -184,7 +184,7 @@ class AdminDashboardController extends Controller
             )
             ->where('created_at', '>=', Carbon::now()->subWeeks(8))
             ->groupBy($groupByWeek)
-            ->orderBy('week', 'asc')
+            ->orderByRaw($isSqlite ? "strftime('%Y-%W', created_at) ASC" : "DATE_FORMAT(created_at, '%Y-%u') ASC")
             ->get();
 
         // Subscription growth (last 6 months)
@@ -203,7 +203,7 @@ class AdminDashboardController extends Controller
             )
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
             ->groupBy($groupByMonthSub)
-            ->orderBy('month', 'asc')
+            ->orderByRaw($isSqlite ? "strftime('%Y-%m', created_at) ASC" : "DATE_FORMAT(created_at, '%Y-%m') ASC")
             ->get();
 
         // Active subscriptions by plan
@@ -241,7 +241,7 @@ class AdminDashboardController extends Controller
             })
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
             ->groupBy($groupByMonthProd)
-            ->orderBy('month', 'asc')
+            ->orderByRaw($isSqlite ? "strftime('%Y-%m', created_at) ASC" : "DATE_FORMAT(created_at, '%Y-%m') ASC")
             ->get();
         $recentSubscriptions = Subscription::with('client')->orderBy('created_at', 'desc')->take(5)->get();
         $recentVisits = Visit::with(['technician', 'subscription.client'])
