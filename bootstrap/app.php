@@ -94,9 +94,9 @@ return Application::configure(basePath: dirname(__DIR__))
                         'message' => $e->getMessage() ?: 'An error occurred.',
                     ], $e->getStatusCode());
                 }
-                // Other exceptions: clean JSON (no trace, no sensitive message in production)
+                // Other exceptions: for API always show actual error message so client knows what to fix
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
-                $message = config('app.debug') ? ($e->getMessage() ?: 'An error occurred.') : ($statusCode === 500 ? 'An error occurred. Please try again later.' : ($e->getMessage() ?: 'An error occurred.'));
+                $message = $e->getMessage() ?: 'An error occurred.';
                 return response()->json([
                     'success' => false,
                     'message' => $message,

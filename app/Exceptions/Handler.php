@@ -101,12 +101,11 @@ class Handler extends ExceptionHandler
             ], 404);
         }
 
-        // Handle QueryException (Database errors)
+        // Handle QueryException (Database errors) - show actual message so client can fix
         if ($e instanceof \Illuminate\Database\QueryException) {
-            $dbMessage = $isDebug ? $message : 'Database error occurred.';
             return response()->json([
                 'success' => false,
-                'message' => $dbMessage,
+                'message' => $message,
             ], 500);
         }
 
@@ -148,16 +147,15 @@ class Handler extends ExceptionHandler
 
         // Generic error handling
         $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
-        
-        // For API routes, always return clean JSON (no trace in production, minimal in debug)
+
+        // For API routes: always show the actual error message so the client knows what to fix
         $payload = [
             'success' => false,
-            'message' => $isDebug ? $message : ($statusCode === 500 ? 'An error occurred. Please try again later.' : $message),
+            'message' => $message,
         ];
-
-        // Only add minimal debug info for API routes (never full trace)
-        if ($isDebug && $statusCode >= 500) {
-            $payload['error'] = $exceptionClass;
+        if ($statusCode >= 500 && $isDebug) {
+            $payload['exception'] = $exceptionClass;
+            $payload['file'] = $file . ':' . $line;
         }
 
         return response()->json($payload, $statusCode);

@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id, tip_id, banner_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nTips: List (GET /api/tips), Create/Send (POST /api/tips: title, description), Get Details (GET /api/tips/{id}), Update (PUT /api/tips/{id}: title, description), Delete (DELETE /api/tips/{id}). Admin/supervisor for create, update, delete.\n\nAdmin Banners: Multipart only. Create/Update use single field button_link (optional URL for button). Fields: image (required on create), title, description, button_text, button_link, priority, is_active. List, Get, Update order, Toggle, Delete. Customer app: GET /api/banners returns id, title, description, button_text, image_url, action_value (button link), priority.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete; Tips: List → Create/Send → Get / Update / Delete; Admin Banners: List → Create/Update/Reorder/Toggle/Delete.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits, etc. Use Bearer token for protected routes. Validation errors return message + errors.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.15.0"
+        "version": "2.16.0"
     },
     "item": [
         {
@@ -738,7 +738,7 @@
                     }
                 }
             ],
-            "description": "Admin only. Multipart: image, title, description, button_text, button_link (single URL for button). Reorder, toggle, delete. Customer app: GET /api/banners."
+            "description": "Admin only. Create: image optional (form-data or JSON). Update: multipart, image optional. Fields: title, description, button_text, button_link (single URL), priority, is_active. List, Get, Update order, Toggle, Delete. API returns proper error message + errors when validation fails. Customer: GET /api/banners."
         },
         {
             "name": "6. Visits",
