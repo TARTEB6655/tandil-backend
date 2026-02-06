@@ -25,8 +25,8 @@ class BannerController extends Controller
     }
 
     /**
-     * Create a new banner. Multipart only: image (required), title, description, button_text, button_link (single URL), priority, is_active.
-     * button_link = optional URL; when set, button opens this link. When empty, no action.
+     * Create a new banner. Image optional; can add or change image on update.
+     * Fields: image (optional), title, description, button_text, button_link (single URL), priority, is_active.
      */
     public function store(Request $request)
     {
@@ -39,7 +39,7 @@ class BannerController extends Controller
         $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'button_link' => 'nullable|string|max:500',
             'button_text' => 'nullable|string|max:100',
             'priority' => 'nullable|integer|min:0',
@@ -49,12 +49,11 @@ class BannerController extends Controller
         $buttonLink = $request->input('button_link');
         $buttonLink = $buttonLink ? trim((string) $buttonLink) : null;
 
+        $imagePath = null;
         $imageFile = $this->getSingleImageFile($request, 'image');
-        if (! $imageFile || ! $imageFile->isValid()) {
-            return ApiResponse::error('Image is required and must be a valid image file. Send only one image.', 422);
+        if ($imageFile && $imageFile->isValid()) {
+            $imagePath = $imageFile->store('banners', 'public');
         }
-
-        $imagePath = $imageFile->store('banners', 'public');
 
         try {
             $banner = Banner::create([

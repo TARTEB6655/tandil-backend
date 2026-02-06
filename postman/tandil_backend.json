@@ -4,7 +4,7 @@
         "description": "Tandil API backend collection (aligned with app spec). All responses JSON.\n\nEnv: base_url, token (Bearer after Login), category_id, product_id, tip_id, banner_id.\n\nProducts: Create/Update (multipart): main_image (single or multiple — first = primary, rest in gallery_images), images[] = extra. Response: data.image, data.image_url, data.main_image, data.gallery_images (no duplication).\n\nCategories: Create and update with multipart/form-data only. Create: name (required), slug, description, image optional. Update: POST with form-data (name, slug, description, image file). Response: data.image, data.image_url. Optional: image_remove=true to clear image.\n\nTips: List (GET /api/tips), Create/Send (POST /api/tips: title, description), Get Details (GET /api/tips/{id}), Update (PUT /api/tips/{id}: title, description), Delete (DELETE /api/tips/{id}). Admin/supervisor for create, update, delete.\n\nAdmin Banners: Multipart only. Create/Update use single field button_link (optional URL for button). Fields: image (required on create), title, description, button_text, button_link, priority, is_active. List, Get, Update order, Toggle, Delete. Customer app: GET /api/banners returns id, title, description, button_text, image_url, action_value (button link), priority.\n\nFlow: Health → Login → List Categories → List Products → Get Product Details / Add / Update / Delete; Tips: List → Create/Send → Get / Update / Delete; Admin Banners: List → Create/Update/Reorder/Toggle/Delete.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.14.0"
+        "version": "2.15.0"
     },
     "item": [
         {
@@ -623,7 +623,7 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {"key": "image", "type": "file", "src": "", "description": "Banner image (required)"},
+                                {"key": "image", "type": "file", "src": "", "description": "Banner image (optional - can add on update)"},
                                 {"key": "title", "value": "Summer Sale", "description": "Optional title"},
                                 {"key": "description", "value": "Learn More", "description": "Subtitle / description for app slider"},
                                 {"key": "button_text", "value": "Learn More", "description": "CTA button label (e.g. Learn More, View)"},
@@ -637,7 +637,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "banners"]
                         },
-                        "description": "POST /api/admin/banners - Upload new banner. Multipart only: image (required), title, description, button_text, button_link (single optional URL for button), priority, is_active. No other URL fields. Response: 201, data (banner object)."
+                        "description": "POST /api/admin/banners - Create banner. Image optional (can add on update). Fields: image (optional), title, description, button_text, button_link (single optional URL), priority, is_active. Response: 201, data (banner object)."
                     }
                 },
                 {

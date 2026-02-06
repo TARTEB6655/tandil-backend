@@ -115,14 +115,23 @@ class BannerApiTest extends TestCase
 
     // --- Admin: Create ---
 
-    public function test_admin_banners_create_requires_image(): void
+    public function test_admin_banners_create_without_image_success(): void
     {
         $admin = $this->createAdmin();
         $response = $this->postJson('/api/admin/banners', [
             'title' => 'No Image',
+            'priority' => 0,
+            'is_active' => true,
         ], $this->authHeaders($admin));
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['image']);
+        $response->assertStatus(201);
+        $response->assertJsonPath('success', true);
+        $data = $response->json('data');
+        $this->assertArrayHasKey('id', $data);
+        $this->assertSame('No Image', $data['title']);
+        $this->assertNull($data['image']);
+        $banner = Banner::find($data['id']);
+        $this->assertNotNull($banner);
+        $this->assertNull($banner->image);
     }
 
     public function test_admin_banners_create_success(): void
