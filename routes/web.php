@@ -60,10 +60,18 @@ Route::get('/media/{path}', function (string $path) {
 
 // Redirect root '/' to login or dashboard redirect
 Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('dashboard.redirect');
+    try {
+        if (auth()->check()) {
+            return redirect()->route('dashboard.redirect');
+        }
+        return redirect()->route('login');
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('Root route error', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return redirect('/login');
     }
-    return redirect()->route('login');
 });
 
 // Alias route 'dashboard' that redirects to 'dashboard.redirect' (fix missing route errors)
@@ -73,23 +81,35 @@ Route::middleware('auth')->get('/dashboard', function () {
 
 // Role-based dashboard redirect route
 Route::middleware('auth')->get('/dashboard-redirect', function () {
-    $user = auth()->user();
-    switch ($user->role) {
-        case 'admin':
-            return redirect()->route('admin.dashboard');
-        case 'supervisor':
-            return redirect()->route('supervisor.dashboard');
-        case 'technician':
-            return redirect()->route('technician.dashboard');
-        case 'client':
-            return redirect()->route('client.dashboard');
-        case 'area_manager':
-            return redirect()->route('areamanager.dashboard');
-        case 'hr':
-            return redirect()->route('hr.dashboard');
-        default:
-            auth()->logout();
-            return redirect()->route('login');
+    try {
+        $user = auth()->user();
+        $role = $user->role ?? null;
+        if ($role === null && method_exists($user, 'getRoleNames')) {
+            $role = $user->getRoleNames()->first();
+        }
+        switch ($role) {
+            case 'admin':
+                return redirect()->route('admin.dashboard');
+            case 'supervisor':
+                return redirect()->route('supervisor.dashboard');
+            case 'technician':
+                return redirect()->route('technician.dashboard');
+            case 'client':
+                return redirect()->route('client.dashboard');
+            case 'area_manager':
+                return redirect()->route('areamanager.dashboard');
+            case 'hr':
+                return redirect()->route('hr.dashboard');
+            default:
+                auth()->logout();
+                return redirect()->route('login');
+        }
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('Dashboard redirect error', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return redirect('/login');
     }
 })->name('dashboard.redirect');
 

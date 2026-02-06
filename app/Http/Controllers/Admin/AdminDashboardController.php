@@ -37,8 +37,10 @@ class AdminDashboardController extends Controller
             return redirect()->route('admin.users.index', ['search' => $request->search])
                 ->with('info', 'Search results for: ' . $request->search);
         }
-        // Widget counts
-        $totalUsers = User::count();
+
+        try {
+            // Widget counts
+            $totalUsers = User::count();
         $totalTechnicians = User::where('role', 'technician')->count();
         $totalSupervisors = User::where('role', 'supervisor')->count();
         $activeSubscriptions = Subscription::where('payment_status', 'paid')
@@ -401,6 +403,15 @@ class AdminDashboardController extends Controller
             'stats',
             'timeRange'
         ));
+        } catch (\Throwable $e) {
+            Log::error('Admin dashboard index error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        }
     }
 
     /**
