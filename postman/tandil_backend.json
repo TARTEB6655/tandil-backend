@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits, etc. Use Bearer token for protected routes. Validation errors return message + errors.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.16.0"
+        "version": "2.17.0"
     },
     "item": [
         {
@@ -613,7 +613,28 @@
                     }
                 },
                 {
-                    "name": "Create Banner",
+                    "name": "Create Banner (no image)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Summer Sale\",\n  \"description\": \"Learn More\",\n  \"button_text\": \"Learn More\",\n  \"button_link\": \"https://example.com/promo\",\n  \"priority\": 0,\n  \"is_active\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/banners",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "banners"]
+                        },
+                        "description": "Create banner without image (no file field, no warning). Add image later via Update Banner. JSON body: title, description, button_text, button_link, priority, is_active. Response: 201, data (banner object)."
+                    }
+                },
+                {
+                    "name": "Create Banner (with image)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -623,13 +644,13 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {"key": "image", "type": "file", "src": "", "description": "Banner image (optional - can add on update)"},
-                                {"key": "title", "value": "Summer Sale", "description": "Optional title"},
-                                {"key": "description", "value": "Learn More", "description": "Subtitle / description for app slider"},
-                                {"key": "button_text", "value": "Learn More", "description": "CTA button label (e.g. Learn More, View)"},
-                                {"key": "button_link", "value": "https://example.com/promo", "description": "Single URL for button (optional). Leave empty for no link."},
-                                {"key": "priority", "value": "0", "description": "Display order (lower = first)"},
-                                {"key": "is_active", "value": "1", "description": "1 = active, 0 = inactive"}
+                                {"key": "image", "type": "file", "src": "", "description": "Optional. Use 1 file only. Leave empty to create without image."},
+                                {"key": "title", "value": "Summer Sale"},
+                                {"key": "description", "value": "Learn More"},
+                                {"key": "button_text", "value": "Learn More"},
+                                {"key": "button_link", "value": "https://example.com/promo"},
+                                {"key": "priority", "value": "0"},
+                                {"key": "is_active", "value": "1"}
                             ]
                         },
                         "url": {
@@ -637,7 +658,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "banners"]
                         },
-                        "description": "POST /api/admin/banners - Create banner. Image optional (can add on update). Fields: image (optional), title, description, button_text, button_link (single optional URL), priority, is_active. Response: 201, data (banner object)."
+                        "description": "Create banner with optional image (form-data). Image: leave empty for no image, or select 1 file only. Add/change image later via Update Banner. Response: 201, data (banner object)."
                     }
                 },
                 {
@@ -667,11 +688,11 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {"key": "image", "type": "file", "src": "", "description": "Optional - replace image"},
+                                {"key": "image", "type": "file", "src": "", "description": "Optional. Use 1 file only. Add or replace image."},
                                 {"key": "title", "value": "Updated Title"},
                                 {"key": "description", "value": "Updated description"},
                                 {"key": "button_text", "value": "View"},
-                                {"key": "button_link", "value": "https://example.com/updated", "description": "Single URL for button (optional)"},
+                                {"key": "button_link", "value": "https://example.com/updated"},
                                 {"key": "priority", "value": "1"},
                                 {"key": "is_active", "value": "1"}
                             ]
@@ -681,7 +702,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "banners", "{{banner_id}}"]
                         },
-                        "description": "POST /api/admin/banners/{id} - Update banner (multipart). Optional: image, title, description, button_text, button_link (single URL), priority, is_active. Send only fields to change."
+                        "description": "Update banner. Image optional (add or replace). Send only fields to change. Create without image then add image here later."
                     }
                 },
                 {
@@ -738,7 +759,7 @@
                     }
                 }
             ],
-            "description": "Admin only. Create: image optional (form-data or JSON). Update: multipart, image optional. Fields: title, description, button_text, button_link (single URL), priority, is_active. List, Get, Update order, Toggle, Delete. API returns proper error message + errors when validation fails. Customer: GET /api/banners."
+            "description": "Admin only. Create without image: use 'Create Banner (no image)' JSON request. Create with image: use 'Create Banner (with image)' (1 file only). Update: add or change image anytime. No warnings when using the no-image create. Customer: GET /api/banners."
         },
         {
             "name": "6. Visits",

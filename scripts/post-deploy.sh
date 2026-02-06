@@ -6,6 +6,9 @@
 set -e
 cd "$(dirname "$0")/.."
 
+echo "Running migrations..."
+php artisan migrate --force
+
 echo "Clearing caches..."
 php artisan optimize:clear
 
