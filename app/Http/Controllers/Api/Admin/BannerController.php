@@ -30,6 +30,11 @@ class BannerController extends Controller
      */
     public function store(Request $request)
     {
+        $isMultipart = str_contains($request->header('Content-Type', ''), 'multipart/form-data');
+        if ($isMultipart) {
+            $this->parseMultipartIntoRequest($request);
+        }
+
         $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
@@ -41,21 +46,33 @@ class BannerController extends Controller
         ]);
 
         $buttonLink = $request->input('button_link');
-        $buttonLink = $buttonLink ? trim($buttonLink) : null;
+        $buttonLink = $buttonLink ? trim((string) $buttonLink) : null;
+
+        if (! $request->hasFile('image') || ! $request->file('image')->isValid()) {
+            return ApiResponse::error('Image is required and must be a valid image file.', 422);
+        }
 
         $imagePath = $request->file('image')->store('banners', 'public');
 
-        $banner = Banner::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'image' => $imagePath,
-            'link' => $buttonLink,
-            'action_type' => $buttonLink ? 'link' : 'none',
-            'action_value' => $buttonLink,
-            'button_text' => $request->button_text,
-            'priority' => (int) ($request->priority ?? 0),
-            'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : true,
-        ]);
+        try {
+            $banner = Banner::create([
+                'title' => $request->input('title'),
+                'description' => $request->input('description'),
+                'image' => $imagePath,
+                'link' => $buttonLink,
+                'action_type' => $buttonLink ? 'link' : 'none',
+                'action_value' => $buttonLink,
+                'button_text' => $request->input('button_text'),
+                'priority' => (int) ($request->input('priority') ?? 0),
+                'is_active' => $request->has('is_active') ? filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) : true,
+            ]);
+        } catch (\Throwable $e) {
+            if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                Storage::disk('public')->delete($imagePath);
+            }
+            Log::error('Banner create failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            throw $e;
+        }
 
         return ApiResponse::success('Banner created successfully.', $this->bannerToArray($banner), 201);
     }
