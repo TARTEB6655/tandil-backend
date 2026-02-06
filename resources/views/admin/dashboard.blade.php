@@ -29,6 +29,11 @@
             <a href="#recent-tips" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Recent Tips</a>
             <a href="{{ route('admin.tips.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Manage Tips</a>
             <a href="{{ route('admin.banners.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Manage Banners</a>
+            <a href="{{ route('admin.packages.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Manage Packages</a>
+            <a href="#manage-services" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Manage Services</a>
+            <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Categories</a>
+            <a href="{{ route('admin.products.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Products</a>
+            <a href="#orders-export-supplier" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Orders Export & Supplier</a>
             <a href="{{ route('admin.report-management.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Report Management</a>
             <a href="#recent-activities" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Recent Activities</a>
         </div>
@@ -128,6 +133,42 @@
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/30">
                         <svg class="w-5 h-5 md:w-6 md:h-6 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Packages card (Customer Home Page: Combined, Fruit, Vegetable) -->
+        <a href="{{ route('admin.packages.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-orange-300 dark:hover:border-orange-600">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Packages</p>
+                    <p class="text-lg font-medium text-orange-600 dark:text-orange-400">{{ number_format($totalPackages ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Set price & image · View orders</p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Manage Services (Categories & Products) card -->
+        <a href="#manage-services" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-teal-300 dark:hover:border-teal-600">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Manage Services</p>
+                    <p class="text-lg font-medium text-teal-600 dark:text-teal-400">Categories & Products</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Add service categories & services</p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-900/30">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                     </div>
                 </div>
@@ -460,6 +501,62 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Services (Categories & Products) -->
+    <div id="manage-services" class="scroll-mt-24 mb-6 md:mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Manage Services</h2>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div class="p-5 md:p-6">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Add and edit service categories (e.g. Watering, Planting, Cleaning) and the services (products) under each category. Clients see these on the Services page.</p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                        Categories (service categories)
+                    </a>
+                    <a href="{{ route('admin.products.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        Products (services under categories)
+                    </a>
+                    <a href="{{ route('admin.categories.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-600 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors">
+                        Add Category
+                    </a>
+                    <a href="{{ route('admin.products.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Add Product
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Export & Send to Supplier -->
+    <div id="orders-export-supplier" class="scroll-mt-24 mb-6 md:mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Orders Export & Send to Supplier</h2>
+            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">Orders page →</a>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div class="p-5 md:p-6">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Export orders to CSV or Excel, or email the export to your supplier. Use filters (date range, package) on the Orders page.</p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <a href="{{ route('admin.orders.export', ['format' => 'csv']) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Download CSV
+                    </a>
+                    <a href="{{ route('admin.orders.export', ['format' => 'xlsx']) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Download Excel
+                    </a>
+                    <a href="{{ route('admin.orders.index') }}#send-supplier" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        Send to supplier
+                    </a>
+                </div>
+                <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">Scheduled daily send runs at 07:00 (last 7 days). Configure MAIL_SUPPLIER_EMAIL in .env.</p>
             </div>
         </div>
     </div>

@@ -84,6 +84,14 @@
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        <div class="flex items-center gap-3 pt-2">
+                            <input type="hidden" name="is_active" value="0">
+                            <input type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $category->is_active ?? true) ? 'checked' : '' }}
+                                   class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                            <label for="is_active" class="text-sm font-medium text-gray-700 dark:text-gray-300">Available in app</label>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 -mt-1">When unchecked, the app shows this category as &quot;Coming Soon&quot;.</p>
                     </div>
                 </div>
 

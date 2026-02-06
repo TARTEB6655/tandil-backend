@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\HrController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Admin\NotificationController;
 
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
@@ -153,6 +154,8 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
         
         Route::resource('areas', AreaController::class);
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
+        Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
+        Route::post('orders/send-to-supplier', [OrderController::class, 'sendToSupplier'])->name('orders.send-to-supplier');
         Route::post('orders/{id}/update-status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::post('orders/{id}/mark-paid', [OrderController::class, 'markPaid'])->name('orders.mark-paid');
         Route::post('orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
@@ -200,6 +203,8 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
         Route::post('settings/email-templates/{id}', [SettingController::class, 'updateEmailTemplate'])->name('settings.email-template.update');
         Route::post('settings/security', [SettingController::class, 'updateSecuritySettings'])->name('settings.security');
         Route::post('settings/integrations', [SettingController::class, 'updateIntegrationsSettings'])->name('settings.integrations');
+        Route::get('settings/client-dashboard', [SettingController::class, 'clientDashboardDesign'])->name('settings.client-dashboard');
+        Route::post('settings/client-dashboard', [SettingController::class, 'updateClientDashboardDesign'])->name('settings.client-dashboard.store');
         
         Route::resource('audit-logs', AuditLogController::class)->only(['index', 'show']);
         
@@ -207,6 +212,9 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
         Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
         Route::resource('banners', BannerController::class);
+        Route::get('packages', [PackageController::class, 'index'])->name('packages.index');
+        Route::get('packages/{id}/edit', [PackageController::class, 'edit'])->name('packages.edit');
+        Route::put('packages/{id}', [PackageController::class, 'update'])->name('packages.update');
         Route::resource('tips', TipController::class);
         Route::post('tips/{id}/toggle-status', [TipController::class, 'toggleStatus'])->name('tips.toggle-status');
         
@@ -327,6 +335,10 @@ Route::middleware(['auth', 'role:client'])
         // Orders
         Route::get('/orders', [\App\Http\Controllers\Client\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{id}', [\App\Http\Controllers\Client\OrderController::class, 'show'])->name('orders.show');
+
+        // Services (place service orders – categories with products)
+        Route::get('/services', [\App\Http\Controllers\Client\ServiceController::class, 'index'])->name('services.index');
+        Route::get('/services/category/{id}', [\App\Http\Controllers\Client\ServiceController::class, 'showCategory'])->name('services.category');
         
         // Complaints
         Route::get('/complaints', [\App\Http\Controllers\Client\ComplaintController::class, 'index'])->name('complaints.index');

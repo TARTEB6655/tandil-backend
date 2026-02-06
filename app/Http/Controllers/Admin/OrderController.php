@@ -5,7 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Package;
+use App\Services\OrderExportService;
+use App\Services\SimpleXlsxWriter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderController extends Controller
 {
@@ -62,7 +67,88 @@ class OrderController extends Controller
             'archived' => Order::where('order_status', 'cancelled')->count(),
         ];
 
-        return view('admin.orders.index', compact('orders', 'stats', 'filter'));
+        $packages = Package::orderBy('sort_order')->get(['id', 'name']);
+
+        return view('admin.orders.index', compact('orders', 'stats', 'filter', 'packages'));
+    }
+
+    /**
+     * Export orders to CSV or Excel (web download). Query: date_from, date_to, order_status, payment_status, package_id, format=csv|xlsx.
+     */
+    public function export(Request $request, OrderExportService $exportService, SimpleXlsxWriter $xlsxWriter): StreamedResponse|\Illuminate\Http\Response
+    {
+        $filters = $exportService->filtersFromRequest($request);
+        $query = $exportService->getQuery($filters);
+        $format = strtolower($request->input('format', 'csv'));
+
+        if ($format === 'xlsx') {
+            $rows = $exportService->buildRows($query);
+            $filename = 'orders_' . now()->format('Y-m-d_His') . '.xlsx';
+            $content = $xlsxWriter->generate($rows);
+
+            return response($content, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
+        }
+
+        $filename = 'orders_' . now()->format('Y-m-d_His') . '.csv';
+
+        return response()->streamDownload(function () use ($exportService, $query) {
+            $rows = $exportService->buildRows($query);
+            $handle = fopen('php://output', 'w');
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Send orders export to supplier by email (web form POST).
+     */
+    public function sendToSupplier(Request $request, OrderExportService $exportService)
+    {
+        $request->validate([
+            'email' => 'nullable|email',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'package_id' => 'nullable|integer|exists:packages,id',
+        ]);
+
+        $filters = $exportService->filtersFromRequest($request);
+        $query = $exportService->getQuery($filters);
+        $rows = $exportService->buildRows($query);
+
+        $out = fopen('php://temp', 'r+');
+        foreach ($rows as $row) {
+            fputcsv($out, $row);
+        }
+        rewind($out);
+        $csv = stream_get_contents($out);
+        fclose($out);
+
+        $filename = 'orders_' . now()->format('Y-m-d_His') . '.csv';
+        $to = $request->input('email') ?: config('mail.supplier_email', config('mail.from.address'));
+
+        if (empty($to)) {
+            return redirect()->back()->with('error', 'No supplier email configured. Set MAIL_SUPPLIER_EMAIL in .env or enter an email below.');
+        }
+
+        try {
+            Mail::raw('Please find the orders export attached.', function ($message) use ($to, $filename, $csv) {
+                $message->to($to)
+                    ->subject('Orders Export - ' . now()->format('Y-m-d H:i'))
+                    ->attachData($csv, $filename, ['mime' => 'text/csv']);
+            });
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Failed to send email: ' . $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Orders export sent to ' . $to . '.');
     }
 
     public function show($id)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Visit;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\ParsesMultipartPhoto;
 use Illuminate\Http\Request;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
 {
+    use ParsesMultipartPhoto;
+
     public function __construct()
     {
         $this->middleware('auth:sanctum');
@@ -208,7 +211,9 @@ class VisitController extends Controller
     }
 
     /**
-     * Upload a photo (admin, assigned technician, or client for own visits)
+     * Upload a photo (admin, assigned technician, or client for own visits).
+     * Supports POST and PUT with multipart/form-data (same as category image update) so image upload works
+     * when PHP does not populate $_FILES (e.g. PUT requests or some proxies). Field name: "photo"; optional: "type" (before|after).
      */
     public function uploadPhoto(Request $request, $id)
     {
@@ -236,6 +241,12 @@ class VisitController extends Controller
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
+        // Parse multipart body for PUT/POST so "photo" file is available (same as category image update)
+        $contentType = $request->header('Content-Type', '');
+        if (str_contains($contentType, 'multipart/form-data') && ($request->isMethod('PUT') || $request->isMethod('POST'))) {
+            $this->parseMultipartIntoRequest($request, 'photo');
+        }
+
         // Validation
         $validator = Validator::make($request->all(), [
             'photo' => 'required|image|max:5120',
@@ -260,7 +271,12 @@ class VisitController extends Controller
             'photo_path' => $path,
         ]);
 
-        return response()->json(['status' => true, 'data' => $photo], 201);
+        // Response shape aligned with category image update: include photo_url for client use
+        $photoUrl = $path ? (request()->getSchemeAndHttpHost() ? rtrim(request()->getSchemeAndHttpHost(), '/') . '/storage/' . $path : asset('storage/' . $path)) : null;
+        $data = $photo->toArray();
+        $data['photo_url'] = $photoUrl;
+
+        return response()->json(['status' => true, 'data' => $data], 201);
     }
 
     /**

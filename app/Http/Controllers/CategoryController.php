@@ -141,6 +141,7 @@ class CategoryController extends Controller
     private function categoryToApiData(Category $category, ?string $imagePathOverride = null): array
     {
         $imagePath = $imagePathOverride !== null ? $imagePathOverride : $category->image;
+        $isActive = isset($category->is_active) ? (bool) $category->is_active : true;
         return [
             'id' => $category->id,
             'name' => $category->name,
@@ -148,6 +149,8 @@ class CategoryController extends Controller
             'description' => $category->description,
             'image' => $imagePath,
             'image_url' => $this->buildCategoryImageUrl($imagePath),
+            'is_active' => $isActive,
+            'coming_soon' => ! $isActive,
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
         ];
@@ -305,8 +308,14 @@ class CategoryController extends Controller
         $request->validate($request->rules());
         $fillable = array_flip($category->getFillable());
         $updateData = [];
-        foreach (['name', 'slug', 'description'] as $key) {
+        foreach (['name', 'slug', 'description', 'is_active'] as $key) {
             if (! array_key_exists($key, $fillable)) {
+                continue;
+            }
+            if ($key === 'is_active') {
+                if ($request->has($key)) {
+                    $updateData[$key] = $request->boolean($key);
+                }
                 continue;
             }
             $value = $request->input($key) ?? $request->request->get($key);

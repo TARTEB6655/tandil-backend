@@ -389,4 +389,67 @@ class SettingController extends Controller
 
         return redirect()->back()->with('success', 'Integrations settings updated successfully.');
     }
+
+    /**
+     * Client (Customer) Dashboard Design – control what customers see on their dashboard.
+     * Admin can set title, subtitle, and toggle each section visibility.
+     */
+    public function clientDashboardDesign()
+    {
+        $title = Setting::get('client_dashboard_title', 'My Dashboard');
+        $subtitle = Setting::get('client_dashboard_subtitle', "Welcome back! Here's an overview of your subscriptions, visits, and orders.");
+        $showBanners = (Setting::get('client_dashboard_show_banners', '1') === '1');
+        $showMetrics = (Setting::get('client_dashboard_show_metrics', '1') === '1');
+        $showSecondaryMetrics = (Setting::get('client_dashboard_show_secondary_metrics', '1') === '1');
+        $showCharts = (Setting::get('client_dashboard_show_charts', '1') === '1');
+        $showRecentSubscriptions = (Setting::get('client_dashboard_show_recent_subscriptions', '1') === '1');
+        $showRecentVisits = (Setting::get('client_dashboard_show_recent_visits', '1') === '1');
+        $showRecentReports = (Setting::get('client_dashboard_show_recent_reports', '1') === '1');
+        $showRecentOrders = (Setting::get('client_dashboard_show_recent_orders', '1') === '1');
+        $showRecentComplaints = (Setting::get('client_dashboard_show_recent_complaints', '1') === '1');
+
+        return view('admin.settings.client-dashboard', compact(
+            'title', 'subtitle',
+            'showBanners', 'showMetrics', 'showSecondaryMetrics', 'showCharts',
+            'showRecentSubscriptions', 'showRecentVisits', 'showRecentReports',
+            'showRecentOrders', 'showRecentComplaints'
+        ));
+    }
+
+    public function updateClientDashboardDesign(Request $request)
+    {
+        $request->validate([
+            'client_dashboard_title' => 'nullable|string|max:255',
+            'client_dashboard_subtitle' => 'nullable|string|max:500',
+            'client_dashboard_show_banners' => 'nullable|boolean',
+            'client_dashboard_show_metrics' => 'nullable|boolean',
+            'client_dashboard_show_secondary_metrics' => 'nullable|boolean',
+            'client_dashboard_show_charts' => 'nullable|boolean',
+            'client_dashboard_show_recent_subscriptions' => 'nullable|boolean',
+            'client_dashboard_show_recent_visits' => 'nullable|boolean',
+            'client_dashboard_show_recent_reports' => 'nullable|boolean',
+            'client_dashboard_show_recent_orders' => 'nullable|boolean',
+            'client_dashboard_show_recent_complaints' => 'nullable|boolean',
+        ]);
+
+        $keys = [
+            'client_dashboard_title' => $request->input('client_dashboard_title', 'My Dashboard'),
+            'client_dashboard_subtitle' => $request->input('client_dashboard_subtitle', "Welcome back! Here's an overview of your subscriptions, visits, and orders."),
+            'client_dashboard_show_banners' => $request->boolean('client_dashboard_show_banners') ? '1' : '0',
+            'client_dashboard_show_metrics' => $request->boolean('client_dashboard_show_metrics') ? '1' : '0',
+            'client_dashboard_show_secondary_metrics' => $request->boolean('client_dashboard_show_secondary_metrics') ? '1' : '0',
+            'client_dashboard_show_charts' => $request->boolean('client_dashboard_show_charts') ? '1' : '0',
+            'client_dashboard_show_recent_subscriptions' => $request->boolean('client_dashboard_show_recent_subscriptions') ? '1' : '0',
+            'client_dashboard_show_recent_visits' => $request->boolean('client_dashboard_show_recent_visits') ? '1' : '0',
+            'client_dashboard_show_recent_reports' => $request->boolean('client_dashboard_show_recent_reports') ? '1' : '0',
+            'client_dashboard_show_recent_orders' => $request->boolean('client_dashboard_show_recent_orders') ? '1' : '0',
+            'client_dashboard_show_recent_complaints' => $request->boolean('client_dashboard_show_recent_complaints') ? '1' : '0',
+        ];
+
+        foreach ($keys as $key => $value) {
+            Setting::set($key, $value, 'text', 'client_dashboard');
+        }
+
+        return redirect()->route('admin.settings.client-dashboard')->with('success', 'Customer dashboard design updated. Customers will see the new layout on their next visit.');
+    }
 }

@@ -13,6 +13,7 @@ class CategoryController extends Controller
      */
     private function categoryToApiData(Category $category, array $extra = []): array
     {
+        $isActive = isset($category->is_active) ? (bool) $category->is_active : true;
         return array_merge([
             'id' => $category->id,
             'name' => $category->name,
@@ -20,6 +21,8 @@ class CategoryController extends Controller
             'description' => $category->description,
             'image' => $category->image,
             'image_url' => $category->image_url,
+            'is_active' => $isActive,
+            'coming_soon' => ! $isActive,
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
         ], $extra);

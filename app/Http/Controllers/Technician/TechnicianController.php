@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Technician;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\UploadVisitPhotoRequest;
+use App\Http\Controllers\Traits\ParsesMultipartPhoto;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
 use App\Models\Complaint;
@@ -16,6 +16,7 @@ use App\Notifications\VisitAssignedNotification;
 
 class TechnicianController extends Controller
 {
+    use ParsesMultipartPhoto;
     public function __construct()
     {
         // Middleware is handled in routes, but we can add auth here for safety
@@ -182,7 +183,11 @@ class TechnicianController extends Controller
         return response()->json(['status' => true, 'data' => $visit], 200);
     }
 
-    public function uploadPhoto(UploadVisitPhotoRequest $request, $id)
+    /**
+     * Upload a maintenance/visit photo. Supports POST and PUT with multipart/form-data (same as category image update).
+     * Field name: "photo"; optional: "type" (before|during|after).
+     */
+    public function uploadPhoto(Request $request, $id)
     {
         $visit = Visit::find($id);
         if (! $visit) {
@@ -190,6 +195,24 @@ class TechnicianController extends Controller
         }
         if ($visit->technician_id !== $request->user()->id) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        // Parse multipart for PUT/POST so "photo" file is available (same as category image update)
+        $contentType = $request->header('Content-Type', '');
+        if (str_contains($contentType, 'multipart/form-data') && ($request->isMethod('PUT') || $request->isMethod('POST'))) {
+            $this->parseMultipartIntoRequest($request, 'photo');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'type' => 'nullable|string|in:before,during,after',
+        ], [
+            'photo.required' => 'Please select an image file to upload.',
+            'photo.image' => 'The uploaded file must be an image.',
+            'photo.max' => 'The image size must not exceed 5MB.',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
         }
 
         $file = $request->file('photo');
@@ -202,7 +225,12 @@ class TechnicianController extends Controller
             'type' => $type,
         ]);
 
-        return response()->json(['status' => true, 'data' => $vp], 201);
+        // Response shape aligned with category image update: include photo_url
+        $photoUrl = $path ? (request()->getSchemeAndHttpHost() ? rtrim(request()->getSchemeAndHttpHost(), '/') . '/storage/' . $path : asset('storage/' . $path)) : null;
+        $data = $vp->toArray();
+        $data['photo_url'] = $photoUrl;
+
+        return response()->json(['status' => true, 'data' => $data], 201);
     }
 
     // List complaints related to technician's visits

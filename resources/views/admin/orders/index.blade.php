@@ -1,40 +1,109 @@
 <x-admin-layout>
-    <div class="space-y-6">
+    <div class="space-y-6" x-data="{ sendModal: false }" x-init="if (window.location.hash === '#send-supplier') sendModal = true">
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <h1 class="text-xl font-medium text-gray-900">Orders: All locations</h1>
+            <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">Orders: All locations</h1>
             <div class="flex items-center gap-3 flex-wrap">
-                <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                    Export
-                </button>
                 <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" 
-                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                        More actions
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
+                    <button @click="open = !open"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Export
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
-                    <div x-show="open" @click.away="open = false" x-cloak
-                         class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
-                        <div class="py-1">
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bulk print</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export selected</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Archive orders</a>
-                        </div>
+                    <div x-show="open" @click.away="open = false" x-cloak x-transition
+                         class="absolute left-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 border border-gray-200 dark:border-gray-600 py-1">
+                        <a href="{{ route('admin.orders.export', ['format' => 'csv']) }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <span>Download CSV</span>
+                        </a>
+                        <a href="{{ route('admin.orders.export', ['format' => 'xlsx']) }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <span>Download Excel</span>
+                        </a>
                     </div>
                 </div>
-                <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors">
-                    Create order
+                <button @click="sendModal = true"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    Send to supplier
                 </button>
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        More actions
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div x-show="open" @click.away="open = false" x-cloak
+                         class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-600 py-1">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Bulk print</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Archive orders</a>
+                    </div>
+                </div>
             </div>
         </div>
 
         @if(session('success'))
-            <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-md">
-                <p class="text-sm text-green-700">{{ session('success') }}</p>
+            <div class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 flex items-center gap-3">
+                <svg class="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <p class="text-sm text-green-800 dark:text-green-200">{{ session('success') }}</p>
             </div>
         @endif
+        @if(session('error'))
+            <div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 flex items-center gap-3">
+                <svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <p class="text-sm text-red-800 dark:text-red-200">{{ session('error') }}</p>
+            </div>
+        @endif
+
+        <!-- Send to supplier modal -->
+        <div x-show="sendModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div x-show="sendModal" x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                     class="fixed inset-0 bg-black/50 dark:bg-black/70" @click="sendModal = false"></div>
+                <div x-show="sendModal" x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                     class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Send orders to supplier</h3>
+                        <button @click="sendModal = false" class="p-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Export orders as CSV and email to the supplier. Leave dates empty for all orders.</p>
+                    <form action="{{ route('admin.orders.send-to-supplier') }}" method="POST" class="space-y-4">
+                        @csrf
+                        <div>
+                            <label for="send_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplier email</label>
+                            <input type="email" id="send_email" name="email" value="{{ config('mail.supplier_email') }}"
+                                   placeholder="supplier@example.com"
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave empty to use default (MAIL_SUPPLIER_EMAIL)</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From date</label>
+                                <input type="date" id="date_from" name="date_from" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                            </div>
+                            <div>
+                                <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To date</label>
+                                <input type="date" id="date_to" name="date_to" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="package_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Package (optional)</label>
+                            <select id="package_id" name="package_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                                <option value="">All packages</option>
+                                @foreach($packages ?? [] as $pkg)
+                                    <option value="{{ $pkg->id }}">{{ $pkg->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button type="button" @click="sendModal = false" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">Cancel</button>
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Send email</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         <!-- Filter Tabs -->
         <div class="bg-white rounded-lg border border-gray-200">

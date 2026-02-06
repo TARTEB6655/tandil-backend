@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Package;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\AdminNotification;
@@ -19,33 +20,44 @@ class OrderController extends Controller
         $this->paypal = $paypal;
     }
 
-    // Create order (simple) and return payment approval url
+    // Create order (simple) and return payment approval url. Supports package_id (package order) or items (product order).
     public function checkout(Request $request)
     {
         $user = $request->user();
-        $items = $request->input('items', []); // array of {product_id, qty}
+        $packageId = $request->input('package_id');
+        $items = $request->input('items', []);
 
-        // Minimal order creation; compute total on server side in production
         $total = (float) $request->input('total_amount', 0);
-
-        $order = Order::create([
+        $orderData = [
             'user_id' => $user->id,
             'total_amount' => $total,
             'order_status' => 'processing',
             'payment_status' => 'pending',
-        ]);
+        ];
 
-        // Create order items
-        foreach ($items as $item) {
-            $product = Product::find($item['product_id'] ?? null);
-            if ($product) {
-                \App\Models\OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'quantity' => $item['qty'] ?? 1,
-                    'price' => $product->price,
-                    'subtotal' => $product->price * ($item['qty'] ?? 1),
-                ]);
+        if ($packageId) {
+            $package = Package::where('id', $packageId)->where('is_active', true)->first();
+            if ($package) {
+                $orderData['package_id'] = $package->id;
+                $orderData['total_amount'] = (float) $package->price;
+                $total = $orderData['total_amount'];
+            }
+        }
+
+        $order = Order::create($orderData);
+
+        if (! isset($orderData['package_id'])) {
+            foreach ($items as $item) {
+                $product = Product::find($item['product_id'] ?? null);
+                if ($product) {
+                    \App\Models\OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'quantity' => $item['qty'] ?? 1,
+                        'price' => $product->price,
+                        'subtotal' => $product->price * ($item['qty'] ?? 1),
+                    ]);
+                }
             }
         }
 

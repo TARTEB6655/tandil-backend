@@ -15,6 +15,8 @@ class Kernel extends ConsoleKernel
         $schedule->job(new SendVisitReminders(2))->dailyAt('08:00');
         // Run tips job weekly on Mondays at 09:00
         $schedule->job(new SendTips())->weeklyOn(1, '09:00');
+        // Send orders export to supplier daily at 07:00 (last 7 days)
+        $schedule->command('orders:send-to-supplier', ['--days' => 7])->dailyAt('07:00');
     }
 
     protected function commands()

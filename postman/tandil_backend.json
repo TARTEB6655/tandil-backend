@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits, etc. Use Bearer token for protected routes. Validation errors return message + errors.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, order_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin. Use Bearer token for protected routes. Image/photo uploads: use multipart/form-data with POST or PUT (same flow as category image update). Validation errors return message + errors.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.17.0"
+        "version": "2.18.0"
     },
     "item": [
         {
@@ -741,6 +741,136 @@
             "description": "Admin only. Create Banner: one request; leave image empty to create without image, or attach 1 file. Update Banner: add or change image anytime. Customer: GET /api/banners."
         },
         {
+            "name": "5c. Packages (Customer Home)",
+            "item": [
+                {
+                    "name": "List Packages",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "url": {
+                            "raw": "{{base_url}}/api/packages",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "packages"]
+                        },
+                        "description": "GET /api/packages - List active packages for customer home (Combined, Fruit Basket, Vegetable). Public, no auth. Response: data array with id, name, type, price, image_url, description."
+                    }
+                }
+            ],
+            "description": "Customer home page packages. Public endpoint."
+        },
+        {
+            "name": "5d. Admin - Packages",
+            "item": [
+                {
+                    "name": "List Packages (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/packages",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "packages"]
+                        },
+                        "description": "GET /api/admin/packages - List all packages with orders_count per package. Auth: Bearer token."
+                    }
+                },
+                {
+                    "name": "Create Package",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Combined Package\",\n  \"type\": \"combined\",\n  \"price\": 99.99,\n  \"description\": \"Fruit + Vegetable Basket\",\n  \"is_active\": true,\n  \"sort_order\": 0\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/packages",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "packages"]
+                        },
+                        "description": "POST /api/admin/packages - Create package. type: combined|fruit|vegetable. Image optional via multipart."
+                    }
+                },
+                {
+                    "name": "Update Package",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"price\": 89.99,\n  \"is_active\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/packages/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "packages", "1"]
+                        },
+                        "description": "PUT /api/admin/packages/{id} - Update price, image, name, etc. View orders_count in list/show."
+                    }
+                }
+            ],
+            "description": "Admin: set/update package price and image; view orders count per package."
+        },
+        {
+            "name": "5e. Admin - Orders Export",
+            "item": [
+                {
+                    "name": "Export Orders (CSV)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/orders/export?date_from=2026-01-01&date_to=2026-12-31",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "orders", "export"],
+                            "query": [
+                                {"key": "date_from", "value": "2026-01-01"},
+                                {"key": "date_to", "value": "2026-12-31"}
+                            ]
+                        },
+                        "description": "GET /api/admin/orders/export - Download orders as CSV (Excel-compatible). Query: date_from, date_to, order_status, payment_status. Auth: Bearer."
+                    }
+                },
+                {
+                    "name": "Send Orders to Supplier",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"supplier@example.com\",\n  \"date_from\": \"2026-01-01\",\n  \"date_to\": \"2026-12-31\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/orders/send-to-supplier",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "orders", "send-to-supplier"]
+                        },
+                        "description": "POST /api/admin/orders/send-to-supplier - Email CSV export to supplier. Body: email (optional), date_from, date_to."
+                    }
+                }
+            ],
+            "description": "Admin: export orders to Excel (CSV); send export by email to supplier (manual or use cron for automatic)."
+        },
+        {
             "name": "6. Visits",
             "item": [
                 {
@@ -894,6 +1024,10 @@
                             {
                                 "key": "Authorization",
                                 "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
                         ],
                         "body": {
@@ -902,12 +1036,14 @@
                                 {
                                     "key": "photo",
                                     "type": "file",
-                                    "src": []
+                                    "src": [],
+                                    "description": "Image file (required). Same as category image: POST or PUT with multipart."
                                 },
                                 {
                                     "key": "type",
                                     "value": "before",
-                                    "type": "text"
+                                    "type": "text",
+                                    "description": "Optional: before | after"
                                 }
                             ]
                         },
@@ -923,7 +1059,7 @@
                                 "upload-photo"
                             ]
                         },
-                        "description": "Upload before/after photo for visit (technician/admin only)"
+                        "description": "Upload maintenance/visit photo. POST or PUT with multipart/form-data (same as category image update). Body: photo (file, required), type (optional: before|after). Auth: admin, assigned technician, or client (own visit). Response: status, data (id, visit_id, type, photo_path, photo_url, created_at). Set visit_id in env."
                     }
                 }
             ],
@@ -1773,6 +1909,54 @@
             "description": "Shop and e-commerce - Browse products, manage cart, place orders, view categories and payments"
         },
         {
+            "name": "8b. Maintenance Photos",
+            "item": [
+                {
+                    "name": "List Maintenance Photos",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/maintenance-photos?per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "maintenance-photos"],
+                            "query": [
+                                {"key": "per_page", "value": "20"},
+                                {"key": "visit_id", "value": "", "disabled": true}
+                            ]
+                        },
+                        "description": "List maintenance photos for the authenticated client (from their visits). Optional: per_page (1-100), visit_id to filter by one visit. Response: data[].id, photo_url, type, visit_id, visit (scheduled_date, status) for \"View Order\" link."
+                    }
+                },
+                {
+                    "name": "Get Maintenance Photos by Visit",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/maintenance-photos/visit/{{visit_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "maintenance-photos", "visit", "{{visit_id}}"]
+                        },
+                        "description": "Get all maintenance photos for a specific visit. Client must own the visit. Response: visit (summary), photos[] with id, photo_url, type, created_at."
+                    }
+                }
+            ],
+            "description": "Client app Home screen – Maintenance Photos section. Photos from service visits (uploaded by technicians). Auth: Bearer token (client role). Use visit_id from list or from Visits API for \"View Order\"."
+        },
+        {
             "name": "9. Technician & Supervisor Routes",
             "item": [
                 {
@@ -1909,6 +2093,10 @@
                             {
                                 "key": "Authorization",
                                 "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
                         ],
                         "body": {
@@ -1917,12 +2105,14 @@
                                 {
                                     "key": "photo",
                                     "type": "file",
-                                    "src": []
+                                    "src": [],
+                                    "description": "Image file (required). POST or PUT with multipart (same as category)."
                                 },
                                 {
                                     "key": "type",
                                     "value": "after",
-                                    "type": "text"
+                                    "type": "text",
+                                    "description": "Optional: before | during | after"
                                 }
                             ]
                         },
@@ -1939,7 +2129,7 @@
                                 "photos"
                             ]
                         },
-                        "description": "Upload before/after photo for visit"
+                        "description": "Upload maintenance/visit photo. POST or PUT with multipart/form-data (same as category image update). Body: photo (file), type (optional: before|during|after). Response: status, data (id, visit_id, type, photo_path, photo_url, created_at). Set visit_id."
                     }
                 },
                 {
@@ -4515,11 +4705,12 @@
                                 {"key": "name", "value": "Updated Category Name", "type": "text"},
                                 {"key": "slug", "value": "updated-slug", "type": "text"},
                                 {"key": "description", "value": "Updated description", "type": "text"},
-                                {"key": "image", "type": "file", "src": [], "description": "Select file to replace category image."}
+                                {"key": "image", "type": "file", "src": [], "description": "Select file to replace category image."},
+                                {"key": "image_remove", "value": "false", "type": "text", "description": "Set true to remove current image (omit or false to keep)."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "categories", "{{category_id}}"]},
-                        "description": "Update category including image. Use POST with form-data only: name, slug, description, image (file). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, created_at, updated_at)."
+                        "description": "Update category including image. POST or PUT with multipart form-data: name, slug, description, image (file), image_remove (boolean, set true to clear image). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon, created_at, updated_at)."
                     }
                 },
                 {
@@ -4862,6 +5053,10 @@
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
                                     }
                                 ],
                                 "body": {
@@ -4875,7 +5070,8 @@
                                         {
                                             "key": "type",
                                             "value": "after",
-                                            "type": "text"
+                                            "type": "text",
+                                            "description": "Optional: before | during | after"
                                         }
                                     ]
                                 },
@@ -4893,7 +5089,7 @@
                                         "photos"
                                     ]
                                 },
-                                "description": "Alternative path: Upload photo (same as /api/tech/visits/{id}/photos)"
+                                "description": "Alternative path: Upload photo (same as /api/tech/visits/{id}/photos). POST or PUT, multipart: photo (file), type (before|during|after). Response: data.photo_url."
                             }
                         }
                     ],

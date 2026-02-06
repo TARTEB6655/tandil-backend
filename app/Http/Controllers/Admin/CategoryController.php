@@ -42,9 +42,11 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255|unique:categories,name',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
+        $validated['is_active'] = $request->boolean('is_active', true);
         
         // Ensure slug is unique
         $counter = 1;
@@ -90,6 +92,7 @@ class CategoryController extends Controller
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'remove_image' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -112,6 +115,9 @@ class CategoryController extends Controller
             $validated['image'] = $request->file('image')->store('categories', 'public');
         }
         unset($validated['remove_image']);
+        if (array_key_exists('is_active', $validated)) {
+            $validated['is_active'] = $request->boolean('is_active');
+        }
 
         $category->update($validated);
 

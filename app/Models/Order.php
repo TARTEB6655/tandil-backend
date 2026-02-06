@@ -11,6 +11,7 @@ class Order extends Model
     
     protected $fillable = [
         'user_id',
+        'package_id',
         'total_amount',
         'payment_status',
         'payment_reference',
@@ -36,6 +37,14 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the package (when order is a package order).
+     */
+    public function package()
+    {
+        return $this->belongsTo(Package::class);
     }
 
     /**

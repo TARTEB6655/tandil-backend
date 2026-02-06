@@ -124,6 +124,18 @@
                     </div>
                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                 </a>
+                <a href="{{ route('admin.settings.client-dashboard') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
+                        </span>
+                        <div>
+                            <p class="font-medium text-gray-900">Customer Dashboard Design</p>
+                            <p class="text-sm text-gray-500">Control what customers see on their dashboard</p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </a>
             </div>
         </div>
 

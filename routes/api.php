@@ -153,6 +153,7 @@ Route::middleware(['auth:sanctum', 'role:technician|supervisor|area_manager|clie
     Route::post('/', [\App\Http\Controllers\Visit\VisitController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'update']);
+    Route::put('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
     Route::post('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
 });
 
@@ -166,6 +167,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('tech')->group(fu
     Route::post('/visits/{id}/accept', [\App\Http\Controllers\Technician\TechnicianController::class, 'accept']);
     Route::post('/visits/{id}/start', [\App\Http\Controllers\Technician\TechnicianController::class, 'start']);
     Route::post('/visits/{id}/complete', [\App\Http\Controllers\Technician\TechnicianController::class, 'complete']);
+    Route::put('/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
     Route::post('/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
 });
 
@@ -198,10 +200,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'index']);
     Route::post('/roles', [\App\Http\Controllers\Admin\RoleController::class, 'store']);
 
-    // Categories Management (add / list / show / update / delete)
+    // Categories Management (add / list / show / update / delete). Update: PUT or POST (use POST with multipart for image).
     Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
     Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
     Route::get('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show']);
+    Route::put('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::post('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
@@ -285,9 +288,19 @@ Route::prefix('shop')->group(function () {
 */
 Route::prefix('services')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\ServiceController::class, 'index']);
-    Route::get('/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'show']);
     Route::get('/categories', [\App\Http\Controllers\Api\ServiceController::class, 'getCategories']);
     Route::get('/category/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'getByCategory']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'show']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| MAINTENANCE PHOTOS (Client app – home screen "Maintenance Photos" section)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:client'])->prefix('maintenance-photos')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'index']);
+    Route::get('/visit/{visitId}', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'byVisit']);
 });
 
 /*
@@ -332,6 +345,14 @@ Route::get('/banners', [\App\Http\Controllers\Api\BannerController::class, 'inde
 
 /*
 |--------------------------------------------------------------------------
+| PACKAGES (Public - for customer home page: Combined, Fruit, Vegetable)
+|--------------------------------------------------------------------------
+*/
+Route::get('/packages', [\App\Http\Controllers\Api\PackageController::class, 'index']);
+Route::get('/shop/packages', [\App\Http\Controllers\Api\PackageController::class, 'index']);
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN BANNERS (upload, reorder, enable/disable, set link/action)
 |--------------------------------------------------------------------------
 */
@@ -344,6 +365,29 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/banners')->grou
     Route::post('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'update']); // POST for multipart (image replace)
     Route::post('/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\BannerController::class, 'toggleStatus']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN PACKAGES (set price, image, view order count)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/packages')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\PackageController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\Admin\PackageController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN ORDERS EXPORT & SEND TO SUPPLIER
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/orders')->group(function () {
+    Route::get('/export', [\App\Http\Controllers\Api\Admin\OrderExportController::class, 'export']);
+    Route::post('/send-to-supplier', [\App\Http\Controllers\Api\Admin\OrderExportController::class, 'sendToSupplier']);
 });
 
 /*

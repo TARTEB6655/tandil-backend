@@ -115,4 +115,13 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Supplier Email (orders export)
+    |--------------------------------------------------------------------------
+    | Used by orders export "send to supplier" and by the scheduled command
+    | orders:send-to-supplier when no --email override is provided.
+    */
+    'supplier_email' => env('MAIL_SUPPLIER_EMAIL'),
+
 ];

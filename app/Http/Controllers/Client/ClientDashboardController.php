@@ -11,6 +11,7 @@ use App\Models\Report;
 use App\Models\Order;
 use App\Models\Complaint;
 use App\Models\Banner;
+use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -195,6 +196,19 @@ class ClientDashboardController extends Controller
         // Get active banners for home screen
         $banners = Banner::active()->ordered()->get();
 
+        // Dashboard design: fully controlled by admin (Settings → Customer Dashboard Design)
+        $dashboardTitle = Setting::get('client_dashboard_title', 'My Dashboard');
+        $dashboardSubtitle = Setting::get('client_dashboard_subtitle', "Welcome back! Here's an overview of your subscriptions, visits, and orders.");
+        $showBanners = (Setting::get('client_dashboard_show_banners', '1') === '1');
+        $showMetrics = (Setting::get('client_dashboard_show_metrics', '1') === '1');
+        $showSecondaryMetrics = (Setting::get('client_dashboard_show_secondary_metrics', '1') === '1');
+        $showCharts = (Setting::get('client_dashboard_show_charts', '1') === '1');
+        $showRecentSubscriptions = (Setting::get('client_dashboard_show_recent_subscriptions', '1') === '1');
+        $showRecentVisits = (Setting::get('client_dashboard_show_recent_visits', '1') === '1');
+        $showRecentReports = (Setting::get('client_dashboard_show_recent_reports', '1') === '1');
+        $showRecentOrders = (Setting::get('client_dashboard_show_recent_orders', '1') === '1');
+        $showRecentComplaints = (Setting::get('client_dashboard_show_recent_complaints', '1') === '1');
+
         return view('client.dashboard', compact(
             'totalSubscriptions',
             'activeSubscriptions',
@@ -220,7 +234,18 @@ class ClientDashboardController extends Controller
             'ordersByStatus',
             'monthlySpending',
             'search',
-            'banners'
+            'banners',
+            'dashboardTitle',
+            'dashboardSubtitle',
+            'showBanners',
+            'showMetrics',
+            'showSecondaryMetrics',
+            'showCharts',
+            'showRecentSubscriptions',
+            'showRecentVisits',
+            'showRecentReports',
+            'showRecentOrders',
+            'showRecentComplaints'
         ));
     }
 }

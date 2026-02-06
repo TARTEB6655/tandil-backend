@@ -2,44 +2,45 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class Category extends Model
+class Package extends Model
 {
     use HasFactory;
-
     protected $fillable = [
         'name',
         'slug',
-        'description',
+        'type',
+        'price',
         'image',
+        'description',
         'is_active',
+        'sort_order',
     ];
 
     protected $casts = [
+        'price' => 'decimal:2',
         'is_active' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
+    public const TYPE_COMBINED = 'combined';
+    public const TYPE_FRUIT = 'fruit';
+    public const TYPE_VEGETABLE = 'vegetable';
 
-    protected $appends = ['image_url', 'coming_soon'];
-
-    public function getComingSoonAttribute(): bool
+    public function orders()
     {
-        return isset($this->attributes['is_active']) && ! (bool) $this->attributes['is_active'];
+        return $this->hasMany(Order::class);
     }
 
-    /**
-     * Get the full URL for the category image.
-     * Uses request host when in HTTP context (so live/proxy URLs are correct), else asset().
-     */
     public function getImageUrlAttribute(): ?string
     {
         $image = $this->attributes['image'] ?? null;
         if (empty($image) || ! is_string($image)) {
             return null;
         }
-        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
+        if (str_starts_with($image, 'http')) {
             return $image;
         }
         $path = ltrim(str_replace('\\', '/', $image), '/');
@@ -49,8 +50,5 @@ class Category extends Model
         return asset('media/' . $path);
     }
 
-    public function products()
-    {
-        return $this->hasMany(Product::class);
-    }
+    protected $appends = ['image_url'];
 }

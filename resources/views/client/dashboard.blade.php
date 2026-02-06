@@ -1,12 +1,12 @@
 <x-client-layout>
-            <!-- Page Header -->
+            <!-- Page Header (admin-configured title & subtitle) -->
             <div class="mb-4 sm:mb-6">
-                <h1 class="text-lg sm:text-xl font-medium text-gray-900">My Dashboard</h1>
-                <p class="mt-1 text-xs sm:text-sm text-gray-500">Welcome back! Here's an overview of your subscriptions, visits, and orders.</p>
+                <h1 class="text-lg sm:text-xl font-medium text-gray-900">{{ $dashboardTitle ?? 'My Dashboard' }}</h1>
+                <p class="mt-1 text-xs sm:text-sm text-gray-500">{{ $dashboardSubtitle ?? "Welcome back! Here's an overview of your subscriptions, visits, and orders." }}</p>
             </div>
 
-            <!-- Banners Section -->
-            @if(isset($banners) && $banners->count() > 0)
+            <!-- Banners Section (visibility set by admin) -->
+            @if(($showBanners ?? true) && isset($banners) && $banners->count() > 0)
                 <div class="mb-4 sm:mb-6 md:mb-8">
                     <div class="relative">
                         <div class="overflow-x-auto scrollbar-hide">
@@ -43,7 +43,8 @@
                 </div>
             @endif
 
-            <!-- Key Metrics Cards -->
+            <!-- Key Metrics Cards (visibility set by admin) -->
+            @if($showMetrics ?? true)
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
                 <!-- Total Subscriptions Card -->
                 <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -117,8 +118,10 @@
                     </div>
                 </div>
             </div>
+            @endif
 
-            <!-- Secondary Metrics -->
+            <!-- Secondary Metrics (visibility set by admin) -->
+            @if($showSecondaryMetrics ?? true)
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
                 <!-- Pending Visits -->
                 <div class="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm">
@@ -146,8 +149,10 @@
                     <p class="text-xs text-gray-500 mt-1">{{ $pendingComplaints ?? 0 }} pending</p>
                 </div>
             </div>
+            @endif
 
-            <!-- Charts Row -->
+            <!-- Charts Row (visibility set by admin) -->
+            @if($showCharts ?? true)
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
                 <!-- Visits by Status Chart -->
                 <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
@@ -165,8 +170,10 @@
                     </div>
                 </div>
             </div>
+            @endif
 
-            <!-- Recent Subscriptions -->
+            <!-- Recent Subscriptions (visibility set by admin) -->
+            @if($showRecentSubscriptions ?? true)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6">
                 <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
                     <h3 class="text-base sm:text-lg font-medium text-gray-900">Recent Subscriptions</h3>
@@ -217,8 +224,10 @@
                     </table>
                 </div>
             </div>
+            @endif
 
-            <!-- Recent Visits -->
+            <!-- Recent Visits (visibility set by admin) -->
+            @if($showRecentVisits ?? true)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6">
                 <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
                     <h3 class="text-base sm:text-lg font-medium text-gray-900">Recent Visits</h3>
@@ -265,8 +274,10 @@
                     </table>
                 </div>
             </div>
+            @endif
 
-            <!-- Recent Reports -->
+            <!-- Recent Reports (visibility set by admin) -->
+            @if($showRecentReports ?? true)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6">
                 <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
                     <h3 class="text-base sm:text-lg font-medium text-gray-900">Recent Reports</h3>
@@ -312,8 +323,10 @@
                     </table>
                 </div>
             </div>
+            @endif
 
-            <!-- Recent Orders -->
+            <!-- Recent Orders (visibility set by admin) -->
+            @if($showRecentOrders ?? true)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6">
                 <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
                     <h3 class="text-base sm:text-lg font-medium text-gray-900">Recent Orders</h3>
@@ -366,8 +379,10 @@
                     </table>
                 </div>
             </div>
+            @endif
 
-            <!-- Recent Complaints -->
+            <!-- Recent Complaints (visibility set by admin) -->
+            @if($showRecentComplaints ?? true)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6">
                 <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
                     <h3 class="text-base sm:text-lg font-medium text-gray-900">Recent Complaints</h3>
@@ -412,9 +427,11 @@
                         </tbody>
                     </table>
                 </div>
-        </div>
+            </div>
+            @endif
     </div>
 
+    @if($showCharts ?? true)
     <!-- Chart.js Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
@@ -497,4 +514,5 @@
             });
         }
     </script>
+    @endif
 </x-client-layout>

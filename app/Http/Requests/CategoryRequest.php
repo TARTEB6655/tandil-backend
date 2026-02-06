@@ -21,7 +21,8 @@ class CategoryRequest extends BaseFormRequest
             'slug'         => 'nullable|string|max:255|unique:categories,slug,' . $id,
             'description'  => 'nullable|string',
             'image'        => 'nullable|image|mimes:jpeg,jpg,png,webp',
-            'image_remove' => 'nullable|boolean', // set true to remove category image on update (form-data or JSON)
+            'image_remove' => 'nullable|boolean',
+            'is_active'    => 'nullable|boolean', // false = show "Coming Soon" on customer app
         ];
     }
 }
