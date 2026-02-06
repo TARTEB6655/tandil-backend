@@ -1172,31 +1172,42 @@ class AdminDashboardController extends Controller
      * Get top selling products for admin dashboard (sales count + revenue).
      * GET /api/admin/dashboard/top-selling-products
      * Query: limit (default 10, max 50).
+     * Uses join on orders so only paid orders are included; response includes revenue_display (e.g. "22K") for UI.
      */
     public function topSellingProducts(Request $request)
     {
         $limit = min(max((int) $request->input('limit', 10), 1), 50);
 
-        $items = OrderItem::select('product_id', DB::raw('SUM(quantity) as sales'), DB::raw('SUM(subtotal) as revenue'))
-            ->whereHas('order', function ($q) {
-                $q->where('payment_status', 'paid');
-            })
-            ->groupBy('product_id')
+        $items = OrderItem::query()
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.payment_status', 'paid')
+            ->select(
+                'order_items.product_id',
+                DB::raw('SUM(order_items.quantity) as sales'),
+                DB::raw('SUM(order_items.subtotal) as revenue')
+            )
+            ->groupBy('order_items.product_id')
             ->orderByDesc('sales')
             ->take($limit)
             ->get();
 
         $productIds = $items->pluck('product_id')->filter()->unique()->values();
-        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $products = $productIds->isNotEmpty()
+            ? Product::whereIn('id', $productIds)->get()->keyBy('id')
+            : collect();
 
         $data = $items->map(function ($row) use ($products) {
             $product = $products->get($row->product_id);
+            $revenue = (float) $row->revenue;
+            $sales = (int) $row->sales;
             return [
                 'product_id' => $row->product_id,
                 'product_name' => $product ? $product->name : 'Unknown',
-                'sales' => (int) $row->sales,
-                'revenue' => round((float) $row->revenue, 2),
-                'revenue_formatted' => number_format((float) $row->revenue, 0) . ' AED', // e.g. "22000 AED"; client can show as "22K"
+                'sales' => $sales,
+                'sales_display' => $sales . ' sales',
+                'revenue' => round($revenue, 2),
+                'revenue_formatted' => number_format($revenue, 0) . ' AED',
+                'revenue_display' => $this->formatRevenueShort($revenue), // e.g. "22K" for AED 22K
             ];
         })->values();
 
@@ -1205,5 +1216,19 @@ class AdminDashboardController extends Controller
             'data' => $data,
             'total' => $data->count(),
         ]);
+    }
+
+    /**
+     * Format revenue for UI: 22000 -> "22K", 1500 -> "1.5K", 500 -> "500"
+     */
+    private function formatRevenueShort(float $amount): string
+    {
+        if ($amount >= 1000000) {
+            return round($amount / 1000000, 1) . 'M';
+        }
+        if ($amount >= 1000) {
+            return round($amount / 1000, 1) . 'K';
+        }
+        return (string) (int) round($amount);
     }
 }
