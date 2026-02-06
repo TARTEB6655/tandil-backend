@@ -125,7 +125,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+                            "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/auth/login",
@@ -5740,12 +5740,12 @@
     "variable": [
         {
             "key": "base_url",
-            "value": "http://127.0.0.1:8000",
+            "value": "https://phpstack-1180784-6050385.cloudwaysapps.com",
             "type": "string"
         },
         {
             "key": "baseUrl",
-            "value": "http://127.0.0.1:8000",
+            "value": "https://phpstack-1180784-6050385.cloudwaysapps.com",
             "type": "string"
         },
         {
