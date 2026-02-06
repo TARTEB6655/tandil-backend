@@ -1176,46 +1176,56 @@ class AdminDashboardController extends Controller
      */
     public function topSellingProducts(Request $request)
     {
-        $limit = min(max((int) $request->input('limit', 10), 1), 50);
+        try {
+            $limit = min(max((int) $request->input('limit', 10), 1), 50);
 
-        $items = OrderItem::query()
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->where('orders.payment_status', 'paid')
-            ->select(
-                'order_items.product_id',
-                DB::raw('SUM(order_items.quantity) as sales'),
-                DB::raw('SUM(order_items.subtotal) as revenue')
-            )
-            ->groupBy('order_items.product_id')
-            ->orderByDesc('sales')
-            ->take($limit)
-            ->get();
+            $items = OrderItem::query()
+                ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->where('orders.payment_status', 'paid')
+                ->select(
+                    'order_items.product_id',
+                    DB::raw('SUM(order_items.quantity) as sales'),
+                    DB::raw('SUM(order_items.subtotal) as revenue')
+                )
+                ->groupBy('order_items.product_id')
+                ->orderByRaw('SUM(order_items.quantity) DESC')
+                ->limit($limit)
+                ->get();
 
-        $productIds = $items->pluck('product_id')->filter()->unique()->values();
-        $products = $productIds->isNotEmpty()
-            ? Product::whereIn('id', $productIds)->get()->keyBy('id')
-            : collect();
+            $productIds = $items->pluck('product_id')->filter()->unique()->values();
+            $products = $productIds->isNotEmpty()
+                ? Product::whereIn('id', $productIds)->get()->keyBy('id')
+                : collect();
 
-        $data = $items->map(function ($row) use ($products) {
-            $product = $products->get($row->product_id);
-            $revenue = (float) $row->revenue;
-            $sales = (int) $row->sales;
-            return [
-                'product_id' => $row->product_id,
-                'product_name' => $product ? $product->name : 'Unknown',
-                'sales' => $sales,
-                'sales_display' => $sales . ' sales',
-                'revenue' => round($revenue, 2),
-                'revenue_formatted' => number_format($revenue, 0) . ' AED',
-                'revenue_display' => $this->formatRevenueShort($revenue), // e.g. "22K" for AED 22K
-            ];
-        })->values();
+            $data = $items->map(function ($row) use ($products) {
+                $product = $products->get($row->product_id);
+                $revenue = (float) ($row->revenue ?? 0);
+                $sales = (int) ($row->sales ?? 0);
+                return [
+                    'product_id' => $row->product_id,
+                    'product_name' => $product ? $product->name : 'Unknown',
+                    'sales' => $sales,
+                    'sales_display' => $sales . ' sales',
+                    'revenue' => round($revenue, 2),
+                    'revenue_formatted' => number_format($revenue, 0) . ' AED',
+                    'revenue_display' => $this->formatRevenueShort($revenue),
+                ];
+            })->values();
 
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-            'total' => $data->count(),
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'total' => $data->count(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Top selling products error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load top selling products.',
+                'data' => [],
+                'total' => 0,
+            ], 500);
+        }
     }
 
     /**
@@ -1223,6 +1233,7 @@ class AdminDashboardController extends Controller
      */
     private function formatRevenueShort(float $amount): string
     {
+        $amount = (float) $amount;
         if ($amount >= 1000000) {
             return round($amount / 1000000, 1) . 'M';
         }

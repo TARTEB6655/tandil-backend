@@ -3004,7 +3004,7 @@
                             "path": ["api", "admin", "dashboard", "top-selling-products"],
                             "query": [{"key": "limit", "value": "10", "description": "Max 50, default 10"}]
                         },
-                        "description": "Top selling products for admin dashboard. Returns product_id, product_name, sales (quantity sold), revenue, revenue_formatted (e.g. \"22000 AED\"). Only paid orders. Auth: Bearer + admin."
+                        "description": "Top selling products for admin dashboard. Only paid orders (payment_status=paid). Query: limit (default 10, max 50). Auth: Bearer + admin.\n\n**Response:** success, data[], total.\n\n**Each item in data:**\n- product_id (int)\n- product_name (string)\n- sales (int) – quantity sold\n- sales_display (string) – e.g. \"245 sales\"\n- revenue (float)\n- revenue_formatted (string) – e.g. \"22,000 AED\"\n- revenue_display (string) – e.g. \"22K\" for UI (show as \"AED 22K\")"
                     }
                 },
                 {
