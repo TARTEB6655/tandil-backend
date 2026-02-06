@@ -346,6 +346,16 @@ Route::get('/banners', [\App\Http\Controllers\Api\BannerController::class, 'inde
 
 /*
 |--------------------------------------------------------------------------
+| EXCLUSIVE OFFERS (Public - for customer home screen "Exclusive Offers" section)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('exclusive-offers')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ExclusiveOfferController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ExclusiveOfferController::class, 'show']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | PACKAGES (Public - for customer home page: Combined, Fruit, Vegetable)
 |--------------------------------------------------------------------------
 */
@@ -379,6 +389,20 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/packages')->gro
     Route::get('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN EXCLUSIVE OFFERS (create, update, delete – for home screen offers)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/exclusive-offers')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\ExclusiveOfferController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\Admin\ExclusiveOfferController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\Admin\ExclusiveOfferController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\Admin\ExclusiveOfferController::class, 'update']);
+    Route::post('/{id}', [\App\Http\Controllers\Api\Admin\ExclusiveOfferController::class, 'update']); // POST for multipart image
+    Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\ExclusiveOfferController::class, 'destroy']);
 });
 
 /*

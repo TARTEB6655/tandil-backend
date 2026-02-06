@@ -1970,6 +1970,29 @@
                     }
                 },
                 {
+                    "name": "Upload Maintenance Photo",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "photo", "type": "file", "src": "", "description": "Image file (required)"},
+                                {"key": "type", "value": "after", "description": "Optional: before | during | after"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/visits/{{visit_id}}/upload-photo",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "visits", "{{visit_id}}", "upload-photo"]
+                        },
+                        "description": "Upload a maintenance/visit photo. POST or PUT with form-data: photo (file, required), type (optional: before|during|after). Who can upload: Admin (any visit), Technician (assigned visit), Client (own visit). Set visit_id in env. Response: data (id, visit_id, type, photo_path, photo_url, created_at)."
+                    }
+                },
+                {
                     "name": "Delete Maintenance Photo",
                     "request": {
                         "method": "DELETE",
@@ -1986,7 +2009,7 @@
                     }
                 }
             ],
-            "description": "Client app Home – Maintenance Photos. List (GET /api/maintenance-photos), get by visit, delete. Who can add photos: Admin, Technician (assigned visit), Client (own visit). Who can delete: same. Auth: Bearer (client for 8b)."
+            "description": "Client app Home – Maintenance Photos. List, get by visit, upload, delete. Upload: POST/PUT /api/visits/{id}/upload-photo (form-data: photo, type). Who can upload/delete: Admin, Technician (assigned visit), Client (own visit). Set visit_id, photo_id. Auth: Bearer."
         },
         {
             "name": "9. Technician & Supervisor Routes",
@@ -4194,6 +4217,127 @@
         {
             "name": "13. Other Modules",
             "item": [
+                {
+                    "name": "Exclusive Offers",
+                    "description": "Exclusive offers for home screen – Public: List, Get by ID. Admin: List, Create, Get, Update, Delete. Auth: Bearer + admin for admin routes.",
+                    "item": [
+                        {
+                            "name": "List (Public)",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}/api/exclusive-offers",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "exclusive-offers"]
+                                },
+                                "description": "List active exclusive offers (no auth). Optional: per_page."
+                            }
+                        },
+                        {
+                            "name": "Get by ID (Public)",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}/api/exclusive-offers/{{offer_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "exclusive-offers", "{{offer_id}}"]
+                                },
+                                "description": "Get single offer (only if active and current). Set offer_id in env."
+                            }
+                        },
+                        {
+                            "name": "Admin - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/exclusive-offers",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "exclusive-offers"]
+                                },
+                                "description": "List all exclusive offers (admin)."
+                            }
+                        },
+                        {
+                            "name": "Admin - Create",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"title\": \"Farm Fresh Week\",\n  \"description\": \"Up to 30% OFF on fresh produce\",\n  \"discount_type\": \"percentage\",\n  \"discount_value\": 30,\n  \"applies_to\": \"fresh produce\",\n  \"start_date\": \"2026-02-15\",\n  \"end_date\": \"2026-02-22\",\n  \"is_active\": true,\n  \"sort_order\": 0\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/exclusive-offers",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "exclusive-offers"]
+                                },
+                                "description": "Create exclusive offer. For image upload use Body form-data with key 'image' (file) + other fields. discount_type: percentage, fixed_amount, buy_one_get_one."
+                            }
+                        },
+                        {
+                            "name": "Admin - Get",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/exclusive-offers/{{offer_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "exclusive-offers", "{{offer_id}}"]
+                                },
+                                "description": "Get single offer by ID (admin)."
+                            }
+                        },
+                        {
+                            "name": "Admin - Update",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Content-Type", "value": "application/json"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"title\": \"Farm Fresh Week\",\n  \"description\": \"Up to 35% OFF on fresh produce\",\n  \"discount_type\": \"percentage\",\n  \"discount_value\": 35,\n  \"applies_to\": \"fresh produce\",\n  \"is_active\": true\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/exclusive-offers/{{offer_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "exclusive-offers", "{{offer_id}}"]
+                                },
+                                "description": "Update offer. Use POST with form-data for image upload."
+                            }
+                        },
+                        {
+                            "name": "Admin - Delete",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/exclusive-offers/{{offer_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "exclusive-offers", "{{offer_id}}"]
+                                },
+                                "description": "Delete exclusive offer and its image."
+                            }
+                        }
+                    ]
+                },
                 {
                     "name": "Complaints",
                     "description": "Complaints API – List, Create, Get, Update, Delete. Auth: Bearer token.",
