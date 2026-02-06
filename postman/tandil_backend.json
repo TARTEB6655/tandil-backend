@@ -2991,6 +2991,23 @@
                     }
                 },
                 {
+                    "name": "Admin Dashboard Top Selling Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/dashboard/top-selling-products?limit=10",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "dashboard", "top-selling-products"],
+                            "query": [{"key": "limit", "value": "10", "description": "Max 50, default 10"}]
+                        },
+                        "description": "Top selling products for admin dashboard. Returns product_id, product_name, sales (quantity sold), revenue, revenue_formatted (e.g. \"22000 AED\"). Only paid orders. Auth: Bearer + admin."
+                    }
+                },
+                {
                     "name": "Admin Users Statistics",
                     "request": {
                         "method": "GET",

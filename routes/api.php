@@ -425,6 +425,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->gr
     Route::get('/recent-activities', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'recentActivities']);
     Route::get('/quick-overview', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'quickOverview']);
     Route::get('/profile', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'profile']);
+    Route::get('/top-selling-products', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'topSellingProducts']);
 });
 
 /*

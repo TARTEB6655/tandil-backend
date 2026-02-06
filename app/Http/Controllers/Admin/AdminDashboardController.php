@@ -1167,4 +1167,43 @@ class AdminDashboardController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Get top selling products for admin dashboard (sales count + revenue).
+     * GET /api/admin/dashboard/top-selling-products
+     * Query: limit (default 10, max 50).
+     */
+    public function topSellingProducts(Request $request)
+    {
+        $limit = min(max((int) $request->input('limit', 10), 1), 50);
+
+        $items = OrderItem::select('product_id', DB::raw('SUM(quantity) as sales'), DB::raw('SUM(subtotal) as revenue'))
+            ->whereHas('order', function ($q) {
+                $q->where('payment_status', 'paid');
+            })
+            ->groupBy('product_id')
+            ->orderByDesc('sales')
+            ->take($limit)
+            ->get();
+
+        $productIds = $items->pluck('product_id')->filter()->unique()->values();
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        $data = $items->map(function ($row) use ($products) {
+            $product = $products->get($row->product_id);
+            return [
+                'product_id' => $row->product_id,
+                'product_name' => $product ? $product->name : 'Unknown',
+                'sales' => (int) $row->sales,
+                'revenue' => round((float) $row->revenue, 2),
+                'revenue_formatted' => number_format((float) $row->revenue, 0) . ' AED', // e.g. "22000 AED"; client can show as "22K"
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'total' => $data->count(),
+        ]);
+    }
 }
