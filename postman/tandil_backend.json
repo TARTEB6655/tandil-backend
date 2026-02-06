@@ -613,28 +613,7 @@
                     }
                 },
                 {
-                    "name": "Create Banner (no image)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                            {"key": "Content-Type", "value": "application/json"},
-                            {"key": "Accept", "value": "application/json"}
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"title\": \"Summer Sale\",\n  \"description\": \"Learn More\",\n  \"button_text\": \"Learn More\",\n  \"button_link\": \"https://example.com/promo\",\n  \"priority\": 0,\n  \"is_active\": 1\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/admin/banners",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "admin", "banners"]
-                        },
-                        "description": "Create banner without image (no file field, no warning). Add image later via Update Banner. JSON body: title, description, button_text, button_link, priority, is_active. Response: 201, data (banner object)."
-                    }
-                },
-                {
-                    "name": "Create Banner (with image)",
+                    "name": "Create Banner",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -644,7 +623,7 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {"key": "image", "type": "file", "src": "", "description": "Optional. Use 1 file only. Leave empty to create without image."},
+                                {"key": "image", "type": "file", "src": "", "description": "Optional. Leave empty to create without image; add image later via Update Banner."},
                                 {"key": "title", "value": "Summer Sale"},
                                 {"key": "description", "value": "Learn More"},
                                 {"key": "button_text", "value": "Learn More"},
@@ -658,7 +637,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "banners"]
                         },
-                        "description": "Create banner with optional image (form-data). Image: leave empty for no image, or select 1 file only. Add/change image later via Update Banner. Response: 201, data (banner object)."
+                        "description": "Create banner. Image optional: leave image empty to create without image (fill it later via Update Banner), or attach 1 file to set image now. Fields: title, description, button_text, button_link, priority, is_active. Response: 201, data (banner object)."
                     }
                 },
                 {
@@ -759,7 +738,7 @@
                     }
                 }
             ],
-            "description": "Admin only. Create without image: use 'Create Banner (no image)' JSON request. Create with image: use 'Create Banner (with image)' (1 file only). Update: add or change image anytime. No warnings when using the no-image create. Customer: GET /api/banners."
+            "description": "Admin only. Create Banner: one request; leave image empty to create without image, or attach 1 file. Update Banner: add or change image anytime. Customer: GET /api/banners."
         },
         {
             "name": "6. Visits",

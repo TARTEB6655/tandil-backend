@@ -41,7 +41,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropIndex('products_category_id_id_index');
+            // Do not drop products_category_id_id_index - MySQL may require it for foreign key
             $table->dropIndex('products_stock_index');
             $table->dropIndex('products_name_index');
         });
