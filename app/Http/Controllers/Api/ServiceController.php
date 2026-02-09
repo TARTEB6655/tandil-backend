@@ -25,6 +25,7 @@ class ServiceController extends Controller
             'description' => $category->description,
             'image' => $imagePath,
             'image_url' => $imageUrl,
+            'icon' => $category->icon,
             'is_active' => $isActive,
             'coming_soon' => ! $isActive,
             'created_at' => $category->created_at?->format('c'),

@@ -42,6 +42,7 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255|unique:categories,name',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'icon' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -92,6 +93,7 @@ class CategoryController extends Controller
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'remove_image' => 'nullable|boolean',
+            'icon' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
         ]);
 

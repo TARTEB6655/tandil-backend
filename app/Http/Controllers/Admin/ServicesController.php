@@ -8,7 +8,7 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 
 /**
- * Admin "Services" (Place Service Orders): same flow as the app — categories as filters, products below.
+ * Admin "Services" (Place Service Orders): service cards → click card → category + products.
  */
 class ServicesController extends Controller
 {
@@ -18,27 +18,26 @@ class ServicesController extends Controller
     }
 
     /**
-     * Services page: category filter chips (All + each category), products list below.
+     * Services page: show service cards (one per category). Click a card to see its category and products.
      */
-    public function index(Request $request)
+    public function index()
     {
         $categories = Category::withCount('products')
             ->orderBy('name')
             ->get();
 
-        $categoryId = $request->query('category');
-        $products = Product::with('category')
-            ->when($categoryId, function ($q) use ($categoryId) {
-                $q->where('category_id', $categoryId);
-            })
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
+        return view('admin.services.index', ['categories' => $categories]);
+    }
 
-        return view('admin.services.index', [
-            'categories' => $categories,
-            'products' => $products,
-            'selectedCategoryId' => $categoryId ? (int) $categoryId : null,
-        ]);
+    /**
+     * Show one service (category) with its products. Reached when clicking a service card.
+     */
+    public function showCategory($id)
+    {
+        $category = Category::withCount('products')
+            ->with(['products' => fn ($q) => $q->orderBy('name')])
+            ->findOrFail($id);
+
+        return view('admin.services.show', ['category' => $category]);
     }
 }
