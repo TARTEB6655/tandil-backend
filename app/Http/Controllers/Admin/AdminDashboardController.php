@@ -15,6 +15,7 @@ use App\Models\Report;
 use App\Models\AdminReport;
 use App\Models\Tip;
 use App\Models\Banner;
+use App\Models\Category;
 use App\Models\Package;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
@@ -93,6 +94,11 @@ class AdminDashboardController extends Controller
         $totalProducts = Product::count();
         $lowStockProducts = Product::where('stock', '<', 10)->count();
         $outOfStockProducts = Product::where('stock', 0)->count();
+
+        $totalCategories = Category::count();
+        $activeCategories = Category::where(function ($q) {
+            $q->where('is_active', true)->orWhereNull('is_active');
+        })->count();
         
         // Top selling products (orderByRaw for MySQL ONLY_FULL_GROUP_BY)
         $topProducts = OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'), DB::raw('SUM(subtotal) as total_revenue'))
@@ -390,6 +396,8 @@ class AdminDashboardController extends Controller
             'totalProducts',
             'lowStockProducts',
             'outOfStockProducts',
+            'totalCategories',
+            'activeCategories',
             'topProducts',
             'ordersByStatus',
             'ordersByPaymentStatus',

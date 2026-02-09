@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             FixedUsersOnlySeeder::class,
             SubscriptionAndReportDummySeeder::class,
+            ServicesCategoriesAndProductsSeeder::class,
         ]);
 
         $this->command->info('');

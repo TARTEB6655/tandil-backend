@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin. Use Bearer token for protected routes. Image/photo uploads: use multipart/form-data with POST or PUT (same flow as category image update). Validation errors return message + errors.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.19.0"
+        "version": "2.20.0"
     },
     "item": [
         {
@@ -5774,10 +5774,10 @@
                 },
                 {
                     "name": "Services (Public)",
-                    "description": "Public Services API – list categories and products. No auth. GET /api/services.",
+                    "description": "Public Services API – categories (filters) and products (services). No auth. Flow: GET /api/services or /api/services/categories → then GET /api/services/category/:id for products in a category. Env: base_url, service_id (category id for single service), category_id (for Get by Category).",
                     "item": [
                 {
-                    "name": "List",
+                    "name": "List (paginated)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5787,20 +5787,39 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/services",
+                            "raw": "{{base_url}}/api/services?per_page=12",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "api",
                                 "services"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "12",
+                                    "description": "Items per page (1-100, default 12)"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "disabled": true,
+                                    "description": "Search in name/description"
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "",
+                                    "disabled": true,
+                                    "description": "Filter by category id"
+                                }
                             ]
                         },
-                        "description": "List all services (Public - no auth needed)"
+                        "description": "GET /api/services – Paginated list of active service categories. Response: data.data (array), data.pagination (current_page, last_page, per_page, total). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample), created_at, updated_at."
                     }
                 },
                 {
-                    "name": "Get Details",
+                    "name": "Get single service (category)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5820,7 +5839,7 @@
                                 "{{service_id}}"
                             ]
                         },
-                        "description": "Get service details (Public)"
+                        "description": "GET /api/services/:id – One active category (service). Use service_id or category id. Response: data with id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names. 404 if inactive."
                     }
                 },
                 {
@@ -5844,11 +5863,11 @@
                                 "categories"
                             ]
                         },
-                        "description": "Get all service categories (Public)"
+                        "description": "GET /api/services/categories – All active categories (no pagination). Response: data (array). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample). Use for filter chips in app."
                     }
                 },
                 {
-                    "name": "Get by Category",
+                    "name": "Get by Category (category + products)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -5869,7 +5888,7 @@
                                 "{{category_id}}"
                             ]
                         },
-                        "description": "Get services by category (Public)"
+                        "description": "GET /api/services/category/:id – One category with full products list. Response: data (category fields + products array). Each product: id, name, slug, description, price, image, image_url, status. Use after user selects a category filter."
                     }
                 }
                     ]

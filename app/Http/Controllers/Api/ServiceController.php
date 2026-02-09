@@ -60,11 +60,15 @@ class ServiceController extends Controller
         $categories = $query->withCount(['products' => function ($q) {
             $q->where('status', 'active');
         }])
+            ->with(['products' => function ($q) {
+                $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
+            }])
             ->orderBy('name')
             ->paginate($perPage);
 
         $data = $categories->getCollection()->map(fn (Category $c) => $this->serviceToArray($c, [
             'products_count' => $c->products_count ?? 0,
+            'product_names' => $c->relationLoaded('products') ? $c->products->pluck('name')->values()->all() : [],
         ]))->values()->all();
 
         return ApiResponse::success('Services retrieved successfully.', [
@@ -85,12 +89,18 @@ class ServiceController extends Controller
     {
         $category = Category::where(function ($q) {
             $q->where('is_active', true)->orWhereNull('is_active');
-        })->withCount(['products' => function ($q) {
-            $q->where('status', 'active');
-        }])->findOrFail($id);
+        })
+            ->withCount(['products' => function ($q) {
+                $q->where('status', 'active');
+            }])
+            ->with(['products' => function ($q) {
+                $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
+            }])
+            ->findOrFail($id);
 
         return ApiResponse::success('Service retrieved successfully.', $this->serviceToArray($category, [
             'products_count' => $category->products_count ?? 0,
+            'product_names' => $category->relationLoaded('products') ? $category->products->pluck('name')->values()->all() : [],
         ]));
     }
 
@@ -102,6 +112,9 @@ class ServiceController extends Controller
         $categories = Category::withCount(['products' => function ($q) {
             $q->where('status', 'active');
         }])
+            ->with(['products' => function ($q) {
+                $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
+            }])
             ->where(function ($q) {
                 $q->where('is_active', true)->orWhereNull('is_active');
             })
@@ -110,6 +123,7 @@ class ServiceController extends Controller
 
         $data = $categories->map(fn (Category $c) => $this->serviceToArray($c, [
             'products_count' => $c->products_count ?? 0,
+            'product_names' => $c->relationLoaded('products') ? $c->products->pluck('name')->values()->all() : [],
         ]))->values()->all();
 
         return ApiResponse::success('Categories retrieved successfully.', $data);

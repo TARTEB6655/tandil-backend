@@ -157,13 +157,13 @@
             </div>
         </a>
 
-        <!-- Manage Services (Categories & Products) card -->
+        <!-- Manage Services (Place Service Orders – Categories & Products) card -->
         <a href="#manage-services" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-teal-300 dark:hover:border-teal-600">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Manage Services</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Services (Place Service Orders)</p>
                     <p class="text-lg font-medium text-teal-600 dark:text-teal-400">Categories & Products</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Add service categories & services</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ number_format($totalCategories ?? 0) }} categories · {{ number_format($totalProducts ?? 0) }} products</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-900/30">
@@ -505,22 +505,23 @@
         </div>
     </div>
 
-    <!-- Manage Services (Categories & Products) -->
+    <!-- Manage Services (Place Service Orders – Categories & Products) -->
     <div id="manage-services" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Manage Services</h2>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Manage Services (Place Service Orders)</h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ number_format($totalCategories ?? 0) }} categories · {{ number_format($totalProducts ?? 0) }} products</span>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             <div class="p-5 md:p-6">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Add and edit service categories (e.g. Watering, Planting, Cleaning) and the services (products) under each category. Clients see these on the Services page.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">These appear in the app under <strong>Place Service Orders</strong> (e.g. Watering, Planting, Cleaning, Full Care). Add categories, then add products (services) under each. API: <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">GET /api/services/categories</code>.</p>
                 <div class="flex flex-wrap items-center gap-3">
                     <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                        Categories (service categories)
+                        Categories ({{ $activeCategories ?? 0 }} active)
                     </a>
                     <a href="{{ route('admin.products.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                        Products (services under categories)
+                        Products (services)
                     </a>
                     <a href="{{ route('admin.categories.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-600 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors">
                         Add Category

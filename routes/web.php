@@ -144,6 +144,7 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
         Route::post('products/{id}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle-status');
         
         Route::resource('categories', CategoryController::class);
+        Route::get('services', [\App\Http\Controllers\Admin\ServicesController::class, 'index'])->name('services.index');
         Route::resource('subscriptions', SubscriptionController::class);
         Route::post('subscriptions/{id}/extend', [SubscriptionController::class, 'extend'])->name('subscriptions.extend');
         Route::post('subscriptions/{id}/activate', [SubscriptionController::class, 'activate'])->name('subscriptions.activate');
