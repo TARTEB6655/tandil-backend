@@ -391,6 +391,25 @@ class CategoryController extends Controller
             ->with('success', 'Category updated successfully.');
     }
 
+    // POST /categories/{id}/toggle-status – Toggle is_active (enable/disable). Same pattern as banners.
+    public function toggleStatus(Request $request, $id)
+    {
+        if ($err = $this->invalidCategoryIdResponse($id, $request)) {
+            return $err;
+        }
+        $category = Category::findOrFail($id);
+        $category->is_active = ! $category->is_active;
+        $category->save();
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return ApiResponse::success('Category status updated successfully.', [
+                'id' => $category->id,
+                'is_active' => (bool) $category->is_active,
+            ]);
+        }
+        return redirect()->back()->with('success', 'Category status updated.');
+    }
+
     // DELETE /categories/{id}
     public function destroy(Request $request, $id)
     {

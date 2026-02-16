@@ -2652,8 +2652,8 @@
                                         {"key": "price", "value": "99.99", "type": "text"},
                                         {"key": "stock", "value": "10", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
-                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Empty or e.g. 2"},
-                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional; single service ID (same as category_id)"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional. Empty or e.g. 2"},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Single service ID (e.g. 1 or {{service_id}}). Link product to one service."},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
                                         {"key": "handle", "value": "test-product-uniquee", "type": "text"},
@@ -2708,8 +2708,8 @@
                                         {"key": "price", "value": "149.99", "type": "text"},
                                         {"key": "stock", "value": "20", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
-                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Empty or e.g. 2"},
-                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional; single service ID (same as category_id)"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional. Empty or e.g. 2"},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Single service ID (e.g. 1 or {{service_id}}). Link product to one service."},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
                                         {"key": "handle", "value": "updated-product-handle", "type": "text"},
@@ -4950,6 +4950,22 @@
                     }
                 },
                 {
+                    "name": "Categories - Toggle Status",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/categories/{{category_id}}/toggle-status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "categories", "{{category_id}}", "toggle-status"]
+                        },
+                        "description": "POST /api/admin/categories/{id}/toggle-status – Enable/disable category. Response: success, message, data (id, is_active). Same pattern as banners. Set category_id."
+                    }
+                },
+                {
                     "name": "Categories - Delete",
                     "request": {
                         "method": "DELETE",
@@ -5032,14 +5048,12 @@
                                         {"key": "slug", "value": "tree-care", "type": "text", "description": "Optional"},
                                         {"key": "description", "value": "Professional tree care services", "type": "text", "description": "Optional"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional; link to a category"},
-                                        {"key": "icon", "value": "", "type": "text", "description": "Optional"},
-                                        {"key": "sort_order", "value": "0", "type": "text", "description": "Optional; integer"},
                                         {"key": "image", "type": "file", "src": [], "description": "Optional"},
                                         {"key": "is_active", "value": "1", "type": "text", "description": "Optional; 1 = active, 0 = Coming Soon"}
                                     ]
                                 },
                                 "url": {"raw": "{{base_url}}/api/admin/services", "host": ["{{base_url}}"], "path": ["api", "admin", "services"]},
-                                "description": "Create service. POST /api/admin/services. Form-data: name (required), slug, description, category_id (optional), icon, sort_order, image, is_active. Response 201: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon, category_id, category, sort_order, created_at, updated_at)."
+                                "description": "Create service. POST /api/admin/services. Form-data: name (required), slug, description, category_id (optional), image, is_active. Response 201: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon, category_id, category, created_at, updated_at)."
                             }
                         },
                         {
@@ -5073,15 +5087,29 @@
                                         {"key": "slug", "value": "updated-service-slug", "type": "text"},
                                         {"key": "description", "value": "Updated description", "type": "text"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional; empty to unlink"},
-                                        {"key": "icon", "value": "", "type": "text", "description": "Optional"},
-                                        {"key": "sort_order", "value": "0", "type": "text", "description": "Optional"},
                                         {"key": "image", "type": "file", "src": [], "description": "Optional; replace image"},
                                         {"key": "image_remove", "value": "false", "type": "text", "description": "Set true to remove image"},
                                         {"key": "is_active", "value": "1", "type": "text", "description": "1 = active, 0 = Coming Soon"}
                                     ]
                                 },
                                 "url": {"raw": "{{base_url}}/api/admin/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "services", "{{service_id}}"]},
-                                "description": "Update service. PUT/POST /api/admin/services/:id. Form-data: name, slug, description, category_id, icon, sort_order, image, image_remove, is_active. Set service_id. Response: success, message, data."
+                                "description": "Update service. PUT/POST /api/admin/services/:id. Form-data: name, slug, description, category_id, image, image_remove, is_active. Set service_id. Response: success, message, data."
+                            }
+                        },
+                        {
+                            "name": "Services - Toggle Status",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/services/{{service_id}}/toggle-status",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "services", "{{service_id}}", "toggle-status"]
+                                },
+                                "description": "POST /api/admin/services/{id}/toggle-status – Enable/disable service. Response: success, message, data (id, is_active). Same pattern as banners. Set service_id."
                             }
                         },
                         {

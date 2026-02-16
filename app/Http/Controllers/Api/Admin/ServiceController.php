@@ -168,6 +168,21 @@ class ServiceController extends Controller
     }
 
     /**
+     * POST /api/admin/services/{id}/toggle-status – Toggle is_active (enable/disable). Same pattern as banners.
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        $service = Service::findOrFail($id);
+        $service->is_active = ! $service->is_active;
+        $service->save();
+
+        return ApiResponse::success('Service status updated successfully.', [
+            'id' => $service->id,
+            'is_active' => (bool) $service->is_active,
+        ]);
+    }
+
+    /**
      * DELETE /api/admin/services/{id} – Delete a service.
      */
     public function destroy(Request $request, $id)
