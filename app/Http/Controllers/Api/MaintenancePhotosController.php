@@ -84,6 +84,7 @@ class MaintenancePhotosController extends Controller
             }
 
             $query = VisitPhoto::whereIn('visit_id', $visitIds)->with('visit:id,subscription_id,scheduled_date,status,completed_at');
+        }
 
         if ($request->has('visit_id')) {
             $visitId = (int) $request->visit_id;

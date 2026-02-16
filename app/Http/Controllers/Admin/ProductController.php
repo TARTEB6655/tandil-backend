@@ -420,6 +420,7 @@ class ProductController extends Controller
             'image_urls.*'=> 'nullable|string|url',
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
+            'service_id'    => 'nullable|integer|exists:services,id',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
@@ -579,10 +580,15 @@ class ProductController extends Controller
         }
         $this->reorderProductImages($product->id);
 
-        // Optional: link product to services
-        if ($request->has('service_ids') && is_array($request->service_ids)) {
-            $ids = array_values(array_filter(array_map('intval', $request->service_ids)));
-            $product->services()->sync($ids);
+        // Optional: link product to services (accept single service_id or array service_ids)
+        $serviceIds = [];
+        if ($request->filled('service_id')) {
+            $serviceIds = [(int) $request->service_id];
+        } elseif ($request->has('service_ids') && is_array($request->service_ids)) {
+            $serviceIds = array_values(array_filter(array_map('intval', $request->service_ids)));
+        }
+        if (! empty($serviceIds)) {
+            $product->services()->sync($serviceIds);
         }
 
         // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
@@ -712,6 +718,7 @@ class ProductController extends Controller
             'image_urls.*'=> 'nullable|string|url',
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
+            'service_id'    => 'nullable|integer|exists:services,id',
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
@@ -869,11 +876,14 @@ class ProductController extends Controller
 
         $product->update($updateData);
 
-        // Optional: sync product to services
-        if ($request->has('service_ids')) {
-            $ids = is_array($request->service_ids) ? array_values(array_filter(array_map('intval', $request->service_ids))) : [];
-            $product->services()->sync($ids);
+        // Optional: sync product to services (accept single service_id or array service_ids)
+        $serviceIds = [];
+        if ($request->filled('service_id')) {
+            $serviceIds = [(int) $request->service_id];
+        } elseif ($request->has('service_ids') && is_array($request->service_ids)) {
+            $serviceIds = array_values(array_filter(array_map('intval', $request->service_ids)));
         }
+        $product->services()->sync($serviceIds);
 
         // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();

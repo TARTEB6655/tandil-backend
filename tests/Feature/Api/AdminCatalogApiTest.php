@@ -181,6 +181,37 @@ class AdminCatalogApiTest extends TestCase
         $this->assertContains($service2->id, $serviceIds);
     }
 
+    public function test_admin_products_create_with_single_service_id_and_update(): void
+    {
+        $category = Category::factory()->create();
+        $service = Service::factory()->create(['name' => 'Single Service']);
+
+        $response = $this->postJson('/api/admin/products', [
+            'name' => 'Product With One Service',
+            'price' => 19.99,
+            'category_id' => $category->id,
+            'service_id' => $service->id,
+        ], $this->authJson());
+        $response->assertStatus(201);
+        $id = $response->json('data.id');
+        $this->assertNotNull($id);
+
+        $show = $this->getJson("/api/admin/products/{$id}", $this->authJson());
+        $show->assertStatus(200);
+        $show->assertJsonPath('data.name', 'Product With One Service');
+        $serviceIds = $show->json('data.service_ids');
+        $this->assertIsArray($serviceIds);
+        $this->assertCount(1, $serviceIds);
+        $this->assertContains($service->id, $serviceIds);
+
+        $response2 = $this->putJson("/api/admin/products/{$id}", [
+            'name' => 'Product With One Service',
+            'price' => 19.99,
+            'service_id' => $service->id,
+        ], $this->authJson());
+        $response2->assertStatus(200);
+    }
+
     public function test_admin_catalog_requires_auth(): void
     {
         $this->getJson('/api/admin/categories')->assertStatus(401);

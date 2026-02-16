@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_ids[] for linking to services. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_id (single, like category_id) or service_ids array for linking to services. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.21.0"
@@ -2633,7 +2633,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, category_id (integer; use id from List Categories; omit or null for no category), weight_unit, sku, handle, service_ids (array of service IDs from Admin - Services), image_urls (array of URLs). Response 201: data includes image, image_url, images, primary_image, service_ids. Auth: Bearer {{token}}."
+                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, category_id, service_id (single) or service_ids (array), weight_unit, sku, handle, image_urls. Response 201: data includes image, image_url, images, primary_image, service_ids. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2653,7 +2653,7 @@
                                         {"key": "stock", "value": "10", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Empty or e.g. 2"},
-                                        {"key": "service_ids[]", "value": "{{service_id}}", "type": "text", "description": "Optional; add multiple service_ids[] for each service ID"},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional; single service ID (same as category_id)"},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
                                         {"key": "handle", "value": "test-product-uniquee", "type": "text"},
@@ -2667,7 +2667,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_ids[] (optional; repeat for each service ID), weight_unit, sku, handle, main_image, images[]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids. Auth: Bearer {{token}}."
+                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), weight_unit, sku, handle, main_image, images[]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2709,7 +2709,7 @@
                                         {"key": "stock", "value": "20", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Empty or e.g. 2"},
-                                        {"key": "service_ids[]", "value": "{{service_id}}", "type": "text", "description": "Optional; add multiple service_ids[] for each service ID to link product to services"},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional; single service ID (same as category_id)"},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
                                         {"key": "handle", "value": "updated-product-handle", "type": "text"},
@@ -2723,7 +2723,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_ids[] (optional), main_image, images[]. Response: data.images, data.image_url, data.service_ids. Set product_id. Auth: Bearer {{token}}."
+                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), main_image, images[]. Response: data.images, data.image_url, data.service_ids. Set product_id. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2864,7 +2864,7 @@
                     "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
                 }
             ],
-            "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id optional, service_ids optional), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_ids are optional on create and update."
+            "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
             "name": "10. Admin & HR Routes",
