@@ -297,6 +297,16 @@
                         </select>
                             </div>
                             <div>
+                                <label for="service_ids" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Services (optional)</label>
+                                <select id="service_ids" name="service_ids[]" multiple
+                                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100 min-h-[100px]">
+                                    @foreach($services ?? [] as $svc)
+                                        <option value="{{ $svc->id }}" {{ in_array($svc->id, old('service_ids', $product->services->pluck('id')->all())) ? 'selected' : '' }}>{{ $svc->name }}@if($svc->category) ({{ $svc->category->name }})@endif</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+                            </div>
+                            <div>
                                 <label for="vendor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vendor</label>
                                 <input type="text" id="vendor" name="vendor" value="{{ old('vendor', $product->vendor) }}" placeholder="e.g. Acme Corp"
                                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">

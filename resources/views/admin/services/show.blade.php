@@ -6,13 +6,13 @@
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             <a href="{{ route('admin.services.index') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Services</a>
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-            <span class="text-gray-900 dark:text-gray-100 font-medium">{{ $category->name }}</span>
+            <span class="text-gray-900 dark:text-gray-100 font-medium">{{ $service->name }}</span>
         </nav>
 
-        <!-- Category header card -->
+        <!-- Service header card -->
         @php
             $iconMap = ['water' => '💧', 'leaf' => '🌿', 'broom' => '🧹', 'heart' => '❤️', 'wrench' => '🔧'];
-            $icon = $category->icon && isset($iconMap[$category->icon]) ? $iconMap[$category->icon] : '📋';
+            $icon = $service->icon && isset($iconMap[$service->icon]) ? $iconMap[$service->icon] : '📋';
         @endphp
         <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
             <div class="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
@@ -20,20 +20,19 @@
                     {{ $icon }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ $category->name }}</h1>
-                    @if($category->description)
-                        <p class="mt-2 text-gray-500 dark:text-gray-400">{{ $category->description }}</p>
+                    <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ $service->name }}</h1>
+                    @if($service->category)
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Category: {{ $service->category->name }}</p>
+                    @endif
+                    @if($service->description)
+                        <p class="mt-2 text-gray-500 dark:text-gray-400">{{ $service->description }}</p>
                     @endif
                     <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ $category->products_count }}</span> {{ Str::plural('product', $category->products_count) }} in this category
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ $service->products_count }}</span> {{ Str::plural('product', $service->products_count) }} linked to this service
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <a href="{{ route('admin.categories.edit', $category->id) }}" 
-                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                        Edit category
-                    </a>
-                    <a href="{{ route('admin.products.create') }}?category_id={{ $category->id }}" 
+                    <a href="{{ route('admin.products.create') }}?service_id={{ $service->id }}"
                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                         Add product
@@ -42,31 +41,30 @@
             </div>
         </div>
 
-        <!-- Products in this category -->
+        <!-- Products linked to this service -->
         <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
             <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Products in this category</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Services customers can order under {{ $category->name }}</p>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Products linked to this service</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Assign products to this service when creating or editing a product.</p>
             </div>
 
-            @if($category->products->isEmpty())
+            @if($service->products->isEmpty())
                 <div class="p-12 text-center">
                     <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
                         <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4z" />
                         </svg>
                     </div>
-                    <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">No products yet</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Add products and assign them to this category.</p>
-                    <a href="{{ route('admin.products.create') }}?category_id={{ $category->id }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100">
+                    <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">No products linked yet</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">When creating or editing a product, select this service to link it here.</p>
+                    <a href="{{ route('admin.products.create') }}?service_id={{ $service->id }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100">
                         Add product
                     </a>
                 </div>
             @else
-                <!-- Product cards grid -->
                 <div class="p-4 sm:p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        @foreach($category->products as $product)
+                        @foreach($service->products as $product)
                             <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors flex flex-col">
                                 <div class="flex items-start gap-4">
                                     @if($product->image_url ?? null)
@@ -94,7 +92,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
-                                    <a href="{{ route('admin.products.edit', $product->id) }}" 
+                                    <a href="{{ route('admin.products.edit', $product->id) }}"
                                        class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                         Edit product
@@ -108,7 +106,7 @@
         </div>
 
         <div class="flex justify-start">
-            <a href="{{ route('admin.services.index') }}" 
+            <a href="{{ route('admin.services.index') }}"
                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 Back to Services

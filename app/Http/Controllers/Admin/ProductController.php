@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Service;
 use App\Models\ProductImage;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -85,6 +86,7 @@ class ProductController extends Controller
             'main_image' => $mainImage,
             'gallery_images' => $galleryImages,
             'category' => $product->relationLoaded('category') ? $product->category : null,
+            'service_ids' => $product->relationLoaded('services') ? $product->services->pluck('id')->values()->all() : $product->services()->pluck('id')->values()->all(),
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at,
         ];
@@ -416,6 +418,8 @@ class ProductController extends Controller
             'images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'image_urls'  => 'nullable|array',
             'image_urls.*'=> 'nullable|string|url',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
@@ -575,10 +579,16 @@ class ProductController extends Controller
         }
         $this->reorderProductImages($product->id);
 
+        // Optional: link product to services
+        if ($request->has('service_ids') && is_array($request->service_ids)) {
+            $ids = array_values(array_filter(array_map('intval', $request->service_ids)));
+            $product->services()->sync($ids);
+        }
+
         // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
         if ($request->expectsJson() || $request->is('api/*')) {
             $product->refresh();
-            $product->load(['category', 'images', 'primaryImage']);
+            $product->load(['category', 'services', 'images', 'primaryImage']);
             return response()->json([
                 'status' => true,
                 'message' => 'Product created successfully.',
@@ -595,9 +605,10 @@ class ProductController extends Controller
      */
     public function edit($id)
     {
-        $product = Product::with(['category', 'images'])->findOrFail($id);
-        $categories = \App\Models\Category::all();
-        return view('admin.products.edit', compact('product', 'categories'));
+        $product = Product::with(['category', 'services', 'images'])->findOrFail($id);
+        $categories = Category::orderBy('name')->get();
+        $services = Service::with('category')->orderBy('name')->get();
+        return view('admin.products.edit', compact('product', 'categories', 'services'));
     }
 
     /**
@@ -627,8 +638,9 @@ class ProductController extends Controller
      */
     public function create()
     {
-        $categories = \App\Models\Category::all();
-        return view('admin.products.create', compact('categories'));
+        $categories = Category::orderBy('name')->get();
+        $services = Service::with('category')->orderBy('name')->get();
+        return view('admin.products.create', compact('categories', 'services'));
     }
 
     /**
@@ -698,6 +710,8 @@ class ProductController extends Controller
             'images.*'    => 'image|mimes:jpg,jpeg,png,webp',
             'image_urls'  => 'nullable|array',
             'image_urls.*'=> 'nullable|string|url',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
@@ -855,6 +869,12 @@ class ProductController extends Controller
 
         $product->update($updateData);
 
+        // Optional: sync product to services
+        if ($request->has('service_ids')) {
+            $ids = is_array($request->service_ids) ? array_values(array_filter(array_map('intval', $request->service_ids))) : [];
+            $product->services()->sync($ids);
+        }
+
         // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
         if ($primaryImage && $product->image !== $primaryImage->image_path) {
@@ -865,7 +885,7 @@ class ProductController extends Controller
 
         if ($request->expectsJson() || $request->is('api/*')) {
             // Reload from DB so response shows all updated values (name, description, price, image, etc.)
-            $fresh = Product::with(['category', 'images', 'primaryImage'])->find($product->id);
+            $fresh = Product::with(['category', 'services', 'images', 'primaryImage'])->find($product->id);
             $updatedFields = array_keys($updateData);
             return response()->json([
                 'status' => true,

@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_ids[] for linking to services. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.20.0"
+        "version": "2.21.0"
     },
     "item": [
         {
@@ -2626,14 +2626,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 2,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-002\",\n  \"handle\": \"test-product-unique\",\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
+                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 2,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-002\",\n  \"handle\": \"test-product-unique\",\n  \"service_ids\": [1, 2],\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, category_id (integer; use id from List Categories; omit or null for no category), weight_unit, sku, handle, image_urls (array of URLs). Response 201: data.image (relative path), data.image_url (full URL e.g. .../media/products/...), data.images (array of { id, product_id, image_path, sort_order, is_primary, created_at, updated_at }), data.primary_image (same shape). Auth: Bearer {{token}}."
+                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, category_id (integer; use id from List Categories; omit or null for no category), weight_unit, sku, handle, service_ids (array of service IDs from Admin - Services), image_urls (array of URLs). Response 201: data includes image, image_url, images, primary_image, service_ids. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2653,6 +2653,7 @@
                                         {"key": "stock", "value": "10", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Empty or e.g. 2"},
+                                        {"key": "service_ids[]", "value": "{{service_id}}", "type": "text", "description": "Optional; add multiple service_ids[] for each service ID"},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "SKU-UNIQUE-003", "type": "text"},
                                         {"key": "handle", "value": "test-product-uniquee", "type": "text"},
@@ -2666,7 +2667,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, weight_unit, sku, handle, main_image (single or multiple — first = primary, rest in images), images[]. Response 201: data.image, data.image_url, data.images (deduplicated), data.primary_image. Auth: Bearer {{token}}."
+                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_ids[] (optional; repeat for each service ID), weight_unit, sku, handle, main_image, images[]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2688,7 +2689,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "GET single product by ID (admin). Response: data.images = deduplicated array; each has image_path, image_url (full URL). data.image_url = primary image URL. 200 = success; 404 = not found; 401 = missing token. Auth: Bearer {{token}}."
+                                "description": "GET single product by ID (admin). Response: data.images, data.image_url (primary), data.service_ids (array of linked service IDs). 200 = success; 404 = not found; 401 = missing token. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2708,6 +2709,7 @@
                                         {"key": "stock", "value": "20", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Empty or e.g. 2"},
+                                        {"key": "service_ids[]", "value": "{{service_id}}", "type": "text", "description": "Optional; add multiple service_ids[] for each service ID to link product to services"},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "SKU-UPDATED-001", "type": "text"},
                                         {"key": "handle", "value": "updated-product-handle", "type": "text"},
@@ -2721,7 +2723,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products", "{{product_id}}"]
                                 },
-                                "description": "Update product: PUT or POST multipart. main_image single or multiple (first = primary, rest in images); images[] = extras. Set product_id. Response: data.images deduplicated, full image_url. Auth: Bearer {{token}}."
+                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_ids[] (optional), main_image, images[]. Response: data.images, data.image_url, data.service_ids. Set product_id. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2862,7 +2864,7 @@
                     "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
                 }
             ],
-            "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter; no category required), create (JSON or multipart; category_id optional), get, update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id is optional on list, create, and update."
+            "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id optional, service_ids optional), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_ids are optional on create and update."
         },
         {
             "name": "10. Admin & HR Routes",
@@ -4980,7 +4982,7 @@
                 },
                 {
                     "name": "Admin - Services",
-                    "description": "Separate Services API – full CRUD under /api/admin/services. Services = categories in backend. Auth: Bearer token, admin role. Env: service_id (use from List or same as category_id).",
+                    "description": "Services API – full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
                     "item": [
                         {
                             "name": "Services - List",
@@ -4991,8 +4993,8 @@
                                         "exec": [
                                             "if (pm.response.code === 200) {",
                                             "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.data && jsonData.data.data.length > 0 && !pm.environment.get('service_id')) {",
-                                            "        pm.environment.set('service_id', jsonData.data.data[0].id);",
+                                            "    if (jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0 && !pm.environment.get('service_id')) {",
+                                            "        pm.environment.set('service_id', jsonData.data[0].id);",
                                             "    }",
                                             "}"
                                         ],
@@ -5010,9 +5012,9 @@
                                     "raw": "{{base_url}}/api/admin/services?per_page=50",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "services"],
-                                    "query": [{"key": "per_page", "value": "50", "description": "Items per page (1-100)"}]
+                                    "query": [{"key": "per_page", "value": "50", "description": "Items per page (1-100)"}, {"key": "category_id", "value": "", "description": "Optional; filter by category"}]
                                 },
-                                "description": "List all services (admin). GET /api/admin/services. Query: per_page (1-100, default 15). Response: data (array with id, name, slug, description, image, image_url, is_active, coming_soon, products_count), pagination. Sets service_id from first item if not set."
+                                "description": "List all services (admin). GET /api/admin/services. Query: per_page (1-100, default 15), category_id (optional). Response: success, data (array: id, name, slug, description, image, image_url, icon, is_active, coming_soon, category_id, category {id,name,slug}, sort_order, products_count), pagination. Sets service_id from first item if not set."
                             }
                         },
                         {
@@ -5029,12 +5031,15 @@
                                         {"key": "name", "value": "Tree Care", "type": "text", "description": "Required"},
                                         {"key": "slug", "value": "tree-care", "type": "text", "description": "Optional"},
                                         {"key": "description", "value": "Professional tree care services", "type": "text", "description": "Optional"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional; link to a category"},
+                                        {"key": "icon", "value": "", "type": "text", "description": "Optional"},
+                                        {"key": "sort_order", "value": "0", "type": "text", "description": "Optional; integer"},
                                         {"key": "image", "type": "file", "src": [], "description": "Optional"},
                                         {"key": "is_active", "value": "1", "type": "text", "description": "Optional; 1 = active, 0 = Coming Soon"}
                                     ]
                                 },
                                 "url": {"raw": "{{base_url}}/api/admin/services", "host": ["{{base_url}}"], "path": ["api", "admin", "services"]},
-                                "description": "Create service. POST /api/admin/services. Form-data: name (required), slug, description, image, is_active. Response 201: success, message (Service created successfully.), data (id, name, slug, description, image, image_url, is_active, coming_soon, created_at, updated_at)."
+                                "description": "Create service. POST /api/admin/services. Form-data: name (required), slug, description, category_id (optional), icon, sort_order, image, is_active. Response 201: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon, category_id, category, sort_order, created_at, updated_at)."
                             }
                         },
                         {
@@ -5050,7 +5055,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "services", "{{service_id}}"]
                                 },
-                                "description": "Get one service by id. GET /api/admin/services/:id. Set service_id in env. Response: data (id, name, slug, description, image, image_url, is_active, coming_soon, products_count, created_at, updated_at)."
+                                "description": "Get one service by id. GET /api/admin/services/:id. Set service_id in env. Response: data (id, name, slug, description, image, image_url, icon, is_active, coming_soon, category_id, category {id,name,slug}, sort_order, products_count, created_at, updated_at)."
                             }
                         },
                         {
@@ -5067,13 +5072,16 @@
                                         {"key": "name", "value": "Updated Service Name", "type": "text"},
                                         {"key": "slug", "value": "updated-service-slug", "type": "text"},
                                         {"key": "description", "value": "Updated description", "type": "text"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional; empty to unlink"},
+                                        {"key": "icon", "value": "", "type": "text", "description": "Optional"},
+                                        {"key": "sort_order", "value": "0", "type": "text", "description": "Optional"},
                                         {"key": "image", "type": "file", "src": [], "description": "Optional; replace image"},
                                         {"key": "image_remove", "value": "false", "type": "text", "description": "Set true to remove image"},
                                         {"key": "is_active", "value": "1", "type": "text", "description": "1 = active, 0 = Coming Soon"}
                                     ]
                                 },
                                 "url": {"raw": "{{base_url}}/api/admin/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "services", "{{service_id}}"]},
-                                "description": "Update service. POST or PUT /api/admin/services/:id. Form-data: name, slug, description, image, image_remove, is_active. Set service_id. Response: success, message, data."
+                                "description": "Update service. PUT/POST /api/admin/services/:id. Form-data: name, slug, description, category_id, icon, sort_order, image, image_remove, is_active. Set service_id. Response: success, message, data."
                             }
                         },
                         {

@@ -371,11 +371,22 @@
                                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">No category</option>
                                     @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                                        <option value="{{ $category->id }}" {{ old('category_id', request('category_id')) == $category->id ? 'selected' : '' }}>
                                             {{ $category->name }}
                                         </option>
                                     @endforeach
                                 </select>
+                            </div>
+
+                            <div>
+                                <label for="service_ids" class="block text-sm font-medium text-gray-700 mb-2">Services (optional)</label>
+                                <select id="service_ids" name="service_ids[]" multiple
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 min-h-[100px]">
+                                    @foreach($services ?? [] as $svc)
+                                        <option value="{{ $svc->id }}" {{ in_array($svc->id, old('service_ids', request('service_id') ? [request('service_id')] : [])) ? 'selected' : '' }}>{{ $svc->name }}@if($svc->category) ({{ $svc->category->name }})@endif</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple. Link this product to one or more services.</p>
                             </div>
 
                             <div>

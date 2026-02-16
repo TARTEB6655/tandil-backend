@@ -35,6 +35,14 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    /**
+     * Services this product is linked to (optional, many-to-many).
+     */
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'product_service');
+    }
+
     public function images()
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');

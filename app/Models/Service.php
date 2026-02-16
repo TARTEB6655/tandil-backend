@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Category extends Model
+class Service extends Model
 {
     use HasFactory;
 
@@ -16,12 +16,14 @@ class Category extends Model
         'image',
         'icon',
         'is_active',
+        'category_id',
+        'sort_order',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'sort_order' => 'integer',
     ];
-
 
     protected $appends = ['image_url', 'coming_soon'];
 
@@ -30,10 +32,6 @@ class Category extends Model
         return isset($this->attributes['is_active']) && ! (bool) $this->attributes['is_active'];
     }
 
-    /**
-     * Get the full URL for the category image.
-     * Uses request host when in HTTP context (so live/proxy URLs are correct), else asset().
-     */
     public function getImageUrlAttribute(): ?string
     {
         $image = $this->attributes['image'] ?? null;
@@ -50,16 +48,16 @@ class Category extends Model
         return asset('media/' . $path);
     }
 
-    public function products()
+    public function category()
     {
-        return $this->hasMany(Product::class);
+        return $this->belongsTo(Category::class);
     }
 
     /**
-     * Services that optionally belong to this category.
+     * Products linked to this service (many-to-many).
      */
-    public function services()
+    public function products()
     {
-        return $this->hasMany(Service::class);
+        return $this->belongsToMany(Product::class, 'product_service');
     }
 }

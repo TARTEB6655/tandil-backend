@@ -145,6 +145,8 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
         
         Route::resource('categories', CategoryController::class);
         Route::get('services', [\App\Http\Controllers\Admin\ServicesController::class, 'index'])->name('services.index');
+        Route::get('services/create', [\App\Http\Controllers\Admin\ServicesController::class, 'create'])->name('services.create');
+        Route::post('services', [\App\Http\Controllers\Admin\ServicesController::class, 'store'])->name('services.store');
         Route::get('services/category/{id}', [\App\Http\Controllers\Admin\ServicesController::class, 'showCategory'])->name('services.category');
         Route::resource('subscriptions', SubscriptionController::class);
         Route::post('subscriptions/{id}/extend', [SubscriptionController::class, 'extend'])->name('subscriptions.extend');

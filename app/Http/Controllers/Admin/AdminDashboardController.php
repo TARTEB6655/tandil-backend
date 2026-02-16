@@ -96,6 +96,7 @@ class AdminDashboardController extends Controller
         $outOfStockProducts = Product::where('stock', 0)->count();
 
         $totalCategories = Category::count();
+        $totalServices = \App\Models\Service::count();
         $activeCategories = Category::where(function ($q) {
             $q->where('is_active', true)->orWhereNull('is_active');
         })->count();
@@ -397,6 +398,7 @@ class AdminDashboardController extends Controller
             'lowStockProducts',
             'outOfStockProducts',
             'totalCategories',
+            'totalServices',
             'activeCategories',
             'topProducts',
             'ordersByStatus',

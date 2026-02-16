@@ -4,38 +4,34 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
-use App\Models\Category;
+use App\Models\Service;
 use Illuminate\Http\Request;
 
+/**
+ * Public Services API. Services are a separate table; optional category_id for grouping.
+ */
 class ServiceController extends Controller
 {
-    /**
-     * Build service/category API response shape (matches category API: image, image_url, is_active, coming_soon).
-     */
-    private function serviceToArray(Category $category, array $extra = []): array
+    private function serviceToArray(Service $service, array $extra = []): array
     {
-        $isActive = isset($category->is_active) ? (bool) $category->is_active : true;
-        $imagePath = $category->image;
-        $imageUrl = $category->image_url;
-
         return array_merge([
-            'id' => $category->id,
-            'name' => $category->name,
-            'slug' => $category->slug,
-            'description' => $category->description,
-            'image' => $imagePath,
-            'image_url' => $imageUrl,
-            'icon' => $category->icon,
-            'is_active' => $isActive,
-            'coming_soon' => ! $isActive,
-            'created_at' => $category->created_at?->format('c'),
-            'updated_at' => $category->updated_at?->format('c'),
+            'id' => $service->id,
+            'name' => $service->name,
+            'slug' => $service->slug,
+            'description' => $service->description,
+            'image' => $service->image,
+            'image_url' => $service->image_url,
+            'icon' => $service->icon,
+            'is_active' => (bool) $service->is_active,
+            'coming_soon' => (bool) $service->coming_soon,
+            'category_id' => $service->category_id,
+            'created_at' => $service->created_at?->format('c'),
+            'updated_at' => $service->updated_at?->format('c'),
         ], $extra);
     }
 
     /**
-     * List services (categories). Returns all so customer app can show "Coming Soon" for inactive.
-     * Optional search, category_id, per_page. Each item has is_active and coming_soon.
+     * List services. Optional: category_id, search, per_page. Returns all (inactive show "Coming Soon").
      */
     public function index(Request $request)
     {
@@ -43,7 +39,7 @@ class ServiceController extends Controller
         $search = $request->query('search');
         $categoryId = $request->query('category_id');
 
-        $query = Category::query();
+        $query = Service::query()->withCount('products');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -51,88 +47,72 @@ class ServiceController extends Controller
                     ->orWhere('description', 'LIKE', '%' . $search . '%');
             });
         }
-
         if ($categoryId) {
-            $query->where('id', $categoryId);
+            $query->where('category_id', $categoryId);
         }
 
-        $categories = $query->withCount(['products' => function ($q) {
-            $q->where('status', 'active');
-        }])
-            ->with(['products' => function ($q) {
-                $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
-            }])
-            ->orderBy('name')
-            ->paginate($perPage);
+        $services = $query->orderBy('sort_order')->orderBy('name')->paginate($perPage);
 
-        $data = $categories->getCollection()->map(fn (Category $c) => $this->serviceToArray($c, [
-            'products_count' => $c->products_count ?? 0,
-            'product_names' => $c->relationLoaded('products') ? $c->products->pluck('name')->values()->all() : [],
+        $data = $services->getCollection()->map(fn (Service $s) => $this->serviceToArray($s, [
+            'products_count' => $s->products_count ?? 0,
+            'product_names' => $s->products()->where('status', 'active')->limit(5)->pluck('name')->values()->all(),
         ]))->values()->all();
 
         return ApiResponse::success('Services retrieved successfully.', [
             'data' => $data,
             'pagination' => [
-                'current_page' => $categories->currentPage(),
-                'last_page' => $categories->lastPage(),
-                'per_page' => $categories->perPage(),
-                'total' => $categories->total(),
+                'current_page' => $services->currentPage(),
+                'last_page' => $services->lastPage(),
+                'per_page' => $services->perPage(),
+                'total' => $services->total(),
             ],
         ]);
     }
 
     /**
-     * Show single service (category). Returns category even if inactive so app can show "Coming Soon".
+     * Show single service (with products linked via pivot).
      */
     public function show($id)
     {
-        $category = Category::withCount(['products' => function ($q) {
-            $q->where('status', 'active');
-        }])
-            ->with(['products' => function ($q) {
-                $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
-            }])
+        $service = Service::withCount('products')
             ->findOrFail($id);
+        $productNames = $service->products()->where('status', 'active')->limit(5)->pluck('name')->values()->all();
 
-        return ApiResponse::success('Service retrieved successfully.', $this->serviceToArray($category, [
-            'products_count' => $category->products_count ?? 0,
-            'product_names' => $category->relationLoaded('products') ? $category->products->pluck('name')->values()->all() : [],
+        return ApiResponse::success('Service retrieved successfully.', $this->serviceToArray($service, [
+            'products_count' => $service->products_count ?? 0,
+            'product_names' => $productNames,
         ]));
     }
 
     /**
-     * Get all service categories (including inactive so app can show "Coming Soon"). Same shape as list.
+     * Get all services (no pagination). Same shape as list.
      */
     public function getCategories(Request $request)
     {
-        $categories = Category::withCount(['products' => function ($q) {
-            $q->where('status', 'active');
-        }])
-            ->with(['products' => function ($q) {
-                $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
-            }])
-            ->orderBy('name')
-            ->get();
+        $query = Service::query()->withCount('products');
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        $services = $query->orderBy('sort_order')->orderBy('name')->get();
 
-        $data = $categories->map(fn (Category $c) => $this->serviceToArray($c, [
-            'products_count' => $c->products_count ?? 0,
-            'product_names' => $c->relationLoaded('products') ? $c->products->pluck('name')->values()->all() : [],
+        $data = $services->map(fn (Service $s) => $this->serviceToArray($s, [
+            'products_count' => $s->products_count ?? 0,
+            'product_names' => $s->products()->where('status', 'active')->limit(5)->pluck('name')->values()->all(),
         ]))->values()->all();
 
-        return ApiResponse::success('Categories retrieved successfully.', $data);
+        return ApiResponse::success('Services retrieved successfully.', $data);
     }
 
     /**
-     * Get services by category: category + products. Inactive categories still returned so app can show "Coming Soon".
+     * Get one service by id with full products list (products linked to this service via pivot).
      */
     public function getByCategory($id)
     {
-        $category = Category::with(['products' => function ($q) {
+        $service = Service::with(['products' => function ($q) {
             $q->where('status', 'active')->orderBy('name');
-        }])
-            ->findOrFail($id);
+        }])->findOrFail($id);
 
-        $products = $category->products->map(function ($product) {
+        $products = $service->products->map(function ($product) {
             return [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -145,11 +125,11 @@ class ServiceController extends Controller
             ];
         })->values()->all();
 
-        $categoryData = $this->serviceToArray($category, [
-            'products_count' => $category->products->count(),
+        $serviceData = $this->serviceToArray($service, [
+            'products_count' => $service->products->count(),
             'products' => $products,
         ]);
 
-        return ApiResponse::success('Services retrieved successfully.', $categoryData);
+        return ApiResponse::success('Service retrieved successfully.', $serviceData);
     }
 }
