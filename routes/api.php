@@ -307,7 +307,7 @@ Route::prefix('services')->group(function () {
 | MAINTENANCE PHOTOS (Client app – home screen "Maintenance Photos" section)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'role:client'])->prefix('maintenance-photos')->group(function () {
+Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('maintenance-photos')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'index']);
     Route::get('/visit/{visitId}', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'byVisit']);
 });

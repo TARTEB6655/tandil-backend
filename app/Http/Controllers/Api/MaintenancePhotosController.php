@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
 /**
  * Maintenance Photos API – for the client app "Maintenance Photos" section on home.
  * Photos are visit photos (uploaded by technicians during service visits).
- * Client sees only photos from their own visits (via their subscriptions).
+ * Client: sees only photos from their own visits (via their subscriptions).
+ * Admin: can list all maintenance photos or by visit_id (for support/testing).
  */
 class MaintenancePhotosController extends Controller
 {
@@ -54,31 +55,39 @@ class MaintenancePhotosController extends Controller
 
     /**
      * GET /api/maintenance-photos
-     * List recent maintenance photos for the authenticated client (from their visits).
-     * Optional: limit, visit_id (filter by one visit).
+     * List recent maintenance photos. Client: only their visits. Admin: all photos (optional visit_id filter).
+     * Optional: per_page, visit_id (filter by one visit).
      */
     public function index(Request $request)
     {
         $user = $request->user();
-        if (! $user || ! $user->hasRole('client')) {
-            return ApiResponse::error('Unauthorized. Client role required.', 403);
+        if (! $user) {
+            return ApiResponse::error('Unauthorized.', 403);
         }
 
-        $subscriptionIds = \App\Models\Subscription::where('client_id', $user->id)->pluck('id');
-        $visitIds = Visit::whereIn('subscription_id', $subscriptionIds)->pluck('id');
+        $isAdmin = $user->role === 'admin' || $user->hasRole('admin');
 
-        if ($visitIds->isEmpty()) {
-            return ApiResponse::success('Maintenance photos retrieved.', [
-                'data' => [],
-                'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => (int) $request->query('per_page', 20), 'total' => 0],
-            ]);
-        }
+        if ($isAdmin) {
+            $query = VisitPhoto::query()->with('visit:id,subscription_id,scheduled_date,status,completed_at');
+            if ($request->filled('visit_id')) {
+                $query->where('visit_id', (int) $request->visit_id);
+            }
+        } else {
+            $subscriptionIds = \App\Models\Subscription::where('client_id', $user->id)->pluck('id');
+            $visitIds = Visit::whereIn('subscription_id', $subscriptionIds)->pluck('id');
 
-        $query = VisitPhoto::whereIn('visit_id', $visitIds)->with('visit:id,subscription_id,scheduled_date,status,completed_at');
+            if ($visitIds->isEmpty()) {
+                return ApiResponse::success('Maintenance photos retrieved.', [
+                    'data' => [],
+                    'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => (int) $request->query('per_page', 20), 'total' => 0],
+                ]);
+            }
+
+            $query = VisitPhoto::whereIn('visit_id', $visitIds)->with('visit:id,subscription_id,scheduled_date,status,completed_at');
 
         if ($request->has('visit_id')) {
             $visitId = (int) $request->visit_id;
-            if (! $visitIds->contains($visitId)) {
+            if (! $isAdmin && ! $visitIds->contains($visitId)) {
                 return ApiResponse::error('Visit not found or access denied.', 404);
             }
             $query->where('visit_id', $visitId);
@@ -111,13 +120,13 @@ class MaintenancePhotosController extends Controller
 
     /**
      * GET /api/maintenance-photos/visit/{visit_id}
-     * List maintenance photos for a specific visit. Client must own the visit (via subscription).
+     * List maintenance photos for a specific visit. Client: must own the visit. Admin: any visit.
      */
     public function byVisit(Request $request, $visitId)
     {
         $user = $request->user();
-        if (! $user || ! $user->hasRole('client')) {
-            return ApiResponse::error('Unauthorized. Client role required.', 403);
+        if (! $user) {
+            return ApiResponse::error('Unauthorized.', 403);
         }
 
         $visit = Visit::with('photos')->find($visitId);
@@ -125,9 +134,12 @@ class MaintenancePhotosController extends Controller
             return ApiResponse::error('Visit not found.', 404);
         }
 
-        $subscriptionIds = \App\Models\Subscription::where('client_id', $user->id)->pluck('id');
-        if (! $subscriptionIds->contains($visit->subscription_id)) {
-            return ApiResponse::error('Visit not found or access denied.', 404);
+        $isAdmin = $user->role === 'admin' || $user->hasRole('admin');
+        if (! $isAdmin) {
+            $subscriptionIds = \App\Models\Subscription::where('client_id', $user->id)->pluck('id');
+            if (! $subscriptionIds->contains($visit->subscription_id)) {
+                return ApiResponse::error('Visit not found or access denied.', 404);
+            }
         }
 
         $visitSummary = [
