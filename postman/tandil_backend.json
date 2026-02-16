@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_id (single, like category_id) or service_ids array for linking to services. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_id (single, like category_id) or service_ids array. Category & Service: POST .../toggle-status to enable/disable (same as banners). Top Selling Products: ?limit=10&include_unsold=1.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.21.0"
+        "version": "2.22.0"
     },
     "item": [
         {
@@ -4891,11 +4891,12 @@
                                 {"key": "name", "value": "Fertilizers", "type": "text", "description": "Required"},
                                 {"key": "slug", "value": "fertilizers", "type": "text", "description": "Optional"},
                                 {"key": "description", "value": "Organic and chemical fertilizers", "type": "text", "description": "Optional"},
+                                {"key": "is_active", "value": "1", "type": "text", "description": "Optional; 1 = active, 0 = disabled (Coming Soon). Default 1."},
                                 {"key": "image", "type": "file", "src": [], "description": "Optional. Add image (jpeg/png/webp). Any size; auto-compressed to max 2 MB."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/admin/categories", "host": ["{{base_url}}"], "path": ["api", "admin", "categories"]},
-                        "description": "Create category (admin). Form-data only: name (required), slug (optional), description (optional), image (optional). Response: success, message, data (id, name, slug, description, image, image_url). Use returned id as category_id in Add Product."
+                        "description": "Create category (admin). Form-data: name (required), slug (optional), description (optional), is_active (optional; 1 = active, 0 = disabled), image (optional). Response: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon). Use returned id as category_id in Add Product."
                     }
                 },
                 {

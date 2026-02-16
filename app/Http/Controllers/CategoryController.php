@@ -220,6 +220,7 @@ class CategoryController extends Controller
         $name = $validated['name'] ?? '';
         $slug = isset($validated['slug']) && (string) $validated['slug'] !== '' ? $validated['slug'] : \Illuminate\Support\Str::slug($name);
         $description = array_key_exists('description', $validated) ? $validated['description'] : null;
+        $isActive = $request->has('is_active') ? $request->boolean('is_active') : true;
         $imagePath = null;
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('categories', 'public');
@@ -237,6 +238,7 @@ class CategoryController extends Controller
             'slug' => $slug,
             'description' => $description,
             'image' => $imagePath,
+            'is_active' => $isActive,
         ]);
         
         if (request()->expectsJson() || request()->is('api/*')) {
