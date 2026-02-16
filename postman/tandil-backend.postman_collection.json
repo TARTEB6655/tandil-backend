@@ -1,7 +1,7 @@
 {
   "info": {
       "name": "Tandil Backend - Flow-Based Collection",
-      "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
+      "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
       "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
       "_exporter_id": "tandil-backend",
       "version": "2.20.0"
@@ -4976,6 +4976,122 @@
                       "description": "Delete category (admin). Removes category and its image from storage. Cannot delete if category has products – reassign or delete products first. Auth: Bearer token, admin role."
                   }
               }
+                  ]
+              },
+              {
+                  "name": "Admin - Services",
+                  "description": "Separate Services API – full CRUD under /api/admin/services. Services = categories in backend. Auth: Bearer token, admin role. Env: service_id (use from List or same as category_id).",
+                  "item": [
+                      {
+                          "name": "Services - List",
+                          "event": [
+                              {
+                                  "listen": "test",
+                                  "script": {
+                                      "exec": [
+                                          "if (pm.response.code === 200) {",
+                                          "    var jsonData = pm.response.json();",
+                                          "    if (jsonData.data && jsonData.data.data && jsonData.data.data.length > 0 && !pm.environment.get('service_id')) {",
+                                          "        pm.environment.set('service_id', jsonData.data.data[0].id);",
+                                          "    }",
+                                          "}"
+                                      ],
+                                      "type": "text/javascript"
+                                  }
+                              }
+                          ],
+                          "request": {
+                              "method": "GET",
+                              "header": [
+                                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                                  {"key": "Accept", "value": "application/json"}
+                              ],
+                              "url": {
+                                  "raw": "{{base_url}}/api/admin/services?per_page=50",
+                                  "host": ["{{base_url}}"],
+                                  "path": ["api", "admin", "services"],
+                                  "query": [{"key": "per_page", "value": "50", "description": "Items per page (1-100)"}]
+                              },
+                              "description": "List all services (admin). GET /api/admin/services. Query: per_page (1-100, default 15). Response: data (array with id, name, slug, description, image, image_url, is_active, coming_soon, products_count), pagination. Sets service_id from first item if not set."
+                          }
+                      },
+                      {
+                          "name": "Services - Create",
+                          "request": {
+                              "method": "POST",
+                              "header": [
+                                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                                  {"key": "Accept", "value": "application/json"}
+                              ],
+                              "body": {
+                                  "mode": "formdata",
+                                  "formdata": [
+                                      {"key": "name", "value": "Tree Care", "type": "text", "description": "Required"},
+                                      {"key": "slug", "value": "tree-care", "type": "text", "description": "Optional"},
+                                      {"key": "description", "value": "Professional tree care services", "type": "text", "description": "Optional"},
+                                      {"key": "image", "type": "file", "src": [], "description": "Optional"},
+                                      {"key": "is_active", "value": "1", "type": "text", "description": "Optional; 1 = active, 0 = Coming Soon"}
+                                  ]
+                              },
+                              "url": {"raw": "{{base_url}}/api/admin/services", "host": ["{{base_url}}"], "path": ["api", "admin", "services"]},
+                              "description": "Create service. POST /api/admin/services. Form-data: name (required), slug, description, image, is_active. Response 201: success, message (Service created successfully.), data (id, name, slug, description, image, image_url, is_active, coming_soon, created_at, updated_at)."
+                          }
+                      },
+                      {
+                          "name": "Services - Get",
+                          "request": {
+                              "method": "GET",
+                              "header": [
+                                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                                  {"key": "Accept", "value": "application/json"}
+                              ],
+                              "url": {
+                                  "raw": "{{base_url}}/api/admin/services/{{service_id}}",
+                                  "host": ["{{base_url}}"],
+                                  "path": ["api", "admin", "services", "{{service_id}}"]
+                              },
+                              "description": "Get one service by id. GET /api/admin/services/:id. Set service_id in env. Response: data (id, name, slug, description, image, image_url, is_active, coming_soon, products_count, created_at, updated_at)."
+                          }
+                      },
+                      {
+                          "name": "Services - Update",
+                          "request": {
+                              "method": "POST",
+                              "header": [
+                                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                                  {"key": "Accept", "value": "application/json"}
+                              ],
+                              "body": {
+                                  "mode": "formdata",
+                                  "formdata": [
+                                      {"key": "name", "value": "Updated Service Name", "type": "text"},
+                                      {"key": "slug", "value": "updated-service-slug", "type": "text"},
+                                      {"key": "description", "value": "Updated description", "type": "text"},
+                                      {"key": "image", "type": "file", "src": [], "description": "Optional; replace image"},
+                                      {"key": "image_remove", "value": "false", "type": "text", "description": "Set true to remove image"},
+                                      {"key": "is_active", "value": "1", "type": "text", "description": "1 = active, 0 = Coming Soon"}
+                                  ]
+                              },
+                              "url": {"raw": "{{base_url}}/api/admin/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "services", "{{service_id}}"]},
+                              "description": "Update service. POST or PUT /api/admin/services/:id. Form-data: name, slug, description, image, image_remove, is_active. Set service_id. Response: success, message, data."
+                          }
+                      },
+                      {
+                          "name": "Services - Delete",
+                          "request": {
+                              "method": "DELETE",
+                              "header": [
+                                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                                  {"key": "Accept", "value": "application/json"}
+                              ],
+                              "url": {
+                                  "raw": "{{base_url}}/api/admin/services/{{service_id}}",
+                                  "host": ["{{base_url}}"],
+                                  "path": ["api", "admin", "services", "{{service_id}}"]
+                              },
+                              "description": "Delete service. DELETE /api/admin/services/:id. Fails if service has products. Set service_id."
+                          }
+                      }
                   ]
               },
               {

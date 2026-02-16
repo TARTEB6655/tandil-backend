@@ -209,6 +209,14 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
+    // Services API (separate CRUD; services = categories). Same data, routes under /api/admin/services.
+    Route::get('/services', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'index']);
+    Route::post('/services', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'store']);
+    Route::get('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'show']);
+    Route::put('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
+    Route::post('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
+    Route::delete('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'destroy']);
+
     // Products Management
     Route::get('/products', [\App\Http\Controllers\Admin\ProductController::class, 'index']);
     Route::post('/products', [\App\Http\Controllers\Admin\ProductController::class, 'store']);

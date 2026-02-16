@@ -34,7 +34,8 @@ class ServiceController extends Controller
     }
 
     /**
-     * List services (categories). Public: only active. Optional search, category_id, per_page.
+     * List services (categories). Returns all so customer app can show "Coming Soon" for inactive.
+     * Optional search, category_id, per_page. Each item has is_active and coming_soon.
      */
     public function index(Request $request)
     {
@@ -42,10 +43,7 @@ class ServiceController extends Controller
         $search = $request->query('search');
         $categoryId = $request->query('category_id');
 
-        $query = Category::query()
-            ->where(function ($q) {
-                $q->where('is_active', true)->orWhereNull('is_active');
-            });
+        $query = Category::query();
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -84,16 +82,13 @@ class ServiceController extends Controller
     }
 
     /**
-     * Show single service (category). Public: only if active.
+     * Show single service (category). Returns category even if inactive so app can show "Coming Soon".
      */
     public function show($id)
     {
-        $category = Category::where(function ($q) {
-            $q->where('is_active', true)->orWhereNull('is_active');
-        })
-            ->withCount(['products' => function ($q) {
-                $q->where('status', 'active');
-            }])
+        $category = Category::withCount(['products' => function ($q) {
+            $q->where('status', 'active');
+        }])
             ->with(['products' => function ($q) {
                 $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
             }])
@@ -106,7 +101,7 @@ class ServiceController extends Controller
     }
 
     /**
-     * Get all service categories (active only). Same shape as list for consistency.
+     * Get all service categories (including inactive so app can show "Coming Soon"). Same shape as list.
      */
     public function getCategories(Request $request)
     {
@@ -116,9 +111,6 @@ class ServiceController extends Controller
             ->with(['products' => function ($q) {
                 $q->where('status', 'active')->orderBy('name')->limit(5)->select('id', 'name', 'category_id');
             }])
-            ->where(function ($q) {
-                $q->where('is_active', true)->orWhereNull('is_active');
-            })
             ->orderBy('name')
             ->get();
 
@@ -131,16 +123,13 @@ class ServiceController extends Controller
     }
 
     /**
-     * Get services by category: category + products (active only). Products include image_url.
+     * Get services by category: category + products. Inactive categories still returned so app can show "Coming Soon".
      */
     public function getByCategory($id)
     {
-        $category = Category::where(function ($q) {
-            $q->where('is_active', true)->orWhereNull('is_active');
-        })
-            ->with(['products' => function ($q) {
-                $q->where('status', 'active')->orderBy('name');
-            }])
+        $category = Category::with(['products' => function ($q) {
+            $q->where('status', 'active')->orderBy('name');
+        }])
             ->findOrFail($id);
 
         $products = $category->products->map(function ($product) {
