@@ -36,6 +36,8 @@ class ExclusiveOfferController extends Controller
         $this->parseMultipartIfNeeded($request, 'image');
         $this->normalizeImageFileToSingle($request, 'image');
 
+        $productIds = $this->normalizeProductIds($request->input('product_ids'));
+        $request->merge(['product_ids' => $productIds]);
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
@@ -47,6 +49,8 @@ class ExclusiveOfferController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'is_active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
+            'product_ids' => 'nullable|array',
+            'product_ids.*' => 'integer|exists:products,id',
         ]);
 
         $imagePath = null;
@@ -68,6 +72,8 @@ class ExclusiveOfferController extends Controller
                 'is_active' => $request->has('is_active') ? filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) : true,
                 'sort_order' => (int) ($request->input('sort_order') ?? 0),
             ]);
+            $productIds = $this->normalizeProductIds($request->input('product_ids'));
+            $offer->products()->sync($productIds);
         } catch (\Throwable $e) {
             if ($imagePath && Storage::disk('public')->exists($imagePath)) {
                 Storage::disk('public')->delete($imagePath);
@@ -96,6 +102,9 @@ class ExclusiveOfferController extends Controller
         $offer = ExclusiveOffer::findOrFail($id);
         $this->parseMultipartIfNeeded($request, 'image');
         $this->normalizeImageFileToSingle($request, 'image');
+        if ($request->has('product_ids')) {
+            $request->merge(['product_ids' => $this->normalizeProductIds($request->input('product_ids'))]);
+        }
 
         $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -108,6 +117,8 @@ class ExclusiveOfferController extends Controller
             'end_date' => 'nullable|date',
             'is_active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
+            'product_ids' => 'nullable|array',
+            'product_ids.*' => 'integer|exists:products,id',
         ]);
 
         $data = [
@@ -131,6 +142,9 @@ class ExclusiveOfferController extends Controller
         }
 
         $offer->update($data);
+        if ($request->has('product_ids')) {
+            $offer->products()->sync($this->normalizeProductIds($request->input('product_ids')));
+        }
         return ApiResponse::success('Exclusive offer updated successfully.', $this->offerToArray($offer->fresh()));
     }
 
@@ -254,8 +268,24 @@ class ExclusiveOfferController extends Controller
         return null;
     }
 
+    /** Normalize product_ids from form-data (comma-separated string) or JSON (array) to array of ints. */
+    private function normalizeProductIds(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_map('intval', array_filter($value)));
+        }
+        if (is_string($value) && $value !== '') {
+            return array_values(array_map('intval', array_filter(explode(',', $value))));
+        }
+        return [];
+    }
+
     private function offerToArray(ExclusiveOffer $offer): array
     {
+        $productIds = $offer->relationLoaded('products')
+            ? $offer->products->pluck('id')->values()->all()
+            : $offer->products()->pluck('products.id')->values()->all();
+
         return [
             'id' => $offer->id,
             'title' => $offer->title,
@@ -269,6 +299,7 @@ class ExclusiveOfferController extends Controller
             'end_date' => $offer->end_date?->format('Y-m-d'),
             'is_active' => $offer->is_active,
             'sort_order' => $offer->sort_order,
+            'product_ids' => $productIds,
             'created_at' => $offer->created_at?->format('c'),
             'updated_at' => $offer->updated_at?->format('c'),
         ];

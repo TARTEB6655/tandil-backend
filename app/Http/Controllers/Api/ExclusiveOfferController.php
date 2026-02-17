@@ -61,6 +61,10 @@ class ExclusiveOfferController extends Controller
 
     private function offerToArray(ExclusiveOffer $offer): array
     {
+        $productIds = $offer->relationLoaded('products')
+            ? $offer->products->pluck('id')->values()->all()
+            : $offer->products()->pluck('products.id')->values()->all();
+
         return [
             'id' => $offer->id,
             'title' => $offer->title,
@@ -69,6 +73,7 @@ class ExclusiveOfferController extends Controller
             'discount_type' => $offer->discount_type,
             'discount_value' => $offer->discount_value !== null ? (float) $offer->discount_value : null,
             'applies_to' => $offer->applies_to,
+            'product_ids' => $productIds,
             'start_date' => $offer->start_date?->format('Y-m-d'),
             'end_date' => $offer->end_date?->format('Y-m-d'),
             'sort_order' => $offer->sort_order,

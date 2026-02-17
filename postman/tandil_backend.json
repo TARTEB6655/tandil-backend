@@ -4310,15 +4310,27 @@
                                     {"key": "Accept", "value": "application/json"}
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"title\": \"Farm Fresh Week\",\n  \"description\": \"Up to 30% OFF on fresh produce\",\n  \"discount_type\": \"percentage\",\n  \"discount_value\": 30,\n  \"applies_to\": \"fresh produce\",\n  \"start_date\": \"2026-02-15\",\n  \"end_date\": \"2026-02-22\",\n  \"is_active\": true,\n  \"sort_order\": 0\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "title", "value": "Farm Fresh Week", "type": "text", "description": "Required"},
+                                        {"key": "description", "value": "Up to 30% OFF on fresh produce", "type": "text", "description": "Optional"},
+                                        {"key": "discount_type", "value": "percentage", "type": "text", "description": "Required: percentage, fixed_amount, buy_one_get_one"},
+                                        {"key": "discount_value", "value": "30", "type": "text", "description": "Optional number"},
+                                        {"key": "applies_to", "value": "fresh produce", "type": "text", "description": "Optional label"},
+                                        {"key": "start_date", "value": "2026-02-15", "type": "text", "description": "Optional YYYY-MM-DD"},
+                                        {"key": "end_date", "value": "2026-02-22", "type": "text", "description": "Optional YYYY-MM-DD"},
+                                        {"key": "is_active", "value": "1", "type": "text", "description": "Optional: 1 or 0"},
+                                        {"key": "sort_order", "value": "0", "type": "text", "description": "Optional integer"},
+                                        {"key": "product_ids", "value": "1,2", "type": "text", "description": "Optional: comma-separated product IDs (e.g. 1,2,3)"},
+                                        {"key": "image", "type": "file", "description": "Optional: image file (jpeg,png,gif,svg,webp max 5MB)"}
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/exclusive-offers",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "exclusive-offers"]
                                 },
-                                "description": "Create exclusive offer. For image upload use Body form-data with key 'image' (file) + other fields. discount_type: percentage, fixed_amount, buy_one_get_one."
+                                "description": "Create exclusive offer (multipart form-data). Fill each field; add image via file key. product_ids: comma-separated e.g. 1,2,3. discount_type: percentage, fixed_amount, buy_one_get_one."
                             }
                         },
                         {
@@ -4348,14 +4360,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"title\": \"Farm Fresh Week\",\n  \"description\": \"Up to 35% OFF on fresh produce\",\n  \"discount_type\": \"percentage\",\n  \"discount_value\": 35,\n  \"applies_to\": \"fresh produce\",\n  \"is_active\": true\n}"
+                                    "raw": "{\n  \"title\": \"Farm Fresh Week\",\n  \"description\": \"Up to 35% OFF on fresh produce\",\n  \"discount_type\": \"percentage\",\n  \"discount_value\": 35,\n  \"applies_to\": \"fresh produce\",\n  \"is_active\": true,\n  \"product_ids\": [1, 2, 3]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/exclusive-offers/{{offer_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "exclusive-offers", "{{offer_id}}"]
                                 },
-                                "description": "Update offer. Use POST with form-data for image upload."
+                                "description": "Update offer. Optional product_ids: array of product IDs to link to this offer (replaces existing). Use POST with form-data for image upload. Response includes product_ids."
                             }
                         },
                         {

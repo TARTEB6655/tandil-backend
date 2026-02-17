@@ -44,6 +44,14 @@ class Product extends Model
         return $this->belongsToMany(Service::class, 'product_service');
     }
 
+    /**
+     * Exclusive offers this product is linked to (many-to-many).
+     */
+    public function exclusiveOffers()
+    {
+        return $this->belongsToMany(\App\Models\ExclusiveOffer::class, 'exclusive_offer_product');
+    }
+
     public function images()
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');

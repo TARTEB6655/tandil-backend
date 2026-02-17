@@ -75,4 +75,12 @@ class ExclusiveOffer extends Model
             });
         });
     }
+
+    /**
+     * Products linked to this exclusive offer (many-to-many).
+     */
+    public function products()
+    {
+        return $this->belongsToMany(\App\Models\Product::class, 'exclusive_offer_product');
+    }
 }
