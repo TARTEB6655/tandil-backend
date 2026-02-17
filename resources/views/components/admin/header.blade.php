@@ -5,7 +5,7 @@
     $unreadCount = $user->unreadNotifications()->count();
 @endphp
 
-<header class="sticky top-0 z-40 bg-white dark:bg-gray-900 dark:border-gray-700/80 border-b border-gray-200 dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] shadow-sm py-4">
+<header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b-2 border-gray-200 dark:border-gray-700 dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] shadow-md py-4">
     <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
             

@@ -39,7 +39,7 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-950 font-sans overflow-x-hidden text-gray-900 dark:text-gray-100 transition-colors" style="font-family: 'Inter', sans-serif;">
+<body class="bg-gray-100 dark:bg-gray-950 font-sans overflow-x-hidden text-gray-900 dark:text-gray-100 transition-colors antialiased" style="font-family: 'Inter', sans-serif;">
     <div class="flex h-screen overflow-hidden" 
          x-data 
          x-init="
@@ -63,8 +63,8 @@
             @include('components.admin.header')
 
             <!-- Main Content -->
-            <main class="flex-1 min-w-0 max-[991px]:pl-0 min-[992px]:pl-10 bg-gray-50 dark:bg-gray-950">
-                <div class="w-full px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 2xl:py-8 text-gray-900 dark:text-gray-100" style="max-width: 95%; margin-left: auto; margin-right: auto;">
+            <main class="flex-1 min-w-0 max-[991px]:pl-0 min-[992px]:pl-10 bg-gray-100/80 dark:bg-gray-950">
+                <div class="w-full px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6 lg:px-8 lg:py-8 2xl:px-10 2xl:py-8 text-gray-900 dark:text-gray-100" style="max-width: 1600px; margin-left: auto; margin-right: auto;">
                     {{ $slot }}
                 </div>
             </main>

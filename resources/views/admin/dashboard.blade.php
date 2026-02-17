@@ -8,34 +8,34 @@
 
 <x-admin-layout>
     <!-- Page Header -->
-    <div class="mb-4 md:mb-6">
-        <h1 class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100">Dashboard Overview</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Welcome back! Here's what's happening with your business today.</p>
+    <div class="mb-5 md:mb-7">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">Dashboard Overview</h1>
+        <p class="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl">Welcome back! Here's what's happening with your business today.</p>
     </div>
 
     <!-- Jump to Section - Sticky quick navigation (grouped) -->
-    <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-3 py-3 md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 mb-4 md:mb-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl shadow-md">
-        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Quick navigation</p>
-        <div class="flex flex-wrap gap-3">
+    <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-4 py-4 md:-mx-4 md:px-5 lg:-mx-6 lg:px-6 mb-5 md:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg ring-1 ring-gray-200/50 dark:ring-gray-700/50">
+        <p class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider mb-3">Quick navigation</p>
+        <div class="flex flex-wrap gap-2.5 sm:gap-3">
             <span class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">Catalog</span>
-            <a href="{{ route('admin.products.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors">Products</a>
-            <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors">Categories</a>
-            <a href="{{ route('admin.services.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors">Services</a>
-            <span class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center" aria-hidden="true"></span>
-            <a href="#key-metrics" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">Key Metrics</a>
-            <a href="#ecommerce" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">E-Commerce</a>
-            <a href="#manage-services" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors">Manage Services</a>
-            <a href="#orders-export-supplier" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Orders Export</a>
-            <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Orders</a>
-            <a href="{{ route('admin.banners.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Banners</a>
-            <a href="{{ route('admin.packages.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Packages</a>
+            <a href="{{ route('admin.products.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">Products</a>
+            <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">Categories</a>
+            <a href="{{ route('admin.services.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">Services</a>
+            <span class="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center" aria-hidden="true"></span>
+            <a href="#key-metrics" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">Key Metrics</a>
+            <a href="#ecommerce" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">E-Commerce</a>
+            <a href="#manage-services" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors">Manage Services</a>
+            <a href="#orders-export-supplier" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Orders Export</a>
+            <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Orders</a>
+            <a href="{{ route('admin.banners.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Banners</a>
+            <a href="{{ route('admin.packages.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Packages</a>
         </div>
     </div>
 
     <!-- Catalog overview (Products, Categories, Services) -->
     <div id="catalog-overview" class="scroll-mt-24 mb-6 md:mb-8">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Catalog</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-indigo-500 pl-3">Catalog</h2>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.products.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -52,38 +52,38 @@
             </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <a href="{{ route('admin.products.index') }}" class="group flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-600 transition-all duration-200">
+            <a href="{{ route('admin.products.index') }}" class="group flex items-center gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-md hover:shadow-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Products</p>
-                    <p class="text-xl font-semibold text-indigo-600 dark:text-indigo-400">{{ number_format($totalProducts ?? 0) }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Add & edit · Link to services</p>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Products</p>
+                    <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($totalProducts ?? 0) }}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Add & edit · Link to services</p>
                 </div>
-                <svg class="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                <svg class="w-5 h-5 text-gray-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </a>
-            <a href="{{ route('admin.categories.index') }}" class="group flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-600 transition-all duration-200">
+            <a href="{{ route('admin.categories.index') }}" class="group flex items-center gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-md hover:shadow-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Categories</p>
-                    <p class="text-xl font-semibold text-indigo-600 dark:text-indigo-400">{{ number_format($totalCategories ?? 0) }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $activeCategories ?? 0 }} active</p>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Categories</p>
+                    <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($totalCategories ?? 0) }}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ $activeCategories ?? 0 }} active</p>
                 </div>
-                <svg class="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                <svg class="w-5 h-5 text-gray-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </a>
-            <a href="{{ route('admin.services.index') }}" class="group flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-600 transition-all duration-200">
+            <a href="{{ route('admin.services.index') }}" class="group flex items-center gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-md hover:shadow-lg hover:border-teal-400 dark:hover:border-teal-500 transition-all duration-200">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 group-hover:scale-105 transition-transform">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Services</p>
-                    <p class="text-xl font-semibold text-teal-600 dark:text-teal-400">{{ number_format($totalServices ?? 0) }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Place Service Orders · Optional category</p>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Services</p>
+                    <p class="text-2xl font-bold text-teal-700 dark:text-teal-300">{{ number_format($totalServices ?? 0) }}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Place Service Orders · Optional category</p>
                 </div>
-                <svg class="w-5 h-5 text-gray-400 group-hover:text-teal-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                <svg class="w-5 h-5 text-gray-500 group-hover:text-teal-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </a>
         </div>
     </div>
@@ -99,7 +99,7 @@
     <!-- Welcome + action cards (same style as Key Metrics below) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
         <!-- Welcome card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ $greeting }}</p>
@@ -117,11 +117,11 @@
         </div>
 
         <!-- Pending Reports card -->
-        <a href="{{ route('admin.reports.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-amber-300 dark:hover:border-amber-600">
+        <a href="{{ route('admin.reports.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:border-amber-400 dark:hover:border-amber-500">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pending Reports</p>
-                    <p class="text-lg font-medium text-amber-600">{{ number_format($pendingReports ?? 0) }}</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Pending Reports</p>
+                    <p class="text-xl font-bold text-amber-700 dark:text-amber-300">{{ number_format($pendingReports ?? 0) }}</p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">View reports</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
@@ -135,11 +135,11 @@
         </a>
 
         <!-- New Orders card -->
-        <a href="{{ route('admin.orders.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-green-300 dark:hover:border-green-600">
+        <a href="{{ route('admin.orders.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:border-green-400 dark:hover:border-green-500">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">New Orders</p>
-                    <p class="text-lg font-medium text-green-600">{{ number_format($ordersToday ?? 0) }}</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">New Orders</p>
+                    <p class="text-xl font-bold text-green-700 dark:text-green-300">{{ number_format($ordersToday ?? 0) }}</p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Manage orders</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
@@ -264,13 +264,15 @@
     @endif
 
     <!-- 1. Key Metrics -->
-    <div id="key-metrics" class="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+    <div id="key-metrics" class="scroll-mt-24 mb-6 md:mb-8">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-blue-500 pl-3 mb-4">Key Metrics</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <!-- Total Users Card -->
-        <a href="{{ route('admin.users.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-600 hover:-translate-y-0.5">
+        <a href="{{ route('admin.users.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Users</p>
-                    <p class="text-lg font-medium text-blue-600 dark:text-blue-400">{{ number_format($totalUsers ?? 0) }}</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Total Users</p>
+                    <p class="text-xl font-bold text-blue-700 dark:text-blue-300">{{ number_format($totalUsers ?? 0) }}</p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">All registered users</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
@@ -284,11 +286,11 @@
         </a>
 
         <!-- Active Subscriptions Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Active Subscriptions</p>
-                    <p class="text-lg font-medium text-green-600 dark:text-green-400">{{ number_format($activeSubscriptions ?? 0) }}</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Active Subscriptions</p>
+                    <p class="text-xl font-bold text-green-700 dark:text-green-300">{{ number_format($activeSubscriptions ?? 0) }}</p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Currently active</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
@@ -302,11 +304,11 @@
         </div>
 
         <!-- Total Revenue Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Revenue</p>
-                    <p class="text-lg font-medium text-amber-600 dark:text-amber-400">AED {{ number_format($totalRevenue ?? 0) }}</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Total Revenue</p>
+                    <p class="text-xl font-bold text-amber-700 dark:text-amber-300">AED {{ number_format($totalRevenue ?? 0) }}</p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">All time revenue</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
@@ -320,12 +322,12 @@
         </div>
 
         <!-- Total Orders Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Orders</p>
-                    <p class="text-lg font-medium text-purple-600 dark:text-purple-400">{{ number_format($totalOrders ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $ordersToday ?? 0 }} today</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Total Orders</p>
+                    <p class="text-xl font-bold text-purple-700 dark:text-purple-300">{{ number_format($totalOrders ?? 0) }}</p>
+                    <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">{{ $ordersToday ?? 0 }} today</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-900/30">
@@ -336,15 +338,16 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 
     <!-- 2. User Statistics -->
     <div id="user-statistics" class="scroll-mt-24 mb-6 md:mb-8">
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-md p-6">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">User Statistics</h2>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Track growth of customers, technicians, and employees</p>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-purple-500 pl-3">User Statistics</h2>
+                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Track growth of customers, technicians, and employees</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <label for="stats_range" class="text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</label>
@@ -620,7 +623,7 @@
     <!-- 4. E-Commerce Section -->
     <div id="ecommerce" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">E-Commerce Overview</h2>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-emerald-500 pl-3">E-Commerce Overview</h2>
             <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">View All Orders →</a>
         </div>
 
