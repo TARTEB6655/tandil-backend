@@ -4373,22 +4373,33 @@
                         {
                             "name": "Admin - Update",
                             "request": {
-                                "method": "PUT",
+                                "method": "POST",
                                 "header": [
                                     {"key": "Authorization", "value": "Bearer {{token}}"},
-                                    {"key": "Content-Type", "value": "application/json"},
                                     {"key": "Accept", "value": "application/json"}
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"title\": \"Farm Fresh Week\",\n  \"description\": \"Up to 35% OFF on fresh produce\",\n  \"discount_type\": \"percentage\",\n  \"discount_value\": 35,\n  \"applies_to\": \"fresh produce\",\n  \"is_active\": true,\n  \"product_ids\": [1, 2, 3]\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "title", "value": "Farm Fresh Week", "type": "text", "description": "Optional"},
+                                        {"key": "description", "value": "Up to 35% OFF on fresh produce", "type": "text", "description": "Optional"},
+                                        {"key": "discount_type", "value": "percentage", "type": "text", "description": "Optional: percentage, fixed_amount, buy_one_get_one"},
+                                        {"key": "discount_value", "value": "35", "type": "text", "description": "Optional number"},
+                                        {"key": "applies_to", "value": "fresh produce", "type": "text", "description": "Optional"},
+                                        {"key": "start_date", "value": "2026-02-15", "type": "text", "description": "Optional YYYY-MM-DD"},
+                                        {"key": "end_date", "value": "2026-02-22", "type": "text", "description": "Optional YYYY-MM-DD"},
+                                        {"key": "is_active", "value": "1", "type": "text", "description": "Optional: 1 or 0"},
+                                        {"key": "sort_order", "value": "0", "type": "text", "description": "Optional integer"},
+                                        {"key": "product_ids", "value": "1,2,3", "type": "text", "description": "Optional: comma-separated product IDs (replaces existing)"},
+                                        {"key": "image", "type": "file", "description": "Optional: new image (jpeg,png,gif,svg,webp max 5MB); omit to keep current"}
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/exclusive-offers/{{offer_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "exclusive-offers", "{{offer_id}}"]
                                 },
-                                "description": "Update offer. Optional product_ids: array of product IDs to link to this offer (replaces existing). Use POST with form-data for image upload. Response includes product_ids."
+                                "description": "Update exclusive offer (multipart form-data, same as Create). Use POST with form-data; send only fields to change. product_ids: comma-separated (e.g. 1,2,3). Omit image to keep current. Response includes product_ids."
                             }
                         },
                         {
