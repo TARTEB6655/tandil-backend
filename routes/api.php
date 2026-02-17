@@ -278,6 +278,8 @@ Route::prefix('shop')->group(function () {
     Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->group(function () {
         Route::post('/cart/add', [\App\Http\Controllers\Shop\CartController::class, 'add']);
         Route::get('/cart', [\App\Http\Controllers\Shop\CartController::class, 'view']);
+        Route::put('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
+        Route::patch('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);
 
         Route::post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);

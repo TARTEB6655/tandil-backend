@@ -25,6 +25,13 @@ class CheckRole
 
         $user = auth()->user();
 
+        // Support pipe-separated roles (e.g. role:client|admin)
+        $allRoles = [];
+        foreach ($roles as $role) {
+            $allRoles = array_merge($allRoles, array_map('trim', explode('|', $role)));
+        }
+        $roles = array_unique($allRoles);
+
         // Check if user has any of the required roles via Spatie Permission OR role field
         foreach ($roles as $role) {
             // First check the role field (faster and more reliable)

@@ -1274,7 +1274,28 @@
                                 "cart"
                             ]
                         },
-                        "description": "\u2705 STEP 15: View shopping cart with items and total"
+                        "description": "GET /api/shop/cart – Shopping Cart screen. Response: items (id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total, currency), order_summary (subtotal, discount, shipping, total, currency)."
+                    }
+                },
+                {
+                    "name": "Cart - Update Quantity",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"quantity\": 2\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/cart/{{cart_item_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "cart", "{{cart_item_id}}"]
+                        },
+                        "description": "PUT /api/shop/cart/:id – Update quantity (Shopping Cart +/-). Body: { \"quantity\": number }. Set cart_item_id. Response: updated item (same shape as cart view)."
                     }
                 },
                 {
@@ -1303,7 +1324,7 @@
                                 "{{cart_item_id}}"
                             ]
                         },
-                        "description": "Remove item from cart"
+                        "description": "DELETE /api/shop/cart/:id – Remove item (trash icon). Set cart_item_id."
                     }
                 },
                 {
