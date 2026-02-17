@@ -302,6 +302,7 @@ Route::prefix('services')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\ServiceController::class, 'index']);
     Route::get('/categories', [\App\Http\Controllers\Api\ServiceController::class, 'getCategories']);
     Route::get('/category/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'getByCategory']);
+    Route::get('/{id}/products', [\App\Http\Controllers\Api\ServiceController::class, 'productsByService']);
     Route::get('/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'show']);
 });
 

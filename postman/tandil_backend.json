@@ -6024,6 +6024,24 @@
                     }
                 },
                 {
+                    "name": "Get products by service",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/services/{{service_id}}/products",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "services", "{{service_id}}", "products"]
+                        },
+                        "description": "GET /api/services/:id/products – Service ke hisab se products. Returns service_id, service_name, products (array). Each product: id, name, slug, description, price, image, image_url, status. No auth. Set service_id in env."
+                    }
+                },
+                {
                     "name": "Get Categories",
                     "request": {
                         "method": "GET",

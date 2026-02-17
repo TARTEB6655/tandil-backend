@@ -70,6 +70,39 @@ class ServiceController extends Controller
     }
 
     /**
+     * Get products linked to a service (service ke hisab se products). Public, no auth.
+     * GET /api/services/{id}/products
+     */
+    public function productsByService($id)
+    {
+        $service = Service::findOrFail($id);
+        $products = $service->products()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => $product->handle ?? \Illuminate\Support\Str::slug($product->name),
+                    'description' => $product->description,
+                    'price' => (float) $product->price,
+                    'image' => $product->image,
+                    'image_url' => $product->image_url,
+                    'status' => $product->status,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return ApiResponse::success('Products for service retrieved successfully.', [
+            'service_id' => (int) $id,
+            'service_name' => $service->name,
+            'products' => $products,
+        ]);
+    }
+
+    /**
      * Show single service (with products linked via pivot).
      */
     public function show($id)
