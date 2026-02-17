@@ -10,6 +10,35 @@ use App\Models\ProductImage;
 class ProductController extends Controller
 {
     /**
+     * Get featured products for home / featured section. Active only, optional limit.
+     */
+    public function featured(Request $request)
+    {
+        try {
+            $limit = min(max((int) $request->query('limit', 10), 1), 50);
+
+            $products = Product::with(['category', 'images', 'primaryImage'])
+                ->where('status', 'active')
+                ->where('is_featured', true)
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Featured products retrieved successfully',
+                'data' => array_map(fn (Product $p) => $this->productToPublicData($p), $products->all()),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('ProductController::featured ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load featured products.',
+            ], 500);
+        }
+    }
+
+    /**
      * List products with pagination, search, sorting, and filtering.
      */
     public function index(Request $request)
@@ -135,6 +164,7 @@ class ProductController extends Controller
             'price' => $product->price,
             'stock' => $product->stock,
             'status' => $product->status,
+            'is_featured' => (bool) ($product->is_featured ?? false),
             'category_id' => $product->category_id,
             'weight_unit' => $product->weight_unit,
             'sku' => $product->sku,

@@ -11,12 +11,13 @@ class Product extends Model
 
     protected $fillable = [
         'category_id', 'name', 'vendor', 'type', 'sku', 'barcode', 'description',
-        'price', 'compare_at_price', 'cost_per_item', 'stock', 'status',
+        'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured',
         'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
         'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
     ];
 
     protected $casts = [
+        'is_featured' => 'boolean',
         'track_quantity' => 'boolean',
         'allow_backorder' => 'boolean',
         'requires_shipping' => 'boolean',

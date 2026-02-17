@@ -56,6 +56,24 @@ class AdminCatalogApiTest extends TestCase
         $show->assertJsonPath('data.name', 'Test Category');
     }
 
+    public function test_admin_categories_create_with_is_active_and_toggle_status(): void
+    {
+        $response = $this->postJson('/api/admin/categories', [
+            'name' => 'Disabled Category',
+            'is_active' => false,
+        ], $this->authJson());
+        $response->assertStatus(201);
+        $id = $response->json('data.id');
+        $show = $this->getJson("/api/admin/categories/{$id}", $this->authJson());
+        $show->assertStatus(200);
+        $show->assertJsonPath('data.is_active', false);
+
+        $toggle = $this->postJson("/api/admin/categories/{$id}/toggle-status", [], $this->authJson());
+        $toggle->assertStatus(200);
+        $toggle->assertJsonPath('data.is_active', true);
+        $toggle->assertJsonPath('data.id', $id);
+    }
+
     public function test_admin_categories_update_and_delete(): void
     {
         $cat = Category::factory()->create(['name' => 'Original']);
@@ -108,6 +126,19 @@ class AdminCatalogApiTest extends TestCase
         $del = $this->deleteJson("/api/admin/services/{$svc->id}", [], $this->authJson());
         $del->assertStatus(200);
         $this->assertDatabaseMissing('services', ['id' => $svc->id]);
+    }
+
+    public function test_admin_services_toggle_status(): void
+    {
+        $svc = Service::factory()->create(['name' => 'Toggle Service', 'is_active' => true]);
+        $response = $this->postJson("/api/admin/services/{$svc->id}/toggle-status", [], $this->authJson());
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.is_active', false);
+        $response->assertJsonPath('data.id', $svc->id);
+
+        $response2 = $this->postJson("/api/admin/services/{$svc->id}/toggle-status", [], $this->authJson());
+        $response2->assertStatus(200);
+        $response2->assertJsonPath('data.is_active', true);
     }
 
     // ---- Products ----
@@ -210,6 +241,47 @@ class AdminCatalogApiTest extends TestCase
             'service_id' => $service->id,
         ], $this->authJson());
         $response2->assertStatus(200);
+    }
+
+    public function test_admin_products_create_with_is_featured_and_public_featured_api(): void
+    {
+        $category = Category::factory()->create();
+        $response = $this->postJson('/api/admin/products', [
+            'name' => 'Featured Product',
+            'price' => 29.99,
+            'category_id' => $category->id,
+            'status' => 'active',
+            'is_featured' => true,
+        ], $this->authJson());
+        $response->assertStatus(201);
+        $id = $response->json('data.id');
+        $this->assertNotNull($id);
+        $response->assertJsonPath('data.is_featured', true);
+
+        $featured = $this->getJson('/api/shop/products/featured?limit=10', ['Accept' => 'application/json']);
+        $featured->assertStatus(200);
+        $featured->assertJsonPath('success', true);
+        $featured->assertJsonStructure(['data']);
+        $data = $featured->json('data');
+        $this->assertIsArray($data);
+        $this->assertGreaterThanOrEqual(1, count($data));
+        $first = $data[0];
+        $this->assertSame('Featured Product', $first['name']);
+        $this->assertTrue($first['is_featured']);
+    }
+
+    public function test_public_featured_products_returns_only_active_and_featured(): void
+    {
+        $category = Category::factory()->create();
+        Product::factory()->create(['name' => 'Draft Product', 'status' => 'draft', 'is_featured' => true, 'category_id' => $category->id]);
+        Product::factory()->create(['name' => 'Not Featured', 'status' => 'active', 'is_featured' => false, 'category_id' => $category->id]);
+        Product::factory()->create(['name' => 'Featured One', 'status' => 'active', 'is_featured' => true, 'category_id' => $category->id]);
+
+        $response = $this->getJson('/api/shop/products/featured', ['Accept' => 'application/json']);
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertSame('Featured One', $data[0]['name']);
     }
 
     public function test_admin_catalog_requires_auth(): void

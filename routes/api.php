@@ -264,6 +264,7 @@ Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manag
 */
 Route::prefix('shop')->group(function () {
     // Public product routes (single canonical API for public products)
+    Route::get('/products/featured', [\App\Http\Controllers\Shop\ProductController::class, 'featured']);
     Route::get('/products/categories', [\App\Http\Controllers\Shop\ProductController::class, 'getCategories']);
     Route::get('/products/category/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'getByCategory']);
     Route::get('/products', [\App\Http\Controllers\Shop\ProductController::class, 'index']);

@@ -17,14 +17,14 @@ use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
-    /** Product API allowed fields only (name, description, price, stock, status, category_id, weight_unit, sku, handle). No extra fields. */
+    /** Product API allowed fields only (name, description, price, stock, status, is_featured, category_id, weight_unit, sku, handle). No extra fields. */
     private const PRODUCT_API_FIELDS = [
-        'name', 'description', 'price', 'stock', 'status', 'category_id', 'weight_unit', 'sku', 'handle',
+        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle',
     ];
 
     /** Response keys for product API (allowed fields + id, image, image_url, main_image, gallery_images, category, timestamps). */
     private const PRODUCT_API_RESPONSE_KEYS = [
-        'id', 'name', 'description', 'price', 'stock', 'status', 'category_id', 'weight_unit', 'sku', 'handle',
+        'id', 'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle',
         'image', 'image_url', 'main_image', 'gallery_images', 'category', 'created_at', 'updated_at',
     ];
 
@@ -77,6 +77,7 @@ class ProductController extends Controller
             'price' => $product->price,
             'stock' => $product->stock,
             'status' => $product->status,
+            'is_featured' => (bool) ($product->is_featured ?? false),
             'category_id' => $product->category_id,
             'weight_unit' => $product->weight_unit,
             'sku' => $product->sku,
@@ -407,6 +408,7 @@ class ProductController extends Controller
             'price'       => 'required|numeric|min:0',
             'stock'       => 'nullable|integer|min:0',
             'status'      => 'nullable|in:draft,active,archived',
+            'is_featured' => 'nullable|boolean',
             'category_id' => 'nullable|integer',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku',
@@ -440,6 +442,7 @@ class ProductController extends Controller
         $createData['name'] = $createData['name'] ?? $validated['name'] ?? '';
         $createData['price'] = $createData['price'] ?? $validated['price'] ?? 0;
         $createData['status'] = $createData['status'] ?? $validated['status'] ?? 'draft';
+        $createData['is_featured'] = $request->has('is_featured') ? $request->boolean('is_featured') : false;
         $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
         $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
         if (empty($createData['handle']) && ! empty($createData['name'])) {
@@ -705,6 +708,7 @@ class ProductController extends Controller
             'price'       => 'nullable|numeric|min:0',
             'stock'       => 'nullable|integer|min:0',
             'status'      => 'nullable|in:draft,active,archived',
+            'is_featured' => 'nullable|boolean',
             'category_id' => 'nullable|integer',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,

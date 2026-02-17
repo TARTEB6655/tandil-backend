@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_id (single, like category_id) or service_ids array. Category & Service: POST .../toggle-status to enable/disable (same as banners). Top Selling Products: ?limit=10&include_unsold=1.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_id (single, like category_id) or service_ids array. Category & Service: POST .../toggle-status to enable/disable (same as banners). Category create: optional is_active (1/0). Products: optional is_featured on create/update. GET /api/shop/products/featured for home Featured Products (no auth). Top Selling Products: ?limit=10&include_unsold=1.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.22.0"
+        "version": "2.24.0"
     },
     "item": [
         {
@@ -2497,6 +2497,20 @@
                             }
                         },
                         {
+                            "name": "Featured Products",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/products/featured?limit=10",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "shop", "products", "featured"],
+                                    "query": [{"key": "limit", "value": "10", "description": "Max featured products (1-50, default 10)"}]
+                                },
+                                "description": "GET /api/shop/products/featured – Featured products for home screen. Returns active products where is_featured=true. Query: limit (1-50, default 10). No auth. Response: success, data (array of products with id, name, price, image_url, is_featured, category, etc.)."
+                            }
+                        },
+                        {
                             "name": "Get Product Details",
                             "request": {
                                 "method": "GET",
@@ -2626,14 +2640,14 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"category_id\": 2,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-002\",\n  \"handle\": \"test-product-unique\",\n  \"service_ids\": [1, 2],\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
+                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"is_featured\": false,\n  \"category_id\": 2,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-002\",\n  \"handle\": \"test-product-unique\",\n  \"service_ids\": [1, 2],\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/products",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "products"]
                                 },
-                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, category_id, service_id (single) or service_ids (array), weight_unit, sku, handle, image_urls. Response 201: data includes image, image_url, images, primary_image, service_ids. Auth: Bearer {{token}}."
+                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, is_featured (boolean), category_id, service_id or service_ids, weight_unit, sku, handle, image_urls. Response 201: data includes image, image_url, images, primary_image, service_ids, is_featured. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -2652,6 +2666,7 @@
                                         {"key": "price", "value": "99.99", "type": "text"},
                                         {"key": "stock", "value": "10", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "is_featured", "value": "0", "type": "text", "description": "Optional; 1 = show in Featured Products, 0 = no"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional. Empty or e.g. 2"},
                                         {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Single service ID (e.g. 1 or {{service_id}}). Link product to one service."},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
@@ -2708,6 +2723,7 @@
                                         {"key": "price", "value": "149.99", "type": "text"},
                                         {"key": "stock", "value": "20", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "is_featured", "value": "0", "type": "text", "description": "Optional; 1 = featured, 0 = no"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Optional. Empty or e.g. 2"},
                                         {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Single service ID (e.g. 1 or {{service_id}}). Link product to one service."},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
