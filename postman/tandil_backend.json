@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Services: separate table with optional category_id; Products: optional service_id (single, like category_id) or service_ids array. Category & Service: POST .../toggle-status to enable/disable (same as banners). Category create: optional is_active (1/0). Products: optional is_featured on create/update. GET /api/shop/products/featured for home Featured Products (no auth). Top Selling Products: ?limit=10&include_unsold=1.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart (8. Shop & Orders): POST /api/shop/cart/add (product_id, quantity); GET /api/shop/cart (items + order_summary: subtotal, discount, shipping, total, currency AED); PUT/PATCH /api/shop/cart/{id} (quantity); DELETE /api/shop/cart/{id}. Item shape: id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Admin create/update accept product_ids (array or comma-separated); Admin Create is form-data (multipart).\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.24.0"
+        "version": "2.25.0"
     },
     "item": [
         {
@@ -6042,6 +6042,25 @@
                             ]
                         },
                         "description": "GET /api/services/:id – One active category (service). Use service_id or category id. Response: data with id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names. 404 if inactive."
+                    }
+                },
+                {
+                    "name": "Get all products of services",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "url": {
+                            "raw": "{{base_url}}/api/services/products?per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "services", "products"],
+                            "query": [
+                                {"key": "per_page", "value": "20", "description": "1-100, default 20"},
+                                {"key": "service_id", "value": "", "disabled": true, "description": "Filter by service ID (e.g. Watering)"},
+                                {"key": "category_id", "value": "", "disabled": true, "description": "Filter by service category ID"},
+                                {"key": "search", "value": "", "disabled": true, "description": "Search in product name/description"}
+                            ]
+                        },
+                        "description": "GET /api/services/products – All products linked to any service (Services screen). Query: service_id, category_id, search, per_page. Response: data (id, name, slug, description, price, currency AED, image_url, category, service_names, rating), total, pagination. No auth."
                     }
                 },
                 {

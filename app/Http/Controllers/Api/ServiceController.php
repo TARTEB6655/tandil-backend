@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Models\Product;
 use App\Models\Service;
 use Illuminate\Http\Request;
 
@@ -65,6 +66,69 @@ class ServiceController extends Controller
                 'last_page' => $services->lastPage(),
                 'per_page' => $services->perPage(),
                 'total' => $services->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * All products of service(s) – for Services screen (cards with search & category filter).
+     * GET /api/services/products?service_id=1&category_id=1&search=water&per_page=20
+     * Returns products linked to at least one service; optional filter by service_id or service category, search.
+     */
+    public function allProductsOfService(Request $request)
+    {
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
+        $serviceId = $request->query('service_id');
+        $categoryId = $request->query('category_id');
+        $search = $request->query('search');
+
+        $query = Product::query()
+            ->where('status', 'active')
+            ->whereHas('services');
+
+        if ($serviceId) {
+            $query->whereHas('services', fn ($q) => $q->where('services.id', $serviceId));
+        }
+        if ($categoryId) {
+            $query->whereHas('services', fn ($q) => $q->where('services.category_id', $categoryId));
+        }
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', '%' . $search . '%')
+                    ->orWhere('description', 'LIKE', '%' . $search . '%');
+            });
+        }
+
+        $products = $query->with(['primaryImage', 'category'])
+            ->orderBy('name')
+            ->paginate($perPage);
+
+        $data = $products->getCollection()->map(function (Product $product) {
+            $serviceNames = $product->services()->pluck('name')->values()->all();
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'slug' => $product->handle ?? \Illuminate\Support\Str::slug($product->name),
+                'description' => $product->description,
+                'price' => (float) $product->price,
+                'currency' => 'AED',
+                'image' => $product->image,
+                'image_url' => $product->image_url,
+                'category' => $product->relationLoaded('category') && $product->category
+                    ? ['id' => $product->category->id, 'name' => $product->category->name]
+                    : null,
+                'service_names' => $serviceNames,
+                'rating' => null,
+            ];
+        })->values()->all();
+
+        return ApiResponse::success('Products of services retrieved successfully.', [
+            'data' => $data,
+            'total' => $products->total(),
+            'pagination' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
             ],
         ]);
     }
