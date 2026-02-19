@@ -1779,41 +1779,6 @@
                     }
                 },
                 {
-                    "name": "Orders - Checkout (Alternative Route)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"items\": [\n    {\n      \"product_id\": {{product_id}},\n      \"qty\": 2\n    }\n  ],\n  \"total_amount\": 100.00,\n  \"currency\": \"USD\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/orders",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders"
-                            ]
-                        },
-                        "description": "Create order (Alternative route POST /api/orders)"
-                    }
-                },
-                {
                     "name": "Categories - List (Public)",
                     "request": {
                         "method": "GET",
@@ -5946,80 +5911,6 @@
                         }
                     ],
                     "description": "Alternative supervisor routes under /api/auth/supervisor (duplicate of /api/supervisor routes)"
-                },
-                {
-                    "name": "Alternative Routes - Shop (under /api/auth/shop)",
-                    "item": [
-                        {
-                            "name": "Shop - Checkout (Auth)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"payment_method\": \"cash\",\n  \"address\": \"123 Main St, Dubai\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/shop/checkout",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "shop",
-                                        "checkout"
-                                    ]
-                                },
-                                "description": "Alternative path: Checkout (same as /api/shop/checkout)"
-                            }
-                        },
-                        {
-                            "name": "Shop - Mark Order Paid (Auth)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/shop/orders/{{order_id}}/mark-paid",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "shop",
-                                        "orders",
-                                        "{{order_id}}",
-                                        "mark-paid"
-                                    ]
-                                },
-                                "description": "Alternative path: Mark paid (same as /api/shop/orders/{id}/mark-paid)"
-                            }
-                        }
-                    ],
-                    "description": "Alternative shop routes under /api/auth/shop (duplicate of /api/shop routes)"
                 },
                 {
                     "name": "Payment (PayPal)",

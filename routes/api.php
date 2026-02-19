@@ -95,12 +95,6 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::post('payments/paypal/create', [\App\Http\Controllers\PaymentController::class, 'createPaypalOrder']);
     Route::post('payments/paypal/webhook', [\App\Http\Controllers\PaymentController::class, 'paypalWebhook']);
 
-    // Shop / Orders (under /api/auth/shop)
-    Route::middleware('role:client|admin|supervisor|area_manager')->prefix('shop')->group(function () {
-        Route::post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
-        Route::post('/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
-    });
-
     /*
     |--------------------------------------------------------------------------
     | COMPLAINTS
@@ -336,7 +330,6 @@ Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('maintenance-ph
 Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->prefix('orders')->group(function () {
     Route::get('/', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
     Route::get('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
-    Route::post('/', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
     Route::put('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'update']);
     Route::post('/{id}/cancel', [\App\Http\Controllers\Shop\OrderController::class, 'cancel']);
     Route::get('/{id}/track', [\App\Http\Controllers\Shop\OrderController::class, 'track']);
