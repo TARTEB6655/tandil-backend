@@ -11,6 +11,14 @@ class Order extends Model
     
     protected $fillable = [
         'user_id',
+        'guest_email',
+        'guest_full_name',
+        'guest_phone',
+        'guest_street_address',
+        'guest_city',
+        'guest_state',
+        'guest_zip_code',
+        'guest_country',
         'package_id',
         'shipping_address_id',
         'total_amount',
@@ -72,5 +80,32 @@ class Order extends Model
     public function transactions()
     {
         return $this->morphMany(Transaction::class, 'transactionable');
+    }
+
+    /**
+     * Shipping address for API (logged-in: from user_addresses; guest: from guest_* columns).
+     */
+    public function getShippingAddressForApi(): ?array
+    {
+        if ($this->shippingAddress) {
+            return $this->shippingAddress->toApiArray();
+        }
+        if ($this->guest_full_name || $this->guest_email) {
+            return [
+                'full_name' => $this->guest_full_name,
+                'phone_number' => $this->guest_phone,
+                'street_address' => $this->guest_street_address,
+                'city' => $this->guest_city,
+                'state' => $this->guest_state,
+                'zip_code' => $this->guest_zip_code,
+                'country' => $this->guest_country,
+            ];
+        }
+        return null;
+    }
+
+    public function isGuestOrder(): bool
+    {
+        return $this->user_id === null;
     }
 }

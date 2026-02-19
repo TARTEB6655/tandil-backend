@@ -25,10 +25,9 @@ class OrderController extends Controller
 
     /**
      * Single checkout API: add address + select payment method + place order.
-     * Accept EITHER:
-     *   - address_id: use existing saved address, OR
-     *   - inline address: full_name, phone_number, street_address, city, country (optional: state, zip_code). Set save_address=1 to save for future.
-     * Plus: payment_method (required). Optional: items (or use cart), currency.
+     * Works for both logged-in users and guests (no auth required).
+     * Logged-in: address_id OR inline address, cart OR items, payment_method. Optional save_address.
+     * Guest: email (required), full_name, phone_number, street_address, city, country, items (required), payment_method. No cart.
      */
     public function checkout(Request $request)
     {
@@ -37,6 +36,26 @@ class OrderController extends Controller
 
         if (is_string($request->input('items'))) {
             $request->merge(['items' => json_decode($request->input('items'), true) ?: []]);
+        }
+
+        $isGuest = $user === null;
+
+        if ($isGuest) {
+            $request->validate([
+                'email' => 'required|email',
+                'full_name' => 'required|string|max:255',
+                'phone_number' => 'required|string|max:20',
+                'street_address' => 'required|string|max:500',
+                'city' => 'required|string|max:100',
+                'state' => 'nullable|string|max:100',
+                'zip_code' => 'nullable|string|max:20',
+                'country' => 'required|string|max:100',
+                'payment_method' => 'required|string|max:50',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.qty' => 'required|integer|min:1',
+            ]);
+            return $this->checkoutGuest($request);
         }
 
         $request->validate([
@@ -159,17 +178,87 @@ class OrderController extends Controller
             Cart::where('user_id', $user->id)->delete();
         }
 
+        $this->notifyAdminsNewOrder($order, $total, $user->name);
+
+        return $this->checkoutResponse($request, $order, $paymentType, $total);
+    }
+
+    /**
+     * Guest checkout: no auth. Requires email + full address + items.
+     */
+    private function checkoutGuest(Request $request)
+    {
+        $items = $request->input('items');
+        $paymentMethod = $request->input('payment_method');
+        $paymentType = in_array($paymentMethod, ['paypal', 'cod']) ? $paymentMethod : 'cod';
+        $shippingAmount = (float) config('shop.shipping_amount', 9.99);
+
+        $subtotal = 0;
+        foreach ($items as $item) {
+            $p = Product::find($item['product_id'] ?? null);
+            if ($p) {
+                $subtotal += (float) $p->price * (int) ($item['qty'] ?? 1);
+            }
+        }
+        $total = round($subtotal + $shippingAmount, 2);
+
+        $order = Order::create([
+            'user_id' => null,
+            'guest_email' => $request->input('email'),
+            'guest_full_name' => $request->input('full_name'),
+            'guest_phone' => $request->input('phone_number'),
+            'guest_street_address' => $request->input('street_address'),
+            'guest_city' => $request->input('city'),
+            'guest_state' => $request->input('state'),
+            'guest_zip_code' => $request->input('zip_code'),
+            'guest_country' => $request->input('country'),
+            'shipping_address_id' => null,
+            'total_amount' => $total,
+            'shipping_amount' => $shippingAmount,
+            'order_status' => 'processing',
+            'payment_status' => 'pending',
+            'payment_method' => $paymentType,
+        ]);
+
+        foreach ($items as $item) {
+            $product = Product::find($item['product_id'] ?? null);
+            if ($product) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'quantity' => $item['qty'] ?? 1,
+                    'price' => $product->price,
+                    'subtotal' => $product->price * ($item['qty'] ?? 1),
+                ]);
+            }
+        }
+
+        $guestLabel = $request->input('email');
+        $this->notifyAdminsNewOrder($order, $total, "Guest ({$guestLabel})");
+
+        return $this->checkoutResponse($request, $order, $paymentType, $total);
+    }
+
+    private function notifyAdminsNewOrder(Order $order, $total, string $placedBy): void
+    {
         try {
             $admins = User::role('admin')->get();
             foreach ($admins as $admin) {
                 $admin->notify(new AdminNotification(
                     'New Order Received',
-                    "A new order #{$order->id} has been placed by {$user->name} for AED {$total}."
+                    "A new order #{$order->id} has been placed by {$placedBy} for AED {$total}."
                 ));
             }
         } catch (\Exception $e) {
             \Log::error('Failed to send order notification: ' . $e->getMessage());
         }
+    }
+
+    private function checkoutResponse(Request $request, Order $order, string $paymentType, $total)
+    {
+        $order->load(['items.product', 'shippingAddress']);
+        $orderArray = $order->toArray();
+        $orderArray['shipping_address'] = $order->getShippingAddressForApi();
 
         if ($paymentType === 'paypal') {
             try {
@@ -179,7 +268,11 @@ class OrderController extends Controller
                     $request->input('return_url', url('/')),
                     $request->input('cancel_url', url('/'))
                 );
-                return response()->json(['success' => true, 'message' => 'Order created. Complete payment with PayPal.', 'data' => ['order' => $order->load('shippingAddress'), 'payment' => $res]], 201);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order created. Complete payment with PayPal.',
+                    'data' => ['order' => $orderArray, 'payment' => $res, 'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT)],
+                ], 201);
             } catch (\Throwable $e) {
                 \Log::error('PayPal createOrder failed: ' . $e->getMessage());
                 return response()->json([
@@ -190,10 +283,18 @@ class OrderController extends Controller
         }
 
         if ($paymentType === 'cod') {
-            return response()->json(['success' => true, 'message' => 'Order placed. Cash on Delivery.', 'data' => ['order' => $order->load('shippingAddress')]], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Order placed. Cash on Delivery.',
+                'data' => ['order' => $orderArray, 'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT)],
+            ], 201);
         }
 
-        return response()->json(['success' => true, 'message' => 'Order created. Complete card payment on your gateway.', 'data' => ['order' => $order->load('shippingAddress')]], 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Order created. Complete card payment on your gateway.',
+            'data' => ['order' => $orderArray, 'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT)],
+        ], 201);
     }
 
     /**
@@ -208,7 +309,7 @@ class OrderController extends Controller
         if ($addressId === '' || $addressId === '{{address_id}}' || ! is_numeric($addressId)) {
             unset($all['address_id']);
         }
-        foreach (['full_name', 'phone_number', 'street_address', 'city', 'state', 'zip_code', 'country', 'payment_method', 'currency'] as $key) {
+        foreach (['email', 'full_name', 'phone_number', 'street_address', 'city', 'state', 'zip_code', 'country', 'payment_method', 'currency'] as $key) {
             if (isset($all[$key]) && is_string($all[$key])) {
                 $all[$key] = trim($all[$key]);
             }
@@ -412,7 +513,7 @@ class OrderController extends Controller
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
 
         $orderArray = $order->toArray();
-        $orderArray['shipping_address'] = $order->shippingAddress ? $order->shippingAddress->toApiArray() : null;
+        $orderArray['shipping_address'] = $order->getShippingAddressForApi();
 
         return response()->json([
             'success' => true,
@@ -434,6 +535,86 @@ class OrderController extends Controller
                 'can_cancel' => ! in_array($order->order_status, ['delivered', 'cancelled']),
             ],
         ], 200);
+    }
+
+    /**
+     * Guest: get order details by order_number + email (no auth). For guest checkout tracking.
+     */
+    public function guestShow(Request $request)
+    {
+        $request->validate([
+            'order_number' => 'required|string|max:50',
+            'email' => 'required|email',
+        ]);
+        $order = $this->findGuestOrder($request->input('order_number'), $request->input('email'));
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found or email does not match.'], 404);
+        }
+        $order->load(['items.product', 'items.product.primaryImage']);
+        $data = $order->toArray();
+        $data['shipping_address'] = $order->getShippingAddressForApi();
+        $data['order_number'] = 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
+        return response()->json(['success' => true, 'message' => 'Order retrieved.', 'data' => $data], 200);
+    }
+
+    /**
+     * Guest: get order tracking by order_number + email (no auth). Same structure as track().
+     */
+    public function guestTrack(Request $request)
+    {
+        $request->validate([
+            'order_number' => 'required|string|max:50',
+            'email' => 'required|email',
+        ]);
+        $order = $this->findGuestOrder($request->input('order_number'), $request->input('email'));
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found or email does not match.'], 404);
+        }
+        $order->load(['items.product', 'items.product.primaryImage', 'shippingAddress']);
+        $timeline = $this->buildOrderTimeline($order);
+        $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
+        $orderArray = $order->toArray();
+        $orderArray['shipping_address'] = $order->getShippingAddressForApi();
+        return response()->json([
+            'success' => true,
+            'message' => 'Order tracking information retrieved successfully',
+            'data' => [
+                'order_id' => $order->id,
+                'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
+                'order' => $orderArray,
+                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
+                'tracking' => [
+                    'status' => $order->order_status,
+                    'payment_status' => $order->payment_status,
+                    'timeline' => $timeline,
+                    'created_at' => $order->created_at?->format('c'),
+                    'updated_at' => $order->updated_at?->format('c'),
+                    'paid_at' => $order->paid_at?->format('c'),
+                ],
+                'maintenance_photos' => $maintenancePhotos,
+                'can_cancel' => false,
+            ],
+        ], 200);
+    }
+
+    /**
+     * Resolve guest order by order_number (e.g. order_001) and guest_email.
+     */
+    private function findGuestOrder(string $orderNumber, string $email): ?Order
+    {
+        $id = null;
+        if (preg_match('/^order_(\d+)$/i', trim($orderNumber), $m)) {
+            $id = (int) $m[1];
+        } elseif (is_numeric(trim($orderNumber))) {
+            $id = (int) $orderNumber;
+        }
+        if ($id === null) {
+            return null;
+        }
+        return Order::whereNull('user_id')
+            ->where('id', $id)
+            ->where('guest_email', $email)
+            ->first();
     }
 
     /**

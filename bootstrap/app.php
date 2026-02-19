@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class, // Custom role middleware that checks both Spatie and role field
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'prevent.admin.cache' => \App\Http\Middleware\PreventAdminCache::class,
+            'optional.sanctum' => \App\Http\Middleware\OptionalSanctum::class,
         ]);
         
         // All routes in routes/api.php use the api middleware group (prefix /api/).

@@ -274,6 +274,13 @@ Route::prefix('shop')->group(function () {
     Route::get('/categories', [\App\Http\Controllers\Shop\CategoryController::class, 'index']);
     Route::get('/categories/{id}', [\App\Http\Controllers\Shop\CategoryController::class, 'show']);
 
+    // Checkout: optional auth (guest or logged-in). No Bearer token = guest checkout.
+    Route::middleware('optional.sanctum')->post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
+
+    // Guest order lookup (no auth): order_number + email
+    Route::get('/orders/guest', [\App\Http\Controllers\Shop\OrderController::class, 'guestShow']);
+    Route::get('/orders/guest/track', [\App\Http\Controllers\Shop\OrderController::class, 'guestTrack']);
+
     // Protected cart and order routes
     Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->group(function () {
         Route::post('/cart/add', [\App\Http\Controllers\Shop\CartController::class, 'add']);
@@ -284,7 +291,6 @@ Route::prefix('shop')->group(function () {
 
         Route::get('/checkout/payment-methods', [\App\Http\Controllers\Shop\CheckoutController::class, 'paymentMethods']);
         Route::get('/checkout/review', [\App\Http\Controllers\Shop\CheckoutController::class, 'review']);
-        Route::post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
         Route::post('/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
