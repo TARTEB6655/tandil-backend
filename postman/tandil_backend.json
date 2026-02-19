@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): One checkout API: POST /shop/checkout. Send address (either address_id for saved address OR full_name, phone_number, street_address, city, country) + payment_method (paypal|cod|card). Optional: save_address=1, items (omit to use cart). Cart: add, view, update, remove. Optional: GET checkout/review, GET user/addresses, GET checkout/payment-methods. Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): One checkout API: POST /shop/checkout. Use form-data body; do not set Content-Type header (let Postman set multipart/form-data). Send address (address_id for saved OR full_name, phone_number, street_address, city, country) + payment_method (paypal|cod|card). Optional: save_address=1, items (omit to use cart). Cart: add, view, update, remove. GET checkout/review, GET user/addresses, GET checkout/payment-methods. Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.26.0"
+        "version": "2.27.0"
     },
     "item": [
         {
@@ -1395,7 +1395,7 @@
                                 {"key": "zip_code", "value": "12345", "type": "text"},
                                 {"key": "country", "value": "UAE", "type": "text"},
                                 {"key": "save_address", "value": "1", "type": "text", "description": "Optional: 1 to save inline address for future"},
-                                {"key": "payment_method", "value": "paypal", "type": "text", "description": "Required: paypal, cod, or card id"},
+                                {"key": "payment_method", "value": "paypal", "type": "text", "description": "Required: paypal or cod"},
                                 {"key": "currency", "value": "AED", "type": "text"},
                                 {"key": "items", "value": "", "type": "text", "description": "Optional JSON. Omit to use cart."}
                             ]
@@ -1411,7 +1411,7 @@
                                 "checkout"
                             ]
                         },
-                        "description": "Single checkout API: add address + select payment + place order. Option A: set address_id only (saved address). Option B: leave address_id EMPTY and send full_name, phone_number, street_address, city, country + payment_method. Always send payment_method. Do NOT set Content-Type header (let Postman set it for form-data). Optional: save_address=1, items, currency. Omit items to use cart."
+                        "description": "Single checkout API. Payment: paypal (user pays on PayPal redirect) or cod. Option A: address_id. Option B: full_name, phone_number, street_address, city, country. Optional: save_address=1, items, currency. Do NOT set Content-Type (form-data)."
                     }
                 },
                 {
@@ -1600,7 +1600,7 @@
                                 "track"
                             ]
                         },
-                        "description": "Track order status (Alternative route /api/orders/{id}/track)"
+                        "description": "GET /api/orders/{id}/track – Order tracking for timeline UI. Response: order_id, order_number (e.g. order_001), order, current_status (Pending|In Progress|Delivered etc.), tracking.timeline (steps: pending, confirmed, assigned, in_progress, completed, delivered – each with label, description, completed, timestamp), tracking.status, tracking.payment_status, maintenance_photos (array, for visit photos when linked), can_cancel. Set order_id."
                     }
                 },
                 {

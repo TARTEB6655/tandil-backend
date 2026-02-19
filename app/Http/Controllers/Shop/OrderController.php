@@ -392,36 +392,93 @@ class OrderController extends Controller
     }
 
     /**
-     * Track order
+     * Track order – timeline UI (Pending → Confirmed → Assigned → In Progress → Completed → Delivered).
+     * Returns order, timeline steps with label/description/timestamp/completed, and maintenance_photos.
      */
     public function track(Request $request, $id)
     {
         $user = $request->user();
-        $order = Order::with(['items.product', 'user'])->find($id);
-        
-        if (!$order) {
+        $order = Order::with(['items.product', 'items.product.primaryImage', 'user', 'shippingAddress'])->find($id);
+
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
-        
-        // Check if user owns the order or is admin
-        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+
+        if ($order->user_id !== $user->id && ! $user->hasRole('admin')) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
+
+        $timeline = $this->buildOrderTimeline($order);
+        $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
+
+        $orderArray = $order->toArray();
+        $orderArray['shipping_address'] = $order->shippingAddress ? $order->shippingAddress->toApiArray() : null;
 
         return response()->json([
             'success' => true,
             'message' => 'Order tracking information retrieved successfully',
             'data' => [
-                'order' => $order,
+                'order_id' => $order->id,
+                'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
+                'order' => $orderArray,
+                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
                     'status' => $order->order_status,
                     'payment_status' => $order->payment_status,
-                    'created_at' => $order->created_at,
-                    'updated_at' => $order->updated_at,
-                    'paid_at' => $order->paid_at,
-                ]
-            ]
+                    'timeline' => $timeline,
+                    'created_at' => $order->created_at?->format('c'),
+                    'updated_at' => $order->updated_at?->format('c'),
+                    'paid_at' => $order->paid_at?->format('c'),
+                ],
+                'maintenance_photos' => $maintenancePhotos,
+                'can_cancel' => ! in_array($order->order_status, ['delivered', 'cancelled']),
+            ],
         ], 200);
+    }
+
+    /**
+     * Build timeline steps for order tracking UI (Pending → Delivered).
+     */
+    private function buildOrderTimeline(Order $order): array
+    {
+        $status = $order->order_status ?? 'pending';
+        $createdAt = $order->created_at;
+        $updatedAt = $order->updated_at;
+        $paidAt = $order->paid_at;
+
+        $steps = [
+            ['key' => 'pending', 'label' => 'Pending', 'description' => 'Order placed successfully', 'completed' => true, 'timestamp' => $createdAt?->format('g:i A') ?? null],
+            ['key' => 'confirmed', 'label' => 'Confirmed', 'description' => 'Order confirmed by our team', 'completed' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']), 'timestamp' => ($paidAt ?? $updatedAt)?->format('g:i A')],
+            ['key' => 'assigned', 'label' => 'Assigned', 'description' => 'Technician assigned to your order', 'completed' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']), 'timestamp' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']) ? $updatedAt?->format('g:i A') : null],
+            ['key' => 'in_progress', 'label' => 'In Progress', 'description' => 'Your order is being processed', 'completed' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']), 'timestamp' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']) ? $updatedAt?->format('g:i A') : null],
+            ['key' => 'completed', 'label' => 'Completed', 'description' => 'Your order is ready!', 'completed' => in_array($status, ['shipped', 'delivered']), 'timestamp' => in_array($status, ['shipped', 'delivered']) ? $updatedAt?->format('g:i A') : null],
+            ['key' => 'delivered', 'label' => 'Delivered', 'description' => 'Delivered', 'completed' => $status === 'delivered', 'timestamp' => $status === 'delivered' ? $updatedAt?->format('g:i A') : null],
+        ];
+
+        return $steps;
+    }
+
+    private function mapOrderStatusToLabel(?string $status): string
+    {
+        $map = [
+            'pending' => 'Pending',
+            'processing' => 'In Progress',
+            'paid' => 'Confirmed',
+            'shipped' => 'In Progress',
+            'delivered' => 'Delivered',
+            'cancelled' => 'Cancelled',
+        ];
+        return $map[$status ?? ''] ?? ucfirst($status ?? 'Pending');
+    }
+
+    /**
+     * Maintenance photos linked to this order (e.g. from visits). Placeholder: empty until order–visit link exists.
+     */
+    private function getOrderMaintenancePhotos(Order $order): array
+    {
+        $photos = [];
+        // TODO: when orders are linked to visits, load VisitPhoto or MaintenancePhoto and return image_url
+        return $photos;
     }
 
     /**
