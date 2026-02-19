@@ -55,9 +55,13 @@ class PayPalService
 
     /**
      * Create an order (returns approval URL and order id). If no credentials provided, returns a placeholder.
+     * Supports any currency: if PayPal doesn't support it (e.g. AED), we convert to USD and call PayPal with USD.
      */
     public function createOrder(float $amount, string $currency = 'USD', string $returnUrl = '', string $cancelUrl = ''): array
     {
+        $currency = strtoupper($currency);
+        [$paypalCurrency, $paypalAmount] = $this->normalizeCurrencyForPayPal($amount, $currency);
+
         // Use SDK when available
         if ($this->sdkClient) {
             try {
@@ -68,8 +72,8 @@ class PayPalService
                     'intent' => 'CAPTURE',
                     'purchase_units' => [[
                         'amount' => [
-                            'currency_code' => strtoupper($currency),
-                            'value' => number_format($amount, 2, '.', ''),
+                            'currency_code' => $paypalCurrency,
+                            'value' => number_format($paypalAmount, 2, '.', ''),
                         ],
                     ]],
                     'application_context' => [
@@ -116,8 +120,8 @@ class PayPalService
             'intent' => 'CAPTURE',
             'purchase_units' => [[
                 'amount' => [
-                    'currency_code' => strtoupper($currency),
-                    'value' => number_format($amount, 2, '.', ''),
+                    'currency_code' => $paypalCurrency,
+                    'value' => number_format($paypalAmount, 2, '.', ''),
                 ],
             ]],
             'application_context' => [
@@ -129,10 +133,6 @@ class PayPalService
         $resp = Http::withToken($token)
             ->post($this->baseUrl() . '/v2/checkout/orders', $body);
 
-        if (! $resp->ok()) {
-            return ['error' => $resp->body(), 'status' => $resp->status()];
-        }
-
         $data = $resp->json();
         $approval = null;
         foreach ($data['links'] ?? [] as $link) {
@@ -142,12 +142,37 @@ class PayPalService
             }
         }
 
-        return [
-            'id' => $data['id'] ?? null,
-            'status' => $data['status'] ?? null,
-            'approval_url' => $approval,
-            'raw' => $data,
-        ];
+        if ($resp->successful() || (isset($data['status']) && ($data['status'] === 'CREATED' || $data['status'] === 'APPROVED') && $approval)) {
+            return [
+                'id' => $data['id'] ?? null,
+                'status' => $data['status'] ?? null,
+                'approval_url' => $approval,
+                'raw' => $data,
+            ];
+        }
+
+        return ['error' => $resp->body(), 'status' => $resp->status()];
+    }
+
+    /**
+     * Return currency and amount to send to PayPal. If requested currency is not supported (e.g. AED), convert to USD.
+     */
+    protected function normalizeCurrencyForPayPal(float $amount, string $currency): array
+    {
+        $supported = config('payments.paypal.supported_currencies', ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY']);
+        $fallback = config('payments.paypal.fallback_currency', 'USD');
+        $rates = config('payments.paypal.exchange_rates_to_usd', []);
+
+        if (in_array($currency, $supported, true)) {
+            return [$currency, $amount];
+        }
+
+        $rate = $rates[$currency] ?? null;
+        if ($rate !== null && $rate > 0) {
+            return [$fallback, round($amount * $rate, 2)];
+        }
+
+        return [$fallback, $amount];
     }
 
     /**

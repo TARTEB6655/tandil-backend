@@ -35,8 +35,9 @@ class OrderController extends Controller
         if ($amount <= 0) {
             $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
             $validCart = $cartItems->filter(fn ($c) => $c->product !== null);
-            $subtotal = $validCart->sum(fn ($c) => $c->quantity * (float) $c->product->price);
-            $amount = round($subtotal + (float) config('shop.shipping_amount', 9.99), 2);
+            $subtotal = round($validCart->sum(fn ($c) => $c->quantity * (float) $c->product->price), 2);
+            $summary = CartController::buildOrderSummary($subtotal);
+            $amount = $summary['total'];
         }
         if ($amount <= 0) {
             return response()->json(['success' => false, 'message' => 'Cart is empty or amount is invalid.'], 422);
@@ -45,7 +46,12 @@ class OrderController extends Controller
         $cancelUrl = $request->input('cancel_url', url('/'));
         $res = $this->paypal->createOrder($amount, $currency, $returnUrl, $cancelUrl);
         if (isset($res['error'])) {
-            return response()->json(['success' => false, 'message' => 'PayPal order creation failed.'], 502);
+            \Log::warning('PayPal createOrder failed', ['response' => $res]);
+            $message = 'PayPal order creation failed.';
+            if (config('app.debug') && is_string($res['error'])) {
+                $message .= ' ' . substr($res['error'], 0, 500);
+            }
+            return response()->json(['success' => false, 'message' => $message], 502);
         }
         return response()->json([
             'success' => true,
@@ -150,20 +156,21 @@ class OrderController extends Controller
         $packageId = $request->input('package_id');
         $items = $request->input('items', []);
 
-        $shippingAmount = (float) config('shop.shipping_amount', 9.99);
-
         if (empty($items) && ! $packageId) {
             $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
             $validCart = $cartItems->filter(fn ($c) => $c->product !== null);
             if ($validCart->isEmpty()) {
                 return response()->json(['success' => false, 'message' => 'Cart is empty. Add items or send items in request.'], 422);
             }
-            $subtotal = $validCart->sum(fn ($c) => $c->quantity * (float) $c->product->price);
-            $total = round($subtotal + $shippingAmount, 2);
+            $subtotal = round($validCart->sum(fn ($c) => $c->quantity * (float) $c->product->price), 2);
+            $summary = CartController::buildOrderSummary($subtotal);
+            $total = $summary['total'];
+            $shippingAmount = $summary['shipping'];
             foreach ($validCart as $c) {
                 $items[] = ['product_id' => $c->product_id, 'qty' => $c->quantity];
             }
         } else {
+            $shippingAmount = CartController::getEffectiveShippingAmount();
             $total = (float) $request->input('total_amount', 0);
             if ($total <= 0 && ! empty($items)) {
                 $subtotal = 0;
@@ -173,7 +180,10 @@ class OrderController extends Controller
                         $subtotal += (float) $p->price * (int) ($item['qty'] ?? 1);
                     }
                 }
-                $total = round($subtotal + $shippingAmount, 2);
+                $subtotal = round($subtotal, 2);
+                $summary = CartController::buildOrderSummary($subtotal);
+                $total = $summary['total'];
+                $shippingAmount = $summary['shipping'];
             }
         }
 
@@ -245,7 +255,6 @@ class OrderController extends Controller
         $items = $request->input('items');
         $paymentMethod = $request->input('payment_method');
         $paymentType = in_array($paymentMethod, ['paypal', 'cod']) ? $paymentMethod : 'cod';
-        $shippingAmount = (float) config('shop.shipping_amount', 9.99);
 
         $subtotal = 0;
         foreach ($items as $item) {
@@ -254,7 +263,10 @@ class OrderController extends Controller
                 $subtotal += (float) $p->price * (int) ($item['qty'] ?? 1);
             }
         }
-        $total = round($subtotal + $shippingAmount, 2);
+        $subtotal = round($subtotal, 2);
+        $summary = CartController::buildOrderSummary($subtotal);
+        $total = $summary['total'];
+        $shippingAmount = $summary['shipping'];
 
         $order = Order::create([
             'user_id' => null,
@@ -316,6 +328,9 @@ class OrderController extends Controller
         $currency = config('shop.currency', 'AED');
         $orderNumber = 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
 
+        $subtotal = $order->items ? round($order->items->sum('subtotal'), 2) : 0;
+        $orderSummary = CartController::buildOrderSummary($subtotal);
+
         $unifiedData = [
             'id' => $order->id,
             'order_number' => $orderNumber,
@@ -323,6 +338,7 @@ class OrderController extends Controller
             'payment_status' => $order->payment_status,
             'total' => (float) $order->total_amount,
             'currency' => $currency,
+            'order_summary' => $orderSummary,
             'created_at' => $order->created_at?->format('c'),
             'items' => $order->items ? $order->items->toArray() : [],
             'order' => $orderArray,

@@ -51,17 +51,7 @@ class CheckoutController extends Controller
 
         $subtotal = $validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price);
         $subtotal = round($subtotal, 2);
-        $shipping = (float) config('shop.shipping_amount', 9.99);
-        $discount = 0;
-        $total = round($subtotal - $discount + $shipping, 2);
-
-        $orderSummary = [
-            'subtotal' => $subtotal,
-            'discount' => $discount,
-            'shipping' => $shipping,
-            'total' => $total,
-            'currency' => CartController::CURRENCY,
-        ];
+        $orderSummary = CartController::buildOrderSummary($subtotal, 0);
 
         $addresses = UserAddress::where('user_id', $user->id)
             ->orderByDesc('is_default')

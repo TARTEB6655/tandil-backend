@@ -6,11 +6,52 @@ use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Cart;
 use App\Models\Product;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
     public const CURRENCY = 'AED';
+
+    /**
+     * Effective shipping amount (admin API or config). 0 = free.
+     */
+    public static function getEffectiveShippingAmount(): float
+    {
+        $v = Setting::get('shop_shipping_amount');
+        return (float) ($v !== null && $v !== '' ? $v : config('shop.shipping_amount', 0));
+    }
+
+    /**
+     * Effective tax percentage (admin API or config). e.g. 5 = 5%.
+     */
+    public static function getEffectiveTaxPercent(): float
+    {
+        $v = Setting::get('shop_tax_percent');
+        return (float) ($v !== null && $v !== '' ? $v : config('shop.tax_percent', 5));
+    }
+
+    /**
+     * Build order summary: 1-Subtotal, 2-Shipping (free or amount), 3-Tax (%), 4-Total.
+     */
+    public static function buildOrderSummary(float $subtotal, float $discount = 0): array
+    {
+        $shippingAmount = self::getEffectiveShippingAmount();
+        $taxPercent = self::getEffectiveTaxPercent();
+        $taxAmount = round($subtotal * ($taxPercent / 100), 2);
+        $total = round($subtotal - $discount + $shippingAmount + $taxAmount, 2);
+
+        return [
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'shipping' => $shippingAmount,
+            'shipping_label' => $shippingAmount == 0 ? 'Free' : (string) $shippingAmount,
+            'tax_percent' => $taxPercent,
+            'tax' => $taxAmount,
+            'total' => $total,
+            'currency' => self::CURRENCY,
+        ];
+    }
 
     /**
      * Format a cart item for frontend (Product Details / Shopping Cart / Review screens).
@@ -92,17 +133,7 @@ class CartController extends Controller
             return $item->quantity * (float) $item->product->price;
         });
         $subtotal = round($subtotal, 2);
-        $discount = 0;
-        $shipping = (float) config('shop.shipping_amount', 9.99);
-        $total = round($subtotal - $discount + $shipping, 2);
-
-        $orderSummary = [
-            'subtotal' => $subtotal,
-            'discount' => $discount,
-            'shipping' => $shipping,
-            'total' => $total,
-            'currency' => self::CURRENCY,
-        ];
+        $orderSummary = self::buildOrderSummary($subtotal, 0);
 
         return ApiResponse::success('Cart retrieved successfully.', [
             'items' => $items,

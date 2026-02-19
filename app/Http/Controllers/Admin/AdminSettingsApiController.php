@@ -29,6 +29,7 @@ class AdminSettingsApiController extends Controller
         ];
 
         $payment = $this->getPaymentSummary();
+        $shop = $this->getShopSummary();
 
         $legal = [
             'privacy_policy_url' => Setting::get('privacy_policy_url', ''),
@@ -41,9 +42,51 @@ class AdminSettingsApiController extends Controller
                 'system' => $system,
                 'app_config' => $appConfig,
                 'payment' => $payment,
+                'shop' => $shop,
                 'legal' => $legal,
             ],
         ]);
+    }
+
+    /**
+     * GET /api/admin/settings/shop
+     * Shipping amount (0 = free) and tax % for checkout/cart order summary.
+     */
+    public function getShop(): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => $this->getShopSummary()]);
+    }
+
+    protected function getShopSummary(): array
+    {
+        $shipping = Setting::get('shop_shipping_amount');
+        $tax = Setting::get('shop_tax_percent');
+        return [
+            'shipping_amount' => (float) ($shipping !== null && $shipping !== '' ? $shipping : config('shop.shipping_amount', 0)),
+            'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),
+            'currency' => config('shop.currency', 'AED'),
+        ];
+    }
+
+    /**
+     * PUT /api/admin/settings/shop
+     * Update shipping amount (number, 0 = free) and/or tax_percent (e.g. 5 for 5%).
+     */
+    public function updateShop(Request $request): JsonResponse
+    {
+        $request->validate([
+            'shipping_amount' => 'nullable|numeric|min:0',
+            'tax_percent' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        if ($request->has('shipping_amount')) {
+            Setting::set('shop_shipping_amount', (string) $request->input('shipping_amount'), 'text', 'shop');
+        }
+        if ($request->has('tax_percent')) {
+            Setting::set('shop_tax_percent', (string) $request->input('tax_percent'), 'text', 'shop');
+        }
+
+        return $this->getShop();
     }
 
     /**

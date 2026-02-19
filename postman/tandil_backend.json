@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): Create Order POST /shop/checkout (optional auth). payment_method: cod | paypal | paypal_login. COD: no payment call. paypal: returns approval_url (app redirects). paypal_login: app calls POST /shop/payment/paypal/create first, then Place Order with paypal_order_id + paypal_payer_id; backend captures then creates order. Logged-in: address_id OR shipping_address (JSON/form). Guest: email, address, items (required), payment_method paypal or cod. Guest lookup: GET /shop/orders/guest and /guest/track (order_number + email). Cart: add, view, update, remove (auth). GET /orders/{id}/track. Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): Create Order POST /shop/checkout (optional auth). payment_method: cod | paypal | paypal_login. COD: no payment call. paypal: returns approval_url (app redirects). paypal_login: app calls POST /shop/payment/paypal/create first, then Place Order with paypal_order_id + paypal_payer_id; backend captures then creates order. Logged-in: address_id OR shipping_address (JSON/form). Guest: email, address, items (required), payment_method paypal or cod. Guest lookup: GET /shop/orders/guest and /guest/track (order_number + email). Cart: add, view, update, remove (auth). GET /orders/{id}/track. Currency AED. Order summary: subtotal, shipping (0 = Free), tax_percent, tax, total. Admin sets shipping/tax via PUT /api/admin/settings/shop.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.31.0"
+        "version": "2.32.0"
     },
     "item": [
         {
@@ -1274,7 +1274,7 @@
                                 "cart"
                             ]
                         },
-                        "description": "GET /api/shop/cart – Shopping Cart screen. Response: items (id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total, currency), order_summary (subtotal, discount, shipping, total, currency)."
+                        "description": "GET /api/shop/cart – Shopping Cart screen. Response: items (id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total, currency), order_summary (subtotal, discount, shipping, shipping_label [Free or amount], tax_percent, tax, total, currency). Admin can set shipping and tax via PUT /api/admin/settings/shop."
                     }
                 },
                 {
@@ -4245,6 +4245,72 @@
                     }
                 },
                 {
+                    "name": "Get Shop Settings (Shipping & Tax)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/shop",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "shop"
+                            ]
+                        },
+                        "description": "GET /api/admin/settings/shop - Current shipping_amount (0 = free), tax_percent, currency. Used in cart/checkout order_summary."
+                    }
+                },
+                {
+                    "name": "Update Shop Settings (Shipping & Tax)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/settings/shop",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "settings",
+                                "shop"
+                            ]
+                        },
+                        "description": "PUT /api/admin/settings/shop - Update shipping_amount (number, 0 = free) and/or tax_percent (e.g. 5 for 5%). Both optional. Values show in user cart/checkout order_summary."
+                    }
+                },
+                {
                     "name": "Get Legal (Privacy or Terms)",
                     "request": {
                         "method": "GET",
@@ -4354,7 +4420,7 @@
                     }
                 }
             ],
-            "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, legal, export, debug logs."
+            "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, shop (shipping_amount, tax_percent), legal, export, debug logs."
         },
         {
             "name": "13. Other Modules",

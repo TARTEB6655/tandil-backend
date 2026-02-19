@@ -3,11 +3,17 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Default shipping amount (AED)
+    | Default shipping amount (AED). Use 0 for free shipping.
     |--------------------------------------------------------------------------
-    | Used in cart order_summary and checkout when no custom shipping is set.
     */
-    'shipping_amount' => (float) env('SHOP_SHIPPING_AMOUNT', 9.99),
+    'shipping_amount' => (float) env('SHOP_SHIPPING_AMOUNT', 0),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tax percentage applied to subtotal (e.g. 5 = 5%)
+    |--------------------------------------------------------------------------
+    */
+    'tax_percent' => (float) env('SHOP_TAX_PERCENT', 5),
 
     'currency' => env('SHOP_CURRENCY', 'AED'),
 ];
