@@ -172,13 +172,21 @@ class OrderController extends Controller
         }
 
         if ($paymentType === 'paypal') {
-            $res = $this->paypal->createOrder(
-                (float) $order->total_amount,
-                $request->input('currency', 'AED'),
-                $request->input('return_url', url('/')),
-                $request->input('cancel_url', url('/'))
-            );
-            return response()->json(['success' => true, 'message' => 'Order created. Complete payment with PayPal.', 'data' => ['order' => $order->load('shippingAddress'), 'payment' => $res]], 201);
+            try {
+                $res = $this->paypal->createOrder(
+                    (float) $order->total_amount,
+                    $request->input('currency', 'AED'),
+                    $request->input('return_url', url('/')),
+                    $request->input('cancel_url', url('/'))
+                );
+                return response()->json(['success' => true, 'message' => 'Order created. Complete payment with PayPal.', 'data' => ['order' => $order->load('shippingAddress'), 'payment' => $res]], 201);
+            } catch (\Throwable $e) {
+                \Log::error('PayPal createOrder failed: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order created but PayPal is unavailable. Use payment_method=cod or configure PayPal credentials.',
+                ], 502);
+            }
         }
 
         if ($paymentType === 'cod') {
