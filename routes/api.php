@@ -347,6 +347,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);
     Route::post('/addresses', [\App\Http\Controllers\Api\UserController::class, 'createAddress']);
     Route::put('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']);
+    Route::post('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']); // POST for multipart/form-data
     Route::delete('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'deleteAddress']);
     Route::get('/loyalty', [\App\Http\Controllers\Api\UserController::class, 'getLoyalty']);
     Route::get('/notifications', [\App\Http\Controllers\Api\UserController::class, 'getNotifications']);

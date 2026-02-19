@@ -62,6 +62,7 @@ class UserController extends Controller
     public function createAddress(Request $request)
     {
         $user = $request->user();
+        $this->normalizeAddressFormInput($request);
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'phone_number' => 'required|string|max:20',
@@ -74,7 +75,7 @@ class UserController extends Controller
         ]);
 
         $validated['user_id'] = $user->id;
-        $validated['is_default'] = (bool) ($validated['is_default'] ?? false);
+        $validated['is_default'] = filter_var($validated['is_default'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         if ($validated['is_default']) {
             UserAddress::where('user_id', $user->id)->update(['is_default' => false]);
@@ -90,6 +91,7 @@ class UserController extends Controller
     public function updateAddress(Request $request, $id)
     {
         $user = $request->user();
+        $this->normalizeAddressFormInput($request);
         $address = UserAddress::where('user_id', $user->id)->findOrFail($id);
 
         $validated = $request->validate([
@@ -103,12 +105,26 @@ class UserController extends Controller
             'is_default' => 'nullable|boolean',
         ]);
 
-        if (! empty($validated['is_default']) && $validated['is_default']) {
-            UserAddress::where('user_id', $user->id)->update(['is_default' => false]);
+        if (array_key_exists('is_default', $validated)) {
+            $validated['is_default'] = filter_var($validated['is_default'], FILTER_VALIDATE_BOOLEAN);
+            if ($validated['is_default'] === true) {
+                UserAddress::where('user_id', $user->id)->update(['is_default' => false]);
+            }
         }
 
         $address->update($validated);
         return ApiResponse::success('Address updated successfully.', $address->fresh()->toApiArray());
+    }
+
+    /**
+     * Normalize form-data input (e.g. is_default "1"/"0").
+     */
+    private function normalizeAddressFormInput(Request $request): void
+    {
+        if ($request->has('is_default')) {
+            $v = $request->input('is_default');
+            $request->merge(['is_default' => filter_var($v, FILTER_VALIDATE_BOOLEAN)]);
+        }
     }
 
     /**

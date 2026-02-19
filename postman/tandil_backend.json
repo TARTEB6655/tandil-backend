@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): Cart: add, view (items + order_summary with shipping), update quantity, remove. Checkout flow: 1) GET /user/addresses, POST/PUT /user/addresses (Address step); 2) GET /shop/checkout/payment-methods (Payment step); 3) GET /shop/checkout/review (Review: items, order_summary, addresses, payment_methods); 4) POST /shop/checkout (address_id, payment_method; uses cart if items omitted). Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): One checkout API: POST /shop/checkout. Send address (either address_id for saved address OR full_name, phone_number, street_address, city, country) + payment_method (paypal|cod|card). Optional: save_address=1, items (omit to use cart). Cart: add, view, update, remove. Optional: GET checkout/review, GET user/addresses, GET checkout/payment-methods. Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.26.0"
@@ -1394,8 +1394,21 @@
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"address_id\": {{address_id}},\n  \"payment_method\": \"paypal\",\n  \"currency\": \"AED\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "address_id", "value": "{{address_id}}", "type": "text", "description": "Option A: use saved address (omit below fields)"},
+                                {"key": "full_name", "value": "Ahmed Hassan", "type": "text", "description": "Option B: inline address"},
+                                {"key": "phone_number", "value": "+971501234567", "type": "text"},
+                                {"key": "street_address", "value": "Sheikh Zayed Road", "type": "text"},
+                                {"key": "city", "value": "Dubai", "type": "text"},
+                                {"key": "state", "value": "Dubai", "type": "text"},
+                                {"key": "zip_code", "value": "12345", "type": "text"},
+                                {"key": "country", "value": "UAE", "type": "text"},
+                                {"key": "save_address", "value": "1", "type": "text", "description": "Optional: 1 to save inline address for future"},
+                                {"key": "payment_method", "value": "paypal", "type": "text", "description": "Required: paypal, cod, or card id"},
+                                {"key": "currency", "value": "AED", "type": "text"},
+                                {"key": "items", "value": "", "type": "text", "description": "Optional JSON. Omit to use cart."}
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/shop/checkout",
@@ -1408,7 +1421,7 @@
                                 "checkout"
                             ]
                         },
-                        "description": "POST /api/shop/checkout – Place Order (Review step). Required: address_id (from GET user/addresses), payment_method (e.g. paypal, cod, or card id). If items omitted, order is built from current cart and cart is cleared. Optional: items[], total_amount, currency. payment_method: paypal|cod|card_4242 etc."
+                        "description": "Single checkout API: add address + select payment + place order. Send EITHER address_id (saved address) OR full address (full_name, phone_number, street_address, city, country). Always send payment_method (paypal|cod|card_4242). Optional: save_address=1, items (JSON), currency. Omit items to use cart; cart cleared after order."
                     }
                 },
                 {
@@ -6247,7 +6260,7 @@
                 },
                 {
                     "name": "User Addresses",
-                    "description": "Checkout Address step. List, Create, Update, Delete. Auth: Bearer token. Response: id, full_name, phone_number, street_address, city, state, zip_code, country, is_default.",
+                    "description": "Checkout Address step. List (GET), Create (POST form-data), Update (POST form-data or PUT JSON), Delete. Auth: Bearer token. Create/Update accept multipart form-data. Response: id, full_name, phone_number, street_address, city, state, zip_code, country, is_default.",
                     "item": [
                 {
                     "name": "List",
@@ -6298,72 +6311,57 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"full_name\": \"Ahmed Hassan\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"Sheikh Zayed Road\",\n  \"city\": \"Dubai\",\n  \"state\": \"Dubai\",\n  \"zip_code\": \"12345\",\n  \"country\": \"UAE\",\n  \"is_default\": true\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "full_name", "value": "Ahmed Hassan", "type": "text", "description": "Required"},
+                                {"key": "phone_number", "value": "+971501234567", "type": "text", "description": "Required"},
+                                {"key": "street_address", "value": "Sheikh Zayed Road", "type": "text", "description": "Required"},
+                                {"key": "city", "value": "Dubai", "type": "text", "description": "Required"},
+                                {"key": "state", "value": "Dubai", "type": "text", "description": "Optional"},
+                                {"key": "zip_code", "value": "12345", "type": "text", "description": "Optional"},
+                                {"key": "country", "value": "UAE", "type": "text", "description": "Required"},
+                                {"key": "is_default", "value": "1", "type": "text", "description": "Optional: 1 or 0"}
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/user/addresses",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "user",
-                                "addresses"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "user", "addresses"]
                         },
-                        "description": "Create address (Checkout – Shipping Address). Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default."
+                        "description": "Create address (multipart form-data). Checkout – Shipping Address. Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default (1/0)."
                     }
                 },
                 {
                     "name": "Update",
                     "request": {
-                        "method": "PUT",
+                        "method": "POST",
                         "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"full_name\": \"Ahmed Hassan\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"456 Updated Street\",\n  \"city\": \"Abu Dhabi\",\n  \"state\": \"Abu Dhabi\",\n  \"zip_code\": \"54321\",\n  \"country\": \"UAE\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "full_name", "value": "Ahmed Hassan", "type": "text"},
+                                {"key": "phone_number", "value": "+971501234567", "type": "text"},
+                                {"key": "street_address", "value": "456 Updated Street", "type": "text"},
+                                {"key": "city", "value": "Abu Dhabi", "type": "text"},
+                                {"key": "state", "value": "Abu Dhabi", "type": "text"},
+                                {"key": "zip_code", "value": "54321", "type": "text"},
+                                {"key": "country", "value": "UAE", "type": "text"},
+                                {"key": "is_default", "value": "0", "type": "text"}
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/user/addresses/{{address_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "user",
-                                "addresses",
-                                "{{address_id}}"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "user", "addresses", "{{address_id}}"]
                         },
-                        "description": "Update address. Set address_id. Optional: full_name, phone_number, street_address, city, state, zip_code, country, is_default."
+                        "description": "Update address (multipart form-data). Set address_id. Use POST for form-data; backend also accepts PUT with JSON. Optional fields: full_name, phone_number, street_address, city, state, zip_code, country, is_default (1/0)."
                     }
                 },
                 {

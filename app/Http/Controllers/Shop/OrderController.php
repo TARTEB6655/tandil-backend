@@ -24,16 +24,29 @@ class OrderController extends Controller
     }
 
     /**
-     * Create order (Place Order from Review step).
-     * Accepts: address_id (required), payment_method (required: card|paypal|cod or id), optional items/total_amount.
-     * If items not provided, order is built from current cart; cart is cleared after order creation.
-     * Order stores: shipping_address_id, shipping_amount, payment_method, total_amount.
+     * Single checkout API: add address + select payment method + place order.
+     * Accept EITHER:
+     *   - address_id: use existing saved address, OR
+     *   - inline address: full_name, phone_number, street_address, city, country (optional: state, zip_code). Set save_address=1 to save for future.
+     * Plus: payment_method (required). Optional: items (or use cart), currency.
      */
     public function checkout(Request $request)
     {
         $user = $request->user();
+        if (is_string($request->input('items'))) {
+            $request->merge(['items' => json_decode($request->input('items'), true) ?: []]);
+        }
+
         $request->validate([
-            'address_id' => 'required|exists:user_addresses,id',
+            'address_id' => 'nullable|exists:user_addresses,id',
+            'full_name' => 'required_without:address_id|nullable|string|max:255',
+            'phone_number' => 'required_without:address_id|nullable|string|max:20',
+            'street_address' => 'required_without:address_id|nullable|string|max:500',
+            'city' => 'required_without:address_id|nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'zip_code' => 'nullable|string|max:20',
+            'country' => 'required_without:address_id|nullable|string|max:100',
+            'save_address' => 'nullable|boolean',
             'payment_method' => 'required|string|max:50',
             'items' => 'nullable|array',
             'items.*.product_id' => 'required_with:items|exists:products,id',
@@ -41,8 +54,27 @@ class OrderController extends Controller
             'total_amount' => 'nullable|numeric|min:0',
         ]);
 
-        $addressId = (int) $request->input('address_id');
-        $address = UserAddress::where('user_id', $user->id)->findOrFail($addressId);
+        if ($request->filled('address_id')) {
+            $address = UserAddress::where('user_id', $user->id)->findOrFail((int) $request->input('address_id'));
+        } else {
+            $address = new UserAddress;
+            $address->user_id = $user->id;
+            $address->full_name = $request->input('full_name');
+            $address->phone_number = $request->input('phone_number');
+            $address->street_address = $request->input('street_address');
+            $address->city = $request->input('city');
+            $address->state = $request->input('state');
+            $address->zip_code = $request->input('zip_code');
+            $address->country = $request->input('country');
+            $address->is_default = false;
+            if (filter_var($request->input('save_address'), FILTER_VALIDATE_BOOLEAN)) {
+                UserAddress::where('user_id', $user->id)->update(['is_default' => false]);
+                $address->is_default = true;
+                $address->save();
+            } else {
+                $address->save();
+            }
+        }
 
         $paymentMethod = $request->input('payment_method');
         $paymentType = in_array($paymentMethod, ['paypal', 'cod']) ? $paymentMethod : 'card';
