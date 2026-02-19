@@ -23,11 +23,10 @@ class CheckoutController extends Controller
     {
         $user = $request->user();
 
-        // Static list for now; can be replaced with saved payment methods from DB/Stripe later.
+        // Options for Place Order: send payment_method as cod | paypal | paypal_login
         $methods = [
-            ['id' => 'card_4242', 'type' => 'card', 'label' => 'Visa ending in 4242', 'last4' => '4242'],
-            ['id' => 'card_8888', 'type' => 'card', 'label' => 'Mastercard ending in 8888', 'last4' => '8888'],
-            ['id' => 'paypal', 'type' => 'paypal', 'label' => 'PayPal'],
+            ['id' => 'paypal', 'type' => 'paypal', 'label' => 'PayPal (redirect to approve)'],
+            ['id' => 'paypal_login', 'type' => 'paypal_login', 'label' => 'Login to PayPal'],
             ['id' => 'cod', 'type' => 'cod', 'label' => 'Cash on Delivery'],
         ];
 
@@ -73,9 +72,8 @@ class CheckoutController extends Controller
             ->all();
 
         $paymentMethods = [
-            ['id' => 'card_4242', 'type' => 'card', 'label' => 'Visa ending in 4242', 'last4' => '4242'],
-            ['id' => 'card_8888', 'type' => 'card', 'label' => 'Mastercard ending in 8888', 'last4' => '8888'],
-            ['id' => 'paypal', 'type' => 'paypal', 'label' => 'PayPal'],
+            ['id' => 'paypal', 'type' => 'paypal', 'label' => 'PayPal (redirect to approve)'],
+            ['id' => 'paypal_login', 'type' => 'paypal_login', 'label' => 'Login to PayPal'],
             ['id' => 'cod', 'type' => 'cod', 'label' => 'Cash on Delivery'],
         ];
 

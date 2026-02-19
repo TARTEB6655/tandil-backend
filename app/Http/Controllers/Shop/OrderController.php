@@ -24,6 +24,39 @@ class OrderController extends Controller
     }
 
     /**
+     * Create PayPal order for "Login with PayPal" flow. Returns paypal_order_id and approval_url.
+     * App calls this before redirecting user to PayPal; after user approves, app sends paypal_order_id + paypal_payer_id on Place Order.
+     */
+    public function createPaypalOrder(Request $request)
+    {
+        $user = $request->user();
+        $currency = $request->input('currency', config('shop.currency', 'AED'));
+        $amount = (float) $request->input('amount', 0);
+        if ($amount <= 0) {
+            $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
+            $validCart = $cartItems->filter(fn ($c) => $c->product !== null);
+            $subtotal = $validCart->sum(fn ($c) => $c->quantity * (float) $c->product->price);
+            $amount = round($subtotal + (float) config('shop.shipping_amount', 9.99), 2);
+        }
+        if ($amount <= 0) {
+            return response()->json(['success' => false, 'message' => 'Cart is empty or amount is invalid.'], 422);
+        }
+        $returnUrl = $request->input('return_url', url('/'));
+        $cancelUrl = $request->input('cancel_url', url('/'));
+        $res = $this->paypal->createOrder($amount, $currency, $returnUrl, $cancelUrl);
+        if (isset($res['error'])) {
+            return response()->json(['success' => false, 'message' => 'PayPal order creation failed.'], 502);
+        }
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'paypal_order_id' => $res['id'] ?? null,
+                'approval_url' => $res['approval_url'] ?? null,
+            ],
+        ], 200);
+    }
+
+    /**
      * Single checkout API: add address + select payment method + place order.
      * Works for both logged-in users and guests (no auth required).
      * Logged-in: address_id OR inline address, cart OR items, payment_method. Optional save_address.
@@ -50,20 +83,27 @@ class OrderController extends Controller
                 'state' => 'nullable|string|max:100',
                 'zip_code' => 'nullable|string|max:20',
                 'country' => 'required|string|max:100',
-                'payment_method' => 'required|string|max:50',
+                'payment_method' => 'required|string|in:cod,paypal',
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.qty' => 'required|integer|min:1',
+            ], [
+                'items.*.product_id.exists' => 'One or more product_id values are invalid. Use GET /api/shop/products to get valid product IDs.',
             ]);
             return $this->checkoutGuest($request);
         }
 
         $request->validate([
-            'payment_method' => 'required|string|max:50',
+            'payment_method' => 'required|string|in:cod,paypal,paypal_login',
             'items' => 'nullable|array',
             'items.*.product_id' => 'required_with:items|exists:products,id',
             'items.*.qty' => 'required_with:items|integer|min:1',
             'total_amount' => 'nullable|numeric|min:0',
+            'paypal_order_id' => 'required_if:payment_method,paypal_login|nullable|string|max:100',
+            'paypal_payer_id' => 'nullable|string|max:100',
+        ], [
+            'items.*.product_id.exists' => 'One or more product_id values are invalid. Use GET /api/shop/products to get valid product IDs.',
+            'payment_method.in' => 'payment_method must be one of: cod, paypal, paypal_login.',
         ]);
 
         $useSavedAddress = $request->filled('address_id');
@@ -105,7 +145,7 @@ class OrderController extends Controller
         }
 
         $paymentMethod = $request->input('payment_method');
-        $paymentType = in_array($paymentMethod, ['paypal', 'cod']) ? $paymentMethod : 'card';
+        $paymentType = in_array($paymentMethod, ['paypal', 'paypal_login', 'cod']) ? $paymentMethod : 'card';
 
         $packageId = $request->input('package_id');
         $items = $request->input('items', []);
@@ -137,14 +177,28 @@ class OrderController extends Controller
             }
         }
 
+        // paypal_login: capture first; do not create order if capture fails
+        if ($paymentType === 'paypal_login') {
+            $paypalOrderId = $request->input('paypal_order_id');
+            $capture = $this->paypal->captureOrder($paypalOrderId);
+            $captureStatus = is_array($capture) ? ($capture['status'] ?? $capture['error'] ?? null) : null;
+            if (isset($capture['error']) || (is_string($captureStatus) && strtoupper($captureStatus) !== 'COMPLETED')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'PayPal payment failed. Please try again.',
+                ], 402);
+            }
+        }
+
         $orderData = [
             'user_id' => $user->id,
             'shipping_address_id' => $address->id,
             'total_amount' => $total,
             'shipping_amount' => $shippingAmount,
             'order_status' => 'processing',
-            'payment_status' => 'pending',
-            'payment_method' => $paymentType,
+            'payment_status' => $paymentType === 'paypal_login' ? 'paid' : 'pending',
+            'payment_method' => $paymentType === 'paypal_login' ? 'paypal' : $paymentType,
+            'paid_at' => $paymentType === 'paypal_login' ? now() : null,
         ];
 
         if ($packageId) {
@@ -259,19 +313,33 @@ class OrderController extends Controller
         $order->load(['items.product', 'shippingAddress']);
         $orderArray = $order->toArray();
         $orderArray['shipping_address'] = $order->getShippingAddressForApi();
+        $currency = config('shop.currency', 'AED');
+        $orderNumber = 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
+
+        $unifiedData = [
+            'id' => $order->id,
+            'order_number' => $orderNumber,
+            'status' => $order->order_status,
+            'payment_status' => $order->payment_status,
+            'total' => (float) $order->total_amount,
+            'currency' => $currency,
+            'created_at' => $order->created_at?->format('c'),
+            'items' => $order->items ? $order->items->toArray() : [],
+            'order' => $orderArray,
+        ];
 
         if ($paymentType === 'paypal') {
             try {
                 $res = $this->paypal->createOrder(
                     (float) $order->total_amount,
-                    $request->input('currency', 'AED'),
+                    $request->input('currency', $currency),
                     $request->input('return_url', url('/')),
                     $request->input('cancel_url', url('/'))
                 );
                 return response()->json([
                     'success' => true,
                     'message' => 'Order created. Complete payment with PayPal.',
-                    'data' => ['order' => $orderArray, 'payment' => $res, 'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT)],
+                    'data' => array_merge($unifiedData, ['payment' => $res]),
                 ], 201);
             } catch (\Throwable $e) {
                 \Log::error('PayPal createOrder failed: ' . $e->getMessage());
@@ -282,34 +350,57 @@ class OrderController extends Controller
             }
         }
 
+        if ($paymentType === 'paypal_login') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Order placed successfully.',
+                'data' => $unifiedData,
+            ], 201);
+        }
+
         if ($paymentType === 'cod') {
             return response()->json([
                 'success' => true,
-                'message' => 'Order placed. Cash on Delivery.',
-                'data' => ['order' => $orderArray, 'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT)],
+                'message' => 'Order placed successfully.',
+                'data' => $unifiedData,
             ], 201);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Order created. Complete card payment on your gateway.',
-            'data' => ['order' => $orderArray, 'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT)],
+            'data' => $unifiedData,
         ], 201);
     }
 
     /**
-     * Normalize checkout request so form-data and Postman variables work reliably.
-     * - Treat empty or "{{address_id}}" as no address_id (use inline address).
-     * - Trim string inputs.
+     * Normalize checkout request: form-data, JSON body, and trim.
+     * - Treat empty or "{{address_id}}" as no address_id.
+     * - If JSON body has shipping_address object, map to full_name, phone_number, etc. (spec: fullName, phone, street, city, state, zipCode, country).
      */
     private function normalizeCheckoutRequest(Request $request): void
     {
         $all = $request->all();
-        $addressId = trim((string) ($all['address_id'] ?? ''));
-        if ($addressId === '' || $addressId === '{{address_id}}' || ! is_numeric($addressId)) {
-            unset($all['address_id']);
+
+        $shipping = $all['shipping_address'] ?? null;
+        if (is_array($shipping)) {
+            $all['full_name'] = $shipping['fullName'] ?? $shipping['full_name'] ?? $all['full_name'] ?? null;
+            $all['phone_number'] = $shipping['phone'] ?? $shipping['phone_number'] ?? $all['phone_number'] ?? null;
+            $all['street_address'] = $shipping['street'] ?? $shipping['street_address'] ?? $all['street_address'] ?? null;
+            $all['city'] = $shipping['city'] ?? $all['city'] ?? null;
+            $all['state'] = $shipping['state'] ?? $all['state'] ?? null;
+            $all['zip_code'] = $shipping['zipCode'] ?? $shipping['zip_code'] ?? $all['zip_code'] ?? null;
+            $all['country'] = $shipping['country'] ?? $all['country'] ?? null;
         }
-        foreach (['email', 'full_name', 'phone_number', 'street_address', 'city', 'state', 'zip_code', 'country', 'payment_method', 'currency'] as $key) {
+
+        $addressId = trim((string) ($all['address_id'] ?? $all['shipping_address_id'] ?? ''));
+        if ($addressId === '' || $addressId === '{{address_id}}' || ! is_numeric($addressId)) {
+            unset($all['address_id'], $all['shipping_address_id']);
+        } else {
+            $all['address_id'] = $addressId;
+        }
+
+        foreach (['email', 'full_name', 'phone_number', 'street_address', 'city', 'state', 'zip_code', 'country', 'payment_method', 'currency', 'notes'] as $key) {
             if (isset($all[$key]) && is_string($all[$key])) {
                 $all[$key] = trim($all[$key]);
             }

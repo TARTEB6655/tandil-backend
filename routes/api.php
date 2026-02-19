@@ -291,6 +291,7 @@ Route::prefix('shop')->group(function () {
 
         Route::get('/checkout/payment-methods', [\App\Http\Controllers\Shop\CheckoutController::class, 'paymentMethods']);
         Route::get('/checkout/review', [\App\Http\Controllers\Shop\CheckoutController::class, 'review']);
+        Route::post('/payment/paypal/create', [\App\Http\Controllers\Shop\OrderController::class, 'createPaypalOrder']);
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
         Route::post('/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);

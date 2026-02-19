@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): One checkout API: POST /shop/checkout (optional auth). Logged-in: address_id OR inline address, cart or items. Guest (no token): email (required), full_name, phone_number, street_address, city, country, items (required), payment_method. Form-data; do not set Content-Type. payment_method: paypal or cod. Guest order lookup: GET /shop/orders/guest?order_number=...&email=... and GET /shop/orders/guest/track?order_number=...&email=... (no auth). Cart: add, view, update, remove (auth). GET /orders/{id}/track returns timeline. Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): Create Order POST /shop/checkout (optional auth). payment_method: cod | paypal | paypal_login. COD: no payment call. paypal: returns approval_url (app redirects). paypal_login: app calls POST /shop/payment/paypal/create first, then Place Order with paypal_order_id + paypal_payer_id; backend captures then creates order. Logged-in: address_id OR shipping_address (JSON/form). Guest: email, address, items (required), payment_method paypal or cod. Guest lookup: GET /shop/orders/guest and /guest/track (order_number + email). Cart: add, view, update, remove (auth). GET /orders/{id}/track. Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.30.0"
+        "version": "2.31.0"
     },
     "item": [
         {
@@ -1340,7 +1340,28 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "shop", "checkout", "payment-methods"]
                         },
-                        "description": "GET /api/shop/checkout/payment-methods – Checkout Payment step. Response: array of { id, type, label } (e.g. Visa ending in 4242, PayPal, Cash on Delivery). Send selected id as payment_method when placing order."
+                        "description": "GET /api/shop/checkout/payment-methods – Checkout Payment step. Response: array of { id, type, label }. payment_method on Place Order: cod | paypal | paypal_login."
+                    }
+                },
+                {
+                    "name": "Payment - Create PayPal order (Login with PayPal)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 130.00,\n  \"currency\": \"AED\",\n  \"return_url\": \"https://yourapp.com/return\",\n  \"cancel_url\": \"https://yourapp.com/cancel\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/payment/paypal/create",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "payment", "paypal", "create"]
+                        },
+                        "description": "For 'Login with PayPal' flow. Call before redirecting user. Optional: amount, currency, return_url, cancel_url. If amount omitted, uses cart total. Returns paypal_order_id and approval_url; app opens approval_url, then on Place Order sends paypal_order_id + paypal_payer_id with payment_method=paypal_login."
                     }
                 },
                 {
@@ -1411,7 +1432,7 @@
                                 "checkout"
                             ]
                         },
-                        "description": "Single checkout API. Payment: paypal or cod. Option A: address_id. Option B: full_name, phone_number, street_address, city, country. Optional: save_address=1, items, currency. Do NOT set Content-Type (form-data). For PayPal: 201 response includes data.payment.approval_url — client must open that URL (e.g. redirect or Linking.openURL) so user completes payment on PayPal; backend does not redirect."
+                        "description": "Create Order (Place Order). payment_method: cod | paypal | paypal_login. COD: no extra params. paypal: returns approval_url (app redirects). paypal_login: send paypal_order_id (and paypal_payer_id); backend captures then creates order. Address: address_id OR shipping_address (JSON: fullName, phone, street, city, state, zipCode, country) OR form full_name, phone_number, street_address, city, country. Form-data or JSON. Response: data.id, order_number, status, payment_status, total, currency, created_at, items."
                     }
                 },
                 {
