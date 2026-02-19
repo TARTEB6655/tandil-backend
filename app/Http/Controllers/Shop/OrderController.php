@@ -33,20 +33,13 @@ class OrderController extends Controller
     public function checkout(Request $request)
     {
         $user = $request->user();
+        $this->normalizeCheckoutRequest($request);
+
         if (is_string($request->input('items'))) {
             $request->merge(['items' => json_decode($request->input('items'), true) ?: []]);
         }
 
         $request->validate([
-            'address_id' => 'nullable|exists:user_addresses,id',
-            'full_name' => 'required_without:address_id|nullable|string|max:255',
-            'phone_number' => 'required_without:address_id|nullable|string|max:20',
-            'street_address' => 'required_without:address_id|nullable|string|max:500',
-            'city' => 'required_without:address_id|nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'zip_code' => 'nullable|string|max:20',
-            'country' => 'required_without:address_id|nullable|string|max:100',
-            'save_address' => 'nullable|boolean',
             'payment_method' => 'required|string|max:50',
             'items' => 'nullable|array',
             'items.*.product_id' => 'required_with:items|exists:products,id',
@@ -54,7 +47,23 @@ class OrderController extends Controller
             'total_amount' => 'nullable|numeric|min:0',
         ]);
 
-        if ($request->filled('address_id')) {
+        $useSavedAddress = $request->filled('address_id');
+        if ($useSavedAddress) {
+            $request->validate(['address_id' => 'exists:user_addresses,id']);
+        } else {
+            $request->validate([
+                'full_name' => 'required|string|max:255',
+                'phone_number' => 'required|string|max:20',
+                'street_address' => 'required|string|max:500',
+                'city' => 'required|string|max:100',
+                'state' => 'nullable|string|max:100',
+                'zip_code' => 'nullable|string|max:20',
+                'country' => 'required|string|max:100',
+                'save_address' => 'nullable|boolean',
+            ]);
+        }
+
+        if ($useSavedAddress) {
             $address = UserAddress::where('user_id', $user->id)->findOrFail((int) $request->input('address_id'));
         } else {
             $address = new UserAddress;
@@ -177,6 +186,26 @@ class OrderController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Order created. Complete card payment on your gateway.', 'data' => ['order' => $order->load('shippingAddress')]], 201);
+    }
+
+    /**
+     * Normalize checkout request so form-data and Postman variables work reliably.
+     * - Treat empty or "{{address_id}}" as no address_id (use inline address).
+     * - Trim string inputs.
+     */
+    private function normalizeCheckoutRequest(Request $request): void
+    {
+        $all = $request->all();
+        $addressId = trim((string) ($all['address_id'] ?? ''));
+        if ($addressId === '' || $addressId === '{{address_id}}' || ! is_numeric($addressId)) {
+            unset($all['address_id']);
+        }
+        foreach (['full_name', 'phone_number', 'street_address', 'city', 'state', 'zip_code', 'country', 'payment_method', 'currency'] as $key) {
+            if (isset($all[$key]) && is_string($all[$key])) {
+                $all[$key] = trim($all[$key]);
+            }
+        }
+        $request->merge($all);
     }
 
     public function index(Request $request)

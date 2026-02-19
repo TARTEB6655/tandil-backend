@@ -1396,7 +1396,7 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {"key": "address_id", "value": "{{address_id}}", "type": "text", "description": "Option A: use saved address (omit below fields)"},
+                                {"key": "address_id", "value": "", "type": "text", "description": "Option A: set to saved address id. Option B: leave EMPTY and fill fields below"},
                                 {"key": "full_name", "value": "Ahmed Hassan", "type": "text", "description": "Option B: inline address"},
                                 {"key": "phone_number", "value": "+971501234567", "type": "text"},
                                 {"key": "street_address", "value": "Sheikh Zayed Road", "type": "text"},
@@ -1421,7 +1421,7 @@
                                 "checkout"
                             ]
                         },
-                        "description": "Single checkout API: add address + select payment + place order. Send EITHER address_id (saved address) OR full address (full_name, phone_number, street_address, city, country). Always send payment_method (paypal|cod|card_4242). Optional: save_address=1, items (JSON), currency. Omit items to use cart; cart cleared after order."
+                        "description": "Single checkout API: add address + select payment + place order. Option A: set address_id only (saved address). Option B: leave address_id EMPTY and send full_name, phone_number, street_address, city, country + payment_method. Always send payment_method. Do NOT set Content-Type header (let Postman set it for form-data). Optional: save_address=1, items, currency. Omit items to use cart."
                     }
                 },
                 {
