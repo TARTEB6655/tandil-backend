@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart (8. Shop & Orders): POST /api/shop/cart/add (product_id, quantity); GET /api/shop/cart (items + order_summary: subtotal, discount, shipping, total, currency AED); PUT/PATCH /api/shop/cart/{id} (quantity); DELETE /api/shop/cart/{id}. Item shape: id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): Cart: add, view (items + order_summary with shipping), update quantity, remove. Checkout flow: 1) GET /user/addresses, POST/PUT /user/addresses (Address step); 2) GET /shop/checkout/payment-methods (Payment step); 3) GET /shop/checkout/review (Review: items, order_summary, addresses, payment_methods); 4) POST /shop/checkout (address_id, payment_method; uses cart if items omitted). Currency AED.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.26.0"
@@ -1328,13 +1328,45 @@
                     }
                 },
                 {
+                    "name": "Checkout - Payment Methods",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/checkout/payment-methods",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "checkout", "payment-methods"]
+                        },
+                        "description": "GET /api/shop/checkout/payment-methods – Checkout Payment step. Response: array of { id, type, label } (e.g. Visa ending in 4242, PayPal, Cash on Delivery). Send selected id as payment_method when placing order."
+                    }
+                },
+                {
+                    "name": "Checkout - Review",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/checkout/review",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "checkout", "review"]
+                        },
+                        "description": "GET /api/shop/checkout/review – Checkout Review step. Response: items (cart), order_summary (subtotal, shipping, total, currency), addresses, payment_methods. Use for Place Order screen."
+                    }
+                },
+                {
                     "name": "Checkout",
                     "event": [
                         {
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "if (pm.response.code === 200) {",
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
                                     "    var jsonData = pm.response.json();",
                                     "    if (jsonData.data && jsonData.data.order && jsonData.data.order.id && !pm.environment.get('order_id')) {",
                                     "        pm.environment.set('order_id', jsonData.data.order.id);",
@@ -1363,7 +1395,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"items\": [\n    {\n      \"product_id\": {{product_id}},\n      \"qty\": 2\n    }\n  ],\n  \"total_amount\": 100.00,\n  \"currency\": \"USD\"\n}"
+                            "raw": "{\n  \"address_id\": {{address_id}},\n  \"payment_method\": \"paypal\",\n  \"currency\": \"AED\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/shop/checkout",
@@ -1376,7 +1408,7 @@
                                 "checkout"
                             ]
                         },
-                        "description": "\u2705 STEP 16: Create order from cart items"
+                        "description": "POST /api/shop/checkout – Place Order (Review step). Required: address_id (from GET user/addresses), payment_method (e.g. paypal, cod, or card id). If items omitted, order is built from current cart and cart is cleared. Optional: items[], total_amount, currency. payment_method: paypal|cod|card_4242 etc."
                     }
                 },
                 {
@@ -6215,7 +6247,7 @@
                 },
                 {
                     "name": "User Addresses",
-                    "description": "User addresses – List, Create, Update, Delete. Auth: Bearer token.",
+                    "description": "Checkout Address step. List, Create, Update, Delete. Auth: Bearer token. Response: id, full_name, phone_number, street_address, city, state, zip_code, country, is_default.",
                     "item": [
                 {
                     "name": "List",
@@ -6242,11 +6274,27 @@
                                 "addresses"
                             ]
                         },
-                        "description": "Get user addresses"
+                        "description": "GET /api/user/addresses – Checkout Address step. Response: array of { id, full_name, phone_number, street_address, city, state, zip_code, country, is_default }."
                     }
                 },
                 {
                     "name": "Create",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.id) {",
+                                    "        pm.environment.set('address_id', jsonData.data.id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -6265,7 +6313,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"address_line_1\": \"123 Main Street\",\n  \"address_line_2\": \"Apartment 4B\",\n  \"city\": \"Dubai\",\n  \"state\": \"Dubai\",\n  \"postal_code\": \"12345\",\n  \"country\": \"UAE\",\n  \"is_default\": true\n}"
+                            "raw": "{\n  \"full_name\": \"Ahmed Hassan\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"Sheikh Zayed Road\",\n  \"city\": \"Dubai\",\n  \"state\": \"Dubai\",\n  \"zip_code\": \"12345\",\n  \"country\": \"UAE\",\n  \"is_default\": true\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/user/addresses",
@@ -6278,7 +6326,7 @@
                                 "addresses"
                             ]
                         },
-                        "description": "Create a new address"
+                        "description": "Create address (Checkout – Shipping Address). Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default."
                     }
                 },
                 {
@@ -6301,7 +6349,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"address_line_1\": \"456 Updated Street\",\n  \"city\": \"Abu Dhabi\"\n}"
+                            "raw": "{\n  \"full_name\": \"Ahmed Hassan\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"456 Updated Street\",\n  \"city\": \"Abu Dhabi\",\n  \"state\": \"Abu Dhabi\",\n  \"zip_code\": \"54321\",\n  \"country\": \"UAE\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/user/addresses/{{address_id}}",
@@ -6315,7 +6363,7 @@
                                 "{{address_id}}"
                             ]
                         },
-                        "description": "Update an address"
+                        "description": "Update address. Set address_id. Optional: full_name, phone_number, street_address, city, state, zip_code, country, is_default."
                     }
                 },
                 {

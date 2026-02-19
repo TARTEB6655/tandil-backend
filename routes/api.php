@@ -282,6 +282,8 @@ Route::prefix('shop')->group(function () {
         Route::patch('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);
 
+        Route::get('/checkout/payment-methods', [\App\Http\Controllers\Shop\CheckoutController::class, 'paymentMethods']);
+        Route::get('/checkout/review', [\App\Http\Controllers\Shop\CheckoutController::class, 'review']);
         Route::post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);

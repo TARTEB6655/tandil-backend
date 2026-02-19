@@ -12,7 +12,9 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'package_id',
+        'shipping_address_id',
         'total_amount',
+        'shipping_amount',
         'payment_status',
         'payment_reference',
         'payment_method',
@@ -26,10 +28,19 @@ class Order extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'shipping_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'refunded_at' => 'datetime',
     ];
+
+    /**
+     * Shipping address for this order.
+     */
+    public function shippingAddress()
+    {
+        return $this->belongsTo(UserAddress::class, 'shipping_address_id');
+    }
 
     /**
      * Get the user who placed this order.

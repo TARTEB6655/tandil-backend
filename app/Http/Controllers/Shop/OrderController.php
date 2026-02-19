@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Package;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\UserAddress;
 use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use Illuminate\Http\Request;
@@ -20,19 +23,68 @@ class OrderController extends Controller
         $this->paypal = $paypal;
     }
 
-    // Create order (simple) and return payment approval url. Supports package_id (package order) or items (product order).
+    /**
+     * Create order (Place Order from Review step).
+     * Accepts: address_id (required), payment_method (required: card|paypal|cod or id), optional items/total_amount.
+     * If items not provided, order is built from current cart; cart is cleared after order creation.
+     * Order stores: shipping_address_id, shipping_amount, payment_method, total_amount.
+     */
     public function checkout(Request $request)
     {
         $user = $request->user();
+        $request->validate([
+            'address_id' => 'required|exists:user_addresses,id',
+            'payment_method' => 'required|string|max:50',
+            'items' => 'nullable|array',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
+            'items.*.qty' => 'required_with:items|integer|min:1',
+            'total_amount' => 'nullable|numeric|min:0',
+        ]);
+
+        $addressId = (int) $request->input('address_id');
+        $address = UserAddress::where('user_id', $user->id)->findOrFail($addressId);
+
+        $paymentMethod = $request->input('payment_method');
+        $paymentType = in_array($paymentMethod, ['paypal', 'cod']) ? $paymentMethod : 'card';
+
         $packageId = $request->input('package_id');
         $items = $request->input('items', []);
 
-        $total = (float) $request->input('total_amount', 0);
+        $shippingAmount = (float) config('shop.shipping_amount', 9.99);
+
+        if (empty($items) && ! $packageId) {
+            $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
+            $validCart = $cartItems->filter(fn ($c) => $c->product !== null);
+            if ($validCart->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'Cart is empty. Add items or send items in request.'], 422);
+            }
+            $subtotal = $validCart->sum(fn ($c) => $c->quantity * (float) $c->product->price);
+            $total = round($subtotal + $shippingAmount, 2);
+            foreach ($validCart as $c) {
+                $items[] = ['product_id' => $c->product_id, 'qty' => $c->quantity];
+            }
+        } else {
+            $total = (float) $request->input('total_amount', 0);
+            if ($total <= 0 && ! empty($items)) {
+                $subtotal = 0;
+                foreach ($items as $item) {
+                    $p = Product::find($item['product_id'] ?? null);
+                    if ($p) {
+                        $subtotal += (float) $p->price * (int) ($item['qty'] ?? 1);
+                    }
+                }
+                $total = round($subtotal + $shippingAmount, 2);
+            }
+        }
+
         $orderData = [
             'user_id' => $user->id,
+            'shipping_address_id' => $address->id,
             'total_amount' => $total,
+            'shipping_amount' => $shippingAmount,
             'order_status' => 'processing',
             'payment_status' => 'pending',
+            'payment_method' => $paymentType,
         ];
 
         if ($packageId) {
@@ -40,17 +92,18 @@ class OrderController extends Controller
             if ($package) {
                 $orderData['package_id'] = $package->id;
                 $orderData['total_amount'] = (float) $package->price;
+                $orderData['shipping_amount'] = $shippingAmount;
                 $total = $orderData['total_amount'];
             }
         }
 
         $order = Order::create($orderData);
 
-        if (! isset($orderData['package_id'])) {
+        if (! isset($orderData['package_id']) && ! empty($items)) {
             foreach ($items as $item) {
                 $product = Product::find($item['product_id'] ?? null);
                 if ($product) {
-                    \App\Models\OrderItem::create([
+                    OrderItem::create([
                         'order_id' => $order->id,
                         'product_id' => $product->id,
                         'quantity' => $item['qty'] ?? 1,
@@ -61,7 +114,10 @@ class OrderController extends Controller
             }
         }
 
-        // 🔔 Send notification to admin about new order
+        if (empty($request->input('items')) && ! $packageId) {
+            Cart::where('user_id', $user->id)->delete();
+        }
+
         try {
             $admins = User::role('admin')->get();
             foreach ($admins as $admin) {
@@ -74,14 +130,21 @@ class OrderController extends Controller
             \Log::error('Failed to send order notification: ' . $e->getMessage());
         }
 
-        $res = $this->paypal->createOrder(
-            $order->total_amount,
-            $request->input('currency','USD'),
-            $request->input('return_url', url('/')),
-            $request->input('cancel_url', url('/'))
-        );
+        if ($paymentType === 'paypal') {
+            $res = $this->paypal->createOrder(
+                (float) $order->total_amount,
+                $request->input('currency', 'AED'),
+                $request->input('return_url', url('/')),
+                $request->input('cancel_url', url('/'))
+            );
+            return response()->json(['success' => true, 'message' => 'Order created. Complete payment with PayPal.', 'data' => ['order' => $order->load('shippingAddress'), 'payment' => $res]], 201);
+        }
 
-        return response()->json(['status'=>true,'data'=>['order'=>$order,'payment'=>$res]],200);
+        if ($paymentType === 'cod') {
+            return response()->json(['success' => true, 'message' => 'Order placed. Cash on Delivery.', 'data' => ['order' => $order->load('shippingAddress')]], 201);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Order created. Complete card payment on your gateway.', 'data' => ['order' => $order->load('shippingAddress')]], 201);
     }
 
     public function index(Request $request)

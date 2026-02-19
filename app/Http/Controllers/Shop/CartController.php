@@ -10,12 +10,12 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    private const CURRENCY = 'AED';
+    public const CURRENCY = 'AED';
 
     /**
-     * Format a cart item for frontend (Product Details / Shopping Cart screens).
+     * Format a cart item for frontend (Product Details / Shopping Cart / Review screens).
      */
-    private function cartItemToFrontend(Cart $item): array
+    public static function cartItemToFrontend(Cart $item): array
     {
         $product = $item->product;
         $price = (float) $product->price;
@@ -68,7 +68,7 @@ class CartController extends Controller
         }
 
         $cartItem->load(['product.category', 'product.primaryImage']);
-        $data = $this->cartItemToFrontend($cartItem);
+        $data = self::cartItemToFrontend($cartItem);
 
         return ApiResponse::success('Item added to cart.', $data, 201);
     }
@@ -86,14 +86,14 @@ class CartController extends Controller
 
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
 
-        $items = $validItems->map(fn ($item) => $this->cartItemToFrontend($item))->values()->all();
+        $items = $validItems->map(fn ($item) => self::cartItemToFrontend($item))->values()->all();
 
         $subtotal = $validItems->sum(function ($item) {
             return $item->quantity * (float) $item->product->price;
         });
         $subtotal = round($subtotal, 2);
         $discount = 0;
-        $shipping = 0;
+        $shipping = (float) config('shop.shipping_amount', 9.99);
         $total = round($subtotal - $discount + $shipping, 2);
 
         $orderSummary = [
@@ -128,7 +128,7 @@ class CartController extends Controller
         $cartItem->save();
 
         $cartItem->load(['product.category', 'product.primaryImage']);
-        $data = $this->cartItemToFrontend($cartItem);
+        $data = self::cartItemToFrontend($cartItem);
 
         return ApiResponse::success('Cart item updated.', $data);
     }
