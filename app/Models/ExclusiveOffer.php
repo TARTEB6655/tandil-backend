@@ -29,6 +29,7 @@ class ExclusiveOffer extends Model
 
     /**
      * Get the image URL (uses /media/ path like Banner/Category for display).
+     * Files are served by the /media/{path} route from storage/app/public.
      */
     public function getImageUrlAttribute(): ?string
     {
@@ -40,9 +41,9 @@ class ExclusiveOffer extends Model
         }
         $path = ltrim(str_replace('\\', '/', $this->image), '/');
         if (function_exists('request') && request() && request()->getHttpHost()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/storage/' . $path;
+            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path;
         }
-        return asset('storage/' . $path);
+        return asset('media/' . $path);
     }
 
     /**
