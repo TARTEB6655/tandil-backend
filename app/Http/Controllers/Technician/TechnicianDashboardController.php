@@ -146,18 +146,26 @@ class TechnicianDashboardController extends Controller
     public function updateProfile(Request $request)
     {
         $user = $request->user()->load('employee', 'technicianAvailability');
+
+        // Resolve single file (Postman may send multiple files as array)
+        $profileFile = $request->file('profile_picture');
+        if (is_array($profileFile)) {
+            $profileFile = $profileFile[0] ?? null;
+        }
         $input = $request->all();
         $rules = [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
             'service_area' => 'nullable|string|max:255',
-            'specializations' => 'nullable', // array or JSON string
+            'specializations' => 'nullable',
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
-            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ];
-        $validator = Validator::make($input, $rules);
+        if ($profileFile) {
+            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
+        }
+        $validator = Validator::make(array_merge($input, ['profile_picture' => $profileFile]), $rules);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
@@ -176,20 +184,23 @@ class TechnicianDashboardController extends Controller
         if ($request->has('phone')) {
             $user->phone = $request->input('phone') ?: null;
         }
-        if ($request->hasFile('profile_picture')) {
-            $user->profile_picture = $request->file('profile_picture')->store('profiles', 'public');
+        if ($profileFile) {
+            $user->profile_picture = $profileFile->store('profiles', 'public');
         }
         $user->save();
 
         // Get or create employee so technician can set service_area and specializations
-        $employee = $user->employee ?? Employee::create([
-            'user_id' => $user->id,
-            'employee_id' => 'TECH-' . $user->id,
-        ]);
-        if ($request->has('service_area')) {
+        $employee = $user->employee;
+        if (! $employee) {
+            $employee = Employee::firstOrCreate(
+                ['user_id' => $user->id],
+                ['employee_id' => 'TECH-' . $user->id]
+            );
+        }
+        if ($request->has('service_area') || $request->filled('service_area')) {
             $employee->region = $request->input('service_area') ?: null;
         }
-        if ($request->has('specializations')) {
+        if ($request->has('specializations') || $request->filled('specializations')) {
             $raw = $request->input('specializations');
             $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) : []);
             if (! is_array($arr) && is_string($raw)) {
@@ -200,6 +211,7 @@ class TechnicianDashboardController extends Controller
         $employee->save();
         $employee->refresh();
         $user->setRelation('employee', $employee);
+        $user->refresh();
         $visitsCompleted = Visit::where('technician_id', $user->id)->where('status', 'completed')->count();
         $data = [
             'name' => $user->name,

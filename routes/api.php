@@ -171,6 +171,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/dashboard', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'dashboard']);
     Route::get('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateProfile']);
+    Route::post('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateProfile']); // POST so form-data (file upload) is parsed by PHP
     Route::get('/tasks', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'tasks']);
     Route::get('/tasks/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskShow']);
     Route::put('/tasks/{id}/status', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskUpdateStatus']);
