@@ -191,8 +191,11 @@ class TechnicianDashboardController extends Controller
         }
         if ($request->has('specializations')) {
             $raw = $request->input('specializations');
-            $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) ?? [] : []);
-            $employee->specializations = array_values(array_filter(array_map('strval', (array) $arr)));
+            $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) : []);
+            if (! is_array($arr) && is_string($raw)) {
+                $arr = array_map('trim', explode(',', $raw));
+            }
+            $employee->specializations = array_values(array_filter(array_map('strval', (array) ($arr ?? []))));
         }
         $employee->save();
         $employee->refresh();
