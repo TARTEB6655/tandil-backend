@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Employee extends Model
 {
     protected $fillable = [
-        'user_id', 'name', 'email', 'employee_id', 'phone', 'designation', 'region', 'joining_date'
+        'user_id', 'name', 'email', 'employee_id', 'phone', 'designation', 'region', 'joining_date', 'specializations'
+    ];
+
+    protected $casts = [
+        'specializations' => 'array',
     ];
 
     public function user()

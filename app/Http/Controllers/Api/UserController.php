@@ -21,7 +21,7 @@ class UserController extends Controller
     }
 
     /**
-     * Update user profile
+     * Update user profile (name, email, phone, profile_picture). Used by client and other roles.
      */
     public function updateProfile(Request $request)
     {
@@ -31,9 +31,13 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => 'sometimes|nullable|string|max:20',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $user->fill($validated);
+        $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture']));
+        if ($request->hasFile('profile_picture')) {
+            $user->profile_picture = $request->file('profile_picture')->store('profiles', 'public');
+        }
         $user->save();
 
         return ApiResponse::success('Profile updated successfully.', $user);

@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id, bank_account_id, break_id, vacation_id, complaint_id.\n\nSections: 1. Health → 2. Auth → 3. Client Profile → 4. Subscriptions → 5. Banners/Packages → 6. Visits → 7. Reports → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → 8b. Maintenance Photos → 9. Technician & Supervisor (Tech visits, Supervisor visits/complaints; Technician Dashboard; Support) → Admin & HR → Other Modules.\n\nTechnician Dashboard (9): (1) Dashboard overview GET /api/technician/dashboard (2) Profile & settings GET/PUT /api/technician/profile (3) Earnings & payout: payout-summary, payouts, settings/payout GET/PUT (4) Bank accounts GET/POST/PUT/DELETE /api/technician/bank-accounts (5) Availability & scheduling: availability GET/PUT, breaks CRUD, vacations CRUD, schedule GET (6) Job history: jobs, jobs/{id} (7) Tasks: tasks, tasks/{id}, tasks/{id}/status, accept, reject (8) Help & support: GET /api/support/faqs, POST /api/support/tickets. All technician routes require role: technician + Bearer token.\n\nCart & Checkout (8. Shop & Orders): Payment via Checkout.com only. POST /shop/create-payment-session (optional auth): send order data + success_url + failure_url; backend creates order (pending) and Checkout.com session; returns session_id, order_id, public_key. Frontend opens Checkout.com UI with session_id (card, Apple Pay, Samsung Pay, Tabby, Tamara). Webhook POST /shop/webhooks/checkout-com updates order to paid. PayPal and COD removed. Logged-in: address_id or inline address, items or cart. Guest: email, full_name, phone_number, street_address, city, country, items (required), success_url, failure_url. Guest lookup: GET /shop/orders/guest and /guest/track. Cart: add, view, update, remove (auth). GET /orders/{id}/track. Order summary: subtotal, shipping, tax_percent, tax, total. Admin: PUT /api/admin/settings/shop.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Subscriptions, Visits, Reports, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.34.0"
@@ -145,7 +145,7 @@
             "description": "Authentication endpoints - Register and Login"
         },
         {
-            "name": "3. Client Profile",
+            "name": "3. Client Dashboard – Profile",
             "item": [
                 {
                     "name": "Get Profile",
@@ -303,7 +303,7 @@
             "description": "Authentication endpoints - Register, Login, Logout, Password Reset"
         },
         {
-            "name": "4. Subscriptions",
+            "name": "4. Client Dashboard – Subscriptions",
             "item": [
                 {
                     "name": "Get Plans (Public)",
@@ -549,7 +549,7 @@
             "description": "Subscription management - Get plans, create, view, update subscriptions"
         },
         {
-            "name": "5. Banners (Public)",
+            "name": "5. Client Dashboard – Banners (Public)",
             "item": [
                 {
                     "name": "Get Active Banners",
@@ -578,7 +578,7 @@
             "description": "Banner management - Get active banners for customer home screen (Public - no auth required)"
         },
         {
-            "name": "5b. Admin - Banners",
+            "name": "5b. Admin Dashboard – Banners",
             "item": [
                 {
                     "name": "List All Banners (Admin)",
@@ -741,7 +741,7 @@
             "description": "Admin only. Create Banner: one request; leave image empty to create without image, or attach 1 file. Update Banner: add or change image anytime. Customer: GET /api/banners."
         },
         {
-            "name": "5c. Packages (Customer Home)",
+            "name": "5c. Client Dashboard – Packages (Customer Home)",
             "item": [
                 {
                     "name": "List Packages",
@@ -760,7 +760,7 @@
             "description": "Customer home page packages. Public endpoint."
         },
         {
-            "name": "5d. Admin - Packages",
+            "name": "5d. Admin Dashboard – Packages",
             "item": [
                 {
                     "name": "List Packages (Admin)",
@@ -824,7 +824,7 @@
             "description": "Admin: set/update package price and image; view orders count per package."
         },
         {
-            "name": "5e. Admin - Orders Export",
+            "name": "5e. Admin Dashboard – Orders Export",
             "item": [
                 {
                     "name": "Export Orders (CSV)",
@@ -871,7 +871,7 @@
             "description": "Admin: export orders to Excel (CSV); send export by email to supplier (manual or use cron for automatic)."
         },
         {
-            "name": "6. Visits",
+            "name": "6. Client Dashboard – Visits",
             "item": [
                 {
                     "name": "List Visits",
@@ -1082,7 +1082,7 @@
             "description": "Visit management – list, create, show, update. Upload photo: POST/PUT /api/visits/{id}/upload-photo (Admin, Technician assigned, Client own). Delete photo: DELETE /api/visits/{id}/photos/{photoId} (Admin, Technician assigned, Client own). Set visit_id, photo_id."
         },
         {
-            "name": "7. Reports",
+            "name": "7. Client Dashboard – Reports",
             "item": [
                 {
                     "name": "List Reports",
@@ -1194,7 +1194,7 @@
             "description": "Report management - Supervisor reports with recommendations"
         },
         {
-            "name": "8. Shop & Orders",
+            "name": "8. Client Dashboard – Shop & Orders",
             "item": [
                 {
                     "name": "Cart - Add Item",
@@ -2018,7 +2018,7 @@
             "description": "Shop and e-commerce – Cart, Checkout.com (create-payment-session + webhook), orders, payments. PayPal and COD removed."
         },
         {
-            "name": "8b. Maintenance Photos",
+            "name": "8b. Client Dashboard – Maintenance Photos",
             "item": [
                 {
                     "name": "List Maintenance Photos",
@@ -2105,7 +2105,7 @@
             "description": "Client app Home – Maintenance Photos. List, get by visit, upload, delete. Upload: POST/PUT /api/visits/{id}/upload-photo (form-data: photo, type). Who can upload/delete: Admin, Technician (assigned visit), Client (own visit). Set visit_id, photo_id. Auth: Bearer."
         },
         {
-            "name": "9. Technician & Supervisor Routes",
+            "name": "9. Technician Dashboard – All APIs (Visits, Supervisor, Dashboard, Support)",
             "item": [
                 {
                     "name": "Technician - Get Assigned Visits",
@@ -2562,11 +2562,11 @@
                     }
                 },
                 {
-                    "name": "Technician Dashboard",
+                    "name": "Technician Dashboard (Full API)",
                     "item": [
                         {"name": "Dashboard", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/dashboard", "host": ["{{base_url}}"], "path": ["api", "technician", "dashboard"]}, "description": "Dashboard overview: greeting, KPIs, today's tasks (technician role)."}},
                         {"name": "Profile (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Get full profile (personal info, availability summary)."}},
-                        {"name": "Profile (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+971501234567\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile (name, email, phone, password)."}},
+                        {"name": "Profile (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Name", "type": "text"}, {"key": "email", "value": "technician@example.com", "type": "text"}, {"key": "phone", "value": "+971501234567", "type": "text"}, {"key": "service_area", "value": "Dubai", "type": "text", "description": "Region/service area"}, {"key": "specializations", "value": "[\"AC\",\"Plumbing\"]", "type": "text", "description": "JSON array of strings e.g. [\"AC\",\"Plumbing\"]"}, {"key": "current_password", "value": "", "type": "text", "description": "Required when changing password"}, {"key": "password", "value": "", "type": "text"}, {"key": "password_confirmation", "value": "", "type": "text"}, {"key": "profile_picture", "type": "file", "description": "Optional image (jpeg,png,jpg,gif,webp; max 5MB)"}]}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update technician profile. Use Body form-data: name, email, phone, profile_picture (file), current_password, password, password_confirmation. All optional. Returns full profile (same as GET)."}}},
                         {"name": "Tasks (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks?filter=today&per_page=15", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks"], "query": [{"key": "filter", "value": "today", "description": "today|upcoming|completed|all"}, {"key": "per_page", "value": "15"}]}, "description": "List tasks (visits). Filter: today, upcoming, completed, all."}},
                         {"name": "Task (by id)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}"]}, "description": "Get single task (visit) detail. Set visit_id."}},
                         {"name": "Task - Update status", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/status", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "status"]}, "description": "Update task status: accepted, in_progress, completed. Optional notes for completed."}},
@@ -2600,7 +2600,7 @@
                     "name": "Support (Help & Support)",
                     "item": [
                         {"name": "FAQs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]}, "description": "List FAQs for Help & Support (any authenticated role)."}},
-                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"subject\": \"App crash when uploading photo\",\n  \"message\": \"When I try to upload a visit photo the app closes.\"\n}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket (client, technician, supervisor, area_manager, hr, admin)."}
+                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"message\": \"Need help with the app.\"}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket."}}
                     ],
                     "description": "Help & Support: FAQs and submit ticket. Shared for all authenticated roles."
                 }
@@ -3019,7 +3019,7 @@
             "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
-            "name": "10. Admin & HR Routes",
+            "name": "10. Admin Dashboard – Stats, Users & HR",
             "item": [
                 {
                     "name": "Admin Dashboard Statistics",
@@ -3671,7 +3671,7 @@
             "description": "Admin and HR endpoints - User management, roles, employee management"
         },
         {
-            "name": "11. Admin Reports Management",
+            "name": "11. Admin Dashboard – Reports Management",
             "item": [
                 {
                     "name": "Get All Reports",
@@ -3982,7 +3982,7 @@
             "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
         },
         {
-            "name": "12. Admin Settings (Mobile)",
+            "name": "12. Admin Dashboard – Settings (Mobile)",
             "item": [
                 {
                     "name": "Get All Settings",

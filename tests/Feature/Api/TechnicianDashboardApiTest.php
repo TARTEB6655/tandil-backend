@@ -57,14 +57,13 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_dashboard_returns_greeting_and_today_tasks(): void
+    public function test_dashboard_returns_name_and_today_tasks(): void
     {
         $response = $this->getJson('/api/technician/dashboard', $this->authHeaders());
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $response->assertJsonStructure([
             'data' => [
-                'greeting',
                 'name',
                 'email',
                 'employee_id',

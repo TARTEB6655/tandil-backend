@@ -1183,7 +1183,8 @@ class AdminDashboardController extends Controller
                 'role_display_name' => $roleDisplayName,
                 'status' => $user->status,
                 'greeting' => $greeting,
-                'avatar' => null, // You can add avatar URL if you have one
+                'profile_picture' => $user->profile_picture,
+                'profile_picture_url' => $user->profile_picture_url,
                 'created_at' => $user->created_at->toISOString(),
             ],
         ]);

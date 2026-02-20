@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Technician;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use App\Models\TechnicianAvailability;
 use App\Models\TechnicianBankAccount;
 use App\Models\TechnicianBreak;
@@ -22,7 +23,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * GET /api/technician/dashboard
-     * Home: greeting, name, employee ID, online status, weekly KPIs, today's tasks (visits).
+     * Home: name, employee ID, online status, weekly KPIs, today's tasks (visits). Greeting handled on frontend.
      */
     public function dashboard(Request $request)
     {
@@ -49,7 +50,6 @@ class TechnicianDashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'greeting' => $this->greeting(),
                 'name' => $user->name,
                 'email' => $user->email,
                 'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
@@ -114,12 +114,14 @@ class TechnicianDashboardController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
+            'profile_picture' => $user->profile_picture,
+            'profile_picture_url' => $user->profile_picture_url,
             'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
             'rating' => 0,
             'jobs_completed' => $visitsCompleted,
             'total_earnings' => 0,
             'member_since' => $user->created_at?->toIso8601String(),
-            'specializations' => [],
+            'specializations' => $employee?->specializations ?? [],
             'service_area' => $employee?->region,
             'notification_preferences' => [
                 'push_enabled' => true,
@@ -136,35 +138,91 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * PUT /api/technician/profile - Update profile (partial: name, email, phone, password, availability).
+     * PUT /api/technician/profile - Update technician profile.
+     * Accepts multipart/form-data: name, email, phone, service_area, specializations (JSON array string),
+     * current_password, password, password_confirmation, profile_picture (file). All optional.
+     * Returns full profile (same shape as GET /api/technician/profile).
      */
     public function updateProfile(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user()->load('employee', 'technicianAvailability');
+        $input = $request->all();
         $rules = [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
+            'service_area' => 'nullable|string|max:255',
+            'specializations' => 'nullable', // array or JSON string
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ];
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($input, $rules);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
-        if ($request->has('password') && $request->password) {
-            if (!Hash::check($request->current_password, $user->password)) {
+        if ($request->filled('password')) {
+            if (! Hash::check($request->input('current_password'), $user->password)) {
                 return response()->json(['success' => false, 'errors' => ['current_password' => ['Current password is incorrect.']]], 422);
             }
-            $user->password = Hash::make($request->password);
+            $user->password = Hash::make($request->input('password'));
         }
-        foreach (['name', 'email', 'phone'] as $key) {
-            if ($request->has($key)) {
-                $user->$key = $request->input($key);
-            }
+        if ($request->has('name')) {
+            $user->name = $request->input('name');
+        }
+        if ($request->has('email')) {
+            $user->email = $request->input('email');
+        }
+        if ($request->has('phone')) {
+            $user->phone = $request->input('phone') ?: null;
+        }
+        if ($request->hasFile('profile_picture')) {
+            $user->profile_picture = $request->file('profile_picture')->store('profiles', 'public');
         }
         $user->save();
-        return response()->json(['success' => true, 'data' => $user->only(['id', 'name', 'email', 'phone'])]);
+
+        // Get or create employee so technician can set service_area and specializations
+        $employee = $user->employee ?? Employee::create([
+            'user_id' => $user->id,
+            'employee_id' => 'TECH-' . $user->id,
+        ]);
+        if ($request->has('service_area')) {
+            $employee->region = $request->input('service_area') ?: null;
+        }
+        if ($request->has('specializations')) {
+            $raw = $request->input('specializations');
+            $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) ?? [] : []);
+            $employee->specializations = array_values(array_filter(array_map('strval', (array) $arr)));
+        }
+        $employee->save();
+        $employee->refresh();
+        $user->setRelation('employee', $employee);
+        $visitsCompleted = Visit::where('technician_id', $user->id)->where('status', 'completed')->count();
+        $data = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'profile_picture' => $user->profile_picture,
+            'profile_picture_url' => $user->profile_picture_url,
+            'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
+            'rating' => 0,
+            'jobs_completed' => $visitsCompleted,
+            'total_earnings' => 0,
+            'member_since' => $user->created_at?->toIso8601String(),
+            'specializations' => $employee?->specializations ?? [],
+            'service_area' => $employee?->region,
+            'notification_preferences' => [
+                'push_enabled' => true,
+                'email_enabled' => true,
+            ],
+            'availability' => $user->technicianAvailability ? [
+                'is_online' => $user->technicianAvailability->is_online,
+                'auto_accept_jobs' => $user->technicianAvailability->auto_accept_jobs,
+                'working_days' => $user->technicianAvailability->working_days ?? [],
+                'working_hours_slots' => $user->technicianAvailability->working_hours_slots ?? [],
+            ] : null,
+        ];
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
@@ -715,18 +773,6 @@ class TechnicianDashboardController extends Controller
                 'vacations' => $vacations,
             ],
         ]);
-    }
-
-    private function greeting(): string
-    {
-        $hour = (int) date('G');
-        if ($hour < 12) {
-            return 'Good morning';
-        }
-        if ($hour < 17) {
-            return 'Good afternoon';
-        }
-        return 'Good evening';
     }
 
     private function formatVisitAsTask(Visit $visit, bool $includeDetail = false): array

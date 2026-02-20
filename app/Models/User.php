@@ -16,9 +16,14 @@ class User extends Authenticatable
         'name',
         'email',
         'phone',
+        'profile_picture',
         'password',
         'role',    // optional: quick reference
         'status',  // active / inactive
+    ];
+
+    protected $appends = [
+        'profile_picture_url',
     ];
 
     protected $hidden = [
@@ -30,6 +35,23 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * Full URL for profile picture (stored path under storage/app/public, served via /media/).
+     * Used for all roles (technician, client, admin, etc.).
+     */
+    public function getProfilePictureUrlAttribute(): ?string
+    {
+        $path = $this->attributes['profile_picture'] ?? null;
+        if (empty($path) || ! is_string($path)) {
+            return null;
+        }
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        return request()->getSchemeAndHttpHost() ? (rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path) : asset('media/' . $path);
+    }
 
     /*
     |--------------------------------------------------------------------------
