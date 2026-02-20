@@ -91,10 +91,6 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Auth\AuthController::class, 'profile']);
     Route::get('/user', [\App\Http\Controllers\Auth\AuthController::class, 'profile']); // Alias for /profile
 
-    // Payments
-    Route::post('payments/paypal/create', [\App\Http\Controllers\PaymentController::class, 'createPaypalOrder']);
-    Route::post('payments/paypal/webhook', [\App\Http\Controllers\PaymentController::class, 'paypalWebhook']);
-
     /*
     |--------------------------------------------------------------------------
     | COMPLAINTS
@@ -164,6 +160,53 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('tech')->group(fu
     Route::post('/visits/{id}/complete', [\App\Http\Controllers\Technician\TechnicianController::class, 'complete']);
     Route::put('/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
     Route::post('/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| TECHNICIAN DASHBOARD (dashboard, profile, tasks, jobs, availability, breaks, vacations, schedule)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'dashboard']);
+    Route::get('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'profile']);
+    Route::put('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateProfile']);
+    Route::get('/tasks', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'tasks']);
+    Route::get('/tasks/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskShow']);
+    Route::put('/tasks/{id}/status', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskUpdateStatus']);
+    Route::post('/tasks/{id}/accept', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskAccept']);
+    Route::post('/tasks/{id}/reject', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskReject']);
+    Route::get('/jobs', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobs']);
+    Route::get('/jobs/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobShow']);
+    Route::get('/payout-summary', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payoutSummary']);
+    Route::get('/payouts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payouts']);
+    Route::get('/settings/payout', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payoutSettings']);
+    Route::put('/settings/payout', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updatePayoutSettings']);
+    Route::get('/bank-accounts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccounts']);
+    Route::post('/bank-accounts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountStore']);
+    Route::put('/bank-accounts/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountUpdate']);
+    Route::delete('/bank-accounts/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountDestroy']);
+    Route::get('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'availability']);
+    Route::put('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateAvailability']);
+    Route::get('/breaks', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breaks']);
+    Route::post('/breaks', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breakStore']);
+    Route::put('/breaks/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breakUpdate']);
+    Route::delete('/breaks/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breakDestroy']);
+    Route::get('/vacations', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'vacations']);
+    Route::post('/vacations', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'vacationStore']);
+    Route::put('/vacations/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'vacationUpdate']);
+    Route::delete('/vacations/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'vacationDestroy']);
+    Route::get('/schedule', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'schedule']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| SUPPORT (FAQs + submit ticket – shared for all authenticated roles)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manager|hr|admin'])->prefix('support')->group(function () {
+    Route::get('/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
+    Route::post('/tickets', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
 });
 
 /*
@@ -268,8 +311,17 @@ Route::prefix('shop')->group(function () {
     Route::get('/categories', [\App\Http\Controllers\Shop\CategoryController::class, 'index']);
     Route::get('/categories/{id}', [\App\Http\Controllers\Shop\CategoryController::class, 'show']);
 
-    // Checkout: optional auth (guest or logged-in). No Bearer token = guest checkout.
-    Route::middleware('optional.sanctum')->post('/checkout', [\App\Http\Controllers\Shop\OrderController::class, 'checkout']);
+    // Checkout.com: create payment session (optional auth = guest or logged-in). Webhook = no auth.
+    Route::middleware('optional.sanctum')->post('/create-payment-session', [\App\Http\Controllers\Shop\CheckoutComController::class, 'createPaymentSession']);
+    Route::post('/webhooks/checkout-com', [\App\Http\Controllers\Shop\CheckoutComController::class, 'webhook']);
+
+    // Legacy: use POST /create-payment-session instead
+    Route::middleware('optional.sanctum')->post('/checkout', function () {
+        return response()->json([
+            'success' => false,
+            'message' => 'Use POST /api/shop/create-payment-session for payment. PayPal and COD are removed.',
+        ], 400);
+    });
 
     // Guest order lookup (no auth): order_number + email
     Route::get('/orders/guest', [\App\Http\Controllers\Shop\OrderController::class, 'guestShow']);
@@ -285,7 +337,6 @@ Route::prefix('shop')->group(function () {
 
         Route::get('/checkout/payment-methods', [\App\Http\Controllers\Shop\CheckoutController::class, 'paymentMethods']);
         Route::get('/checkout/review', [\App\Http\Controllers\Shop\CheckoutController::class, 'review']);
-        Route::post('/payment/paypal/create', [\App\Http\Controllers\Shop\OrderController::class, 'createPaypalOrder']);
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
         Route::post('/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);

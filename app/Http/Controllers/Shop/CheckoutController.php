@@ -23,11 +23,13 @@ class CheckoutController extends Controller
     {
         $user = $request->user();
 
-        // Options for Place Order: send payment_method as cod | paypal | paypal_login
+        // Checkout.com: one gateway for card, Apple Pay, Samsung Pay, Tabby, Tamara
         $methods = [
-            ['id' => 'paypal', 'type' => 'paypal', 'label' => 'PayPal (redirect to approve)'],
-            ['id' => 'paypal_login', 'type' => 'paypal_login', 'label' => 'Login to PayPal'],
-            ['id' => 'cod', 'type' => 'cod', 'label' => 'Cash on Delivery'],
+            ['id' => 'card', 'type' => 'card', 'label' => 'Visa / Credit Card'],
+            ['id' => 'apple_pay', 'type' => 'apple_pay', 'label' => 'Apple Pay'],
+            ['id' => 'samsung_pay', 'type' => 'samsung_pay', 'label' => 'Samsung Pay'],
+            ['id' => 'tabby', 'type' => 'tabby', 'label' => 'Tabby'],
+            ['id' => 'tamara', 'type' => 'tamara', 'label' => 'Tamara'],
         ];
 
         return ApiResponse::success('Payment methods retrieved.', $methods);
@@ -62,9 +64,11 @@ class CheckoutController extends Controller
             ->all();
 
         $paymentMethods = [
-            ['id' => 'paypal', 'type' => 'paypal', 'label' => 'PayPal (redirect to approve)'],
-            ['id' => 'paypal_login', 'type' => 'paypal_login', 'label' => 'Login to PayPal'],
-            ['id' => 'cod', 'type' => 'cod', 'label' => 'Cash on Delivery'],
+            ['id' => 'card', 'type' => 'card', 'label' => 'Visa / Credit Card'],
+            ['id' => 'apple_pay', 'type' => 'apple_pay', 'label' => 'Apple Pay'],
+            ['id' => 'samsung_pay', 'type' => 'samsung_pay', 'label' => 'Samsung Pay'],
+            ['id' => 'tabby', 'type' => 'tabby', 'label' => 'Tabby'],
+            ['id' => 'tamara', 'type' => 'tamara', 'label' => 'Tamara'],
         ];
 
         return ApiResponse::success('Checkout review retrieved.', [

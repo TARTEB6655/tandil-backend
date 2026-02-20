@@ -55,6 +55,27 @@ class User extends Authenticatable
         return $this->hasMany(Visit::class, 'technician_id');
     }
 
+    // Technician → Availability, breaks, vacations
+    public function technicianAvailability()
+    {
+        return $this->hasOne(TechnicianAvailability::class);
+    }
+
+    public function technicianBreaks()
+    {
+        return $this->hasMany(TechnicianBreak::class);
+    }
+
+    public function technicianVacations()
+    {
+        return $this->hasMany(TechnicianVacation::class);
+    }
+
+    public function technicianBankAccounts()
+    {
+        return $this->hasMany(TechnicianBankAccount::class);
+    }
+
     // Shopping cart
     public function cart()
     {

@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id.\n\nSections: 1. Health → 2. Auth → 3. Subscriptions → 4. Categories → 5. Products → 6. Tips → 7. Banners → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → Technician/Supervisor → Admin & HR → 13. Other Modules (Exclusive Offers, Complaints, Services, User Profile, etc.).\n\nCart & Checkout (8. Shop & Orders): Create Order POST /shop/checkout (optional auth). payment_method: cod | paypal | paypal_login. COD: no payment call. paypal: returns approval_url (app redirects). paypal_login: app calls POST /shop/payment/paypal/create first, then Place Order with paypal_order_id + paypal_payer_id; backend captures then creates order. Logged-in: address_id OR shipping_address (JSON/form). Guest: email, address, items (required), payment_method paypal or cod. Guest lookup: GET /shop/orders/guest and /guest/track (order_number + email). Cart: add, view, update, remove (auth). GET /orders/{id}/track. Currency AED. Order summary: subtotal, shipping (0 = Free), tax_percent, tax, total. Admin sets shipping/tax via PUT /api/admin/settings/shop.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
+        "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id, cart_item_id, address_id, bank_account_id, break_id, vacation_id, complaint_id.\n\nSections: 1. Health → 2. Auth → 3. Client Profile → 4. Subscriptions → 5. Banners/Packages → 6. Visits → 7. Reports → 8. Shop & Orders (Cart, Checkout, Orders, Payments) → 8b. Maintenance Photos → 9. Technician & Supervisor (Tech visits, Supervisor visits/complaints; Technician Dashboard; Support) → Admin & HR → Other Modules.\n\nTechnician Dashboard (9): (1) Dashboard overview GET /api/technician/dashboard (2) Profile & settings GET/PUT /api/technician/profile (3) Earnings & payout: payout-summary, payouts, settings/payout GET/PUT (4) Bank accounts GET/POST/PUT/DELETE /api/technician/bank-accounts (5) Availability & scheduling: availability GET/PUT, breaks CRUD, vacations CRUD, schedule GET (6) Job history: jobs, jobs/{id} (7) Tasks: tasks, tasks/{id}, tasks/{id}/status, accept, reject (8) Help & support: GET /api/support/faqs, POST /api/support/tickets. All technician routes require role: technician + Bearer token.\n\nCart & Checkout (8. Shop & Orders): Payment via Checkout.com only. POST /shop/create-payment-session (optional auth): send order data + success_url + failure_url; backend creates order (pending) and Checkout.com session; returns session_id, order_id, public_key. Frontend opens Checkout.com UI with session_id (card, Apple Pay, Samsung Pay, Tabby, Tamara). Webhook POST /shop/webhooks/checkout-com updates order to paid. PayPal and COD removed. Logged-in: address_id or inline address, items or cart. Guest: email, full_name, phone_number, street_address, city, country, items (required), success_url, failure_url. Guest lookup: GET /shop/orders/guest and /guest/track. Cart: add, view, update, remove (auth). GET /orders/{id}/track. Order summary: subtotal, shipping, tax_percent, tax, total. Admin: PUT /api/admin/settings/shop.\n\nServices: GET /api/services (list); GET /api/services/products (all products linked to services; ?service_id, category_id, search, per_page); GET /api/services/{id}/products (products for one service).\n\nExclusive Offers: Public GET list/get by ID; Admin CRUD. Response image_url = full URL ({{base_url}}/media/exclusive_offers/...) for display. Admin create/update: form-data, product_ids comma-separated.\n\nUse Bearer token for protected routes. Category & Service: POST .../toggle-status. Products: is_featured; GET /api/shop/products/featured.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.32.0"
+        "version": "2.34.0"
     },
     "item": [
         {
@@ -1340,11 +1340,27 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "shop", "checkout", "payment-methods"]
                         },
-                        "description": "GET /api/shop/checkout/payment-methods – Checkout Payment step. Response: array of { id, type, label }. payment_method on Place Order: cod | paypal | paypal_login."
+                        "description": "GET /api/shop/checkout/payment-methods – Checkout Payment step. Response: array of { id, type, label } for card, apple_pay, samsung_pay, tabby, tamara (all via Checkout.com). Use POST /create-payment-session next."
                     }
                 },
                 {
-                    "name": "Payment - Create PayPal order (Login with PayPal)",
+                    "name": "Create Payment Session (Logged-in)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.order_id && !pm.environment.get('order_id')) {",
+                                    "        pm.environment.set('order_id', jsonData.data.order_id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1354,14 +1370,34 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"amount\": 130.00,\n  \"currency\": \"AED\",\n  \"return_url\": \"https://yourapp.com/return\",\n  \"cancel_url\": \"https://yourapp.com/cancel\"\n}"
+                            "raw": "{\n  \"address_id\": 1,\n  \"success_url\": \"https://yourapp.com/payment/success\",\n  \"failure_url\": \"https://yourapp.com/payment/failure\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/shop/payment/paypal/create",
+                            "raw": "{{base_url}}/api/shop/create-payment-session",
                             "host": ["{{base_url}}"],
-                            "path": ["api", "shop", "payment", "paypal", "create"]
+                            "path": ["api", "shop", "create-payment-session"]
                         },
-                        "description": "For 'Login with PayPal' flow. Call before redirecting user. Optional: amount, currency, return_url, cancel_url. If amount omitted, uses cart total. Returns paypal_order_id and approval_url; app opens approval_url, then on Place Order sends paypal_order_id + paypal_payer_id with payment_method=paypal_login."
+                        "description": "POST /api/shop/create-payment-session – Backend creates order (pending) and Checkout.com session. Body: address_id (or full_name, phone_number, street_address, city, country), optional items (omit to use cart), success_url (required), failure_url (required). Returns: session_id, order_id, order_number, public_key, amount, currency. Frontend opens Checkout.com UI with session_id; webhook updates order to paid."
+                    }
+                },
+                {
+                    "name": "Create Payment Session (Guest)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"guest@example.com\",\n  \"full_name\": \"Guest User\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"Sheikh Zayed Road\",\n  \"city\": \"Dubai\",\n  \"country\": \"UAE\",\n  \"items\": [{\"product_id\": 1, \"qty\": 2}],\n  \"success_url\": \"https://yourapp.com/payment/success\",\n  \"failure_url\": \"https://yourapp.com/payment/failure\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/create-payment-session",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "create-payment-session"]
+                        },
+                        "description": "Guest: no Authorization. Required: email, full_name, phone_number, street_address, city, country, items (array of {product_id, qty}), success_url, failure_url. Returns session_id, order_id, order_number, public_key. Use order_number + email for guest lookup/track."
                     }
                 },
                 {
@@ -1377,90 +1413,43 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "shop", "checkout", "review"]
                         },
-                        "description": "GET /api/shop/checkout/review – Checkout Review step. Response: items (cart), order_summary (subtotal, shipping, total, currency), addresses, payment_methods. Use for Place Order screen."
+                        "description": "GET /api/shop/checkout/review – Checkout Review step. Response: items (cart), order_summary, addresses, payment_methods (card, apple_pay, samsung_pay, tabby, tamara). Then call POST /create-payment-session with success_url and failure_url."
                     }
                 },
                 {
-                    "name": "Checkout",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    if (jsonData.data && jsonData.data.order && jsonData.data.order.id && !pm.environment.get('order_id')) {",
-                                    "        pm.environment.set('order_id', jsonData.data.order.id);",
-                                    "    }",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
+                    "name": "Legacy - POST /checkout (returns 400)",
                     "request": {
                         "method": "POST",
                         "header": [
                             {"key": "Authorization", "value": "Bearer {{token}}"},
                             {"key": "Accept", "value": "application/json"}
                         ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {"key": "address_id", "value": "", "type": "text", "description": "Option A: set to saved address id. Option B: leave EMPTY and fill fields below"},
-                                {"key": "full_name", "value": "Ahmed Hassan", "type": "text", "description": "Option B: inline address"},
-                                {"key": "phone_number", "value": "+971501234567", "type": "text"},
-                                {"key": "street_address", "value": "Sheikh Zayed Road", "type": "text"},
-                                {"key": "city", "value": "Dubai", "type": "text"},
-                                {"key": "state", "value": "Dubai", "type": "text"},
-                                {"key": "zip_code", "value": "12345", "type": "text"},
-                                {"key": "country", "value": "UAE", "type": "text"},
-                                {"key": "save_address", "value": "1", "type": "text", "description": "Optional: 1 to save inline address for future"},
-                                {"key": "payment_method", "value": "paypal", "type": "text", "description": "Required: paypal or cod"},
-                                {"key": "currency", "value": "AED", "type": "text"},
-                                {"key": "items", "value": "", "type": "text", "description": "Optional JSON. Omit to use cart."}
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/checkout",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "checkout"
-                            ]
-                        },
-                        "description": "Create Order (Place Order). payment_method: cod | paypal | paypal_login. COD: no extra params. paypal: returns approval_url (app redirects). paypal_login: send paypal_order_id (and paypal_payer_id); backend captures then creates order. Address: address_id OR shipping_address (JSON: fullName, phone, street, city, state, zipCode, country) OR form full_name, phone_number, street_address, city, country. Form-data or JSON. Response: data.id, order_number, status, payment_status, total, currency, created_at, items."
-                    }
-                },
-                {
-                    "name": "Checkout (Guest - No Login)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {"key": "Accept", "value": "application/json"}
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {"key": "email", "value": "guest@example.com", "type": "text", "description": "Required for guest"},
-                                {"key": "full_name", "value": "Guest User", "type": "text"},
-                                {"key": "phone_number", "value": "+971501234567", "type": "text"},
-                                {"key": "street_address", "value": "Sheikh Zayed Road", "type": "text"},
-                                {"key": "city", "value": "Dubai", "type": "text"},
-                                {"key": "country", "value": "UAE", "type": "text"},
-                                {"key": "payment_method", "value": "cod", "type": "text", "description": "paypal or cod"},
-                                {"key": "items", "value": "[{\"product_id\":1,\"qty\":2}]", "type": "text", "description": "Required for guest. JSON array of {product_id, qty}."}
-                            ]
-                        },
                         "url": {
                             "raw": "{{base_url}}/api/shop/checkout",
                             "host": ["{{base_url}}"],
                             "path": ["api", "shop", "checkout"]
                         },
-                        "description": "Guest checkout: no Authorization header. Required: email, full_name, phone_number, street_address, city, country, payment_method (paypal|cod), items (JSON array of {product_id, qty}). Response includes order_number; use it with email for guest lookup/track."
+                        "description": "Legacy endpoint. Returns 400: use POST /api/shop/create-payment-session for payment. PayPal and COD removed."
+                    }
+                },
+                {
+                    "name": "Webhook - Checkout.com (for reference)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Cko-Signature", "value": "{{checkout_webhook_signature}}", "description": "HMAC of body; set by Checkout.com"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"payment_captured\",\n  \"data\": {\n    \"id\": \"pay_xxx\",\n    \"reference\": \"123\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/webhooks/checkout-com",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "webhooks", "checkout-com"]
+                        },
+                        "description": "POST /api/shop/webhooks/checkout-com – Called by Checkout.com (no auth). Verify Cko-Signature header; on payment_captured update order to paid. Configure this URL in Checkout.com dashboard."
                     }
                 },
                 {
@@ -2026,7 +2015,7 @@
                     }
                 }
             ],
-            "description": "Shop and e-commerce - Browse products, manage cart, place orders, view categories and payments"
+            "description": "Shop and e-commerce – Cart, Checkout.com (create-payment-session + webhook), orders, payments. PayPal and COD removed."
         },
         {
             "name": "8b. Maintenance Photos",
@@ -2571,9 +2560,52 @@
                         },
                         "description": "Escalate complaint to area manager"
                     }
+                },
+                {
+                    "name": "Technician Dashboard",
+                    "item": [
+                        {"name": "Dashboard", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/dashboard", "host": ["{{base_url}}"], "path": ["api", "technician", "dashboard"]}, "description": "Dashboard overview: greeting, KPIs, today's tasks (technician role)."}},
+                        {"name": "Profile (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Get full profile (personal info, availability summary)."}},
+                        {"name": "Profile (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+971501234567\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile (name, email, phone, password)."}},
+                        {"name": "Tasks (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks?filter=today&per_page=15", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks"], "query": [{"key": "filter", "value": "today", "description": "today|upcoming|completed|all"}, {"key": "per_page", "value": "15"}]}, "description": "List tasks (visits). Filter: today, upcoming, completed, all."}},
+                        {"name": "Task (by id)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}"]}, "description": "Get single task (visit) detail. Set visit_id."}},
+                        {"name": "Task - Update status", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/status", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "status"]}, "description": "Update task status: accepted, in_progress, completed. Optional notes for completed."}},
+                        {"name": "Task - Accept", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/accept", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "accept"]}, "description": "Accept assigned task (visit)."}},
+                        {"name": "Task - Reject", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"reason\": \"Not available\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/reject", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "reject"]}, "description": "Reject task. Optional reason."}},
+                        {"name": "Jobs (history)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/jobs?period=month&per_page=15", "host": ["{{base_url}}"], "path": ["api", "technician", "jobs"], "query": [{"key": "period", "value": "month", "description": "week|month|year"}, {"key": "per_page", "value": "15"}]}, "description": "Job history with summary KPIs."}},
+                        {"name": "Job (by id)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/jobs/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "jobs", "{{visit_id}}"]}, "description": "Get single job (visit) detail. Set visit_id."}},
+                        {"name": "Payout summary", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/payout-summary", "host": ["{{base_url}}"], "path": ["api", "technician", "payout-summary"]}, "description": "Earnings: available_balance, pending_earnings, total_earned (stub until payment)."}},
+                        {"name": "Payouts (history)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/payouts", "host": ["{{base_url}}"], "path": ["api", "technician", "payouts"]}, "description": "Payout history list (stub)."}},
+                        {"name": "Payout settings (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/settings/payout", "host": ["{{base_url}}"], "path": ["api", "technician", "settings", "payout"]}, "description": "Get payout settings: default_bank_account_id, payout_frequency (weekly|biweekly|monthly)."}},
+                        {"name": "Payout settings (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"payout_frequency\": \"weekly\",\n  \"default_bank_account_id\": 1\n}"}, "url": {"raw": "{{base_url}}/api/technician/settings/payout", "host": ["{{base_url}}"], "path": ["api", "technician", "settings", "payout"]}, "description": "Update payout settings."}},
+                        {"name": "Bank accounts (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/bank-accounts", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts"]}, "description": "List bank accounts (masked)."}},
+                        {"name": "Bank account (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"bank_name\": \"Test Bank\",\n  \"account_holder_name\": \"John Doe\",\n  \"last_four\": \"1234\",\n  \"currency\": \"AED\",\n  \"is_default\": true\n}"}, "url": {"raw": "{{base_url}}/api/technician/bank-accounts", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts"]}, "description": "Add bank account. last_four = 4 digits."}},
+                        {"name": "Bank account (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"account_holder_name\": \"Jane Doe\",\n  \"is_default\": true\n}"}, "url": {"raw": "{{base_url}}/api/technician/bank-accounts/{{bank_account_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts", "{{bank_account_id}}"]}, "description": "Update bank account. Set bank_account_id in env."}},
+                        {"name": "Bank account (delete)", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/bank-accounts/{{bank_account_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts", "{{bank_account_id}}"]}, "description": "Remove bank account. Set bank_account_id."}},
+                        {"name": "Availability (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/availability", "host": ["{{base_url}}"], "path": ["api", "technician", "availability"]}, "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots."}},
+                        {"name": "Availability (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"is_online\": true,\n  \"auto_accept_jobs\": false,\n  \"working_days\": [\"mon\", \"tue\", \"wed\", \"thu\", \"fri\"],\n  \"working_hours_slots\": [{\n    \"slot\": \"morning\",\n    \"start\": \"08:00\",\n    \"end\": \"12:00\"\n  }]\n}"}, "url": {"raw": "{{base_url}}/api/technician/availability", "host": ["{{base_url}}"], "path": ["api", "technician", "availability"]}, "description": "Update availability."}},
+                        {"name": "Breaks (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/breaks", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks"]}, "description": "List breaks. Optional query: from, to (dates)."}},
+                        {"name": "Break (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"date\": \"2026-02-25\",\n  \"start_time\": \"12:00\",\n  \"end_time\": \"13:00\",\n  \"reason\": \"Lunch\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/breaks", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks"]}, "description": "Add break."}},
+                        {"name": "Break (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"reason\": \"Updated reason\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/breaks/{{break_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks", "{{break_id}}"]}, "description": "Update break. Set break_id."}},
+                        {"name": "Break (delete)", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/breaks/{{break_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks", "{{break_id}}"]}, "description": "Delete break. Set break_id."}},
+                        {"name": "Vacations (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/vacations", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations"]}, "description": "List vacations. Optional: from, to (dates)."}},
+                        {"name": "Vacation (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-05\",\n  \"reason\": \"Leave\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/vacations", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations"]}, "description": "Add vacation."}},
+                        {"name": "Vacation (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"end_date\": \"2026-03-07\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/vacations/{{vacation_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations", "{{vacation_id}}"]}, "description": "Update vacation. Set vacation_id."}},
+                        {"name": "Vacation (delete)", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/vacations/{{vacation_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations", "{{vacation_id}}"]}, "description": "Delete vacation. Set vacation_id."}},
+                        {"name": "Schedule", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/schedule?from=2026-02-17&to=2026-02-23", "host": ["{{base_url}}"], "path": ["api", "technician", "schedule"], "query": [{"key": "from", "value": "2026-02-17"}, {"key": "to", "value": "2026-02-23"}]}, "description": "Calendar: tasks + breaks + vacations for date range."}}
+                    ],
+                    "description": "Technician Dashboard: overview, profile, tasks, jobs, earnings, bank accounts, availability, breaks, vacations, schedule. All require technician role + Bearer token."
+                },
+                {
+                    "name": "Support (Help & Support)",
+                    "item": [
+                        {"name": "FAQs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]}, "description": "List FAQs for Help & Support (any authenticated role)."}},
+                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"subject\": \"App crash when uploading photo\",\n  \"message\": \"When I try to upload a visit photo the app closes.\"\n}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket (client, technician, supervisor, area_manager, hr, admin)."}
+                    ],
+                    "description": "Help & Support: FAQs and submit ticket. Shared for all authenticated roles."
                 }
             ],
-            "description": "Technician and Supervisor endpoints - Manage visits and reports"
+            "description": "Technician and Supervisor endpoints - Manage visits and reports. Includes Technician Dashboard (profile, tasks, jobs, payouts, bank accounts, availability, breaks, vacations, schedule) and Support (FAQs, submit ticket)."
         },
         {
             "name": "Products - All APIs",
@@ -5979,83 +6011,27 @@
                     "description": "Alternative supervisor routes under /api/auth/supervisor (duplicate of /api/supervisor routes)"
                 },
                 {
-                    "name": "Payment (PayPal)",
-                    "description": "PayPal payment – Create Order, Webhook. Auth: Bearer for create.",
+                    "name": "Payment (Checkout.com)",
+                    "description": "Checkout.com webhook only. Create payment session is in 8. Shop & Orders: POST /api/shop/create-payment-session.",
                     "item": [
                 {
-                    "name": "Create Order",
+                    "name": "Webhook (reference)",
                     "request": {
                         "method": "POST",
                         "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Cko-Signature", "value": "", "description": "Set by Checkout.com"}
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"amount\": 100.00,\n  \"currency\": \"USD\",\n  \"return_url\": \"http://localhost:3000/success\",\n  \"cancel_url\": \"http://localhost:3000/cancel\"\n}"
+                            "raw": "{\n  \"type\": \"payment_captured\",\n  \"data\": {\n    \"id\": \"pay_xxx\",\n    \"reference\": \"123\"\n  }\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/auth/payments/paypal/create",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "payments",
-                                "paypal",
-                                "create"
-                            ]
+                            "raw": "{{base_url}}/api/shop/webhooks/checkout-com",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "webhooks", "checkout-com"]
                         },
-                        "description": "Create PayPal payment order (advanced - use after checkout)"
-                    }
-                },
-                {
-                    "name": "Webhook",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"event_type\": \"PAYMENT.CAPTURE.COMPLETED\",\n  \"resource\": {\n    \"id\": \"payment_id\"\n  }\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/payments/paypal/webhook",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "payments",
-                                "paypal",
-                                "webhook"
-                            ]
-                        },
-                        "description": "PayPal webhook endpoint (for PayPal to call, not for manual testing)"
+                        "description": "Checkout.com calls this. Configure URL in dashboard. Verify Cko-Signature. Main flow: 8. Shop & Orders → Create Payment Session."
                     }
                 }
                     ]
@@ -6553,7 +6529,7 @@
                     ]
                 }
             ],
-            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (PayPal), Services (Public), User Profile, User Addresses, User Loyalty, User Notifications."
+            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (Checkout.com webhook), Services (Public), User Profile, User Addresses, User Loyalty, User Notifications."
         }
     ],
     "variable": [
