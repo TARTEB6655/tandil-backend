@@ -39,6 +39,11 @@
                         <label for="contact_address" class="block text-sm font-medium text-gray-700 mb-2">Address</label>
                         <textarea id="contact_address" name="contact_address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">{{ Setting::get('contact_address') }}</textarea>
                     </div>
+                    <div>
+                        <label for="support_hours" class="block text-sm font-medium text-gray-700 mb-2">Support Hours (Help Center)</label>
+                        <input type="text" id="support_hours" name="support_hours" value="{{ Setting::get('support_hours', '24/7 Customer Support') }}" placeholder="e.g. 24/7 Customer Support" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500">Shown in the app Help Center under Contact Information.</p>
+                    </div>
                     <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow">Save Contact Info</button>
                 </form>
             </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Models\Tip;
 use App\Models\UserAddress;
 use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
@@ -146,6 +147,17 @@ class UserController extends Controller
     }
 
     /**
+     * Get saved payment methods for the client (e.g. for Profile – Payment Methods).
+     * Placeholder: returns empty list until saved cards are implemented.
+     */
+    public function getPaymentMethods(Request $request)
+    {
+        $user = $request->user();
+        // No saved payment method model yet; return empty list so UI can call this API.
+        return ApiResponse::success('Payment methods retrieved successfully.', []);
+    }
+
+    /**
      * Get user loyalty points (placeholder)
      */
     public function getLoyalty(Request $request)
@@ -159,42 +171,57 @@ class UserController extends Controller
     }
 
     /**
-     * Get user notifications
+     * Get user notifications: only tips created by admin (published tips).
+     * Shown in Profile → Notifications. Each item has id, title, message, created_at, type.
      */
     public function getNotifications(Request $request)
     {
-        $user = $request->user();
-        // User model uses Notifiable trait, so notifications() method is available
-        $notifications = $user->notifications()->latest()->paginate(20);
-        
-        return ApiResponse::success('Notifications retrieved successfully.', $notifications);
+        $perPage = (int) $request->get('per_page', 20);
+        $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
+
+        $tips = Tip::where('status', 'published')
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        $data = $tips->through(fn (Tip $tip) => [
+            'id' => $tip->id,
+            'type' => 'tip',
+            'title' => $tip->title,
+            'message' => $tip->content,
+            'created_at' => $tip->created_at?->toIso8601String(),
+        ]);
+
+        return ApiResponse::success('Notifications retrieved successfully.', $data);
     }
 
     /**
-     * Mark notification as read
+     * Mark notification as read. Notifications are tips; accepting tip id returns success (read state not stored).
      */
     public function markNotificationAsRead(Request $request, $id)
     {
         $user = $request->user();
-        $notification = $user->notifications()->where('id', $id)->first();
-        
-        if (!$notification) {
+        // If id is numeric, treat as tip id (notifications = tips); no read state stored, just acknowledge.
+        if (is_numeric($id)) {
+            $exists = Tip::where('status', 'published')->where('id', (int) $id)->exists();
+            if ($exists) {
+                return ApiResponse::success('Notification marked as read.');
+            }
             return ApiResponse::error('Notification not found', 404);
         }
-        
+        $notification = $user->notifications()->where('id', $id)->first();
+        if (! $notification) {
+            return ApiResponse::error('Notification not found', 404);
+        }
         $notification->markAsRead();
-        
         return ApiResponse::success('Notification marked as read.');
     }
 
     /**
-     * Mark all notifications as read
+     * Mark all notifications as read. No-op when notifications are tips (no read state stored).
      */
     public function markAllNotificationsAsRead(Request $request)
     {
-        $user = $request->user();
-        $user->unreadNotifications->markAsRead();
-        
+        $request->user()->unreadNotifications->markAsRead();
         return ApiResponse::success('All notifications marked as read.');
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
+use App\Models\Package;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 
@@ -12,6 +14,30 @@ use Illuminate\Http\JsonResponse;
  */
 class ClientSettingsController extends Controller
 {
+    /**
+     * GET /api/client/memberships
+     * List memberships (packages) created by admin. For client profile "Memberships" screen.
+     * Auth: client.
+     */
+    public function memberships(): JsonResponse
+    {
+        $packages = Package::where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'slug' => $p->slug,
+                'type' => $p->type,
+                'price' => (float) $p->price,
+                'image' => $p->image,
+                'image_url' => $p->image_url,
+                'description' => $p->description,
+            ]);
+
+        return ApiResponse::success('Memberships retrieved successfully.', $packages->values()->all());
+    }
     /**
      * GET /api/client/settings/dashboard
      * Returns client dashboard settings (title, subtitle, section toggles) for the app.

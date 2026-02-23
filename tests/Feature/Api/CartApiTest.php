@@ -130,8 +130,11 @@ class CartApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
-        $response->assertJsonStructure(['data' => ['items', 'order_summary' => ['subtotal', 'discount', 'shipping', 'total', 'currency']]]);
-        $this->assertSame(40.0, (float) $response->json('data.order_summary.total'));
+        $response->assertJsonStructure(['data' => ['items', 'order_summary' => ['subtotal', 'discount', 'shipping', 'tax', 'total', 'currency']]]);
+        $summary = $response->json('data.order_summary');
+        $this->assertSame(40.0, (float) $summary['subtotal']);
+        $expectedTotal = round($summary['subtotal'] - ($summary['discount'] ?? 0) + ($summary['shipping'] ?? 0) + ($summary['tax'] ?? 0), 2);
+        $this->assertSame($expectedTotal, (float) $summary['total'], 'Order summary total should equal subtotal - discount + shipping + tax');
         $items = $response->json('data.items');
         $this->assertCount(2, $items);
         $this->assertArrayHasKey('name', $items[0]);

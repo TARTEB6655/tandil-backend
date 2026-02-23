@@ -315,11 +315,13 @@ class SettingController extends Controller
             'contact_email' => 'nullable|email',
             'contact_phone' => 'nullable|string',
             'contact_address' => 'nullable|string',
+            'support_hours' => 'nullable|string|max:255',
         ]);
 
-        Setting::set('contact_email', $request->contact_email, 'text', 'general');
-        Setting::set('contact_phone', $request->contact_phone, 'text', 'general');
-        Setting::set('contact_address', $request->contact_address, 'text', 'general');
+        Setting::set('contact_email', $request->contact_email ?? '', 'text', 'general');
+        Setting::set('contact_phone', $request->contact_phone ?? '', 'text', 'general');
+        Setting::set('contact_address', $request->contact_address ?? '', 'text', 'general');
+        Setting::set('support_hours', $request->support_hours ?? '24/7 Customer Support', 'text', 'general');
 
         return redirect()->back()->with('success', 'Contact information updated successfully');
     }

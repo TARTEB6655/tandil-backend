@@ -320,9 +320,25 @@
                         },
                         "description": "GET /api/client/settings/dashboard – Client dashboard settings (title, subtitle, show_banners, show_metrics, show_charts, show_recent_*). Configured by admin; client app reads to render dashboard. Auth: client role."
                     }
+                },
+                {
+                    "name": "Memberships (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/client/memberships",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "client", "memberships"]
+                        },
+                        "description": "GET /api/client/memberships – List memberships (packages) created by admin. For client Profile → Memberships screen. Auth: client role."
+                    }
                 }
             ],
-            "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app)."
+            "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = admin-created packages."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",
@@ -2664,10 +2680,11 @@
                 {
                     "name": "Support (Help & Support)",
                     "item": [
+                        {"name": "Help Center (full)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]}, "description": "GET /api/support/help-center – Full Help Center: heading, tagline, get_support (Call, Email, Live Chat, Submit Ticket), contact_info (phone, email, support_hours), faqs. Use for Help Center screen."}},
                         {"name": "FAQs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]}, "description": "List FAQs for Help & Support (any authenticated role)."}},
                         {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"message\": \"Need help with the app.\"}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket."}}
                     ],
-                    "description": "Help & Support: FAQs and submit ticket. Shared for all authenticated roles."
+                    "description": "Help & Support: Help Center (full payload), FAQs, submit ticket. Contact info from admin settings (contact_phone, contact_email, support_hours)."
                 }
             ],
             "description": "Technician and Supervisor endpoints - Manage visits and reports. Includes Technician Dashboard (profile, tasks, jobs, payouts, bank accounts, availability, breaks, vacations, schedule) and Support (FAQs, submit ticket)."
@@ -6462,6 +6479,28 @@
                             ]
                         },
                         "description": "Delete an address"
+                    }
+                }
+                    ]
+                },
+                {
+                    "name": "User Payment Methods",
+                    "description": "Saved payment methods for Profile screen. Placeholder: returns empty list until saved cards are implemented.",
+                    "item": [
+                {
+                    "name": "Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/payment-methods",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "user", "payment-methods"]
+                        },
+                        "description": "GET /api/user/payment-methods – List saved payment methods. Currently returns empty array; for client Profile → Payment Methods. Auth: Bearer token."
                     }
                 }
                     ]

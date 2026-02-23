@@ -206,6 +206,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manager|hr|admin'])->prefix('support')->group(function () {
+    Route::get('/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
     Route::get('/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
     Route::post('/tickets', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
 });
@@ -406,6 +407,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::put('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']);
     Route::post('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']); // POST for multipart/form-data
     Route::delete('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'deleteAddress']);
+    Route::get('/payment-methods', [\App\Http\Controllers\Api\UserController::class, 'getPaymentMethods']);
     Route::get('/loyalty', [\App\Http\Controllers\Api\UserController::class, 'getLoyalty']);
     Route::get('/notifications', [\App\Http\Controllers\Api\UserController::class, 'getNotifications']);
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\UserController::class, 'markNotificationAsRead']);
@@ -419,6 +421,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 */
 Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(function () {
     Route::get('/settings/dashboard', [\App\Http\Controllers\Api\ClientSettingsController::class, 'dashboard']);
+    Route::get('/memberships', [\App\Http\Controllers\Api\ClientSettingsController::class, 'memberships']);
 });
 
 /*
