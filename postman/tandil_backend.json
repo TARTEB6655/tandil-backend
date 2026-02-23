@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full), FAQs, Submit Ticket.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.41.0"
+        "version": "2.42.0"
     },
     "item": [
         {
@@ -334,11 +334,11 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "client", "memberships"]
                         },
-                        "description": "GET /api/client/memberships – List memberships (packages) created by admin. For client Profile → Memberships screen. Auth: client role."
+                        "description": "GET /api/client/memberships – Same data as GET /api/subscriptions: client's subscriptions (plan, start_date, end_date, amount, payment_status, total_visits, completed_visits, visits). For client Profile → Memberships screen. Auth: client role. Response: success, message, data (array), total."
                     }
                 }
             ],
-            "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = admin-created packages."
+            "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = same as subscription data (client's subscriptions)."
         },
         {
             "name": "3b. Client Profile – All Settings (One Place) [12 requests]",
@@ -349,7 +349,7 @@
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
                         "url": {"raw": "{{base_url}}/api/client/memberships", "host": ["{{base_url}}"], "path": ["api", "client", "memberships"]},
-                        "description": "Profile – Memberships. Admin-created packages."
+                        "description": "Profile – Memberships. Same data as GET /api/subscriptions: client's subscriptions (plan, dates, amount, visits). Response: data (array), total."
                     }
                 },
                 {
@@ -2262,7 +2262,7 @@
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
                         "url": {"raw": "{{base_url}}/api/client/memberships", "host": ["{{base_url}}"], "path": ["api", "client", "memberships"]},
-                        "description": "Profile – Memberships. Admin-created packages."
+                        "description": "Profile – Memberships. Same data as GET /api/subscriptions: client's subscriptions (plan, dates, amount, visits). Response: data (array), total."
                     }
                 },
                 {

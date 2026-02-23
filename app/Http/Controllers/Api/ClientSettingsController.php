@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Package;
 use App\Models\Setting;
+use App\Models\Subscription;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Client dashboard settings API.
@@ -36,27 +38,24 @@ class ClientSettingsController extends Controller
 
     /**
      * GET /api/client/memberships
-     * List memberships (packages) created by admin. For client profile "Memberships" screen.
+     * Returns the same subscription data as GET /api/subscriptions for the current client.
+     * Client profile "Memberships" screen shows the user's subscriptions (plan, dates, amount, visits, etc.).
      * Auth: client.
      */
-    public function memberships(): JsonResponse
+    public function memberships(Request $request): JsonResponse
     {
-        $packages = Package::where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get()
-            ->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'slug' => $p->slug,
-                'type' => $p->type,
-                'price' => (float) $p->price,
-                'image' => $p->image,
-                'image_url' => $p->image_url,
-                'description' => $p->description,
-            ]);
+        $user = $request->user();
+        $subs = Subscription::where('client_id', $user->id)
+            ->with('visits')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        return ApiResponse::success('Memberships retrieved successfully.', $packages->values()->all());
+        return response()->json([
+            'success' => true,
+            'message' => 'Memberships retrieved successfully.',
+            'data' => $subs->toArray(),
+            'total' => $subs->count(),
+        ]);
     }
     /**
      * GET /api/client/settings/dashboard

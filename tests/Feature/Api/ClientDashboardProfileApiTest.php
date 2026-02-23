@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Package;
+use App\Models\Subscription;
 use App\Models\Tip;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -90,17 +91,18 @@ class ClientDashboardProfileApiTest extends TestCase
 
     public function test_memberships_returns_admin_created_packages(): void
     {
-        Package::factory()->count(2)->create(['is_active' => true]);
-        Package::factory()->create(['is_active' => false]);
+        // Memberships API returns same subscription data as GET /api/subscriptions for the client
+        Subscription::factory()->count(2)->create(['client_id' => $this->client->id]);
 
         $response = $this->getJson('/api/client/memberships', $this->authHeaders());
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('message', 'Memberships retrieved successfully.');
+        $response->assertJsonPath('total', 2);
         $response->assertJsonCount(2, 'data');
         $response->assertJsonStructure([
             'data' => [
-                '*' => ['id', 'name', 'slug', 'type', 'price', 'image', 'image_url', 'description'],
+                '*' => ['id', 'client_id', 'plan', 'start_date', 'end_date', 'amount', 'payment_status', 'total_visits', 'completed_visits', 'visits'],
             ],
         ]);
     }
