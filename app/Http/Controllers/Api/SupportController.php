@@ -13,13 +13,14 @@ class SupportController extends Controller
 {
     /**
      * GET /api/support/help-center - Full Help Center payload for the app screen.
-     * Returns: heading, tagline, get_support options (Call, Email, Live Chat, Submit Ticket),
-     * contact_info (phone, email, support_hours), and faqs. Auth required.
+     * Returns: heading, tagline, get_support options, contact_info (phone, email, address, support_hours),
+     * submit_ticket (endpoint, method, placeholders), social_links, faqs. Auth required.
      */
     public function helpCenter(Request $request)
     {
         $contactPhone = Setting::get('contact_phone', '+1 (234) 567-8900');
         $contactEmail = Setting::get('contact_email', 'support@tandil.com');
+        $contactAddress = Setting::get('contact_address', '');
         $supportHours = Setting::get('support_hours', '24/7 Customer Support');
 
         $getSupport = [
@@ -32,8 +33,26 @@ class SupportController extends Controller
         $contactInfo = [
             'phone' => $contactPhone,
             'email' => $contactEmail,
+            'address' => $contactAddress ?: null,
             'support_hours' => $supportHours,
         ];
+
+        $submitTicket = [
+            'endpoint' => '/api/support/tickets',
+            'method' => 'POST',
+            'fields' => [
+                ['key' => 'subject', 'label' => 'Subject', 'type' => 'text', 'required' => true, 'placeholder' => 'Brief subject of your request'],
+                ['key' => 'message', 'label' => 'Message', 'type' => 'textarea', 'required' => true, 'placeholder' => 'Describe your issue or question in detail'],
+            ],
+        ];
+
+        $socialLinks = array_filter([
+            'facebook' => Setting::get('facebook_url'),
+            'twitter' => Setting::get('twitter_url'),
+            'instagram' => Setting::get('instagram_url'),
+            'linkedin' => Setting::get('linkedin_url'),
+            'youtube' => Setting::get('youtube_url'),
+        ]);
 
         $faqs = Faq::where('is_active', true)
             ->orderBy('sort_order')
@@ -47,6 +66,8 @@ class SupportController extends Controller
                 'tagline' => 'Find answers to common questions or get in touch with our support team',
                 'get_support' => $getSupport,
                 'contact_info' => $contactInfo,
+                'submit_ticket' => $submitTicket,
+                'social_links' => $socialLinks,
                 'faqs' => $faqs,
             ],
         ]);
