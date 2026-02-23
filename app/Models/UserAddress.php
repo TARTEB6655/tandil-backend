@@ -10,6 +10,7 @@ class UserAddress extends Model
 
     protected $fillable = [
         'user_id',
+        'type',
         'full_name',
         'phone_number',
         'street_address',
@@ -19,6 +20,9 @@ class UserAddress extends Model
         'country',
         'is_default',
     ];
+
+    /** Allowed address types (local address label: Home, Office, Other). */
+    public const TYPES = ['home', 'office', 'other'];
 
     protected $casts = [
         'is_default' => 'boolean',
@@ -36,6 +40,7 @@ class UserAddress extends Model
     {
         return [
             'id' => $this->id,
+            'type' => $this->type ?? 'home',
             'full_name' => $this->full_name,
             'phone_number' => $this->phone_number,
             'street_address' => $this->street_address,

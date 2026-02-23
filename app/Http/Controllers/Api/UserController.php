@@ -66,7 +66,8 @@ class UserController extends Controller
 
     /**
      * Get user addresses (Checkout – Address step).
-     * Response: array of { id, full_name, phone_number, street_address, city, state, zip_code, country, is_default }.
+     * Response: array of { id, type, full_name, phone_number, street_address, city, state, zip_code, country, is_default }.
+     * type = home|office|other (local address label).
      */
     public function getAddresses(Request $request)
     {
@@ -82,13 +83,14 @@ class UserController extends Controller
 
     /**
      * Create user address (Checkout – Address step).
-     * Body: full_name, phone_number, street_address, city, state (optional), zip_code (optional), country, is_default (optional).
+     * Body: type (optional: home|office|other), full_name, phone_number, street_address, city, state (optional), zip_code (optional), country, is_default (optional).
      */
     public function createAddress(Request $request)
     {
         $user = $request->user();
         $this->normalizeAddressFormInput($request);
         $validated = $request->validate([
+            'type' => 'nullable|string|in:home,office,other',
             'full_name' => 'required|string|max:255',
             'phone_number' => 'required|string|max:20',
             'street_address' => 'required|string|max:500',
@@ -98,6 +100,7 @@ class UserController extends Controller
             'country' => 'required|string|max:100',
             'is_default' => 'nullable|boolean',
         ]);
+        $validated['type'] = $validated['type'] ?? 'home';
 
         $validated['user_id'] = $user->id;
         $validated['is_default'] = filter_var($validated['is_default'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -120,6 +123,7 @@ class UserController extends Controller
         $address = UserAddress::where('user_id', $user->id)->findOrFail($id);
 
         $validated = $request->validate([
+            'type' => 'sometimes|string|in:home,office,other',
             'full_name' => 'sometimes|string|max:255',
             'phone_number' => 'sometimes|string|max:20',
             'street_address' => 'sometimes|string|max:500',

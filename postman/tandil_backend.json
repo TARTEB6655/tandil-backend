@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full), FAQs, Submit Ticket.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, message, optional priority, category).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.45.0"
+        "version": "2.46.0"
     },
     "item": [
         {
@@ -385,7 +385,7 @@
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
                         "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
-                        "description": "Profile – Addresses."
+                        "description": "Profile – Addresses. Response includes type (home|office|other) per address."
                     }
                 },
                 {
@@ -396,6 +396,7 @@
                         "body": {
                             "mode": "urlencoded",
                             "urlencoded": [
+                                {"key": "type", "value": "home", "type": "text", "description": "Optional: home, office, other (local address label)"},
                                 {"key": "full_name", "value": "Client One", "type": "text"},
                                 {"key": "phone_number", "value": "+971501234567", "type": "text"},
                                 {"key": "street_address", "value": "123 Main St", "type": "text"},
@@ -407,7 +408,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
-                        "description": "Profile – Addresses. Add new address. Send as form (x-www-form-urlencoded)."
+                        "description": "Profile – Addresses. Add new address. type optional: home|office|other (local label). Send as form (x-www-form-urlencoded)."
                     }
                 },
                 {
@@ -418,6 +419,7 @@
                         "body": {
                             "mode": "urlencoded",
                             "urlencoded": [
+                                {"key": "type", "value": "office", "type": "text", "description": "Optional: home, office, other"},
                                 {"key": "full_name", "value": "Client One", "type": "text"},
                                 {"key": "phone_number", "value": "+971501234567", "type": "text"},
                                 {"key": "street_address", "value": "123 Main St", "type": "text"},
@@ -429,7 +431,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
-                        "description": "Profile – Addresses. Update address. Set address_id. Send as form (x-www-form-urlencoded)."
+                        "description": "Profile – Addresses. Update address. type optional: home|office|other. Set address_id. Send as form (x-www-form-urlencoded)."
                     }
                 },
                 {
@@ -6506,7 +6508,7 @@
                 },
                 {
                     "name": "User Addresses",
-                    "description": "Checkout Address step. List (GET), Create (POST form-data), Update (POST form-data or PUT JSON), Delete. Auth: Bearer token. Create/Update accept multipart form-data. Response: id, full_name, phone_number, street_address, city, state, zip_code, country, is_default.",
+                    "description": "Checkout Address step. List (GET), Create (POST form-data), Update (POST form-data or PUT JSON), Delete. Auth: Bearer token. Create/Update accept multipart form-data. Response: id, type (home|office|other), full_name, phone_number, street_address, city, state, zip_code, country, is_default. type = local address label.",
                     "item": [
                 {
                     "name": "List",
@@ -6533,7 +6535,7 @@
                                 "addresses"
                             ]
                         },
-                        "description": "GET /api/user/addresses – Checkout Address step. Response: array of { id, full_name, phone_number, street_address, city, state, zip_code, country, is_default }."
+                        "description": "GET /api/user/addresses – Checkout Address step. Response: array of { id, type, full_name, phone_number, street_address, city, state, zip_code, country, is_default }. type = home|office|other."
                     }
                 },
                 {
@@ -6563,6 +6565,7 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
+                                {"key": "type", "value": "home", "type": "text", "description": "Optional: home, office, other (local address label)"},
                                 {"key": "full_name", "value": "Ahmed Hassan", "type": "text", "description": "Required"},
                                 {"key": "phone_number", "value": "+971501234567", "type": "text", "description": "Required"},
                                 {"key": "street_address", "value": "Sheikh Zayed Road", "type": "text", "description": "Required"},
@@ -6578,7 +6581,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "user", "addresses"]
                         },
-                        "description": "Create address (multipart form-data). Checkout – Shipping Address. Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default (1/0)."
+                        "description": "Create address (multipart form-data). Checkout – Shipping Address. type optional: home|office|other. Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default (1/0)."
                     }
                 },
                 {
@@ -6592,6 +6595,7 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
+                                {"key": "type", "value": "office", "type": "text", "description": "Optional: home, office, other"},
                                 {"key": "full_name", "value": "Ahmed Hassan", "type": "text"},
                                 {"key": "phone_number", "value": "+971501234567", "type": "text"},
                                 {"key": "street_address", "value": "456 Updated Street", "type": "text"},
@@ -6607,7 +6611,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "user", "addresses", "{{address_id}}"]
                         },
-                        "description": "Update address (multipart form-data). Set address_id. Use POST for form-data; backend also accepts PUT with JSON. Optional fields: full_name, phone_number, street_address, city, state, zip_code, country, is_default (1/0)."
+                        "description": "Update address (multipart form-data). Set address_id. Optional: type (home|office|other), full_name, phone_number, street_address, city, state, zip_code, country, is_default (1/0)."
                     }
                 },
                 {
