@@ -33,6 +33,9 @@ class CartController extends Controller
 
     /**
      * Build order summary: 1-Subtotal, 2-Shipping (free or amount), 3-Tax (%), 4-Total.
+     * Tax-exclusive pricing: product prices are without tax; tax is added at checkout.
+     * Tax = Subtotal × (tax_percent / 100). Total = Subtotal - Discount + Shipping + Tax.
+     * Same result as per-product tax when all products have the same tax rate.
      */
     public static function buildOrderSummary(float $subtotal, float $discount = 0): array
     {
@@ -116,8 +119,9 @@ class CartController extends Controller
 
     /**
      * GET /api/shop/order-summary
-     * Returns only order summary (subtotal, shipping, tax, total) for checkout screens.
-     * Uses current user's cart subtotal; shipping/tax from shop settings.
+     * Returns order summary for checkout (Address/Payment/Review).
+     * Tax-exclusive: subtotal = sum of item prices; tax = subtotal × (tax_percent/100); total = subtotal - discount + shipping + tax.
+     * Uses current user's cart; shipping and tax % from shop settings (settings table).
      */
     public function orderSummary(Request $request)
     {
@@ -126,6 +130,13 @@ class CartController extends Controller
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
         $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
         $orderSummary = self::buildOrderSummary($subtotal, 0);
+        // Ensure numeric fields for JSON (floats)
+        $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
+        $orderSummary['discount'] = (float) $orderSummary['discount'];
+        $orderSummary['shipping'] = (float) $orderSummary['shipping'];
+        $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
+        $orderSummary['tax'] = (float) $orderSummary['tax'];
+        $orderSummary['total'] = (float) $orderSummary['total'];
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
     }
 

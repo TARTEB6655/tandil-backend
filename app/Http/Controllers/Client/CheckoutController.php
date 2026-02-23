@@ -69,7 +69,7 @@ class CheckoutController extends Controller
             return back()->with('error', 'Your cart is empty.');
         }
 
-        // Calculate totals – same as API (admin settings: tax %, shipping)
+        // Calculate totals – same as API (admin settings: tax %, shipping). Tax-exclusive: subtotal + tax + shipping = total.
         $subtotal = round($cartItems->sum(function ($item) {
             return $item->quantity * (float) $item->product->price;
         }), 2);
@@ -77,6 +77,7 @@ class CheckoutController extends Controller
         $tax = $orderSummary['tax'];
         $shipping = $orderSummary['shipping'];
         $total = $orderSummary['total'];
+        $taxPercent = $orderSummary['tax_percent'];
 
         // Check stock availability
         foreach ($cartItems as $cartItem) {
@@ -87,10 +88,14 @@ class CheckoutController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create order
+            // Create order (save subtotal, tax, shipping for reporting)
             $order = Order::create([
                 'user_id' => $user->id,
                 'total_amount' => $total,
+                'subtotal_amount' => $subtotal,
+                'tax_amount' => $tax,
+                'tax_percent' => $taxPercent,
+                'shipping_amount' => $shipping,
                 'payment_status' => $request->payment_method === 'cash_on_delivery' ? 'pending' : 'pending',
                 'payment_method' => $request->payment_method,
                 'order_status' => 'pending',

@@ -166,6 +166,8 @@ class CheckoutComController extends Controller
         $summary = CartController::buildOrderSummary($subtotal);
         $total = $summary['total'];
         $shippingAmount = $summary['shipping'];
+        $taxAmount = $summary['tax'];
+        $taxPercent = $summary['tax_percent'];
 
         $order = Order::create([
             'user_id' => null,
@@ -179,6 +181,9 @@ class CheckoutComController extends Controller
             'guest_country' => $request->input('country'),
             'shipping_address_id' => null,
             'total_amount' => $total,
+            'subtotal_amount' => $subtotal,
+            'tax_amount' => $taxAmount,
+            'tax_percent' => $taxPercent,
             'shipping_amount' => $shippingAmount,
             'order_status' => 'pending',
             'payment_status' => 'pending',
@@ -250,11 +255,16 @@ class CheckoutComController extends Controller
         $summary = CartController::buildOrderSummary($subtotal);
         $total = $summary['total'];
         $shippingAmount = $summary['shipping'];
+        $taxAmount = $summary['tax'];
+        $taxPercent = $summary['tax_percent'];
 
         $order = Order::create([
             'user_id' => $user->id,
             'shipping_address_id' => $address->id,
             'total_amount' => $total,
+            'subtotal_amount' => $subtotal,
+            'tax_amount' => $taxAmount,
+            'tax_percent' => $taxPercent,
             'shipping_amount' => $shippingAmount,
             'order_status' => 'pending',
             'payment_status' => 'pending',
