@@ -57,6 +57,7 @@ class ExclusiveOfferController extends Controller
         $imageFile = $this->getSingleImageFile($request, 'image');
         if ($imageFile && $imageFile->isValid()) {
             $imagePath = $imageFile->store('exclusive_offers', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($imagePath);
         }
 
         try {
@@ -139,6 +140,7 @@ class ExclusiveOfferController extends Controller
                 Storage::disk('public')->delete($offer->image);
             }
             $data['image'] = $imageFile->store('exclusive_offers', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($data['image']);
         }
 
         $offer->update($data);

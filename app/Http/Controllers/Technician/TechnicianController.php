@@ -204,7 +204,7 @@ class TechnicianController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:20480',
             'type' => 'nullable|string|in:before,during,after',
         ], [
             'photo.required' => 'Please select an image file to upload.',
@@ -218,6 +218,7 @@ class TechnicianController extends Controller
         $file = $request->file('photo');
         $type = $request->input('type', 'after');
         $path = $file->store('visit_photos', 'public');
+        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($path);
 
         $vp = VisitPhoto::create([
             'visit_id' => $visit->id,

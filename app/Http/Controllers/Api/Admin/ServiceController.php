@@ -96,6 +96,7 @@ class ServiceController extends Controller
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('services', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($data['image']);
         }
 
         $service = Service::create($data);
@@ -159,6 +160,7 @@ class ServiceController extends Controller
                 Storage::disk('public')->delete($service->image);
             }
             $updateData['image'] = $request->file('image')->store('services', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($updateData['image']);
         }
 
         $service->update($updateData);

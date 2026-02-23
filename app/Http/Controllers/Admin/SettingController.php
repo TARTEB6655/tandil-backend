@@ -212,7 +212,7 @@ class SettingController extends Controller
     {
         $request->validate([
             'app_name' => 'required|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:20480',
             'primary_color' => 'nullable|string|max:7',
             'secondary_color' => 'nullable|string|max:7',
         ]);
@@ -224,6 +224,7 @@ class SettingController extends Controller
         if ($request->hasFile('logo')) {
             $logo = $request->file('logo');
             $logoPath = $logo->store('images', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($logoPath);
             Setting::set('logo', $logoPath, 'image', 'branding');
         }
 

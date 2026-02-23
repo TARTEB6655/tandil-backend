@@ -47,6 +47,7 @@ class PackageController extends Controller
         $imagePath = null;
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $imagePath = $request->file('image')->store('packages', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($imagePath);
         }
 
         $package = Package::create([
@@ -103,6 +104,7 @@ class PackageController extends Controller
                 Storage::disk('public')->delete($package->image);
             }
             $data['image'] = $request->file('image')->store('packages', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($data['image']);
         }
 
         $package->update($data);

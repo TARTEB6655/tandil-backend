@@ -136,7 +136,7 @@ class VisitController extends Controller
         $visit = Visit::where('technician_id', $user->id)->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:20480',
             'type' => 'nullable|in:before,during,after',
         ]);
 
@@ -147,6 +147,7 @@ class VisitController extends Controller
         $file = $request->file('photo');
         $type = $request->input('type', 'after');
         $path = $file->store('visit_photos', 'public');
+        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($path);
 
         $visitPhoto = \App\Models\VisitPhoto::create([
             'visit_id' => $visit->id,

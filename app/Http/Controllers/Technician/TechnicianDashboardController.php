@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Technician;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Services\ImageCompressionService;
 use App\Models\TechnicianAvailability;
 use App\Models\TechnicianBankAccount;
 use App\Models\TechnicianBreak;
@@ -163,7 +164,7 @@ class TechnicianDashboardController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
         ];
         if ($profileFile) {
-            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
+            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480';
         }
         $validator = Validator::make(array_merge($input, ['profile_picture' => $profileFile]), $rules);
         if ($validator->fails()) {
@@ -185,7 +186,9 @@ class TechnicianDashboardController extends Controller
             $user->phone = $request->input('phone') ?: null;
         }
         if ($profileFile) {
-            $user->profile_picture = $profileFile->store('profiles', 'public');
+            $stored = $profileFile->store('profiles', 'public');
+            $user->profile_picture = $stored;
+            ImageCompressionService::compressIfNeededFromPublicPath($stored);
         }
         $user->save();
 

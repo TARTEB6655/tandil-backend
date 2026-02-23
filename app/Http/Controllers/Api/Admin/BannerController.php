@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Banner;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -39,7 +40,7 @@ class BannerController extends Controller
         $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:20480',
             'button_link' => 'nullable|string|max:500',
             'button_text' => 'nullable|string|max:100',
             'priority' => 'nullable|integer|min:0',
@@ -53,6 +54,7 @@ class BannerController extends Controller
         $imageFile = $this->getSingleImageFile($request, 'image');
         if ($imageFile && $imageFile->isValid()) {
             $imagePath = $imageFile->store('banners', 'public');
+            ImageCompressionService::compressIfNeededFromPublicPath($imagePath);
         }
 
         try {
@@ -224,7 +226,7 @@ class BannerController extends Controller
         $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:20480',
             'button_link' => 'nullable|string|max:500',
             'button_text' => 'nullable|string|max:100',
             'priority' => 'nullable|integer|min:0',
@@ -252,6 +254,7 @@ class BannerController extends Controller
                 Storage::disk('public')->delete($banner->image);
             }
             $data['image'] = $imageFile->store('banners', 'public');
+            ImageCompressionService::compressIfNeededFromPublicPath($data['image']);
         }
 
         try {

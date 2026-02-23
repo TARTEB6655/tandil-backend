@@ -68,6 +68,7 @@ class ServicesController extends Controller
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('services', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($validated['image']);
         }
 
         Service::create($validated);

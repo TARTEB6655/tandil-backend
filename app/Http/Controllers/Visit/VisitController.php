@@ -265,6 +265,7 @@ class VisitController extends Controller
 
         // Upload
         $path = $request->file('photo')->store('visit_photos', 'public');
+        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($path);
 
         $photo = VisitPhoto::create([
             'visit_id'   => $visit->id,

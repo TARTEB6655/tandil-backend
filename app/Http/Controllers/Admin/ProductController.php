@@ -224,13 +224,11 @@ class ProductController extends Controller
     }
 
     /**
-     * Image compression disabled - images are stored as-is for faster uploads.
-     * To enable compression, uncomment the code below.
+     * Compress image if over 5 MB (all image uploads in project).
      */
     private function compressProductImageIfNeeded(string $relativePath): void
     {
-        // Compression disabled for performance - images stored as uploaded
-        return;
+        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($relativePath);
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\ApiResponse;
 use App\Models\Category;
 use App\Http\Requests\CategoryRequest;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
@@ -107,12 +108,11 @@ class CategoryController extends Controller
     }
 
     /**
-     * Image compression disabled - images are stored as-is for faster uploads.
+     * Compress image if over 5 MB (all image uploads in project).
      */
     private function compressCategoryImageIfNeeded(string $relativePath): void
     {
-        // Compression disabled for performance - images stored as uploaded
-        return;
+        ImageCompressionService::compressIfNeededFromPublicPath($relativePath);
     }
 
     /**

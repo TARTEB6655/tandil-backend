@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Package;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -36,7 +37,7 @@ class PackageController extends Controller
         $request->validate([
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:20480',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -51,6 +52,7 @@ class PackageController extends Controller
                 Storage::disk('public')->delete($package->image);
             }
             $data['image'] = $request->file('image')->store('packages', 'public');
+            ImageCompressionService::compressIfNeededFromPublicPath($data['image']);
         }
 
         $package->update($data);

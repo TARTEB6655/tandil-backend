@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Subscriptions, Visits, Reports, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9).",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Subscriptions, Visits, Reports, Shop & Orders incl. Order Summary, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.34.0"
+        "version": "2.35.0"
     },
     "item": [
         {
@@ -301,6 +301,28 @@
                 }
             ],
             "description": "Authentication endpoints - Register, Login, Logout, Password Reset"
+        },
+        {
+            "name": "3a. Client Dashboard – Settings",
+            "item": [
+                {
+                    "name": "Dashboard settings (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/client/settings/dashboard",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "client", "settings", "dashboard"]
+                        },
+                        "description": "GET /api/client/settings/dashboard – Client dashboard settings (title, subtitle, show_banners, show_metrics, show_charts, show_recent_*). Configured by admin; client app reads to render dashboard. Auth: client role."
+                    }
+                }
+            ],
+            "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app)."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",
@@ -1196,6 +1218,49 @@
         {
             "name": "8. Client Dashboard – Shop & Orders",
             "item": [
+                {
+                    "name": "Shop settings (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/settings",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "settings"]
+                        },
+                        "description": "GET /api/shop/settings – Shop settings for client (shipping_amount, tax_percent, currency). No auth. Use in cart/checkout UI."
+                    }
+                },
+                {
+                    "name": "Shop settings (PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {"mode": "raw", "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"},
+                        "url": {"raw": "{{base_url}}/api/shop/settings", "host": ["{{base_url}}"], "path": ["api", "shop", "settings"]},
+                        "description": "PUT /api/shop/settings – Client can update shop settings (shipping_amount, tax_percent). Auth: Bearer token with client role. Same as admin PUT."
+                    }
+                },
+                {
+                    "name": "Order summary (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/order-summary",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "shop", "order-summary"]
+                        },
+                        "description": "GET /api/shop/order-summary – Subtotal, Shipping, Tax, Total for checkout (Address/Payment/Review). Uses current cart; shipping/tax from shop settings. Auth: client."
+                    }
+                },
                 {
                     "name": "Cart - Add Item",
                     "event": [
@@ -2564,9 +2629,9 @@
                 {
                     "name": "Technician Dashboard (Full API)",
                     "item": [
-                        {"name": "Dashboard", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/dashboard", "host": ["{{base_url}}"], "path": ["api", "technician", "dashboard"]}, "description": "Dashboard overview: greeting, KPIs, today's tasks (technician role)."}},
+                        {"name": "Dashboard", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/dashboard", "host": ["{{base_url}}"], "path": ["api", "technician", "dashboard"]}, "description": "Dashboard overview: name, KPIs, today's tasks (technician role)."}},
                         {"name": "Profile (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Get full profile (personal info, availability summary)."}},
-                        {"name": "Profile (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Name", "type": "text"}, {"key": "email", "value": "technician@example.com", "type": "text"}, {"key": "phone", "value": "+971681234567", "type": "text"}, {"key": "service_area", "value": "Dubai", "type": "text"}, {"key": "specializations", "value": "AC,Plumbing", "type": "text"}, {"key": "current_password", "value": "", "type": "text"}, {"key": "password", "value": "", "type": "text"}, {"key": "password_confirmation", "value": "", "type": "text"}, {"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update all technician profile data. Use Body form-data: name, email, phone, service_area, specializations (JSON array string), current_password, password, password_confirmation, profile_picture (one file). Use POST so form-data is received. Returns full profile with profile_picture_url."}},
+                        {"name": "Profile (PUT JSON)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"name\": \"Updated Name\", \"phone\": \"+971681234567\", \"service_area\": \"Dubai\", \"specializations\": \"AC,Plumbing\"}"}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile with JSON (no file). Use PUT. For file upload use Profile (POST form-data)."}}, {"name": "Profile (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Name", "type": "text"}, {"key": "email", "value": "technician@example.com", "type": "text"}, {"key": "phone", "value": "+971681234567", "type": "text"}, {"key": "service_area", "value": "Dubai", "type": "text"}, {"key": "specializations", "value": "AC,Plumbing", "type": "text"}, {"key": "current_password", "value": "", "type": "text"}, {"key": "password", "value": "", "type": "text"}, {"key": "password_confirmation", "value": "", "type": "text"}, {"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile with form-data. POST required for file upload (PHP parses multipart only for POST). Fields: name, email, phone, service_area, specializations (comma or JSON), current_password, password, password_confirmation, profile_picture (one file). Returns full profile with profile_picture_url."}},
                         {"name": "Tasks (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks?filter=today&per_page=15", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks"], "query": [{"key": "filter", "value": "today", "description": "today|upcoming|completed|all"}, {"key": "per_page", "value": "15"}]}, "description": "List tasks (visits). Filter: today, upcoming, completed, all."}},
                         {"name": "Task (by id)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}"]}, "description": "Get single task (visit) detail. Set visit_id."}},
                         {"name": "Task - Update status", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/status", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "status"]}, "description": "Update task status: accepted, in_progress, completed. Optional notes for completed."}},

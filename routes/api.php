@@ -301,6 +301,10 @@ Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manag
 |--------------------------------------------------------------------------
 */
 Route::prefix('shop')->group(function () {
+    // Shop settings: GET public, PUT requires client auth
+    Route::get('/settings', [\App\Http\Controllers\Shop\ShopSettingsController::class, 'index']);
+    Route::middleware(['auth:sanctum', 'role:client'])->put('/settings', [\App\Http\Controllers\Shop\ShopSettingsController::class, 'update']);
+
     // Public product routes (single canonical API for public products)
     Route::get('/products/featured', [\App\Http\Controllers\Shop\ProductController::class, 'featured']);
     Route::get('/products/categories', [\App\Http\Controllers\Shop\ProductController::class, 'getCategories']);
@@ -332,6 +336,7 @@ Route::prefix('shop')->group(function () {
     Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->group(function () {
         Route::post('/cart/add', [\App\Http\Controllers\Shop\CartController::class, 'add']);
         Route::get('/cart', [\App\Http\Controllers\Shop\CartController::class, 'view']);
+        Route::get('/order-summary', [\App\Http\Controllers\Shop\CartController::class, 'orderSummary']);
         Route::put('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::patch('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);
@@ -405,6 +410,15 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/notifications', [\App\Http\Controllers\Api\UserController::class, 'getNotifications']);
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\UserController::class, 'markNotificationAsRead']);
     Route::post('/notifications/read-all', [\App\Http\Controllers\Api\UserController::class, 'markAllNotificationsAsRead']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| CLIENT DASHBOARD SETTINGS (for client app – title, subtitle, section toggles)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(function () {
+    Route::get('/settings/dashboard', [\App\Http\Controllers\Api\ClientSettingsController::class, 'dashboard']);
 });
 
 /*

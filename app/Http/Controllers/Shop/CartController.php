@@ -115,6 +115,21 @@ class CartController extends Controller
     }
 
     /**
+     * GET /api/shop/order-summary
+     * Returns only order summary (subtotal, shipping, tax, total) for checkout screens.
+     * Uses current user's cart subtotal; shipping/tax from shop settings.
+     */
+    public function orderSummary(Request $request)
+    {
+        $user = $request->user();
+        $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
+        $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
+        $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
+        $orderSummary = self::buildOrderSummary($subtotal, 0);
+        return ApiResponse::success('Order summary retrieved.', $orderSummary);
+    }
+
+    /**
      * View cart (Shopping Cart screen: items + order summary).
      */
     public function view(Request $request)

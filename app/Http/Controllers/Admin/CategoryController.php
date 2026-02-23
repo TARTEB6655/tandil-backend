@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -59,6 +60,7 @@ class CategoryController extends Controller
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('categories', 'public');
+            ImageCompressionService::compressIfNeededFromPublicPath($validated['image']);
         }
 
         Category::create($validated);
@@ -91,7 +93,7 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
             'remove_image' => 'nullable|boolean',
             'icon' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
@@ -115,6 +117,7 @@ class CategoryController extends Controller
         }
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('categories', 'public');
+            ImageCompressionService::compressIfNeededFromPublicPath($validated['image']);
         }
         unset($validated['remove_image']);
         if (array_key_exists('is_active', $validated)) {
