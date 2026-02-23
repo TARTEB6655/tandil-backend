@@ -486,11 +486,13 @@
                             "mode": "urlencoded",
                             "urlencoded": [
                                 {"key": "subject", "value": "Support request", "type": "text"},
-                                {"key": "message", "value": "Need help with the app.", "type": "text"}
+                                {"key": "message", "value": "Need help with the app.", "type": "text"},
+                                {"key": "priority", "value": "medium", "type": "text", "description": "optional: low, medium, high, urgent"},
+                                {"key": "category", "value": "general", "type": "text", "description": "optional: general, billing, technical, account, order, other"}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]},
-                        "description": "Submit support ticket. Send as form (x-www-form-urlencoded)."
+                        "description": "Submit support ticket. Body: subject (required), message (required), priority (optional: low|medium|high|urgent), category (optional: general|billing|technical|account|order|other). JSON or form."
                     }
                 }
             ],
@@ -2838,7 +2840,7 @@
                     "item": [
                         {"name": "Help Center (full)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]}, "description": "GET /api/support/help-center – Full Help Center: heading, tagline, get_support, contact_info (phone, email, address, support_hours), submit_ticket (endpoint, method, fields), social_links, faqs. Use for Help Center screen."}},
                         {"name": "FAQs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]}, "description": "List FAQs for Help & Support (any authenticated role)."}},
-                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"message\": \"Need help with the app.\"}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket."}}
+                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"message\": \"Need help with the app.\", \"priority\": \"medium\", \"category\": \"general\"}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket. Body: subject, message (required); priority (optional: low|medium|high|urgent), category (optional: general|billing|technical|account|order|other)."}}
                     ],
                     "description": "Help & Support: Help Center (full payload with contact_info, submit_ticket, social_links, faqs), FAQs, submit ticket. Contact from admin settings (contact_phone, contact_email, contact_address, support_hours, social URLs)."
                 }

@@ -43,6 +43,20 @@ class SupportController extends Controller
             'fields' => [
                 ['key' => 'subject', 'label' => 'Subject', 'type' => 'text', 'required' => true, 'placeholder' => 'Brief subject of your request'],
                 ['key' => 'message', 'label' => 'Message', 'type' => 'textarea', 'required' => true, 'placeholder' => 'Describe your issue or question in detail'],
+                ['key' => 'priority', 'label' => 'Priority', 'type' => 'select', 'required' => false, 'options' => [
+                    ['value' => 'low', 'label' => 'Low'],
+                    ['value' => 'medium', 'label' => 'Medium'],
+                    ['value' => 'high', 'label' => 'High'],
+                    ['value' => 'urgent', 'label' => 'Urgent'],
+                ], 'default' => 'medium'],
+                ['key' => 'category', 'label' => 'Category', 'type' => 'select', 'required' => false, 'options' => [
+                    ['value' => 'general', 'label' => 'General'],
+                    ['value' => 'billing', 'label' => 'Billing'],
+                    ['value' => 'technical', 'label' => 'Technical'],
+                    ['value' => 'account', 'label' => 'Account'],
+                    ['value' => 'order', 'label' => 'Order'],
+                    ['value' => 'other', 'label' => 'Other'],
+                ]],
             ],
         ];
 
@@ -91,12 +105,15 @@ class SupportController extends Controller
 
     /**
      * POST /api/support/tickets - Submit support ticket.
+     * Body: subject (required), message (required), priority (optional: low|medium|high|urgent), category (optional).
      */
     public function storeTicket(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'subject' => 'required|string|max:255',
             'message' => 'required|string|max:5000',
+            'priority' => 'nullable|string|in:low,medium,high,urgent',
+            'category' => 'nullable|string|in:general,billing,technical,account,order,other',
         ]);
 
         if ($validator->fails()) {
@@ -111,6 +128,8 @@ class SupportController extends Controller
             'subject' => $request->input('subject'),
             'message' => $request->input('message'),
             'status' => 'open',
+            'priority' => $request->input('priority', 'medium'),
+            'category' => $request->input('category'),
         ]);
 
         return response()->json([
@@ -121,6 +140,8 @@ class SupportController extends Controller
                 'ticket_number' => $ticket->ticket_number,
                 'subject' => $ticket->subject,
                 'status' => $ticket->status,
+                'priority' => $ticket->priority,
+                'category' => $ticket->category,
                 'created_at' => $ticket->created_at?->toIso8601String(),
             ],
         ], 201);
