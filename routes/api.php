@@ -401,7 +401,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])
 */
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\UserController::class, 'getProfile']);
-    Route::put('/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
+    Route::match(['put', 'post', 'patch'], '/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
     Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);
     Route::post('/addresses', [\App\Http\Controllers\Api\UserController::class, 'createAddress']);
     Route::put('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']);

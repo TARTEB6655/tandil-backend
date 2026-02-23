@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full), FAQs, Submit Ticket.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.42.0"
+        "version": "2.45.0"
     },
     "item": [
         {
@@ -362,20 +362,21 @@
                     }
                 },
                 {
-                    "name": "3. Personal Information – Update (PUT)",
+                    "name": "3. Personal Information – Update (PUT/POST)",
                     "request": {
-                        "method": "PUT",
+                        "method": "POST",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
                         "body": {
-                            "mode": "urlencoded",
-                            "urlencoded": [
-                                {"key": "name", "value": "Client One", "type": "text"},
-                                {"key": "email", "value": "client1@test.com", "type": "text"},
-                                {"key": "phone", "value": "+971501234567", "type": "text"}
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "name", "value": "Client One", "type": "text", "description": "Optional"},
+                                {"key": "email", "value": "client1@test.com", "type": "text", "description": "Optional"},
+                                {"key": "phone", "value": "+971501234567", "type": "text", "description": "Optional"},
+                                {"key": "profile_picture", "type": "file", "src": [], "description": "Profile image (jpeg, png, gif, webp, max 20MB). Select file to update photo."}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
-                        "description": "Profile – Personal Information. Update name, email, phone. Form: x-www-form-urlencoded for text; use multipart/form-data to upload profile_picture (image file). Response includes profile_picture_url."
+                        "description": "Profile – Personal Information. Update name, email, phone and/or profile picture. Body: form-data. For photo: set profile_picture key to File and select an image. PUT or POST both work."
                     }
                 },
                 {
@@ -2252,161 +2253,6 @@
                 }
             ],
             "description": "Shop and e-commerce – Cart, Checkout.com (create-payment-session + webhook), orders, payments. PayPal and COD removed."
-        },
-        {
-            "name": "8a. Client Profile – All Settings (One Place) [12 requests]",
-            "item": [
-                {
-                    "name": "1. Memberships (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/client/memberships", "host": ["{{base_url}}"], "path": ["api", "client", "memberships"]},
-                        "description": "Profile – Memberships. Same data as GET /api/subscriptions: client's subscriptions (plan, dates, amount, visits). Response: data (array), total."
-                    }
-                },
-                {
-                    "name": "2. Personal Information – Get (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
-                        "description": "Profile – Personal Information. Response: id, name, email, phone, profile_picture, profile_picture_url, role."
-                    }
-                },
-                {
-                    "name": "3. Personal Information – Update (PUT)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "body": {
-                            "mode": "urlencoded",
-                            "urlencoded": [
-                                {"key": "name", "value": "Client One", "type": "text"},
-                                {"key": "email", "value": "client1@test.com", "type": "text"},
-                                {"key": "phone", "value": "+971501234567", "type": "text"}
-                            ]
-                        },
-                        "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
-                        "description": "Profile – Personal Information. Update name, email, phone. Form: x-www-form-urlencoded for text; use multipart/form-data to upload profile_picture (image file). Response includes profile_picture_url."
-                    }
-                },
-                {
-                    "name": "4. Addresses – List (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
-                        "description": "Profile – Addresses."
-                    }
-                },
-                {
-                    "name": "5. Addresses – Create (POST)",
-                    "request": {
-                        "method": "POST",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "body": {
-                            "mode": "urlencoded",
-                            "urlencoded": [
-                                {"key": "full_name", "value": "Client One", "type": "text"},
-                                {"key": "phone_number", "value": "+971501234567", "type": "text"},
-                                {"key": "street_address", "value": "123 Main St", "type": "text"},
-                                {"key": "city", "value": "Dubai", "type": "text"},
-                                {"key": "state", "value": "", "type": "text", "disabled": true},
-                                {"key": "zip_code", "value": "", "type": "text", "disabled": true},
-                                {"key": "country", "value": "UAE", "type": "text"},
-                                {"key": "is_default", "value": "1", "type": "text"}
-                            ]
-                        },
-                        "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
-                        "description": "Profile – Addresses. Add new address. Send as form (x-www-form-urlencoded)."
-                    }
-                },
-                {
-                    "name": "6. Addresses – Update (PUT)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "body": {
-                            "mode": "urlencoded",
-                            "urlencoded": [
-                                {"key": "full_name", "value": "Client One", "type": "text"},
-                                {"key": "phone_number", "value": "+971501234567", "type": "text"},
-                                {"key": "street_address", "value": "123 Main St", "type": "text"},
-                                {"key": "city", "value": "Abu Dhabi", "type": "text"},
-                                {"key": "state", "value": "", "type": "text"},
-                                {"key": "zip_code", "value": "", "type": "text"},
-                                {"key": "country", "value": "UAE", "type": "text"},
-                                {"key": "is_default", "value": "0", "type": "text"}
-                            ]
-                        },
-                        "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
-                        "description": "Profile – Addresses. Update address. Set address_id. Send as form (x-www-form-urlencoded)."
-                    }
-                },
-                {
-                    "name": "7. Addresses – Delete (DELETE)",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
-                        "description": "Profile – Addresses. Delete address. Set address_id."
-                    }
-                },
-                {
-                    "name": "8. Payment Methods (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/user/payment-methods", "host": ["{{base_url}}"], "path": ["api", "user", "payment-methods"]},
-                        "description": "Profile – Payment Methods."
-                    }
-                },
-                {
-                    "name": "9. Notifications (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/user/notifications", "host": ["{{base_url}}"], "path": ["api", "user", "notifications"]},
-                        "description": "Profile – Notifications. Tips created by admin."
-                    }
-                },
-                {
-                    "name": "10. Loyalty Points (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/user/loyalty", "host": ["{{base_url}}"], "path": ["api", "user", "loyalty"]},
-                        "description": "Profile – Loyalty Points."
-                    }
-                },
-                {
-                    "name": "11. Help and Support – Help Center (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]},
-                        "description": "Profile – Help and Support. Full Help Center payload."
-                    }
-                },
-                {
-                    "name": "12. Help and Support – Submit ticket (POST)",
-                    "request": {
-                        "method": "POST",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "body": {
-                            "mode": "urlencoded",
-                            "urlencoded": [
-                                {"key": "subject", "value": "Support request", "type": "text"},
-                                {"key": "message", "value": "Need help with the app.", "type": "text"}
-                            ]
-                        },
-                        "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]},
-                        "description": "Submit support ticket. Send as form (x-www-form-urlencoded)."
-                    }
-                }
-            ],
-            "description": "All Profile and Settings APIs in one place (same as 3b). 8. Shop & Orders | 8a. This folder | 8b. Maintenance Photos. Auth: Bearer token (client)."
         },
         {
             "name": "8b. Client Dashboard – Maintenance Photos",
