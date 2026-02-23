@@ -14,16 +14,33 @@ use Illuminate\Validation\Rule;
 class UserController extends Controller
 {
     /**
-     * Get user profile
+     * Profile response shape: id, name, email, phone, profile_picture, profile_picture_url, role.
+     */
+    private function profileToArray($user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone ?? null,
+            'profile_picture' => $user->profile_picture ?? null,
+            'profile_picture_url' => $user->profile_picture_url ?? null,
+            'role' => $user->role ?? null,
+        ];
+    }
+
+    /**
+     * Get user profile (includes profile_picture and profile_picture_url).
      */
     public function getProfile(Request $request)
     {
         $user = $request->user();
-        return ApiResponse::success('Profile retrieved successfully.', $user);
+        return ApiResponse::success('Profile retrieved successfully.', $this->profileToArray($user));
     }
 
     /**
      * Update user profile (name, email, phone, profile_picture). Used by client and other roles.
+     * Accepts form data: name, email, phone. For profile picture use multipart/form-data with profile_picture file.
      */
     public function updateProfile(Request $request)
     {
@@ -44,7 +61,7 @@ class UserController extends Controller
         }
         $user->save();
 
-        return ApiResponse::success('Profile updated successfully.', $user);
+        return ApiResponse::success('Profile updated successfully.', $this->profileToArray($user->fresh()));
     }
 
     /**

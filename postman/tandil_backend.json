@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full), FAQs, Submit Ticket.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.40.0"
+        "version": "2.41.0"
     },
     "item": [
         {
@@ -358,7 +358,7 @@
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
                         "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
-                        "description": "Profile – Personal Information."
+                        "description": "Profile – Personal Information. Response: id, name, email, phone, profile_picture, profile_picture_url, role."
                     }
                 },
                 {
@@ -375,7 +375,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
-                        "description": "Profile – Personal Information. Update name, email, phone. Send as form (x-www-form-urlencoded)."
+                        "description": "Profile – Personal Information. Update name, email, phone. Form: x-www-form-urlencoded for text; use multipart/form-data to upload profile_picture (image file). Response includes profile_picture_url."
                     }
                 },
                 {
@@ -2271,7 +2271,7 @@
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
                         "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
-                        "description": "Profile – Personal Information."
+                        "description": "Profile – Personal Information. Response: id, name, email, phone, profile_picture, profile_picture_url, role."
                     }
                 },
                 {
@@ -2288,7 +2288,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
-                        "description": "Profile – Personal Information. Update name, email, phone. Send as form (x-www-form-urlencoded)."
+                        "description": "Profile – Personal Information. Update name, email, phone. Form: x-www-form-urlencoded for text; use multipart/form-data to upload profile_picture (image file). Response includes profile_picture_url."
                     }
                 },
                 {
