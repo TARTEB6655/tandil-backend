@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full), FAQs, Submit Ticket.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.38.0"
+        "version": "2.39.0"
     },
     "item": [
         {
@@ -1392,7 +1392,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "shop", "order-summary"]
                         },
-                        "description": "GET /api/shop/order-summary – Order summary for checkout (Address/Payment/Review). Auth: Bearer token (client).\n\n**Tax-exclusive:** Subtotal = sum of cart item prices (no tax). Tax = Subtotal × (tax_percent/100). Total = Subtotal − discount + shipping + tax.\n\n**Response (data):**\n- subtotal (number) – Sum of items before tax\n- discount (number) – Currently 0\n- shipping (number) – From settings (0 = free)\n- shipping_label (string) – \"Free\" or amount for display\n- tax_percent (number) – e.g. 5 for 5%\n- tax (number) – Calculated tax amount\n- total (number) – Grand total\n- currency (string) – e.g. \"AED\"\n\n**Example:** subtotal 198, tax 5%, tax 9.9, shipping 3 → total 210.9"
+                        "description": "GET /api/shop/order-summary – Order summary for checkout (Address/Payment/Review). Auth: Bearer token (client).\n\n**Tax-exclusive:** Subtotal = sum of cart item prices (no tax). Total = Subtotal − discount + shipping + (Subtotal × tax_percent/100). Response returns tax_percent only (no tax amount).\n\n**Response (data):**\n- subtotal (number) – Sum of items before tax\n- discount (number) – Currently 0\n- shipping (number) – From settings (0 = free)\n- shipping_label (string) – \"Free\" or amount for display\n- tax_percent (number) – e.g. 5 for 5%\n- total (number) – Grand total\n- currency (string) – e.g. \"AED\""
                     }
                 },
                 {

@@ -130,13 +130,13 @@ class CartController extends Controller
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
         $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
         $orderSummary = self::buildOrderSummary($subtotal, 0);
-        // Ensure numeric fields for JSON (floats)
+        // Ensure numeric fields for JSON (floats). Exclude tax amount from response – only tax_percent is returned.
         $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
         $orderSummary['discount'] = (float) $orderSummary['discount'];
         $orderSummary['shipping'] = (float) $orderSummary['shipping'];
         $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
-        $orderSummary['tax'] = (float) $orderSummary['tax'];
         $orderSummary['total'] = (float) $orderSummary['total'];
+        unset($orderSummary['tax']);
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
     }
 
