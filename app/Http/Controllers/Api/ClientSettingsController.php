@@ -15,6 +15,26 @@ use Illuminate\Http\JsonResponse;
 class ClientSettingsController extends Controller
 {
     /**
+     * GET /api/client/settings/sections
+     * Returns all Profile settings sections in one place (for building Profile screen menu).
+     * Each section has id, title, and path to call for data. Auth: client.
+     */
+    public function sections(): JsonResponse
+    {
+        $sections = [
+            ['id' => 'memberships', 'title' => 'Memberships', 'path' => '/api/client/memberships', 'method' => 'GET'],
+            ['id' => 'personal_information', 'title' => 'Personal Information', 'path' => '/api/user/profile', 'method' => 'GET'],
+            ['id' => 'addresses', 'title' => 'Addresses', 'path' => '/api/user/addresses', 'method' => 'GET'],
+            ['id' => 'payment_methods', 'title' => 'Payment Methods', 'path' => '/api/user/payment-methods', 'method' => 'GET'],
+            ['id' => 'notifications', 'title' => 'Notifications', 'path' => '/api/user/notifications', 'method' => 'GET'],
+            ['id' => 'loyalty_points', 'title' => 'Loyalty Points', 'path' => '/api/user/loyalty', 'method' => 'GET'],
+            ['id' => 'help_support', 'title' => 'Help & Support', 'path' => '/api/support/help-center', 'method' => 'GET'],
+        ];
+
+        return ApiResponse::success('Profile settings sections retrieved.', $sections);
+    }
+
+    /**
      * GET /api/client/memberships
      * List memberships (packages) created by admin. For client profile "Memberships" screen.
      * Auth: client.

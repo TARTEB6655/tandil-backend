@@ -421,6 +421,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 */
 Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(function () {
     Route::get('/settings/dashboard', [\App\Http\Controllers\Api\ClientSettingsController::class, 'dashboard']);
+    Route::get('/settings/sections', [\App\Http\Controllers\Api\ClientSettingsController::class, 'sections']);
     Route::get('/memberships', [\App\Http\Controllers\Api\ClientSettingsController::class, 'memberships']);
 });
 

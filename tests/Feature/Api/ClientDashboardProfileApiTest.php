@@ -34,6 +34,38 @@ class ClientDashboardProfileApiTest extends TestCase
         ];
     }
 
+    // ---- Settings sections (GET /api/client/settings/sections) ----
+    public function test_settings_sections_requires_auth(): void
+    {
+        $response = $this->getJson('/api/client/settings/sections');
+        $response->assertStatus(401);
+    }
+
+    public function test_settings_sections_returns_all_profile_sections(): void
+    {
+        $response = $this->getJson('/api/client/settings/sections', $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('message', 'Profile settings sections retrieved.');
+        $data = $response->json('data');
+        $this->assertIsArray($data);
+        $this->assertGreaterThanOrEqual(7, count($data));
+        $ids = array_column($data, 'id');
+        $this->assertContains('memberships', $ids);
+        $this->assertContains('personal_information', $ids);
+        $this->assertContains('addresses', $ids);
+        $this->assertContains('payment_methods', $ids);
+        $this->assertContains('notifications', $ids);
+        $this->assertContains('loyalty_points', $ids);
+        $this->assertContains('help_support', $ids);
+        foreach ($data as $section) {
+            $this->assertArrayHasKey('id', $section);
+            $this->assertArrayHasKey('title', $section);
+            $this->assertArrayHasKey('path', $section);
+            $this->assertArrayHasKey('method', $section);
+        }
+    }
+
     // ---- Memberships (GET /api/client/memberships) ----
     public function test_memberships_requires_auth(): void
     {

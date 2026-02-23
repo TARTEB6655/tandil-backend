@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Subscriptions, Visits, Reports, Shop & Orders incl. Order Summary, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9).",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full), FAQs, Submit Ticket.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.35.0"
+        "version": "2.36.0"
     },
     "item": [
         {
@@ -339,6 +339,114 @@
                 }
             ],
             "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = admin-created packages."
+        },
+        {
+            "name": "3b. Client Profile – All Settings (One Place)",
+            "item": [
+                {
+                    "name": "Settings sections (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/client/settings/sections", "host": ["{{base_url}}"], "path": ["api", "client", "settings", "sections"]},
+                        "description": "All Profile menu sections in one place. Use to build Profile screen."
+                    }
+                },
+                {
+                    "name": "Memberships (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/client/memberships", "host": ["{{base_url}}"], "path": ["api", "client", "memberships"]},
+                        "description": "Profile – Memberships. Admin-created packages."
+                    }
+                },
+                {
+                    "name": "Personal Information – Get (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
+                        "description": "Profile – Personal Information."
+                    }
+                },
+                {
+                    "name": "Personal Information – Update (PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"name\": \"Client One\", \"email\": \"client1@test.com\", \"phone\": \"+971501234567\"}"},
+                        "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
+                        "description": "Profile – Personal Information. Update name, email, phone."
+                    }
+                },
+                {
+                    "name": "Addresses – List (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
+                        "description": "Profile – Addresses."
+                    }
+                },
+                {
+                    "name": "Addresses – Create (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"full_name\": \"Client One\", \"phone_number\": \"+971501234567\", \"street_address\": \"123 Main St\", \"city\": \"Dubai\", \"country\": \"UAE\", \"is_default\": true}"},
+                        "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
+                        "description": "Profile – Addresses. Add new address."
+                    }
+                },
+                {
+                    "name": "Payment Methods (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/payment-methods", "host": ["{{base_url}}"], "path": ["api", "user", "payment-methods"]},
+                        "description": "Profile – Payment Methods."
+                    }
+                },
+                {
+                    "name": "Notifications (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/notifications", "host": ["{{base_url}}"], "path": ["api", "user", "notifications"]},
+                        "description": "Profile – Notifications. Tips created by admin."
+                    }
+                },
+                {
+                    "name": "Loyalty Points (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/loyalty", "host": ["{{base_url}}"], "path": ["api", "user", "loyalty"]},
+                        "description": "Profile – Loyalty Points."
+                    }
+                },
+                {
+                    "name": "Help and Support – Help Center (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]},
+                        "description": "Profile – Help and Support. Full Help Center payload."
+                    }
+                },
+                {
+                    "name": "Help and Support – Submit ticket (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"message\": \"Need help with the app.\"}"},
+                        "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]},
+                        "description": "Submit support ticket."
+                    }
+                }
+            ],
+            "description": "All Profile and Settings APIs in one folder. Start with Settings sections (GET); then use each endpoint for the corresponding screen. Auth: Bearer token (client)."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",
