@@ -341,19 +341,10 @@
             "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = admin-created packages."
         },
         {
-            "name": "3b. Client Profile – All Settings (One Place)",
+            "name": "3b. Client Profile – All Settings (One Place) [12 requests]",
             "item": [
                 {
-                    "name": "Settings sections (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/client/settings/sections", "host": ["{{base_url}}"], "path": ["api", "client", "settings", "sections"]},
-                        "description": "All Profile menu sections in one place. Use to build Profile screen."
-                    }
-                },
-                {
-                    "name": "Memberships (GET)",
+                    "name": "1. Memberships (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -362,7 +353,7 @@
                     }
                 },
                 {
-                    "name": "Personal Information – Get (GET)",
+                    "name": "2. Personal Information – Get (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -371,7 +362,7 @@
                     }
                 },
                 {
-                    "name": "Personal Information – Update (PUT)",
+                    "name": "3. Personal Information – Update (PUT)",
                     "request": {
                         "method": "PUT",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
@@ -381,7 +372,7 @@
                     }
                 },
                 {
-                    "name": "Addresses – List (GET)",
+                    "name": "4. Addresses – List (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -390,7 +381,7 @@
                     }
                 },
                 {
-                    "name": "Addresses – Create (POST)",
+                    "name": "5. Addresses – Create (POST)",
                     "request": {
                         "method": "POST",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
@@ -400,7 +391,26 @@
                     }
                 },
                 {
-                    "name": "Payment Methods (GET)",
+                    "name": "6. Addresses – Update (PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"full_name\": \"Client One\", \"city\": \"Abu Dhabi\"}"},
+                        "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
+                        "description": "Profile – Addresses. Update address. Set address_id."
+                    }
+                },
+                {
+                    "name": "7. Addresses – Delete (DELETE)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
+                        "description": "Profile – Addresses. Delete address. Set address_id."
+                    }
+                },
+                {
+                    "name": "8. Payment Methods (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -409,7 +419,7 @@
                     }
                 },
                 {
-                    "name": "Notifications (GET)",
+                    "name": "9. Notifications (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -418,7 +428,7 @@
                     }
                 },
                 {
-                    "name": "Loyalty Points (GET)",
+                    "name": "10. Loyalty Points (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -427,7 +437,7 @@
                     }
                 },
                 {
-                    "name": "Help and Support – Help Center (GET)",
+                    "name": "11. Help and Support – Help Center (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -436,7 +446,7 @@
                     }
                 },
                 {
-                    "name": "Help and Support – Submit ticket (POST)",
+                    "name": "12. Help and Support – Submit ticket (POST)",
                     "request": {
                         "method": "POST",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
@@ -446,7 +456,7 @@
                     }
                 }
             ],
-            "description": "All Profile and Settings APIs in one folder. Start with Settings sections (GET); then use each endpoint for the corresponding screen. Auth: Bearer token (client)."
+            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9) Notifications, (10) Loyalty Points, (11-12) Help and Support. Auth: Bearer token (client)."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",
@@ -2205,6 +2215,124 @@
                 }
             ],
             "description": "Shop and e-commerce – Cart, Checkout.com (create-payment-session + webhook), orders, payments. PayPal and COD removed."
+        },
+        {
+            "name": "8a. Client Profile – All Settings (One Place) [12 requests]",
+            "item": [
+                {
+                    "name": "1. Memberships (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/client/memberships", "host": ["{{base_url}}"], "path": ["api", "client", "memberships"]},
+                        "description": "Profile – Memberships. Admin-created packages."
+                    }
+                },
+                {
+                    "name": "2. Personal Information – Get (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
+                        "description": "Profile – Personal Information."
+                    }
+                },
+                {
+                    "name": "3. Personal Information – Update (PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"name\": \"Client One\", \"email\": \"client1@test.com\", \"phone\": \"+971501234567\"}"},
+                        "url": {"raw": "{{base_url}}/api/user/profile", "host": ["{{base_url}}"], "path": ["api", "user", "profile"]},
+                        "description": "Profile – Personal Information. Update name, email, phone."
+                    }
+                },
+                {
+                    "name": "4. Addresses – List (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
+                        "description": "Profile – Addresses."
+                    }
+                },
+                {
+                    "name": "5. Addresses – Create (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"full_name\": \"Client One\", \"phone_number\": \"+971501234567\", \"street_address\": \"123 Main St\", \"city\": \"Dubai\", \"country\": \"UAE\", \"is_default\": true}"},
+                        "url": {"raw": "{{base_url}}/api/user/addresses", "host": ["{{base_url}}"], "path": ["api", "user", "addresses"]},
+                        "description": "Profile – Addresses. Add new address."
+                    }
+                },
+                {
+                    "name": "6. Addresses – Update (PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"full_name\": \"Client One\", \"city\": \"Abu Dhabi\"}"},
+                        "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
+                        "description": "Profile – Addresses. Update address. Set address_id."
+                    }
+                },
+                {
+                    "name": "7. Addresses – Delete (DELETE)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
+                        "description": "Profile – Addresses. Delete address. Set address_id."
+                    }
+                },
+                {
+                    "name": "8. Payment Methods (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/payment-methods", "host": ["{{base_url}}"], "path": ["api", "user", "payment-methods"]},
+                        "description": "Profile – Payment Methods."
+                    }
+                },
+                {
+                    "name": "9. Notifications (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/notifications", "host": ["{{base_url}}"], "path": ["api", "user", "notifications"]},
+                        "description": "Profile – Notifications. Tips created by admin."
+                    }
+                },
+                {
+                    "name": "10. Loyalty Points (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/loyalty", "host": ["{{base_url}}"], "path": ["api", "user", "loyalty"]},
+                        "description": "Profile – Loyalty Points."
+                    }
+                },
+                {
+                    "name": "11. Help and Support – Help Center (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]},
+                        "description": "Profile – Help and Support. Full Help Center payload."
+                    }
+                },
+                {
+                    "name": "12. Help and Support – Submit ticket (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"message\": \"Need help with the app.\"}"},
+                        "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]},
+                        "description": "Submit support ticket."
+                    }
+                }
+            ],
+            "description": "All Profile and Settings APIs in one place (same as 3b). 8. Shop & Orders | 8a. This folder | 8b. Maintenance Photos. Auth: Bearer token (client)."
         },
         {
             "name": "8b. Client Dashboard – Maintenance Photos",

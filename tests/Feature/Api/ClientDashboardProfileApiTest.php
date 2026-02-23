@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Package;
 use App\Models\Tip;
 use App\Models\User;
+use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -173,6 +174,69 @@ class ClientDashboardProfileApiTest extends TestCase
         }
     }
 
+    public function test_user_addresses_create_success(): void
+    {
+        $response = $this->postJson('/api/user/addresses', [
+            'full_name' => 'Client One',
+            'phone_number' => '+971501234567',
+            'street_address' => '123 Main St',
+            'city' => 'Dubai',
+            'country' => 'UAE',
+            'is_default' => true,
+        ], $this->authHeaders());
+        $response->assertStatus(201);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('message', 'Address created successfully.');
+        $response->assertJsonPath('data.full_name', 'Client One');
+        $response->assertJsonPath('data.city', 'Dubai');
+        $this->assertDatabaseHas('user_addresses', [
+            'user_id' => $this->client->id,
+            'full_name' => 'Client One',
+            'city' => 'Dubai',
+        ]);
+    }
+
+    public function test_user_addresses_update_success(): void
+    {
+        $address = UserAddress::create([
+            'user_id' => $this->client->id,
+            'full_name' => 'Old Name',
+            'phone_number' => '+971501234567',
+            'street_address' => '123 Main St',
+            'city' => 'Dubai',
+            'country' => 'UAE',
+            'is_default' => false,
+        ]);
+        $response = $this->putJson("/api/user/addresses/{$address->id}", [
+            'full_name' => 'Updated Name',
+            'city' => 'Abu Dhabi',
+        ], $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.full_name', 'Updated Name');
+        $response->assertJsonPath('data.city', 'Abu Dhabi');
+        $address->refresh();
+        $this->assertSame('Updated Name', $address->full_name);
+        $this->assertSame('Abu Dhabi', $address->city);
+    }
+
+    public function test_user_addresses_delete_success(): void
+    {
+        $address = UserAddress::create([
+            'user_id' => $this->client->id,
+            'full_name' => 'To Delete',
+            'phone_number' => '+971501234567',
+            'street_address' => '123 Main St',
+            'city' => 'Dubai',
+            'country' => 'UAE',
+            'is_default' => false,
+        ]);
+        $response = $this->deleteJson("/api/user/addresses/{$address->id}", [], $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $this->assertDatabaseMissing('user_addresses', ['id' => $address->id]);
+    }
+
     // ---- Loyalty (GET /api/user/loyalty) ----
     public function test_user_loyalty_requires_auth(): void
     {
@@ -265,5 +329,39 @@ class ClientDashboardProfileApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $response->assertJsonStructure(['data']);
+    }
+
+    // ---- Help & Support: Submit ticket (POST /api/support/tickets) ----
+    public function test_support_submit_ticket_requires_auth(): void
+    {
+        $response = $this->postJson('/api/support/tickets', [
+            'subject' => 'Test',
+            'message' => 'Test message',
+        ]);
+        $response->assertStatus(401);
+    }
+
+    public function test_support_submit_ticket_success(): void
+    {
+        $response = $this->postJson('/api/support/tickets', [
+            'subject' => 'Support request',
+            'message' => 'Need help with the app.',
+        ], $this->authHeaders());
+        $response->assertStatus(201);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('message', 'Support ticket submitted successfully.');
+        $response->assertJsonStructure(['data' => ['id', 'ticket_number', 'subject', 'status', 'created_at']]);
+        $this->assertDatabaseHas('support_tickets', [
+            'user_id' => $this->client->id,
+            'subject' => 'Support request',
+            'status' => 'open',
+        ]);
+    }
+
+    public function test_support_submit_ticket_validation(): void
+    {
+        $response = $this->postJson('/api/support/tickets', [], $this->authHeaders());
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['subject', 'message']);
     }
 }
