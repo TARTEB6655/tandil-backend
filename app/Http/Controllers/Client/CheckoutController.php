@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Shop\CartController as ShopCartController;
 use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\Order;
@@ -33,15 +34,19 @@ class CheckoutController extends Controller
             return redirect()->route('client.cart.index')->with('error', 'Your cart is empty.');
         }
 
-        $subtotal = $cartItems->sum(function ($item) {
-            return $item->quantity * $item->product->price;
-        });
+        $subtotal = round($cartItems->sum(function ($item) {
+            return $item->product ? $item->quantity * (float) $item->product->price : 0;
+        }), 2);
 
-        $tax = $subtotal * 0.05; // 5% tax
-        $shipping = 0; // Free shipping
-        $total = $subtotal + $tax + $shipping;
+        // Use same order summary as API (admin settings: tax %, shipping)
+        $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+        $tax = $orderSummary['tax'];
+        $shipping = $orderSummary['shipping'];
+        $total = $orderSummary['total'];
+        $taxPercent = $orderSummary['tax_percent'];
+        $shippingLabel = $orderSummary['shipping_label'];
 
-        return view('client.checkout.index', compact('cartItems', 'subtotal', 'tax', 'shipping', 'total', 'user'));
+        return view('client.checkout.index', compact('cartItems', 'subtotal', 'tax', 'shipping', 'total', 'taxPercent', 'shippingLabel', 'user'));
     }
 
     public function process(Request $request)
@@ -64,13 +69,14 @@ class CheckoutController extends Controller
             return back()->with('error', 'Your cart is empty.');
         }
 
-        // Calculate totals
-        $subtotal = $cartItems->sum(function ($item) {
-            return $item->quantity * $item->product->price;
-        });
-        $tax = $subtotal * 0.05;
-        $shipping = 0;
-        $total = $subtotal + $tax + $shipping;
+        // Calculate totals – same as API (admin settings: tax %, shipping)
+        $subtotal = round($cartItems->sum(function ($item) {
+            return $item->quantity * (float) $item->product->price;
+        }), 2);
+        $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+        $tax = $orderSummary['tax'];
+        $shipping = $orderSummary['shipping'];
+        $total = $orderSummary['total'];
 
         // Check stock availability
         foreach ($cartItems as $cartItem) {

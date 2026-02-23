@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,30 +14,28 @@ class NotificationController extends Controller
         $this->middleware(['auth', 'role:client']);
     }
 
-    public function index()
+    /**
+     * Show notifications (tips created by admin) – same data as API GET /api/user/notifications.
+     */
+    public function index(Request $request)
     {
-        $user = Auth::user();
-        $notifications = $user->notifications()->paginate(20);
-        $unreadCount = $user->unreadNotifications()->count();
+        $tips = Tip::where('status', 'published')
+            ->orderByDesc('created_at')
+            ->paginate(20);
 
-        return view('client.notifications.index', compact('notifications', 'unreadCount'));
+        return view('client.notifications.index', compact('tips'));
     }
 
     public function markAsRead($id)
     {
-        $user = Auth::user();
-        $notification = $user->notifications()->findOrFail($id);
-        $notification->markAsRead();
-
-        return back()->with('success', 'Notification marked as read.');
+        $tip = Tip::where('status', 'published')->findOrFail($id);
+        // No read state stored; acknowledge only
+        return back()->with('success', 'Marked as read.');
     }
 
     public function markAllAsRead()
     {
-        $user = Auth::user();
-        $user->unreadNotifications->markAsRead();
-
-        return back()->with('success', 'All notifications marked as read.');
+        return back()->with('success', 'All marked as read.');
     }
 }
 

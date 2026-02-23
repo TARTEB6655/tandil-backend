@@ -374,6 +374,19 @@ Route::middleware(['auth', 'role:client'])
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
         Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
 
+        // Profile / Account (aligned with API: memberships, addresses, payment methods, loyalty, help & support)
+        Route::get('/memberships', [\App\Http\Controllers\Client\MembershipController::class, 'index'])->name('memberships.index');
+        Route::get('/addresses', [\App\Http\Controllers\Client\AddressController::class, 'index'])->name('addresses.index');
+        Route::get('/addresses/create', [\App\Http\Controllers\Client\AddressController::class, 'create'])->name('addresses.create');
+        Route::post('/addresses', [\App\Http\Controllers\Client\AddressController::class, 'store'])->name('addresses.store');
+        Route::get('/addresses/{id}/edit', [\App\Http\Controllers\Client\AddressController::class, 'edit'])->name('addresses.edit');
+        Route::put('/addresses/{id}', [\App\Http\Controllers\Client\AddressController::class, 'update'])->name('addresses.update');
+        Route::delete('/addresses/{id}', [\App\Http\Controllers\Client\AddressController::class, 'destroy'])->name('addresses.destroy');
+        Route::get('/payment-methods', [\App\Http\Controllers\Client\PaymentMethodController::class, 'index'])->name('payment-methods.index');
+        Route::get('/loyalty', [\App\Http\Controllers\Client\LoyaltyController::class, 'index'])->name('loyalty.index');
+        Route::get('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'index'])->name('help-support.index');
+        Route::post('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'store'])->name('help-support.store');
+
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Shop\CartController as ShopCartController;
 use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\Product;
@@ -21,16 +22,27 @@ class CartController extends Controller
         $cartItems = Cart::where('user_id', $user->id)
             ->with('product.category')
             ->get();
+        $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
 
-        $subtotal = $cartItems->sum(function ($item) {
-            return $item->quantity * $item->product->price;
-        });
+        $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
 
-        $tax = $subtotal * 0.05; // 5% tax
-        $shipping = 0; // Free shipping for now
-        $total = $subtotal + $tax + $shipping;
+        // Use same order summary as API (admin settings: tax %, shipping)
+        $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+        $tax = $orderSummary['tax'];
+        $shipping = $orderSummary['shipping'];
+        $total = $orderSummary['total'];
+        $taxPercent = $orderSummary['tax_percent'];
+        $shippingLabel = $orderSummary['shipping_label'];
 
-        return view('client.cart.index', compact('cartItems', 'subtotal', 'tax', 'shipping', 'total'));
+        return view('client.cart.index', [
+            'cartItems' => $validItems->values(),
+            'subtotal' => $subtotal,
+            'tax' => $tax,
+            'shipping' => $shipping,
+            'total' => $total,
+            'taxPercent' => $taxPercent,
+            'shippingLabel' => $shippingLabel,
+        ]);
     }
 
     public function add(Request $request)

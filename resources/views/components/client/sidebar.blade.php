@@ -127,20 +127,43 @@
                             </a>
                         </div>
 
-                        <!-- Notifications -->
+                        <!-- Notifications (tips only; no read state) -->
                         <div class="mb-2">
                             <a href="{{ route('client.notifications.index') }}" 
                                class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors {{ request()->routeIs('client.notifications.*') ? 'bg-gray-100 font-semibold' : '' }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                                 </svg>
-                                <span>Notifications</span>
-                                @php
-                                    $unreadCount = auth()->user()->unreadNotifications()->count();
-                                @endphp
-                                @if($unreadCount > 0)
-                                    <span class="ml-auto px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">{{ $unreadCount }}</span>
-                                @endif
+                                Notifications
+                            </a>
+                        </div>
+
+                        <!-- Account (aligned with API: Memberships, Personal Information, Addresses, Payment Methods, Notifications, Loyalty, Help & Support) -->
+                        <div class="pt-2 mt-2 border-t border-gray-200">
+                            <p class="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Account</p>
+                            <a href="{{ route('client.memberships.index') }}" class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors {{ request()->routeIs('client.memberships.*') ? 'bg-gray-100 font-semibold' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                                Memberships
+                            </a>
+                            <a href="{{ route('profile.edit') }}" class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors {{ request()->routeIs('profile.*') ? 'bg-gray-100 font-semibold' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                Personal Information
+                            </a>
+                            <a href="{{ route('client.addresses.index') }}" class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors {{ request()->routeIs('client.addresses.*') ? 'bg-gray-100 font-semibold' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                Addresses
+                            </a>
+                            <a href="{{ route('client.payment-methods.index') }}" class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors {{ request()->routeIs('client.payment-methods.*') ? 'bg-gray-100 font-semibold' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                Payment Methods
+                            </a>
+                            <a href="{{ route('client.loyalty.index') }}" class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors {{ request()->routeIs('client.loyalty.*') ? 'bg-gray-100 font-semibold' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                                Loyalty
+                            </a>
+                            <a href="{{ route('client.help-support.index') }}" class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors {{ request()->routeIs('client.help-support.*') ? 'bg-gray-100 font-semibold' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Help & Support
                             </a>
                         </div>
                     </nav>
