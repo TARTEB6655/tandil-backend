@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, message, optional priority, category).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.46.0"
+        "version": "2.47.0"
     },
     "item": [
         {
@@ -462,6 +462,15 @@
                     }
                 },
                 {
+                    "name": "9b. Notifications – Clear All (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/user/notifications/clear-all", "host": ["{{base_url}}"], "path": ["api", "user", "notifications", "clear-all"]},
+                        "description": "Profile – Notifications. Clear all (marks all as read). Call when user taps \"Clear All\" in the app."
+                    }
+                },
+                {
                     "name": "10. Help and Support – Help Center (GET)",
                     "request": {
                         "method": "GET",
@@ -489,7 +498,7 @@
                     }
                 }
             ],
-            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9) Notifications, (10-11) Help and Support. Auth: Bearer token (client)."
+            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9-9b) Notifications List + Clear All, (10-11) Help and Support. Auth: Bearer token (client)."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",
@@ -6660,7 +6669,7 @@
                 },
                 {
                     "name": "User Notifications",
-                    "description": "User notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
+                    "description": "User notifications – List, Mark as Read, Mark All as Read, Clear All. Auth: Bearer token.",
                     "item": [
                 {
                     "name": "List",
@@ -6747,6 +6756,22 @@
                             ]
                         },
                         "description": "Mark all notifications as read"
+                    }
+                },
+                {
+                    "name": "Clear All",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/notifications/clear-all",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "user", "notifications", "clear-all"]
+                        },
+                        "description": "Clear all notifications. Use when user taps \"Clear All\" in the app. Returns success; app can then clear or refresh the list."
                     }
                 }
                     ]

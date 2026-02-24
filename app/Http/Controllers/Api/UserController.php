@@ -225,12 +225,24 @@ class UserController extends Controller
     }
 
     /**
-     * Mark all notifications as read. No-op when notifications are tips (no read state stored).
+     * Mark all notifications as read.
      */
     public function markAllNotificationsAsRead(Request $request)
     {
-        $request->user()->unreadNotifications->markAsRead();
+        $user = $request->user();
+        $user->unreadNotifications->each(fn ($n) => $n->markAsRead());
         return ApiResponse::success('All notifications marked as read.');
+    }
+
+    /**
+     * Clear all notifications (for client "Clear All" button).
+     * Marks all as read; returns success so the app can clear or refresh the list.
+     */
+    public function clearAllNotifications(Request $request)
+    {
+        $user = $request->user();
+        $user->unreadNotifications->each(fn ($n) => $n->markAsRead());
+        return ApiResponse::success('All notifications cleared.');
     }
 }
 
