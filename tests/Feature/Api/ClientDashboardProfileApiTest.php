@@ -58,7 +58,6 @@ class ClientDashboardProfileApiTest extends TestCase
         $this->assertContains('addresses', $ids);
         $this->assertContains('payment_methods', $ids);
         $this->assertContains('notifications', $ids);
-        $this->assertContains('loyalty_points', $ids);
         $this->assertContains('help_support', $ids);
         foreach ($data as $section) {
             $this->assertArrayHasKey('id', $section);
@@ -237,21 +236,6 @@ class ClientDashboardProfileApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $this->assertDatabaseMissing('user_addresses', ['id' => $address->id]);
-    }
-
-    // ---- Loyalty (GET /api/user/loyalty) ----
-    public function test_user_loyalty_requires_auth(): void
-    {
-        $response = $this->getJson('/api/user/loyalty');
-        $response->assertStatus(401);
-    }
-
-    public function test_user_loyalty_returns_points_structure(): void
-    {
-        $response = $this->getJson('/api/user/loyalty', $this->authHeaders());
-        $response->assertStatus(200);
-        $response->assertJsonPath('success', true);
-        $response->assertJsonStructure(['data' => ['points', 'level']]);
     }
 
     // ---- Notifications (GET /api/user/notifications) ----

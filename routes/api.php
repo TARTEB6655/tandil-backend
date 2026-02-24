@@ -405,10 +405,10 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);
     Route::post('/addresses', [\App\Http\Controllers\Api\UserController::class, 'createAddress']);
     Route::put('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']);
-    Route::post('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']); // POST for multipart/form-data
+    Route::patch('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']);
+    Route::post('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']); // POST for form-data
     Route::delete('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'deleteAddress']);
     Route::get('/payment-methods', [\App\Http\Controllers\Api\UserController::class, 'getPaymentMethods']);
-    Route::get('/loyalty', [\App\Http\Controllers\Api\UserController::class, 'getLoyalty']);
     Route::get('/notifications', [\App\Http\Controllers\Api\UserController::class, 'getNotifications']);
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\UserController::class, 'markNotificationAsRead']);
     Route::post('/notifications/read-all', [\App\Http\Controllers\Api\UserController::class, 'markAllNotificationsAsRead']);

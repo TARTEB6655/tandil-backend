@@ -179,19 +179,6 @@ class UserController extends Controller
     }
 
     /**
-     * Get user loyalty points (placeholder)
-     */
-    public function getLoyalty(Request $request)
-    {
-        $user = $request->user();
-        // TODO: Implement if you have loyalty system
-        return ApiResponse::success('Loyalty points retrieved successfully.', [
-            'points' => 0,
-            'level' => 'Bronze',
-        ]);
-    }
-
-    /**
      * Get user notifications: only tips created by admin (published tips).
      * Shown in Profile → Notifications. Each item has id, title, message, created_at, type.
      */

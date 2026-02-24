@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Loyalty, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, message, optional priority, category).",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, message, optional priority, category).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.46.0"
@@ -431,7 +431,7 @@
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/user/addresses/{{address_id}}", "host": ["{{base_url}}"], "path": ["api", "user", "addresses", "{{address_id}}"]},
-                        "description": "Profile – Addresses. Update address. type optional: home|office|other. Set address_id. Send as form (x-www-form-urlencoded)."
+                        "description": "Profile – Addresses. Update address. PUT or PATCH. Set address_id in environment (from Addresses List or Create response); otherwise URL is .../addresses/ and returns 404. type optional: home|office|other. Send as form (x-www-form-urlencoded)."
                     }
                 },
                 {
@@ -462,16 +462,7 @@
                     }
                 },
                 {
-                    "name": "10. Loyalty Points (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/user/loyalty", "host": ["{{base_url}}"], "path": ["api", "user", "loyalty"]},
-                        "description": "Profile – Loyalty Points."
-                    }
-                },
-                {
-                    "name": "11. Help and Support – Help Center (GET)",
+                    "name": "10. Help and Support – Help Center (GET)",
                     "request": {
                         "method": "GET",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -480,7 +471,7 @@
                     }
                 },
                 {
-                    "name": "12. Help and Support – Submit ticket (POST)",
+                    "name": "11. Help and Support – Submit ticket (POST)",
                     "request": {
                         "method": "POST",
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
@@ -498,7 +489,7 @@
                     }
                 }
             ],
-            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9) Notifications, (10) Loyalty Points, (11-12) Help and Support. Auth: Bearer token (client)."
+            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9) Notifications, (10-11) Help and Support. Auth: Bearer token (client)."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",
@@ -6668,40 +6659,6 @@
                     ]
                 },
                 {
-                    "name": "User Loyalty",
-                    "description": "User loyalty points. Auth: Bearer token.",
-                    "item": [
-                {
-                    "name": "Get",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/user/loyalty",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "user",
-                                "loyalty"
-                            ]
-                        },
-                        "description": "Get user loyalty points and rewards"
-                    }
-                }
-                    ]
-                },
-                {
                     "name": "User Notifications",
                     "description": "User notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
                     "item": [
@@ -6795,7 +6752,7 @@
                     ]
                 }
             ],
-            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (Checkout.com webhook), Services (Public), User Profile, User Addresses, User Loyalty, User Notifications."
+            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (Checkout.com webhook), Services (Public), User Profile, User Addresses, User Notifications."
         }
     ],
     "variable": [

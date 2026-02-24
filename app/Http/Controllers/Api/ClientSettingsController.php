@@ -29,7 +29,6 @@ class ClientSettingsController extends Controller
             ['id' => 'addresses', 'title' => 'Addresses', 'path' => '/api/user/addresses', 'method' => 'GET'],
             ['id' => 'payment_methods', 'title' => 'Payment Methods', 'path' => '/api/user/payment-methods', 'method' => 'GET'],
             ['id' => 'notifications', 'title' => 'Notifications', 'path' => '/api/user/notifications', 'method' => 'GET'],
-            ['id' => 'loyalty_points', 'title' => 'Loyalty Points', 'path' => '/api/user/loyalty', 'method' => 'GET'],
             ['id' => 'help_support', 'title' => 'Help & Support', 'path' => '/api/support/help-center', 'method' => 'GET'],
         ];
 
