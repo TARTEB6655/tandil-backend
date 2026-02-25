@@ -217,6 +217,41 @@ Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manag
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->group(function () {
+    // Dashboard
+    Route::get('/dashboard/summary', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardSummary']);
+    Route::get('/dashboard/kpis', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardKpis']);
+    Route::get('/dashboard/team-status', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardTeamStatus']);
+    Route::get('/dashboard/alerts', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardAlerts']);
+
+    // Team
+    Route::get('/team/statistics', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamStatistics']);
+    Route::get('/team/performance', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamPerformance']);
+    Route::get('/team/attendance', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamAttendance']);
+    Route::get('/team/workload', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamWorkload']);
+
+    // Assignments
+    Route::get('/assignments/pending', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsPending']);
+    Route::post('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsStore']);
+    Route::put('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsUpdate']);
+    Route::post('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsUpdate']);
+    Route::post('/assignments/{id}/reassign', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsReassign']);
+
+    // Reports
+    Route::get('/reports', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsIndex']);
+    Route::post('/reports/generate', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsGenerate']);
+    Route::get('/reports/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsShow']);
+    Route::get('/reports/{id}/download', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsDownload']);
+
+    // Profile
+    Route::get('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'profile']);
+    Route::put('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
+    Route::post('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
+    Route::post('/profile/picture', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'uploadProfilePicture']);
+    Route::put('/profile/picture', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'uploadProfilePicture']);
+    Route::put('/profile/password', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updatePassword']);
+    Route::post('/profile/password', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updatePassword']);
+    Route::get('/profile/preferences', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'profilePreferences']);
+
     Route::get('/visits', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listVisits']);
     Route::get('/visits/{id}', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'reviewVisit']);
     Route::post('/visits/{id}/recommend', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'recommendProducts']);

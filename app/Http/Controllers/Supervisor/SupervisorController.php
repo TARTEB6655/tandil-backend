@@ -13,6 +13,29 @@ use Illuminate\Support\Facades\Validator;
 
 class SupervisorController extends Controller
 {
+    /**
+     * Accept product_ids from form-data as JSON string, CSV, or array.
+     */
+    private function normalizeProductIds(mixed $value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        $decoded = json_decode($trimmed, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        $parts = array_filter(array_map('trim', explode(',', $trimmed)), fn ($item) => $item !== '');
+        return count($parts) ? $parts : null;
+    }
+
     public function __construct()
     {
         // Middleware is handled in routes, but we can add auth here for safety
@@ -88,7 +111,15 @@ class SupervisorController extends Controller
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
-        $validator = Validator::make($request->all(), [
+        $payload = $request->all();
+        if (array_key_exists('product_ids', $payload)) {
+            $normalized = $this->normalizeProductIds($payload['product_ids']);
+            if ($normalized !== null) {
+                $payload['product_ids'] = $normalized;
+            }
+        }
+
+        $validator = Validator::make($payload, [
             'product_ids' => 'required|array',
             'product_ids.*' => 'integer|exists:products,id',
         ]);
@@ -97,7 +128,7 @@ class SupervisorController extends Controller
             return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $productIds = $request->input('product_ids');
+        $productIds = $payload['product_ids'];
 
         $products = Product::whereIn('id', $productIds)->get();
 

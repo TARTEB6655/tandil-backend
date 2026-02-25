@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, email, description).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.48.0"
+        "version": "2.50.0"
     },
     "item": [
         {
@@ -2603,17 +2603,19 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"product_ids\": [1, 2, 3]\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "product_ids",
+                                    "value": "[1,2,3]",
+                                    "type": "text"
+                                }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}/recommend",
@@ -2628,7 +2630,7 @@
                                 "recommend"
                             ]
                         },
-                        "description": "Recommend products for visit"
+                        "description": "Recommend products for visit using form-data. Pass product_ids as JSON string (e.g. [1,2,3]) or product_ids[] keys."
                     }
                 },
                 {
@@ -2641,17 +2643,24 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"notes\": \"Trees need fertilization. Recommended products added.\",\n  \"status\": \"finalized\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "notes",
+                                    "value": "Trees need fertilization. Recommended products added.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "finalized",
+                                    "type": "text"
+                                }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}/finalize",
@@ -2666,7 +2675,7 @@
                                 "finalize"
                             ]
                         },
-                        "description": "Finalize and send report to client"
+                        "description": "Finalize and send report to client using form-data."
                     }
                 },
                 {
@@ -2679,17 +2688,19 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"status\": \"approved\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "status",
+                                    "value": "approved",
+                                    "type": "text"
+                                }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}/status",
@@ -2704,7 +2715,7 @@
                                 "status"
                             ]
                         },
-                        "description": "Approve or reject visit status"
+                        "description": "Approve or reject visit status using form-data."
                     }
                 },
                 {
@@ -2773,17 +2784,24 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"status\": \"escalated\",\n  \"note\": \"Escalating to area manager\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "status",
+                                    "value": "escalated",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "note",
+                                    "value": "Escalating to area manager",
+                                    "type": "text"
+                                }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/supervisor/complaints/{{complaint_id}}/escalate",
@@ -2798,7 +2816,477 @@
                                 "escalate"
                             ]
                         },
-                        "description": "Escalate complaint to area manager"
+                        "description": "Escalate complaint to area manager using form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Profile (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "profile"]
+                        },
+                        "description": "Get supervisor dashboard profile."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/dashboard/summary",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "dashboard", "summary"]
+                        },
+                        "description": "Mobile home dashboard cards: total_visits, pending_visits, in_progress_visits, completed_visits."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - KPIs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/dashboard/kpis",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "dashboard", "kpis"]
+                        },
+                        "description": "KPI block for mobile Team Stats/Home: completed_today, completion_rate_percent, avg_response_minutes, open_complaints."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Team Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/dashboard/team-status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "dashboard", "team-status"]
+                        },
+                        "description": "My Team list on dashboard: technician identity/status/profile_picture_url."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Alerts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/dashboard/alerts",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "dashboard", "alerts"]
+                        },
+                        "description": "Dashboard alert strips: overdue visits and upcoming visits."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Team Statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/team/statistics",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "team", "statistics"]
+                        },
+                        "description": "Team stats screen: assigned/completed/in_progress/pending counts by technician."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Team Performance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/team/performance",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "team", "performance"]
+                        },
+                        "description": "Team performance summary + technician performance list."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Team Attendance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/team/attendance",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "team", "attendance"]
+                        },
+                        "description": "Team attendance block for mobile (is_online + working_days)."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Team Workload",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/team/workload",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "team", "workload"]
+                        },
+                        "description": "7-day workload distribution by technician."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Profile Update (POST form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "name", "value": "Updated Supervisor", "type": "text"},
+                                {"key": "email", "value": "supervisor@example.com", "type": "text"},
+                                {"key": "phone", "value": "+971500000000", "type": "text"},
+                                {"key": "profile_picture", "type": "file", "src": ""}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "profile"]
+                        },
+                        "description": "Update supervisor profile with form-data (supports profile_picture upload)."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Profile Update (PUT form-data)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "name", "value": "Updated Supervisor", "type": "text"},
+                                {"key": "email", "value": "supervisor@example.com", "type": "text"},
+                                {"key": "phone", "value": "+971500000000", "type": "text"},
+                                {"key": "profile_picture", "type": "file", "src": ""}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "profile"]
+                        },
+                        "description": "Update supervisor profile via PUT + form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Profile Picture (POST form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "profile_picture", "type": "file", "src": ""}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/profile/picture",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "profile", "picture"]
+                        },
+                        "description": "Dedicated supervisor profile picture upload endpoint."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Profile Picture (PUT form-data)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "profile_picture", "type": "file", "src": ""}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/profile/picture",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "profile", "picture"]
+                        },
+                        "description": "Dedicated supervisor profile picture update endpoint."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Profile Preferences",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/profile/preferences",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "profile", "preferences"]
+                        },
+                        "description": "Profile preferences/settings payload for supervisor mobile settings section."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Update Password (POST form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "current_password", "value": "CurrentPassword123", "type": "text"},
+                                {"key": "password", "value": "NewPassword123", "type": "text"},
+                                {"key": "password_confirmation", "value": "NewPassword123", "type": "text"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/profile/password",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "profile", "password"]
+                        },
+                        "description": "Update supervisor password with form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Assignments Pending",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/assignments/pending?per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "assignments", "pending"],
+                            "query": [
+                                {"key": "per_page", "value": "20"}
+                            ]
+                        },
+                        "description": "Assign Tasks screen: list pending/unassigned visits with pagination."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Create Assignment (POST form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "visit_id", "value": "1", "type": "text"},
+                                {"key": "technician_id", "value": "2", "type": "text"},
+                                {"key": "scheduled_date", "value": "2026-02-20", "type": "text"},
+                                {"key": "note", "value": "Assign for morning slot", "type": "text"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/assignments",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "assignments"]
+                        },
+                        "description": "Create assignment with form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Update Assignment (POST form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "technician_id", "value": "3", "type": "text"},
+                                {"key": "scheduled_date", "value": "2026-02-21", "type": "text"},
+                                {"key": "note", "value": "Updated schedule", "type": "text"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
+                        },
+                        "description": "Update assignment with form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Update Assignment (PUT form-data)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "technician_id", "value": "3", "type": "text"},
+                                {"key": "scheduled_date", "value": "2026-02-21", "type": "text"},
+                                {"key": "note", "value": "Updated schedule", "type": "text"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
+                        },
+                        "description": "Update assignment with PUT + form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Reassign (POST form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "technician_id", "value": "4", "type": "text"},
+                                {"key": "reason", "value": "Availability changed", "type": "text"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}/reassign",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "assignments", "{{visit_id}}", "reassign"]
+                        },
+                        "description": "Reassign technician with form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Generate Report (POST form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "title", "value": "Weekly Supervisor Report", "type": "text"},
+                                {"key": "type", "value": "operational", "type": "text"},
+                                {"key": "from", "value": "2026-02-01", "type": "text"},
+                                {"key": "to", "value": "2026-02-15", "type": "text"},
+                                {"key": "format", "value": "csv", "type": "text"}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/reports/generate",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "reports", "generate"]
+                        },
+                        "description": "Generate supervisor report with form-data."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Reports (List)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/reports?per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "reports"],
+                            "query": [
+                                {"key": "per_page", "value": "20"}
+                            ]
+                        },
+                        "description": "Supervisor reports list with pagination."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Report (Show)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "reports", "{{report_id}}"]
+                        },
+                        "description": "Get single generated supervisor report."
+                    }
+                },
+                {
+                    "name": "Supervisor Dashboard - Report (Download CSV)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}/download",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "supervisor", "reports", "{{report_id}}", "download"]
+                        },
+                        "description": "Download generated supervisor report CSV."
                     }
                 },
                 {
@@ -2806,31 +3294,31 @@
                     "item": [
                         {"name": "Dashboard", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/dashboard", "host": ["{{base_url}}"], "path": ["api", "technician", "dashboard"]}, "description": "Dashboard overview: name, profile_picture, profile_picture_url, KPIs, today's tasks (technician role)."}},
                         {"name": "Profile (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Get full profile (personal info, availability summary)."}},
-                        {"name": "Profile (PUT JSON)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"name\": \"Updated Name\", \"phone\": \"+971681234567\", \"service_area\": \"Dubai\", \"specializations\": \"AC,Plumbing\"}"}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile with JSON (no file). Use PUT. For file upload use Profile (POST form-data)."}}, {"name": "Profile (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Name", "type": "text"}, {"key": "email", "value": "technician@example.com", "type": "text"}, {"key": "phone", "value": "+971681234567", "type": "text"}, {"key": "service_area", "value": "Dubai", "type": "text"}, {"key": "specializations", "value": "AC,Plumbing", "type": "text"}, {"key": "current_password", "value": "", "type": "text"}, {"key": "password", "value": "", "type": "text"}, {"key": "password_confirmation", "value": "", "type": "text"}, {"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile with form-data. POST required for file upload (PHP parses multipart only for POST). Fields: name, email, phone, service_area, specializations (comma or JSON), current_password, password, password_confirmation, profile_picture (one file). Returns full profile with profile_picture_url."}},
+                        {"name": "Profile (PUT form-data)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Name", "type": "text"}, {"key": "email", "value": "technician@example.com", "type": "text"}, {"key": "phone", "value": "+971681234567", "type": "text"}, {"key": "service_area", "value": "Dubai", "type": "text"}, {"key": "specializations", "value": "AC,Plumbing", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile with form-data (text fields). For profile picture use Profile (POST form-data)."}}, {"name": "Profile (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Name", "type": "text"}, {"key": "email", "value": "technician@example.com", "type": "text"}, {"key": "phone", "value": "+971681234567", "type": "text"}, {"key": "service_area", "value": "Dubai", "type": "text"}, {"key": "specializations", "value": "AC,Plumbing", "type": "text"}, {"key": "current_password", "value": "", "type": "text"}, {"key": "password", "value": "", "type": "text"}, {"key": "password_confirmation", "value": "", "type": "text"}, {"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/technician/profile", "host": ["{{base_url}}"], "path": ["api", "technician", "profile"]}, "description": "Update profile with form-data. Use POST for profile_picture upload. Fields: name, email, phone, service_area, specializations (comma or JSON), current_password, password, password_confirmation, profile_picture (one file). Returns full profile with profile_picture_url."}},
                         {"name": "Tasks (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks?filter=today&per_page=15", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks"], "query": [{"key": "filter", "value": "today", "description": "today|upcoming|completed|all"}, {"key": "per_page", "value": "15"}]}, "description": "List tasks (visits). Filter: today, upcoming, completed, all."}},
                         {"name": "Task (by id)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}"]}, "description": "Get single task (visit) detail. Set visit_id."}},
-                        {"name": "Task - Update status", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/status", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "status"]}, "description": "Update task status: accepted, in_progress, completed. Optional notes for completed."}},
+                        {"name": "Task - Update status", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "status", "value": "in_progress", "type": "text"}, {"key": "notes", "value": "", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/status", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "status"]}, "description": "Update task status with form-data: accepted, in_progress, completed. Optional notes for completed."}},
                         {"name": "Task - Accept", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/accept", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "accept"]}, "description": "Accept assigned task (visit)."}},
-                        {"name": "Task - Reject", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"reason\": \"Not available\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/reject", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "reject"]}, "description": "Reject task. Optional reason."}},
+                        {"name": "Task - Reject", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "reason", "value": "Not available", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/reject", "host": ["{{base_url}}"], "path": ["api", "technician", "tasks", "{{visit_id}}", "reject"]}, "description": "Reject task with form-data. Optional reason."}},
                         {"name": "Jobs (history)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/jobs?period=month&per_page=15", "host": ["{{base_url}}"], "path": ["api", "technician", "jobs"], "query": [{"key": "period", "value": "month", "description": "week|month|year"}, {"key": "per_page", "value": "15"}]}, "description": "Job history with summary KPIs."}},
                         {"name": "Job (by id)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/jobs/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "jobs", "{{visit_id}}"]}, "description": "Get single job (visit) detail. Set visit_id."}},
                         {"name": "Payout summary", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/payout-summary", "host": ["{{base_url}}"], "path": ["api", "technician", "payout-summary"]}, "description": "Earnings: available_balance, pending_earnings, total_earned (stub until payment)."}},
                         {"name": "Payouts (history)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/payouts", "host": ["{{base_url}}"], "path": ["api", "technician", "payouts"]}, "description": "Payout history list (stub)."}},
                         {"name": "Payout settings (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/settings/payout", "host": ["{{base_url}}"], "path": ["api", "technician", "settings", "payout"]}, "description": "Get payout settings: default_bank_account_id, payout_frequency (weekly|biweekly|monthly)."}},
-                        {"name": "Payout settings (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"payout_frequency\": \"weekly\",\n  \"default_bank_account_id\": 1\n}"}, "url": {"raw": "{{base_url}}/api/technician/settings/payout", "host": ["{{base_url}}"], "path": ["api", "technician", "settings", "payout"]}, "description": "Update payout settings."}},
+                        {"name": "Payout settings (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "payout_frequency", "value": "weekly", "type": "text"}, {"key": "default_bank_account_id", "value": "1", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/settings/payout", "host": ["{{base_url}}"], "path": ["api", "technician", "settings", "payout"]}, "description": "Update payout settings with form-data."}},
                         {"name": "Bank accounts (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/bank-accounts", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts"]}, "description": "List bank accounts (masked)."}},
-                        {"name": "Bank account (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"bank_name\": \"Test Bank\",\n  \"account_holder_name\": \"John Doe\",\n  \"last_four\": \"1234\",\n  \"currency\": \"AED\",\n  \"is_default\": true\n}"}, "url": {"raw": "{{base_url}}/api/technician/bank-accounts", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts"]}, "description": "Add bank account. last_four = 4 digits."}},
-                        {"name": "Bank account (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"account_holder_name\": \"Jane Doe\",\n  \"is_default\": true\n}"}, "url": {"raw": "{{base_url}}/api/technician/bank-accounts/{{bank_account_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts", "{{bank_account_id}}"]}, "description": "Update bank account. Set bank_account_id in env."}},
+                        {"name": "Bank account (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "bank_name", "value": "Test Bank", "type": "text"}, {"key": "account_holder_name", "value": "John Doe", "type": "text"}, {"key": "last_four", "value": "1234", "type": "text"}, {"key": "currency", "value": "AED", "type": "text"}, {"key": "is_default", "value": "1", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/bank-accounts", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts"]}, "description": "Add bank account with form-data. last_four = 4 digits."}},
+                        {"name": "Bank account (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "account_holder_name", "value": "Jane Doe", "type": "text"}, {"key": "is_default", "value": "1", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/bank-accounts/{{bank_account_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts", "{{bank_account_id}}"]}, "description": "Update bank account with form-data. Set bank_account_id in env."}},
                         {"name": "Bank account (delete)", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/bank-accounts/{{bank_account_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "bank-accounts", "{{bank_account_id}}"]}, "description": "Remove bank account. Set bank_account_id."}},
                         {"name": "Availability (GET)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/availability", "host": ["{{base_url}}"], "path": ["api", "technician", "availability"]}, "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots."}},
-                        {"name": "Availability (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"is_online\": true,\n  \"auto_accept_jobs\": false,\n  \"working_days\": [\"mon\", \"tue\", \"wed\", \"thu\", \"fri\"],\n  \"working_hours_slots\": [{\n    \"slot\": \"morning\",\n    \"start\": \"08:00\",\n    \"end\": \"12:00\"\n  }]\n}"}, "url": {"raw": "{{base_url}}/api/technician/availability", "host": ["{{base_url}}"], "path": ["api", "technician", "availability"]}, "description": "Update availability."}},
+                        {"name": "Availability (PUT)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "is_online", "value": "1", "type": "text"}, {"key": "auto_accept_jobs", "value": "0", "type": "text"}, {"key": "working_days", "value": "[\"mon\",\"tue\",\"wed\",\"thu\",\"fri\"]", "type": "text"}, {"key": "working_hours_slots", "value": "[{\"slot\":\"morning\",\"start\":\"08:00\",\"end\":\"12:00\"}]", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/availability", "host": ["{{base_url}}"], "path": ["api", "technician", "availability"]}, "description": "Update availability with form-data. Use JSON string for working_days and working_hours_slots."}},
                         {"name": "Breaks (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/breaks", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks"]}, "description": "List breaks. Optional query: from, to (dates)."}},
-                        {"name": "Break (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"date\": \"2026-02-25\",\n  \"start_time\": \"12:00\",\n  \"end_time\": \"13:00\",\n  \"reason\": \"Lunch\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/breaks", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks"]}, "description": "Add break."}},
-                        {"name": "Break (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"reason\": \"Updated reason\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/breaks/{{break_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks", "{{break_id}}"]}, "description": "Update break. Set break_id."}},
+                        {"name": "Break (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "date", "value": "2026-02-25", "type": "text"}, {"key": "start_time", "value": "12:00", "type": "text"}, {"key": "end_time", "value": "13:00", "type": "text"}, {"key": "reason", "value": "Lunch", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/breaks", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks"]}, "description": "Add break with form-data."}},
+                        {"name": "Break (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "reason", "value": "Updated reason", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/breaks/{{break_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks", "{{break_id}}"]}, "description": "Update break with form-data. Set break_id."}},
                         {"name": "Break (delete)", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/breaks/{{break_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "breaks", "{{break_id}}"]}, "description": "Delete break. Set break_id."}},
                         {"name": "Vacations (list)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/vacations", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations"]}, "description": "List vacations. Optional: from, to (dates)."}},
-                        {"name": "Vacation (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-05\",\n  \"reason\": \"Leave\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/vacations", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations"]}, "description": "Add vacation."}},
-                        {"name": "Vacation (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"end_date\": \"2026-03-07\"\n}"}, "url": {"raw": "{{base_url}}/api/technician/vacations/{{vacation_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations", "{{vacation_id}}"]}, "description": "Update vacation. Set vacation_id."}},
+                        {"name": "Vacation (add)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "start_date", "value": "2026-03-01", "type": "text"}, {"key": "end_date", "value": "2026-03-05", "type": "text"}, {"key": "reason", "value": "Leave", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/vacations", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations"]}, "description": "Add vacation with form-data."}},
+                        {"name": "Vacation (update)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "end_date", "value": "2026-03-07", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/technician/vacations/{{vacation_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations", "{{vacation_id}}"]}, "description": "Update vacation with form-data. Set vacation_id."}},
                         {"name": "Vacation (delete)", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/vacations/{{vacation_id}}", "host": ["{{base_url}}"], "path": ["api", "technician", "vacations", "{{vacation_id}}"]}, "description": "Delete vacation. Set vacation_id."}},
                         {"name": "Schedule", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/technician/schedule?from=2026-02-17&to=2026-02-23", "host": ["{{base_url}}"], "path": ["api", "technician", "schedule"], "query": [{"key": "from", "value": "2026-02-17"}, {"key": "to", "value": "2026-02-23"}]}, "description": "Calendar: tasks + breaks + vacations for date range."}}
                     ],
@@ -2841,7 +3329,7 @@
                     "item": [
                         {"name": "Help Center (full)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]}, "description": "GET /api/support/help-center – Full Help Center: heading, tagline, get_support, contact_info (phone, email, address, support_hours), submit_ticket (endpoint, method, fields), social_links, faqs. Use for Help Center screen."}},
                         {"name": "FAQs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]}, "description": "List FAQs for Help & Support (any authenticated role)."}},
-                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"email\": \"client@example.com\", \"description\": \"Need help with the app.\"}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket (Option A). Body: subject, email, description (all required). Backward compatible: message accepted as description."}}
+                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "subject", "value": "Support request", "type": "text"}, {"key": "email", "value": "client@example.com", "type": "text"}, {"key": "description", "value": "Need help with the app.", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket (Option A) with form-data. Body: subject, email, description (all required). Backward compatible: message accepted as description."}}
                     ],
                     "description": "Help & Support: Help Center (full payload with contact_info, submit_ticket, social_links, faqs), FAQs, submit ticket. Contact from admin settings (contact_phone, contact_email, contact_address, support_hours, social URLs)."
                 }
