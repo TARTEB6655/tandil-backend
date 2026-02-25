@@ -155,6 +155,25 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
         ]));
 
         Visit::create(array_merge($base, [
+            'scheduled_date' => $today->toDateString(),
+            'status' => 'pending',
+            'notes' => '[DUMMY-SUP-ASSIGN] Al Noor Orchard | Soil Fertilizing | Al Ain, Abu Dhabi, UAE | 45 min',
+        ]));
+
+        Visit::create(array_merge($base, [
+            'scheduled_date' => $today->toDateString(),
+            'status' => 'accepted',
+            'accepted_at' => $today->copy()->setTime(10, 30),
+            'notes' => '[DUMMY-SUP-ASSIGN] Oasis Fields | Drip Irrigation Check | Al Faqa, Abu Dhabi, UAE | 60 min',
+        ]));
+
+        Visit::create(array_merge($base, [
+            'scheduled_date' => $today->toDateString(),
+            'status' => 'pending',
+            'notes' => '[DUMMY-SUP-ASSIGN] Date Palm Sector B | Tree Pruning | Abu Dhabi, UAE | 75 min',
+        ]));
+
+        Visit::create(array_merge($base, [
             'scheduled_date' => $today->copy()->subDay()->toDateString(),
             'status' => 'completed',
             'accepted_at' => $today->copy()->subDay()->setTime(9, 0),
