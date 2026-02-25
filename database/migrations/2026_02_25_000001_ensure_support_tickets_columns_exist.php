@@ -14,10 +14,13 @@ return new class extends Migration
 
         Schema::table('support_tickets', function (Blueprint $table) {
             if (! Schema::hasColumn('support_tickets', 'priority')) {
-                $table->string('priority')->default('medium')->after('status'); // low, medium, high, urgent
+                $table->string('priority')->default('medium')->after('status');
             }
             if (! Schema::hasColumn('support_tickets', 'category')) {
-                $table->string('category')->nullable()->after('priority'); // general, billing, technical, account, order, other
+                $table->string('category')->nullable()->after('priority');
+            }
+            if (! Schema::hasColumn('support_tickets', 'email')) {
+                $table->string('email')->nullable()->after('user_id');
             }
         });
     }
@@ -29,12 +32,16 @@ return new class extends Migration
         }
 
         Schema::table('support_tickets', function (Blueprint $table) {
+            if (Schema::hasColumn('support_tickets', 'category')) {
+                $table->dropColumn('category');
+            }
             if (Schema::hasColumn('support_tickets', 'priority')) {
                 $table->dropColumn('priority');
             }
-            if (Schema::hasColumn('support_tickets', 'category')) {
-                $table->dropColumn('category');
+            if (Schema::hasColumn('support_tickets', 'email')) {
+                $table->dropColumn('email');
             }
         });
     }
 };
+

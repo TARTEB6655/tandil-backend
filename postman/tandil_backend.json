@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, message, optional priority, category).",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, email, description).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.47.0"
+        "version": "2.48.0"
     },
     "item": [
         {
@@ -488,13 +488,12 @@
                             "mode": "urlencoded",
                             "urlencoded": [
                                 {"key": "subject", "value": "Support request", "type": "text"},
-                                {"key": "message", "value": "Need help with the app.", "type": "text"},
-                                {"key": "priority", "value": "medium", "type": "text", "description": "optional: low, medium, high, urgent"},
-                                {"key": "category", "value": "general", "type": "text", "description": "optional: general, billing, technical, account, order, other"}
+                                {"key": "email", "value": "client@example.com", "type": "text"},
+                                {"key": "description", "value": "Need help with the app.", "type": "text"}
                             ]
                         },
                         "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]},
-                        "description": "Submit support ticket. Body: subject (required), message (required), priority (optional: low|medium|high|urgent), category (optional: general|billing|technical|account|order|other). JSON or form."
+                        "description": "Submit support ticket (Option A). Body: subject (required), email (required), description (required). Backward compatible: message also accepted as description."
                     }
                 }
             ],
@@ -2842,7 +2841,7 @@
                     "item": [
                         {"name": "Help Center (full)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]}, "description": "GET /api/support/help-center – Full Help Center: heading, tagline, get_support, contact_info (phone, email, address, support_hours), submit_ticket (endpoint, method, fields), social_links, faqs. Use for Help Center screen."}},
                         {"name": "FAQs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]}, "description": "List FAQs for Help & Support (any authenticated role)."}},
-                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"message\": \"Need help with the app.\", \"priority\": \"medium\", \"category\": \"general\"}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket. Body: subject, message (required); priority (optional: low|medium|high|urgent), category (optional: general|billing|technical|account|order|other)."}}
+                        {"name": "Submit ticket", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"subject\": \"Support request\", \"email\": \"client@example.com\", \"description\": \"Need help with the app.\"}"}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Submit support ticket (Option A). Body: subject, email, description (all required). Backward compatible: message accepted as description."}}
                     ],
                     "description": "Help & Support: Help Center (full payload with contact_info, submit_ticket, social_links, faqs), FAQs, submit ticket. Contact from admin settings (contact_phone, contact_email, contact_address, support_hours, social URLs)."
                 }

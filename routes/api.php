@@ -270,6 +270,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::put('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'update']);
     Route::delete('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'destroy']);
     Route::post('/products/{id}/toggle-status', [\App\Http\Controllers\Admin\ProductController::class, 'toggleStatus']);
+
+    // Support Tickets (submitted by clients)
+    Route::get('/support/tickets', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'index']);
+    Route::get('/support/tickets/{id}', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'show']);
+    Route::post('/support/tickets/{id}/reply', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'reply']);
+    Route::put('/support/tickets/{id}/status', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'updateStatus']);
 });
 
 /*

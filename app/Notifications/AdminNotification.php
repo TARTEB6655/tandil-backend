@@ -13,16 +13,19 @@ class AdminNotification extends Notification
 
     protected $title;
     protected $message;
+    protected $meta;
 
-    public function __construct($title, $message)
+    public function __construct($title, $message, array $meta = [])
     {
         $this->title = $title;
         $this->message = $message;
+        $this->meta = $meta;
     }
 
     public function via($notifiable)
     {
-        return ['database', 'mail'];
+        // SMTP-free mode: keep notifications in database only.
+        return ['database'];
     }
 
     public function toMail($notifiable)
@@ -39,6 +42,7 @@ class AdminNotification extends Notification
             'title' => $this->title,
             'message' => $this->message,
             'type' => 'admin_notification',
+            'meta' => $this->meta,
         ];
     }
 }

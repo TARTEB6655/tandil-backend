@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\Setting;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketReply;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -42,7 +45,12 @@ class HelpSupportController extends Controller
         $heading = 'How can we help you?';
         $tagline = 'Find answers to common questions or get in touch with our support team';
 
-        return view('client.help-support.index', compact('heading', 'tagline', 'getSupport', 'contactInfo', 'faqs'));
+        $tickets = SupportTicket::where('user_id', Auth::id())
+            ->withCount('replies')
+            ->latest()
+            ->get();
+
+        return view('client.help-support.index', compact('heading', 'tagline', 'getSupport', 'contactInfo', 'faqs', 'tickets'));
     }
 
     /**
@@ -52,14 +60,92 @@ class HelpSupportController extends Controller
     {
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
-            'message' => 'required|string|max:5000',
+            'email' => 'required|email|max:255',
+            'description' => 'required|string|max:5000',
         ]);
-        SupportTicket::create([
+
+        $ticket = SupportTicket::create([
             'user_id' => Auth::id(),
             'subject' => $validated['subject'],
-            'message' => $validated['message'],
+            'email' => $validated['email'],
+            'message' => $validated['description'],
             'status' => 'open',
+            'priority' => 'medium',
+            'category' => 'general',
         ]);
-        return redirect()->route('client.help-support.index')->with('success', 'Support ticket submitted. We will get back to you soon.');
+
+        // Notify admins when client submits a new support ticket.
+        $admins = User::role('admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new AdminNotification(
+                'New Support Ticket',
+                "A client submitted ticket {$ticket->ticket_number} from {$ticket->email}: {$ticket->subject}",
+                [
+                    'entity' => 'support_ticket',
+                    'ticket_id' => $ticket->id,
+                    'ticket_number' => $ticket->ticket_number,
+                    'email' => $ticket->email,
+                    'subject' => $ticket->subject,
+                    'description' => $ticket->message,
+                    'action' => 'open_ticket',
+                ]
+            ));
+        }
+
+        return redirect()->route('client.help-support.show', $ticket->id)->with('success', 'Support ticket submitted. We will get back to you soon.');
+    }
+
+    /**
+     * Show one ticket thread for the logged-in client.
+     */
+    public function show(int $id)
+    {
+        $ticket = SupportTicket::with(['replies.user'])->where('user_id', Auth::id())->findOrFail($id);
+        return view('client.help-support.show', compact('ticket'));
+    }
+
+    /**
+     * Client reply on existing ticket thread.
+     */
+    public function reply(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|max:5000',
+        ]);
+
+        $ticket = SupportTicket::where('user_id', Auth::id())->findOrFail($id);
+
+        if ($ticket->status === 'closed') {
+            return back()->withErrors(['message' => 'This ticket is closed and cannot be replied to.']);
+        }
+
+        SupportTicketReply::create([
+            'support_ticket_id' => $ticket->id,
+            'user_id' => Auth::id(),
+            'message' => $validated['message'],
+            'is_admin' => false,
+        ]);
+
+        if (in_array($ticket->status, ['open', 'resolved'], true)) {
+            $ticket->status = 'in_progress';
+            $ticket->save();
+        }
+
+        // Notify admins about client reply.
+        $admins = User::role('admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new AdminNotification(
+                'Client Replied on Support Ticket',
+                "Client replied on ticket {$ticket->ticket_number}.",
+                [
+                    'entity' => 'support_ticket',
+                    'ticket_id' => $ticket->id,
+                    'ticket_number' => $ticket->ticket_number,
+                    'action' => 'open_ticket_reply',
+                ]
+            ));
+        }
+
+        return back()->with('success', 'Reply sent successfully.');
     }
 }

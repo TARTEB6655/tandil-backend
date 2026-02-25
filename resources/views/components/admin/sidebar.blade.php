@@ -43,7 +43,7 @@
                         subscriptions: {{ request()->routeIs('admin.subscription-plans.*') || request()->routeIs('admin.subscriptions.*') ? 'true' : 'false' }},
                         operations: {{ request()->routeIs('admin.visits.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.report-management.*') || request()->routeIs('admin.areas.*') || request()->routeIs('admin.recent-activities.*') ? 'true' : 'false' }},
                         ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') ? 'true' : 'false' }},
-                        communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') ? 'true' : 'false' }},
+                        communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') ? 'true' : 'false' }},
                         management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') ? 'true' : 'false' }},
                         settings: {{ request()->routeIs('admin.settings.*') ? 'true' : 'false' }}
                     }">
@@ -334,6 +334,15 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                         Complaints
+                                    </a>
+                                </li>
+                                <li style="padding-left: 0px;">
+                                    <a href="{{ route('admin.support-tickets.index') }}" 
+                                       class="flex items-center gap-2.5 rounded-md pl-7 pr-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors {{ request()->routeIs('admin.support-tickets.*') ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold' : '' }}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8m-8 4h6m4 5H6a2 2 0 01-2-2V7a2 2 0 012-2h3l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Support Tickets
                                     </a>
                                 </li>
                             </ul>

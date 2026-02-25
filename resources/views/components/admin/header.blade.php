@@ -127,6 +127,11 @@
                                 @php
                                     $data = $notification->data;
                                     $type = $notification->type;
+                                    $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+                                    $notificationUrl = route('admin.notifications.index');
+                                    if (($meta['entity'] ?? null) === 'support_ticket' && !empty($meta['ticket_id'])) {
+                                        $notificationUrl = route('admin.support-tickets.show', $meta['ticket_id']);
+                                    }
                                     $iconColor = 'blue';
                                     $iconBg = 'bg-blue-50';
                                     $iconBorder = 'border-blue-100';
@@ -150,7 +155,7 @@
                                     }
                                 @endphp
                                 <a 
-                                    href="{{ route('admin.notifications.index') }}" 
+                                    href="{{ $notificationUrl }}" 
                                     class="block px-4 py-3 border-b border-gray-100 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 group"
                                     @click.stop="open = false"
                                 >

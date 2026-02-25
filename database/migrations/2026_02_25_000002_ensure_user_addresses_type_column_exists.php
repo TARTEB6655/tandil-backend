@@ -13,7 +13,7 @@ return new class extends Migration
         }
 
         Schema::table('user_addresses', function (Blueprint $table) {
-            $table->string('type', 50)->default('home')->after('user_id'); // home, office, other – local address label
+            $table->string('type', 50)->default('home')->after('user_id');
         });
     }
 
@@ -28,3 +28,4 @@ return new class extends Migration
         });
     }
 };
+

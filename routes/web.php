@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\SupportTicketWebController;
 
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
 use App\Http\Controllers\Technician\TechnicianDashboardController;
@@ -250,6 +251,13 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
         Route::get('notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
+
+        // Support tickets (client submitted tickets with admin reply thread)
+        Route::get('support-tickets', [SupportTicketWebController::class, 'index'])->name('support-tickets.index');
+        Route::get('support-tickets/{id}', [SupportTicketWebController::class, 'show'])->name('support-tickets.show');
+        Route::post('support-tickets/{id}/reply', [SupportTicketWebController::class, 'reply'])->name('support-tickets.reply');
+        Route::put('support-tickets/{id}/status', [SupportTicketWebController::class, 'updateStatus'])->name('support-tickets.update-status');
+        Route::delete('support-tickets/{id}', [SupportTicketWebController::class, 'destroy'])->name('support-tickets.destroy');
         
         // Analytics API routes
         Route::prefix('analytics')->name('analytics.')->group(function () {
@@ -386,6 +394,8 @@ Route::middleware(['auth', 'role:client'])
         Route::get('/loyalty', [\App\Http\Controllers\Client\LoyaltyController::class, 'index'])->name('loyalty.index');
         Route::get('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'index'])->name('help-support.index');
         Route::post('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'store'])->name('help-support.store');
+        Route::get('/help-support/{id}', [\App\Http\Controllers\Client\HelpSupportController::class, 'show'])->name('help-support.show');
+        Route::post('/help-support/{id}/reply', [\App\Http\Controllers\Client\HelpSupportController::class, 'reply'])->name('help-support.reply');
 
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');

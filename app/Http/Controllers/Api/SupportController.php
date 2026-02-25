@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\Setting;
 use App\Models\SupportTicket;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,7 +16,7 @@ class SupportController extends Controller
     /**
      * GET /api/support/help-center - Full Help Center payload for the app screen.
      * Returns: heading, tagline, get_support options, contact_info (phone, email, address, support_hours),
-     * submit_ticket (endpoint, method, placeholders), social_links, faqs. Auth required.
+     * submit_ticket (endpoint, method, fields), social_links, faqs. Auth required.
      */
     public function helpCenter(Request $request)
     {
@@ -42,21 +44,8 @@ class SupportController extends Controller
             'method' => 'POST',
             'fields' => [
                 ['key' => 'subject', 'label' => 'Subject', 'type' => 'text', 'required' => true, 'placeholder' => 'Brief subject of your request'],
-                ['key' => 'message', 'label' => 'Message', 'type' => 'textarea', 'required' => true, 'placeholder' => 'Describe your issue or question in detail'],
-                ['key' => 'priority', 'label' => 'Priority', 'type' => 'select', 'required' => false, 'options' => [
-                    ['value' => 'low', 'label' => 'Low'],
-                    ['value' => 'medium', 'label' => 'Medium'],
-                    ['value' => 'high', 'label' => 'High'],
-                    ['value' => 'urgent', 'label' => 'Urgent'],
-                ], 'default' => 'medium'],
-                ['key' => 'category', 'label' => 'Category', 'type' => 'select', 'required' => false, 'options' => [
-                    ['value' => 'general', 'label' => 'General'],
-                    ['value' => 'billing', 'label' => 'Billing'],
-                    ['value' => 'technical', 'label' => 'Technical'],
-                    ['value' => 'account', 'label' => 'Account'],
-                    ['value' => 'order', 'label' => 'Order'],
-                    ['value' => 'other', 'label' => 'Other'],
-                ]],
+                ['key' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true, 'placeholder' => 'Enter your email address'],
+                ['key' => 'description', 'label' => 'Description', 'type' => 'textarea', 'required' => true, 'placeholder' => 'Describe your issue in detail'],
             ],
         ];
 
@@ -105,15 +94,21 @@ class SupportController extends Controller
 
     /**
      * POST /api/support/tickets - Submit support ticket.
-     * Body: subject (required), message (required), priority (optional: low|medium|high|urgent), category (optional).
+     * Body: subject (required), email (required), description (required).
+     * Backward compatible body keys: message -> description.
      */
     public function storeTicket(Request $request)
     {
+        // Keep backward compatibility with older clients still sending "message".
+        $description = $request->input('description', $request->input('message'));
+        if ($description !== null) {
+            $request->merge(['description' => $description]);
+        }
+
         $validator = Validator::make($request->all(), [
             'subject' => 'required|string|max:255',
-            'message' => 'required|string|max:5000',
-            'priority' => 'nullable|string|in:low,medium,high,urgent',
-            'category' => 'nullable|string|in:general,billing,technical,account,order,other',
+            'email' => 'required|email|max:255',
+            'description' => 'required|string|max:5000',
         ]);
 
         if ($validator->fails()) {
@@ -126,11 +121,38 @@ class SupportController extends Controller
         $ticket = SupportTicket::create([
             'user_id' => $request->user()->id,
             'subject' => $request->input('subject'),
-            'message' => $request->input('message'),
+            'email' => $request->input('email'),
+            'message' => $request->input('description'),
             'status' => 'open',
-            'priority' => $request->input('priority', 'medium'),
-            'category' => $request->input('category'),
+            'priority' => 'medium',
+            'category' => 'general',
         ]);
+
+        // Notify all admins about newly submitted support ticket.
+        // Keep ticket creation successful even if notification delivery fails.
+        try {
+            $admins = User::role('admin')->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification(
+                    'New Support Ticket',
+                    "A client submitted ticket {$ticket->ticket_number} from {$ticket->email}: {$ticket->subject}",
+                    [
+                        'entity' => 'support_ticket',
+                        'ticket_id' => $ticket->id,
+                        'ticket_number' => $ticket->ticket_number,
+                        'email' => $ticket->email,
+                        'subject' => $ticket->subject,
+                        'description' => $ticket->message,
+                        'action' => 'open_ticket',
+                    ]
+                ));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Support ticket admin notification failed', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -139,6 +161,8 @@ class SupportController extends Controller
                 'id' => $ticket->id,
                 'ticket_number' => $ticket->ticket_number,
                 'subject' => $ticket->subject,
+                'email' => $ticket->email,
+                'description' => $ticket->message,
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
                 'category' => $ticket->category,
