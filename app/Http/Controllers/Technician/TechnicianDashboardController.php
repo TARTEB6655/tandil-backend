@@ -40,6 +40,7 @@ class TechnicianDashboardController extends Controller
             ->count();
         $todayVisits = Visit::where('technician_id', $user->id)
             ->whereDate('scheduled_date', Carbon::today())
+            ->whereNotIn('status', ['rejected'])
             ->orderBy('scheduled_date')
             ->with(['subscription.client', 'area'])
             ->get();
