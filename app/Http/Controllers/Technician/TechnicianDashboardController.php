@@ -43,6 +43,13 @@ class TechnicianDashboardController extends Controller
             ->orderBy('scheduled_date')
             ->with(['subscription.client', 'area'])
             ->get();
+        $recentCompletedVisits = Visit::where('technician_id', $user->id)
+            ->where('status', 'completed')
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->with(['subscription.client', 'area'])
+            ->take(5)
+            ->get();
 
         // Stub earnings/rating until payment module exists
         $weeklyEarnings = 0;
@@ -56,6 +63,7 @@ class TechnicianDashboardController extends Controller
                 'profile_picture' => $user->profile_picture,
                 'profile_picture_url' => $user->profile_picture_url,
                 'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
+                'designation' => $employee?->designation ?? 'Field Worker',
                 'is_online' => $availability?->is_online ?? true,
                 'weekly_kpis' => [
                     'earnings' => $weeklyEarnings,
@@ -63,6 +71,7 @@ class TechnicianDashboardController extends Controller
                     'rating' => $avgRating,
                 ],
                 'today_tasks' => $todayVisits->map(fn ($v) => $this->formatVisitAsTask($v)),
+                'recent_visits' => $recentCompletedVisits->map(fn ($v) => $this->formatVisitAsRecentVisit($v)),
             ],
         ]);
     }
@@ -798,10 +807,22 @@ class TechnicianDashboardController extends Controller
     private function formatVisitAsTask(Visit $visit, bool $includeDetail = false): array
     {
         $client = $visit->subscription?->client;
+        $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+        $scheduledAt = $visit->started_at ?? ($visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->setTime(8, 0) : null);
+        $duration = $meta['duration_minutes'] ?? null;
+        if ($duration === null && $visit->started_at && $visit->completed_at) {
+            $duration = (int) $visit->started_at->diffInMinutes($visit->completed_at);
+        }
+
         $base = [
             'id' => $visit->id,
             'scheduled_date' => $visit->scheduled_date?->toDateString(),
+            'scheduled_time' => $scheduledAt?->format('g:i A'),
             'status' => $visit->status,
+            'farm_name' => $meta['farm_name'] ?? $client?->name,
+            'service_name' => $meta['service_name'] ?? ($visit->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : null),
+            'location' => $meta['location'] ?? $visit->area?->name,
+            'duration_minutes' => $duration,
             'client_name' => $client?->name,
             'client_id' => $client?->id,
             'area' => $visit->area?->name,
@@ -811,6 +832,7 @@ class TechnicianDashboardController extends Controller
         ];
         if ($includeDetail) {
             $base['notes'] = $visit->notes;
+            $base['metadata'] = $meta;
             $base['subscription'] = $visit->subscription ? [
                 'id' => $visit->subscription->id,
                 'plan' => $visit->subscription->plan,
@@ -823,5 +845,59 @@ class TechnicianDashboardController extends Controller
             ]) ?? [];
         }
         return $base;
+    }
+
+    private function formatVisitAsRecentVisit(Visit $visit): array
+    {
+        $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+
+        return [
+            'id' => $visit->id,
+            'farm_name' => $meta['farm_name'] ?? ($visit->subscription?->client?->name ?? 'Visit #' . $visit->id),
+            'service_name' => $meta['service_name'] ?? null,
+            'date' => $visit->completed_date?->toDateString() ?? $visit->scheduled_date?->toDateString(),
+            'price' => $meta['price'] ?? 0,
+            'price_display' => $meta['price_display'] ?? null,
+            'rating' => $meta['rating'] ?? null,
+        ];
+    }
+
+    /**
+     * Parse seeded note format:
+     * [DUMMY-SUP-ASSIGN] Farm | Service | Location | 120 min | AED 289.99 | 5/5
+     */
+    private function parseVisitMetaFromNotes(string $notes): array
+    {
+        $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? $notes);
+        if ($clean === '') {
+            return [];
+        }
+
+        $parts = array_values(array_filter(array_map('trim', explode('|', $clean)), fn ($p) => $p !== ''));
+        $meta = [];
+
+        if (isset($parts[0])) {
+            $meta['farm_name'] = $parts[0];
+        }
+        if (isset($parts[1])) {
+            $meta['service_name'] = $parts[1];
+        }
+        if (isset($parts[2])) {
+            $meta['location'] = $parts[2];
+        }
+        if (isset($parts[3]) && preg_match('/(\d+)\s*min/i', $parts[3], $m)) {
+            $meta['duration_minutes'] = (int) $m[1];
+        }
+        if (isset($parts[4]) && preg_match('/AED\s*([0-9]+(?:\.[0-9]+)?)/i', $parts[4], $m)) {
+            $meta['price'] = (float) $m[1];
+            $meta['price_display'] = 'AED ' . $m[1];
+        }
+        if (isset($parts[5]) && preg_match('/([0-9]+(?:\.[0-9]+)?)\s*\/\s*5/', $parts[5], $m)) {
+            $meta['rating'] = (float) $m[1];
+        } elseif (isset($parts[3]) && preg_match('/([0-9]+(?:\.[0-9]+)?)\s*\/\s*5/', $parts[3], $m)) {
+            $meta['rating'] = (float) $m[1];
+        }
+
+        return $meta;
     }
 }

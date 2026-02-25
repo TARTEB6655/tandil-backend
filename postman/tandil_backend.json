@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9). Support: Help Center (full payload with contact_info, submit_ticket fields, social_links, faqs), FAQs, Submit Ticket (subject, email, description).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.50.0"
+        "version": "2.51.0"
     },
     "item": [
         {
@@ -3335,6 +3335,64 @@
                 }
             ],
             "description": "Technician and Supervisor endpoints - Manage visits and reports. Includes Technician Dashboard (profile, tasks, jobs, payouts, bank accounts, availability, breaks, vacations, schedule) and Support (FAQs, submit ticket)."
+        },
+        {
+            "name": "9a. SUPERVISOR DASHBOARD - MOBILE (SEPARATE)",
+            "item": [
+                {
+                    "name": "A. Dashboard",
+                    "item": [
+                        {"name": "Dashboard - Summary", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/dashboard/summary", "host": ["{{base_url}}"], "path": ["api", "supervisor", "dashboard", "summary"]}, "description": "Home cards data for supervisor mobile dashboard."}},
+                        {"name": "Dashboard - KPIs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/dashboard/kpis", "host": ["{{base_url}}"], "path": ["api", "supervisor", "dashboard", "kpis"]}, "description": "KPI data for Team Stats and dashboard."}},
+                        {"name": "Dashboard - Team Status", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/dashboard/team-status", "host": ["{{base_url}}"], "path": ["api", "supervisor", "dashboard", "team-status"]}, "description": "My Team quick status list."}},
+                        {"name": "Dashboard - Alerts", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/dashboard/alerts", "host": ["{{base_url}}"], "path": ["api", "supervisor", "dashboard", "alerts"]}, "description": "Dashboard alerts for overdue/upcoming visits."}}
+                    ]
+                },
+                {
+                    "name": "B. Team Stats",
+                    "item": [
+                        {"name": "Team - Statistics", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/team/statistics", "host": ["{{base_url}}"], "path": ["api", "supervisor", "team", "statistics"]}}},
+                        {"name": "Team - Performance", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/team/performance", "host": ["{{base_url}}"], "path": ["api", "supervisor", "team", "performance"]}}},
+                        {"name": "Team - Attendance", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/team/attendance", "host": ["{{base_url}}"], "path": ["api", "supervisor", "team", "attendance"]}}},
+                        {"name": "Team - Workload", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/team/workload", "host": ["{{base_url}}"], "path": ["api", "supervisor", "team", "workload"]}}}
+                    ]
+                },
+                {
+                    "name": "C. Assign Tasks",
+                    "item": [
+                        {"name": "Assignments - Pending", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/assignments/pending?per_page=20", "host": ["{{base_url}}"], "path": ["api", "supervisor", "assignments", "pending"], "query": [{"key": "per_page", "value": "20"}]}}},
+                        {"name": "Assignments - Create (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "visit_id", "value": "1", "type": "text"}, {"key": "technician_id", "value": "2", "type": "text"}, {"key": "scheduled_date", "value": "2026-02-20", "type": "text"}, {"key": "note", "value": "Assign for morning slot", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/assignments", "host": ["{{base_url}}"], "path": ["api", "supervisor", "assignments"]}}},
+                        {"name": "Assignments - Update (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "technician_id", "value": "3", "type": "text"}, {"key": "scheduled_date", "value": "2026-02-21", "type": "text"}, {"key": "note", "value": "Updated schedule", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "supervisor", "assignments", "{{visit_id}}"]}}},
+                        {"name": "Assignments - Update (PUT form-data)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "technician_id", "value": "3", "type": "text"}, {"key": "scheduled_date", "value": "2026-02-21", "type": "text"}, {"key": "note", "value": "Updated schedule", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "supervisor", "assignments", "{{visit_id}}"]}}},
+                        {"name": "Assignments - Reassign (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "technician_id", "value": "4", "type": "text"}, {"key": "reason", "value": "Availability changed", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}/reassign", "host": ["{{base_url}}"], "path": ["api", "supervisor", "assignments", "{{visit_id}}", "reassign"]}}}
+                    ]
+                },
+                {
+                    "name": "D. Reports",
+                    "item": [
+                        {"name": "Reports - List", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/reports?per_page=20", "host": ["{{base_url}}"], "path": ["api", "supervisor", "reports"], "query": [{"key": "per_page", "value": "20"}]}}},
+                        {"name": "Reports - Generate (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "title", "value": "Weekly Supervisor Report", "type": "text"}, {"key": "type", "value": "operational", "type": "text"}, {"key": "from", "value": "2026-02-01", "type": "text"}, {"key": "to", "value": "2026-02-15", "type": "text"}, {"key": "format", "value": "csv", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/reports/generate", "host": ["{{base_url}}"], "path": ["api", "supervisor", "reports", "generate"]}}},
+                        {"name": "Reports - Show", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/reports/{{report_id}}", "host": ["{{base_url}}"], "path": ["api", "supervisor", "reports", "{{report_id}}"]}}},
+                        {"name": "Reports - Download CSV", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/reports/{{report_id}}/download", "host": ["{{base_url}}"], "path": ["api", "supervisor", "reports", "{{report_id}}", "download"]}}},
+                        {"name": "Visit Report - Review Visit", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}", "host": ["{{base_url}}"], "path": ["api", "supervisor", "visits", "{{visit_id}}"]}}},
+                        {"name": "Visit Report - Recommend Products (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "product_ids", "value": "[1,2,3]", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}/recommend", "host": ["{{base_url}}"], "path": ["api", "supervisor", "visits", "{{visit_id}}", "recommend"]}}},
+                        {"name": "Visit Report - Finalize (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "notes", "value": "Trees need fertilization. Recommended products added.", "type": "text"}, {"key": "status", "value": "finalized", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}/finalize", "host": ["{{base_url}}"], "path": ["api", "supervisor", "visits", "{{visit_id}}", "finalize"]}}}
+                    ]
+                },
+                {
+                    "name": "E. Profile",
+                    "item": [
+                        {"name": "Profile - Get", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/profile", "host": ["{{base_url}}"], "path": ["api", "supervisor", "profile"]}}},
+                        {"name": "Profile - Update (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Supervisor", "type": "text"}, {"key": "email", "value": "supervisor@example.com", "type": "text"}, {"key": "phone", "value": "+971500000000", "type": "text"}, {"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/supervisor/profile", "host": ["{{base_url}}"], "path": ["api", "supervisor", "profile"]}}},
+                        {"name": "Profile - Update (PUT form-data)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Supervisor", "type": "text"}, {"key": "email", "value": "supervisor@example.com", "type": "text"}, {"key": "phone", "value": "+971500000000", "type": "text"}, {"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/supervisor/profile", "host": ["{{base_url}}"], "path": ["api", "supervisor", "profile"]}}},
+                        {"name": "Profile Picture - Upload (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/supervisor/profile/picture", "host": ["{{base_url}}"], "path": ["api", "supervisor", "profile", "picture"]}}},
+                        {"name": "Profile Picture - Update (PUT form-data)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "profile_picture", "type": "file", "src": ""}]}, "url": {"raw": "{{base_url}}/api/supervisor/profile/picture", "host": ["{{base_url}}"], "path": ["api", "supervisor", "profile", "picture"]}}},
+                        {"name": "Profile - Update Password (POST form-data)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "current_password", "value": "CurrentPassword123", "type": "text"}, {"key": "password", "value": "NewPassword123", "type": "text"}, {"key": "password_confirmation", "value": "NewPassword123", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/supervisor/profile/password", "host": ["{{base_url}}"], "path": ["api", "supervisor", "profile", "password"]}}},
+                        {"name": "Profile - Preferences", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/supervisor/profile/preferences", "host": ["{{base_url}}"], "path": ["api", "supervisor", "profile", "preferences"]}}}
+                    ]
+                }
+            ],
+            "description": "Separate, clearly visible Supervisor Dashboard module for mobile app testing."
         },
         {
             "name": "Products - All APIs",

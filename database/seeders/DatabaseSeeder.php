@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             FixedUsersOnlySeeder::class,
             SubscriptionAndReportDummySeeder::class,
             ServicesCategoriesAndProductsSeeder::class,
+            DummySupervisorAssignedTasksSeeder::class, // Temporary demo data for technician task assignment screens
         ]);
 
         $this->command->info('');
