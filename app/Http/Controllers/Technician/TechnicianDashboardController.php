@@ -327,16 +327,7 @@ class TechnicianDashboardController extends Controller
     {
         $user = $request->user();
         $period = $request->input('period', 'month'); // week, month, year
-        $start = match ($period) {
-            'week' => Carbon::now()->startOfWeek(),
-            'year' => Carbon::now()->startOfYear(),
-            default => Carbon::now()->startOfMonth(),
-        };
-        $end = match ($period) {
-            'week' => Carbon::now()->endOfWeek(),
-            'year' => Carbon::now()->endOfYear(),
-            default => Carbon::now()->endOfMonth(),
-        };
+        [$start, $end] = $this->resolvePeriodRange($period);
         // "Recent jobs" are past jobs only; today's jobs stay on dashboard today_tasks.
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
@@ -360,6 +351,48 @@ class TechnicianDashboardController extends Controller
                     'avg_rating' => $avgRating,
                 ],
                 'jobs' => $list,
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/technician/jobs/accepted - Accepted/In-progress jobs list.
+     */
+    public function acceptedJobs(Request $request)
+    {
+        return $this->jobsByStatuses($request, ['accepted', 'in_progress'], 'Accepted/In-progress jobs list.');
+    }
+
+    /**
+     * GET /api/technician/jobs/rejected - Rejected jobs list.
+     */
+    public function rejectedJobs(Request $request)
+    {
+        return $this->jobsByStatuses($request, ['rejected'], 'Rejected jobs list.');
+    }
+
+    /**
+     * GET /api/technician/jobs/status-counts - Counts for quick action tiles.
+     */
+    public function jobsStatusCounts(Request $request)
+    {
+        $user = $request->user();
+        $period = $request->input('period', 'month');
+        [$start, $end] = $this->resolvePeriodRange($period);
+
+        $base = Visit::where('technician_id', $user->id)
+            ->whereBetween('scheduled_date', [$start, $end]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'period' => $period,
+                'accepted' => (clone $base)->where('status', 'accepted')->count(),
+                'in_progress' => (clone $base)->where('status', 'in_progress')->count(),
+                'rejected' => (clone $base)->where('status', 'rejected')->count(),
+                'completed' => (clone $base)->where('status', 'completed')->count(),
+                'pending' => (clone $base)->where('status', 'pending')->count(),
+                'cancelled' => (clone $base)->where('status', 'cancelled')->count(),
             ],
         ]);
     }
@@ -880,6 +913,47 @@ class TechnicianDashboardController extends Controller
                 'can_call_customer' => ! empty($client?->phone),
             ],
         ];
+    }
+
+    private function jobsByStatuses(Request $request, array $statuses, string $message)
+    {
+        $user = $request->user();
+        $period = $request->input('period', 'month');
+        [$start, $end] = $this->resolvePeriodRange($period);
+        $perPage = (int) $request->input('per_page', 15);
+        $perPage = min(max($perPage, 1), 100);
+
+        $list = Visit::where('technician_id', $user->id)
+            ->whereBetween('scheduled_date', [$start, $end])
+            ->whereIn('status', $statuses)
+            ->with(['subscription.client', 'area'])
+            ->orderByDesc('scheduled_date')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        $list->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $list,
+        ]);
+    }
+
+    private function resolvePeriodRange(string $period): array
+    {
+        $start = match ($period) {
+            'week' => Carbon::now()->startOfWeek(),
+            'year' => Carbon::now()->startOfYear(),
+            default => Carbon::now()->startOfMonth(),
+        };
+        $end = match ($period) {
+            'week' => Carbon::now()->endOfWeek(),
+            'year' => Carbon::now()->endOfYear(),
+            default => Carbon::now()->endOfMonth(),
+        };
+
+        return [$start, $end];
     }
 
     private function formatVisitAsTask(Visit $visit, bool $includeDetail = false): array

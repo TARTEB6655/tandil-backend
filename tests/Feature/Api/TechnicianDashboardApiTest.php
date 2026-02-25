@@ -183,6 +183,82 @@ class TechnicianDashboardApiTest extends TestCase
         $this->assertNotContains($todayVisit->id, $ids);
     }
 
+    public function test_accepted_jobs_endpoint_returns_accepted_and_in_progress_only(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+        $accepted = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'accepted',
+            'scheduled_date' => Carbon::today(),
+        ]);
+        Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'rejected',
+            'scheduled_date' => Carbon::today(),
+        ]);
+
+        $response = $this->getJson('/api/technician/jobs/accepted?period=month&per_page=50', $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $ids = collect($response->json('data.data'))->pluck('id')->all();
+        $this->assertContains($accepted->id, $ids);
+    }
+
+    public function test_rejected_jobs_endpoint_returns_rejected_only(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+        $rejected = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'rejected',
+            'scheduled_date' => Carbon::today(),
+        ]);
+        Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'accepted',
+            'scheduled_date' => Carbon::today(),
+        ]);
+
+        $response = $this->getJson('/api/technician/jobs/rejected?period=month&per_page=50', $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $ids = collect($response->json('data.data'))->pluck('id')->all();
+        $this->assertContains($rejected->id, $ids);
+        foreach ($response->json('data.data') as $row) {
+            $this->assertSame('rejected', $row['status']);
+        }
+    }
+
+    public function test_jobs_status_counts_endpoint_returns_status_aggregates(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+        Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'accepted',
+            'scheduled_date' => Carbon::today(),
+        ]);
+        Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'rejected',
+            'scheduled_date' => Carbon::today(),
+        ]);
+
+        $response = $this->getJson('/api/technician/jobs/status-counts?period=month', $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonStructure([
+            'data' => ['accepted', 'in_progress', 'rejected', 'completed', 'pending', 'cancelled'],
+        ]);
+    }
+
     public function test_payout_summary_returns_stub(): void
     {
         $response = $this->getJson('/api/technician/payout-summary', $this->authHeaders());

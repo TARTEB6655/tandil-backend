@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.57.0"
+        "version": "2.58.0"
     },
     "item": [
         {
@@ -3808,6 +3808,122 @@
                                     ]
                                 },
                                 "description": "List recent technician jobs (history list, past dates only). Today's jobs are shown in /api/technician/dashboard under today_tasks. Includes mixed statuses like completed/cancelled/rejected/in_progress from previous dates."
+                            }
+                        },
+                        {
+                            "name": "Accepted/In-Progress Jobs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/jobs/accepted?period=month&per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "jobs",
+                                        "accepted"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "period",
+                                            "value": "month",
+                                            "description": "week|month|year"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "Quick action API for accepted/in_progress jobs."
+                            }
+                        },
+                        {
+                            "name": "Rejected Jobs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/jobs/rejected?period=month&per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "jobs",
+                                        "rejected"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "period",
+                                            "value": "month",
+                                            "description": "week|month|year"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "Quick action API for rejected jobs."
+                            }
+                        },
+                        {
+                            "name": "Jobs Status Counts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/jobs/status-counts?period=month",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "jobs",
+                                        "status-counts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "period",
+                                            "value": "month",
+                                            "description": "week|month|year"
+                                        }
+                                    ]
+                                },
+                                "description": "Returns status-wise counts for quick action tiles (accepted, in_progress, rejected, completed, pending, cancelled)."
                             }
                         },
                         {
