@@ -53,6 +53,8 @@ class TechnicianDashboardController extends Controller
             'data' => [
                 'name' => $user->name,
                 'email' => $user->email,
+                'profile_picture' => $user->profile_picture,
+                'profile_picture_url' => $user->profile_picture_url,
                 'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
                 'is_online' => $availability?->is_online ?? true,
                 'weekly_kpis' => [
