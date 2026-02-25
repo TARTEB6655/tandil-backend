@@ -374,6 +374,25 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
+     * GET /api/technician/jobs/{id}/detail - Mobile Job Details screen payload.
+     */
+    public function jobDetail(Request $request, $id)
+    {
+        $visit = Visit::where('technician_id', $request->user()->id)
+            ->with(['subscription.client', 'area', 'photos'])
+            ->find($id);
+
+        if (! $visit) {
+            return response()->json(['success' => false, 'message' => 'Job not found.'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->formatJobDetails($visit),
+        ]);
+    }
+
+    /**
      * GET /api/technician/payout-summary - Balance, pending earnings, total earned (stub until payment).
      */
     public function payoutSummary(Request $request)
@@ -802,6 +821,60 @@ class TechnicianDashboardController extends Controller
                 'vacations' => $vacations,
             ],
         ]);
+    }
+
+    private function formatJobDetails(Visit $visit): array
+    {
+        $client = $visit->subscription?->client;
+        $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+        $scheduledAt = $visit->started_at ?? ($visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->setTime(8, 0) : null);
+        $duration = $meta['duration_minutes'] ?? null;
+        if ($duration === null && $visit->started_at && $visit->completed_at) {
+            $duration = (int) $visit->started_at->diffInMinutes($visit->completed_at);
+        }
+
+        $photos = $visit->photos?->map(fn ($p) => [
+            'id' => $p->id,
+            'type' => $p->type ?? 'after',
+            'photo_url' => $p->photo_path ? (request()->getSchemeAndHttpHost() . '/storage/' . $p->photo_path) : null,
+        ]) ?? collect();
+
+        return [
+            'job_id' => $visit->id,
+            'job_number' => 'job_' . str_pad((string) $visit->id, 3, '0', STR_PAD_LEFT),
+            'status' => $visit->status,
+            'date' => $visit->scheduled_date?->toDateString(),
+            'service_information' => [
+                'title' => $meta['service_name'] ?? ($visit->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : 'Service Visit'),
+                'description' => 'Visit details for technician execution.',
+                'time' => $scheduledAt?->format('g:i A'),
+                'duration_minutes' => $duration,
+                'price' => $meta['price'] ?? null,
+                'price_display' => $meta['price_display'] ?? null,
+            ],
+            'customer_information' => [
+                'name' => $meta['farm_name'] ?? $client?->name,
+                'phone' => $client?->phone,
+                'email' => $client?->email,
+            ],
+            'service_address' => [
+                'label' => 'Service Location',
+                'address' => $meta['location'] ?? $visit->area?->name,
+                'get_directions' => true,
+            ],
+            'special_instructions' => null,
+            'field_notes' => $visit->notes,
+            'before_after_photos' => [
+                'before' => $photos->where('type', 'before')->values(),
+                'after' => $photos->where('type', 'after')->values(),
+                'other' => $photos->whereNotIn('type', ['before', 'after'])->values(),
+            ],
+            'actions' => [
+                'can_submit_field_report' => in_array($visit->status, ['accepted', 'in_progress', 'completed'], true),
+                'can_complete_visit' => in_array($visit->status, ['accepted', 'in_progress'], true),
+                'can_call_customer' => ! empty($client?->phone),
+            ],
+        ];
     }
 
     private function formatVisitAsTask(Visit $visit, bool $includeDetail = false): array

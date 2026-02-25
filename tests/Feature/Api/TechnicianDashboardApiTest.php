@@ -266,4 +266,34 @@ class TechnicianDashboardApiTest extends TestCase
         $visit->refresh();
         $this->assertSame('in_progress', $visit->status);
     }
+
+    public function test_job_detail_returns_mobile_screen_payload(): void
+    {
+        $client = User::factory()->create(['role' => 'client', 'phone' => '+971501112233']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id, 'plan' => '3_month']);
+        $visit = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'in_progress',
+            'notes' => '[DUMMY-SUP-ASSIGN] Mohammed Ali Farm | Tree Watering & Irrigation Check | Al Ain Oasis, Abu Dhabi, UAE | 120 min | AED 289.99 | 5/5',
+        ]);
+
+        $response = $this->getJson("/api/technician/jobs/{$visit->id}/detail", $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.job_id', $visit->id);
+        $response->assertJsonPath('data.status', 'in_progress');
+        $response->assertJsonPath('data.service_information.title', 'Tree Watering & Irrigation Check');
+        $response->assertJsonPath('data.customer_information.name', 'Mohammed Ali Farm');
+        $response->assertJsonPath('data.service_address.address', 'Al Ain Oasis, Abu Dhabi, UAE');
+        $response->assertJsonStructure([
+            'data' => [
+                'job_number',
+                'service_information' => ['title', 'time', 'duration_minutes'],
+                'customer_information' => ['name', 'phone', 'email'],
+                'before_after_photos' => ['before', 'after', 'other'],
+                'actions' => ['can_submit_field_report', 'can_complete_visit', 'can_call_customer'],
+            ],
+        ]);
+    }
 }
