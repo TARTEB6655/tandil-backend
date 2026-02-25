@@ -3772,6 +3772,45 @@
                             }
                         },
                         {
+                            "name": "Recent/Completed/Cancelled Jobs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/jobs?period=month&per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "jobs"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "period",
+                                            "value": "month",
+                                            "description": "week|month|year"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "List recent technician jobs. Includes mixed statuses like completed/cancelled/in_progress; frontend can filter/group by status."
+                            }
+                        },
+                        {
                             "name": "Job (by id)",
                             "request": {
                                 "method": "GET",
