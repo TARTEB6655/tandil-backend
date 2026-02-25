@@ -5,19 +5,19 @@ namespace App\Services;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Compress image files over a size limit (default 5 MB) so they are stored under the limit.
+ * Compress image files over a size limit (default 1 MB) so they are stored under the limit.
  * Used for all image uploads: profile, banner, product, category, package, visit photos, etc.
  */
 class ImageCompressionService
 {
-    public const DEFAULT_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+    public const DEFAULT_MAX_BYTES = 1 * 1024 * 1024; // 1 MB target
 
     /**
      * Compress image at the given path in place if it exceeds maxBytes.
      * Supports JPEG, PNG, GIF, WebP (PHP GD).
      *
      * @param  string  $fullPath  Full filesystem path to the image
-     * @param  int  $maxBytes  Max size in bytes (default 5 MB)
+     * @param  int  $maxBytes  Max size in bytes (default 1 MB)
      * @return bool  True if file was compressed or was already under limit, false on error
      */
     public static function compressIfNeeded(string $fullPath, int $maxBytes = self::DEFAULT_MAX_BYTES): bool
@@ -63,7 +63,7 @@ class ImageCompressionService
         return self::compressIfNeeded($fullPath, $maxBytes);
     }
 
-    private static function loadImage(string $path, int $type): \GdImage|resource|null
+    private static function loadImage(string $path, int $type): mixed
     {
         return match ($type) {
             IMAGETYPE_JPEG => @imagecreatefromjpeg($path),

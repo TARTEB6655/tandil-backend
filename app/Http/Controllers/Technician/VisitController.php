@@ -136,7 +136,7 @@ class VisitController extends Controller
         $visit = Visit::where('technician_id', $user->id)->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:20480',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif',
             'type' => 'nullable|in:before,during,after',
         ]);
 

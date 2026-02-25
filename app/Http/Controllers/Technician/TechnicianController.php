@@ -204,7 +204,7 @@ class TechnicianController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:20480',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif',
             'type' => 'nullable|string|in:before,during,after',
         ], [
             'photo.required' => 'Please select an image file to upload.',

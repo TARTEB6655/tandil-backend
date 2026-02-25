@@ -49,7 +49,7 @@ class ServicesController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:services,name',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'icon' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
             'category_id' => 'nullable|integer|exists:categories,id',

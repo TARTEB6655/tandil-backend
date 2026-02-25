@@ -19,7 +19,7 @@ class ServiceRequest extends BaseFormRequest
             'name' => $isUpdate ? 'nullable|string|max:255' : 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:services,slug,' . $id,
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,webp',
             'image_remove' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
             'category_id' => 'nullable|integer|exists:categories,id',

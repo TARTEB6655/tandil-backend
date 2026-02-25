@@ -37,7 +37,7 @@ class PackageController extends Controller
         $request->validate([
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:20480',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp',
             'is_active' => 'nullable|boolean',
         ]);
 

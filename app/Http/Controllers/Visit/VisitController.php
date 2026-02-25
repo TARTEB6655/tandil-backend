@@ -250,7 +250,7 @@ class VisitController extends Controller
 
         // Validation
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|max:5120',
+            'photo' => 'required|image',
             'type'  => 'nullable|string|in:before,after',
         ], [
             'photo.required' => 'Please select an image file to upload.',

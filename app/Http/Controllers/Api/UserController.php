@@ -50,7 +50,7 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => 'sometimes|nullable|string|max:20',
-            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
         ]);
 
         $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture']));

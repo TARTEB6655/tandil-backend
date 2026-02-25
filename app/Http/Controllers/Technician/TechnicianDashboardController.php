@@ -176,7 +176,7 @@ class TechnicianDashboardController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
         ];
         if ($profileFile) {
-            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480';
+            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
         }
         $validator = Validator::make(array_merge($input, ['profile_picture' => $profileFile]), $rules);
         if ($validator->fails()) {

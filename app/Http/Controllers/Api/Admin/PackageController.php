@@ -34,7 +34,7 @@ class PackageController extends Controller
             'type' => 'required|in:combined,fruit,vegetable',
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:2000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'is_active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
         ]);
@@ -85,7 +85,7 @@ class PackageController extends Controller
             'type' => 'sometimes|in:combined,fruit,vegetable',
             'price' => 'sometimes|numeric|min:0',
             'description' => 'nullable|string|max:2000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'is_active' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
         ]);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminReport;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\ImageCompressionService;
 use App\Models\Visit;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -376,11 +377,12 @@ class SupervisorDashboardApiController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
         ]);
 
         if ($request->hasFile('profile_picture')) {
             $validated['profile_picture'] = $request->file('profile_picture')->store('profiles', 'public');
+            ImageCompressionService::compressIfNeededFromPublicPath($validated['profile_picture']);
         }
 
         $user->fill($validated);
@@ -402,11 +404,12 @@ class SupervisorDashboardApiController extends Controller
     public function uploadProfilePicture(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
         ]);
 
         $user = $request->user();
         $user->profile_picture = $request->file('profile_picture')->store('profiles', 'public');
+        ImageCompressionService::compressIfNeededFromPublicPath($user->profile_picture);
         $user->save();
 
         return response()->json([

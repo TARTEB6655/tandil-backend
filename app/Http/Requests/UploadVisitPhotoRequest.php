@@ -13,7 +13,7 @@ class UploadVisitPhotoRequest extends BaseFormRequest
     {
         return [
             'type' => 'nullable|string|in:before,after',
-            'photo' => 'nullable|file|image|max:5120',
+            'photo' => 'nullable|file|image',
         ];
     }
 }

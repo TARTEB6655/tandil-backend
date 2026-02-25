@@ -41,7 +41,7 @@ class ExclusiveOfferController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp',
             'discount_type' => 'required|in:percentage,fixed_amount,buy_one_get_one',
             'discount_value' => 'nullable|numeric|min:0',
             'applies_to' => 'nullable|string|max:255',
@@ -110,7 +110,7 @@ class ExclusiveOfferController extends Controller
         $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string|max:500',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp',
             'discount_type' => 'sometimes|in:percentage,fixed_amount,buy_one_get_one',
             'discount_value' => 'nullable|numeric|min:0',
             'applies_to' => 'nullable|string|max:255',

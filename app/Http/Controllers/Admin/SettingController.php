@@ -212,7 +212,7 @@ class SettingController extends Controller
     {
         $request->validate([
             'app_name' => 'required|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:20480',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg',
             'primary_color' => 'nullable|string|max:7',
             'secondary_color' => 'nullable|string|max:7',
         ]);
