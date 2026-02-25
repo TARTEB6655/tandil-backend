@@ -155,6 +155,34 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertJsonStructure(['data' => ['summary' => ['total_earnings', 'jobs_completed', 'avg_rating'], 'jobs']]);
     }
 
+    public function test_jobs_excludes_today_and_shows_past_jobs_only(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+
+        $todayVisit = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::today(),
+            'status' => 'in_progress',
+        ]);
+
+        $pastVisit = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::yesterday(),
+            'status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/technician/jobs?period=month&per_page=50', $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+
+        $ids = collect($response->json('data.jobs.data'))->pluck('id')->all();
+        $this->assertContains($pastVisit->id, $ids);
+        $this->assertNotContains($todayVisit->id, $ids);
+    }
+
     public function test_payout_summary_returns_stub(): void
     {
         $response = $this->getJson('/api/technician/payout-summary', $this->authHeaders());

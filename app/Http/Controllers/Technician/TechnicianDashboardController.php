@@ -337,12 +337,16 @@ class TechnicianDashboardController extends Controller
             'year' => Carbon::now()->endOfYear(),
             default => Carbon::now()->endOfMonth(),
         };
-        $query = Visit::where('technician_id', $user->id)->whereBetween('scheduled_date', [$start, $end]);
+        // "Recent jobs" are past jobs only; today's jobs stay on dashboard today_tasks.
+        $query = Visit::where('technician_id', $user->id)
+            ->whereBetween('scheduled_date', [$start, $end])
+            ->whereDate('scheduled_date', '<', Carbon::today());
         $completed = (clone $query)->where('status', 'completed')->count();
         $totalEarnings = 0; // stub
         $avgRating = 0; // stub
         $list = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
+            ->whereDate('scheduled_date', '<', Carbon::today())
             ->with(['subscription.client', 'area'])
             ->orderByDesc('scheduled_date')
             ->paginate((int) $request->input('per_page', 15));
