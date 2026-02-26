@@ -7,6 +7,7 @@ use App\Helpers\ApiResponse;
 use App\Models\Tip;
 use App\Models\UserAddress;
 use App\Services\ImageCompressionService;
+use App\Services\ProfilePictureUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -15,6 +16,7 @@ class UserController extends Controller
 {
     /**
      * Profile response shape: id, name, email, phone, profile_picture, profile_picture_url, role.
+     * profile_picture_url is full URL (e.g. https://domain.com/media/profiles/xxx.jpg) for proper image loading.
      */
     private function profileToArray($user): array
     {
@@ -24,7 +26,7 @@ class UserController extends Controller
             'email' => $user->email,
             'phone' => $user->phone ?? null,
             'profile_picture' => $user->profile_picture ?? null,
-            'profile_picture_url' => $user->profile_picture_url ?? null,
+            'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url ?? null,
             'role' => $user->role ?? null,
         ];
     }
@@ -40,11 +42,16 @@ class UserController extends Controller
 
     /**
      * Update user profile (name, email, phone, profile_picture). Used by client and other roles.
-     * Accepts form data: name, email, phone. For profile picture use multipart/form-data with profile_picture file.
+     * Accepts form-data: name, email, phone, profile_picture (file). POST and PUT both supported; PUT + multipart parses file from raw body.
      */
     public function updateProfile(Request $request)
     {
         $user = $request->user();
+
+        $profileFile = $request->file('profile_picture');
+        if (is_array($profileFile)) {
+            $profileFile = $profileFile[0] ?? null;
+        }
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -54,11 +61,19 @@ class UserController extends Controller
         ]);
 
         $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture']));
-        if ($request->hasFile('profile_picture')) {
-            $stored = $request->file('profile_picture')->store('profiles', 'public');
+
+        if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
+            $stored = $profileFile->store('profiles', 'public');
             $user->profile_picture = $stored;
             ImageCompressionService::compressIfNeededFromPublicPath($stored);
+        } elseif ($request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+            $stored = ProfilePictureUploadService::storeFromMultipartPut($request);
+            if ($stored) {
+                $user->profile_picture = $stored;
+                ImageCompressionService::compressIfNeededFromPublicPath($stored);
+            }
         }
+
         $user->save();
 
         return ApiResponse::success('Profile updated successfully.', $this->profileToArray($user->fresh()));

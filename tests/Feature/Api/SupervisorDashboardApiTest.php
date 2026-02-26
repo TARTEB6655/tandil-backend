@@ -192,7 +192,7 @@ class SupervisorDashboardApiTest extends TestCase
         $update->assertStatus(200)->assertJsonPath('success', true);
 
         $picture = UploadedFile::fake()->image('supervisor.png');
-        $upload = $this->post('/api/supervisor/profile/picture', [
+        $upload = $this->post('/api/supervisor/profile', [
             'profile_picture' => $picture,
         ], $this->authHeaders());
         $upload->assertStatus(200)->assertJsonPath('success', true);

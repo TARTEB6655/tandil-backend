@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.63.0"
+        "version": "2.71.0"
     },
     "item": [
         {
@@ -421,7 +421,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "Profile – Personal Information. Response: id, name, email, phone, profile_picture, profile_picture_url, role."
+                        "description": "Profile – Personal Information. Response: id, name, email, phone, profile_picture, profile_picture_url (full URL for image load), role."
                     }
                 },
                 {
@@ -463,7 +463,7 @@
                                     "key": "profile_picture",
                                     "type": "file",
                                     "src": [],
-                                    "description": "Profile image (jpeg, png, gif, webp, max 20MB). Select file to update photo."
+                                    "description": "Profile image (jpeg, png, gif, webp). No size limit; server compresses. Select file to update photo."
                                 }
                             ]
                         },
@@ -478,7 +478,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "Profile – Personal Information. Update name, email, phone and/or profile picture. Body: form-data. For photo: set profile_picture key to File and select an image. PUT or POST both work."
+                        "description": "Profile – Personal Information. Update name, email, phone and/or profile picture. Body: form-data. For photo: set profile_picture key to File. PUT or POST both work; PUT + multipart parses file from body. Response includes profile_picture_url (full URL for image load). Image is compressed on upload. Same pattern as Technician and Supervisor profile update."
                     }
                 },
                 {
@@ -3397,7 +3397,7 @@
                     "name": "Technician Dashboard (Full API)",
                     "item": [
                         {
-                            "name": "Dashboard",
+                            "name": "GET Technician – Dashboard",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3425,7 +3425,7 @@
                             }
                         },
                         {
-                            "name": "Profile (GET)",
+                            "name": "GET Technician – Profile",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3453,7 +3453,7 @@
                             }
                         },
                         {
-                            "name": "Profile (PUT form-data)",
+                            "name": "PUT Technician – Profile update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -3483,23 +3483,6 @@
                                             "key": "phone",
                                             "value": "+971681234567",
                                             "type": "text"
-                                        },
-                                        {
-                                            "key": "service_area",
-                                            "value": "Dubai",
-                                            "type": "text",
-                                            "description": "Single area (optional if service_areas sent)"
-                                        },
-                                        {
-                                            "key": "service_areas",
-                                            "value": "[\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]",
-                                            "type": "text",
-                                            "description": "JSON array of multiple service areas/addresses"
-                                        },
-                                        {
-                                            "key": "specializations",
-                                            "value": "AC,Plumbing",
-                                            "type": "text"
                                         }
                                     ]
                                 },
@@ -3514,11 +3497,11 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Update profile with form-data (text fields). Fields: name, email, phone, service_area (single), service_areas (JSON array of multiple addresses), specializations. For profile picture use Profile (POST form-data)."
+                                "description": "Update profile: name, email, phone, profile_picture (file). For service areas use GET/PUT /api/technician/service-areas. For specializations use GET/PUT /api/technician/specializations."
                             }
                         },
                         {
-                            "name": "Profile (POST form-data)",
+                            "name": "POST Technician – Profile update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -3547,23 +3530,6 @@
                                         {
                                             "key": "phone",
                                             "value": "+971681234567",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "service_area",
-                                            "value": "Dubai",
-                                            "type": "text",
-                                            "description": "Single area (optional if service_areas sent)"
-                                        },
-                                        {
-                                            "key": "service_areas",
-                                            "value": "[\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]",
-                                            "type": "text",
-                                            "description": "JSON array of multiple service areas/addresses"
-                                        },
-                                        {
-                                            "key": "specializations",
-                                            "value": "AC,Plumbing",
                                             "type": "text"
                                         },
                                         {
@@ -3599,11 +3565,141 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Update profile with form-data. Use POST for profile_picture upload. Fields: name, email, phone, service_area (single), service_areas (JSON array of multiple addresses), specializations (comma or JSON), current_password, password, password_confirmation, profile_picture (one file). Returns full profile with service_area, service_areas, profile_picture_url."
+                                "description": "Update profile: name, email, phone, current_password, password, password_confirmation, profile_picture (file). For service areas use GET/PUT /api/technician/service-areas."
                             }
                         },
                         {
-                            "name": "Tasks (list)",
+                            "name": "GET Technician – Service areas",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/service-areas",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "service-areas"
+                                    ]
+                                },
+                                "description": "Get technician service area(s). Response: service_area (primary), service_areas (array)."
+                            }
+                        },
+                        {
+                            "name": "PUT Technician – Service areas",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"service_area\": \"Dubai\",\n  \"service_areas\": [\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/service-areas",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "service-areas"
+                                    ]
+                                },
+                                "description": "Update service area(s). Body: service_area (string), service_areas (array). Replaces existing. POST also supported."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Specializations",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/specializations",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "specializations"
+                                    ]
+                                },
+                                "description": "Get technician specializations (array of strings)."
+                            }
+                        },
+                        {
+                            "name": "PUT Technician – Specializations",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"specializations\": [\"AC\", \"Plumbing\", \"Electrical\"]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/specializations",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "specializations"
+                                    ]
+                                },
+                                "description": "Update specializations. Body: specializations (array of strings). Replaces existing. POST also supported."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Tasks list",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3630,7 +3726,7 @@
                                         {
                                             "key": "filter",
                                             "value": "today",
-                                            "description": "today (carry-forward open) | upcoming (open, future) | completed | all (open jobs only; closed = history API)"
+                                            "description": "today | upcoming | completed | all | accepted | rejected. Closed history = GET /api/technician/jobs"
                                         },
                                         {
                                             "key": "per_page",
@@ -3638,11 +3734,11 @@
                                         }
                                     ]
                                 },
-                                "description": "List tasks (visits). Filter: today|upcoming|completed|all. today = carry-forward open jobs (scheduled_date <= today). upcoming = open jobs (scheduled_date > today). completed = completed only. all = all open jobs only (pending, accepted, in_progress); closed jobs (completed, rejected, cancelled) are in GET /api/technician/jobs (history)."
+                                "description": "**Assigned work (tasks).** Filter: today | upcoming | all | completed | accepted | rejected. **filter=all** = all open jobs. **filter=completed** = completed only. For **history** (closed jobs in a period) use the request **Jobs – History** below (GET /api/technician/jobs)."
                             }
                         },
                         {
-                            "name": "Task (by id)",
+                            "name": "GET Technician – Task by ID",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3671,7 +3767,37 @@
                             }
                         },
                         {
-                            "name": "Task - Update status",
+                            "name": "GET Technician – Task details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/detail",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "tasks",
+                                        "{{visit_id}}",
+                                        "detail"
+                                    ]
+                                },
+                                "description": "Mobile job details screen: service_information, customer_information, service_address, before_after_photos, actions."
+                            }
+                        },
+                        {
+                            "name": "PUT Technician – Task status",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -3716,7 +3842,7 @@
                             }
                         },
                         {
-                            "name": "Task - Accept",
+                            "name": "POST Technician – Task accept",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -3746,7 +3872,7 @@
                             }
                         },
                         {
-                            "name": "Task - Reject",
+                            "name": "POST Technician – Task reject",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -3786,7 +3912,7 @@
                             }
                         },
                         {
-                            "name": "Recent/Completed/Cancelled Jobs",
+                            "name": "GET Technician – Jobs history",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3813,7 +3939,7 @@
                                         {
                                             "key": "period",
                                             "value": "month",
-                                            "description": "week|month|year"
+                                            "description": "week | month | year"
                                         },
                                         {
                                             "key": "per_page",
@@ -3821,11 +3947,11 @@
                                         }
                                     ]
                                 },
-                                "description": "Technician job history (closed jobs only): completed, rejected, cancelled for selected period (week|month|year). Open jobs (pending, accepted, in_progress) are shown in dashboard/tasks carry-forward flow, not in this history API."
+                                "description": "Returns jobs in period: **in_progress**, **completed**, **rejected**, **cancelled**. Summary: total_earnings, jobs_completed, avg_rating. Query: period (week|month|year), per_page."
                             }
                         },
                         {
-                            "name": "Accepted/In-Progress Jobs",
+                            "name": "GET Technician – Tasks (accepted)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3839,21 +3965,20 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/technician/jobs/accepted?period=month&per_page=15",
+                                    "raw": "{{base_url}}/api/technician/tasks?filter=accepted&per_page=15",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
                                         "technician",
-                                        "jobs",
-                                        "accepted"
+                                        "tasks"
                                     ],
                                     "query": [
                                         {
-                                            "key": "period",
-                                            "value": "month",
-                                            "description": "week|month|year"
+                                            "key": "filter",
+                                            "value": "accepted",
+                                            "description": "accepted = accepted + in_progress"
                                         },
                                         {
                                             "key": "per_page",
@@ -3861,11 +3986,11 @@
                                         }
                                     ]
                                 },
-                                "description": "Quick action API for accepted/in_progress jobs."
+                                "description": "Same Tasks API with filter=accepted. Returns accepted and in-progress tasks only."
                             }
                         },
                         {
-                            "name": "Rejected Jobs",
+                            "name": "GET Technician – Tasks (rejected)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3879,21 +4004,19 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/technician/jobs/rejected?period=month&per_page=15",
+                                    "raw": "{{base_url}}/api/technician/tasks?filter=rejected&per_page=15",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
                                         "technician",
-                                        "jobs",
-                                        "rejected"
+                                        "tasks"
                                     ],
                                     "query": [
                                         {
-                                            "key": "period",
-                                            "value": "month",
-                                            "description": "week|month|year"
+                                            "key": "filter",
+                                            "value": "rejected"
                                         },
                                         {
                                             "key": "per_page",
@@ -3901,11 +4024,11 @@
                                         }
                                     ]
                                 },
-                                "description": "Quick action API for rejected jobs."
+                                "description": "Same Tasks API with filter=rejected. Rejected tasks also appear in Jobs – History (closed jobs)."
                             }
                         },
                         {
-                            "name": "Jobs Status Counts",
+                            "name": "GET Technician – Jobs status counts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3941,66 +4064,7 @@
                             }
                         },
                         {
-                            "name": "Job (by id)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/technician/jobs/{{visit_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "technician",
-                                        "jobs",
-                                        "{{visit_id}}"
-                                    ]
-                                },
-                                "description": "Get single job (visit) detail. Set visit_id."
-                            }
-                        },
-                        {
-                            "name": "Job Details (Screen Payload)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/technician/jobs/{{visit_id}}/detail",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "technician",
-                                        "jobs",
-                                        "{{visit_id}}",
-                                        "detail"
-                                    ]
-                                },
-                                "description": "Job Details mobile screen payload: service_information, customer_information, service_address, field_notes, before_after_photos, actions."
-                            }
-                        },
-                        {
-                            "name": "Job Details - Upload Before/After Photo",
+                            "name": "POST Technician – Upload job photo",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4046,7 +4110,7 @@
                             }
                         },
                         {
-                            "name": "Payout summary",
+                            "name": "GET Technician – Payout summary",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4074,7 +4138,7 @@
                             }
                         },
                         {
-                            "name": "Payouts (history)",
+                            "name": "GET Technician – Payout history",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4102,7 +4166,7 @@
                             }
                         },
                         {
-                            "name": "Payout settings (GET)",
+                            "name": "GET Technician – Payout settings",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4131,7 +4195,7 @@
                             }
                         },
                         {
-                            "name": "Payout settings (PUT)",
+                            "name": "PUT Technician – Payout settings",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -4175,7 +4239,7 @@
                             }
                         },
                         {
-                            "name": "Bank accounts (list)",
+                            "name": "GET Technician – Bank accounts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4203,7 +4267,7 @@
                             }
                         },
                         {
-                            "name": "Bank account (add)",
+                            "name": "POST Technician – Bank account add",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4261,7 +4325,7 @@
                             }
                         },
                         {
-                            "name": "Bank account (update)",
+                            "name": "PUT Technician – Bank account update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -4305,7 +4369,7 @@
                             }
                         },
                         {
-                            "name": "Bank account (delete)",
+                            "name": "DELETE Technician – Bank account delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -4334,7 +4398,7 @@
                             }
                         },
                         {
-                            "name": "Availability (GET)",
+                            "name": "GET Technician – Availability",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4374,7 +4438,7 @@
                             }
                         },
                         {
-                            "name": "Availability (PUT)",
+                            "name": "PUT Technician – Availability update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -4455,7 +4519,7 @@
                             }
                         },
                         {
-                            "name": "Schedule",
+                            "name": "GET Technician – Schedule",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4493,7 +4557,7 @@
                             }
                         }
                     ],
-                    "description": "Technician Dashboard: overview, profile, tasks, jobs, earnings, bank accounts, availability (GET/PUT: is_online, working_days, working_hours_slots, service_area, service_areas, breaks, vacations — add/edit vacations only via PUT availability), schedule. All require technician role + Bearer token."
+                    "description": "Technician Dashboard. All require technician role + Bearer token.\n\n**Tasks vs Jobs (avoid confusion):**\n• **Tasks** = Your assigned work (visits). Use GET /api/technician/tasks with query **filter** (today | upcoming | all | completed | accepted | rejected). **filter=all** = all open jobs; **filter=completed** = completed only.\n• **Jobs – History** = The only \"history\" API: GET /api/technician/jobs. Returns **closed** jobs (completed, rejected, cancelled) in a **period** (week|month|year). Summary + list. Use this for \"all my past jobs\" or \"job history\".\n• Single task/job detail = GET /api/technician/tasks/{{visit_id}} or .../tasks/{{visit_id}}/detail (not under /jobs).\n• Profile, payout, bank accounts, availability, schedule as listed below."
                 }
             ],
             "description": "Technician-only endpoints: visits, photos, dashboard, profile, tasks, jobs, payouts, bank accounts, availability (GET/PUT return breaks + vacations + service_areas; vacations managed only via PUT availability, no separate vacation APIs), schedule. Profile and availability accept service_areas (JSON array) for multiple addresses."
@@ -5261,63 +5325,12 @@
                                         "supervisor",
                                         "profile"
                                     ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "Profile - Update (POST form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "name",
-                                            "value": "Updated Supervisor",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "email",
-                                            "value": "supervisor@example.com",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "phone",
-                                            "value": "+971500000000",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "profile_picture",
-                                            "type": "file",
-                                            "src": ""
-                                        }
-                                    ]
                                 },
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/profile",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "profile"
-                                    ]
-                                }
+                                "description": "Get supervisor profile. Response includes profile_picture, profile_picture_url (full URL for image load; use in img src)."
                             }
                         },
                         {
-                            "name": "Profile - Update (PUT form-data)",
+                            "name": "Profile - Update (form-data)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -5351,7 +5364,8 @@
                                         {
                                             "key": "profile_picture",
                                             "type": "file",
-                                            "src": ""
+                                            "src": "",
+                                            "description": "Optional. Add file to update photo."
                                         }
                                     ]
                                 },
@@ -5365,83 +5379,8 @@
                                         "supervisor",
                                         "profile"
                                     ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "Profile Picture - Upload (POST form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "profile_picture",
-                                            "type": "file",
-                                            "src": ""
-                                        }
-                                    ]
                                 },
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/profile/picture",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "profile",
-                                        "picture"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "Profile Picture - Update (PUT form-data)",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "profile_picture",
-                                            "type": "file",
-                                            "src": ""
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/profile/picture",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "profile",
-                                        "picture"
-                                    ]
-                                }
+                                "description": "One request to update everything: name, email, phone, profile_picture. Use PUT (or POST — both work, same endpoint). Body: form-data. Optional fields; include profile_picture (file) to update photo. Returns profile_picture_url (full URL)."
                             }
                         },
                         {

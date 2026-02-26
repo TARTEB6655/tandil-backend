@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Technician;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\ImageCompressionService;
+use App\Services\ProfilePictureUploadService;
 use App\Models\TechnicianAvailability;
 use App\Models\TechnicianBankAccount;
 use App\Models\TechnicianBreak;
@@ -62,7 +63,7 @@ class TechnicianDashboardController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'profile_picture' => $user->profile_picture,
-                'profile_picture_url' => $user->profile_picture_url,
+                'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url,
                 'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
                 'designation' => $employee?->designation ?? 'Field Worker',
                 'is_online' => $availability?->is_online ?? true,
@@ -115,29 +116,25 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/profile - Full profile (personal info, service areas, skills, notification prefs).
+     * GET /api/technician/profile - Full profile (personal info, notification prefs). Service areas are in GET /api/technician/availability.
      */
     public function profile(Request $request)
     {
         $user = $request->user()->load('employee', 'technicianAvailability');
         $employee = $user->employee;
         $visitsCompleted = Visit::where('technician_id', $user->id)->where('status', 'completed')->count();
-        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($employee);
 
         $data = [
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
             'profile_picture' => $user->profile_picture,
-            'profile_picture_url' => $user->profile_picture_url,
+            'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url,
             'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
             'rating' => 0,
             'jobs_completed' => $visitsCompleted,
             'total_earnings' => 0,
             'member_since' => $user->created_at?->toIso8601String(),
-            'specializations' => $employee?->specializations ?? [],
-            'service_area' => $serviceArea,
-            'service_areas' => $serviceAreas,
             'notification_preferences' => [
                 'push_enabled' => true,
                 'email_enabled' => true,
@@ -154,31 +151,32 @@ class TechnicianDashboardController extends Controller
 
     /**
      * PUT /api/technician/profile - Update technician profile.
-     * Accepts multipart/form-data: name, email, phone, service_area, service_areas (JSON array of addresses),
-     * specializations (JSON array string), current_password, password, password_confirmation, profile_picture (file). All optional.
+     * Accepts multipart/form-data: name, email, phone, current_password, password, password_confirmation, profile_picture (file). All optional.
+     * For service areas use GET/PUT /api/technician/service-areas. For specializations use GET/PUT /api/technician/specializations.
      * Returns full profile (same shape as GET /api/technician/profile).
      */
     public function updateProfile(Request $request)
     {
         $user = $request->user()->load('employee', 'technicianAvailability');
 
-        // Resolve single file (Postman may send multiple files as array)
+        // Resolve single file (Postman may send multiple files as array). PUT + multipart: use service.
         $profileFile = $request->file('profile_picture');
         if (is_array($profileFile)) {
             $profileFile = $profileFile[0] ?? null;
+        }
+        $storedFromPut = null;
+        if (! $profileFile && $request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+            $storedFromPut = ProfilePictureUploadService::storeFromMultipartPut($request);
         }
         $input = $request->all();
         $rules = [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'service_area' => 'nullable|string|max:255',
-            'service_areas' => 'nullable',
-            'specializations' => 'nullable',
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
         ];
-        if ($profileFile) {
+        if ($profileFile || $storedFromPut) {
             $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
         }
         $validator = Validator::make(array_merge($input, ['profile_picture' => $profileFile]), $rules);
@@ -200,14 +198,73 @@ class TechnicianDashboardController extends Controller
         if ($request->has('phone')) {
             $user->phone = $request->input('phone') ?: null;
         }
-        if ($profileFile) {
+        if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
             $stored = $profileFile->store('profiles', 'public');
             $user->profile_picture = $stored;
             ImageCompressionService::compressIfNeededFromPublicPath($stored);
+        } elseif ($storedFromPut) {
+            $user->profile_picture = $storedFromPut;
+            ImageCompressionService::compressIfNeededFromPublicPath($storedFromPut);
         }
         $user->save();
 
-        // Get or create employee so technician can set service_area, service_areas, specializations
+        $employee = $user->employee;
+        $user->refresh();
+        $visitsCompleted = Visit::where('technician_id', $user->id)->where('status', 'completed')->count();
+        $data = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'profile_picture' => $user->profile_picture,
+            'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url,
+            'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
+            'rating' => 0,
+            'jobs_completed' => $visitsCompleted,
+            'total_earnings' => 0,
+            'member_since' => $user->created_at?->toIso8601String(),
+            'notification_preferences' => [
+                'push_enabled' => true,
+                'email_enabled' => true,
+            ],
+            'availability' => $user->technicianAvailability ? [
+                'is_online' => $user->technicianAvailability->is_online,
+                'auto_accept_jobs' => $user->technicianAvailability->auto_accept_jobs,
+                'working_days' => $user->technicianAvailability->working_days ?? [],
+                'working_hours_slots' => $user->technicianAvailability->working_hours_slots ?? [],
+            ] : null,
+        ];
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /**
+     * GET /api/technician/service-areas - Get technician's service area(s).
+     * Returns: service_area (primary), service_areas (array).
+     */
+    public function getServiceAreas(Request $request)
+    {
+        $user = $request->user()->load('employee');
+        $employee = $user->employee;
+        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($employee);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'service_area' => $serviceArea,
+                'service_areas' => $serviceAreas,
+            ],
+        ]);
+    }
+
+    /**
+     * PUT /api/technician/service-areas - Update technician's service area(s).
+     * Body: service_area (string, optional), service_areas (array or JSON string, optional). Replaces existing.
+     */
+    public function updateServiceAreas(Request $request)
+    {
+        $user = $request->user()->load('employee');
+        $request->validate([
+            'service_area' => 'nullable|string|max:255',
+            'service_areas' => 'nullable',
+        ]);
         $employee = $user->employee;
         if (! $employee) {
             $employee = Employee::firstOrCreate(
@@ -227,59 +284,81 @@ class TechnicianDashboardController extends Controller
         if ($request->has('service_area') || $request->filled('service_area')) {
             $single = $request->input('service_area') ?: null;
             $employee->region = $single;
-            if ($single && (empty($employee->service_areas) || $employee->service_areas[0] !== $single)) {
+            if ($single && (empty($employee->service_areas) || ($employee->service_areas[0] ?? null) !== $single)) {
                 $current = $employee->service_areas ?? [];
                 $employee->service_areas = array_values(array_unique(array_merge([$single], $current)));
             }
         }
-        if ($request->has('specializations') || $request->filled('specializations')) {
-            $raw = $request->input('specializations');
-            $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) : []);
-            if (! is_array($arr) && is_string($raw)) {
-                $arr = array_map('trim', explode(',', $raw));
-            }
-            $employee->specializations = array_values(array_filter(array_map('strval', (array) ($arr ?? []))));
-        }
         $employee->save();
-        $employee->refresh();
-        $user->setRelation('employee', $employee);
-        $user->refresh();
-        $visitsCompleted = Visit::where('technician_id', $user->id)->where('status', 'completed')->count();
-        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($employee);
-        $data = [
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'profile_picture' => $user->profile_picture,
-            'profile_picture_url' => $user->profile_picture_url,
-            'employee_id' => $employee?->employee_id ?? ('TECH-' . $user->id),
-            'rating' => 0,
-            'jobs_completed' => $visitsCompleted,
-            'total_earnings' => 0,
-            'member_since' => $user->created_at?->toIso8601String(),
-            'specializations' => $employee?->specializations ?? [],
-            'service_area' => $serviceArea,
-            'service_areas' => $serviceAreas,
-            'notification_preferences' => [
-                'push_enabled' => true,
-                'email_enabled' => true,
+        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($employee->refresh());
+        return response()->json([
+            'success' => true,
+            'message' => 'Service areas updated.',
+            'data' => [
+                'service_area' => $serviceArea,
+                'service_areas' => $serviceAreas,
             ],
-            'availability' => $user->technicianAvailability ? [
-                'is_online' => $user->technicianAvailability->is_online,
-                'auto_accept_jobs' => $user->technicianAvailability->auto_accept_jobs,
-                'working_days' => $user->technicianAvailability->working_days ?? [],
-                'working_hours_slots' => $user->technicianAvailability->working_hours_slots ?? [],
-            ] : null,
-        ];
-        return response()->json(['success' => true, 'data' => $data]);
+        ]);
     }
 
     /**
-     * GET /api/technician/tasks - List tasks (visits) with filter=today|upcoming|completed|all and pagination.
-     * today = carry-forward open jobs (scheduled_date <= today).
-     * upcoming = open jobs (scheduled_date > today).
-     * completed = completed only.
-     * all = all open jobs only (pending, accepted, in_progress) – no date filter; closed jobs are in GET /api/technician/jobs (history).
+     * GET /api/technician/specializations - Get technician's specializations (array).
+     */
+    public function getSpecializations(Request $request)
+    {
+        $user = $request->user()->load('employee');
+        $employee = $user->employee;
+        $specializations = $employee && is_array($employee->specializations)
+            ? $employee->specializations
+            : [];
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'specializations' => $specializations,
+            ],
+        ]);
+    }
+
+    /**
+     * PUT /api/technician/specializations - Update technician's specializations.
+     * Body: specializations (array or JSON array of strings). Replaces existing.
+     */
+    public function updateSpecializations(Request $request)
+    {
+        $user = $request->user()->load('employee');
+        $request->validate([
+            'specializations' => 'nullable',
+        ]);
+        $employee = $user->employee;
+        if (! $employee) {
+            $employee = Employee::firstOrCreate(
+                ['user_id' => $user->id],
+                ['employee_id' => 'TECH-' . $user->id]
+            );
+        }
+        $raw = $request->input('specializations');
+        $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) : []);
+        if (! is_array($arr)) {
+            $arr = is_string($raw) ? array_map('trim', array_filter(explode(',', $raw))) : [];
+        }
+        $employee->specializations = array_values(array_filter(array_map('strval', $arr)));
+        $employee->save();
+        return response()->json([
+            'success' => true,
+            'message' => 'Specializations updated.',
+            'data' => [
+                'specializations' => $employee->specializations ?? [],
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/technician/tasks - Single list of all tasks (visits). Use filter for scope.
+     * filter: today|upcoming|completed|all|accepted|rejected.
+     * today = open jobs (scheduled_date <= today). upcoming = open (scheduled_date > today).
+     * completed = completed only. all = all open (pending, accepted, in_progress).
+     * accepted = accepted + in_progress. rejected = rejected only.
+     * Closed history (completed, rejected, cancelled) with summary: GET /api/technician/jobs.
      */
     public function tasks(Request $request)
     {
@@ -294,7 +373,12 @@ class TechnicianDashboardController extends Controller
                 ->whereIn('status', $this->openJobStatuses());
         } elseif ($filter === 'completed') {
             $query->where('status', 'completed');
-        } elseif ($filter === 'all') {
+        } elseif ($filter === 'accepted') {
+            $query->whereIn('status', ['accepted', 'in_progress']);
+        } elseif ($filter === 'rejected') {
+            $query->where('status', 'rejected');
+        } else {
+            // all
             $query->whereIn('status', $this->openJobStatuses());
         }
         $query->orderBy('scheduled_date')->orderBy('id');
@@ -317,6 +401,20 @@ class TechnicianDashboardController extends Controller
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
         }
         return response()->json(['success' => true, 'data' => $this->formatVisitAsTask($visit, true)]);
+    }
+
+    /**
+     * GET /api/technician/tasks/{id}/detail - Mobile job details screen (rich payload: service_information, customer_information, before_after_photos, actions).
+     */
+    public function taskDetail(Request $request, $id)
+    {
+        $visit = Visit::where('technician_id', $request->user()->id)
+            ->with(['subscription.client', 'area', 'photos'])
+            ->find($id);
+        if (! $visit) {
+            return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
+        }
+        return response()->json(['success' => true, 'data' => $this->formatJobDetails($visit)]);
     }
 
     /**
@@ -348,22 +446,24 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/jobs - Job history with only closed statuses.
+     * GET /api/technician/jobs - Returns jobs in period: in_progress, completed, rejected, cancelled.
+     * Query: period (week|month|year), per_page. Response: summary (total_earnings, jobs_completed, avg_rating) + paginated jobs.
      */
     public function jobs(Request $request)
     {
         $user = $request->user();
         $period = $request->input('period', 'month'); // week, month, year
         [$start, $end] = $this->resolvePeriodRange($period);
+        $jobStatuses = ['in_progress', 'completed', 'rejected', 'cancelled'];
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
-            ->whereIn('status', $this->closedJobStatuses());
+            ->whereIn('status', $jobStatuses);
         $completed = (clone $query)->where('status', 'completed')->count();
         $totalEarnings = 0; // stub
         $avgRating = 0; // stub
         $list = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
-            ->whereIn('status', $this->closedJobStatuses())
+            ->whereIn('status', $jobStatuses)
             ->with(['subscription.client', 'area'])
             ->orderByDesc('scheduled_date')
             ->paginate((int) $request->input('per_page', 15));
@@ -379,22 +479,6 @@ class TechnicianDashboardController extends Controller
                 'jobs' => $list,
             ],
         ]);
-    }
-
-    /**
-     * GET /api/technician/jobs/accepted - Accepted/In-progress jobs list.
-     */
-    public function acceptedJobs(Request $request)
-    {
-        return $this->jobsByStatuses($request, ['accepted', 'in_progress'], 'Accepted/In-progress jobs list.');
-    }
-
-    /**
-     * GET /api/technician/jobs/rejected - Rejected jobs list.
-     */
-    public function rejectedJobs(Request $request)
-    {
-        return $this->jobsByStatuses($request, ['rejected'], 'Rejected jobs list.');
     }
 
     /**
@@ -420,39 +504,6 @@ class TechnicianDashboardController extends Controller
                 'pending' => (clone $base)->where('status', 'pending')->count(),
                 'cancelled' => (clone $base)->where('status', 'cancelled')->count(),
             ],
-        ]);
-    }
-
-    /**
-     * GET /api/technician/jobs/{id} - Single job (visit) detail.
-     */
-    public function jobShow(Request $request, $id)
-    {
-        $visit = Visit::where('technician_id', $request->user()->id)
-            ->with(['subscription.client', 'area', 'photos'])
-            ->find($id);
-        if (!$visit) {
-            return response()->json(['success' => false, 'message' => 'Job not found.'], 404);
-        }
-        return response()->json(['success' => true, 'data' => $this->formatVisitAsTask($visit, true)]);
-    }
-
-    /**
-     * GET /api/technician/jobs/{id}/detail - Mobile Job Details screen payload.
-     */
-    public function jobDetail(Request $request, $id)
-    {
-        $visit = Visit::where('technician_id', $request->user()->id)
-            ->with(['subscription.client', 'area', 'photos'])
-            ->find($id);
-
-        if (! $visit) {
-            return response()->json(['success' => false, 'message' => 'Job not found.'], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $this->formatJobDetails($visit),
         ]);
     }
 
@@ -908,31 +959,6 @@ class TechnicianDashboardController extends Controller
                 'can_call_customer' => ! empty($client?->phone),
             ],
         ];
-    }
-
-    private function jobsByStatuses(Request $request, array $statuses, string $message)
-    {
-        $user = $request->user();
-        $period = $request->input('period', 'month');
-        [$start, $end] = $this->resolvePeriodRange($period);
-        $perPage = (int) $request->input('per_page', 15);
-        $perPage = min(max($perPage, 1), 100);
-
-        $list = Visit::where('technician_id', $user->id)
-            ->whereBetween('scheduled_date', [$start, $end])
-            ->whereIn('status', $statuses)
-            ->with(['subscription.client', 'area'])
-            ->orderByDesc('scheduled_date')
-            ->orderByDesc('id')
-            ->paginate($perPage);
-
-        $list->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
-
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $list,
-        ]);
     }
 
     private function normalizeAvailabilityInput(Request $request): array

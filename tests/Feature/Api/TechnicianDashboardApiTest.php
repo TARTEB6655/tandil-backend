@@ -209,7 +209,7 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertJsonStructure(['data' => ['summary' => ['total_earnings', 'jobs_completed', 'avg_rating'], 'jobs']]);
     }
 
-    public function test_jobs_returns_only_closed_statuses(): void
+    public function test_jobs_returns_closed_and_in_progress_statuses(): void
     {
         $client = User::factory()->create(['role' => 'client']);
         $sub = Subscription::factory()->create(['client_id' => $client->id]);
@@ -228,6 +228,13 @@ class TechnicianDashboardApiTest extends TestCase
             'status' => 'rejected',
         ]);
 
+        $inProgressVisit = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::yesterday(),
+            'status' => 'in_progress',
+        ]);
+
         $openVisit = Visit::factory()->create([
             'subscription_id' => $sub->id,
             'technician_id' => $this->technician->id,
@@ -242,9 +249,10 @@ class TechnicianDashboardApiTest extends TestCase
         $ids = collect($response->json('data.jobs.data'))->pluck('id')->all();
         $this->assertContains($todayCompleted->id, $ids);
         $this->assertContains($pastRejected->id, $ids);
+        $this->assertContains($inProgressVisit->id, $ids);
         $this->assertNotContains($openVisit->id, $ids);
         foreach ($response->json('data.jobs.data') as $row) {
-            $this->assertContains($row['status'], ['completed', 'rejected', 'cancelled']);
+            $this->assertContains($row['status'], ['completed', 'rejected', 'cancelled', 'in_progress']);
         }
     }
 
@@ -265,7 +273,7 @@ class TechnicianDashboardApiTest extends TestCase
             'scheduled_date' => Carbon::today(),
         ]);
 
-        $response = $this->getJson('/api/technician/jobs/accepted?period=month&per_page=50', $this->authHeaders());
+        $response = $this->getJson('/api/technician/tasks?filter=accepted&per_page=50', $this->authHeaders());
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $ids = collect($response->json('data.data'))->pluck('id')->all();
@@ -289,7 +297,7 @@ class TechnicianDashboardApiTest extends TestCase
             'scheduled_date' => Carbon::today(),
         ]);
 
-        $response = $this->getJson('/api/technician/jobs/rejected?period=month&per_page=50', $this->authHeaders());
+        $response = $this->getJson('/api/technician/tasks?filter=rejected&per_page=50', $this->authHeaders());
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $ids = collect($response->json('data.data'))->pluck('id')->all();
@@ -489,7 +497,7 @@ class TechnicianDashboardApiTest extends TestCase
             'notes' => '[DUMMY-SUP-ASSIGN] Mohammed Ali Farm | Tree Watering & Irrigation Check | Al Ain Oasis, Abu Dhabi, UAE | 120 min | AED 289.99 | 5/5',
         ]);
 
-        $response = $this->getJson("/api/technician/jobs/{$visit->id}/detail", $this->authHeaders());
+        $response = $this->getJson("/api/technician/tasks/{$visit->id}/detail", $this->authHeaders());
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.job_id', $visit->id);

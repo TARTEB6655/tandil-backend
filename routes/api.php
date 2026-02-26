@@ -172,17 +172,20 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateProfile']); // POST so form-data (file upload) is parsed by PHP
+    Route::get('/service-areas', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'getServiceAreas']);
+    Route::put('/service-areas', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateServiceAreas']);
+    Route::post('/service-areas', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateServiceAreas']);
+    Route::get('/specializations', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'getSpecializations']);
+    Route::put('/specializations', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateSpecializations']);
+    Route::post('/specializations', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateSpecializations']);
     Route::get('/tasks', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'tasks']);
     Route::get('/tasks/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskShow']);
+    Route::get('/tasks/{id}/detail', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskDetail']);
     Route::put('/tasks/{id}/status', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskUpdateStatus']);
     Route::post('/tasks/{id}/accept', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskAccept']);
     Route::post('/tasks/{id}/reject', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskReject']);
     Route::get('/jobs', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobs']);
-    Route::get('/jobs/accepted', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'acceptedJobs']);
-    Route::get('/jobs/rejected', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'rejectedJobs']);
     Route::get('/jobs/status-counts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobsStatusCounts']);
-    Route::get('/jobs/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobShow']);
-    Route::get('/jobs/{id}/detail', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobDetail']);
     Route::get('/payout-summary', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payoutSummary']);
     Route::get('/payouts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payouts']);
     Route::get('/settings/payout', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payoutSettings']);
@@ -242,8 +245,6 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::get('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
-    Route::post('/profile/picture', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'uploadProfilePicture']);
-    Route::put('/profile/picture', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'uploadProfilePicture']);
     Route::put('/profile/password', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updatePassword']);
     Route::post('/profile/password', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updatePassword']);
     Route::get('/profile/preferences', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'profilePreferences']);
