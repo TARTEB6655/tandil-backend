@@ -338,8 +338,9 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.is_online', true);
-        $response->assertJsonStructure(['data' => ['service_area', 'breaks']]);
+        $response->assertJsonStructure(['data' => ['service_area', 'service_areas', 'breaks', 'vacations']]);
         $response->assertJsonPath('data.breaks', []);
+        $response->assertJsonPath('data.vacations', []);
 
         $response2 = $this->putJson('/api/technician/availability', [
             'is_online' => false,
@@ -408,23 +409,33 @@ class TechnicianDashboardApiTest extends TestCase
         $this->assertSame(1, \App\Models\TechnicianBreak::where('user_id', $this->technician->id)->count());
     }
 
-    public function test_vacations_crud(): void
+    public function test_availability_includes_vacations_and_put_replaces_vacations(): void
     {
-        $response = $this->postJson('/api/technician/vacations', [
-            'start_date' => Carbon::today()->addDays(7)->toDateString(),
-            'end_date' => Carbon::today()->addDays(10)->toDateString(),
-            'reason' => 'Leave',
-        ], $this->authHeaders());
-        $response->assertStatus(201);
+        $response = $this->getJson('/api/technician/availability', $this->authHeaders());
+        $response->assertStatus(200);
         $response->assertJsonPath('success', true);
-        $id = $response->json('data.id');
+        $response->assertJsonStructure(['data' => ['vacations']]);
+        $response->assertJsonPath('data.vacations', []);
+
+        $response2 = $this->putJson('/api/technician/availability', [
+            'vacations' => [
+                ['start_date' => Carbon::today()->addDays(7)->toDateString(), 'end_date' => Carbon::today()->addDays(10)->toDateString(), 'reason' => 'Leave'],
+            ],
+        ], $this->authHeaders());
+        $response2->assertStatus(200);
+        $response2->assertJsonCount(1, 'data.vacations');
+        $response2->assertJsonPath('data.vacations.0.reason', 'Leave');
         $this->assertDatabaseHas('technician_vacations', ['user_id' => $this->technician->id]);
 
-        $response2 = $this->getJson('/api/technician/vacations', $this->authHeaders());
-        $response2->assertStatus(200);
-
-        $response3 = $this->deleteJson("/api/technician/vacations/{$id}", [], $this->authHeaders());
+        $response3 = $this->putJson('/api/technician/availability', [
+            'vacations' => [
+                ['start_date' => Carbon::today()->addDays(14)->toDateString(), 'end_date' => Carbon::today()->addDays(16)->toDateString(), 'reason' => 'Short leave'],
+            ],
+        ], $this->authHeaders());
         $response3->assertStatus(200);
+        $response3->assertJsonCount(1, 'data.vacations');
+        $response3->assertJsonPath('data.vacations.0.reason', 'Short leave');
+        $this->assertSame(1, \App\Models\TechnicianVacation::where('user_id', $this->technician->id)->count());
     }
 
     public function test_schedule_returns_tasks_breaks_vacations(): void

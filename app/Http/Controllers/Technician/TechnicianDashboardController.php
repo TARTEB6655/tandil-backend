@@ -658,7 +658,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * GET /api/technician/availability
-     * Returns: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks.
+     * Returns: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations.
      */
     public function availability(Request $request)
     {
@@ -669,6 +669,15 @@ class TechnicianDashboardController extends Controller
             $breaksQuery->whereBetween('date', [$request->input('from'), $request->input('to')]);
         }
         $breaks = $breaksQuery->get();
+
+        $vacationsQuery = TechnicianVacation::where('user_id', $user->id)->orderBy('start_date');
+        if ($request->filled('from') && $request->filled('to')) {
+            $vacationsQuery->where(function ($q) use ($request) {
+                $q->whereBetween('start_date', [$request->input('from'), $request->input('to')])
+                    ->orWhereBetween('end_date', [$request->input('from'), $request->input('to')]);
+            });
+        }
+        $vacations = $vacationsQuery->get();
 
         [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($user->employee);
         $data = [
@@ -685,14 +694,20 @@ class TechnicianDashboardController extends Controller
                 'end_time' => $b->end_time,
                 'reason' => $b->reason,
             ])->values()->all(),
+            'vacations' => $vacations->map(fn ($v) => [
+                'id' => $v->id,
+                'start_date' => $v->start_date?->toDateString(),
+                'end_date' => $v->end_date?->toDateString(),
+                'reason' => $v->reason,
+            ])->values()->all(),
         ];
         return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
      * PUT /api/technician/availability
-     * Accepts form-data or JSON: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks.
-     * For form-data: working_days, working_hours_slots, breaks can be JSON strings.
+     * Accepts form-data or JSON: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations.
+     * Sending breaks or vacations replaces all existing. For form-data: working_days, working_hours_slots, breaks, vacations can be JSON strings.
      */
     public function updateAvailability(Request $request)
     {
@@ -716,6 +731,10 @@ class TechnicianDashboardController extends Controller
             'breaks.*.start_time' => 'required|string',
             'breaks.*.end_time' => 'required|string',
             'breaks.*.reason' => 'nullable|string|max:255',
+            'vacations' => 'sometimes|array',
+            'vacations.*.start_date' => 'required|date',
+            'vacations.*.end_date' => 'required|date',
+            'vacations.*.reason' => 'nullable|string|max:255',
         ];
         $validator = Validator::make($input, $rules);
         if ($validator->fails()) {
@@ -767,9 +786,22 @@ class TechnicianDashboardController extends Controller
             }
         }
 
+        if (array_key_exists('vacations', $input)) {
+            TechnicianVacation::where('user_id', $user->id)->delete();
+            foreach ($input['vacations'] ?? [] as $item) {
+                TechnicianVacation::create([
+                    'user_id' => $user->id,
+                    'start_date' => $item['start_date'],
+                    'end_date' => $item['end_date'],
+                    'reason' => $item['reason'] ?? null,
+                ]);
+            }
+        }
+
         $user->load('employee');
         $av = $av->fresh();
         $breaks = TechnicianBreak::where('user_id', $user->id)->orderBy('date')->orderBy('start_time')->get();
+        $vacations = TechnicianVacation::where('user_id', $user->id)->orderBy('start_date')->get();
         [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($user->employee);
         $data = [
             'is_online' => $av->is_online ?? true,
@@ -785,92 +817,14 @@ class TechnicianDashboardController extends Controller
                 'end_time' => $b->end_time,
                 'reason' => $b->reason,
             ])->values()->all(),
+            'vacations' => $vacations->map(fn ($v) => [
+                'id' => $v->id,
+                'start_date' => $v->start_date?->toDateString(),
+                'end_date' => $v->end_date?->toDateString(),
+                'reason' => $v->reason,
+            ])->values()->all(),
         ];
         return response()->json(['success' => true, 'data' => $data]);
-    }
-
-    /**
-     * GET /api/technician/vacations
-     */
-    public function vacations(Request $request)
-    {
-        $query = TechnicianVacation::where('user_id', $request->user()->id)->orderBy('start_date');
-        if ($request->has('from') && $request->has('to')) {
-            $query->where(function ($q) use ($request) {
-                $q->whereBetween('start_date', [$request->input('from'), $request->input('to')])
-                    ->orWhereBetween('end_date', [$request->input('from'), $request->input('to')]);
-            });
-        }
-        $items = $query->get();
-        return response()->json(['success' => true, 'data' => $items]);
-    }
-
-    /**
-     * POST /api/technician/vacations
-     */
-    public function vacationStore(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'nullable|string|max:255',
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-        $vacation = TechnicianVacation::create([
-            'user_id' => $request->user()->id,
-            'start_date' => $request->input('start_date'),
-            'end_date' => $request->input('end_date'),
-            'reason' => $request->input('reason'),
-        ]);
-        return response()->json(['success' => true, 'data' => $vacation], 201);
-    }
-
-    /**
-     * PUT /api/technician/vacations/{id}
-     */
-    public function vacationUpdate(Request $request, $id)
-    {
-        $vacation = TechnicianVacation::where('user_id', $request->user()->id)->find($id);
-        if (!$vacation) {
-            return response()->json(['success' => false, 'message' => 'Vacation not found.'], 404);
-        }
-        $data = $request->only(['start_date', 'end_date', 'reason']);
-        $start = $data['start_date'] ?? $vacation->start_date?->toDateString();
-        $end = $data['end_date'] ?? $vacation->end_date?->toDateString();
-        $validator = Validator::make(array_merge($data, ['start_date' => $start, 'end_date' => $end]), [
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'nullable|string|max:255',
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-        if (isset($data['start_date'])) {
-            $vacation->start_date = $data['start_date'];
-        }
-        if (isset($data['end_date'])) {
-            $vacation->end_date = $data['end_date'];
-        }
-        if (array_key_exists('reason', $data)) {
-            $vacation->reason = $data['reason'];
-        }
-        $vacation->save();
-        return response()->json(['success' => true, 'data' => $vacation->fresh()]);
-    }
-
-    /**
-     * DELETE /api/technician/vacations/{id}
-     */
-    public function vacationDestroy(Request $request, $id)
-    {
-        $vacation = TechnicianVacation::where('user_id', $request->user()->id)->find($id);
-        if (!$vacation) {
-            return response()->json(['success' => false, 'message' => 'Vacation not found.'], 404);
-        }
-        $vacation->delete();
-        return response()->json(['success' => true, 'message' => 'Vacation deleted.']);
     }
 
     /**
@@ -1041,6 +995,17 @@ class TechnicianDashboardController extends Controller
                 $out['breaks'] = [];
             }
         }
+        if ($request->has('vacations')) {
+            $v = $request->input('vacations');
+            if (is_array($v)) {
+                $out['vacations'] = $v;
+            } elseif (is_string($v)) {
+                $decoded = json_decode(trim($v), true);
+                $out['vacations'] = is_array($decoded) ? $decoded : [];
+            } else {
+                $out['vacations'] = [];
+            }
+        }
 
         // Normalize when data came from multipart (all values are strings)
         if (isset($out['is_online']) && is_string($out['is_online'])) {
@@ -1060,6 +1025,10 @@ class TechnicianDashboardController extends Controller
         if (isset($out['breaks'])) {
             $v = $out['breaks'];
             $out['breaks'] = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
+        }
+        if (isset($out['vacations'])) {
+            $v = $out['vacations'];
+            $out['vacations'] = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
         }
         if (isset($out['service_areas'])) {
             $v = $out['service_areas'];
