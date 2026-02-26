@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.60.0"
+        "version": "2.61.0"
     },
     "item": [
         {
@@ -3487,7 +3487,14 @@
                                         {
                                             "key": "service_area",
                                             "value": "Dubai",
-                                            "type": "text"
+                                            "type": "text",
+                                            "description": "Single area (optional if service_areas sent)"
+                                        },
+                                        {
+                                            "key": "service_areas",
+                                            "value": "[\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]",
+                                            "type": "text",
+                                            "description": "JSON array of multiple service areas/addresses"
                                         },
                                         {
                                             "key": "specializations",
@@ -3507,7 +3514,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Update profile with form-data (text fields). For profile picture use Profile (POST form-data)."
+                                "description": "Update profile with form-data (text fields). Fields: name, email, phone, service_area (single), service_areas (JSON array of multiple addresses), specializations. For profile picture use Profile (POST form-data)."
                             }
                         },
                         {
@@ -3545,7 +3552,14 @@
                                         {
                                             "key": "service_area",
                                             "value": "Dubai",
-                                            "type": "text"
+                                            "type": "text",
+                                            "description": "Single area (optional if service_areas sent)"
+                                        },
+                                        {
+                                            "key": "service_areas",
+                                            "value": "[\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]",
+                                            "type": "text",
+                                            "description": "JSON array of multiple service areas/addresses"
                                         },
                                         {
                                             "key": "specializations",
@@ -3585,7 +3599,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Update profile with form-data. Use POST for profile_picture upload. Fields: name, email, phone, service_area, specializations (comma or JSON), current_password, password, password_confirmation, profile_picture (one file). Returns full profile with profile_picture_url."
+                                "description": "Update profile with form-data. Use POST for profile_picture upload. Fields: name, email, phone, service_area (single), service_areas (JSON array of multiple addresses), specializations (comma or JSON), current_password, password, password_confirmation, profile_picture (one file). Returns full profile with service_area, service_areas, profile_picture_url."
                             }
                         },
                         {
@@ -4356,7 +4370,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks. Optional query: from, to (date range for breaks)."
+                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area (first area), service_areas (array of multiple addresses), breaks. Optional query: from, to (date range for breaks)."
                             }
                         },
                         {
@@ -4403,7 +4417,14 @@
                                         {
                                             "key": "service_area",
                                             "value": "Dubai",
-                                            "type": "text"
+                                            "type": "text",
+                                            "description": "Single area (optional if service_areas sent)"
+                                        },
+                                        {
+                                            "key": "service_areas",
+                                            "value": "[\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]",
+                                            "type": "text",
+                                            "description": "JSON array of multiple service areas/addresses"
                                         },
                                         {
                                             "key": "breaks",
@@ -4424,7 +4445,7 @@
                                         "availability"
                                     ]
                                 },
-                                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days (JSON array string), working_hours_slots (JSON array string), service_area, breaks (JSON array string, e.g. [{\"date\":\"2026-02-25\",\"start_time\":\"12:00\",\"end_time\":\"13:00\",\"reason\":\"Lunch\"}]). Sending breaks replaces all existing breaks; include breaks field with valid JSON array to avoid empty breaks in response."
+                                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days (JSON array string), working_hours_slots (JSON array string), service_area (single), service_areas (JSON array of addresses, e.g. [\"Dubai\",\"Al Ain\"]), breaks (JSON array string). Response returns service_area, service_areas, breaks."
                             }
                         },
                         {
@@ -4610,10 +4631,10 @@
                             }
                         }
                     ],
-                    "description": "Technician Dashboard: overview, profile, tasks, jobs, earnings, bank accounts, availability (includes breaks and service_area), vacations, schedule. All require technician role + Bearer token."
+                    "description": "Technician Dashboard: overview, profile, tasks, jobs, earnings, bank accounts, availability (includes breaks, service_area, service_areas array), vacations, schedule. Profile and availability support multiple service_areas (JSON array). All require technician role + Bearer token."
                 }
             ],
-            "description": "Technician-only endpoints for mobile app: visits lifecycle, photos, dashboard, profile, tasks, jobs, payouts, bank accounts, availability (with breaks and service_area), vacations, and schedule."
+            "description": "Technician-only endpoints for mobile app: visits lifecycle, photos, dashboard, profile, tasks, jobs, payouts, bank accounts, availability (with breaks, service_area, service_areas), vacations, and schedule. Profile and availability accept service_areas (multiple addresses) as JSON array."
         },
         {
             "name": "10. Supervisor Dashboard – All APIs",

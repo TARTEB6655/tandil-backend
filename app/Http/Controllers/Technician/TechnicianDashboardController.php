@@ -122,6 +122,7 @@ class TechnicianDashboardController extends Controller
         $user = $request->user()->load('employee', 'technicianAvailability');
         $employee = $user->employee;
         $visitsCompleted = Visit::where('technician_id', $user->id)->where('status', 'completed')->count();
+        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($employee);
 
         $data = [
             'name' => $user->name,
@@ -135,7 +136,8 @@ class TechnicianDashboardController extends Controller
             'total_earnings' => 0,
             'member_since' => $user->created_at?->toIso8601String(),
             'specializations' => $employee?->specializations ?? [],
-            'service_area' => $employee?->region,
+            'service_area' => $serviceArea,
+            'service_areas' => $serviceAreas,
             'notification_preferences' => [
                 'push_enabled' => true,
                 'email_enabled' => true,
@@ -152,8 +154,8 @@ class TechnicianDashboardController extends Controller
 
     /**
      * PUT /api/technician/profile - Update technician profile.
-     * Accepts multipart/form-data: name, email, phone, service_area, specializations (JSON array string),
-     * current_password, password, password_confirmation, profile_picture (file). All optional.
+     * Accepts multipart/form-data: name, email, phone, service_area, service_areas (JSON array of addresses),
+     * specializations (JSON array string), current_password, password, password_confirmation, profile_picture (file). All optional.
      * Returns full profile (same shape as GET /api/technician/profile).
      */
     public function updateProfile(Request $request)
@@ -171,6 +173,7 @@ class TechnicianDashboardController extends Controller
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
             'service_area' => 'nullable|string|max:255',
+            'service_areas' => 'nullable',
             'specializations' => 'nullable',
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
@@ -204,7 +207,7 @@ class TechnicianDashboardController extends Controller
         }
         $user->save();
 
-        // Get or create employee so technician can set service_area and specializations
+        // Get or create employee so technician can set service_area, service_areas, specializations
         $employee = $user->employee;
         if (! $employee) {
             $employee = Employee::firstOrCreate(
@@ -212,8 +215,22 @@ class TechnicianDashboardController extends Controller
                 ['employee_id' => 'TECH-' . $user->id]
             );
         }
+        if ($request->has('service_areas') || $request->filled('service_areas')) {
+            $raw = $request->input('service_areas');
+            $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) : []);
+            if (! is_array($arr)) {
+                $arr = is_string($raw) ? array_map('trim', array_filter(explode(',', $raw))) : [];
+            }
+            $employee->service_areas = array_values(array_filter(array_map('strval', $arr)));
+            $employee->region = $employee->service_areas[0] ?? $employee->region;
+        }
         if ($request->has('service_area') || $request->filled('service_area')) {
-            $employee->region = $request->input('service_area') ?: null;
+            $single = $request->input('service_area') ?: null;
+            $employee->region = $single;
+            if ($single && (empty($employee->service_areas) || $employee->service_areas[0] !== $single)) {
+                $current = $employee->service_areas ?? [];
+                $employee->service_areas = array_values(array_unique(array_merge([$single], $current)));
+            }
         }
         if ($request->has('specializations') || $request->filled('specializations')) {
             $raw = $request->input('specializations');
@@ -228,6 +245,7 @@ class TechnicianDashboardController extends Controller
         $user->setRelation('employee', $employee);
         $user->refresh();
         $visitsCompleted = Visit::where('technician_id', $user->id)->where('status', 'completed')->count();
+        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($employee);
         $data = [
             'name' => $user->name,
             'email' => $user->email,
@@ -240,7 +258,8 @@ class TechnicianDashboardController extends Controller
             'total_earnings' => 0,
             'member_since' => $user->created_at?->toIso8601String(),
             'specializations' => $employee?->specializations ?? [],
-            'service_area' => $employee?->region,
+            'service_area' => $serviceArea,
+            'service_areas' => $serviceAreas,
             'notification_preferences' => [
                 'push_enabled' => true,
                 'email_enabled' => true,
@@ -651,12 +670,14 @@ class TechnicianDashboardController extends Controller
         }
         $breaks = $breaksQuery->get();
 
+        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($user->employee);
         $data = [
             'is_online' => $av?->is_online ?? true,
             'auto_accept_jobs' => $av?->auto_accept_jobs ?? false,
             'working_days' => $av?->working_days ?? [],
             'working_hours_slots' => $av?->working_hours_slots ?? [],
-            'service_area' => $user->employee?->region,
+            'service_area' => $serviceArea,
+            'service_areas' => $serviceAreas,
             'breaks' => $breaks->map(fn ($b) => [
                 'id' => $b->id,
                 'date' => $b->date?->toDateString(),
@@ -688,6 +709,8 @@ class TechnicianDashboardController extends Controller
             'working_hours_slots.*.start' => 'string',
             'working_hours_slots.*.end' => 'string',
             'service_area' => 'nullable|string|max:255',
+            'service_areas' => 'sometimes|array',
+            'service_areas.*' => 'string|max:255',
             'breaks' => 'sometimes|array',
             'breaks.*.date' => 'required|date',
             'breaks.*.start_time' => 'required|string',
@@ -708,12 +731,26 @@ class TechnicianDashboardController extends Controller
         }
         $av->save();
 
-        if (array_key_exists('service_area', $input)) {
+        if (array_key_exists('service_area', $input) || array_key_exists('service_areas', $input)) {
             $employee = $user->employee ?? Employee::firstOrCreate(
                 ['user_id' => $user->id],
                 ['employee_id' => 'TECH-' . $user->id]
             );
-            $employee->region = $input['service_area'] ?: null;
+            if (array_key_exists('service_areas', $input)) {
+                $arr = $input['service_areas'];
+                $employee->service_areas = array_values(array_filter(array_map('strval', $arr)));
+                $employee->region = $employee->service_areas[0] ?? $employee->region;
+            }
+            if (array_key_exists('service_area', $input)) {
+                $single = $input['service_area'] ?: null;
+                $employee->region = $single;
+                if ($single) {
+                    $current = $employee->service_areas ?? [];
+                    if (empty($current) || $current[0] !== $single) {
+                        $employee->service_areas = array_values(array_unique(array_merge([$single], $current)));
+                    }
+                }
+            }
             $employee->save();
         }
 
@@ -733,12 +770,14 @@ class TechnicianDashboardController extends Controller
         $user->load('employee');
         $av = $av->fresh();
         $breaks = TechnicianBreak::where('user_id', $user->id)->orderBy('date')->orderBy('start_time')->get();
+        [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($user->employee);
         $data = [
             'is_online' => $av->is_online ?? true,
             'auto_accept_jobs' => $av->auto_accept_jobs ?? false,
             'working_days' => $av->working_days ?? [],
             'working_hours_slots' => $av->working_hours_slots ?? [],
-            'service_area' => $user->employee?->region,
+            'service_area' => $serviceArea,
+            'service_areas' => $serviceAreas,
             'breaks' => $breaks->map(fn ($b) => [
                 'id' => $b->id,
                 'date' => $b->date?->toDateString(),
@@ -987,6 +1026,10 @@ class TechnicianDashboardController extends Controller
         if ($request->has('service_area') || $request->filled('service_area')) {
             $out['service_area'] = $request->input('service_area') ?: null;
         }
+        if ($request->has('service_areas')) {
+            $v = $request->input('service_areas');
+            $out['service_areas'] = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
+        }
         if ($request->has('breaks')) {
             $v = $request->input('breaks');
             if (is_array($v)) {
@@ -1018,8 +1061,33 @@ class TechnicianDashboardController extends Controller
             $v = $out['breaks'];
             $out['breaks'] = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
         }
+        if (isset($out['service_areas'])) {
+            $v = $out['service_areas'];
+            $arr = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
+            $out['service_areas'] = array_values(array_filter(array_map('strval', (array) $arr)));
+        }
 
         return $out;
+    }
+
+    /**
+     * @return array{0: string|null, 1: array}
+     */
+    private function resolveServiceAreaAndAreas(?Employee $employee): array
+    {
+        if (! $employee) {
+            return [null, []];
+        }
+        $areas = $employee->service_areas ?? [];
+        if (! is_array($areas)) {
+            $areas = [];
+        }
+        if (empty($areas) && $employee->region) {
+            $areas = [$employee->region];
+        }
+        $first = $areas[0] ?? $employee->region;
+
+        return [$first, array_values($areas)];
     }
 
     /**
