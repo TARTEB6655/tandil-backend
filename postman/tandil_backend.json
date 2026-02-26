@@ -3611,13 +3611,21 @@
                                     }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"service_area\": \"Dubai\",\n  \"service_areas\": [\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]\n}",
-                                    "options": {
-                                        "raw": {
-                                            "language": "json"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "service_area",
+                                            "value": "Dubai",
+                                            "type": "text",
+                                            "description": "Primary area (optional)"
+                                        },
+                                        {
+                                            "key": "service_areas",
+                                            "value": "[\"Dubai\", \"Al Ain\", \"Abu Dhabi\"]",
+                                            "type": "text",
+                                            "description": "JSON array of areas, or comma-separated e.g. Dubai,Al Ain,Abu Dhabi"
                                         }
-                                    }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/technician/service-areas",
@@ -3630,7 +3638,7 @@
                                         "service-areas"
                                     ]
                                 },
-                                "description": "Update service area(s). Body: service_area (string), service_areas (array). Replaces existing. POST also supported."
+                                "description": "Update service area(s). Body: form-data. service_area (string), service_areas (JSON array string or comma-separated). Replaces existing. POST also supported."
                             }
                         },
                         {
@@ -3676,13 +3684,15 @@
                                     }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"specializations\": [\"AC\", \"Plumbing\", \"Electrical\"]\n}",
-                                    "options": {
-                                        "raw": {
-                                            "language": "json"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "specializations",
+                                            "value": "[\"AC\", \"Plumbing\", \"Electrical\"]",
+                                            "type": "text",
+                                            "description": "JSON array of strings, or comma-separated e.g. AC,Plumbing,Electrical"
                                         }
-                                    }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/technician/specializations",
@@ -3695,7 +3705,7 @@
                                         "specializations"
                                     ]
                                 },
-                                "description": "Update specializations. Body: specializations (array of strings). Replaces existing. POST also supported."
+                                "description": "Update specializations. Body: form-data. specializations (JSON array string or comma-separated). Replaces existing. POST also supported."
                             }
                         },
                         {

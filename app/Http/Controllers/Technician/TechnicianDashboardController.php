@@ -256,7 +256,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * PUT /api/technician/service-areas - Update technician's service area(s).
-     * Body: service_area (string, optional), service_areas (array or JSON string, optional). Replaces existing.
+     * Body: form-data or JSON. service_area (string, optional), service_areas (array or JSON string or comma-separated, optional). Replaces existing.
      */
     public function updateServiceAreas(Request $request)
     {
@@ -274,9 +274,9 @@ class TechnicianDashboardController extends Controller
         }
         if ($request->has('service_areas') || $request->filled('service_areas')) {
             $raw = $request->input('service_areas');
-            $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) : []);
+            $arr = is_array($raw) ? $raw : (is_string($raw) ? (json_decode($raw, true) ?? array_map('trim', array_filter(explode(',', $raw)))) : []);
             if (! is_array($arr)) {
-                $arr = is_string($raw) ? array_map('trim', array_filter(explode(',', $raw))) : [];
+                $arr = [];
             }
             $employee->service_areas = array_values(array_filter(array_map('strval', $arr)));
             $employee->region = $employee->service_areas[0] ?? $employee->region;
@@ -321,7 +321,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * PUT /api/technician/specializations - Update technician's specializations.
-     * Body: specializations (array or JSON array of strings). Replaces existing.
+     * Body: form-data or JSON. specializations (array or JSON string or comma-separated). Replaces existing.
      */
     public function updateSpecializations(Request $request)
     {
@@ -337,9 +337,9 @@ class TechnicianDashboardController extends Controller
             );
         }
         $raw = $request->input('specializations');
-        $arr = is_array($raw) ? $raw : (is_string($raw) ? json_decode($raw, true) : []);
+        $arr = is_array($raw) ? $raw : (is_string($raw) ? (json_decode($raw, true) ?? array_map('trim', array_filter(explode(',', $raw)))) : []);
         if (! is_array($arr)) {
-            $arr = is_string($raw) ? array_map('trim', array_filter(explode(',', $raw))) : [];
+            $arr = [];
         }
         $employee->specializations = array_values(array_filter(array_map('strval', $arr)));
         $employee->save();
