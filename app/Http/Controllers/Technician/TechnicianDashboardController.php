@@ -930,6 +930,61 @@ class TechnicianDashboardController extends Controller
         ]);
     }
 
+    /**
+     * GET /api/technician/notifications - List notifications sent by admin (title, message). Paginated.
+     */
+    public function getNotifications(Request $request)
+    {
+        $user = $request->user();
+        $perPage = (int) $request->input('per_page', 20);
+        $perPage = min(max($perPage, 1), 100);
+
+        $notifications = $user->notifications()
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        $data = $notifications->through(function ($n) {
+            $d = $n->data ?? [];
+            return [
+                'id' => $n->id,
+                'title' => $d['title'] ?? 'Notification',
+                'message' => $d['message'] ?? '',
+                'type' => $d['type'] ?? 'admin_notification',
+                'meta' => $d['meta'] ?? [],
+                'read_at' => $n->read_at?->toIso8601String(),
+                'created_at' => $n->created_at?->toIso8601String(),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'unread_count' => $user->unreadNotifications()->count(),
+        ]);
+    }
+
+    /**
+     * POST /api/technician/notifications/{id}/read - Mark one notification as read.
+     */
+    public function markNotificationRead(Request $request, string $id)
+    {
+        $notification = $request->user()->notifications()->where('id', $id)->first();
+        if (! $notification) {
+            return response()->json(['success' => false, 'message' => 'Notification not found.'], 404);
+        }
+        $notification->markAsRead();
+        return response()->json(['success' => true, 'message' => 'Notification marked as read.']);
+    }
+
+    /**
+     * POST /api/technician/notifications/read-all - Mark all notifications as read.
+     */
+    public function markAllNotificationsRead(Request $request)
+    {
+        $request->user()->unreadNotifications->each(fn ($n) => $n->markAsRead());
+        return response()->json(['success' => true, 'message' => 'All notifications marked as read.']);
+    }
+
     private function formatJobDetails(Visit $visit): array
     {
         $client = $visit->subscription?->client;

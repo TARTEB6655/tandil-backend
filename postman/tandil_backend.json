@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.74.0"
+        "version": "2.76.0"
     },
     "item": [
         {
@@ -3533,11 +3533,6 @@
                                             "type": "text"
                                         },
                                         {
-                                            "key": "current_password",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
                                             "key": "password",
                                             "value": "",
                                             "type": "text"
@@ -3565,7 +3560,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Update profile: name, email, phone, current_password, password, password_confirmation, profile_picture (file). For service areas use GET/PUT /api/technician/service-areas."
+                                "description": "Update profile: name, email, phone, password, password_confirmation, profile_picture (file). No current_password. For service areas use GET/PUT /api/technician/service-areas."
                             }
                         },
                         {
@@ -4564,6 +4559,108 @@
                                     ]
                                 },
                                 "description": "Calendar: tasks + breaks + vacations for date range."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Notifications",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications?per_page=20",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "notifications"],
+                                    "query": [{"key": "per_page", "value": "20"}]
+                                },
+                                "description": "List notifications sent by admin (title, message). Paginated. Response includes unread_count."
+                            }
+                        },
+                        {
+                            "name": "POST Technician – Notification mark read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/{{notification_id}}/read",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "notifications", "{{notification_id}}", "read"]
+                                },
+                                "description": "Mark one notification as read. Set notification_id (UUID from list)."
+                            }
+                        },
+                        {
+                            "name": "POST Technician – Notifications read all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/read-all",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "notifications", "read-all"]
+                                },
+                                "description": "Mark all notifications as read."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Support help center",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/support/help-center",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "support", "help-center"]
+                                },
+                                "description": "Help & Support: heading, contact_info, submit_ticket (endpoint/fields), FAQs, social_links."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Support FAQs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/support/faqs",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "support", "faqs"]
+                                },
+                                "description": "FAQ list for Help & Support screen."
+                            }
+                        },
+                        {
+                            "name": "POST Technician – Support submit ticket",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"subject\": \"Issue with app\",\n  \"email\": \"technician@example.com\",\n  \"description\": \"Describe your issue here.\"\n}",
+                                    "options": {"raw": {"language": "json"}}
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/support/tickets",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "support", "tickets"]
+                                },
+                                "description": "Submit a support ticket. Body: subject, email, description (required)."
                             }
                         }
                     ],

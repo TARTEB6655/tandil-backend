@@ -197,6 +197,14 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'availability']);
     Route::put('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateAvailability']);
     Route::get('/schedule', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'schedule']);
+    // Notifications (sent by admin – title, message)
+    Route::get('/notifications', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'getNotifications']);
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markNotificationRead']);
+    Route::post('/notifications/read-all', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markAllNotificationsRead']);
+    // Help & Support (same as /api/support/*, under technician prefix for dashboard)
+    Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
+    Route::get('/support/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
+    Route::post('/support/tickets', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
 });
 
 /*
