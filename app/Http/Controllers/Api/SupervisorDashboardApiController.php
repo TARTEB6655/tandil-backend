@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -362,7 +363,7 @@ class SupervisorDashboardApiController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'profile_picture' => $user->profile_picture,
-                'profile_picture_url' => $user->profile_picture_url,
+                'profile_picture_url' => $this->fullProfilePictureUrl($user),
                 'role' => $user->role,
                 'areas_count' => count($user->supervisedAreaIds()),
             ],
@@ -373,19 +374,48 @@ class SupervisorDashboardApiController extends Controller
     {
         $user = $request->user();
 
-        $validated = $request->validate([
+        $profileFile = $request->file('profile_picture');
+        if (is_array($profileFile)) {
+            $profileFile = $profileFile[0] ?? null;
+        }
+
+        $input = $request->all();
+        $rules = [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
-        ]);
-
-        if ($request->hasFile('profile_picture')) {
-            $validated['profile_picture'] = $request->file('profile_picture')->store('profiles', 'public');
-            ImageCompressionService::compressIfNeededFromPublicPath($validated['profile_picture']);
+        ];
+        if ($profileFile) {
+            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
+        }
+        $validator = Validator::make(array_merge($input, ['profile_picture' => $profileFile]), $rules);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $user->fill($validated);
+        if ($request->has('name')) {
+            $user->name = $request->input('name');
+        }
+        if ($request->has('email')) {
+            $user->email = $request->input('email');
+        }
+        if ($request->has('phone')) {
+            $user->phone = $request->input('phone') ?: null;
+        }
+
+        // Profile picture: POST has $request->file(); PUT + multipart must be parsed from raw body
+        if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
+            $stored = $profileFile->store('profiles', 'public');
+            $user->profile_picture = $stored;
+            ImageCompressionService::compressIfNeededFromPublicPath($stored);
+        } elseif ($request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+            $stored = $this->storeProfilePictureFromMultipartPut($request);
+            if ($stored) {
+                $user->profile_picture = $stored;
+                ImageCompressionService::compressIfNeededFromPublicPath($stored);
+            }
+        }
+
         $user->save();
 
         return response()->json(['success' => true, 'message' => 'Profile updated successfully.', 'data' => [
@@ -394,20 +424,44 @@ class SupervisorDashboardApiController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'profile_picture' => $user->profile_picture,
-            'profile_picture_url' => $user->profile_picture_url,
+            'profile_picture_url' => $this->fullProfilePictureUrl($user),
         ]]);
     }
 
     /**
      * Dedicated profile picture create/update endpoint (multipart/form-data).
+     * Use POST for form-data file upload; PUT with form-data is also supported via multipart parsing.
      */
     public function uploadProfilePicture(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $file = $request->file('profile_picture');
+        if (is_array($file)) {
+            $file = $file[0] ?? null;
+        }
+
+        // PUT + multipart: PHP does not populate $_FILES; parse raw body for file
+        if (! $file && $request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+            $path = $this->storeProfilePictureFromMultipartPut($request);
+            if ($path) {
+                $user->profile_picture = $path;
+                ImageCompressionService::compressIfNeededFromPublicPath($path);
+                $user->save();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Profile picture uploaded successfully.',
+                    'data' => [
+                        'profile_picture' => $user->profile_picture,
+                        'profile_picture_url' => $this->fullProfilePictureUrl($user),
+                    ],
+                ]);
+            }
+            return response()->json(['success' => false, 'message' => 'No profile_picture file in request body.'], 422);
+        }
+
         $validated = $request->validate([
             'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
         ]);
-
-        $user = $request->user();
         $user->profile_picture = $request->file('profile_picture')->store('profiles', 'public');
         ImageCompressionService::compressIfNeededFromPublicPath($user->profile_picture);
         $user->save();
@@ -417,9 +471,68 @@ class SupervisorDashboardApiController extends Controller
             'message' => 'Profile picture uploaded successfully.',
             'data' => [
                 'profile_picture' => $user->profile_picture,
-                'profile_picture_url' => $user->profile_picture_url,
+                'profile_picture_url' => $this->fullProfilePictureUrl($user),
             ],
         ]);
+    }
+
+    private function fullProfilePictureUrl(User $user): ?string
+    {
+        $path = $user->profile_picture;
+        if (empty($path) || ! is_string($path)) {
+            return null;
+        }
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        $base = rtrim(request()->getSchemeAndHttpHost() ?: config('app.url', ''), '/');
+        return $base ? ($base . '/media/' . $path) : null;
+    }
+
+    /**
+     * Parse PUT multipart/form-data body and store profile_picture file; return stored path or null.
+     */
+    private function storeProfilePictureFromMultipartPut(Request $request): ?string
+    {
+        $content = $request->getContent();
+        $contentType = (string) $request->header('Content-Type');
+        if ($content === '' || ! preg_match('/boundary=(?:["\'])?([^"\'; \n]+)/', $contentType, $m)) {
+            return null;
+        }
+        $boundary = trim($m[1]);
+        $parts = array_slice(explode('--' . $boundary, $content), 1, -1);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        foreach ($parts as $part) {
+            if (! str_contains($part, "\r\n\r\n")) {
+                continue;
+            }
+            [$rawHeaders, $body] = explode("\r\n\r\n", $part, 2);
+            $body = rtrim($body, "\r\n");
+            $name = null;
+            $filename = null;
+            foreach (explode("\r\n", $rawHeaders) as $header) {
+                if (stripos($header, 'Content-Disposition:') === 0) {
+                    if (preg_match('/name="([^"]+)"/', $header, $nm)) {
+                        $name = $nm[1];
+                    }
+                    if (preg_match('/filename="([^"]*)"/', $header, $fn)) {
+                        $filename = $fn[1];
+                    }
+                    break;
+                }
+            }
+            if ($name === 'profile_picture' && $body !== '') {
+                $ext = pathinfo($filename ?? 'image.jpg', PATHINFO_EXTENSION) ?: 'jpg';
+                if (! in_array(strtolower($ext), ['jpeg', 'jpg', 'png', 'gif', 'webp'], true)) {
+                    $ext = 'jpg';
+                }
+                $storedName = 'profiles/' . uniqid('sup_', true) . '.' . $ext;
+                Storage::disk('public')->put($storedName, $body);
+                return $storedName;
+            }
+        }
+        return null;
     }
 
     public function updatePassword(Request $request): JsonResponse
