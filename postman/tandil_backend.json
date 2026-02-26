@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.59.0"
+        "version": "2.60.0"
     },
     "item": [
         {
@@ -4371,15 +4371,47 @@
                                     {
                                         "key": "Accept",
                                         "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
                                     }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"is_online\": true,\n  \"auto_accept_jobs\": false,\n  \"working_days\": [\"mon\", \"tue\", \"wed\", \"thu\", \"fri\"],\n  \"working_hours_slots\": [{\"slot\": \"morning\", \"start\": \"08:00\", \"end\": \"12:00\"}],\n  \"service_area\": \"Dubai\",\n  \"breaks\": [\n    {\"date\": \"2026-02-25\", \"start_time\": \"12:00\", \"end_time\": \"13:00\", \"reason\": \"Lunch\"}\n  ]\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "is_online",
+                                            "value": "true",
+                                            "type": "text",
+                                            "description": "true/false"
+                                        },
+                                        {
+                                            "key": "auto_accept_jobs",
+                                            "value": "false",
+                                            "type": "text",
+                                            "description": "true/false"
+                                        },
+                                        {
+                                            "key": "working_days",
+                                            "value": "[\"mon\", \"tue\", \"wed\", \"thu\", \"fri\"]",
+                                            "type": "text",
+                                            "description": "JSON array: mon,tue,wed,thu,fri,sat,sun"
+                                        },
+                                        {
+                                            "key": "working_hours_slots",
+                                            "value": "[{\"slot\": \"morning\", \"start\": \"08:00\", \"end\": \"12:00\"}]",
+                                            "type": "text",
+                                            "description": "JSON array of {slot, start, end}"
+                                        },
+                                        {
+                                            "key": "service_area",
+                                            "value": "Dubai",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "breaks",
+                                            "value": "[{\"date\": \"2026-02-25\", \"start_time\": \"12:00\", \"end_time\": \"13:00\", \"reason\": \"Lunch\"}]",
+                                            "type": "text",
+                                            "description": "JSON array of {date, start_time, end_time, reason?}. Replaces all breaks."
+                                        }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/technician/availability",
@@ -4392,7 +4424,7 @@
                                         "availability"
                                     ]
                                 },
-                                "description": "Update availability (JSON). Fields: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks (array of { date, start_time, end_time, reason? }). Sending breaks replaces all existing breaks."
+                                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days (JSON array string), working_hours_slots (JSON array string), service_area, breaks (JSON array string, e.g. [{\"date\":\"2026-02-25\",\"start_time\":\"12:00\",\"end_time\":\"13:00\",\"reason\":\"Lunch\"}]). Sending breaks replaces all existing breaks; include breaks field with valid JSON array to avoid empty breaks in response."
                             }
                         },
                         {

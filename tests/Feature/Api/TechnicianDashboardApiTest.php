@@ -362,6 +362,33 @@ class TechnicianDashboardApiTest extends TestCase
         $this->assertDatabaseHas('technician_breaks', ['user_id' => $this->technician->id]);
     }
 
+    public function test_availability_put_accepts_form_data_breaks(): void
+    {
+        $breaksJson = json_encode([
+            ['date' => Carbon::today()->toDateString(), 'start_time' => '12:00', 'end_time' => '13:00', 'reason' => 'Lunch'],
+        ]);
+        // PUT with form-urlencoded body (call() sends params as request input)
+        $response = $this->call(
+            'PUT',
+            '/api/technician/availability',
+            [
+                'is_online' => 'true',
+                'service_area' => 'Dubai',
+                'breaks' => $breaksJson,
+            ],
+            [],
+            [],
+            array_merge(
+                ['HTTP_Accept' => 'application/json', 'HTTP_Authorization' => 'Bearer ' . $this->token],
+                ['CONTENT_TYPE' => 'application/x-www-form-urlencoded']
+            )
+        );
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonCount(1, 'data.breaks');
+        $response->assertJsonPath('data.breaks.0.reason', 'Lunch');
+    }
+
     public function test_availability_breaks_replace_all(): void
     {
         $this->putJson('/api/technician/availability', [

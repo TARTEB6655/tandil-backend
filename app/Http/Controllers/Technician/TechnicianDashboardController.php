@@ -670,11 +670,14 @@ class TechnicianDashboardController extends Controller
 
     /**
      * PUT /api/technician/availability
-     * Accepts: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks (array).
+     * Accepts form-data or JSON: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks.
+     * For form-data: working_days, working_hours_slots, breaks can be JSON strings.
      */
     public function updateAvailability(Request $request)
     {
         $user = $request->user();
+        $input = $this->normalizeAvailabilityInput($request);
+
         $rules = [
             'is_online' => 'sometimes|boolean',
             'auto_accept_jobs' => 'sometimes|boolean',
@@ -691,7 +694,7 @@ class TechnicianDashboardController extends Controller
             'breaks.*.end_time' => 'required|string',
             'breaks.*.reason' => 'nullable|string|max:255',
         ];
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($input, $rules);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
@@ -699,24 +702,24 @@ class TechnicianDashboardController extends Controller
         $av = $user->technicianAvailability()->firstOrNew([]);
         $av->user_id = $user->id;
         foreach (['is_online', 'auto_accept_jobs', 'working_days', 'working_hours_slots'] as $key) {
-            if ($request->has($key)) {
-                $av->$key = $request->input($key);
+            if (array_key_exists($key, $input)) {
+                $av->$key = $input[$key];
             }
         }
         $av->save();
 
-        if ($request->has('service_area')) {
+        if (array_key_exists('service_area', $input)) {
             $employee = $user->employee ?? Employee::firstOrCreate(
                 ['user_id' => $user->id],
                 ['employee_id' => 'TECH-' . $user->id]
             );
-            $employee->region = $request->input('service_area') ?: null;
+            $employee->region = $input['service_area'] ?: null;
             $employee->save();
         }
 
-        if ($request->has('breaks')) {
+        if (array_key_exists('breaks', $input)) {
             TechnicianBreak::where('user_id', $user->id)->delete();
-            foreach ($request->input('breaks', []) as $item) {
+            foreach ($input['breaks'] ?? [] as $item) {
                 TechnicianBreak::create([
                     'user_id' => $user->id,
                     'date' => $item['date'],
@@ -937,6 +940,57 @@ class TechnicianDashboardController extends Controller
             'message' => $message,
             'data' => $list,
         ]);
+    }
+
+    private function normalizeAvailabilityInput(Request $request): array
+    {
+        $out = [];
+
+        // When Content-Type is application/json, parse body so breaks/arrays come through
+        $contentType = (string) $request->header('Content-Type');
+        if (str_contains($contentType, 'application/json') && $request->getContent() !== '') {
+            $decoded = json_decode($request->getContent(), true);
+            if (is_array($decoded)) {
+                $out = $decoded;
+            }
+        }
+
+        // Overlay / parse form-data fields (form-data or x-www-form-urlencoded)
+        if ($request->has('is_online')) {
+            $out['is_online'] = filter_var($request->input('is_online'), FILTER_VALIDATE_BOOLEAN);
+        }
+        if ($request->has('auto_accept_jobs')) {
+            $out['auto_accept_jobs'] = filter_var($request->input('auto_accept_jobs'), FILTER_VALIDATE_BOOLEAN);
+        }
+        if ($request->has('working_days')) {
+            $v = $request->input('working_days');
+            $out['working_days'] = is_array($v) ? $v : (is_string($v) ? json_decode($v, true) : []);
+            if (! is_array($out['working_days'])) {
+                $out['working_days'] = [];
+            }
+        }
+        if ($request->has('working_hours_slots')) {
+            $v = $request->input('working_hours_slots');
+            $out['working_hours_slots'] = is_array($v) ? $v : (is_string($v) ? json_decode($v, true) : []);
+            if (! is_array($out['working_hours_slots'])) {
+                $out['working_hours_slots'] = [];
+            }
+        }
+        if ($request->has('service_area') || $request->filled('service_area')) {
+            $out['service_area'] = $request->input('service_area') ?: null;
+        }
+        if ($request->has('breaks')) {
+            $v = $request->input('breaks');
+            if (is_array($v)) {
+                $out['breaks'] = $v;
+            } elseif (is_string($v)) {
+                $decoded = json_decode(trim($v), true);
+                $out['breaks'] = is_array($decoded) ? $decoded : [];
+            } else {
+                $out['breaks'] = [];
+            }
+        }
+        return $out;
     }
 
     private function openJobStatuses(): array
