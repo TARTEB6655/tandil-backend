@@ -3421,7 +3421,7 @@
                                         "dashboard"
                                     ]
                                 },
-                                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. Note: rejected tasks are excluded from today_tasks."
+                                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. today_tasks includes carry-forward open jobs (pending, accepted, in_progress) where scheduled_date <= today."
                             }
                         },
                         {
@@ -3624,7 +3624,7 @@
                                         }
                                     ]
                                 },
-                                "description": "List tasks (visits). Filter: today, upcoming, completed, all."
+                                "description": "List tasks (visits). Filter: today|upcoming|completed|all. today = carry-forward open jobs (pending, accepted, in_progress) with scheduled_date <= today. upcoming = open jobs with scheduled_date > today."
                             }
                         },
                         {
@@ -3807,7 +3807,7 @@
                                         }
                                     ]
                                 },
-                                "description": "List recent technician jobs (history list, past dates only). Today's jobs are shown in /api/technician/dashboard under today_tasks. Includes mixed statuses like completed/cancelled/rejected/in_progress from previous dates."
+                                "description": "Technician job history (closed jobs only): completed, rejected, cancelled for selected period (week|month|year). Open jobs (pending, accepted, in_progress) are shown in dashboard/tasks carry-forward flow, not in this history API."
                             }
                         },
                         {

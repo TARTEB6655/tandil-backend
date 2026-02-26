@@ -74,6 +74,31 @@ class TechnicianDashboardApiTest extends TestCase
         ]);
     }
 
+    public function test_dashboard_today_tasks_includes_carry_forward_open_statuses(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+
+        $yesterdayPending = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::yesterday(),
+            'status' => 'pending',
+        ]);
+
+        Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::yesterday(),
+            'status' => 'completed',
+        ]);
+
+        $response = $this->getJson('/api/technician/dashboard', $this->authHeaders());
+        $response->assertStatus(200);
+        $ids = collect($response->json('data.today_tasks'))->pluck('id')->all();
+        $this->assertContains($yesterdayPending->id, $ids);
+    }
+
     public function test_profile_get_returns_profile_data(): void
     {
         $response = $this->getJson('/api/technician/profile', $this->authHeaders());
@@ -155,19 +180,26 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertJsonStructure(['data' => ['summary' => ['total_earnings', 'jobs_completed', 'avg_rating'], 'jobs']]);
     }
 
-    public function test_jobs_excludes_today_and_shows_past_jobs_only(): void
+    public function test_jobs_returns_only_closed_statuses(): void
     {
         $client = User::factory()->create(['role' => 'client']);
         $sub = Subscription::factory()->create(['client_id' => $client->id]);
 
-        $todayVisit = Visit::factory()->create([
+        $todayCompleted = Visit::factory()->create([
             'subscription_id' => $sub->id,
             'technician_id' => $this->technician->id,
             'scheduled_date' => Carbon::today(),
-            'status' => 'in_progress',
+            'status' => 'completed',
         ]);
 
-        $pastVisit = Visit::factory()->create([
+        $pastRejected = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::yesterday(),
+            'status' => 'rejected',
+        ]);
+
+        $openVisit = Visit::factory()->create([
             'subscription_id' => $sub->id,
             'technician_id' => $this->technician->id,
             'scheduled_date' => Carbon::yesterday(),
@@ -179,8 +211,12 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertJsonPath('success', true);
 
         $ids = collect($response->json('data.jobs.data'))->pluck('id')->all();
-        $this->assertContains($pastVisit->id, $ids);
-        $this->assertNotContains($todayVisit->id, $ids);
+        $this->assertContains($todayCompleted->id, $ids);
+        $this->assertContains($pastRejected->id, $ids);
+        $this->assertNotContains($openVisit->id, $ids);
+        foreach ($response->json('data.jobs.data') as $row) {
+            $this->assertContains($row['status'], ['completed', 'rejected', 'cancelled']);
+        }
     }
 
     public function test_accepted_jobs_endpoint_returns_accepted_and_in_progress_only(): void

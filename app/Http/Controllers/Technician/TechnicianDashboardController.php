@@ -39,8 +39,8 @@ class TechnicianDashboardController extends Controller
             ->where('status', 'completed')
             ->count();
         $todayVisits = Visit::where('technician_id', $user->id)
-            ->whereDate('scheduled_date', Carbon::today())
-            ->whereNotIn('status', ['rejected'])
+            ->whereDate('scheduled_date', '<=', Carbon::today())
+            ->whereIn('status', $this->openJobStatuses())
             ->orderBy('scheduled_date')
             ->with(['subscription.client', 'area'])
             ->get();
@@ -257,6 +257,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * GET /api/technician/tasks - List tasks (visits) with filter=today|upcoming|completed and pagination.
+     * "today" includes carry-forward open jobs from previous dates.
      */
     public function tasks(Request $request)
     {
@@ -264,9 +265,11 @@ class TechnicianDashboardController extends Controller
         $query = Visit::where('technician_id', $user->id)->with(['subscription.client', 'area']);
         $filter = $request->input('filter', 'all');
         if ($filter === 'today') {
-            $query->whereDate('scheduled_date', Carbon::today());
+            $query->whereDate('scheduled_date', '<=', Carbon::today())
+                ->whereIn('status', $this->openJobStatuses());
         } elseif ($filter === 'upcoming') {
-            $query->where('scheduled_date', '>=', Carbon::today())->whereIn('status', ['pending', 'accepted']);
+            $query->whereDate('scheduled_date', '>', Carbon::today())
+                ->whereIn('status', $this->openJobStatuses());
         } elseif ($filter === 'completed') {
             $query->where('status', 'completed');
         }
@@ -321,23 +324,22 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/jobs - Job history (visits) with summary KPIs, pagination.
+     * GET /api/technician/jobs - Job history with only closed statuses.
      */
     public function jobs(Request $request)
     {
         $user = $request->user();
         $period = $request->input('period', 'month'); // week, month, year
         [$start, $end] = $this->resolvePeriodRange($period);
-        // "Recent jobs" are past jobs only; today's jobs stay on dashboard today_tasks.
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
-            ->whereDate('scheduled_date', '<', Carbon::today());
+            ->whereIn('status', $this->closedJobStatuses());
         $completed = (clone $query)->where('status', 'completed')->count();
         $totalEarnings = 0; // stub
         $avgRating = 0; // stub
         $list = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
-            ->whereDate('scheduled_date', '<', Carbon::today())
+            ->whereIn('status', $this->closedJobStatuses())
             ->with(['subscription.client', 'area'])
             ->orderByDesc('scheduled_date')
             ->paginate((int) $request->input('per_page', 15));
@@ -938,6 +940,16 @@ class TechnicianDashboardController extends Controller
             'message' => $message,
             'data' => $list,
         ]);
+    }
+
+    private function openJobStatuses(): array
+    {
+        return ['pending', 'accepted', 'in_progress'];
+    }
+
+    private function closedJobStatuses(): array
+    {
+        return ['completed', 'rejected', 'cancelled'];
     }
 
     private function resolvePeriodRange(string $period): array
