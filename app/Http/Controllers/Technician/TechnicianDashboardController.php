@@ -945,17 +945,25 @@ class TechnicianDashboardController extends Controller
     private function normalizeAvailabilityInput(Request $request): array
     {
         $out = [];
-
-        // When Content-Type is application/json, parse body so breaks/arrays come through
         $contentType = (string) $request->header('Content-Type');
-        if (str_contains($contentType, 'application/json') && $request->getContent() !== '') {
-            $decoded = json_decode($request->getContent(), true);
-            if (is_array($decoded)) {
-                $out = $decoded;
+
+        // PUT with multipart/form-data: PHP does not populate $request->input() from body; parse raw content
+        if (in_array(strtoupper($request->method()), ['PUT', 'PATCH'], true) && str_contains($contentType, 'multipart/form-data')) {
+            $parsed = $this->parseMultipartFormData($request->getContent(), $contentType);
+            if (! empty($parsed)) {
+                $out = $parsed;
             }
         }
 
-        // Overlay / parse form-data fields (form-data or x-www-form-urlencoded)
+        // When Content-Type is application/json, parse body so breaks/arrays come through
+        if (str_contains($contentType, 'application/json') && $request->getContent() !== '') {
+            $decoded = json_decode($request->getContent(), true);
+            if (is_array($decoded)) {
+                $out = array_merge($out, $decoded);
+            }
+        }
+
+        // Overlay form fields from $request->input() (works for POST and x-www-form-urlencoded)
         if ($request->has('is_online')) {
             $out['is_online'] = filter_var($request->input('is_online'), FILTER_VALIDATE_BOOLEAN);
         }
@@ -990,7 +998,62 @@ class TechnicianDashboardController extends Controller
                 $out['breaks'] = [];
             }
         }
+
+        // Normalize when data came from multipart (all values are strings)
+        if (isset($out['is_online']) && is_string($out['is_online'])) {
+            $out['is_online'] = filter_var($out['is_online'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (isset($out['auto_accept_jobs']) && is_string($out['auto_accept_jobs'])) {
+            $out['auto_accept_jobs'] = filter_var($out['auto_accept_jobs'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (isset($out['working_days'])) {
+            $v = $out['working_days'];
+            $out['working_days'] = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
+        }
+        if (isset($out['working_hours_slots'])) {
+            $v = $out['working_hours_slots'];
+            $out['working_hours_slots'] = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
+        }
+        if (isset($out['breaks'])) {
+            $v = $out['breaks'];
+            $out['breaks'] = is_array($v) ? $v : (is_string($v) ? (json_decode(trim($v), true) ?? []) : []);
+        }
+
         return $out;
+    }
+
+    /**
+     * Parse multipart/form-data raw body (used for PUT/PATCH when PHP does not populate $_POST).
+     */
+    private function parseMultipartFormData(string $content, string $contentType): array
+    {
+        if ($content === '') {
+            return [];
+        }
+        if (! preg_match('/boundary=(?:["\'])?([^"\'; \n]+)/', $contentType, $m)) {
+            return [];
+        }
+        $boundary = trim($m[1]);
+        $parts = array_slice(explode('--' . $boundary, $content), 1, -1);
+        $result = [];
+        foreach ($parts as $part) {
+            if (! str_contains($part, "\r\n\r\n")) {
+                continue;
+            }
+            [$rawHeaders, $value] = explode("\r\n\r\n", $part, 2);
+            $value = rtrim($value, "\r\n");
+            $name = null;
+            foreach (explode("\r\n", $rawHeaders) as $header) {
+                if (stripos($header, 'Content-Disposition:') === 0 && preg_match('/name="([^"]+)"/', $header, $nm)) {
+                    $name = $nm[1];
+                    break;
+                }
+            }
+            if ($name !== null) {
+                $result[$name] = $value;
+            }
+        }
+        return $result;
     }
 
     private function openJobStatuses(): array
