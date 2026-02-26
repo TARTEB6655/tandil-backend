@@ -164,7 +164,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('tech')->group(fu
 
 /*
 |--------------------------------------------------------------------------
-| TECHNICIAN DASHBOARD (dashboard, profile, tasks, jobs, availability, breaks, vacations, schedule)
+| TECHNICIAN DASHBOARD (dashboard, profile, tasks, jobs, availability with breaks & service_area, vacations, schedule)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->group(function () {
@@ -193,10 +193,6 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::delete('/bank-accounts/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountDestroy']);
     Route::get('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'availability']);
     Route::put('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateAvailability']);
-    Route::get('/breaks', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breaks']);
-    Route::post('/breaks', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breakStore']);
-    Route::put('/breaks/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breakUpdate']);
-    Route::delete('/breaks/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'breakDestroy']);
     Route::get('/vacations', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'vacations']);
     Route::post('/vacations', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'vacationStore']);
     Route::put('/vacations/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'vacationUpdate']);

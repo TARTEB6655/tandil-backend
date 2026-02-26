@@ -256,8 +256,11 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/tasks - List tasks (visits) with filter=today|upcoming|completed and pagination.
-     * "today" includes carry-forward open jobs from previous dates.
+     * GET /api/technician/tasks - List tasks (visits) with filter=today|upcoming|completed|all and pagination.
+     * today = carry-forward open jobs (scheduled_date <= today).
+     * upcoming = open jobs (scheduled_date > today).
+     * completed = completed only.
+     * all = all open jobs only (pending, accepted, in_progress) – no date filter; closed jobs are in GET /api/technician/jobs (history).
      */
     public function tasks(Request $request)
     {
@@ -272,6 +275,8 @@ class TechnicianDashboardController extends Controller
                 ->whereIn('status', $this->openJobStatuses());
         } elseif ($filter === 'completed') {
             $query->where('status', 'completed');
+        } elseif ($filter === 'all') {
+            $query->whereIn('status', $this->openJobStatuses());
         }
         $query->orderBy('scheduled_date')->orderBy('id');
         $perPage = (int) $request->input('per_page', 15);
@@ -634,27 +639,43 @@ class TechnicianDashboardController extends Controller
 
     /**
      * GET /api/technician/availability
+     * Returns: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks.
      */
     public function availability(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user()->load('employee');
         $av = $user->technicianAvailability;
+        $breaksQuery = TechnicianBreak::where('user_id', $user->id)->orderBy('date')->orderBy('start_time');
+        if ($request->filled('from') && $request->filled('to')) {
+            $breaksQuery->whereBetween('date', [$request->input('from'), $request->input('to')]);
+        }
+        $breaks = $breaksQuery->get();
+
         $data = [
             'is_online' => $av?->is_online ?? true,
             'auto_accept_jobs' => $av?->auto_accept_jobs ?? false,
             'working_days' => $av?->working_days ?? [],
             'working_hours_slots' => $av?->working_hours_slots ?? [],
+            'service_area' => $user->employee?->region,
+            'breaks' => $breaks->map(fn ($b) => [
+                'id' => $b->id,
+                'date' => $b->date?->toDateString(),
+                'start_time' => $b->start_time,
+                'end_time' => $b->end_time,
+                'reason' => $b->reason,
+            ])->values()->all(),
         ];
         return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
      * PUT /api/technician/availability
+     * Accepts: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks (array).
      */
     public function updateAvailability(Request $request)
     {
         $user = $request->user();
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'is_online' => 'sometimes|boolean',
             'auto_accept_jobs' => 'sometimes|boolean',
             'working_days' => 'sometimes|array',
@@ -663,10 +684,18 @@ class TechnicianDashboardController extends Controller
             'working_hours_slots.*.slot' => 'string',
             'working_hours_slots.*.start' => 'string',
             'working_hours_slots.*.end' => 'string',
-        ]);
+            'service_area' => 'nullable|string|max:255',
+            'breaks' => 'sometimes|array',
+            'breaks.*.date' => 'required|date',
+            'breaks.*.start_time' => 'required|string',
+            'breaks.*.end_time' => 'required|string',
+            'breaks.*.reason' => 'nullable|string|max:255',
+        ];
+        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
+
         $av = $user->technicianAvailability()->firstOrNew([]);
         $av->user_id = $user->id;
         foreach (['is_online', 'auto_accept_jobs', 'working_days', 'working_hours_slots'] as $key) {
@@ -675,79 +704,47 @@ class TechnicianDashboardController extends Controller
             }
         }
         $av->save();
-        return response()->json(['success' => true, 'data' => $av->fresh()]);
-    }
 
-    /**
-     * GET /api/technician/breaks
-     */
-    public function breaks(Request $request)
-    {
-        $query = TechnicianBreak::where('user_id', $request->user()->id)->orderBy('date')->orderBy('start_time');
-        if ($request->has('from') && $request->has('to')) {
-            $query->whereBetween('date', [$request->input('from'), $request->input('to')]);
+        if ($request->has('service_area')) {
+            $employee = $user->employee ?? Employee::firstOrCreate(
+                ['user_id' => $user->id],
+                ['employee_id' => 'TECH-' . $user->id]
+            );
+            $employee->region = $request->input('service_area') ?: null;
+            $employee->save();
         }
-        $items = $query->get();
-        return response()->json(['success' => true, 'data' => $items]);
-    }
 
-    /**
-     * POST /api/technician/breaks
-     */
-    public function breakStore(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'date' => 'required|date',
-            'start_time' => 'required|string',
-            'end_time' => 'required|string',
-            'reason' => 'nullable|string|max:255',
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        if ($request->has('breaks')) {
+            TechnicianBreak::where('user_id', $user->id)->delete();
+            foreach ($request->input('breaks', []) as $item) {
+                TechnicianBreak::create([
+                    'user_id' => $user->id,
+                    'date' => $item['date'],
+                    'start_time' => $item['start_time'],
+                    'end_time' => $item['end_time'],
+                    'reason' => $item['reason'] ?? null,
+                ]);
+            }
         }
-        $break = TechnicianBreak::create([
-            'user_id' => $request->user()->id,
-            'date' => $request->input('date'),
-            'start_time' => $request->input('start_time'),
-            'end_time' => $request->input('end_time'),
-            'reason' => $request->input('reason'),
-        ]);
-        return response()->json(['success' => true, 'data' => $break], 201);
-    }
 
-    /**
-     * PUT /api/technician/breaks/{id}
-     */
-    public function breakUpdate(Request $request, $id)
-    {
-        $break = TechnicianBreak::where('user_id', $request->user()->id)->find($id);
-        if (!$break) {
-            return response()->json(['success' => false, 'message' => 'Break not found.'], 404);
-        }
-        $validator = Validator::make($request->all(), [
-            'date' => 'sometimes|date',
-            'start_time' => 'sometimes|string',
-            'end_time' => 'sometimes|string',
-            'reason' => 'nullable|string|max:255',
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-        $break->update($request->only(['date', 'start_time', 'end_time', 'reason']));
-        return response()->json(['success' => true, 'data' => $break->fresh()]);
-    }
-
-    /**
-     * DELETE /api/technician/breaks/{id}
-     */
-    public function breakDestroy(Request $request, $id)
-    {
-        $break = TechnicianBreak::where('user_id', $request->user()->id)->find($id);
-        if (!$break) {
-            return response()->json(['success' => false, 'message' => 'Break not found.'], 404);
-        }
-        $break->delete();
-        return response()->json(['success' => true, 'message' => 'Break deleted.']);
+        $user->load('employee');
+        $av = $av->fresh();
+        $breaks = TechnicianBreak::where('user_id', $user->id)->orderBy('date')->orderBy('start_time')->get();
+        $data = [
+            'is_online' => $av->is_online ?? true,
+            'auto_accept_jobs' => $av->auto_accept_jobs ?? false,
+            'working_days' => $av->working_days ?? [],
+            'working_hours_slots' => $av->working_hours_slots ?? [],
+            'service_area' => $user->employee?->region,
+            'breaks' => $breaks->map(fn ($b) => [
+                'id' => $b->id,
+                'date' => $b->date?->toDateString(),
+                'start_time' => $b->start_time,
+                'end_time' => $b->end_time,
+                'reason' => $b->reason,
+            ])->values()->all(),
+        ];
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**

@@ -29,18 +29,17 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 28,Technician,Availability & Scheduling,GET,/api/technician/availability,Completed
 29,Technician,Availability & Scheduling,PUT,/api/technician/availability,Completed
 30,Technician,Availability & Scheduling,GET,/api/technician/schedule,Completed
-31,Technician,Availability & Scheduling,POST,/api/technician/breaks,Completed
-32,Technician,Availability & Scheduling,POST,/api/technician/vacations,Completed
-33,Technician,Job History,GET,/api/technician/jobs,Completed
-34,Technician,Job History,GET,/api/technician/jobs/{id},Completed
-35,Technician,Job History,GET,/api/technician/jobs/history/export,Pending
-36,Technician,Tasks Management,GET,/api/technician/tasks,Completed
-37,Technician,Tasks Management,GET,/api/technician/tasks/{id},Completed
-38,Technician,Tasks Management,PUT,/api/technician/tasks/{id}/status,Completed
-39,Technician,Tasks Management,POST,/api/technician/tasks/{id}/accept|/api/technician/tasks/{id}/reject,Completed
-40,Technician,Help & Support,GET,/api/support/help-center,Completed
-41,Technician,Help & Support,POST,/api/support/tickets,Completed
-42,Area Manager,Dashboard Overview,GET,/api/area-manager/dashboard/summary,Pending
+31,Technician,Availability & Scheduling,POST,/api/technician/vacations,Completed
+32,Technician,Job History,GET,/api/technician/jobs,Completed
+33,Technician,Job History,GET,/api/technician/jobs/{id},Completed
+34,Technician,Job History,GET,/api/technician/jobs/history/export,Pending
+35,Technician,Tasks Management,GET,/api/technician/tasks,Completed
+36,Technician,Tasks Management,GET,/api/technician/tasks/{id},Completed
+37,Technician,Tasks Management,PUT,/api/technician/tasks/{id}/status,Completed
+38,Technician,Tasks Management,POST,/api/technician/tasks/{id}/accept|/api/technician/tasks/{id}/reject,Completed
+39,Technician,Help & Support,GET,/api/support/help-center,Completed
+40,Technician,Help & Support,POST,/api/support/tickets,Completed
+41,Area Manager,Dashboard Overview,GET,/api/area-manager/dashboard/summary,Pending
 43,Area Manager,Dashboard Overview,GET,/api/area-manager/dashboard/kpis,Pending
 44,Area Manager,Dashboard Overview,GET,/api/area-manager/dashboard/active-regions,Pending
 45,Area Manager,Dashboard Overview,GET,/api/area-manager/dashboard/alerts,Pending

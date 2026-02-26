@@ -136,6 +136,35 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertJsonStructure(['data' => ['data', 'current_page']]);
     }
 
+    public function test_tasks_filter_all_returns_only_open_jobs(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+
+        $openJob = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::today(),
+            'status' => 'accepted',
+        ]);
+        $closedJob = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::yesterday(),
+            'status' => 'completed',
+        ]);
+
+        $response = $this->getJson('/api/technician/tasks?filter=all&per_page=50', $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $ids = collect($response->json('data.data'))->pluck('id')->all();
+        $this->assertContains($openJob->id, $ids);
+        $this->assertNotContains($closedJob->id, $ids);
+        foreach ($response->json('data.data') as $row) {
+            $this->assertContains($row['status'], ['pending', 'accepted', 'in_progress']);
+        }
+    }
+
     public function test_task_accept_success(): void
     {
         $client = User::factory()->create(['role' => 'client']);
@@ -309,43 +338,47 @@ class TechnicianDashboardApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.is_online', true);
+        $response->assertJsonStructure(['data' => ['service_area', 'breaks']]);
+        $response->assertJsonPath('data.breaks', []);
 
         $response2 = $this->putJson('/api/technician/availability', [
             'is_online' => false,
             'auto_accept_jobs' => true,
             'working_days' => ['mon', 'tue', 'wed'],
+            'service_area' => 'Dubai',
+            'breaks' => [
+                ['date' => Carbon::today()->toDateString(), 'start_time' => '10:00', 'end_time' => '11:00', 'reason' => 'Lunch'],
+            ],
         ], $this->authHeaders());
         $response2->assertStatus(200);
         $response2->assertJsonPath('success', true);
+        $response2->assertJsonPath('data.service_area', 'Dubai');
+        $response2->assertJsonCount(1, 'data.breaks');
+        $response2->assertJsonPath('data.breaks.0.reason', 'Lunch');
         $this->assertDatabaseHas('technician_availability', [
             'user_id' => $this->technician->id,
             'is_online' => false,
         ]);
+        $this->assertDatabaseHas('technician_breaks', ['user_id' => $this->technician->id]);
     }
 
-    public function test_breaks_crud(): void
+    public function test_availability_breaks_replace_all(): void
     {
-        $response = $this->postJson('/api/technician/breaks', [
-            'date' => Carbon::today()->toDateString(),
-            'start_time' => '10:00',
-            'end_time' => '11:00',
-            'reason' => 'Lunch',
+        $this->putJson('/api/technician/availability', [
+            'breaks' => [
+                ['date' => Carbon::today()->toDateString(), 'start_time' => '10:00', 'end_time' => '11:00', 'reason' => 'Lunch'],
+            ],
         ], $this->authHeaders());
-        $response->assertStatus(201);
-        $response->assertJsonPath('success', true);
-        $id = $response->json('data.id');
-        $this->assertDatabaseHas('technician_breaks', ['user_id' => $this->technician->id]);
 
-        $response2 = $this->getJson('/api/technician/breaks', $this->authHeaders());
-        $response2->assertStatus(200);
-        $response2->assertJsonCount(1, 'data');
-
-        $response3 = $this->putJson("/api/technician/breaks/{$id}", ['reason' => 'Updated'], $this->authHeaders());
-        $response3->assertStatus(200);
-
-        $response4 = $this->deleteJson("/api/technician/breaks/{$id}", [], $this->authHeaders());
-        $response4->assertStatus(200);
-        $this->assertDatabaseMissing('technician_breaks', ['id' => $id]);
+        $response = $this->putJson('/api/technician/availability', [
+            'breaks' => [
+                ['date' => Carbon::tomorrow()->toDateString(), 'start_time' => '14:00', 'end_time' => '14:30', 'reason' => 'Short break'],
+            ],
+        ], $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data.breaks');
+        $response->assertJsonPath('data.breaks.0.reason', 'Short break');
+        $this->assertSame(1, \App\Models\TechnicianBreak::where('user_id', $this->technician->id)->count());
     }
 
     public function test_vacations_crud(): void

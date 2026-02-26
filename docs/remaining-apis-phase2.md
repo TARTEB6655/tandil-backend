@@ -32,12 +32,11 @@ Total New APIs Required: **106**
 17. `PUT /api/technician/bank-accounts/{id}`
 18. `DELETE /api/technician/bank-accounts/{id}`
 
-### Availability & Scheduling
+### Availability & Scheduling (availability includes service_area and breaks; no separate break endpoints)
 19. `GET /api/technician/availability`
 20. `PUT /api/technician/availability`
 21. `GET /api/technician/schedule`
-22. `POST /api/technician/breaks`
-23. `POST /api/technician/vacations`
+22. `POST /api/technician/vacations`
 
 ### Job History
 24. `GET /api/technician/jobs/history`

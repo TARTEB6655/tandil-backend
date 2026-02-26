@@ -89,10 +89,8 @@ Technician module exists under two route groups:
   - `GET|PUT /api/technician/settings/payout`
   - `GET|POST /api/technician/bank-accounts`
   - `PUT|DELETE /api/technician/bank-accounts/{id}`
-- Availability/breaks/vacations/schedule:
-  - `GET|PUT /api/technician/availability`
-  - `GET|POST /api/technician/breaks`
-  - `PUT|DELETE /api/technician/breaks/{id}`
+- Availability (includes service_area and breaks) / vacations / schedule:
+  - `GET|PUT /api/technician/availability` — returns/accepts: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks (array). No separate break endpoints.
   - `GET|POST /api/technician/vacations`
   - `PUT|DELETE /api/technician/vacations/{id}`
   - `GET /api/technician/schedule`

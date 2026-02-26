@@ -20,8 +20,7 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 19,Technician,Availability & Scheduling,GET,/api/technician/availability,Not Started
 20,Technician,Availability & Scheduling,PUT,/api/technician/availability,Not Started
 21,Technician,Availability & Scheduling,GET,/api/technician/schedule,Not Started
-22,Technician,Availability & Scheduling,POST,/api/technician/breaks,Not Started
-23,Technician,Availability & Scheduling,POST,/api/technician/vacations,Not Started
+22,Technician,Availability & Scheduling,POST,/api/technician/vacations,Not Started
 24,Technician,Job History,GET,/api/technician/jobs/history,Not Started
 25,Technician,Job History,GET,/api/technician/jobs/history/{id},Not Started
 26,Technician,Job History,GET,/api/technician/jobs/history/export,Not Started

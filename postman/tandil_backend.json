@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.58.0"
+        "version": "2.59.0"
     },
     "item": [
         {
@@ -3616,7 +3616,7 @@
                                         {
                                             "key": "filter",
                                             "value": "today",
-                                            "description": "today|upcoming|completed|all"
+                                            "description": "today (carry-forward open) | upcoming (open, future) | completed | all (open jobs only; closed = history API)"
                                         },
                                         {
                                             "key": "per_page",
@@ -3624,7 +3624,7 @@
                                         }
                                     ]
                                 },
-                                "description": "List tasks (visits). Filter: today|upcoming|completed|all. today = carry-forward open jobs (pending, accepted, in_progress) with scheduled_date <= today. upcoming = open jobs with scheduled_date > today."
+                                "description": "List tasks (visits). Filter: today|upcoming|completed|all. today = carry-forward open jobs (scheduled_date <= today). upcoming = open jobs (scheduled_date > today). completed = completed only. all = all open jobs only (pending, accepted, in_progress); closed jobs (completed, rejected, cancelled) are in GET /api/technician/jobs (history)."
                             }
                         },
                         {
@@ -4342,9 +4342,21 @@
                                         "api",
                                         "technician",
                                         "availability"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": "",
+                                            "description": "Optional; filter breaks from date (Y-m-d)"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "",
+                                            "description": "Optional; filter breaks to date (Y-m-d)"
+                                        }
                                     ]
                                 },
-                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots."
+                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks. Optional query: from, to (date range for breaks)."
                             }
                         },
                         {
@@ -4359,32 +4371,15 @@
                                     {
                                         "key": "Accept",
                                         "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
                                     }
                                 ],
                                 "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "is_online",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "auto_accept_jobs",
-                                            "value": "0",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "working_days",
-                                            "value": "[\"mon\",\"tue\",\"wed\",\"thu\",\"fri\"]",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "working_hours_slots",
-                                            "value": "[{\"slot\":\"morning\",\"start\":\"08:00\",\"end\":\"12:00\"}]",
-                                            "type": "text"
-                                        }
-                                    ]
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_online\": true,\n  \"auto_accept_jobs\": false,\n  \"working_days\": [\"mon\", \"tue\", \"wed\", \"thu\", \"fri\"],\n  \"working_hours_slots\": [{\"slot\": \"morning\", \"start\": \"08:00\", \"end\": \"12:00\"}],\n  \"service_area\": \"Dubai\",\n  \"breaks\": [\n    {\"date\": \"2026-02-25\", \"start_time\": \"12:00\", \"end_time\": \"13:00\", \"reason\": \"Lunch\"}\n  ]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/technician/availability",
@@ -4397,156 +4392,7 @@
                                         "availability"
                                     ]
                                 },
-                                "description": "Update availability with form-data. Use JSON string for working_days and working_hours_slots."
-                            }
-                        },
-                        {
-                            "name": "Breaks (list)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/technician/breaks",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "technician",
-                                        "breaks"
-                                    ]
-                                },
-                                "description": "List breaks. Optional query: from, to (dates)."
-                            }
-                        },
-                        {
-                            "name": "Break (add)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "date",
-                                            "value": "2026-02-25",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "start_time",
-                                            "value": "12:00",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "end_time",
-                                            "value": "13:00",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "reason",
-                                            "value": "Lunch",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/technician/breaks",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "technician",
-                                        "breaks"
-                                    ]
-                                },
-                                "description": "Add break with form-data."
-                            }
-                        },
-                        {
-                            "name": "Break (update)",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "reason",
-                                            "value": "Updated reason",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/technician/breaks/{{break_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "technician",
-                                        "breaks",
-                                        "{{break_id}}"
-                                    ]
-                                },
-                                "description": "Update break with form-data. Set break_id."
-                            }
-                        },
-                        {
-                            "name": "Break (delete)",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/technician/breaks/{{break_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "technician",
-                                        "breaks",
-                                        "{{break_id}}"
-                                    ]
-                                },
-                                "description": "Delete break. Set break_id."
+                                "description": "Update availability (JSON). Fields: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, breaks (array of { date, start_time, end_time, reason? }). Sending breaks replaces all existing breaks."
                             }
                         },
                         {
@@ -4732,10 +4578,10 @@
                             }
                         }
                     ],
-                    "description": "Technician Dashboard: overview, profile, tasks, jobs, earnings, bank accounts, availability, breaks, vacations, schedule. All require technician role + Bearer token."
+                    "description": "Technician Dashboard: overview, profile, tasks, jobs, earnings, bank accounts, availability (includes breaks and service_area), vacations, schedule. All require technician role + Bearer token."
                 }
             ],
-            "description": "Technician-only endpoints for mobile app: visits lifecycle, photos, dashboard, profile, tasks, jobs, payouts, bank accounts, availability, breaks, vacations, and schedule."
+            "description": "Technician-only endpoints for mobile app: visits lifecycle, photos, dashboard, profile, tasks, jobs, payouts, bank accounts, availability (with breaks and service_area), vacations, and schedule."
         },
         {
             "name": "10. Supervisor Dashboard – All APIs",
