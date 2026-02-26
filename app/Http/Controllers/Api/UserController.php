@@ -41,8 +41,9 @@ class UserController extends Controller
     }
 
     /**
-     * Update user profile (name, email, phone, profile_picture). Used by client and other roles.
-     * Accepts form-data: name, email, phone, profile_picture (file). POST and PUT both supported; PUT + multipart parses file from raw body.
+     * Update user profile (name, email, phone, profile_picture, password). Used by client and other roles.
+     * Accepts form-data: name, email, phone, profile_picture (file), current_password, password, password_confirmation.
+     * To change password: send current_password (must match) and password + password_confirmation. POST and PUT both supported.
      */
     public function updateProfile(Request $request)
     {
@@ -58,9 +59,18 @@ class UserController extends Controller
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => 'sometimes|nullable|string|max:20',
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+            'current_password' => 'required_with:password',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
 
-        $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture']));
+        if ($request->filled('password')) {
+            if (! Hash::check($request->input('current_password'), $user->password)) {
+                return ApiResponse::error('Current password is incorrect.', 422, ['current_password' => ['Current password is incorrect.']]);
+            }
+            $user->password = Hash::make($request->input('password'));
+        }
+
+        $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture', 'current_password', 'password', 'password_confirmation']));
 
         if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
             $stored = $profileFile->store('profiles', 'public');

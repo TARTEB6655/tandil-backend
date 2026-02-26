@@ -322,6 +322,7 @@ class TechnicianDashboardController extends Controller
     /**
      * PUT /api/technician/specializations - Update technician's specializations.
      * Body: form-data or JSON. specializations (array or JSON string or comma-separated). Replaces existing.
+     * PUT with form-data: PHP does not populate $request->input(); parse raw multipart body.
      */
     public function updateSpecializations(Request $request)
     {
@@ -329,6 +330,32 @@ class TechnicianDashboardController extends Controller
         $request->validate([
             'specializations' => 'nullable',
         ]);
+
+        // POST form-data: PHP populates $request->input('specializations'). PUT/PATCH form-data: parse raw body.
+        $raw = $request->input('specializations');
+        $ct = (string) $request->header('Content-Type');
+        $content = $request->getContent();
+
+        if ($raw === null && $content !== '' && str_contains($ct, 'application/json')) {
+            $decoded = json_decode($content, true);
+            $raw = is_array($decoded) ? ($decoded['specializations'] ?? null) : null;
+        }
+        if ($raw === null && $content !== '' && str_contains($ct, 'multipart/form-data')) {
+            $parsed = $this->parseMultipartFormData($content, $ct);
+            $raw = $parsed['specializations'] ?? $parsed['specializations[]'] ?? null;
+        }
+        // Fallback: request bag may be populated by middleware or method spoofing (POST with _method=PUT)
+        if ($raw === null) {
+            $raw = $request->request->get('specializations');
+        }
+
+        $raw = is_string($raw) ? trim($raw) : $raw;
+        $arr = is_array($raw) ? $raw : (is_string($raw) && $raw !== '' ? (json_decode($raw, true) ?? array_map('trim', array_filter(explode(',', $raw)))) : []);
+        if (! is_array($arr)) {
+            $arr = [];
+        }
+        $specializations = array_values(array_filter(array_map('strval', $arr)));
+
         $employee = $user->employee;
         if (! $employee) {
             $employee = Employee::firstOrCreate(
@@ -336,13 +363,9 @@ class TechnicianDashboardController extends Controller
                 ['employee_id' => 'TECH-' . $user->id]
             );
         }
-        $raw = $request->input('specializations');
-        $arr = is_array($raw) ? $raw : (is_string($raw) ? (json_decode($raw, true) ?? array_map('trim', array_filter(explode(',', $raw)))) : []);
-        if (! is_array($arr)) {
-            $arr = [];
-        }
-        $employee->specializations = array_values(array_filter(array_map('strval', $arr)));
+        $employee->specializations = $specializations;
         $employee->save();
+        $employee->refresh();
         return response()->json([
             'success' => true,
             'message' => 'Specializations updated.',
@@ -1096,23 +1119,30 @@ class TechnicianDashboardController extends Controller
         if (! preg_match('/boundary=(?:["\'])?([^"\'; \n]+)/', $contentType, $m)) {
             return [];
         }
-        $boundary = trim($m[1]);
-        $parts = array_slice(explode('--' . $boundary, $content), 1, -1);
+        $boundary = trim($m[1], " \t\r\n\"';");
+        $delim = '--' . $boundary;
+        $parts = array_slice(preg_split('/' . preg_quote($delim, '/') . '\r?\n?/', $content), 1, -1);
         $result = [];
         foreach ($parts as $part) {
-            if (! str_contains($part, "\r\n\r\n")) {
+            $part = trim($part, "\r\n");
+            if ($part === '' || ! str_contains($part, "\r\n\r\n") && ! str_contains($part, "\n\n")) {
                 continue;
             }
-            [$rawHeaders, $value] = explode("\r\n\r\n", $part, 2);
-            $value = rtrim($value, "\r\n");
+            $split = preg_split('/\r?\n\r?\n/', $part, 2);
+            $rawHeaders = $split[0] ?? '';
+            $value = isset($split[1]) ? trim(preg_replace('/\r?\n$/', '', $split[1])) : '';
             $name = null;
-            foreach (explode("\r\n", $rawHeaders) as $header) {
-                if (stripos($header, 'Content-Disposition:') === 0 && preg_match('/name="([^"]+)"/', $header, $nm)) {
-                    $name = $nm[1];
+            foreach (preg_split('/\r?\n/', $rawHeaders) as $header) {
+                if (stripos($header, 'Content-Disposition:') === 0) {
+                    if (preg_match('/name="([^"]+)"/', $header, $nm)) {
+                        $name = $nm[1];
+                    } elseif (preg_match('/name=([^";\s]+)/', $header, $nm)) {
+                        $name = trim($nm[1], '"\'');
+                    }
                     break;
                 }
             }
-            if ($name !== null) {
+            if ($name !== null && $name !== '') {
                 $result[$name] = $value;
             }
         }

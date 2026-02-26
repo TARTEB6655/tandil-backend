@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.71.0"
+        "version": "2.74.0"
     },
     "item": [
         {
@@ -3398,53 +3398,53 @@
                     "item": [
                         {
                             "name": "GET Technician – Dashboard",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/technician/dashboard",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
                                         "technician",
                                         "dashboard"
-                                    ]
-                                },
-                                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. today_tasks includes carry-forward open jobs (pending, accepted, in_progress) where scheduled_date <= today."
-                            }
+                            ]
                         },
-                        {
+                                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. today_tasks includes carry-forward open jobs (pending, accepted, in_progress) where scheduled_date <= today."
+                    }
+                },
+                {
                             "name": "GET Technician – Profile",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/technician/profile",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
                                         "technician",
                                         "profile"
                                     ]
@@ -3670,9 +3670,9 @@
                             }
                         },
                         {
-                            "name": "PUT Technician – Specializations",
+                            "name": "POST Technician – Specializations (form-data)",
                             "request": {
-                                "method": "PUT",
+                                "method": "POST",
                                 "header": [
                                     {
                                         "key": "Authorization",
@@ -3705,7 +3705,7 @@
                                         "specializations"
                                     ]
                                 },
-                                "description": "Update specializations. Body: form-data. specializations (JSON array string or comma-separated). Replaces existing. POST also supported."
+                                "description": "Update specializations. Use POST with form-data (PHP does not parse PUT form-data). Key: specializations. Value: JSON array string e.g. [\"AC\", \"Plumbing\", \"Electrical\"] or comma-separated AC,Plumbing,Electrical. PUT with JSON body also works."
                             }
                         },
                         {
@@ -3770,9 +3770,9 @@
                                         "api",
                                         "technician",
                                         "tasks",
-                                        "{{visit_id}}"
-                                    ]
-                                },
+                                "{{visit_id}}"
+                            ]
+                        },
                                 "description": "Get single task (visit) detail. Set visit_id."
                             }
                         },
@@ -3853,16 +3853,16 @@
                         },
                         {
                             "name": "POST Technician – Task accept",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
                                         "key": "Accept",
-                                        "value": "application/json"
+                                "value": "application/json"
                                     }
                                 ],
                                 "url": {
@@ -3889,13 +3889,13 @@
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         {
@@ -3904,14 +3904,14 @@
                                             "type": "text"
                                         }
                                     ]
-                                },
-                                "url": {
+                        },
+                        "url": {
                                     "raw": "{{base_url}}/api/technician/tasks/{{visit_id}}/reject",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
                                         "technician",
                                         "tasks",
                                         "{{visit_id}}",
@@ -4111,8 +4111,8 @@
                                     "path": [
                                         "api",
                                         "tech",
-                                        "visits",
-                                        "{{visit_id}}",
+                                "visits",
+                                "{{visit_id}}",
                                         "photos"
                                     ]
                                 },
@@ -4278,16 +4278,16 @@
                         },
                         {
                             "name": "POST Technician – Bank account add",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
                                         "key": "Accept",
-                                        "value": "application/json"
+                                "value": "application/json"
                                     }
                                 ],
                                 "body": {
@@ -4342,13 +4342,13 @@
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         {
@@ -4362,8 +4362,8 @@
                                             "type": "text"
                                         }
                                     ]
-                                },
-                                "url": {
+                        },
+                        "url": {
                                     "raw": "{{base_url}}/api/technician/bank-accounts/{{bank_account_id}}",
                                     "host": [
                                         "{{base_url}}"
@@ -4594,12 +4594,12 @@
                                 ],
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/dashboard/summary",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "supervisor",
                                         "dashboard",
                                         "summary"
                                     ]
@@ -4852,16 +4852,16 @@
                         },
                         {
                             "name": "Assignments - Create (POST form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
                                         "key": "Accept",
-                                        "value": "application/json"
+                                "value": "application/json"
                                     }
                                 ],
                                 "body": {
@@ -4910,13 +4910,13 @@
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         {
@@ -4935,15 +4935,15 @@
                                             "type": "text"
                                         }
                                     ]
-                                },
-                                "url": {
+                        },
+                        "url": {
                                     "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "supervisor",
                                         "assignments",
                                         "{{visit_id}}"
                                     ]
@@ -5036,7 +5036,7 @@
                                         "api",
                                         "supervisor",
                                         "assignments",
-                                        "{{visit_id}}",
+                                "{{visit_id}}",
                                         "reassign"
                                     ]
                                 }
@@ -5140,26 +5140,26 @@
                         },
                         {
                             "name": "Reports - Show",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "supervisor",
                                         "reports",
                                         "{{report_id}}"
                                     ]
@@ -5197,26 +5197,26 @@
                         },
                         {
                             "name": "Visit Report - Review Visit",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "supervisor",
                                         "visits",
                                         "{{visit_id}}"
                                     ]
@@ -5264,16 +5264,16 @@
                         },
                         {
                             "name": "Visit Report - Finalize (POST form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
                                         "key": "Accept",
-                                        "value": "application/json"
+                                "value": "application/json"
                                     }
                                 ],
                                 "body": {
@@ -5347,13 +5347,13 @@
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         {
@@ -5378,15 +5378,15 @@
                                             "description": "Optional. Add file to update photo."
                                         }
                                     ]
-                                },
-                                "url": {
+                        },
+                        "url": {
                                     "raw": "{{base_url}}/api/supervisor/profile",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "supervisor",
                                         "profile"
                                     ]
                                 },
@@ -7982,541 +7982,541 @@
                     "name": "Complaints",
                     "description": "Complaints API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
+                {
+                    "name": "List",
+                    "event": [
                         {
-                            "name": "List",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('complaint_id')) {",
-                                            "        pm.environment.set('complaint_id', jsonData.data[0].id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('complaint_id')) {",
+                                    "        pm.environment.set('complaint_id', jsonData.data[0].id);",
+                                    "    }",
+                                    "}"
                                 ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/complaints",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "complaints"
-                                    ]
-                                },
-                                "description": "List complaints (role-based: client sees own, admin sees all)"
-                            }
-                        },
-                        {
-                            "name": "Complaints - Create",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 201) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.id) {",
-                                            "        pm.environment.set('complaint_id', jsonData.data.id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"visit_id\": {{visit_id}},\n  \"notes\": \"Technician did not complete all tasks as requested\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/complaints",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "complaints"
-                                    ]
-                                },
-                                "description": "Create a new complaint about a visit"
-                            }
-                        },
-                        {
-                            "name": "Complaints - Get",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/complaints/{{complaint_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "complaints",
-                                        "{{complaint_id}}"
-                                    ]
-                                },
-                                "description": "Get complaint details"
-                            }
-                        },
-                        {
-                            "name": "Complaints - Update",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"status\": \"in_progress\",\n  \"notes\": \"Working on resolving the issue\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/complaints/{{complaint_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "complaints",
-                                        "{{complaint_id}}"
-                                    ]
-                                },
-                                "description": "Update complaint status (admin/supervisor/area_manager only)"
-                            }
-                        },
-                        {
-                            "name": "Complaints - Delete",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/complaints/{{complaint_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "complaints",
-                                        "{{complaint_id}}"
-                                    ]
-                                },
-                                "description": "Delete complaint (admin only)"
+                                "type": "text/javascript"
                             }
                         }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/complaints",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "complaints"
+                            ]
+                        },
+                        "description": "List complaints (role-based: client sees own, admin sees all)"
+                    }
+                },
+                {
+                    "name": "Complaints - Create",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.id) {",
+                                    "        pm.environment.set('complaint_id', jsonData.data.id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"visit_id\": {{visit_id}},\n  \"notes\": \"Technician did not complete all tasks as requested\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/complaints",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "complaints"
+                            ]
+                        },
+                        "description": "Create a new complaint about a visit"
+                    }
+                },
+                {
+                    "name": "Complaints - Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/complaints/{{complaint_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "complaints",
+                                "{{complaint_id}}"
+                            ]
+                        },
+                        "description": "Get complaint details"
+                    }
+                },
+                {
+                    "name": "Complaints - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"in_progress\",\n  \"notes\": \"Working on resolving the issue\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/complaints/{{complaint_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "complaints",
+                                "{{complaint_id}}"
+                            ]
+                        },
+                        "description": "Update complaint status (admin/supervisor/area_manager only)"
+                    }
+                },
+                {
+                    "name": "Complaints - Delete",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/complaints/{{complaint_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "complaints",
+                                "{{complaint_id}}"
+                            ]
+                        },
+                        "description": "Delete complaint (admin only)"
+                    }
+                }
                     ]
                 },
                 {
                     "name": "Tips",
                     "description": "Tips API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
+                {
+                    "name": "List",
+                    "event": [
                         {
-                            "name": "List",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('tip_id')) {",
-                                            "        pm.environment.set('tip_id', jsonData.data[0].id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('tip_id')) {",
+                                    "        pm.environment.set('tip_id', jsonData.data[0].id);",
+                                    "    }",
+                                    "}"
                                 ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/tips",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "tips"
-                                    ]
-                                },
-                                "description": "GET /api/tips - List all published tips. Auth: Bearer token (client, admin, supervisor, area_manager, hr). Response: success, message, data (array of tips with id, title, content, type, status, language, created_at)."
-                            }
-                        },
-                        {
-                            "name": "Tips - Create/Send",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 201) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.id && !pm.environment.get('tip_id')) {",
-                                            "        pm.environment.set('tip_id', jsonData.data.id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"title\": \"Water early morning to reduce evaporation\",\n  \"description\": \"Water your plants early in the morning to reduce evaporation and help roots absorb moisture better.\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/tips",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "tips"
-                                    ]
-                                },
-                                "description": "POST /api/tips - Create/send a new tip (matches React Native Send Tips screen). Admin or supervisor only. Body: title (required), description (required). Response: 201 with { id, title, description, created_at, updated_at }."
-                            }
-                        },
-                        {
-                            "name": "Tips - Get Details",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/tips/{{tip_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "tips",
-                                        "{{tip_id}}"
-                                    ]
-                                },
-                                "description": "GET /api/tips/{id} - Get a single published tip by ID. Auth: Bearer token. Uses variable {{tip_id}} (set by Tips - List or Create/Send)."
-                            }
-                        },
-                        {
-                            "name": "Tips - Update",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"title\": \"Updated Tip Title\",\n  \"description\": \"Updated tip message.\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/tips/{{tip_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "tips",
-                                        "{{tip_id}}"
-                                    ]
-                                },
-                                "description": "PUT /api/tips/{id} - Update a tip. Admin or supervisor only. Body: title and/or description (optional, partial update). Set tip_id in env."
-                            }
-                        },
-                        {
-                            "name": "Tips - Delete",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/tips/{{tip_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "tips",
-                                        "{{tip_id}}"
-                                    ]
-                                },
-                                "description": "DELETE /api/tips/{id} - Delete a tip. Admin or supervisor only (403 for others). Set tip_id in env."
+                                "type": "text/javascript"
                             }
                         }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tips",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tips"
+                            ]
+                        },
+                        "description": "GET /api/tips - List all published tips. Auth: Bearer token (client, admin, supervisor, area_manager, hr). Response: success, message, data (array of tips with id, title, content, type, status, language, created_at)."
+                    }
+                },
+                {
+                    "name": "Tips - Create/Send",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.id && !pm.environment.get('tip_id')) {",
+                                    "        pm.environment.set('tip_id', jsonData.data.id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Water early morning to reduce evaporation\",\n  \"description\": \"Water your plants early in the morning to reduce evaporation and help roots absorb moisture better.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/tips",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tips"
+                            ]
+                        },
+                        "description": "POST /api/tips - Create/send a new tip (matches React Native Send Tips screen). Admin or supervisor only. Body: title (required), description (required). Response: 201 with { id, title, description, created_at, updated_at }."
+                    }
+                },
+                {
+                    "name": "Tips - Get Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tips/{{tip_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tips",
+                                "{{tip_id}}"
+                            ]
+                        },
+                        "description": "GET /api/tips/{id} - Get a single published tip by ID. Auth: Bearer token. Uses variable {{tip_id}} (set by Tips - List or Create/Send)."
+                    }
+                },
+                {
+                    "name": "Tips - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Tip Title\",\n  \"description\": \"Updated tip message.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/tips/{{tip_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "tips",
+                                        "{{tip_id}}"
+                                    ]
+                        },
+                        "description": "PUT /api/tips/{id} - Update a tip. Admin or supervisor only. Body: title and/or description (optional, partial update). Set tip_id in env."
+                    }
+                },
+                {
+                    "name": "Tips - Delete",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tips/{{tip_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "tips",
+                                        "{{tip_id}}"
+                                    ]
+                        },
+                        "description": "DELETE /api/tips/{id} - Delete a tip. Admin or supervisor only (403 for others). Set tip_id in env."
+                    }
+                }
                     ]
                 },
                 {
                     "name": "Notifications",
                     "description": "App notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
                     "item": [
+                {
+                    "name": "List",
+                    "event": [
                         {
-                            "name": "List",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.notifications && jsonData.data.notifications.data && jsonData.data.notifications.data.length > 0 && !pm.environment.get('notification_id')) {",
-                                            "        pm.environment.set('notification_id', jsonData.data.notifications.data[0].id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.notifications && jsonData.data.notifications.data && jsonData.data.notifications.data.length > 0 && !pm.environment.get('notification_id')) {",
+                                    "        pm.environment.set('notification_id', jsonData.data.notifications.data[0].id);",
+                                    "    }",
+                                    "}"
                                 ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications"
-                                    ]
-                                },
-                                "description": "List all notifications for the authenticated user. Returns paginated list with unread count. Use this endpoint to get notification IDs for marking as read."
-                            }
-                        },
-                        {
-                            "name": "Notifications - Mark as Read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications/{{notification_id}}/mark-read",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications",
-                                        "{{notification_id}}",
-                                        "mark-read"
-                                    ]
-                                },
-                                "description": "Mark a specific notification as read. Use the notification ID from the list endpoint."
-                            }
-                        },
-                        {
-                            "name": "Notifications - Mark All as Read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications/mark-all-read",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications",
-                                        "mark-all-read"
-                                    ]
-                                },
-                                "description": "Mark all notifications as read for the authenticated user. This will mark all unread notifications as read."
+                                "type": "text/javascript"
                             }
                         }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/notifications",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications"
+                            ]
+                        },
+                        "description": "List all notifications for the authenticated user. Returns paginated list with unread count. Use this endpoint to get notification IDs for marking as read."
+                    }
+                },
+                {
+                    "name": "Notifications - Mark as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/notifications/{{notification_id}}/mark-read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "{{notification_id}}",
+                                "mark-read"
+                            ]
+                        },
+                        "description": "Mark a specific notification as read. Use the notification ID from the list endpoint."
+                    }
+                },
+                {
+                    "name": "Notifications - Mark All as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/notifications/mark-all-read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "mark-all-read"
+                            ]
+                        },
+                        "description": "Mark all notifications as read for the authenticated user. This will mark all unread notifications as read."
+                    }
+                }
                     ]
                 },
                 {
                     "name": "Admin - Categories",
                     "description": "Admin: Service categories (add/update/delete). Used for Services. Auth: Bearer token, admin role.",
                     "item": [
+                {
+                    "name": "List",
+                    "event": [
                         {
-                            "name": "List",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.data && jsonData.data.data.length > 0 && !pm.environment.get('category_id')) {",
-                                            "        pm.environment.set('category_id', jsonData.data.data[0].id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.data && jsonData.data.data.length > 0 && !pm.environment.get('category_id')) {",
+                                    "        pm.environment.set('category_id', jsonData.data.data[0].id);",
+                                    "    }",
+                                    "}"
                                 ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/categories?per_page=50",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "categories"
-                                    ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/categories?per_page=50",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "categories"
+                            ],
                                     "query": [
                                         {
                                             "key": "per_page",
@@ -8524,15 +8524,15 @@
                                             "description": "Items per page (1-100); use 50 or 100 to see more in Postman"
                                         }
                                     ]
-                                },
-                                "description": "List all categories (admin). Query: per_page (1-100, default 15). Response: success, message, data = array of full category objects (id, name, slug, description, image, image_url, products_count); pagination = current_page, last_page, per_page, total. Set category_id from response for Add Product. Auth: Bearer {{token}}, admin role."
-                            }
                         },
-                        {
-                            "name": "Categories - Create",
-                            "request": {
-                                "method": "POST",
-                                "header": [
+                        "description": "List all categories (admin). Query: per_page (1-100, default 15). Response: success, message, data = array of full category objects (id, name, slug, description, image, image_url, products_count); pagination = current_page, last_page, per_page, total. Set category_id from response for Add Product. Auth: Bearer {{token}}, admin role."
+                    }
+                },
+                {
+                    "name": "Categories - Create",
+                    "request": {
+                        "method": "POST",
+                        "header": [
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
@@ -8541,10 +8541,10 @@
                                         "key": "Accept",
                                         "value": "application/json"
                                     }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
                                         {
                                             "key": "name",
                                             "value": "Fertilizers",
@@ -8589,13 +8589,42 @@
                                     ]
                                 },
                                 "description": "Create category (admin). Form-data: name (required), slug (optional), description (optional), is_active (optional; 1 = active, 0 = disabled), image (optional). Response: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon). Use returned id as category_id in Add Product."
+                    }
+                },
+                {
+                    "name": "Categories - Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/categories/{{category_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "categories",
+                                "{{category_id}}"
+                            ]
                         },
-                        {
-                            "name": "Categories - Get",
-                            "request": {
-                                "method": "GET",
-                                "header": [
+                        "description": "Get one category by id (admin). Set category_id in env. Response: success, message, data (id, name, slug, description, image, image_url full URL, products_count). Auth: Bearer token, admin role."
+                    }
+                },
+                {
+                    "name": "Categories - Update",
+                    "request": {
+                        "method": "POST",
+                        "header": [
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
@@ -8604,39 +8633,10 @@
                                         "key": "Accept",
                                         "value": "application/json"
                                     }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/categories/{{category_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "categories",
-                                        "{{category_id}}"
-                                    ]
-                                },
-                                "description": "Get one category by id (admin). Set category_id in env. Response: success, message, data (id, name, slug, description, image, image_url full URL, products_count). Auth: Bearer token, admin role."
-                            }
-                        },
-                        {
-                            "name": "Categories - Update",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
                                         {
                                             "key": "name",
                                             "value": "Updated Category Name",
@@ -8678,9 +8678,9 @@
                                         "{{category_id}}"
                                     ]
                                 },
-                                "description": "Update category including image. POST or PUT with multipart form-data: name, slug, description, image (file), image_remove (boolean, set true to clear image). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon, created_at, updated_at)."
-                            }
-                        },
+                        "description": "Update category including image. POST or PUT with multipart form-data: name, slug, description, image (file), image_remove (boolean, set true to clear image). Set category_id. Response: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon, created_at, updated_at)."
+                    }
+                },
                         {
                             "name": "Categories - Toggle Status",
                             "request": {
@@ -8711,35 +8711,35 @@
                                 "description": "POST /api/admin/categories/{id}/toggle-status – Enable/disable category. Response: success, message, data (id, is_active). Same pattern as banners. Set category_id."
                             }
                         },
-                        {
-                            "name": "Categories - Delete",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/categories/{{category_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "categories",
-                                        "{{category_id}}"
-                                    ]
-                                },
-                                "description": "Delete category (admin). Removes category and its image from storage. Cannot delete if category has products – reassign or delete products first. Auth: Bearer token, admin role."
+                {
+                    "name": "Categories - Delete",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
-                        }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/categories/{{category_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "categories",
+                                "{{category_id}}"
+                            ]
+                        },
+                        "description": "Delete category (admin). Removes category and its image from storage. Cannot delete if category has products – reassign or delete products first. Auth: Bearer token, admin role."
+                    }
+                }
                     ]
                 },
                 {
@@ -9038,176 +9038,176 @@
                     "name": "Areas",
                     "description": "Areas API – List, Create, Get, Update, Delete. Auth: Bearer token (Area Manager for write).",
                     "item": [
+                {
+                    "name": "List",
+                    "event": [
                         {
-                            "name": "List",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var jsonData = pm.response.json();",
-                                            "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('area_id')) {",
-                                            "        pm.environment.set('area_id', jsonData.data[0].id);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('area_id')) {",
+                                    "        pm.environment.set('area_id', jsonData.data[0].id);",
+                                    "    }",
+                                    "}"
                                 ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/areas",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "areas"
-                                    ]
-                                },
-                                "description": "List all areas (Area Manager only)"
-                            }
-                        },
-                        {
-                            "name": "Areas - Create",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Dubai North\",\n  \"description\": \"Northern region of Dubai\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/areas",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "areas"
-                                    ]
-                                },
-                                "description": "Create a new area (Area Manager only)"
-                            }
-                        },
-                        {
-                            "name": "Areas - Get",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/areas/{{area_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "areas",
-                                        "{{area_id}}"
-                                    ]
-                                },
-                                "description": "Get area details (Area Manager only)"
-                            }
-                        },
-                        {
-                            "name": "Areas - Update",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Dubai North Updated\",\n  \"description\": \"Updated description\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/areas/{{area_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "areas",
-                                        "{{area_id}}"
-                                    ]
-                                },
-                                "description": "Update area (Area Manager only)"
-                            }
-                        },
-                        {
-                            "name": "Areas - Delete",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/areas/{{area_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "areas",
-                                        "{{area_id}}"
-                                    ]
-                                },
-                                "description": "Delete area (Area Manager only)"
+                                "type": "text/javascript"
                             }
                         }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/areas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "areas"
+                            ]
+                        },
+                        "description": "List all areas (Area Manager only)"
+                    }
+                },
+                {
+                    "name": "Areas - Create",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Dubai North\",\n  \"description\": \"Northern region of Dubai\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/areas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "areas"
+                            ]
+                        },
+                        "description": "Create a new area (Area Manager only)"
+                    }
+                },
+                {
+                    "name": "Areas - Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/areas/{{area_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "areas",
+                                "{{area_id}}"
+                            ]
+                        },
+                        "description": "Get area details (Area Manager only)"
+                    }
+                },
+                {
+                    "name": "Areas - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Dubai North Updated\",\n  \"description\": \"Updated description\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/areas/{{area_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "areas",
+                                "{{area_id}}"
+                            ]
+                        },
+                        "description": "Update area (Area Manager only)"
+                    }
+                },
+                {
+                    "name": "Areas - Delete",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/areas/{{area_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "areas",
+                                "{{area_id}}"
+                            ]
+                        },
+                        "description": "Delete area (Area Manager only)"
+                    }
+                }
                     ]
                 },
                 {
@@ -9760,21 +9760,21 @@
                         },
                         {
                             "name": "Get single service (category)",
-                            "request": {
+                    "request": {
                                 "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/services/{{service_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
                                         "services",
                                         "{{service_id}}"
                                     ]
@@ -9784,40 +9784,40 @@
                         },
                         {
                             "name": "Get all products of services",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/services/products?per_page=20",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
                                         "services",
                                         "products"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "per_page",
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
                                             "value": "20",
                                             "description": "1-100, default 20"
-                                        },
-                                        {
+                                },
+                                {
                                             "key": "service_id",
-                                            "value": "",
-                                            "disabled": true,
+                                    "value": "",
+                                    "disabled": true,
                                             "description": "Filter by service ID (e.g. Watering)"
-                                        },
-                                        {
-                                            "key": "category_id",
-                                            "value": "",
-                                            "disabled": true,
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "",
+                                    "disabled": true,
                                             "description": "Filter by service category ID"
                                         },
                                         {
@@ -9833,184 +9833,184 @@
                         },
                         {
                             "name": "Get products by service",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/services/{{service_id}}/products",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "services",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "services",
                                         "{{service_id}}",
                                         "products"
-                                    ]
-                                },
+                            ]
+                        },
                                 "description": "GET /api/services/:id/products – Service ke hisab se products. Returns service_id, service_name, products (array). Each product: id, name, slug, description, price, image, image_url, status. No auth. Set service_id in env."
+                    }
+                },
+                {
+                    "name": "Get Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/services/categories",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "services",
+                                "categories"
+                            ]
                         },
-                        {
-                            "name": "Get Categories",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/services/categories",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "services",
-                                        "categories"
-                                    ]
-                                },
-                                "description": "GET /api/services/categories – All active categories (no pagination). Response: data (array). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample). Use for filter chips in app."
+                        "description": "GET /api/services/categories – All active categories (no pagination). Response: data (array). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample). Use for filter chips in app."
+                    }
+                },
+                {
+                    "name": "Get by Category (category + products)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/services/category/{{category_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "services",
+                                "category",
+                                "{{category_id}}"
+                            ]
                         },
-                        {
-                            "name": "Get by Category (category + products)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/services/category/{{category_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "services",
-                                        "category",
-                                        "{{category_id}}"
-                                    ]
-                                },
-                                "description": "GET /api/services/category/:id – One category with full products list. Response: data (category fields + products array). Each product: id, name, slug, description, price, image, image_url, status. Use after user selects a category filter."
-                            }
-                        }
+                        "description": "GET /api/services/category/:id – One category with full products list. Response: data (category fields + products array). Each product: id, name, slug, description, price, image, image_url, status. Use after user selects a category filter."
+                    }
+                }
                     ]
                 },
                 {
                     "name": "User Profile",
                     "description": "User profile – Get, Update. Auth: Bearer token.",
                     "item": [
-                        {
-                            "name": "Get",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/profile",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "profile"
-                                    ]
-                                },
-                                "description": "Get user profile (Alternative route /api/user/profile)"
+                {
+                    "name": "Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "profile"
+                            ]
                         },
-                        {
-                            "name": "User Profile - Update",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+971501234567\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/profile",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "profile"
-                                    ]
-                                },
-                                "description": "Update user profile (Alternative route /api/user/profile)"
+                        "description": "Get user profile (Alternative route /api/user/profile)"
+                    }
+                },
+                {
+                    "name": "User Profile - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
-                        }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+971501234567\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/user/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "profile"
+                            ]
+                        },
+                        "description": "Update user profile (Alternative route /api/user/profile)"
+                    }
+                }
                     ]
                 },
                 {
                     "name": "User Addresses",
                     "description": "Checkout Address step. List (GET), Create (POST form-data), Update (POST form-data or PUT JSON), Delete. Auth: Bearer token. Create/Update accept multipart form-data. Response: id, type (home|office|other), full_name, phone_number, street_address, city, state, zip_code, country, is_default. type = local address label.",
                     "item": [
-                        {
-                            "name": "List",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/addresses",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "addresses"
-                                    ]
-                                },
-                                "description": "GET /api/user/addresses – Checkout Address step. Response: array of { id, type, full_name, phone_number, street_address, city, state, zip_code, country, is_default }. type = home|office|other."
+                {
+                    "name": "List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/addresses",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "addresses"
+                            ]
                         },
-                        {
-                            "name": "Create",
+                                "description": "GET /api/user/addresses – Checkout Address step. Response: array of { id, type, full_name, phone_number, street_address, city, state, zip_code, country, is_default }. type = home|office|other."
+                    }
+                },
+                {
+                    "name": "Create",
                             "event": [
                                 {
                                     "listen": "test",
@@ -10027,19 +10027,19 @@
                                     }
                                 }
                             ],
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         {
@@ -10097,36 +10097,36 @@
                                             "description": "Optional: 1 or 0"
                                         }
                                     ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/addresses",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "addresses"
-                                    ]
-                                },
-                                "description": "Create address (multipart form-data). Checkout – Shipping Address. type optional: home|office|other. Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default (1/0)."
-                            }
                         },
-                        {
-                            "name": "Update",
-                            "request": {
+                        "url": {
+                            "raw": "{{base_url}}/api/user/addresses",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "addresses"
+                            ]
+                        },
+                                "description": "Create address (multipart form-data). Checkout – Shipping Address. type optional: home|office|other. Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default (1/0)."
+                    }
+                },
+                {
+                    "name": "Update",
+                    "request": {
                                 "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         {
@@ -10176,177 +10176,177 @@
                                             "type": "text"
                                         }
                                     ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/addresses/{{address_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "addresses",
-                                        "{{address_id}}"
-                                    ]
-                                },
-                                "description": "Update address (multipart form-data). Set address_id. Optional: type (home|office|other), full_name, phone_number, street_address, city, state, zip_code, country, is_default (1/0)."
-                            }
                         },
-                        {
-                            "name": "User Addresses - Delete",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/addresses/{{address_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "addresses",
-                                        "{{address_id}}"
-                                    ]
-                                },
-                                "description": "Delete an address"
+                        "url": {
+                            "raw": "{{base_url}}/api/user/addresses/{{address_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "addresses",
+                                "{{address_id}}"
+                            ]
+                        },
+                                "description": "Update address (multipart form-data). Set address_id. Optional: type (home|office|other), full_name, phone_number, street_address, city, state, zip_code, country, is_default (1/0)."
+                    }
+                },
+                {
+                    "name": "User Addresses - Delete",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
-                        }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/addresses/{{address_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "addresses",
+                                "{{address_id}}"
+                            ]
+                        },
+                        "description": "Delete an address"
+                    }
+                }
                     ]
                 },
                 {
                     "name": "User Payment Methods",
                     "description": "Saved payment methods for Profile screen. Placeholder: returns empty list until saved cards are implemented.",
                     "item": [
-                        {
-                            "name": "Get",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/payment-methods",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "payment-methods"
-                                    ]
-                                },
-                                "description": "GET /api/user/payment-methods – List saved payment methods. Currently returns empty array; for client Profile → Payment Methods. Auth: Bearer token."
+                {
+                    "name": "Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
-                        }
+                        ],
+                        "url": {
+                                    "raw": "{{base_url}}/api/user/payment-methods",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                        "payment-methods"
+                            ]
+                        },
+                                "description": "GET /api/user/payment-methods – List saved payment methods. Currently returns empty array; for client Profile → Payment Methods. Auth: Bearer token."
+                    }
+                }
                     ]
                 },
                 {
                     "name": "User Notifications",
                     "description": "User notifications – List, Mark as Read, Mark All as Read, Clear All. Auth: Bearer token.",
                     "item": [
-                        {
-                            "name": "List",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/notifications",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "notifications"
-                                    ]
-                                },
-                                "description": "Get user notifications (Alternative route /api/user/notifications). Returns paginated list of notifications for the authenticated user."
+                {
+                    "name": "List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/notifications",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "notifications"
+                            ]
                         },
-                        {
-                            "name": "Mark as Read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/notifications/{{notification_id}}/read",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "notifications",
-                                        "{{notification_id}}",
-                                        "read"
-                                    ]
-                                },
-                                "description": "Mark a specific notification as read. Use the notification ID from the list endpoint. Alternative route: /api/user/notifications/{id}/read"
+                        "description": "Get user notifications (Alternative route /api/user/notifications). Returns paginated list of notifications for the authenticated user."
+                    }
+                },
+                {
+                    "name": "Mark as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/notifications/{{notification_id}}/read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "notifications",
+                                "{{notification_id}}",
+                                "read"
+                            ]
                         },
-                        {
-                            "name": "Mark All as Read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/notifications/read-all",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "notifications",
-                                        "read-all"
-                                    ]
-                                },
-                                "description": "Mark all notifications as read"
+                        "description": "Mark a specific notification as read. Use the notification ID from the list endpoint. Alternative route: /api/user/notifications/{id}/read"
+                    }
+                },
+                {
+                    "name": "Mark All as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/notifications/read-all",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "notifications",
+                                "read-all"
+                            ]
+                        },
+                        "description": "Mark all notifications as read"
+                    }
                         },
                         {
                             "name": "Clear All",
