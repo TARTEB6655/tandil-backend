@@ -6486,6 +6486,81 @@
                     }
                 },
                 {
+                    "name": "PUT/POST Admin Dashboard Profile (Update)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "Administrator",
+                                    "type": "text",
+                                    "description": "Optional"
+                                },
+                                {
+                                    "key": "email",
+                                    "value": "admin@tandil.com",
+                                    "type": "text",
+                                    "description": "Optional"
+                                },
+                                {
+                                    "key": "phone",
+                                    "value": "78860000",
+                                    "type": "text",
+                                    "description": "Optional"
+                                },
+                                {
+                                    "key": "profile_picture",
+                                    "type": "file",
+                                    "description": "Optional: image file (jpeg,png,gif,webp) for profile picture"
+                                },
+                                {
+                                    "key": "current_password",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Required only when changing password"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional: new password (min 8 chars)"
+                                },
+                                {
+                                    "key": "password_confirmation",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Required when password is set"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/dashboard/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "dashboard",
+                                "profile"
+                            ]
+                        },
+                        "description": "Update admin profile: name, email, phone, profile_picture, password. **Form-data only (not JSON).** Use Body → form-data. For profile picture set key profile_picture, type File. Optional: current_password, password, password_confirmation to change password. If you send Content-Type: application/json the API returns 415. Response: same shape as GET profile with updated data."
+                    }
+                },
+                {
                     "name": "Admin Dashboard Top Selling Products",
                     "request": {
                         "method": "GET",

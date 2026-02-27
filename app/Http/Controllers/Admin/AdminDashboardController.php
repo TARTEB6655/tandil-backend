@@ -22,7 +22,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use App\Services\ProfilePictureUploadService;
+use App\Services\ImageCompressionService;
 
 class AdminDashboardController extends Controller
 {
@@ -1143,13 +1147,93 @@ class AdminDashboardController extends Controller
      */
     public function profile(Request $request)
     {
+        return response()->json([
+            'success' => true,
+            'data' => $this->adminProfileData($request->user()),
+        ]);
+    }
+
+    /**
+     * PUT/POST /api/admin/dashboard/profile - Update admin profile (name, email, phone, profile_picture, password).
+     * Body: form-data only (multipart/form-data or application/x-www-form-urlencoded). JSON is not accepted.
+     * Use POST with multipart/form-data when uploading profile_picture so PHP parses the file.
+     */
+    public function updateProfile(Request $request)
+    {
+        $contentType = (string) $request->header('Content-Type');
+        if (str_contains($contentType, 'application/json')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Use form-data (multipart/form-data or x-www-form-urlencoded), not JSON. Required for profile_picture upload.',
+            ], 415);
+        }
+
         $user = $request->user();
-        
-        // Format user ID (e.g., ADMIN-5001)
+
+        $profileFile = $request->file('profile_picture');
+        if (is_array($profileFile)) {
+            $profileFile = $profileFile[0] ?? null;
+        }
+        $storedFromPut = null;
+        if (! $profileFile && $request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+            $storedFromPut = ProfilePictureUploadService::storeFromMultipartPut($request);
+        }
+
+        $rules = [
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:50',
+            'current_password' => 'required_with:password',
+            'password' => 'nullable|string|min:8|confirmed',
+        ];
+        if ($profileFile || $storedFromPut) {
+            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
+        }
+        $validator = Validator::make(array_merge($request->all(), ['profile_picture' => $profileFile]), $rules);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        if ($request->filled('password')) {
+            if (! Hash::check($request->input('current_password'), $user->password)) {
+                return response()->json(['success' => false, 'errors' => ['current_password' => ['Current password is incorrect.']]], 422);
+            }
+            $user->password = Hash::make($request->input('password'));
+        }
+        if ($request->has('name')) {
+            $user->name = $request->input('name');
+        }
+        if ($request->has('email')) {
+            $user->email = $request->input('email');
+        }
+        if ($request->has('phone')) {
+            $user->phone = $request->input('phone') ?: null;
+        }
+        if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
+            $stored = $profileFile->store('profiles', 'public');
+            $user->profile_picture = $stored;
+            ImageCompressionService::compressIfNeededFromPublicPath($stored);
+        } elseif ($storedFromPut) {
+            $user->profile_picture = $storedFromPut;
+            ImageCompressionService::compressIfNeededFromPublicPath($storedFromPut);
+        }
+        $user->save();
+        $user->refresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'data' => $this->adminProfileData($user),
+        ]);
+    }
+
+    /**
+     * Build profile response data for admin (GET and update response).
+     */
+    private function adminProfileData(User $user): array
+    {
         $rolePrefix = strtoupper(substr($user->role ?? 'USER', 0, 5));
         $formattedId = $rolePrefix . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
-        
-        // Get user's role display name
         $roleDisplayNames = [
             'admin' => 'Executive Management',
             'supervisor' => 'Supervisor',
@@ -1159,8 +1243,6 @@ class AdminDashboardController extends Controller
             'area_manager' => 'Area Manager',
         ];
         $roleDisplayName = $roleDisplayNames[$user->role] ?? ucfirst($user->role ?? 'User');
-        
-        // Get greeting based on time of day
         $hour = Carbon::now()->hour;
         $greeting = 'Good morning!';
         if ($hour >= 12 && $hour < 17) {
@@ -1170,24 +1252,20 @@ class AdminDashboardController extends Controller
         } elseif ($hour >= 21 || $hour < 5) {
             $greeting = 'Good night!';
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $user->id,
-                'formatted_id' => $formattedId,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'role' => $user->role,
-                'role_display_name' => $roleDisplayName,
-                'status' => $user->status,
-                'greeting' => $greeting,
-                'profile_picture' => $user->profile_picture,
-                'profile_picture_url' => $user->profile_picture_url,
-                'created_at' => $user->created_at->toISOString(),
-            ],
-        ]);
+        return [
+            'id' => $user->id,
+            'formatted_id' => $formattedId,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'role_display_name' => $roleDisplayName,
+            'status' => $user->status,
+            'greeting' => $greeting,
+            'profile_picture' => $user->profile_picture,
+            'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url,
+            'created_at' => $user->created_at->toISOString(),
+        ];
     }
 
     /**
