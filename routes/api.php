@@ -218,7 +218,10 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
 Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manager|hr|admin'])->prefix('support')->group(function () {
     Route::get('/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
     Route::get('/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
+    Route::get('/tickets', [\App\Http\Controllers\Api\SupportController::class, 'indexMyTickets']);
     Route::post('/tickets', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
+    Route::get('/tickets/{id}', [\App\Http\Controllers\Api\SupportController::class, 'showMyTicket']);
+    Route::post('/tickets/{id}/reply', [\App\Http\Controllers\Api\SupportController::class, 'replyToMyTicket']);
 });
 
 /*

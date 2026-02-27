@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ApiResponse;
 use App\Models\Faq;
+use App\Models\SupportTicketReply;
 use App\Models\Setting;
 use App\Models\SupportTicket;
 use App\Models\User;
@@ -168,6 +170,112 @@ class SupportController extends Controller
                 'category' => $ticket->category,
                 'created_at' => $ticket->created_at?->toIso8601String(),
             ],
+        ], 201);
+    }
+
+    /**
+     * GET /api/support/tickets - List my support tickets (chat threads with admin).
+     * For authenticated user (any role). Query: status (open|in_progress|resolved|closed), per_page.
+     */
+    public function indexMyTickets(Request $request)
+    {
+        $user = $request->user();
+        $query = SupportTicket::where('user_id', $user->id)->orderByDesc('updated_at');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 20), 1), 50);
+        $tickets = $query->paginate($perPage);
+
+        $items = $tickets->getCollection()->map(fn (SupportTicket $t) => [
+            'id' => $t->id,
+            'ticket_number' => $t->ticket_number,
+            'subject' => $t->subject,
+            'status' => $t->status,
+            'created_at' => $t->created_at?->toIso8601String(),
+            'updated_at' => $t->updated_at?->toIso8601String(),
+        ]);
+
+        return ApiResponse::success('Support tickets retrieved successfully.', [
+            'data' => $items->values()->all(),
+            'pagination' => [
+                'current_page' => $tickets->currentPage(),
+                'last_page' => $tickets->lastPage(),
+                'per_page' => $tickets->perPage(),
+                'total' => $tickets->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/support/tickets/{id} - Get my ticket with full chat (replies).
+     * Only allowed for the ticket owner. Returns ticket + replies as chat thread.
+     */
+    public function showMyTicket(Request $request, int $id)
+    {
+        $ticket = SupportTicket::with(['replies.user:id,name,email'])
+            ->where('user_id', $request->user()->id)
+            ->find($id);
+
+        if (! $ticket) {
+            return ApiResponse::error('Ticket not found.', 404);
+        }
+
+        $replies = $ticket->replies->map(fn ($r) => [
+            'id' => $r->id,
+            'message' => $r->message,
+            'is_admin' => $r->is_admin,
+            'user_name' => $r->user?->name,
+            'created_at' => $r->created_at?->toIso8601String(),
+        ])->values()->all();
+
+        return ApiResponse::success('Ticket retrieved successfully.', [
+            'id' => $ticket->id,
+            'ticket_number' => $ticket->ticket_number,
+            'subject' => $ticket->subject,
+            'message' => $ticket->message,
+            'status' => $ticket->status,
+            'created_at' => $ticket->created_at?->toIso8601String(),
+            'updated_at' => $ticket->updated_at?->toIso8601String(),
+            'replies' => $replies,
+        ]);
+    }
+
+    /**
+     * POST /api/support/tickets/{id}/reply - Send a message (reply) on my ticket (chat with admin).
+     * Only ticket owner. Body: message (required). Not allowed when status is resolved or closed.
+     */
+    public function replyToMyTicket(Request $request, int $id)
+    {
+        $request->validate(['message' => 'required|string|max:5000']);
+
+        $ticket = SupportTicket::where('user_id', $request->user()->id)->find($id);
+        if (! $ticket) {
+            return ApiResponse::error('Ticket not found.', 404);
+        }
+
+        if (in_array($ticket->status, ['resolved', 'closed'], true)) {
+            return ApiResponse::error('Cannot reply: ticket is already ' . $ticket->status . '.', 422);
+        }
+
+        $reply = SupportTicketReply::create([
+            'support_ticket_id' => $ticket->id,
+            'user_id' => $request->user()->id,
+            'message' => $request->input('message'),
+            'is_admin' => false,
+        ]);
+
+        if ($ticket->status === 'open') {
+            $ticket->update(['status' => 'in_progress']);
+        }
+
+        return ApiResponse::success('Message sent successfully.', [
+            'id' => $reply->id,
+            'message' => $reply->message,
+            'is_admin' => false,
+            'created_at' => $reply->created_at?->toIso8601String(),
         ], 201);
     }
 }

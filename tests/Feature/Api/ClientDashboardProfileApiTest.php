@@ -331,7 +331,8 @@ class ClientDashboardProfileApiTest extends TestCase
     {
         $response = $this->postJson('/api/support/tickets', [
             'subject' => 'Support request',
-            'message' => 'Need help with the app.',
+            'email' => $this->client->email,
+            'description' => 'Need help with the app.',
         ], $this->authHeaders());
         $response->assertStatus(201);
         $response->assertJsonPath('success', true);
@@ -348,6 +349,6 @@ class ClientDashboardProfileApiTest extends TestCase
     {
         $response = $this->postJson('/api/support/tickets', [], $this->authHeaders());
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['subject', 'message']);
+        $response->assertJsonValidationErrors(['subject', 'email', 'description']);
     }
 }

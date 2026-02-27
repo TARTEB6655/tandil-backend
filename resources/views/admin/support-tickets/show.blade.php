@@ -1,13 +1,11 @@
-<x-app-layout>
-    <x-slot name="header">
+<x-admin-layout>
+    <div class="space-y-6">
         <div class="flex items-center justify-between gap-3">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Support Ticket #{{ $ticket->ticket_number }}</h2>
-            <a href="{{ route('admin.support-tickets.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800">Back to tickets</a>
+            <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">Support Ticket #{{ $ticket->ticket_number }}</h1>
+            <a href="{{ route('admin.support-tickets.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">Back to tickets</a>
         </div>
-    </x-slot>
 
-    <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="space-y-6">
             @if(session('success'))
                 <div class="bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-700">
                     {{ session('success') }}
@@ -118,5 +116,5 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>
 

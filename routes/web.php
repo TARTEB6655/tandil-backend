@@ -307,6 +307,12 @@ Route::middleware(['auth', 'role:supervisor'])
         Route::get('/notifications', [\App\Http\Controllers\Supervisor\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+
+        // Help & Support (tickets + chat with admin)
+        Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
+        Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
+        Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
+        Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
     });
 
 // Technician routes
@@ -343,6 +349,12 @@ Route::middleware(['auth', 'role:technician'])
         Route::get('/notifications', [\App\Http\Controllers\Technician\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+
+        // Help & Support (tickets + chat with admin)
+        Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
+        Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
+        Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
+        Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
     });
 
 // Client routes
@@ -430,6 +442,12 @@ Route::middleware(['auth', 'role:area_manager'])
         Route::get('/notifications', [\App\Http\Controllers\AreaManager\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+
+        // Help & Support (tickets + chat with admin)
+        Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
+        Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
+        Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
+        Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
     });
 
 // HR routes
@@ -458,6 +476,12 @@ Route::middleware(['auth', 'role:hr'])
         Route::get('/notifications', [\App\Http\Controllers\HR\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+
+        // Help & Support (tickets + chat with admin)
+        Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
+        Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
+        Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
+        Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
     });
 
 // Breeze auth routes (login/logout/password/reset)

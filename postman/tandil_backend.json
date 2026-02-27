@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Admin Support Tickets (folder 13): list/respond to tickets from clients and technicians. Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Admin Support Tickets (folder 13): list/respond to tickets from clients and technicians; web UI at /admin/support-tickets uses admin layout. Submit ticket (client/technician): POST /api/support/tickets with JSON body: subject, email, description (all required). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.79.0"
+        "version": "2.80.0"
     },
     "item": [
         {
@@ -822,29 +822,17 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "urlencoded",
-                            "urlencoded": [
-                                {
-                                    "key": "subject",
-                                    "value": "Support request",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "email",
-                                    "value": "client@example.com",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "description",
-                                    "value": "Need help with the app.",
-                                    "type": "text"
-                                }
-                            ]
+                            "mode": "raw",
+                            "raw": "{\n  \"subject\": \"Support request\",\n  \"email\": \"client1@test.com\",\n  \"description\": \"Need help with the app.\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/support/tickets",
@@ -857,11 +845,68 @@
                                 "tickets"
                             ]
                         },
-                        "description": "Submit support ticket (Option A). Body: subject (required), email (required), description (required). Backward compatible: message also accepted as description."
+                        "description": "Submit support ticket. Body: subject (required), email (required), description (required). Backward compatible: message also accepted as description."
+                    }
+                },
+                {
+                    "name": "12. Help and Support – List my tickets (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/support/tickets?per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "support", "tickets"],
+                            "query": [
+                                {"key": "status", "value": "", "description": "open | in_progress | resolved | closed"},
+                                {"key": "per_page", "value": "20"}
+                            ]
+                        },
+                        "description": "List current user's support tickets. Query: status (optional), per_page. Response: data[], pagination."
+                    }
+                },
+                {
+                    "name": "13. Help and Support – Get ticket by ID (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/support/tickets/{{ticket_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "support", "tickets", "{{ticket_id}}"]
+                        },
+                        "description": "Get one of my tickets with full reply thread. Set ticket_id (e.g. from list response)."
+                    }
+                },
+                {
+                    "name": "14. Help and Support – Reply to my ticket (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Content-Type", "value": "application/json"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"message\": \"Additional info from my side.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/support/tickets/{{ticket_id}}/reply",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "support", "tickets", "{{ticket_id}}", "reply"]
+                        },
+                        "description": "Reply to my ticket (client/technician). Body: message (required). Not allowed when status is resolved or closed."
                     }
                 }
             ],
-            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9-9b) Notifications List + Clear All, (10-11) Help and Support. Auth: Bearer token (client)."
+            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9-9b) Notifications List + Clear All, (10-14) Help and Support (help center, submit ticket, list my tickets, get ticket, reply). Auth: Bearer token (client)."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",

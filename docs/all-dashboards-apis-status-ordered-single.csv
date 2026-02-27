@@ -331,3 +331,12 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 330,Other,"22. User Notifications",POST,/api/user/notifications/read-all,Done
 331,Other,"22. User Notifications",POST,/api/user/notifications/{id}/read,Done
 332,Other,"24. User Profile",PUT,/api/user/profile,Done
+333,Other,"25. Support Chat (User – all roles)",POST,/api/support/chat/sessions,Pending
+334,Other,"25. Support Chat (User – all roles)",GET,/api/support/chat/sessions,Pending
+335,Other,"25. Support Chat (User – all roles)",GET,/api/support/chat/sessions/{id}/messages,Pending
+336,Other,"25. Support Chat (User – all roles)",POST,/api/support/chat/sessions/{id}/messages,Pending
+337,Admin,"5. Support Chat (Admin)",GET,/api/admin/support-chat/sessions,Pending
+338,Admin,"5. Support Chat (Admin)",GET,/api/admin/support-chat/sessions/by-token/{token},Pending
+339,Admin,"5. Support Chat (Admin)",GET,/api/admin/support-chat/sessions/{id}/messages,Pending
+340,Admin,"5. Support Chat (Admin)",POST,/api/admin/support-chat/sessions/{id}/messages,Pending
+341,Admin,"5. Support Chat (Admin)",PUT,/api/admin/support-chat/sessions/{id}/status,Pending

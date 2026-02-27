@@ -1,10 +1,10 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Support Tickets</h2>
-    </x-slot>
+<x-admin-layout>
+    <div class="space-y-6">
+        <div class="flex items-center justify-between gap-3">
+            <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">Support Tickets</h1>
+        </div>
 
-    <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div>
             @if(session('success'))
                 <div class="mb-4 bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-700">
                     {{ session('success') }}
@@ -84,5 +84,5 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>
 
