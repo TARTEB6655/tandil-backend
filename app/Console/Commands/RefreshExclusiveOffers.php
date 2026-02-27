@@ -25,7 +25,7 @@ class RefreshExclusiveOffers extends Command
 
         $today = Carbon::today();
         $start = $today->copy()->subDays(7);
-        $end = $today->copy()->addDays(30);
+        $end = $today->copy()->addDays(90);
 
         $offers = [
             [
