@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.76.0"
+        "version": "2.77.0"
     },
     "item": [
         {
@@ -6482,7 +6482,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "Get admin user profile with formatted ID for React Native dashboard\n\n**Purpose:**\n- Returns current admin user's profile information\n- Includes formatted ID (e.g., \"ADMIN-5001\") for display\n- Includes time-based greeting (Good morning/afternoon/evening/night)\n- Used to display user info at top of admin mobile app dashboard\n\n**Response Structure:**\n- `id`: User ID\n- `formatted_id`: Formatted ID with role prefix (e.g., \"ADMIN-5001\")\n- `name`: User's full name\n- `email`: User's email\n- `phone`: User's phone number\n- `role`: User's role (admin, supervisor, etc.)\n- `role_display_name`: Human-readable role name (e.g., \"Executive Management\")\n- `status`: User status (active, inactive, etc.)\n- `greeting`: Time-based greeting (Good morning/afternoon/evening/night)\n- `avatar`: Avatar URL (null if not set)\n- `created_at`: Account creation timestamp\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 5001,\n    \"formatted_id\": \"ADMIN-5001\",\n    \"name\": \"Abdullah Al Mazrouei\",\n    \"email\": \"admin@example.com\",\n    \"phone\": \"+971501234567\",\n    \"role\": \"admin\",\n    \"role_display_name\": \"Executive Management\",\n    \"status\": \"active\",\n    \"greeting\": \"Good afternoon!\",\n    \"avatar\": null,\n    \"created_at\": \"2025-01-01T10:00:00Z\"\n  }\n}\n```\n\n**Use Cases:**\n- Display user profile section at top of admin mobile app dashboard\n- Show greeting, name, role, and formatted ID\n- Display user avatar if available\n\n**Frontend Implementation:**\n- Display `greeting` as greeting text\n- Show `name` as main heading\n- Display `role_display_name` as subtitle\n- Show `formatted_id` as ID label (e.g., \"ID: ADMIN-5001\")\n- Use `avatar` for profile picture (show default if null)\n\n**Role Display Names:**\n- `admin` → \"Executive Management\"\n- `supervisor` → \"Supervisor\"\n- `technician` → \"Technician\"\n- `client` → \"Customer\"\n- `hr` → \"HR Manager\"\n- `area_manager` → \"Area Manager\""
+                        "description": "Get admin user profile with formatted ID for React Native dashboard.\n\n**Response:** id, formatted_id (e.g. ADMIN-0001), name, email, phone, role, role_display_name, status, greeting, profile_picture (storage path), profile_picture_url (full URL for display), created_at. To update profile or picture use **PUT/POST Admin Dashboard Profile (Update)** with form-data."
                     }
                 },
                 {
@@ -7896,7 +7896,7 @@
             "item": [
                 {
                     "name": "Exclusive Offers",
-                    "description": "Exclusive offers for home screen. Public: List, Get by ID (no auth). Admin: List, Create, Get, Update, Delete (Bearer + admin). Response: image_url is full URL (base_url/media/exclusive_offers/...) – use for display; image is storage path.",
+                    "description": "Exclusive offers for home screen. Public: List, Get by ID (no auth) – response shape same as admin (data array with image, image_url, is_active). Admin: List, Create, Get, Update, Delete (Bearer + admin). image_url = full URL for display; image = storage path.",
                     "item": [
                         {
                             "name": "List (Public)",
@@ -7918,7 +7918,7 @@
                                         "exclusive-offers"
                                     ]
                                 },
-                                "description": "List active exclusive offers (no auth). Optional: per_page. Response: data[].image_url = full URL (e.g. base_url/media/exclusive_offers/xxx.jpg) for display."
+                                "description": "List active exclusive offers (no auth). Response: same shape as admin – data is a direct array (no pagination). Each item: id, title, description, image (path), image_url (full URL for display), discount_type, discount_value, applies_to, start_date, end_date, is_active, sort_order, product_ids, created_at, updated_at."
                             }
                         },
                         {
