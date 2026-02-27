@@ -655,6 +655,18 @@
   },
   {
     "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Jobs (accepted)",
+    "method": "GET",
+    "path": "/api/technician/jobs/accepted?period=month&per_page=15"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Jobs (rejected)",
+    "method": "GET",
+    "path": "/api/technician/jobs/rejected?period=month&per_page=15"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
     "name": "GET Technician – Tasks (accepted)",
     "method": "GET",
     "path": "/api/technician/tasks?filter=accepted&per_page=15"
@@ -1045,6 +1057,12 @@
   },
   {
     "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "PUT/POST Admin Dashboard Profile (Update)",
+    "method": "PUT",
+    "path": "/api/admin/dashboard/profile"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
     "name": "Admin Dashboard Top Selling Products",
     "method": "GET",
     "path": "/api/admin/dashboard/top-selling-products?limit=10&include_unsold=1"
@@ -1188,85 +1206,109 @@
     "path": "/api/admin/reports/1"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "13. Admin – Support Tickets",
+    "name": "GET List Support Tickets",
+    "method": "GET",
+    "path": "/api/admin/support-tickets?per_page=20"
+  },
+  {
+    "folder": "13. Admin – Support Tickets",
+    "name": "GET Support Ticket by ID",
+    "method": "GET",
+    "path": "/api/admin/support-tickets/{{ticket_id}}"
+  },
+  {
+    "folder": "13. Admin – Support Tickets",
+    "name": "POST Reply to Ticket",
+    "method": "POST",
+    "path": "/api/admin/support-tickets/{{ticket_id}}/reply"
+  },
+  {
+    "folder": "13. Admin – Support Tickets",
+    "name": "PUT Update Ticket Status",
+    "method": "PUT",
+    "path": "/api/admin/support-tickets/{{ticket_id}}/status"
+  },
+  {
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Get All Settings",
     "method": "GET",
     "path": "/api/admin/settings"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Get System Settings",
     "method": "GET",
     "path": "/api/admin/settings/system"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Update System Settings",
     "method": "PUT",
     "path": "/api/admin/settings/system"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Get Theme",
     "method": "GET",
     "path": "/api/admin/settings/theme"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Update Theme",
     "method": "PUT",
     "path": "/api/admin/settings/theme"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Get Language",
     "method": "GET",
     "path": "/api/admin/settings/language"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Update Language",
     "method": "PUT",
     "path": "/api/admin/settings/language"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Get Payment Settings",
     "method": "GET",
     "path": "/api/admin/settings/payment"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Update Payment Settings",
     "method": "PUT",
     "path": "/api/admin/settings/payment"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Get Shop Settings (Shipping & Tax)",
     "method": "GET",
     "path": "/api/admin/settings/shop"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Update Shop Settings (Shipping & Tax)",
     "method": "PUT",
     "path": "/api/admin/settings/shop"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Get Legal (Privacy or Terms)",
     "method": "GET",
     "path": "/api/admin/settings/legal?type=privacy"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Export Data",
     "method": "POST",
     "path": "/api/admin/settings/export-data"
   },
   {
-    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "folder": "14. Admin Dashboard – Settings (Mobile)",
     "name": "Debug Logs",
     "method": "GET",
     "path": "/api/admin/settings/debug-logs?lines=100"

@@ -76,270 +76,278 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 75,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/dashboard,Done
 76,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/jobs,Done
 77,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/jobs/status-counts,Done
-78,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/notifications,Done
-79,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/payout-summary,Done
-80,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/payouts,Done
-81,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/profile,Done
-82,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/schedule,Done
-83,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/service-areas,Done
-84,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/settings/payout,Done
-85,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/specializations,Done
-86,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/support/faqs,Done
-87,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/support/help-center,Done
-88,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks,Done
-89,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks,Done
+78,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/jobs/accepted,Done
+79,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/jobs/rejected,Done
+80,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/notifications,Done
+81,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/payout-summary,Done
+82,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/payouts,Done
+83,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/profile,Done
+84,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/schedule,Done
+85,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/service-areas,Done
+86,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/settings/payout,Done
+87,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/specializations,Done
+88,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/support/faqs,Done
+89,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/support/help-center,Done
 90,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks,Done
-91,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks/{id},Done
-92,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks/{id}/detail,Done
-93,Technician,"6. Technician Dashboard (Full API)",POST,/api/tech/visits/{id}/photos,Done
-94,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/bank-accounts,Done
-95,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/notifications/read-all,Done
-96,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/notifications/{id}/read,Done
-97,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/profile,Done
-98,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/specializations,Done
-99,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/support/tickets,Done
-100,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/tasks/{id}/accept,Done
-101,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/tasks/{id}/reject,Done
-102,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/availability,Done
-103,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/bank-accounts/{id},Done
-104,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/profile,Done
-105,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/service-areas,Done
-106,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/settings/payout,Done
-107,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/tasks/{id}/status,Done
-108,Technician,"6. Technician Dashboard (Full API)",DELETE,/api/technician/bank-accounts/{id},Done
-109,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/alerts,Done
-110,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/kpis,Done
-111,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/summary,Done
-112,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/team-status,Done
-113,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/attendance,Done
-114,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/performance,Done
-115,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/statistics,Done
-116,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/workload,Done
-117,Supervisor,"3. C. Assign Tasks",GET,/api/supervisor/assignments/pending,Done
-118,Supervisor,"3. C. Assign Tasks",POST,/api/supervisor/assignments,Done
-119,Supervisor,"3. C. Assign Tasks",POST,/api/supervisor/assignments/{id},Done
-120,Supervisor,"3. C. Assign Tasks",POST,/api/supervisor/assignments/{id}/reassign,Done
-121,Supervisor,"3. C. Assign Tasks",PUT,/api/supervisor/assignments/{id},Done
-122,Supervisor,"4. D. Reports",GET,/api/supervisor/reports,Done
-123,Supervisor,"4. D. Reports",GET,/api/supervisor/reports/{id},Done
-124,Supervisor,"4. D. Reports",GET,/api/supervisor/reports/{id}/download,Done
-125,Supervisor,"4. D. Reports",GET,/api/supervisor/visits/{id},Done
-126,Supervisor,"4. D. Reports",POST,/api/supervisor/reports/generate,Done
-127,Supervisor,"4. D. Reports",POST,/api/supervisor/visits/{id}/finalize,Done
-128,Supervisor,"4. D. Reports",POST,/api/supervisor/visits/{id}/recommend,Done
-129,Supervisor,"5. E. Profile",GET,/api/supervisor/profile,Done
-130,Supervisor,"5. E. Profile",GET,/api/supervisor/profile/preferences,Done
-131,Supervisor,"5. E. Profile",POST,/api/supervisor/profile/password,Done
-132,Supervisor,"5. E. Profile",PUT,/api/supervisor/profile,Done
-133,Supervisor,"6. Profile",PUT,/api/supervisor/profile/password,Pending
-134,Admin,"1. Reports Management",GET,/api/admin/reports,Done
-135,Admin,"1. Reports Management",GET,/api/admin/reports/1,Done
-136,Admin,"1. Reports Management",GET,/api/admin/reports/1/download,Done
-137,Admin,"1. Reports Management",GET,/api/admin/reports/statistics,Done
-138,Admin,"1. Reports Management",POST,/api/admin/reports/1/share,Done
-139,Admin,"1. Reports Management",POST,/api/admin/reports/generate,Done
-140,Admin,"1. Reports Management",POST,/api/admin/reports/schedule,Done
-141,Admin,"1. Reports Management",DELETE,/api/admin/reports/1,Done
-142,Admin,"1. Reports Management",DELETE,/api/admin/reports/1/cancel,Done
-143,Admin,"2. Settings (Mobile)",GET,/api/admin/settings,Done
-144,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/debug-logs,Done
-145,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/language,Done
-146,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/legal,Done
-147,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/payment,Done
-148,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/shop,Done
-149,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/system,Done
-150,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/theme,Done
-151,Admin,"2. Settings (Mobile)",POST,/api/admin/settings/export-data,Done
-152,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/language,Done
-153,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/payment,Done
-154,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/shop,Done
-155,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/system,Done
-156,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/theme,Done
-157,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/profile,Done
-158,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/quick-overview,Done
-159,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/recent-activities,Done
-160,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/statistics,Done
-161,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/top-selling-products,Done
-162,Admin,"3. Stats, Users & HR",GET,/api/admin/hr/employees,Done
-163,Admin,"3. Stats, Users & HR",GET,/api/admin/hr/employees/{id},Done
-164,Admin,"3. Stats, Users & HR",GET,/api/admin/roles,Done
-165,Admin,"3. Stats, Users & HR",GET,/api/admin/users,Done
-166,Admin,"3. Stats, Users & HR",GET,/api/admin/users,Done
-167,Admin,"3. Stats, Users & HR",GET,/api/admin/users/statistics,Done
-168,Admin,"3. Stats, Users & HR",GET,/api/admin/users/{id},Done
-169,Admin,"3. Stats, Users & HR",POST,/api/admin/hr/employees,Done
-170,Admin,"3. Stats, Users & HR",POST,/api/admin/roles,Done
-171,Admin,"3. Stats, Users & HR",POST,/api/admin/users,Done
-172,Admin,"3. Stats, Users & HR",PUT,/api/admin/hr/employees/{id},Done
-173,Admin,"3. Stats, Users & HR",PUT,/api/admin/users/{id},Done
-174,Admin,"3. Stats, Users & HR",DELETE,/api/admin/hr/employees/{id},Done
-175,Admin,"3. Stats, Users & HR",DELETE,/api/admin/users/{id},Done
-176,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/customer-satisfaction,Pending
-177,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/performance,Pending
-178,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/revenue,Pending
-179,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/visits,Pending
-180,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/active-regions,Pending
-181,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/alerts,Pending
-182,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/kpis,Pending
-183,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/summary,Pending
-184,"Area Manager","3. Profile",GET,/api/area-manager/profile,Pending
-185,"Area Manager","3. Profile",PUT,/api/area-manager/profile,Pending
-186,"Area Manager","3. Profile",PUT,/api/area-manager/profile/password,Pending
-187,"Area Manager","4. Region Map",GET,/api/area-manager/regions,Pending
-188,"Area Manager","4. Region Map",GET,/api/area-manager/regions/{id}/live-status,Pending
-189,"Area Manager","4. Region Map",GET,/api/area-manager/regions/{id}/map-data,Pending
-190,"Area Manager","4. Region Map",GET,/api/area-manager/regions/{id}/technicians,Pending
-191,"Area Manager","5. Reports",GET,/api/area-manager/reports,Pending
-192,"Area Manager","5. Reports",GET,/api/area-manager/reports/{id},Pending
-193,"Area Manager","5. Reports",GET,/api/area-manager/reports/{id}/download,Pending
-194,"Area Manager","5. Reports",POST,/api/area-manager/reports/generate,Pending
-195,"Area Manager","6. Team Leaders Management",GET,/api/area-manager/team-leaders,Pending
-196,"Area Manager","6. Team Leaders Management",GET,/api/area-manager/team-leaders/{id},Pending
-197,"Area Manager","6. Team Leaders Management",POST,/api/area-manager/team-leaders,Pending
-198,"Area Manager","6. Team Leaders Management",PUT,/api/area-manager/team-leaders/{id},Pending
-199,"Area Manager","6. Team Leaders Management",DELETE,/api/area-manager/team-leaders/{id},Pending
-200,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/alerts,Pending
-201,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/attendance-overview,Pending
-202,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/kpis,Pending
-203,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/summary,Pending
-204,"HR Manager","2. Employee Management Expansion",GET,/api/hr/employees,Pending
-205,"HR Manager","2. Employee Management Expansion",GET,/api/hr/employees/{id},Pending
-206,"HR Manager","2. Employee Management Expansion",POST,/api/hr/employees,Pending
-207,"HR Manager","2. Employee Management Expansion",POST,/api/hr/employees/{id}/status,Pending
-208,"HR Manager","2. Employee Management Expansion",PUT,/api/hr/employees/{id},Pending
-209,"HR Manager","2. Employee Management Expansion",DELETE,/api/hr/employees/{id},Pending
-210,"HR Manager","3. Leave Approve/Reject",GET,/api/hr/leaves/pending-approvals,Pending
-211,"HR Manager","3. Leave Approve/Reject",POST,/api/hr/leaves/{id}/approve,Pending
-212,"HR Manager","3. Leave Approve/Reject",POST,/api/hr/leaves/{id}/cancel,Pending
-213,"HR Manager","3. Leave Approve/Reject",POST,/api/hr/leaves/{id}/reject,Pending
-214,"HR Manager","4. Leave Request System",GET,/api/hr/leaves,Pending
-215,"HR Manager","4. Leave Request System",GET,/api/hr/leaves/balance/{employeeId},Pending
-216,"HR Manager","4. Leave Request System",GET,/api/hr/leaves/{id},Pending
-217,"HR Manager","4. Leave Request System",POST,/api/hr/leaves,Pending
-218,"HR Manager","4. Leave Request System",PUT,/api/hr/leaves/{id},Pending
-219,"HR Manager","4. Leave Request System",DELETE,/api/hr/leaves/{id},Pending
-220,"HR Manager","5. Profile",GET,/api/hr/profile,Pending
-221,"HR Manager","5. Profile",PUT,/api/hr/profile,Pending
-222,"HR Manager","5. Profile",PUT,/api/hr/profile/password,Pending
-223,"HR Manager","6. Reports",GET,/api/hr/reports,Pending
-224,"HR Manager","6. Reports",GET,/api/hr/reports/{id}/download,Pending
-225,"HR Manager","6. Reports",POST,/api/hr/reports/generate,Pending
-226,"HR Manager","7. Visit Assignments",GET,/api/hr/visit-assignments,Pending
-227,"HR Manager","7. Visit Assignments",POST,/api/hr/visit-assignments,Pending
-228,"HR Manager","7. Visit Assignments",PUT,/api/hr/visit-assignments/{id},Pending
-229,"HR Manager","7. Visit Assignments",DELETE,/api/hr/visit-assignments/{id},Pending
-230,Other,"1. Admin (Bearer token)",GET,/api/admin/products,Done
-231,Other,"1. Admin (Bearer token)",GET,/api/admin/products/{id},Done
-232,Other,"1. Admin (Bearer token)",POST,/api/admin/products,Done
-233,Other,"1. Admin (Bearer token)",POST,/api/admin/products,Done
-234,Other,"1. Admin (Bearer token)",POST,/api/admin/products/bulk-delete,Done
-235,Other,"1. Admin (Bearer token)",POST,/api/admin/products/bulk-update-status,Done
-236,Other,"1. Admin (Bearer token)",POST,/api/admin/products/bulk-update-stock,Done
-237,Other,"1. Admin (Bearer token)",POST,/api/admin/products/{id}/toggle-status,Done
-238,Other,"1. Admin (Bearer token)",PUT,/api/admin/products/{id},Done
-239,Other,"1. Admin (Bearer token)",DELETE,/api/admin/products/{id},Done
-240,Other,"2. Admin - Categories",GET,/api/admin/categories,Done
-241,Other,"2. Admin - Categories",GET,/api/admin/categories/{id},Done
-242,Other,"2. Admin - Categories",POST,/api/admin/categories,Done
-243,Other,"2. Admin - Categories",POST,/api/admin/categories/{id},Done
-244,Other,"2. Admin - Categories",POST,/api/admin/categories/{id}/toggle-status,Done
-245,Other,"2. Admin - Categories",DELETE,/api/admin/categories/{id},Done
-246,Other,"3. Admin - Services",GET,/api/admin/services,Done
-247,Other,"3. Admin - Services",GET,/api/admin/services/{id},Done
-248,Other,"3. Admin - Services",POST,/api/admin/services,Done
-249,Other,"3. Admin - Services",POST,/api/admin/services/{id},Done
-250,Other,"3. Admin - Services",POST,/api/admin/services/{id}/toggle-status,Done
-251,Other,"3. Admin - Services",DELETE,/api/admin/services/{id},Done
-252,Other,"4. All Settings (One Place) [12 requests]",GET,/api/client/memberships,Done
-253,Other,"4. All Settings (One Place) [12 requests]",GET,/api/support/help-center,Done
-254,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/addresses,Done
-255,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/notifications,Done
-256,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/payment-methods,Done
-257,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/profile,Done
-258,Other,"4. All Settings (One Place) [12 requests]",POST,/api/support/tickets,Done
-259,Other,"4. All Settings (One Place) [12 requests]",POST,/api/user/addresses,Done
-260,Other,"4. All Settings (One Place) [12 requests]",POST,/api/user/notifications/clear-all,Done
-261,Other,"4. All Settings (One Place) [12 requests]",POST,/api/user/profile,Done
-262,Other,"4. All Settings (One Place) [12 requests]",PUT,/api/user/addresses/{id},Done
-263,Other,"4. All Settings (One Place) [12 requests]",DELETE,/api/user/addresses/{id},Done
-264,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/areas,Done
-265,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/complaints,Done
-266,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits,Done
-267,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits/{id},Done
-268,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/complaints/{id}/escalate,Done
-269,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{id}/finalize,Done
-270,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{id}/recommend,Done
-271,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{id}/status,Done
-272,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",GET,/api/auth/tech/visits,Done
-273,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/accept,Done
-274,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/complete,Done
-275,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/photos,Done
-276,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/start,Done
-277,Other,"7. Areas",GET,/api/areas,Done
-278,Other,"7. Areas",GET,/api/areas/{id},Done
-279,Other,"7. Areas",POST,/api/areas,Done
-280,Other,"7. Areas",PUT,/api/areas/{id},Done
-281,Other,"7. Areas",DELETE,/api/areas/{id},Done
-282,Other,"8. Banners",GET,/api/admin/banners,Done
-283,Other,"8. Banners",GET,/api/admin/banners/{id},Done
-284,Other,"8. Banners",POST,/api/admin/banners,Done
-285,Other,"8. Banners",POST,/api/admin/banners/update-order,Done
-286,Other,"8. Banners",POST,/api/admin/banners/{id},Done
-287,Other,"8. Banners",POST,/api/admin/banners/{id}/toggle-status,Done
-288,Other,"8. Banners",DELETE,/api/admin/banners/{id},Done
-289,Other,"9. Complaints",GET,/api/auth/complaints,Done
-290,Other,"9. Complaints",GET,/api/auth/complaints/{id},Done
-291,Other,"9. Complaints",POST,/api/auth/complaints,Done
-292,Other,"9. Complaints",PUT,/api/auth/complaints/{id},Done
-293,Other,"9. Complaints",DELETE,/api/auth/complaints/{id},Done
-294,Other,"10. Exclusive Offers",GET,/api/admin/exclusive-offers,Done
-295,Other,"10. Exclusive Offers",GET,/api/admin/exclusive-offers/{id},Done
-296,Other,"10. Exclusive Offers",GET,/api/exclusive-offers,Done
-297,Other,"10. Exclusive Offers",GET,/api/exclusive-offers/{id},Done
-298,Other,"10. Exclusive Offers",POST,/api/admin/exclusive-offers,Done
-299,Other,"10. Exclusive Offers",POST,/api/admin/exclusive-offers/{id},Done
-300,Other,"10. Exclusive Offers",DELETE,/api/admin/exclusive-offers/{id},Done
-301,Other,"11. Maintenance Photos",GET,/api/maintenance-photos,Done
-302,Other,"11. Maintenance Photos",GET,/api/maintenance-photos/visit/{id},Done
-303,Other,"11. Maintenance Photos",POST,/api/visits/{id}/upload-photo,Done
-304,Other,"11. Maintenance Photos",DELETE,/api/visits/{id}/photos/{id},Done
-305,Other,"12. Notifications",GET,/api/notifications,Done
-306,Other,"12. Notifications",POST,/api/notifications/mark-all-read,Done
-307,Other,"12. Notifications",POST,/api/notifications/{id}/mark-read,Done
-308,Other,"13. Orders Export",GET,/api/admin/orders/export,Done
-309,Other,"13. Orders Export",POST,/api/admin/orders/send-to-supplier,Done
-310,Other,"14. Packages",GET,/api/admin/packages,Done
-311,Other,"14. Packages",POST,/api/admin/packages,Done
-312,Other,"14. Packages",PUT,/api/admin/packages/1,Done
-313,Other,"15. Packages (Customer Home)",GET,/api/packages,Done
-314,Other,"16. Payment (Checkout.com)",POST,/api/shop/webhooks/checkout-com,Done
-315,Other,"17. Public (no auth)",GET,/api/shop/products,Done
-316,Other,"17. Public (no auth)",GET,/api/shop/products,Done
-317,Other,"17. Public (no auth)",GET,/api/shop/products/categories,Done
-318,Other,"17. Public (no auth)",GET,/api/shop/products/category/{id},Done
-319,Other,"17. Public (no auth)",GET,/api/shop/products/featured,Done
-320,Other,"17. Public (no auth)",GET,/api/shop/products/{id},Done
-321,Other,"18. Services (Public)",GET,/api/services,Done
-322,Other,"18. Services (Public)",GET,/api/services/categories,Done
-323,Other,"18. Services (Public)",GET,/api/services/category/{id},Done
-324,Other,"18. Services (Public)",GET,/api/services/products,Done
-325,Other,"18. Services (Public)",GET,/api/services/{id},Done
-326,Other,"18. Services (Public)",GET,/api/services/{id}/products,Done
-327,Other,"19. Settings",GET,/api/client/memberships,Done
-328,Other,"19. Settings",GET,/api/client/settings/dashboard,Done
-329,Other,"20. Tips",GET,/api/tips,Done
-330,Other,"20. Tips",GET,/api/tips/{id},Done
-331,Other,"20. Tips",POST,/api/tips,Done
-332,Other,"20. Tips",PUT,/api/tips/{id},Done
-333,Other,"20. Tips",DELETE,/api/tips/{id},Done
-334,Other,"21. User Addresses",GET,/api/user/addresses,Done
-335,Other,"21. User Addresses",POST,/api/user/addresses,Done
-336,Other,"21. User Addresses",POST,/api/user/addresses/{id},Done
-337,Other,"21. User Addresses",DELETE,/api/user/addresses/{id},Done
-338,Other,"22. User Notifications",GET,/api/user/notifications,Done
-339,Other,"22. User Notifications",POST,/api/user/notifications/clear-all,Done
-340,Other,"22. User Notifications",POST,/api/user/notifications/read-all,Done
-341,Other,"22. User Notifications",POST,/api/user/notifications/{id}/read,Done
-342,Other,"23. User Payment Methods",GET,/api/user/payment-methods,Done
-343,Other,"24. User Profile",GET,/api/user/profile,Done
-344,Other,"24. User Profile",PUT,/api/user/profile,Done
+91,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks,Done
+92,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks,Done
+93,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks/{id},Done
+94,Technician,"6. Technician Dashboard (Full API)",GET,/api/technician/tasks/{id}/detail,Done
+95,Technician,"6. Technician Dashboard (Full API)",POST,/api/tech/visits/{id}/photos,Done
+96,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/bank-accounts,Done
+97,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/notifications/read-all,Done
+98,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/notifications/{id}/read,Done
+99,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/profile,Done
+100,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/specializations,Done
+101,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/support/tickets,Done
+102,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/tasks/{id}/accept,Done
+103,Technician,"6. Technician Dashboard (Full API)",POST,/api/technician/tasks/{id}/reject,Done
+104,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/availability,Done
+105,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/bank-accounts/{id},Done
+106,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/profile,Done
+107,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/service-areas,Done
+108,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/settings/payout,Done
+109,Technician,"6. Technician Dashboard (Full API)",PUT,/api/technician/tasks/{id}/status,Done
+110,Technician,"6. Technician Dashboard (Full API)",DELETE,/api/technician/bank-accounts/{id},Done
+111,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/alerts,Done
+112,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/kpis,Done
+113,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/summary,Done
+114,Supervisor,"1. A. Dashboard",GET,/api/supervisor/dashboard/team-status,Done
+115,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/attendance,Done
+116,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/performance,Done
+117,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/statistics,Done
+118,Supervisor,"2. B. Team Stats",GET,/api/supervisor/team/workload,Done
+119,Supervisor,"3. C. Assign Tasks",GET,/api/supervisor/assignments/pending,Done
+120,Supervisor,"3. C. Assign Tasks",POST,/api/supervisor/assignments,Done
+121,Supervisor,"3. C. Assign Tasks",POST,/api/supervisor/assignments/{id},Done
+122,Supervisor,"3. C. Assign Tasks",POST,/api/supervisor/assignments/{id}/reassign,Done
+123,Supervisor,"3. C. Assign Tasks",PUT,/api/supervisor/assignments/{id},Done
+124,Supervisor,"4. D. Reports",GET,/api/supervisor/reports,Done
+125,Supervisor,"4. D. Reports",GET,/api/supervisor/reports/{id},Done
+126,Supervisor,"4. D. Reports",GET,/api/supervisor/reports/{id}/download,Done
+127,Supervisor,"4. D. Reports",GET,/api/supervisor/visits/{id},Done
+128,Supervisor,"4. D. Reports",POST,/api/supervisor/reports/generate,Done
+129,Supervisor,"4. D. Reports",POST,/api/supervisor/visits/{id}/finalize,Done
+130,Supervisor,"4. D. Reports",POST,/api/supervisor/visits/{id}/recommend,Done
+131,Supervisor,"5. E. Profile",GET,/api/supervisor/profile,Done
+132,Supervisor,"5. E. Profile",GET,/api/supervisor/profile/preferences,Done
+133,Supervisor,"5. E. Profile",POST,/api/supervisor/profile/password,Done
+134,Supervisor,"5. E. Profile",PUT,/api/supervisor/profile,Done
+135,Supervisor,"6. Profile",PUT,/api/supervisor/profile/password,Pending
+136,Admin,"1. Reports Management",GET,/api/admin/reports,Done
+137,Admin,"1. Reports Management",GET,/api/admin/reports/1,Done
+138,Admin,"1. Reports Management",GET,/api/admin/reports/1/download,Done
+139,Admin,"1. Reports Management",GET,/api/admin/reports/statistics,Done
+140,Admin,"1. Reports Management",POST,/api/admin/reports/1/share,Done
+141,Admin,"1. Reports Management",POST,/api/admin/reports/generate,Done
+142,Admin,"1. Reports Management",POST,/api/admin/reports/schedule,Done
+143,Admin,"1. Reports Management",DELETE,/api/admin/reports/1,Done
+144,Admin,"1. Reports Management",DELETE,/api/admin/reports/1/cancel,Done
+145,Admin,"2. Settings (Mobile)",GET,/api/admin/settings,Done
+146,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/debug-logs,Done
+147,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/language,Done
+148,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/legal,Done
+149,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/payment,Done
+150,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/shop,Done
+151,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/system,Done
+152,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/theme,Done
+153,Admin,"2. Settings (Mobile)",POST,/api/admin/settings/export-data,Done
+154,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/language,Done
+155,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/payment,Done
+156,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/shop,Done
+157,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/system,Done
+158,Admin,"2. Settings (Mobile)",PUT,/api/admin/settings/theme,Done
+159,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/profile,Done
+160,Admin,"3. Stats, Users & HR",PUT,/api/admin/dashboard/profile,Done
+161,Admin,"3. Stats, Users & HR",POST,/api/admin/dashboard/profile,Done
+162,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/quick-overview,Done
+163,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/recent-activities,Done
+164,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/statistics,Done
+165,Admin,"3. Stats, Users & HR",GET,/api/admin/dashboard/top-selling-products,Done
+166,Admin,"3. Stats, Users & HR",GET,/api/admin/hr/employees,Done
+167,Admin,"3. Stats, Users & HR",GET,/api/admin/hr/employees/{id},Done
+168,Admin,"3. Stats, Users & HR",GET,/api/admin/roles,Done
+169,Admin,"3. Stats, Users & HR",GET,/api/admin/users,Done
+170,Admin,"3. Stats, Users & HR",GET,/api/admin/users,Done
+171,Admin,"3. Stats, Users & HR",GET,/api/admin/users/statistics,Done
+172,Admin,"3. Stats, Users & HR",GET,/api/admin/users/{id},Done
+173,Admin,"3. Stats, Users & HR",POST,/api/admin/hr/employees,Done
+174,Admin,"3. Stats, Users & HR",POST,/api/admin/roles,Done
+175,Admin,"3. Stats, Users & HR",POST,/api/admin/users,Done
+176,Admin,"3. Stats, Users & HR",PUT,/api/admin/hr/employees/{id},Done
+177,Admin,"3. Stats, Users & HR",PUT,/api/admin/users/{id},Done
+178,Admin,"3. Stats, Users & HR",DELETE,/api/admin/hr/employees/{id},Done
+179,Admin,"3. Stats, Users & HR",DELETE,/api/admin/users/{id},Done
+180,Admin,"4. Support Tickets",GET,/api/admin/support-tickets,Done
+181,Admin,"4. Support Tickets",GET,/api/admin/support-tickets/{id},Done
+182,Admin,"4. Support Tickets",POST,/api/admin/support-tickets/{id}/reply,Done
+183,Admin,"4. Support Tickets",PUT,/api/admin/support-tickets/{id}/status,Done
+184,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/customer-satisfaction,Pending
+185,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/performance,Pending
+186,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/revenue,Pending
+187,"Area Manager","1. Analytics",GET,/api/area-manager/analytics/visits,Pending
+188,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/active-regions,Pending
+189,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/alerts,Pending
+190,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/kpis,Pending
+191,"Area Manager","2. Dashboard Overview",GET,/api/area-manager/dashboard/summary,Pending
+192,"Area Manager","3. Profile",GET,/api/area-manager/profile,Pending
+193,"Area Manager","3. Profile",PUT,/api/area-manager/profile,Pending
+194,"Area Manager","3. Profile",PUT,/api/area-manager/profile/password,Pending
+195,"Area Manager","4. Region Map",GET,/api/area-manager/regions,Pending
+196,"Area Manager","4. Region Map",GET,/api/area-manager/regions/{id}/live-status,Pending
+197,"Area Manager","4. Region Map",GET,/api/area-manager/regions/{id}/map-data,Pending
+198,"Area Manager","4. Region Map",GET,/api/area-manager/regions/{id}/technicians,Pending
+199,"Area Manager","5. Reports",GET,/api/area-manager/reports,Pending
+200,"Area Manager","5. Reports",GET,/api/area-manager/reports/{id},Pending
+201,"Area Manager","5. Reports",GET,/api/area-manager/reports/{id}/download,Pending
+202,"Area Manager","5. Reports",POST,/api/area-manager/reports/generate,Pending
+203,"Area Manager","6. Team Leaders Management",GET,/api/area-manager/team-leaders,Pending
+204,"Area Manager","6. Team Leaders Management",GET,/api/area-manager/team-leaders/{id},Pending
+205,"Area Manager","6. Team Leaders Management",POST,/api/area-manager/team-leaders,Pending
+206,"Area Manager","6. Team Leaders Management",PUT,/api/area-manager/team-leaders/{id},Pending
+207,"Area Manager","6. Team Leaders Management",DELETE,/api/area-manager/team-leaders/{id},Pending
+208,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/alerts,Pending
+209,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/attendance-overview,Pending
+210,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/kpis,Pending
+211,"HR Manager","1. Dashboard Overview",GET,/api/hr/dashboard/summary,Pending
+212,"HR Manager","2. Employee Management Expansion",GET,/api/hr/employees,Pending
+213,"HR Manager","2. Employee Management Expansion",GET,/api/hr/employees/{id},Pending
+214,"HR Manager","2. Employee Management Expansion",POST,/api/hr/employees,Pending
+215,"HR Manager","2. Employee Management Expansion",POST,/api/hr/employees/{id}/status,Pending
+216,"HR Manager","2. Employee Management Expansion",PUT,/api/hr/employees/{id},Pending
+217,"HR Manager","2. Employee Management Expansion",DELETE,/api/hr/employees/{id},Pending
+218,"HR Manager","3. Leave Approve/Reject",GET,/api/hr/leaves/pending-approvals,Pending
+219,"HR Manager","3. Leave Approve/Reject",POST,/api/hr/leaves/{id}/approve,Pending
+220,"HR Manager","3. Leave Approve/Reject",POST,/api/hr/leaves/{id}/cancel,Pending
+221,"HR Manager","3. Leave Approve/Reject",POST,/api/hr/leaves/{id}/reject,Pending
+222,"HR Manager","4. Leave Request System",GET,/api/hr/leaves,Pending
+223,"HR Manager","4. Leave Request System",GET,/api/hr/leaves/balance/{employeeId},Pending
+224,"HR Manager","4. Leave Request System",GET,/api/hr/leaves/{id},Pending
+225,"HR Manager","4. Leave Request System",POST,/api/hr/leaves,Pending
+226,"HR Manager","4. Leave Request System",PUT,/api/hr/leaves/{id},Pending
+227,"HR Manager","4. Leave Request System",DELETE,/api/hr/leaves/{id},Pending
+228,"HR Manager","5. Profile",GET,/api/hr/profile,Pending
+229,"HR Manager","5. Profile",PUT,/api/hr/profile,Pending
+230,"HR Manager","5. Profile",PUT,/api/hr/profile/password,Pending
+231,"HR Manager","6. Reports",GET,/api/hr/reports,Pending
+232,"HR Manager","6. Reports",GET,/api/hr/reports/{id}/download,Pending
+233,"HR Manager","6. Reports",POST,/api/hr/reports/generate,Pending
+234,"HR Manager","7. Visit Assignments",GET,/api/hr/visit-assignments,Pending
+235,"HR Manager","7. Visit Assignments",POST,/api/hr/visit-assignments,Pending
+236,"HR Manager","7. Visit Assignments",PUT,/api/hr/visit-assignments/{id},Pending
+237,"HR Manager","7. Visit Assignments",DELETE,/api/hr/visit-assignments/{id},Pending
+238,Other,"1. Admin (Bearer token)",GET,/api/admin/products,Done
+239,Other,"1. Admin (Bearer token)",GET,/api/admin/products/{id},Done
+240,Other,"1. Admin (Bearer token)",POST,/api/admin/products,Done
+241,Other,"1. Admin (Bearer token)",POST,/api/admin/products,Done
+242,Other,"1. Admin (Bearer token)",POST,/api/admin/products/bulk-delete,Done
+243,Other,"1. Admin (Bearer token)",POST,/api/admin/products/bulk-update-status,Done
+244,Other,"1. Admin (Bearer token)",POST,/api/admin/products/bulk-update-stock,Done
+245,Other,"1. Admin (Bearer token)",POST,/api/admin/products/{id}/toggle-status,Done
+246,Other,"1. Admin (Bearer token)",PUT,/api/admin/products/{id},Done
+247,Other,"1. Admin (Bearer token)",DELETE,/api/admin/products/{id},Done
+248,Other,"2. Admin - Categories",GET,/api/admin/categories,Done
+249,Other,"2. Admin - Categories",GET,/api/admin/categories/{id},Done
+250,Other,"2. Admin - Categories",POST,/api/admin/categories,Done
+251,Other,"2. Admin - Categories",POST,/api/admin/categories/{id},Done
+252,Other,"2. Admin - Categories",POST,/api/admin/categories/{id}/toggle-status,Done
+253,Other,"2. Admin - Categories",DELETE,/api/admin/categories/{id},Done
+254,Other,"3. Admin - Services",GET,/api/admin/services,Done
+255,Other,"3. Admin - Services",GET,/api/admin/services/{id},Done
+256,Other,"3. Admin - Services",POST,/api/admin/services,Done
+257,Other,"3. Admin - Services",POST,/api/admin/services/{id},Done
+258,Other,"3. Admin - Services",POST,/api/admin/services/{id}/toggle-status,Done
+259,Other,"3. Admin - Services",DELETE,/api/admin/services/{id},Done
+260,Other,"4. All Settings (One Place) [12 requests]",GET,/api/client/memberships,Done
+261,Other,"4. All Settings (One Place) [12 requests]",GET,/api/support/help-center,Done
+262,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/addresses,Done
+263,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/notifications,Done
+264,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/payment-methods,Done
+265,Other,"4. All Settings (One Place) [12 requests]",GET,/api/user/profile,Done
+266,Other,"4. All Settings (One Place) [12 requests]",POST,/api/support/tickets,Done
+267,Other,"4. All Settings (One Place) [12 requests]",POST,/api/user/addresses,Done
+268,Other,"4. All Settings (One Place) [12 requests]",POST,/api/user/notifications/clear-all,Done
+269,Other,"4. All Settings (One Place) [12 requests]",POST,/api/user/profile,Done
+270,Other,"4. All Settings (One Place) [12 requests]",PUT,/api/user/addresses/{id},Done
+271,Other,"4. All Settings (One Place) [12 requests]",DELETE,/api/user/addresses/{id},Done
+272,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/areas,Done
+273,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/complaints,Done
+274,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits,Done
+275,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits/{id},Done
+276,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/complaints/{id}/escalate,Done
+277,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{id}/finalize,Done
+278,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{id}/recommend,Done
+279,Other,"5. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{id}/status,Done
+280,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",GET,/api/auth/tech/visits,Done
+281,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/accept,Done
+282,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/complete,Done
+283,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/photos,Done
+284,Other,"6. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{id}/start,Done
+285,Other,"7. Areas",GET,/api/areas,Done
+286,Other,"7. Areas",GET,/api/areas/{id},Done
+287,Other,"7. Areas",POST,/api/areas,Done
+288,Other,"7. Areas",PUT,/api/areas/{id},Done
+289,Other,"7. Areas",DELETE,/api/areas/{id},Done
+290,Other,"8. Banners",GET,/api/admin/banners,Done
+291,Other,"8. Banners",GET,/api/admin/banners/{id},Done
+292,Other,"8. Banners",POST,/api/admin/banners,Done
+293,Other,"8. Banners",POST,/api/admin/banners/update-order,Done
+294,Other,"8. Banners",POST,/api/admin/banners/{id},Done
+295,Other,"8. Banners",POST,/api/admin/banners/{id}/toggle-status,Done
+296,Other,"8. Banners",DELETE,/api/admin/banners/{id},Done
+297,Other,"9. Complaints",GET,/api/auth/complaints,Done
+298,Other,"9. Complaints",GET,/api/auth/complaints/{id},Done
+299,Other,"9. Complaints",POST,/api/auth/complaints,Done
+300,Other,"9. Complaints",PUT,/api/auth/complaints/{id},Done
+301,Other,"9. Complaints",DELETE,/api/auth/complaints/{id},Done
+302,Other,"10. Exclusive Offers",GET,/api/admin/exclusive-offers,Done
+303,Other,"10. Exclusive Offers",GET,/api/admin/exclusive-offers/{id},Done
+304,Other,"10. Exclusive Offers",GET,/api/exclusive-offers,Done
+305,Other,"10. Exclusive Offers",GET,/api/exclusive-offers/{id},Done
+306,Other,"10. Exclusive Offers",POST,/api/admin/exclusive-offers,Done
+307,Other,"10. Exclusive Offers",POST,/api/admin/exclusive-offers/{id},Done
+308,Other,"10. Exclusive Offers",DELETE,/api/admin/exclusive-offers/{id},Done
+309,Other,"11. Maintenance Photos",GET,/api/maintenance-photos,Done
+310,Other,"11. Maintenance Photos",GET,/api/maintenance-photos/visit/{id},Done
+311,Other,"11. Maintenance Photos",POST,/api/visits/{id}/upload-photo,Done
+312,Other,"11. Maintenance Photos",DELETE,/api/visits/{id}/photos/{id},Done
+313,Other,"12. Notifications",GET,/api/notifications,Done
+314,Other,"12. Notifications",POST,/api/notifications/mark-all-read,Done
+315,Other,"12. Notifications",POST,/api/notifications/{id}/mark-read,Done
+316,Other,"13. Orders Export",GET,/api/admin/orders/export,Done
+317,Other,"13. Orders Export",POST,/api/admin/orders/send-to-supplier,Done
+318,Other,"14. Packages",GET,/api/admin/packages,Done
+319,Other,"14. Packages",POST,/api/admin/packages,Done
+320,Other,"14. Packages",PUT,/api/admin/packages/1,Done
+321,Other,"15. Packages (Customer Home)",GET,/api/packages,Done
+322,Other,"16. Payment (Checkout.com)",POST,/api/shop/webhooks/checkout-com,Done
+323,Other,"17. Public (no auth)",GET,/api/shop/products,Done
+324,Other,"17. Public (no auth)",GET,/api/shop/products,Done
+325,Other,"17. Public (no auth)",GET,/api/shop/products/categories,Done
+326,Other,"17. Public (no auth)",GET,/api/shop/products/category/{id},Done
+327,Other,"17. Public (no auth)",GET,/api/shop/products/featured,Done
+328,Other,"17. Public (no auth)",GET,/api/shop/products/{id},Done
+329,Other,"18. Services (Public)",GET,/api/services,Done
+330,Other,"18. Services (Public)",GET,/api/services/categories,Done
+331,Other,"18. Services (Public)",GET,/api/services/category/{id},Done
+332,Other,"18. Services (Public)",GET,/api/services/products,Done
+333,Other,"18. Services (Public)",GET,/api/services/{id},Done
+334,Other,"18. Services (Public)",GET,/api/services/{id}/products,Done
+335,Other,"19. Settings",GET,/api/client/memberships,Done
+336,Other,"19. Settings",GET,/api/client/settings/dashboard,Done
+337,Other,"20. Tips",GET,/api/tips,Done
+338,Other,"20. Tips",GET,/api/tips/{id},Done
+339,Other,"20. Tips",POST,/api/tips,Done
+340,Other,"20. Tips",PUT,/api/tips/{id},Done
+341,Other,"20. Tips",DELETE,/api/tips/{id},Done
+342,Other,"21. User Addresses",GET,/api/user/addresses,Done
+343,Other,"21. User Addresses",POST,/api/user/addresses,Done
+344,Other,"21. User Addresses",POST,/api/user/addresses/{id},Done
+345,Other,"21. User Addresses",DELETE,/api/user/addresses/{id},Done
+346,Other,"22. User Notifications",GET,/api/user/notifications,Done
+347,Other,"22. User Notifications",POST,/api/user/notifications/clear-all,Done
+348,Other,"22. User Notifications",POST,/api/user/notifications/read-all,Done
+349,Other,"22. User Notifications",POST,/api/user/notifications/{id}/read,Done
+350,Other,"23. User Payment Methods",GET,/api/user/payment-methods,Done
+351,Other,"24. User Profile",GET,/api/user/profile,Done
+352,Other,"24. User Profile",PUT,/api/user/profile,Done

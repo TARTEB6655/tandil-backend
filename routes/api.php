@@ -203,6 +203,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/notifications', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'getNotifications']);
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markNotificationRead']);
     Route::post('/notifications/read-all', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markAllNotificationsRead']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'clearAllNotifications']);
     // Help & Support (same as /api/support/*, under technician prefix for dashboard)
     Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
     Route::get('/support/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);

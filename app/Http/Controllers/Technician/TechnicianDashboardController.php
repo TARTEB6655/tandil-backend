@@ -11,6 +11,8 @@ use App\Models\TechnicianBankAccount;
 use App\Models\TechnicianBreak;
 use App\Models\TechnicianVacation;
 use App\Models\Visit;
+use App\Models\Tip;
+use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -979,58 +981,65 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/notifications - List notifications sent by admin (title, message). Paginated.
+     * GET /api/technician/notifications - List notifications (published tips from admin), same as user dashboard.
+     * Each item: id, type: tip, title, message, created_at. Paginated.
      */
     public function getNotifications(Request $request)
     {
-        $user = $request->user();
         $perPage = (int) $request->input('per_page', 20);
         $perPage = min(max($perPage, 1), 100);
 
-        $notifications = $user->notifications()
+        $tips = Tip::where('status', 'published')
             ->orderByDesc('created_at')
             ->paginate($perPage);
 
-        $data = $notifications->through(function ($n) {
-            $d = $n->data ?? [];
-            return [
-                'id' => $n->id,
-                'title' => $d['title'] ?? 'Notification',
-                'message' => $d['message'] ?? '',
-                'type' => $d['type'] ?? 'admin_notification',
-                'meta' => $d['meta'] ?? [],
-                'read_at' => $n->read_at?->toIso8601String(),
-                'created_at' => $n->created_at?->toIso8601String(),
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-            'unread_count' => $user->unreadNotifications()->count(),
+        $data = $tips->through(fn (Tip $tip) => [
+            'id' => $tip->id,
+            'type' => 'tip',
+            'title' => $tip->title,
+            'message' => $tip->content,
+            'created_at' => $tip->created_at?->toIso8601String(),
         ]);
+
+        return ApiResponse::success('Notifications retrieved successfully.', $data);
     }
 
     /**
-     * POST /api/technician/notifications/{id}/read - Mark one notification as read.
+     * POST /api/technician/notifications/{id}/read - Mark one as read. Id = tip id (same as user dashboard; no stored state).
      */
     public function markNotificationRead(Request $request, string $id)
     {
+        if (is_numeric($id)) {
+            $exists = Tip::where('status', 'published')->where('id', (int) $id)->exists();
+            if ($exists) {
+                return ApiResponse::success('Notification marked as read.');
+            }
+        }
         $notification = $request->user()->notifications()->where('id', $id)->first();
         if (! $notification) {
-            return response()->json(['success' => false, 'message' => 'Notification not found.'], 404);
+            return ApiResponse::error('Notification not found.', 404);
         }
         $notification->markAsRead();
-        return response()->json(['success' => true, 'message' => 'Notification marked as read.']);
+        return ApiResponse::success('Notification marked as read.');
     }
 
     /**
-     * POST /api/technician/notifications/read-all - Mark all notifications as read.
+     * POST /api/technician/notifications/read-all - Mark all as read (same behaviour as user dashboard).
      */
     public function markAllNotificationsRead(Request $request)
     {
         $request->user()->unreadNotifications->each(fn ($n) => $n->markAsRead());
-        return response()->json(['success' => true, 'message' => 'All notifications marked as read.']);
+        return ApiResponse::success('All notifications marked as read.');
+    }
+
+    /**
+     * POST /api/technician/notifications/clear-all - Clear all (for "Clear All" button, same as user dashboard).
+     * Marks all as read; returns success so the app can clear or refresh the list.
+     */
+    public function clearAllNotifications(Request $request)
+    {
+        $request->user()->unreadNotifications->each(fn ($n) => $n->markAsRead());
+        return ApiResponse::success('All notifications cleared.');
     }
 
     private function formatJobDetails(Visit $visit): array

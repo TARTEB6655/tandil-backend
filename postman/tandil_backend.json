@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Admin Support Tickets (folder 12): list/respond to tickets from clients and technicians. Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Admin Support Tickets (folder 13): list/respond to tickets from clients and technicians. Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.79.0"
@@ -4691,6 +4691,22 @@
                             }
                         },
                         {
+                            "name": "POST Technician – Notifications clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/clear-all",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "notifications", "clear-all"]
+                                },
+                                "description": "Clear all notifications (for Clear All button). Same as user dashboard. Returns success so app can refresh list."
+                            }
+                        },
+                        {
                             "name": "GET Technician – Support help center",
                             "request": {
                                 "method": "GET",
@@ -7413,7 +7429,7 @@
             "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
         },
         {
-            "name": "12. Admin – Support Tickets",
+            "name": "13. Admin – Support Tickets",
             "description": "Tickets submitted by clients/technicians via POST /api/support/tickets. Admin can list, view, reply, and update status. Quick Overview count uses open + in_progress.",
             "item": [
                 {
@@ -7498,7 +7514,7 @@
             ]
         },
         {
-            "name": "13. Admin Dashboard – Settings (Mobile)",
+            "name": "14. Admin Dashboard – Settings (Mobile)",
             "item": [
                 {
                     "name": "Get All Settings",
@@ -7971,7 +7987,7 @@
             "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, shop (shipping_amount, tax_percent), legal, export, debug logs."
         },
         {
-            "name": "14. Other Modules",
+            "name": "15. Other Modules",
             "item": [
                 {
                     "name": "Exclusive Offers",
