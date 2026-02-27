@@ -505,6 +505,54 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
+     * GET /api/technician/jobs/accepted - Accepted and in-progress jobs (same as tasks?filter=accepted, under /jobs for frontend compatibility).
+     * Query: period (week|month|year), per_page.
+     */
+    public function jobsAccepted(Request $request)
+    {
+        $user = $request->user();
+        $period = $request->input('period', 'month');
+        [$start, $end] = $this->resolvePeriodRange($period);
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $query = Visit::where('technician_id', $user->id)
+            ->whereBetween('scheduled_date', [$start, $end])
+            ->whereIn('status', ['accepted', 'in_progress'])
+            ->with(['subscription.client', 'area'])
+            ->orderByDesc('scheduled_date');
+        $items = $query->paginate($perPage);
+        $items->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
+        return response()->json([
+            'success' => true,
+            'message' => 'Accepted/In-Progress jobs list.',
+            'data' => $items,
+        ]);
+    }
+
+    /**
+     * GET /api/technician/jobs/rejected - Rejected jobs only (same as tasks?filter=rejected, under /jobs for frontend compatibility).
+     * Query: period (week|month|year), per_page.
+     */
+    public function jobsRejected(Request $request)
+    {
+        $user = $request->user();
+        $period = $request->input('period', 'month');
+        [$start, $end] = $this->resolvePeriodRange($period);
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $query = Visit::where('technician_id', $user->id)
+            ->whereBetween('scheduled_date', [$start, $end])
+            ->where('status', 'rejected')
+            ->with(['subscription.client', 'area'])
+            ->orderByDesc('scheduled_date');
+        $items = $query->paginate($perPage);
+        $items->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
+        return response()->json([
+            'success' => true,
+            'message' => 'Rejected jobs list.',
+            'data' => $items,
+        ]);
+    }
+
+    /**
      * GET /api/technician/jobs/status-counts - Counts for quick action tiles.
      */
     public function jobsStatusCounts(Request $request)

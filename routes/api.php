@@ -185,6 +185,8 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::post('/tasks/{id}/accept', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskAccept']);
     Route::post('/tasks/{id}/reject', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'taskReject']);
     Route::get('/jobs', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobs']);
+    Route::get('/jobs/accepted', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobsAccepted']);
+    Route::get('/jobs/rejected', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobsRejected']);
     Route::get('/jobs/status-counts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'jobsStatusCounts']);
     Route::get('/payout-summary', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payoutSummary']);
     Route::get('/payouts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'payouts']);
