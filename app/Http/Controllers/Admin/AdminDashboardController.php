@@ -18,6 +18,7 @@ use App\Models\Banner;
 use App\Models\Category;
 use App\Models\Package;
 use App\Models\Employee;
+use App\Models\SupportTicket;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -1041,14 +1042,9 @@ class AdminDashboardController extends Controller
         $newOrdersYesterday = Order::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
         $newOrdersGrowth = $calculateGrowth($newOrdersToday, $newOrdersYesterday);
 
-        // 2. Support Tickets (open and in_progress complaints)
-        $supportTicketsOpen = Complaint::whereIn('status', ['open', 'in_progress'])->count();
-        $supportTicketsOpenYesterday = Complaint::whereIn('status', ['open', 'in_progress'])
-            ->where('created_at', '<', $todayStart)
-            ->where('created_at', '>=', $yesterdayStart)
-            ->count();
-        // For support tickets, we compare current open tickets vs yesterday's open tickets
-        $supportTicketsYesterday = Complaint::whereIn('status', ['open', 'in_progress'])
+        // 2. Support Tickets (open and in_progress – submitted by clients/technicians via /api/support/tickets)
+        $supportTicketsOpen = SupportTicket::whereIn('status', ['open', 'in_progress'])->count();
+        $supportTicketsYesterday = SupportTicket::whereIn('status', ['open', 'in_progress'])
             ->where('updated_at', '<', $todayStart)
             ->where('updated_at', '>=', $yesterdayStart)
             ->count();
@@ -1155,7 +1151,7 @@ class AdminDashboardController extends Controller
 
     /**
      * PUT/POST /api/admin/dashboard/profile - Update admin profile (name, email, phone, profile_picture, password).
-     * Body: form-data only (multipart/form-data or application/x-www-form-urlencoded). JSON is not accepted.
+     * Body: form-data only. No current_password; to change password send password + password_confirmation only.
      * Use POST with multipart/form-data when uploading profile_picture so PHP parses the file.
      */
     public function updateProfile(Request $request)
@@ -1183,7 +1179,6 @@ class AdminDashboardController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
         ];
         if ($profileFile || $storedFromPut) {
@@ -1195,9 +1190,6 @@ class AdminDashboardController extends Controller
         }
 
         if ($request->filled('password')) {
-            if (! Hash::check($request->input('current_password'), $user->password)) {
-                return response()->json(['success' => false, 'errors' => ['current_password' => ['Current password is incorrect.']]], 422);
-            }
             $user->password = Hash::make($request->input('password'));
         }
         if ($request->has('name')) {

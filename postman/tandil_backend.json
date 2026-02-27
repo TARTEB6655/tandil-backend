@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN DASHBOARD (Banners, Packages, Orders Export, Stats & HR, Reports, Settings) · CLIENT DASHBOARD (Profile, Memberships, Addresses, Payment Methods, Notifications as Tips, Help Center, Shop & Orders, Maintenance Photos) · TECHNICIAN DASHBOARD (folder 9, technician only) · SUPERVISOR DASHBOARD (folder 10, supervisor only). Support APIs remain under client/help-support sections.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Admin Support Tickets (folder 12): list/respond to tickets from clients and technicians. Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.77.0"
+        "version": "2.79.0"
     },
     "item": [
         {
@@ -6526,12 +6526,6 @@
                                     "description": "Optional: image file (jpeg,png,gif,webp) for profile picture"
                                 },
                                 {
-                                    "key": "current_password",
-                                    "value": "",
-                                    "type": "text",
-                                    "description": "Required only when changing password"
-                                },
-                                {
                                     "key": "password",
                                     "value": "",
                                     "type": "text",
@@ -6557,7 +6551,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "Update admin profile: name, email, phone, profile_picture, password. **Form-data only (not JSON).** Use Body → form-data. For profile picture set key profile_picture, type File. Optional: current_password, password, password_confirmation to change password. If you send Content-Type: application/json the API returns 415. Response: same shape as GET profile with updated data."
+                        "description": "Update admin profile: name, email, phone, profile_picture, password. **Form-data only (not JSON).** No current_password; to change password send password + password_confirmation only. For profile picture set key profile_picture, type File. If you send Content-Type: application/json the API returns 415. Response: same shape as GET profile with updated data."
                     }
                 },
                 {
@@ -7417,6 +7411,91 @@
                 }
             ],
             "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
+        },
+        {
+            "name": "12. Admin – Support Tickets",
+            "description": "Tickets submitted by clients/technicians via POST /api/support/tickets. Admin can list, view, reply, and update status. Quick Overview count uses open + in_progress.",
+            "item": [
+                {
+                    "name": "GET List Support Tickets",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-tickets?per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-tickets"],
+                            "query": [
+                                {"key": "status", "value": "open", "description": "open | in_progress | resolved | closed"},
+                                {"key": "per_page", "value": "20"},
+                                {"key": "search", "value": "", "description": "Search ticket_number, subject, email, user name"}
+                            ]
+                        },
+                        "description": "List support tickets. Query: status (optional), per_page, search. Response: data[], pagination."
+                    }
+                },
+                {
+                    "name": "GET Support Ticket by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-tickets/{{ticket_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-tickets", "{{ticket_id}}"]
+                        },
+                        "description": "Get one ticket with replies. Set ticket_id in env or URL."
+                    }
+                },
+                {
+                    "name": "POST Reply to Ticket",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"message\": \"Thank you for contacting us. We are looking into your request.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-tickets/{{ticket_id}}/reply",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-tickets", "{{ticket_id}}", "reply"]
+                        },
+                        "description": "Admin reply. Body: message (required). If ticket status is open, it is set to in_progress. User is notified."
+                    }
+                },
+                {
+                    "name": "PUT Update Ticket Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"resolved\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-tickets/{{ticket_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-tickets", "{{ticket_id}}", "status"]
+                        },
+                        "description": "Update ticket status. Body: status (open | in_progress | resolved | closed)."
+                    }
+                }
+            ]
         },
         {
             "name": "13. Admin Dashboard – Settings (Mobile)",

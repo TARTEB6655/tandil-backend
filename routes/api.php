@@ -569,6 +569,18 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->gr
 
 /*
 |--------------------------------------------------------------------------
+| ADMIN SUPPORT TICKETS (tickets from clients/technicians via /api/support/tickets)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/support-tickets')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'show']);
+    Route::post('/{id}/reply', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'reply']);
+    Route::put('/{id}/status', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'updateStatus']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN REPORTS MANAGEMENT
 |--------------------------------------------------------------------------
 */
