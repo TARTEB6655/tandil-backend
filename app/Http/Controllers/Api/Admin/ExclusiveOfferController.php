@@ -122,15 +122,16 @@ class ExclusiveOfferController extends Controller
             'product_ids.*' => 'integer|exists:products,id',
         ]);
 
+        // Only update fields when explicitly sent; preserve existing for partial updates (e.g. image-only) so public API still shows offer
         $data = [
             'title' => $request->has('title') ? $request->title : $offer->title,
             'description' => $request->has('description') ? $request->description : $offer->description,
             'discount_type' => $request->has('discount_type') ? $request->discount_type : $offer->discount_type,
             'discount_value' => $request->has('discount_value') ? ($request->filled('discount_value') ? (float) $request->discount_value : null) : $offer->discount_value,
             'applies_to' => $request->has('applies_to') ? $request->applies_to : $offer->applies_to,
-            'start_date' => $request->has('start_date') ? ($request->filled('start_date') ? $request->start_date : null) : $offer->start_date,
-            'end_date' => $request->has('end_date') ? ($request->filled('end_date') ? $request->end_date : null) : $offer->end_date,
-            'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : $offer->is_active,
+            'start_date' => $request->filled('start_date') ? $request->start_date : ($request->has('start_date') ? null : $offer->start_date),
+            'end_date' => $request->filled('end_date') ? $request->end_date : ($request->has('end_date') ? null : $offer->end_date),
+            'is_active' => $request->filled('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : $offer->is_active,
             'sort_order' => $request->has('sort_order') ? (int) $request->sort_order : $offer->sort_order,
         ];
 

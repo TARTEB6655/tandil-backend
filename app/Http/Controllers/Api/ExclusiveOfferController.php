@@ -15,13 +15,12 @@ class ExclusiveOfferController extends Controller
 {
     /**
      * GET /api/exclusive-offers
-     * List active exclusive offers (within date range). Same response shape as admin GET list.
+     * List active exclusive offers. Same data as admin (active only); no date filter so updates don't hide offers.
      */
     public function index(Request $request)
     {
         $query = ExclusiveOffer::query()
             ->active()
-            ->current()
             ->ordered();
 
         $offers = $query->get()->map(fn ($offer) => $this->offerToArray($offer))->values()->all();
@@ -31,13 +30,12 @@ class ExclusiveOfferController extends Controller
 
     /**
      * GET /api/exclusive-offers/{id}
-     * Get a single offer by ID (only if active and current).
+     * Get a single offer by ID (only if active).
      */
     public function show($id)
     {
         $offer = ExclusiveOffer::query()
             ->active()
-            ->current()
             ->find($id);
 
         if (! $offer) {
