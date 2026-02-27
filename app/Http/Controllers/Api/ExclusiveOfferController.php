@@ -15,7 +15,7 @@ class ExclusiveOfferController extends Controller
 {
     /**
      * GET /api/exclusive-offers
-     * List active exclusive offers (within date range). For "View All" and home carousel.
+     * List active exclusive offers (within date range). Same response shape as admin GET list.
      */
     public function index(Request $request)
     {
@@ -24,21 +24,9 @@ class ExclusiveOfferController extends Controller
             ->current()
             ->ordered();
 
-        $perPage = min((int) $request->query('per_page', 20), 50);
-        $offers = $query->paginate($perPage);
+        $offers = $query->get()->map(fn ($offer) => $this->offerToArray($offer))->values()->all();
 
-        $data = $offers->getCollection()->map(fn ($offer) => $this->offerToArray($offer));
-        $offers->setCollection($data);
-
-        return ApiResponse::success('Exclusive offers retrieved successfully.', [
-            'data' => $offers->items(),
-            'pagination' => [
-                'current_page' => $offers->currentPage(),
-                'last_page' => $offers->lastPage(),
-                'per_page' => $offers->perPage(),
-                'total' => $offers->total(),
-            ],
-        ]);
+        return ApiResponse::success('Exclusive offers retrieved successfully.', $offers);
     }
 
     /**
@@ -69,14 +57,16 @@ class ExclusiveOfferController extends Controller
             'id' => $offer->id,
             'title' => $offer->title,
             'description' => $offer->description,
+            'image' => $offer->image,
             'image_url' => $offer->image_url,
             'discount_type' => $offer->discount_type,
             'discount_value' => $offer->discount_value !== null ? (float) $offer->discount_value : null,
             'applies_to' => $offer->applies_to,
-            'product_ids' => $productIds,
             'start_date' => $offer->start_date?->format('Y-m-d'),
             'end_date' => $offer->end_date?->format('Y-m-d'),
+            'is_active' => $offer->is_active,
             'sort_order' => $offer->sort_order,
+            'product_ids' => $productIds,
             'created_at' => $offer->created_at?->format('c'),
             'updated_at' => $offer->updated_at?->format('c'),
         ];
