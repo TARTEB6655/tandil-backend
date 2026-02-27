@@ -3956,6 +3956,86 @@
                             }
                         },
                         {
+                            "name": "GET Technician – Jobs (accepted)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/jobs/accepted?period=month&per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "jobs",
+                                        "accepted"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "period",
+                                            "value": "month",
+                                            "description": "week | month | year"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "Accepted and in-progress jobs only. Same data as tasks?filter=accepted; under /jobs for frontend compatibility. Query: period (week|month|year), per_page."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Jobs (rejected)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/jobs/rejected?period=month&per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "jobs",
+                                        "rejected"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "period",
+                                            "value": "month",
+                                            "description": "week | month | year"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "Rejected jobs only. Same data as tasks?filter=rejected; under /jobs for frontend compatibility. Query: period (week|month|year), per_page."
+                            }
+                        },
+                        {
                             "name": "GET Technician – Tasks (accepted)",
                             "request": {
                                 "method": "GET",

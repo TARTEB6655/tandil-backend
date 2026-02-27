@@ -1,0 +1,1682 @@
+[
+  {
+    "folder": "1. Health Check - START HERE",
+    "name": "Health Check",
+    "method": "GET",
+    "path": "/api/health"
+  },
+  {
+    "folder": "2. Authentication",
+    "name": "Register",
+    "method": "POST",
+    "path": "/api/auth/register"
+  },
+  {
+    "folder": "2. Authentication",
+    "name": "Login",
+    "method": "POST",
+    "path": "/api/auth/login"
+  },
+  {
+    "folder": "3. Client Dashboard – Profile",
+    "name": "Get Profile",
+    "method": "GET",
+    "path": "/api/auth/profile"
+  },
+  {
+    "folder": "3. Client Dashboard – Profile",
+    "name": "Logout",
+    "method": "POST",
+    "path": "/api/auth/logout"
+  },
+  {
+    "folder": "3. Client Dashboard – Profile",
+    "name": "Forgot Password",
+    "method": "POST",
+    "path": "/api/auth/forgot-password"
+  },
+  {
+    "folder": "3. Client Dashboard – Profile",
+    "name": "Verify OTP",
+    "method": "POST",
+    "path": "/api/auth/verify-otp"
+  },
+  {
+    "folder": "3. Client Dashboard – Profile",
+    "name": "Reset Password",
+    "method": "POST",
+    "path": "/api/auth/reset-password"
+  },
+  {
+    "folder": "3a. Client Dashboard – Settings",
+    "name": "Dashboard settings (GET)",
+    "method": "GET",
+    "path": "/api/client/settings/dashboard"
+  },
+  {
+    "folder": "3a. Client Dashboard – Settings",
+    "name": "Memberships (GET)",
+    "method": "GET",
+    "path": "/api/client/memberships"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "1. Memberships (GET)",
+    "method": "GET",
+    "path": "/api/client/memberships"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "2. Personal Information – Get (GET)",
+    "method": "GET",
+    "path": "/api/user/profile"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "3. Personal Information – Update (PUT/POST)",
+    "method": "POST",
+    "path": "/api/user/profile"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "4. Addresses – List (GET)",
+    "method": "GET",
+    "path": "/api/user/addresses"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "5. Addresses – Create (POST)",
+    "method": "POST",
+    "path": "/api/user/addresses"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "6. Addresses – Update (PUT)",
+    "method": "PUT",
+    "path": "/api/user/addresses/{{address_id}}"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "7. Addresses – Delete (DELETE)",
+    "method": "DELETE",
+    "path": "/api/user/addresses/{{address_id}}"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "8. Payment Methods (GET)",
+    "method": "GET",
+    "path": "/api/user/payment-methods"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "9. Notifications (GET)",
+    "method": "GET",
+    "path": "/api/user/notifications"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "9b. Notifications – Clear All (POST)",
+    "method": "POST",
+    "path": "/api/user/notifications/clear-all"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "10. Help and Support – Help Center (GET)",
+    "method": "GET",
+    "path": "/api/support/help-center"
+  },
+  {
+    "folder": "3b. Client Profile – All Settings (One Place) [12 requests]",
+    "name": "11. Help and Support – Submit ticket (POST)",
+    "method": "POST",
+    "path": "/api/support/tickets"
+  },
+  {
+    "folder": "4. Client Dashboard – Subscriptions",
+    "name": "Get Plans (Public)",
+    "method": "GET",
+    "path": "/api/subscriptions/plans"
+  },
+  {
+    "folder": "4. Client Dashboard – Subscriptions",
+    "name": "Create Subscription",
+    "method": "POST",
+    "path": "/api/subscriptions"
+  },
+  {
+    "folder": "4. Client Dashboard – Subscriptions",
+    "name": "List Subscriptions",
+    "method": "GET",
+    "path": "/api/subscriptions"
+  },
+  {
+    "folder": "4. Client Dashboard – Subscriptions",
+    "name": "Get Subscription Details",
+    "method": "GET",
+    "path": "/api/subscriptions/{{subscription_id}}"
+  },
+  {
+    "folder": "4. Client Dashboard – Subscriptions",
+    "name": "Mark Subscription Paid",
+    "method": "POST",
+    "path": "/api/subscriptions/{{subscription_id}}/mark-paid"
+  },
+  {
+    "folder": "4. Client Dashboard – Subscriptions",
+    "name": "Update Subscription",
+    "method": "PUT",
+    "path": "/api/subscriptions/{{subscription_id}}"
+  },
+  {
+    "folder": "4. Client Dashboard – Subscriptions",
+    "name": "Delete Subscription",
+    "method": "DELETE",
+    "path": "/api/subscriptions/{{subscription_id}}"
+  },
+  {
+    "folder": "5. Client Dashboard – Banners (Public)",
+    "name": "Get Active Banners",
+    "method": "GET",
+    "path": "/api/banners"
+  },
+  {
+    "folder": "5b. Admin Dashboard – Banners",
+    "name": "List All Banners (Admin)",
+    "method": "GET",
+    "path": "/api/admin/banners"
+  },
+  {
+    "folder": "5b. Admin Dashboard – Banners",
+    "name": "Create Banner",
+    "method": "POST",
+    "path": "/api/admin/banners"
+  },
+  {
+    "folder": "5b. Admin Dashboard – Banners",
+    "name": "Get Banner (Admin)",
+    "method": "GET",
+    "path": "/api/admin/banners/{{banner_id}}"
+  },
+  {
+    "folder": "5b. Admin Dashboard – Banners",
+    "name": "Update Banner",
+    "method": "POST",
+    "path": "/api/admin/banners/{{banner_id}}"
+  },
+  {
+    "folder": "5b. Admin Dashboard – Banners",
+    "name": "Update Banner Order",
+    "method": "POST",
+    "path": "/api/admin/banners/update-order"
+  },
+  {
+    "folder": "5b. Admin Dashboard – Banners",
+    "name": "Toggle Banner Status",
+    "method": "POST",
+    "path": "/api/admin/banners/{{banner_id}}/toggle-status"
+  },
+  {
+    "folder": "5b. Admin Dashboard – Banners",
+    "name": "Delete Banner",
+    "method": "DELETE",
+    "path": "/api/admin/banners/{{banner_id}}"
+  },
+  {
+    "folder": "5c. Client Dashboard – Packages (Customer Home)",
+    "name": "List Packages",
+    "method": "GET",
+    "path": "/api/packages"
+  },
+  {
+    "folder": "5d. Admin Dashboard – Packages",
+    "name": "List Packages (Admin)",
+    "method": "GET",
+    "path": "/api/admin/packages"
+  },
+  {
+    "folder": "5d. Admin Dashboard – Packages",
+    "name": "Create Package",
+    "method": "POST",
+    "path": "/api/admin/packages"
+  },
+  {
+    "folder": "5d. Admin Dashboard – Packages",
+    "name": "Update Package",
+    "method": "PUT",
+    "path": "/api/admin/packages/1"
+  },
+  {
+    "folder": "5e. Admin Dashboard – Orders Export",
+    "name": "Export Orders (CSV)",
+    "method": "GET",
+    "path": "/api/admin/orders/export?date_from=2026-01-01&date_to=2026-12-31"
+  },
+  {
+    "folder": "5e. Admin Dashboard – Orders Export",
+    "name": "Send Orders to Supplier",
+    "method": "POST",
+    "path": "/api/admin/orders/send-to-supplier"
+  },
+  {
+    "folder": "6. Client Dashboard – Visits",
+    "name": "List Visits",
+    "method": "GET",
+    "path": "/api/visits"
+  },
+  {
+    "folder": "6. Client Dashboard – Visits",
+    "name": "Get Visit Details",
+    "method": "GET",
+    "path": "/api/visits/{{visit_id}}"
+  },
+  {
+    "folder": "6. Client Dashboard – Visits",
+    "name": "Create Visit",
+    "method": "POST",
+    "path": "/api/visits"
+  },
+  {
+    "folder": "6. Client Dashboard – Visits",
+    "name": "Update Visit",
+    "method": "PUT",
+    "path": "/api/visits/{{visit_id}}"
+  },
+  {
+    "folder": "6. Client Dashboard – Visits",
+    "name": "Upload Visit Photo",
+    "method": "POST",
+    "path": "/api/visits/{{visit_id}}/upload-photo"
+  },
+  {
+    "folder": "6. Client Dashboard – Visits",
+    "name": "Delete Visit Photo (Maintenance Photo)",
+    "method": "DELETE",
+    "path": "/api/visits/{{visit_id}}/photos/{{photo_id}}"
+  },
+  {
+    "folder": "7. Client Dashboard – Reports",
+    "name": "List Reports",
+    "method": "GET",
+    "path": "/api/reports"
+  },
+  {
+    "folder": "7. Client Dashboard – Reports",
+    "name": "Get Report Details",
+    "method": "GET",
+    "path": "/api/reports/{{report_id}}"
+  },
+  {
+    "folder": "7. Client Dashboard – Reports",
+    "name": "Create Report",
+    "method": "POST",
+    "path": "/api/reports"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Shop settings (GET)",
+    "method": "GET",
+    "path": "/api/shop/settings"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Shop settings (PUT)",
+    "method": "PUT",
+    "path": "/api/shop/settings"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Order summary (GET)",
+    "method": "GET",
+    "path": "/api/shop/order-summary"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Cart - Add Item",
+    "method": "POST",
+    "path": "/api/shop/cart/add"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Cart - View",
+    "method": "GET",
+    "path": "/api/shop/cart"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Cart - Update Quantity",
+    "method": "PUT",
+    "path": "/api/shop/cart/{{cart_item_id}}"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Cart - Remove Item",
+    "method": "DELETE",
+    "path": "/api/shop/cart/{{cart_item_id}}"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Checkout - Payment Methods",
+    "method": "GET",
+    "path": "/api/shop/checkout/payment-methods"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Create Payment Session (Logged-in)",
+    "method": "POST",
+    "path": "/api/shop/create-payment-session"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Create Payment Session (Guest)",
+    "method": "POST",
+    "path": "/api/shop/create-payment-session"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Checkout - Review",
+    "method": "GET",
+    "path": "/api/shop/checkout/review"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Legacy - POST /checkout (returns 400)",
+    "method": "POST",
+    "path": "/api/shop/checkout"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Webhook - Checkout.com (for reference)",
+    "method": "POST",
+    "path": "/api/shop/webhooks/checkout-com"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Guest Lookup",
+    "method": "GET",
+    "path": "/api/shop/orders/guest?order_number=order_001&email=guest@example.com"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Guest Track",
+    "method": "GET",
+    "path": "/api/shop/orders/guest/track?order_number=order_001&email=guest@example.com"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - List",
+    "method": "GET",
+    "path": "/api/shop/orders"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Get Details",
+    "method": "GET",
+    "path": "/api/shop/orders/{{order_id}}"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Mark Paid",
+    "method": "POST",
+    "path": "/api/shop/orders/{{order_id}}/mark-paid"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Update",
+    "method": "PUT",
+    "path": "/api/orders/{{order_id}}"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Cancel",
+    "method": "POST",
+    "path": "/api/orders/{{order_id}}/cancel"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Track",
+    "method": "GET",
+    "path": "/api/orders/{{order_id}}/track"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Rate",
+    "method": "POST",
+    "path": "/api/orders/{{order_id}}/rate"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - List (Alternative Route)",
+    "method": "GET",
+    "path": "/api/orders"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Orders - Get Details (Alternative Route)",
+    "method": "GET",
+    "path": "/api/orders/{{order_id}}"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Categories - List (Public)",
+    "method": "GET",
+    "path": "/api/shop/categories"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Categories - Get Details (Public)",
+    "method": "GET",
+    "path": "/api/shop/categories/{{category_id}}?per_page=12"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Payments - List",
+    "method": "GET",
+    "path": "/api/shop/payments"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Payments - Get Details",
+    "method": "GET",
+    "path": "/api/shop/payments/{{payment_id}}"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Transactions - List (Alias)",
+    "method": "GET",
+    "path": "/api/shop/transactions"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Transactions - Get Details (Alias)",
+    "method": "GET",
+    "path": "/api/shop/transactions/{{payment_id}}"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Transactions - List (Alias)",
+    "method": "GET",
+    "path": "/api/shop/transactions"
+  },
+  {
+    "folder": "8. Client Dashboard – Shop & Orders",
+    "name": "Transactions - Get Details (Alias)",
+    "method": "GET",
+    "path": "/api/shop/transactions/{{payment_id}}"
+  },
+  {
+    "folder": "8b. Client Dashboard – Maintenance Photos",
+    "name": "List Maintenance Photos",
+    "method": "GET",
+    "path": "/api/maintenance-photos?per_page=20"
+  },
+  {
+    "folder": "8b. Client Dashboard – Maintenance Photos",
+    "name": "Get Maintenance Photos by Visit",
+    "method": "GET",
+    "path": "/api/maintenance-photos/visit/{{visit_id}}"
+  },
+  {
+    "folder": "8b. Client Dashboard – Maintenance Photos",
+    "name": "Upload Maintenance Photo",
+    "method": "POST",
+    "path": "/api/visits/{{visit_id}}/upload-photo"
+  },
+  {
+    "folder": "8b. Client Dashboard – Maintenance Photos",
+    "name": "Delete Maintenance Photo",
+    "method": "DELETE",
+    "path": "/api/visits/{{visit_id}}/photos/{{photo_id}}"
+  },
+  {
+    "folder": "9. Technician Dashboard – All APIs (Technician Only)",
+    "name": "Technician - Get Assigned Visits",
+    "method": "GET",
+    "path": "/api/tech/visits"
+  },
+  {
+    "folder": "9. Technician Dashboard – All APIs (Technician Only)",
+    "name": "Technician - Accept Visit",
+    "method": "POST",
+    "path": "/api/tech/visits/{{visit_id}}/accept"
+  },
+  {
+    "folder": "9. Technician Dashboard – All APIs (Technician Only)",
+    "name": "Technician - Start Visit",
+    "method": "POST",
+    "path": "/api/tech/visits/{{visit_id}}/start"
+  },
+  {
+    "folder": "9. Technician Dashboard – All APIs (Technician Only)",
+    "name": "Technician - Complete Visit",
+    "method": "POST",
+    "path": "/api/tech/visits/{{visit_id}}/complete"
+  },
+  {
+    "folder": "9. Technician Dashboard – All APIs (Technician Only)",
+    "name": "Technician - Upload Photo",
+    "method": "POST",
+    "path": "/api/tech/visits/{{visit_id}}/photos"
+  },
+  {
+    "folder": "9. Technician Dashboard – All APIs (Technician Only)",
+    "name": "Technician - Delete Photo",
+    "method": "DELETE",
+    "path": "/api/visits/{{visit_id}}/photos/{{photo_id}}"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Dashboard",
+    "method": "GET",
+    "path": "/api/technician/dashboard"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Profile",
+    "method": "GET",
+    "path": "/api/technician/profile"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "PUT Technician – Profile update",
+    "method": "PUT",
+    "path": "/api/technician/profile"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Profile update",
+    "method": "POST",
+    "path": "/api/technician/profile"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Service areas",
+    "method": "GET",
+    "path": "/api/technician/service-areas"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "PUT Technician – Service areas",
+    "method": "PUT",
+    "path": "/api/technician/service-areas"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Specializations",
+    "method": "GET",
+    "path": "/api/technician/specializations"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Specializations (form-data)",
+    "method": "POST",
+    "path": "/api/technician/specializations"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Tasks list",
+    "method": "GET",
+    "path": "/api/technician/tasks?filter=today&per_page=15"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Task by ID",
+    "method": "GET",
+    "path": "/api/technician/tasks/{{visit_id}}"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Task details",
+    "method": "GET",
+    "path": "/api/technician/tasks/{{visit_id}}/detail"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "PUT Technician – Task status",
+    "method": "PUT",
+    "path": "/api/technician/tasks/{{visit_id}}/status"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Task accept",
+    "method": "POST",
+    "path": "/api/technician/tasks/{{visit_id}}/accept"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Task reject",
+    "method": "POST",
+    "path": "/api/technician/tasks/{{visit_id}}/reject"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Jobs history",
+    "method": "GET",
+    "path": "/api/technician/jobs?period=month&per_page=15"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Tasks (accepted)",
+    "method": "GET",
+    "path": "/api/technician/tasks?filter=accepted&per_page=15"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Tasks (rejected)",
+    "method": "GET",
+    "path": "/api/technician/tasks?filter=rejected&per_page=15"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Jobs status counts",
+    "method": "GET",
+    "path": "/api/technician/jobs/status-counts?period=month"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Upload job photo",
+    "method": "POST",
+    "path": "/api/tech/visits/{{visit_id}}/photos"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Payout summary",
+    "method": "GET",
+    "path": "/api/technician/payout-summary"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Payout history",
+    "method": "GET",
+    "path": "/api/technician/payouts"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Payout settings",
+    "method": "GET",
+    "path": "/api/technician/settings/payout"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "PUT Technician – Payout settings",
+    "method": "PUT",
+    "path": "/api/technician/settings/payout"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Bank accounts",
+    "method": "GET",
+    "path": "/api/technician/bank-accounts"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Bank account add",
+    "method": "POST",
+    "path": "/api/technician/bank-accounts"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "PUT Technician – Bank account update",
+    "method": "PUT",
+    "path": "/api/technician/bank-accounts/{{bank_account_id}}"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "DELETE Technician – Bank account delete",
+    "method": "DELETE",
+    "path": "/api/technician/bank-accounts/{{bank_account_id}}"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Availability",
+    "method": "GET",
+    "path": "/api/technician/availability"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "PUT Technician – Availability update",
+    "method": "PUT",
+    "path": "/api/technician/availability"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Schedule",
+    "method": "GET",
+    "path": "/api/technician/schedule?from=2026-02-17&to=2026-02-23"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Notifications",
+    "method": "GET",
+    "path": "/api/technician/notifications?per_page=20"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Notification mark read",
+    "method": "POST",
+    "path": "/api/technician/notifications/{{notification_id}}/read"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Notifications read all",
+    "method": "POST",
+    "path": "/api/technician/notifications/read-all"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Support help center",
+    "method": "GET",
+    "path": "/api/technician/support/help-center"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "GET Technician – Support FAQs",
+    "method": "GET",
+    "path": "/api/technician/support/faqs"
+  },
+  {
+    "folder": "Technician Dashboard (Full API)",
+    "name": "POST Technician – Support submit ticket",
+    "method": "POST",
+    "path": "/api/technician/support/tickets"
+  },
+  {
+    "folder": "A. Dashboard",
+    "name": "Dashboard - Summary",
+    "method": "GET",
+    "path": "/api/supervisor/dashboard/summary"
+  },
+  {
+    "folder": "A. Dashboard",
+    "name": "Dashboard - KPIs",
+    "method": "GET",
+    "path": "/api/supervisor/dashboard/kpis"
+  },
+  {
+    "folder": "A. Dashboard",
+    "name": "Dashboard - Team Status",
+    "method": "GET",
+    "path": "/api/supervisor/dashboard/team-status"
+  },
+  {
+    "folder": "A. Dashboard",
+    "name": "Dashboard - Alerts",
+    "method": "GET",
+    "path": "/api/supervisor/dashboard/alerts"
+  },
+  {
+    "folder": "B. Team Stats",
+    "name": "Team - Statistics",
+    "method": "GET",
+    "path": "/api/supervisor/team/statistics"
+  },
+  {
+    "folder": "B. Team Stats",
+    "name": "Team - Performance",
+    "method": "GET",
+    "path": "/api/supervisor/team/performance"
+  },
+  {
+    "folder": "B. Team Stats",
+    "name": "Team - Attendance",
+    "method": "GET",
+    "path": "/api/supervisor/team/attendance"
+  },
+  {
+    "folder": "B. Team Stats",
+    "name": "Team - Workload",
+    "method": "GET",
+    "path": "/api/supervisor/team/workload"
+  },
+  {
+    "folder": "C. Assign Tasks",
+    "name": "Assignments - Pending",
+    "method": "GET",
+    "path": "/api/supervisor/assignments/pending?per_page=20"
+  },
+  {
+    "folder": "C. Assign Tasks",
+    "name": "Assignments - Create (POST form-data)",
+    "method": "POST",
+    "path": "/api/supervisor/assignments"
+  },
+  {
+    "folder": "C. Assign Tasks",
+    "name": "Assignments - Update (POST form-data)",
+    "method": "POST",
+    "path": "/api/supervisor/assignments/{{visit_id}}"
+  },
+  {
+    "folder": "C. Assign Tasks",
+    "name": "Assignments - Update (PUT form-data)",
+    "method": "PUT",
+    "path": "/api/supervisor/assignments/{{visit_id}}"
+  },
+  {
+    "folder": "C. Assign Tasks",
+    "name": "Assignments - Reassign (POST form-data)",
+    "method": "POST",
+    "path": "/api/supervisor/assignments/{{visit_id}}/reassign"
+  },
+  {
+    "folder": "D. Reports",
+    "name": "Reports - List",
+    "method": "GET",
+    "path": "/api/supervisor/reports?per_page=20"
+  },
+  {
+    "folder": "D. Reports",
+    "name": "Reports - Generate (POST form-data)",
+    "method": "POST",
+    "path": "/api/supervisor/reports/generate"
+  },
+  {
+    "folder": "D. Reports",
+    "name": "Reports - Show",
+    "method": "GET",
+    "path": "/api/supervisor/reports/{{report_id}}"
+  },
+  {
+    "folder": "D. Reports",
+    "name": "Reports - Download CSV",
+    "method": "GET",
+    "path": "/api/supervisor/reports/{{report_id}}/download"
+  },
+  {
+    "folder": "D. Reports",
+    "name": "Visit Report - Review Visit",
+    "method": "GET",
+    "path": "/api/supervisor/visits/{{visit_id}}"
+  },
+  {
+    "folder": "D. Reports",
+    "name": "Visit Report - Recommend Products (POST form-data)",
+    "method": "POST",
+    "path": "/api/supervisor/visits/{{visit_id}}/recommend"
+  },
+  {
+    "folder": "D. Reports",
+    "name": "Visit Report - Finalize (POST form-data)",
+    "method": "POST",
+    "path": "/api/supervisor/visits/{{visit_id}}/finalize"
+  },
+  {
+    "folder": "E. Profile",
+    "name": "Profile - Get",
+    "method": "GET",
+    "path": "/api/supervisor/profile"
+  },
+  {
+    "folder": "E. Profile",
+    "name": "Profile - Update (form-data)",
+    "method": "PUT",
+    "path": "/api/supervisor/profile"
+  },
+  {
+    "folder": "E. Profile",
+    "name": "Profile - Update Password (POST form-data)",
+    "method": "POST",
+    "path": "/api/supervisor/profile/password"
+  },
+  {
+    "folder": "E. Profile",
+    "name": "Profile - Preferences",
+    "method": "GET",
+    "path": "/api/supervisor/profile/preferences"
+  },
+  {
+    "folder": "Public (no auth)",
+    "name": "List Products",
+    "method": "GET",
+    "path": "/api/shop/products?per_page=12"
+  },
+  {
+    "folder": "Public (no auth)",
+    "name": "Featured Products",
+    "method": "GET",
+    "path": "/api/shop/products/featured?limit=10"
+  },
+  {
+    "folder": "Public (no auth)",
+    "name": "Get Product Details",
+    "method": "GET",
+    "path": "/api/shop/products/{{product_id}}"
+  },
+  {
+    "folder": "Public (no auth)",
+    "name": "Search Products",
+    "method": "GET",
+    "path": "/api/shop/products?search=fertilizer&per_page=12"
+  },
+  {
+    "folder": "Public (no auth)",
+    "name": "Get Categories",
+    "method": "GET",
+    "path": "/api/shop/products/categories"
+  },
+  {
+    "folder": "Public (no auth)",
+    "name": "Get Products by Category",
+    "method": "GET",
+    "path": "/api/shop/products/category/{{category_id}}"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "List Products",
+    "method": "GET",
+    "path": "/api/admin/products?per_page=50&filter=all"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Add Product (JSON – URL-only images)",
+    "method": "POST",
+    "path": "/api/admin/products"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Add Product (Multipart – with image files)",
+    "method": "POST",
+    "path": "/api/admin/products"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Get Product Details",
+    "method": "GET",
+    "path": "/api/admin/products/{{product_id}}"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Update Product (Multipart – same as Add Product)",
+    "method": "PUT",
+    "path": "/api/admin/products/{{product_id}}"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Delete Product",
+    "method": "DELETE",
+    "path": "/api/admin/products/{{product_id}}"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Toggle Status",
+    "method": "POST",
+    "path": "/api/admin/products/{{product_id}}/toggle-status"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Bulk Delete",
+    "method": "POST",
+    "path": "/api/admin/products/bulk-delete"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Bulk Update Status",
+    "method": "POST",
+    "path": "/api/admin/products/bulk-update-status"
+  },
+  {
+    "folder": "Admin (Bearer token)",
+    "name": "Bulk Update Stock",
+    "method": "POST",
+    "path": "/api/admin/products/bulk-update-stock"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Admin Dashboard Statistics",
+    "method": "GET",
+    "path": "/api/admin/dashboard/statistics"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Admin Dashboard Recent Activities",
+    "method": "GET",
+    "path": "/api/admin/dashboard/recent-activities?limit=20"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Admin Dashboard Quick Overview",
+    "method": "GET",
+    "path": "/api/admin/dashboard/quick-overview"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Admin Dashboard Profile",
+    "method": "GET",
+    "path": "/api/admin/dashboard/profile"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Admin Dashboard Top Selling Products",
+    "method": "GET",
+    "path": "/api/admin/dashboard/top-selling-products?limit=10&include_unsold=1"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Admin Users Statistics",
+    "method": "GET",
+    "path": "/api/admin/users/statistics"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Admin Users List",
+    "method": "GET",
+    "path": "/api/admin/users?category=all&status=active&page=1&per_page=15"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Users - List",
+    "method": "GET",
+    "path": "/api/admin/users"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Users - Create",
+    "method": "POST",
+    "path": "/api/admin/users"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Users - Get",
+    "method": "GET",
+    "path": "/api/admin/users/{{user_id}}"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Users - Update",
+    "method": "PUT",
+    "path": "/api/admin/users/{{user_id}}"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Users - Delete",
+    "method": "DELETE",
+    "path": "/api/admin/users/{{user_id}}"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Roles - List",
+    "method": "GET",
+    "path": "/api/admin/roles"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "Roles - Create",
+    "method": "POST",
+    "path": "/api/admin/roles"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "HR - Employees - List",
+    "method": "GET",
+    "path": "/api/admin/hr/employees"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "HR - Employees - Create",
+    "method": "POST",
+    "path": "/api/admin/hr/employees"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "HR - Employees - Get",
+    "method": "GET",
+    "path": "/api/admin/hr/employees/{{employee_id}}"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "HR - Employees - Update",
+    "method": "PUT",
+    "path": "/api/admin/hr/employees/{{employee_id}}"
+  },
+  {
+    "folder": "11. Admin Dashboard – Stats, Users & HR",
+    "name": "HR - Employees - Delete",
+    "method": "DELETE",
+    "path": "/api/admin/hr/employees/{{employee_id}}"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Get All Reports",
+    "method": "GET",
+    "path": "/api/admin/reports?page=1&per_page=15"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Get Report Statistics",
+    "method": "GET",
+    "path": "/api/admin/reports/statistics"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Generate Report",
+    "method": "POST",
+    "path": "/api/admin/reports/generate"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Schedule Report",
+    "method": "POST",
+    "path": "/api/admin/reports/schedule"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Get Single Report",
+    "method": "GET",
+    "path": "/api/admin/reports/1"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Download Report",
+    "method": "GET",
+    "path": "/api/admin/reports/1/download"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Cancel Scheduled Report",
+    "method": "DELETE",
+    "path": "/api/admin/reports/1/cancel"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Share Report",
+    "method": "POST",
+    "path": "/api/admin/reports/1/share"
+  },
+  {
+    "folder": "12. Admin Dashboard – Reports Management",
+    "name": "Delete Report",
+    "method": "DELETE",
+    "path": "/api/admin/reports/1"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Get All Settings",
+    "method": "GET",
+    "path": "/api/admin/settings"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Get System Settings",
+    "method": "GET",
+    "path": "/api/admin/settings/system"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Update System Settings",
+    "method": "PUT",
+    "path": "/api/admin/settings/system"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Get Theme",
+    "method": "GET",
+    "path": "/api/admin/settings/theme"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Update Theme",
+    "method": "PUT",
+    "path": "/api/admin/settings/theme"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Get Language",
+    "method": "GET",
+    "path": "/api/admin/settings/language"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Update Language",
+    "method": "PUT",
+    "path": "/api/admin/settings/language"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Get Payment Settings",
+    "method": "GET",
+    "path": "/api/admin/settings/payment"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Update Payment Settings",
+    "method": "PUT",
+    "path": "/api/admin/settings/payment"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Get Shop Settings (Shipping & Tax)",
+    "method": "GET",
+    "path": "/api/admin/settings/shop"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Update Shop Settings (Shipping & Tax)",
+    "method": "PUT",
+    "path": "/api/admin/settings/shop"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Get Legal (Privacy or Terms)",
+    "method": "GET",
+    "path": "/api/admin/settings/legal?type=privacy"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Export Data",
+    "method": "POST",
+    "path": "/api/admin/settings/export-data"
+  },
+  {
+    "folder": "13. Admin Dashboard – Settings (Mobile)",
+    "name": "Debug Logs",
+    "method": "GET",
+    "path": "/api/admin/settings/debug-logs?lines=100"
+  },
+  {
+    "folder": "Exclusive Offers",
+    "name": "List (Public)",
+    "method": "GET",
+    "path": "/api/exclusive-offers"
+  },
+  {
+    "folder": "Exclusive Offers",
+    "name": "Get by ID (Public)",
+    "method": "GET",
+    "path": "/api/exclusive-offers/{{offer_id}}"
+  },
+  {
+    "folder": "Exclusive Offers",
+    "name": "Admin - List",
+    "method": "GET",
+    "path": "/api/admin/exclusive-offers"
+  },
+  {
+    "folder": "Exclusive Offers",
+    "name": "Admin - Create",
+    "method": "POST",
+    "path": "/api/admin/exclusive-offers"
+  },
+  {
+    "folder": "Exclusive Offers",
+    "name": "Admin - Get",
+    "method": "GET",
+    "path": "/api/admin/exclusive-offers/{{offer_id}}"
+  },
+  {
+    "folder": "Exclusive Offers",
+    "name": "Admin - Update",
+    "method": "POST",
+    "path": "/api/admin/exclusive-offers/{{offer_id}}"
+  },
+  {
+    "folder": "Exclusive Offers",
+    "name": "Admin - Delete",
+    "method": "DELETE",
+    "path": "/api/admin/exclusive-offers/{{offer_id}}"
+  },
+  {
+    "folder": "Complaints",
+    "name": "List",
+    "method": "GET",
+    "path": "/api/auth/complaints"
+  },
+  {
+    "folder": "Complaints",
+    "name": "Complaints - Create",
+    "method": "POST",
+    "path": "/api/auth/complaints"
+  },
+  {
+    "folder": "Complaints",
+    "name": "Complaints - Get",
+    "method": "GET",
+    "path": "/api/auth/complaints/{{complaint_id}}"
+  },
+  {
+    "folder": "Complaints",
+    "name": "Complaints - Update",
+    "method": "PUT",
+    "path": "/api/auth/complaints/{{complaint_id}}"
+  },
+  {
+    "folder": "Complaints",
+    "name": "Complaints - Delete",
+    "method": "DELETE",
+    "path": "/api/auth/complaints/{{complaint_id}}"
+  },
+  {
+    "folder": "Tips",
+    "name": "List",
+    "method": "GET",
+    "path": "/api/tips"
+  },
+  {
+    "folder": "Tips",
+    "name": "Tips - Create/Send",
+    "method": "POST",
+    "path": "/api/tips"
+  },
+  {
+    "folder": "Tips",
+    "name": "Tips - Get Details",
+    "method": "GET",
+    "path": "/api/tips/{{tip_id}}"
+  },
+  {
+    "folder": "Tips",
+    "name": "Tips - Update",
+    "method": "PUT",
+    "path": "/api/tips/{{tip_id}}"
+  },
+  {
+    "folder": "Tips",
+    "name": "Tips - Delete",
+    "method": "DELETE",
+    "path": "/api/tips/{{tip_id}}"
+  },
+  {
+    "folder": "Notifications",
+    "name": "List",
+    "method": "GET",
+    "path": "/api/notifications"
+  },
+  {
+    "folder": "Notifications",
+    "name": "Notifications - Mark as Read",
+    "method": "POST",
+    "path": "/api/notifications/{{notification_id}}/mark-read"
+  },
+  {
+    "folder": "Notifications",
+    "name": "Notifications - Mark All as Read",
+    "method": "POST",
+    "path": "/api/notifications/mark-all-read"
+  },
+  {
+    "folder": "Admin - Categories",
+    "name": "List",
+    "method": "GET",
+    "path": "/api/admin/categories?per_page=50"
+  },
+  {
+    "folder": "Admin - Categories",
+    "name": "Categories - Create",
+    "method": "POST",
+    "path": "/api/admin/categories"
+  },
+  {
+    "folder": "Admin - Categories",
+    "name": "Categories - Get",
+    "method": "GET",
+    "path": "/api/admin/categories/{{category_id}}"
+  },
+  {
+    "folder": "Admin - Categories",
+    "name": "Categories - Update",
+    "method": "POST",
+    "path": "/api/admin/categories/{{category_id}}"
+  },
+  {
+    "folder": "Admin - Categories",
+    "name": "Categories - Toggle Status",
+    "method": "POST",
+    "path": "/api/admin/categories/{{category_id}}/toggle-status"
+  },
+  {
+    "folder": "Admin - Categories",
+    "name": "Categories - Delete",
+    "method": "DELETE",
+    "path": "/api/admin/categories/{{category_id}}"
+  },
+  {
+    "folder": "Admin - Services",
+    "name": "Services - List",
+    "method": "GET",
+    "path": "/api/admin/services?per_page=50"
+  },
+  {
+    "folder": "Admin - Services",
+    "name": "Services - Create",
+    "method": "POST",
+    "path": "/api/admin/services"
+  },
+  {
+    "folder": "Admin - Services",
+    "name": "Services - Get",
+    "method": "GET",
+    "path": "/api/admin/services/{{service_id}}"
+  },
+  {
+    "folder": "Admin - Services",
+    "name": "Services - Update",
+    "method": "POST",
+    "path": "/api/admin/services/{{service_id}}"
+  },
+  {
+    "folder": "Admin - Services",
+    "name": "Services - Toggle Status",
+    "method": "POST",
+    "path": "/api/admin/services/{{service_id}}/toggle-status"
+  },
+  {
+    "folder": "Admin - Services",
+    "name": "Services - Delete",
+    "method": "DELETE",
+    "path": "/api/admin/services/{{service_id}}"
+  },
+  {
+    "folder": "Areas",
+    "name": "List",
+    "method": "GET",
+    "path": "/api/areas"
+  },
+  {
+    "folder": "Areas",
+    "name": "Areas - Create",
+    "method": "POST",
+    "path": "/api/areas"
+  },
+  {
+    "folder": "Areas",
+    "name": "Areas - Get",
+    "method": "GET",
+    "path": "/api/areas/{{area_id}}"
+  },
+  {
+    "folder": "Areas",
+    "name": "Areas - Update",
+    "method": "PUT",
+    "path": "/api/areas/{{area_id}}"
+  },
+  {
+    "folder": "Areas",
+    "name": "Areas - Delete",
+    "method": "DELETE",
+    "path": "/api/areas/{{area_id}}"
+  },
+  {
+    "folder": "Alternative Routes - Technician (under /api/auth/tech)",
+    "name": "Tech - Get Assigned Visits (Auth)",
+    "method": "GET",
+    "path": "/api/auth/tech/visits"
+  },
+  {
+    "folder": "Alternative Routes - Technician (under /api/auth/tech)",
+    "name": "Tech - Accept Visit (Auth)",
+    "method": "POST",
+    "path": "/api/auth/tech/visits/{{visit_id}}/accept"
+  },
+  {
+    "folder": "Alternative Routes - Technician (under /api/auth/tech)",
+    "name": "Tech - Start Visit (Auth)",
+    "method": "POST",
+    "path": "/api/auth/tech/visits/{{visit_id}}/start"
+  },
+  {
+    "folder": "Alternative Routes - Technician (under /api/auth/tech)",
+    "name": "Tech - Complete Visit (Auth)",
+    "method": "POST",
+    "path": "/api/auth/tech/visits/{{visit_id}}/complete"
+  },
+  {
+    "folder": "Alternative Routes - Technician (under /api/auth/tech)",
+    "name": "Tech - Upload Photo (Auth)",
+    "method": "POST",
+    "path": "/api/auth/tech/visits/{{visit_id}}/photos"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - List Visits (Auth)",
+    "method": "GET",
+    "path": "/api/auth/supervisor/visits"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - Review Visit (Auth)",
+    "method": "GET",
+    "path": "/api/auth/supervisor/visits/{{visit_id}}"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - Recommend Products (Auth)",
+    "method": "POST",
+    "path": "/api/auth/supervisor/visits/{{visit_id}}/recommend"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - Finalize Report (Auth)",
+    "method": "POST",
+    "path": "/api/auth/supervisor/visits/{{visit_id}}/finalize"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - Update Visit Status (Auth)",
+    "method": "POST",
+    "path": "/api/auth/supervisor/visits/{{visit_id}}/status"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - List Areas (Auth)",
+    "method": "GET",
+    "path": "/api/auth/supervisor/areas"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - List Complaints (Auth)",
+    "method": "GET",
+    "path": "/api/auth/supervisor/complaints"
+  },
+  {
+    "folder": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+    "name": "Supervisor - Escalate Complaint (Auth)",
+    "method": "POST",
+    "path": "/api/auth/supervisor/complaints/{{complaint_id}}/escalate"
+  },
+  {
+    "folder": "Payment (Checkout.com)",
+    "name": "Webhook (reference)",
+    "method": "POST",
+    "path": "/api/shop/webhooks/checkout-com"
+  },
+  {
+    "folder": "Services (Public)",
+    "name": "List (paginated)",
+    "method": "GET",
+    "path": "/api/services?per_page=12"
+  },
+  {
+    "folder": "Services (Public)",
+    "name": "Get single service (category)",
+    "method": "GET",
+    "path": "/api/services/{{service_id}}"
+  },
+  {
+    "folder": "Services (Public)",
+    "name": "Get all products of services",
+    "method": "GET",
+    "path": "/api/services/products?per_page=20"
+  },
+  {
+    "folder": "Services (Public)",
+    "name": "Get products by service",
+    "method": "GET",
+    "path": "/api/services/{{service_id}}/products"
+  },
+  {
+    "folder": "Services (Public)",
+    "name": "Get Categories",
+    "method": "GET",
+    "path": "/api/services/categories"
+  },
+  {
+    "folder": "Services (Public)",
+    "name": "Get by Category (category + products)",
+    "method": "GET",
+    "path": "/api/services/category/{{category_id}}"
+  },
+  {
+    "folder": "User Profile",
+    "name": "Get",
+    "method": "GET",
+    "path": "/api/user/profile"
+  },
+  {
+    "folder": "User Profile",
+    "name": "User Profile - Update",
+    "method": "PUT",
+    "path": "/api/user/profile"
+  },
+  {
+    "folder": "User Addresses",
+    "name": "List",
+    "method": "GET",
+    "path": "/api/user/addresses"
+  },
+  {
+    "folder": "User Addresses",
+    "name": "Create",
+    "method": "POST",
+    "path": "/api/user/addresses"
+  },
+  {
+    "folder": "User Addresses",
+    "name": "Update",
+    "method": "POST",
+    "path": "/api/user/addresses/{{address_id}}"
+  },
+  {
+    "folder": "User Addresses",
+    "name": "User Addresses - Delete",
+    "method": "DELETE",
+    "path": "/api/user/addresses/{{address_id}}"
+  },
+  {
+    "folder": "User Payment Methods",
+    "name": "Get",
+    "method": "GET",
+    "path": "/api/user/payment-methods"
+  },
+  {
+    "folder": "User Notifications",
+    "name": "List",
+    "method": "GET",
+    "path": "/api/user/notifications"
+  },
+  {
+    "folder": "User Notifications",
+    "name": "Mark as Read",
+    "method": "POST",
+    "path": "/api/user/notifications/{{notification_id}}/read"
+  },
+  {
+    "folder": "User Notifications",
+    "name": "Mark All as Read",
+    "method": "POST",
+    "path": "/api/user/notifications/read-all"
+  },
+  {
+    "folder": "User Notifications",
+    "name": "Clear All",
+    "method": "POST",
+    "path": "/api/user/notifications/clear-all"
+  }
+]
