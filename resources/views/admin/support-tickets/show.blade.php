@@ -96,89 +96,66 @@
 
         {{-- Reply & actions: two columns with clear separation --}}
         <div class="grid lg:grid-cols-3 gap-8">
-            {{-- Left: Gmail + In-app reply (2/3 width on large) --}}
-            <div class="lg:col-span-2 space-y-8">
-                {{-- Reply via Gmail --}}
-                <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <div class="border-b border-gray-100 bg-gray-50/80 px-6 py-3">
-                        <h3 class="text-sm font-semibold text-gray-700">Reply via Gmail</h3>
+            {{-- Left: In-app reply --}}
+            <div class="lg:col-span-2">
+                {{-- In-app reply: compact type bar, working icons, more emojis, proper send button --}}
+                <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <div class="border-b border-gray-100 bg-gray-50/80 px-4 py-2">
+                        <h3 class="text-xs font-semibold text-gray-700">In-app reply</h3>
+                        <p class="text-[11px] text-gray-500 mt-0.5">Message, files, or voice. Optional when sending attachments.</p>
                     </div>
-                    <div class="p-6">
-                        <p class="text-sm text-gray-600 mb-4">No SMTP required. Opens Gmail with client email and ticket context prefilled.</p>
-                        @php
-                            $gmailSubject = "[Support {$ticket->ticket_number}] {$ticket->subject}";
-                            $gmailBody = "Hi,\n\nRegarding your support ticket {$ticket->ticket_number}.\n\n";
-                            $gmailBody .= "Original message:\n{$ticket->message}\n\n";
-                            $gmailBody .= "Reply:\n";
-                            $gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
-                                . '&to=' . rawurlencode($ticket->email)
-                                . '&su=' . rawurlencode($gmailSubject)
-                                . '&body=' . rawurlencode($gmailBody);
-                        @endphp
-                        <a href="{{ $gmailUrl }}" target="_blank" rel="noopener noreferrer"
-                           class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                            Open Gmail Compose
-                        </a>
-                    </div>
-                </div>
-
-                {{-- In-app reply (WhatsApp-style) --}}
-                <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <div class="border-b border-gray-100 bg-gray-50/80 px-6 py-3">
-                        <h3 class="text-sm font-semibold text-gray-700">In-app reply</h3>
-                        <p class="text-xs text-gray-500 mt-0.5">Add message, files, or voice. Message is optional when sending attachments.</p>
-                    </div>
-                    <div class="p-6">
-                        <form method="POST" action="{{ route('admin.support-tickets.reply', $ticket->id) }}" enctype="multipart/form-data" class="space-y-3" x-data="supportTicketChatBar()">
+                    <div class="p-4">
+                        <form method="POST" action="{{ route('admin.support-tickets.reply', $ticket->id) }}" enctype="multipart/form-data" class="space-y-2" x-data="supportTicketChatBar()">
                             @csrf
-                            <input type="file" name="attachments[]" id="attachments" multiple class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" @change="updateFileList()">
-                            <input type="file" name="voice" id="voice" class="hidden" accept="audio/*" @change="updateFileList()">
-                            <div class="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50/50 p-3">
-                                <button type="button" @click="$refs.attachments.click()" class="flex-shrink-0 p-2.5 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Attach file">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            <input type="file" name="attachments[]" id="attachments" multiple class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" x-ref="attachments" @change="updateFileList()">
+                            <input type="file" name="voice" id="voice" class="hidden" accept="audio/*" x-ref="voice" @change="updateFileList()">
+                            <div class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50/50 px-2 py-1.5">
+                                <button type="button" @click="$refs.attachments.click()" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Attach file">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                                 </button>
-                                <button type="button" @click="emojiOpen = !emojiOpen" class="flex-shrink-0 p-2.5 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Emoji">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <button type="button" @click="emojiOpen = !emojiOpen" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Emoji">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 </button>
-                                <button type="button" @click="$refs.voice.click()" class="flex-shrink-0 p-2.5 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Voice message">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                                <button type="button" @click="$refs.voice.click()" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Voice message">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
                                 </button>
                                 <div class="relative flex-1 min-w-0">
-                                    <textarea name="message" id="message" rows="2" placeholder="Type a message..." class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm resize-none"
+                                    <textarea name="message" id="message" rows="1" placeholder="Type a message..." class="block w-full min-h-[36px] max-h-24 py-2 px-2.5 text-sm rounded-md border border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
                                         x-ref="messageInput"
                                         @input="updateFileList()">{{ old('message') }}</textarea>
-                                    <div x-show="emojiOpen" @click.away="emojiOpen = false" class="absolute bottom-full left-0 mb-2 p-2 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-wrap gap-1 max-w-[200px]" style="display: none;">
+                                    <div x-show="emojiOpen" @click.away="emojiOpen = false" x-transition class="absolute bottom-full left-0 mb-1.5 p-2 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-wrap gap-1 max-w-[260px]" style="display: none;">
                                         <template x-for="e in emojis" :key="e">
-                                            <button type="button" @click="insertEmoji(e); emojiOpen = false" class="text-lg hover:bg-gray-100 rounded p-0.5" x-text="e"></button>
+                                            <button type="button" @click="insertEmoji(e)" class="text-base hover:bg-gray-100 rounded p-0.5 leading-none" x-text="e"></button>
                                         </template>
                                     </div>
                                 </div>
-                                <button type="submit" class="flex-shrink-0 p-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" title="Send">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                                <button type="submit" class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" title="Send">
+                                    <svg class="w-4 h-4 rotate-[-45deg]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2z"/></svg>
                                 </button>
                             </div>
-                            <div x-show="fileList.length > 0" class="text-xs text-gray-500 flex flex-wrap gap-1" x-cloak>
+                            <div x-show="fileList.length > 0" class="text-[11px] text-gray-500 flex flex-wrap gap-1" x-cloak>
                                 <span x-text="'Attachments: ' + fileList.join(', ')"></span>
                             </div>
-                            @error('message')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                            @error('message')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                         </form>
                         <script>
                             function supportTicketChatBar() {
                                 return {
                                     emojiOpen: false,
                                     fileList: [],
-                                    emojis: ['😀','😊','👍','❤️','😂','😅','🙏','👋','🔥','✅','❌','📎','📷','🎤','💬'],
+                                    emojis: ['😀','😃','😄','😁','😊','🥰','😍','🤩','😘','😋','😜','🤪','🤗','🤔','😐','😏','😒','🙄','😌','😔','😴','😷','🤒','🤕','🤢','😵','🤯','🥳','😎','🤓','😕','😟','😮','😲','😳','🥺','😢','😭','😱','😤','😡','🤬','💀','💩','🤡','👻','🤖','😺','😸','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','👌','🤏','👈','👉','🙌','🤲','🙏','💪','👂','👃','👀','❤️','🧡','💛','💚','💙','💜','🖤','💔','💕','💖','💯','✅','❌','🔥','⭐','🌟','✨','💫','🙏','👋','🖐️','✋','👌','✌️','🤞','🤟','🤙','👉','🙌','🙏','📎','📷','🎤','💬','📧','📩','🔔','⏰','📅','✅','❌','⚠️','ℹ️','🔒','🔓','⭐','🌟','💡','🔔','🎉','🎊','🏆','📌','📍','🔖','✏️','📝','📋','🗒️','📁','📂','🗂️','📊','📈','📉','🛒','💰','💳','🏠','🚗','✈️','🌍','☀️','🌙','⭐','🌈','🔥','💧','🌊','⚡','❄️','🌸','🌺','🍀','🌻','🍎','🍕','☕','🍺','🎂','🎁','🎈','🎀','🏳️','🏴','🔴','🟢','🔵','🟡','🟠','🟣','⚫','⚪'],
                                     insertEmoji(emoji) {
                                         const ta = this.$refs.messageInput;
+                                        if (!ta) return;
                                         const start = ta.selectionStart, end = ta.selectionEnd;
                                         ta.value = ta.value.slice(0, start) + emoji + ta.value.slice(end);
                                         ta.selectionStart = ta.selectionEnd = start + emoji.length;
                                         ta.focus();
+                                        this.emojiOpen = false;
                                     },
                                     updateFileList() {
-                                        const att = document.getElementById('attachments');
-                                        const voice = document.getElementById('voice');
+                                        const att = this.$refs.attachments;
+                                        const voice = this.$refs.voice;
                                         this.fileList = [];
                                         if (att && att.files) for (let i = 0; i < att.files.length; i++) this.fileList.push(att.files[i].name);
                                         if (voice && voice.files && voice.files[0]) this.fileList.push('Voice: ' + voice.files[0].name);
