@@ -101,10 +101,13 @@
             </div>
         </div>
 
-        <!-- Notifications List -->
+        <!-- Notifications List: new = bold + highlight; read = normal. Click = mark read and go to target -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             @forelse($notifications as $notification)
-                <div class="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150 {{ $notification->read_at ? '' : 'bg-blue-50/30' }}">
+                @php
+                    $isUnread = is_null($notification->read_at);
+                @endphp
+                <div class="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150 {{ $isUnread ? 'bg-blue-50/30' : '' }}">
                     <div class="px-5 py-4">
                         <div class="flex items-start gap-4">
                             <!-- Notification Icon -->
@@ -115,7 +118,6 @@
                                     $iconColor = 'blue';
                                     $iconBg = 'bg-blue-50';
                                     $iconBorder = 'border-blue-100';
-                                    
                                     if (str_contains($type, 'Order') || str_contains($type, 'order')) {
                                         $iconColor = 'blue';
                                         $iconBg = 'bg-blue-50';
@@ -133,8 +135,6 @@
                                         $iconBg = 'bg-purple-50';
                                         $iconBorder = 'border-purple-100';
                                     }
-                                @endphp
-                                @php
                                     $iconColorClass = match($iconColor) {
                                         'blue' => 'text-blue-600',
                                         'green' => 'text-green-600',
@@ -164,11 +164,11 @@
                                 </div>
                             </div>
 
-                            <!-- Notification Content -->
+                            <!-- Notification Content: click opens target and marks as read -->
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-start justify-between gap-3">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-semibold text-gray-900 mb-1">
+                                    <a href="{{ route('admin.notifications.read-and-redirect', $notification->id) }}" class="flex-1 min-w-0 group block">
+                                        <p class="text-sm mb-1 {{ $isUnread ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                             {{ $data['message'] ?? class_basename($type) }}
                                         </p>
                                         @if(isset($data['visit_id']))
@@ -181,36 +181,19 @@
                                             <p class="text-xs text-gray-600 mb-1">Order ID: #{{ $data['order_id'] }}</p>
                                         @endif
                                         <p class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
-                                    </div>
+                                    </a>
                                     <div class="flex items-center gap-2 flex-shrink-0">
-                                        @if(!$notification->read_at)
-                                            <span class="h-2 w-2 bg-red-500 rounded-full"></span>
-                                        @endif
-                                        <div class="flex items-center gap-1">
-                                            @if(!$notification->read_at)
-                                                <form method="POST" action="{{ route('admin.notifications.mark-as-read', $notification->id) }}" class="inline">
-                                                    @csrf
-                                                    <button type="submit" 
-                                                            class="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
-                                                            title="Mark as read">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    </button>
-                                                </form>
-                                            @endif
-                                            <form method="POST" action="{{ route('admin.notifications.destroy', $notification->id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this notification?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" 
-                                                        class="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                                                        title="Delete">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </form>
-                                        </div>
+                                        <form method="POST" action="{{ route('admin.notifications.destroy', $notification->id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this notification?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                                                    title="Delete">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>

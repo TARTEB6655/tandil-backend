@@ -58,6 +58,27 @@ class NotificationController extends Controller
     }
 
     /**
+     * Mark notification as read and redirect to its target URL (e.g. support ticket or notifications list).
+     * Used when user clicks a notification so it is marked read automatically and they are taken to the right page.
+     */
+    public function readAndRedirect($id)
+    {
+        $user = Auth::user();
+        $notification = $user->notifications()->find($id);
+        if (! $notification) {
+            return redirect()->route('admin.notifications.index')->with('error', 'Notification not found.');
+        }
+        $notification->markAsRead();
+        $data = $notification->data;
+        $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $url = route('admin.notifications.index');
+        if (($meta['entity'] ?? null) === 'support_ticket' && ! empty($meta['ticket_id'] ?? null)) {
+            $url = route('admin.support-tickets.show', $meta['ticket_id']);
+        }
+        return redirect($url);
+    }
+
+    /**
      * Mark all notifications as read.
      */
     public function markAllAsRead()

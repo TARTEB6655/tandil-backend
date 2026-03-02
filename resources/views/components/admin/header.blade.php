@@ -1,8 +1,9 @@
 @php
     $user = auth()->user();
     $searchValue = request()->get('search', '');
-    $unreadNotifications = $user->unreadNotifications()->latest()->take(5)->get();
     $unreadCount = $user->unreadNotifications()->count();
+    // Recent notifications (read + unread): unread stand out with bold; clicking one marks it read and goes to target
+    $recentNotifications = $user->notifications()->latest()->take(8)->get();
 @endphp
 
 <header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b-2 border-gray-200 dark:border-gray-700 dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] shadow-md py-4">
@@ -80,9 +81,9 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                             <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                         </svg>
-                        <!-- Notification Dot -->
+                        <!-- Red dot only when there are new (unread) notifications -->
                         @if($unreadCount > 0)
-                            <span class="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
+                            <span class="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white" aria-label="{{ $unreadCount }} unread"></span>
                         @endif
                     </button>
 
@@ -104,7 +105,7 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
                                 @if($unreadCount > 0)
-                                    <span class="px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-full">{{ $unreadCount }}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium text-gray-600 bg-gray-200 rounded-full">{{ $unreadCount }} new</span>
                                 @endif
                             </div>
                             @if($unreadCount > 0)
@@ -121,21 +122,18 @@
                             @endif
                         </div>
 
-                        <!-- Notifications List -->
+                        <!-- Notifications List: new = bold + red dot; read = normal. Click = mark read and go to target -->
                         <div class="flex-1 overflow-y-auto">
-                            @forelse($unreadNotifications as $notification)
+                            @forelse($recentNotifications as $notification)
                                 @php
                                     $data = $notification->data;
                                     $type = $notification->type;
                                     $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
-                                    $notificationUrl = route('admin.notifications.index');
-                                    if (($meta['entity'] ?? null) === 'support_ticket' && !empty($meta['ticket_id'])) {
-                                        $notificationUrl = route('admin.support-tickets.show', $meta['ticket_id']);
-                                    }
+                                    $isUnread = is_null($notification->read_at);
+                                    $notificationUrl = route('admin.notifications.read-and-redirect', $notification->id);
                                     $iconColor = 'blue';
                                     $iconBg = 'bg-blue-50';
                                     $iconBorder = 'border-blue-100';
-                                    
                                     if (str_contains($type, 'Order') || str_contains($type, 'order')) {
                                         $iconColor = 'blue';
                                         $iconBg = 'bg-blue-50';
@@ -156,7 +154,7 @@
                                 @endphp
                                 <a 
                                     href="{{ $notificationUrl }}" 
-                                    class="block px-4 py-3 border-b border-gray-100 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 group"
+                                    class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150 group"
                                     @click.stop="open = false"
                                 >
                                     <div class="flex items-start gap-3">
@@ -170,7 +168,7 @@
                                                     default => 'text-blue-600'
                                                 };
                                             @endphp
-                                            <div class="h-9 w-9 rounded-full {{ $iconBg }} {{ $iconBorder }} border flex items-center justify-center dark:bg-gray-700/60 dark:border-gray-600">
+                                            <div class="h-9 w-9 rounded-full {{ $iconBg }} {{ $iconBorder }} border flex items-center justify-center">
                                                 @if(str_contains($type, 'Order'))
                                                     <svg class="w-4 h-4 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -193,18 +191,17 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-start justify-between gap-2">
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug mb-0.5">
+                                                    <p class="text-sm leading-snug mb-0.5 {{ $isUnread ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                                         {{ $data['message'] ?? class_basename($type) }}
                                                     </p>
                                                     @if(isset($data['visit_id']))
-                                                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">Visit ID: #{{ $data['visit_id'] }}</p>
+                                                        <p class="text-xs text-gray-600 leading-relaxed line-clamp-2">Visit ID: #{{ $data['visit_id'] }}</p>
                                                     @elseif(isset($data['subscription_id']))
-                                                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">Subscription ID: #{{ $data['subscription_id'] }}</p>
+                                                        <p class="text-xs text-gray-600 leading-relaxed line-clamp-2">Subscription ID: #{{ $data['subscription_id'] }}</p>
                                                     @elseif(isset($data['order_id']))
-                                                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">Order ID: #{{ $data['order_id'] }}</p>
+                                                        <p class="text-xs text-gray-600 leading-relaxed line-clamp-2">Order ID: #{{ $data['order_id'] }}</p>
                                                     @endif
                                                 </div>
-                                                <span class="flex-shrink-0 h-2 w-2 bg-red-500 rounded-full mt-1.5"></span>
                                             </div>
                                             <p class="text-xs text-gray-400 mt-1.5">{{ $notification->created_at->diffForHumans() }}</p>
                                         </div>
