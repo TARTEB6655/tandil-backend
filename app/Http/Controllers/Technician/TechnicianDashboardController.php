@@ -796,7 +796,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * GET /api/technician/leave-types
-     * Returns the list of leave reasons for the technician leave/vacation form. Use in dropdown; send selected value (or label) as "reason" in PUT availability vacations[]. For "other", send reason "Other" and append user notes in the same field, e.g. "Other: personal matter".
+     * Returns the list of leave types for the technician leave/vacation form. Use in dropdown; send selected label as vacations[].leave_type in PUT availability. Optional text as vacations[].reason.
      */
     public function leaveTypes(Request $request)
     {
@@ -805,7 +805,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * GET /api/technician/availability
-     * Returns: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations, leave_reasons.
+     * Returns: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations.
      */
     public function availability(Request $request)
     {
@@ -845,10 +845,9 @@ class TechnicianDashboardController extends Controller
                 'id' => $v->id,
                 'start_date' => $v->start_date?->toDateString(),
                 'end_date' => $v->end_date?->toDateString(),
+                'leave_type' => $v->leave_type,
                 'reason' => $v->reason,
-                'notes' => $v->notes,
             ])->values()->all(),
-            'leave_reasons' => $this->getLeaveReasons(),
         ];
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -883,8 +882,8 @@ class TechnicianDashboardController extends Controller
             'vacations' => 'sometimes|array',
             'vacations.*.start_date' => 'required|date',
             'vacations.*.end_date' => 'required|date',
-            'vacations.*.reason' => 'nullable|string|max:255',
-            'vacations.*.notes' => 'nullable|string|max:1000',
+            'vacations.*.leave_type' => 'nullable|string|max:255',
+            'vacations.*.reason' => 'nullable|string|max:1000',
         ];
         $validator = Validator::make($input, $rules);
         if ($validator->fails()) {
@@ -943,8 +942,8 @@ class TechnicianDashboardController extends Controller
                     'user_id' => $user->id,
                     'start_date' => $item['start_date'],
                     'end_date' => $item['end_date'],
+                    'leave_type' => $item['leave_type'] ?? null,
                     'reason' => $item['reason'] ?? null,
-                    'notes' => $item['notes'] ?? null,
                 ]);
             }
         }
@@ -972,10 +971,9 @@ class TechnicianDashboardController extends Controller
                 'id' => $v->id,
                 'start_date' => $v->start_date?->toDateString(),
                 'end_date' => $v->end_date?->toDateString(),
+                'leave_type' => $v->leave_type,
                 'reason' => $v->reason,
-                'notes' => $v->notes,
             ])->values()->all(),
-            'leave_reasons' => $this->getLeaveReasons(),
         ];
         return response()->json(['success' => true, 'data' => $data]);
     }

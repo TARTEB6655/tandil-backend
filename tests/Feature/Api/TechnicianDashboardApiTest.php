@@ -435,33 +435,33 @@ class TechnicianDashboardApiTest extends TestCase
 
         $response2 = $this->putJson('/api/technician/availability', [
             'vacations' => [
-                ['start_date' => Carbon::today()->addDays(7)->toDateString(), 'end_date' => Carbon::today()->addDays(10)->toDateString(), 'reason' => 'Leave'],
+                ['start_date' => Carbon::today()->addDays(7)->toDateString(), 'end_date' => Carbon::today()->addDays(10)->toDateString(), 'leave_type' => 'Leave'],
             ],
         ], $this->authHeaders());
         $response2->assertStatus(200);
         $response2->assertJsonCount(1, 'data.vacations');
-        $response2->assertJsonPath('data.vacations.0.reason', 'Leave');
+        $response2->assertJsonPath('data.vacations.0.leave_type', 'Leave');
         $this->assertDatabaseHas('technician_vacations', ['user_id' => $this->technician->id]);
 
         $response3 = $this->putJson('/api/technician/availability', [
             'vacations' => [
-                ['start_date' => Carbon::today()->addDays(14)->toDateString(), 'end_date' => Carbon::today()->addDays(16)->toDateString(), 'reason' => 'Short leave'],
+                ['start_date' => Carbon::today()->addDays(14)->toDateString(), 'end_date' => Carbon::today()->addDays(16)->toDateString(), 'leave_type' => 'Short leave'],
             ],
         ], $this->authHeaders());
         $response3->assertStatus(200);
         $response3->assertJsonCount(1, 'data.vacations');
-        $response3->assertJsonPath('data.vacations.0.reason', 'Short leave');
+        $response3->assertJsonPath('data.vacations.0.leave_type', 'Short leave');
         $this->assertSame(1, \App\Models\TechnicianVacation::where('user_id', $this->technician->id)->count());
 
-        // Notes are separate from reason
+        // leave_type = type (e.g. Other), reason = optional text
         $response4 = $this->putJson('/api/technician/availability', [
             'vacations' => [
-                ['start_date' => Carbon::today()->addDays(20)->toDateString(), 'end_date' => Carbon::today()->addDays(22)->toDateString(), 'reason' => 'Other', 'notes' => 'Personal matter'],
+                ['start_date' => Carbon::today()->addDays(20)->toDateString(), 'end_date' => Carbon::today()->addDays(22)->toDateString(), 'leave_type' => 'Other', 'reason' => 'Personal matter'],
             ],
         ], $this->authHeaders());
         $response4->assertStatus(200);
-        $response4->assertJsonPath('data.vacations.0.reason', 'Other');
-        $response4->assertJsonPath('data.vacations.0.notes', 'Personal matter');
+        $response4->assertJsonPath('data.vacations.0.leave_type', 'Other');
+        $response4->assertJsonPath('data.vacations.0.reason', 'Personal matter');
     }
 
     public function test_schedule_returns_tasks_breaks_vacations(): void
