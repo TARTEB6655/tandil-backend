@@ -1082,8 +1082,6 @@ class TechnicianDashboardController extends Controller
             'visit_id' => 'required|integer|exists:visits,id',
             'technician_notes' => 'nullable|string|max:10000',
             'notes' => 'nullable|string|max:5000',
-            'recommended_products' => 'nullable|array',
-            'recommended_products.*' => 'nullable|string',
             'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
             'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
         ];
@@ -1117,7 +1115,6 @@ class TechnicianDashboardController extends Controller
             'visit_id' => $visit->id,
             'technician_notes' => $data['technician_notes'] ?? '',
             'notes' => $data['notes'] ?? null,
-            'recommended_products' => $data['recommended_products'] ?? [],
             'status' => 'pending',
         ]);
 

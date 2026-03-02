@@ -3391,12 +3391,6 @@
                                     "description": "Field notes (observations, issues, work completed)."
                                 },
                                 {
-                                    "key": "recommended_products[]",
-                                    "value": "Fertilizer A",
-                                    "type": "text",
-                                    "description": "Optional. Add multiple for more products."
-                                },
-                                {
                                     "key": "before_photo",
                                     "type": "file",
                                     "src": [],
@@ -3421,7 +3415,7 @@
                                 "reports"
                             ]
                         },
-                        "description": "Technician-only API: submit field report to supervisor (Job Details → Submit Field Report to Supervisor). Form-data: visit_id (required), technician_notes, recommended_products[], before_photo (file), after_photo (file). Before/after photos are saved as visit photos. Visit must be completed and assigned to the technician. Response: status, message, data (report with visit.photos)."
+                        "description": "Technician-only API: submit field report to supervisor (Job Details → Submit Field Report to Supervisor). Form-data: visit_id (required), technician_notes, before_photo (file), after_photo (file). Before/after photos are saved as visit photos. Visit must be completed and assigned to the technician. Response: status, message, data (report with visit.photos)."
                     }
                 },
                 {

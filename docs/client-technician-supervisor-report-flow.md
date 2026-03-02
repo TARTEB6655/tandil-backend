@@ -29,11 +29,12 @@ There is **one API** for the technician to share data (field report) with the su
 | `visit_id` | integer | **Yes** | ID of the job/visit (e.g. Job #15). |
 | `technician_notes` | string | No | Field notes (observations, issues found, work completed). Maps to “Field Notes” in the app. |
 | `notes` | string | No | Additional notes (legacy). |
-| `recommended_products` | array of strings | No | Product recommendations. |
-| `status` | string | No | Defaults to `pending` when called by technician. Allowed: `draft`, `pending`, `approved`, `sent_to_client`. |
+| `before_photo` | file | No | Before photo (image). |
+| `after_photo` | file | No | After photo (image). |
+| `status` | string | No | Set automatically to `pending`. |
 
 - **Behaviour:** Creates a report linked to the visit. Only the technician assigned to that visit can submit (403 otherwise). The report appears in the supervisor’s list for review.
-- **Before/After photos:** Stored at visit level (`VisitPhoto`). Upload photos for the visit separately if your app supports it; the report is linked to the same `visit_id`.
+- **Before/After photos:** Optional `before_photo` and `after_photo` in the same request; stored as visit photos linked to the report’s visit.
 
 **Example (mobile “Submit Field Report to Supervisor”):**
 
@@ -68,7 +69,7 @@ The **full** “technician sends report to supervisor” flow (with technician n
   - Finalize: **POST** `/supervisor/reports/{id}/finalize` → `Supervisor\ReportController@finalize`  
     Adds `supervisor_notes`, `recommended_products`, sets `status` (e.g. approved).
 
-So: **Technician sends report to supervisor** is done by **API** (POST `/api/technician/reports` with `visit_id`, `technician_notes`, `recommended_products[]` – form-data or JSON) or by **web** (POST `/technician/reports`). Use the technician-only API from the mobile app.
+So: **Technician sends report to supervisor** is done by **API** (POST `/api/technician/reports` with `visit_id`, `technician_notes`, optional `before_photo`/`after_photo` – form-data or JSON) or by **web** (POST `/technician/reports`). Use the technician-only API from the mobile app.
 
 ---
 
@@ -90,9 +91,9 @@ Under **Module 10 – Supervisor** in Postman:
 
 | Step | Who | API / Web |
 |------|-----|-----------|
-| Technician sends report | Technician | **API (technician-only):** POST `/api/technician/reports` with `visit_id`, `technician_notes`, `recommended_products[]` (form-data or JSON). **Web:** POST `/technician/reports`. |
+| Technician sends report | Technician | **API (technician-only):** POST `/api/technician/reports` with `visit_id`, `technician_notes`, optional `before_photo`/`after_photo` (form-data or JSON). **Web:** POST `/technician/reports`. |
 | Supervisor receives (pending list) | Supervisor | **API:** GET `/api/supervisor/reports?status=pending`. **Web:** GET `/supervisor/reports`. |
 | Supervisor submits to client | Supervisor | **API:** POST `/api/supervisor/visits/{visit_id}/finalize` with `recommendations[]`, `status=sent_to_client`. **Web:** POST `/supervisor/reports/{id}/finalize`. |
 | Client sees report | Client | **API:** GET `/api/reports` (client sees reports for their subscriptions). **Web:** Client dashboard “Recent Reports”. |
 
-The **technician-only API** for submitting a field report to the supervisor is **POST /api/technician/reports** (Bearer token, form-data or JSON: `visit_id`, `technician_notes`, `recommended_products[]`). Find it in Postman under **Module 9 – Technician Dashboard** → **"Technician - Submit Field Report to Supervisor"**.
+The **technician-only API** for submitting a field report to the supervisor is **POST /api/technician/reports** (Bearer token, form-data or JSON: `visit_id`, `technician_notes`, optional `before_photo`/`after_photo`). Find it in Postman under **Module 9 – Technician Dashboard** → **"Technician - Submit Field Report to Supervisor"**.
