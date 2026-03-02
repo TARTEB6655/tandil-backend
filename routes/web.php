@@ -255,6 +255,7 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
 
         // Support tickets (client submitted tickets with admin reply thread)
         Route::get('support-tickets', [SupportTicketWebController::class, 'index'])->name('support-tickets.index');
+        Route::get('support-tickets/attachment/{id}', [SupportTicketWebController::class, 'downloadAttachment'])->name('support-tickets.attachment');
         Route::get('support-tickets/{id}', [SupportTicketWebController::class, 'show'])->name('support-tickets.show');
         Route::post('support-tickets/{id}/reply', [SupportTicketWebController::class, 'reply'])->name('support-tickets.reply');
         Route::put('support-tickets/{id}/status', [SupportTicketWebController::class, 'updateStatus'])->name('support-tickets.update-status');
