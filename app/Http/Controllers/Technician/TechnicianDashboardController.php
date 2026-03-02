@@ -471,7 +471,7 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/jobs - Returns jobs in period: in_progress, completed, rejected, cancelled.
+     * GET /api/technician/jobs - Returns jobs in period: accepted, in_progress, completed, rejected, cancelled.
      * Query: period (week|month|year), per_page. Response: summary (total_earnings, jobs_completed, avg_rating) + paginated jobs.
      */
     public function jobs(Request $request)
@@ -479,7 +479,7 @@ class TechnicianDashboardController extends Controller
         $user = $request->user();
         $period = $request->input('period', 'month'); // week, month, year
         [$start, $end] = $this->resolvePeriodRange($period);
-        $jobStatuses = ['in_progress', 'completed', 'rejected', 'cancelled'];
+        $jobStatuses = ['accepted', 'in_progress', 'completed', 'rejected', 'cancelled'];
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
             ->whereIn('status', $jobStatuses);
@@ -1308,8 +1308,8 @@ class TechnicianDashboardController extends Controller
             'year' => Carbon::now()->endOfYear(),
             default => Carbon::now()->endOfMonth(),
         };
-
-        return [$start, $end];
+        // Use date strings so whereBetween('scheduled_date', ...) matches DATE column reliably
+        return [$start->toDateString(), $end->toDateString()];
     }
 
     private function formatVisitAsTask(Visit $visit, bool $includeDetail = false): array

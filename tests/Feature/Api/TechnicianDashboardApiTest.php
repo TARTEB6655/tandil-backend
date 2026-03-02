@@ -235,6 +235,13 @@ class TechnicianDashboardApiTest extends TestCase
             'status' => 'in_progress',
         ]);
 
+        $acceptedVisit = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::today(),
+            'status' => 'accepted',
+        ]);
+
         $openVisit = Visit::factory()->create([
             'subscription_id' => $sub->id,
             'technician_id' => $this->technician->id,
@@ -250,9 +257,10 @@ class TechnicianDashboardApiTest extends TestCase
         $this->assertContains($todayCompleted->id, $ids);
         $this->assertContains($pastRejected->id, $ids);
         $this->assertContains($inProgressVisit->id, $ids);
+        $this->assertContains($acceptedVisit->id, $ids);
         $this->assertNotContains($openVisit->id, $ids);
         foreach ($response->json('data.jobs.data') as $row) {
-            $this->assertContains($row['status'], ['completed', 'rejected', 'cancelled', 'in_progress']);
+            $this->assertContains($row['status'], ['accepted', 'completed', 'rejected', 'cancelled', 'in_progress']);
         }
     }
 

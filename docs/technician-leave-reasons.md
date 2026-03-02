@@ -6,8 +6,39 @@ Your client asked for **leave reasons** on the leave page so the technician can 
 
 **No new “leave request” APIs are required.** Leave (vacations) is already part of the **Technician Availability** API:
 
-- **GET** `/api/technician/availability` – returns `vacations[]` (each has `id`, `start_date`, `end_date`, `reason`).
+- **GET** `/api/technician/availability` – returns `vacations[]` (each has `id`, `start_date`, `end_date`, `reason`) **and** `leave_reasons` (the list of selectable leave types for the Reason dropdown).
 - **PUT** `/api/technician/availability` – send `vacations` as a JSON array of `{ start_date, end_date, reason? }` to set/replace all leave entries.
+
+**GET availability response** – the extra parameter for “all the leaves” (select options) is **`data.leave_reasons`**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "is_online": true,
+    "auto_accept_jobs": false,
+    "working_days": [],
+    "working_hours_slots": [],
+    "service_area": null,
+    "service_areas": [],
+    "breaks": [],
+    "vacations": [
+      { "id": 1, "start_date": "2026-03-01", "end_date": "2026-03-05", "reason": "Leave" }
+    ],
+    "leave_reasons": [
+      { "value": "sick", "label": "Sick leave" },
+      { "value": "annual", "label": "Annual Leave" },
+      { "value": "unpaid", "label": "Unpaid leave" },
+      { "value": "paternity", "label": "Paternity Leave" },
+      { "value": "other", "label": "Other", "requires_notes": true }
+    ]
+  }
+}
+```
+
+Use **`data.leave_reasons`** for the “Reason (optional)” dropdown on the Set Vacation screen; use **`data.vacations`** for “Your vacations” list.
+
+**Notes field:** Sirf **“Other”** ke liye notes ka field dikhao. User jo bhi likhega (e.g. “Personal work”, “Family function”), woh **reason** me bhejna: `"Other: " + notes` (e.g. `reason: "Other: Personal work"`). Baaki reasons (Sick, Annual, Unpaid, Paternity) ke liye notes optional nahi chahiye — sirf label/value bhejo.
 
 So the “leave page” in the app should:
 
@@ -57,7 +88,7 @@ Use this to wire the **Set Vacation** UI to the API.
 |------------|------------------|
 | **Screen load** | Call **GET** `/api/technician/availability`. Use `data.vacations` for “Your vacations” and `data.leave_reasons` for the Reason dropdown. |
 | **Start date / End date** | Date picker; store as `YYYY-MM-DD` for the new entry. |
-| **Reason (optional)** | **Don’t use free text.** Use a **dropdown or picker** with options from `data.leave_reasons`: show `label` (Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other). If user selects **Other**, show an extra notes field and send `reason: "Other: " + notes`. Otherwise send `reason` as the selected `label` or `value` (e.g. `"Annual Leave"` or `"annual"`). |
+| **Reason (optional)** | Use a **dropdown** from `data.leave_reasons`. **Sirf “Other” select hone par** notes ka field dikhao — jitan user wahan likhega, woh bhejna: `reason: "Other: " + notes` (e.g. `"Other: Personal work"`). Baaki options (Sick, Annual, Unpaid, Paternity) ke liye sirf `reason` = selected `label` or `value` bhejo, notes mat lo. |
 | **+ Add vacation** | Append the new `{ start_date, end_date, reason }` to your local list, then call **PUT** `/api/technician/availability` with the **full** `vacations` array (existing + new). The API replaces all vacations in one request. |
 | **Done** | Same as above: **PUT** with the full final `vacations` array. |
 | **Your vacations (n)** | List comes from `data.vacations` (each has `id`, `start_date`, `end_date`, `reason`). Show e.g. “2026-03-01 – 2026-03-05” and the `reason` (e.g. “Sick leave”, “Leave”, “Other: personal matter”). |
