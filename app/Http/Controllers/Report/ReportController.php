@@ -66,14 +66,35 @@ class ReportController extends Controller
         }
     }
 
+    /**
+     * Single API for technician to submit field report to supervisor.
+     * Body: visit_id, technician_notes (field notes), optional recommended_products, optional status.
+     */
     public function store(Request $request)
     {
         try {
             $data = $request->validate([
                 'visit_id' => 'required|integer|exists:visits,id',
+                'technician_notes' => 'nullable|string',
                 'notes' => 'nullable|string',
+                'recommended_products' => 'nullable|array',
+                'recommended_products.*' => 'nullable|string',
                 'status' => 'nullable|string|in:draft,pending,approved,sent_to_client',
             ]);
+
+            $user = $request->user();
+            $visit = \App\Models\Visit::find($data['visit_id']);
+
+            // When technician submits: ensure visit is assigned to them and set defaults
+            if ($user && $user->hasRole('technician')) {
+                if ($visit->technician_id !== $user->id) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'You can only submit reports for visits assigned to you.',
+                    ], 403);
+                }
+                $data['status'] = $data['status'] ?? 'pending';
+            }
 
             $report = \App\Models\Report::create($data);
 

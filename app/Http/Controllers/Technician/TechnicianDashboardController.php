@@ -11,6 +11,8 @@ use App\Models\TechnicianBankAccount;
 use App\Models\TechnicianBreak;
 use App\Models\TechnicianVacation;
 use App\Models\Visit;
+use App\Models\Report;
+use App\Models\VisitPhoto;
 use App\Models\Tip;
 use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
@@ -1067,6 +1069,77 @@ class TechnicianDashboardController extends Controller
     {
         $request->user()->unreadNotifications->each(fn ($n) => $n->markAsRead());
         return ApiResponse::success('All notifications cleared.');
+    }
+
+    /**
+     * POST /api/technician/reports
+     * Technician-only: submit field report to supervisor (Job Details → "Submit Field Report to Supervisor").
+     * Accepts form-data: visit_id, technician_notes, recommended_products (array), before_photo (file), after_photo (file).
+     */
+    public function submitReport(Request $request)
+    {
+        $rules = [
+            'visit_id' => 'required|integer|exists:visits,id',
+            'technician_notes' => 'nullable|string|max:10000',
+            'notes' => 'nullable|string|max:5000',
+            'recommended_products' => 'nullable|array',
+            'recommended_products.*' => 'nullable|string',
+            'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
+        ];
+        $data = $request->validate($rules);
+
+        $user = $request->user();
+        $visit = Visit::find($data['visit_id']);
+
+        if ($visit->technician_id !== (int) $user->id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'You can only submit reports for visits assigned to you.',
+            ], 403);
+        }
+
+        if ($visit->status !== 'completed') {
+            return response()->json([
+                'status' => false,
+                'message' => 'You can only submit a report for a completed visit. Complete the visit first.',
+            ], 422);
+        }
+
+        if ($visit->report) {
+            return response()->json([
+                'status' => false,
+                'message' => 'A report already exists for this visit.',
+            ], 422);
+        }
+
+        $report = Report::create([
+            'visit_id' => $visit->id,
+            'technician_notes' => $data['technician_notes'] ?? '',
+            'notes' => $data['notes'] ?? null,
+            'recommended_products' => $data['recommended_products'] ?? [],
+            'status' => 'pending',
+        ]);
+
+        foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
+            if (! $request->hasFile($key)) {
+                continue;
+            }
+            $file = $request->file($key);
+            $path = $file->store('visit_photos', 'public');
+            ImageCompressionService::compressIfNeededFromPublicPath($path);
+            VisitPhoto::create([
+                'visit_id' => $visit->id,
+                'photo_path' => $path,
+                'type' => $type,
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Report submitted to supervisor successfully.',
+            'data' => $report->load(['visit', 'visit.photos']),
+        ], 201);
     }
 
     private function formatJobDetails(Visit $visit): array

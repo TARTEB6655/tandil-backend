@@ -1,7 +1,7 @@
 <x-admin-layout>
-    <div class="space-y-8 max-w-6xl">
+    <div class="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
         {{-- Page header --}}
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
             <h1 class="text-2xl font-semibold text-gray-900">Support Ticket #{{ $ticket->ticket_number }}</h1>
             <a href="{{ route('admin.support-tickets.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -16,11 +16,11 @@
         @endif
 
         {{-- Ticket summary card --}}
-        <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div class="border-b border-gray-100 bg-gray-50/80 px-6 py-3">
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden w-full">
+            <div class="border-b border-gray-100 bg-gray-50/80 px-4 sm:px-6 py-3">
                 <h2 class="text-sm font-semibold text-gray-700">Ticket details</h2>
             </div>
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wider text-gray-400">Client</p>
@@ -47,11 +47,11 @@
         </div>
 
         {{-- Conversation: full width, more breathing room --}}
-        <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div class="border-b border-gray-100 bg-gray-50/80 px-6 py-3">
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden w-full">
+            <div class="border-b border-gray-100 bg-gray-50/80 px-4 sm:px-6 py-3">
                 <h2 class="text-sm font-semibold text-gray-700">Conversation</h2>
             </div>
-            <div class="p-6 min-h-[280px]">
+            <div class="p-4 sm:p-6 min-h-[200px] sm:min-h-[280px]">
                 <div class="space-y-4 flex flex-col">
                     @forelse($ticket->replies as $reply)
                         @php $isAdmin = $reply->is_admin; @endphp
@@ -95,42 +95,42 @@
         </div>
 
         {{-- Reply & actions: two columns with clear separation --}}
-        <div class="grid lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {{-- Left: In-app reply --}}
-            <div class="lg:col-span-2">
-                {{-- In-app reply: compact type bar, working icons, more emojis, proper send button --}}
-                <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <div class="border-b border-gray-100 bg-gray-50/80 px-4 py-2">
-                        <h3 class="text-xs font-semibold text-gray-700">In-app reply</h3>
-                        <p class="text-[11px] text-gray-500 mt-0.5">Message, files, or voice. Optional when sending attachments.</p>
+            <div class="w-full min-w-0 lg:col-span-2">
+                {{-- In-app reply card: fixed width/height behaviour, contained emoji picker --}}
+                <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden w-full min-w-0">
+                    <div class="border-b border-gray-100 bg-gray-50/80 px-4 sm:px-5 py-2.5">
+                        <h3 class="text-sm font-semibold text-gray-700">In-app reply</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Message, files, or voice. Optional when sending attachments.</p>
                     </div>
-                    <div class="p-4">
-                        <form method="POST" action="{{ route('admin.support-tickets.reply', $ticket->id) }}" enctype="multipart/form-data" class="space-y-2" x-data="supportTicketChatBar()" @submit="if(recording) $event.preventDefault()">
+                    <div class="p-4 sm:p-5 w-full min-w-0 box-border">
+                        <form method="POST" action="{{ route('admin.support-tickets.reply', $ticket->id) }}" enctype="multipart/form-data" class="space-y-2 w-full min-w-0" x-data="supportTicketChatBar()" @submit="if(recording) $event.preventDefault()">
                             @csrf
                             <input type="file" name="attachments[]" id="attachments" multiple class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" x-ref="attachments" @change="updateFileList()">
                             <input type="file" name="voice" id="voice" class="hidden" accept="audio/*" x-ref="voice" @change="updateFileList()">
-                            <div class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50/50 px-2 py-1.5">
-                                <button type="button" @click="$refs.attachments.click()" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Attach file">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            <div class="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 w-full min-w-0 max-w-full box-border">
+                                <button type="button" @click="$refs.attachments.click()" class="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Attach file">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                                 </button>
-                                <button type="button" @click.stop="emojiOpen = !emojiOpen" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Emoji">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <button type="button" @click.stop="emojiOpen = !emojiOpen" class="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Emoji">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 </button>
-                                <button type="button" @click="toggleVoiceRecording()" class="flex-shrink-0 p-1.5 rounded-md transition-colors" :class="recording ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'text-gray-500 hover:bg-gray-200 hover:text-gray-700'" :title="recording ? 'Stop recording' : 'Record voice message'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                                <button type="button" @click="toggleVoiceRecording()" class="flex-shrink-0 p-2 rounded-lg transition-colors" :class="recording ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'text-gray-500 hover:bg-gray-200 hover:text-gray-700'" :title="recording ? 'Stop recording' : 'Record voice message'">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
                                 </button>
-                                <div class="relative flex-1 min-w-0" x-ref="emojiContainer">
-                                    <textarea name="message" id="message" rows="1" placeholder="Type a message..." class="block w-full min-h-[36px] max-h-24 py-2 px-2.5 text-sm rounded-md border border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
+                                <div class="relative flex-1 min-w-0 max-w-full" x-ref="emojiContainer">
+                                    <textarea name="message" id="message" rows="1" placeholder="Type a message..." class="block w-full min-w-0 min-h-[38px] max-h-24 py-2 px-3 text-sm rounded-lg border border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
                                         x-ref="messageInput"
                                         @input="updateFileList()">{{ old('message') }}</textarea>
-                                    <div x-show="emojiOpen" x-cloak @click.away="emojiOpen = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute bottom-full left-0 mb-1.5 p-2 bg-white border border-gray-200 rounded-lg shadow-xl flex flex-wrap gap-1 max-w-[260px] z-50 max-h-[180px] overflow-y-auto">
+                                    <div x-show="emojiOpen" x-cloak @click.away="emojiOpen = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute bottom-full left-0 mb-2 p-2.5 bg-white border border-gray-200 rounded-xl shadow-xl flex flex-wrap gap-1.5 w-[min(280px,100%)] max-w-[280px] z-50 max-h-[200px] overflow-y-auto overflow-x-hidden">
                                         <template x-for="(e, i) in emojis" :key="i">
-                                            <button type="button" @click.prevent="insertEmoji(e)" class="text-base hover:bg-gray-100 rounded p-0.5 leading-none" x-text="e"></button>
+                                            <button type="button" @click.prevent="insertEmoji(e)" class="text-base hover:bg-gray-100 rounded p-1 leading-none shrink-0" x-text="e"></button>
                                         </template>
                                     </div>
                                 </div>
-                                <button type="submit" class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" title="Send">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                <button type="submit" class="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" title="Send">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                                 </button>
                             </div>
                             <div x-show="recording" class="text-[11px] text-red-600 font-medium" x-cloak>Recording… Click mic again to stop and attach.</div>
@@ -202,12 +202,12 @@
             </div>
 
             {{-- Right: Status & delete (1/3 width) --}}
-            <div class="space-y-6">
-                <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <div class="border-b border-gray-100 bg-gray-50/80 px-6 py-3">
+            <div class="space-y-4 sm:space-y-6 w-full min-w-0">
+                <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden w-full">
+                    <div class="border-b border-gray-100 bg-gray-50/80 px-4 sm:px-6 py-3">
                         <h3 class="text-sm font-semibold text-gray-700">Update status</h3>
                     </div>
-                    <div class="p-6">
+                    <div class="p-4 sm:p-6">
                         <form method="POST" action="{{ route('admin.support-tickets.update-status', $ticket->id) }}" class="space-y-3">
                             @csrf
                             @method('PUT')
@@ -221,11 +221,11 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-red-200 bg-white shadow-sm overflow-hidden">
-                    <div class="border-b border-red-100 bg-red-50/50 px-6 py-3">
+                <div class="rounded-xl border border-red-200 bg-white shadow-sm overflow-hidden w-full">
+                    <div class="border-b border-red-100 bg-red-50/50 px-4 sm:px-6 py-3">
                         <h3 class="text-sm font-semibold text-red-700">Delete ticket</h3>
                     </div>
-                    <div class="p-6">
+                    <div class="p-4 sm:p-6">
                         <form method="POST" action="{{ route('admin.support-tickets.destroy', $ticket->id) }}" onsubmit="return confirm('Delete this ticket permanently?');">
                             @csrf
                             @method('DELETE')

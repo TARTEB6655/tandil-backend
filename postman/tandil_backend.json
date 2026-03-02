@@ -3362,7 +3362,7 @@
                     }
                 },
                 {
-                    "name": "Technician - Upload Photo",
+                    "name": "Technician - Submit Field Report to Supervisor",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -3379,33 +3379,49 @@
                             "mode": "formdata",
                             "formdata": [
                                 {
-                                    "key": "photo",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "Image file (required). POST or PUT with multipart (same as category)."
+                                    "key": "visit_id",
+                                    "value": "{{visit_id}}",
+                                    "type": "text",
+                                    "description": "Required. Job/visit ID (e.g. 15 for Job #15)."
                                 },
                                 {
-                                    "key": "type",
-                                    "value": "after",
+                                    "key": "technician_notes",
+                                    "value": "Focus on date palm section. Check drip irrigation. Completed watering, one minor leak repaired.",
                                     "type": "text",
-                                    "description": "Optional: before | during | after"
+                                    "description": "Field notes (observations, issues, work completed)."
+                                },
+                                {
+                                    "key": "recommended_products[]",
+                                    "value": "Fertilizer A",
+                                    "type": "text",
+                                    "description": "Optional. Add multiple for more products."
+                                },
+                                {
+                                    "key": "before_photo",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "Optional. Before photo (image file)."
+                                },
+                                {
+                                    "key": "after_photo",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "Optional. After photo (image file)."
                                 }
                             ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/tech/visits/{{visit_id}}/photos",
+                            "raw": "{{base_url}}/api/technician/reports",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "api",
-                                "tech",
-                                "visits",
-                                "{{visit_id}}",
-                                "photos"
+                                "technician",
+                                "reports"
                             ]
                         },
-                        "description": "Upload maintenance/visit photo. POST or PUT with multipart/form-data (same as category image update). Body: photo (file), type (optional: before|during|after). Response: status, data (id, visit_id, type, photo_path, photo_url, created_at). Set visit_id."
+                        "description": "Technician-only API: submit field report to supervisor (Job Details → Submit Field Report to Supervisor). Form-data: visit_id (required), technician_notes, recommended_products[], before_photo (file), after_photo (file). Before/after photos are saved as visit photos. Visit must be completed and assigned to the technician. Response: status, message, data (report with visit.photos)."
                     }
                 },
                 {
@@ -5386,7 +5402,46 @@
                                             "value": "20"
                                         }
                                     ]
-                                }
+                                },
+                                "description": "List all field reports for supervisor's area. Add ?status=pending for Pending Field Reports (dashboard widget). Response includes visit, client, technician. Use per_page and optional status."
+                            }
+                        },
+                        {
+                            "name": "Reports - List Pending (Pending Field Reports)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/reports?status=pending&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "reports"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Dashboard: Pending Field Reports – reports from technicians awaiting supervisor review. Same as Reports - List with ?status=pending."
                             }
                         },
                         {
@@ -5572,7 +5627,7 @@
                             }
                         },
                         {
-                            "name": "Visit Report - Finalize (POST form-data)",
+                            "name": "Visit Report - Finalize / Submit to Client (POST form-data)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -5594,8 +5649,23 @@
                                             "type": "text"
                                         },
                                         {
+                                            "key": "supervisor_notes",
+                                            "value": "Completed review. Recommend fertilizer for section B.",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "recommendations[]",
+                                            "value": "Needs Fertilizer",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "recommendations[]",
+                                            "value": "Needs Watering",
+                                            "type": "text"
+                                        },
+                                        {
                                             "key": "status",
-                                            "value": "finalized",
+                                            "value": "sent_to_client",
                                             "type": "text"
                                         }
                                     ]
@@ -5612,7 +5682,8 @@
                                         "{{visit_id}}",
                                         "finalize"
                                     ]
-                                }
+                                },
+                                "description": "Review report then Submit Report to Client. Body: notes, supervisor_notes, recommendations[] (e.g. Needs Fertilizer, Needs Vitamins, Needs Watering), recommended_products[] (product IDs), status. Use status=sent_to_client to submit to client (notifies client). Optional: status=pending|finalized|rejected."
                             }
                         }
                     ]

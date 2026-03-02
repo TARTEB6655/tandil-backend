@@ -288,12 +288,21 @@ class SupervisorDashboardApiController extends Controller
         return response()->json(['success' => true, 'message' => 'Assignment reassigned successfully.', 'data' => $visit]);
     }
 
+    /**
+     * List field reports (visit reports) for supervisor's area.
+     * Optional: ?status=pending for "Pending Field Reports" dashboard widget.
+     */
     public function reportsIndex(Request $request): JsonResponse
     {
         $visitIds = $this->visitsQuery($request)->pluck('id');
-        $reports = Report::whereIn('visit_id', $visitIds)
-            ->with(['visit.subscription.client', 'supervisor'])
-            ->orderByDesc('created_at')
+        $query = Report::whereIn('visit_id', $visitIds)
+            ->with(['visit.subscription.client', 'visit.technician', 'supervisor']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $reports = $query->orderByDesc('created_at')
             ->paginate((int) $request->get('per_page', 20));
 
         return response()->json(['success' => true, 'data' => $reports]);

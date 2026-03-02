@@ -79,7 +79,7 @@ class SupervisorController extends Controller
     {
         $user = $request->user();
 
-        $visit = Visit::with(['photos', 'subscription.client', 'report'])->find($id);
+        $visit = Visit::with(['photos', 'subscription.client', 'report', 'technician'])->find($id);
 
         if (!$visit) {
             return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
@@ -144,7 +144,9 @@ class SupervisorController extends Controller
     }
 
     /**
-     * Finalize or update a report for a visit.
+     * Finalize report and optionally submit to client (Select Recommendations → Submit Report to Client).
+     * Body: notes, supervisor_notes, recommendations[] (e.g. "Needs Fertilizer", "Needs Vitamins"),
+     * recommended_products[] (product IDs), status (pending|finalized|sent_to_client|rejected).
      */
     public function finalizeReport(Request $request, $id)
     {
@@ -161,43 +163,64 @@ class SupervisorController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'notes' => 'nullable|string',
-            'status' => 'nullable|string|in:pending,finalized,rejected',
+            'notes' => 'nullable|string|max:5000',
+            'supervisor_notes' => 'nullable|string|max:5000',
+            'recommendations' => 'nullable|array',
+            'recommendations.*' => 'nullable|string|max:255',
+            'recommended_products' => 'nullable|array',
+            'recommended_products.*' => 'nullable',
+            'status' => 'nullable|string|in:pending,finalized,sent_to_client,rejected',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $report = Report::firstOrCreate(['visit_id' => $visit->id]);
+        $report = Report::firstOrCreate(['visit_id' => $visit->id], ['status' => 'pending']);
 
+        $report->supervisor_id = $user->id;
         if ($request->has('notes')) {
             $report->notes = $request->input('notes');
         }
+        if ($request->has('supervisor_notes')) {
+            $report->supervisor_notes = $request->input('supervisor_notes');
+        }
+        if ($request->has('recommendations')) {
+            $report->recommendations = array_values(array_filter($request->input('recommendations', [])));
+        }
+        if ($request->has('recommended_products')) {
+            $report->recommended_products = array_values($request->input('recommended_products', []));
+        }
 
-        if ($request->has('status')) {
-            $report->status = $request->input('status');
-
-            // If finalized, set approved_by and approved_at
-            if ($report->status === 'finalized') {
+        $status = $request->input('status');
+        if ($status) {
+            $report->status = $status === 'finalized' ? 'approved' : $status;
+            if (in_array($status, ['finalized', 'sent_to_client'], true)) {
                 $report->approved_by = $user->id;
                 $report->approved_at = now();
-
-                // Notify client
+                if ($status === 'sent_to_client') {
+                    $report->status = 'sent_to_client';
+                }
                 try {
-                    $client = $visit->subscription->client;
+                    $client = $visit->subscription?->client;
                     if ($client) {
                         $client->notify(new \App\Notifications\ReportFinalized($report));
                     }
                 } catch (\Throwable $e) {
-                    // Log error if needed
+                    // Log if needed
                 }
             }
         }
 
         $report->save();
 
-        return response()->json(['status' => true, 'data' => $report], 200);
+        return response()->json([
+            'status' => true,
+            'message' => in_array($status, ['finalized', 'sent_to_client'], true)
+                ? 'Report submitted to client successfully.'
+                : 'Report updated.',
+            'data' => $report->load(['visit.subscription.client', 'supervisor']),
+        ], 200);
     }
 
     /**
