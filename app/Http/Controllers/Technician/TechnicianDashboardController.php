@@ -781,24 +781,31 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/leave-types
-     * Returns the list of leave reasons for the technician leave/vacation form. Use in dropdown; send selected value (or label) as "reason" in PUT availability vacations[]. For "other", send reason "Other" and append user notes in the same field, e.g. "Other: personal matter".
+     * Leave reasons for vacation/leave form. Same list used in GET/PUT availability and GET leave-types.
      */
-    public function leaveTypes(Request $request)
+    private function getLeaveReasons(): array
     {
-        $types = [
+        return [
             ['value' => 'sick', 'label' => 'Sick leave'],
             ['value' => 'annual', 'label' => 'Annual Leave'],
             ['value' => 'unpaid', 'label' => 'Unpaid leave'],
             ['value' => 'paternity', 'label' => 'Paternity Leave'],
             ['value' => 'other', 'label' => 'Other', 'requires_notes' => true],
         ];
-        return response()->json(['success' => true, 'data' => $types]);
+    }
+
+    /**
+     * GET /api/technician/leave-types
+     * Returns the list of leave reasons for the technician leave/vacation form. Use in dropdown; send selected value (or label) as "reason" in PUT availability vacations[]. For "other", send reason "Other" and append user notes in the same field, e.g. "Other: personal matter".
+     */
+    public function leaveTypes(Request $request)
+    {
+        return response()->json(['success' => true, 'data' => $this->getLeaveReasons()]);
     }
 
     /**
      * GET /api/technician/availability
-     * Returns: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations.
+     * Returns: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations, leave_reasons.
      */
     public function availability(Request $request)
     {
@@ -840,6 +847,7 @@ class TechnicianDashboardController extends Controller
                 'end_date' => $v->end_date?->toDateString(),
                 'reason' => $v->reason,
             ])->values()->all(),
+            'leave_reasons' => $this->getLeaveReasons(),
         ];
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -963,6 +971,7 @@ class TechnicianDashboardController extends Controller
                 'end_date' => $v->end_date?->toDateString(),
                 'reason' => $v->reason,
             ])->values()->all(),
+            'leave_reasons' => $this->getLeaveReasons(),
         ];
         return response()->json(['success' => true, 'data' => $data]);
     }

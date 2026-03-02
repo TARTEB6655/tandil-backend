@@ -105,7 +105,7 @@
                         <p class="text-[11px] text-gray-500 mt-0.5">Message, files, or voice. Optional when sending attachments.</p>
                     </div>
                     <div class="p-4">
-                        <form method="POST" action="{{ route('admin.support-tickets.reply', $ticket->id) }}" enctype="multipart/form-data" class="space-y-2" x-data="supportTicketChatBar()">
+                        <form method="POST" action="{{ route('admin.support-tickets.reply', $ticket->id) }}" enctype="multipart/form-data" class="space-y-2" x-data="supportTicketChatBar()" @submit="if(recording) $event.preventDefault()">
                             @csrf
                             <input type="file" name="attachments[]" id="attachments" multiple class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" x-ref="attachments" @change="updateFileList()">
                             <input type="file" name="voice" id="voice" class="hidden" accept="audio/*" x-ref="voice" @change="updateFileList()">
@@ -113,27 +113,28 @@
                                 <button type="button" @click="$refs.attachments.click()" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Attach file">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                                 </button>
-                                <button type="button" @click="emojiOpen = !emojiOpen" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Emoji">
+                                <button type="button" @click.stop="emojiOpen = !emojiOpen" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Emoji">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 </button>
-                                <button type="button" @click="$refs.voice.click()" class="flex-shrink-0 p-1.5 rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title="Voice message">
+                                <button type="button" @click="toggleVoiceRecording()" class="flex-shrink-0 p-1.5 rounded-md transition-colors" :class="recording ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'text-gray-500 hover:bg-gray-200 hover:text-gray-700'" :title="recording ? 'Stop recording' : 'Record voice message'">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
                                 </button>
-                                <div class="relative flex-1 min-w-0">
+                                <div class="relative flex-1 min-w-0" x-ref="emojiContainer">
                                     <textarea name="message" id="message" rows="1" placeholder="Type a message..." class="block w-full min-h-[36px] max-h-24 py-2 px-2.5 text-sm rounded-md border border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
                                         x-ref="messageInput"
                                         @input="updateFileList()">{{ old('message') }}</textarea>
-                                    <div x-show="emojiOpen" @click.away="emojiOpen = false" x-transition class="absolute bottom-full left-0 mb-1.5 p-2 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-wrap gap-1 max-w-[260px]" style="display: none;">
-                                        <template x-for="e in emojis" :key="e">
-                                            <button type="button" @click="insertEmoji(e)" class="text-base hover:bg-gray-100 rounded p-0.5 leading-none" x-text="e"></button>
+                                    <div x-show="emojiOpen" x-cloak @click.away="emojiOpen = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute bottom-full left-0 mb-1.5 p-2 bg-white border border-gray-200 rounded-lg shadow-xl flex flex-wrap gap-1 max-w-[260px] z-50 max-h-[180px] overflow-y-auto">
+                                        <template x-for="(e, i) in emojis" :key="i">
+                                            <button type="button" @click.prevent="insertEmoji(e)" class="text-base hover:bg-gray-100 rounded p-0.5 leading-none" x-text="e"></button>
                                         </template>
                                     </div>
                                 </div>
                                 <button type="submit" class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" title="Send">
-                                    <svg class="w-4 h-4 rotate-[-45deg]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2z"/></svg>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                                 </button>
                             </div>
-                            <div x-show="fileList.length > 0" class="text-[11px] text-gray-500 flex flex-wrap gap-1" x-cloak>
+                            <div x-show="recording" class="text-[11px] text-red-600 font-medium" x-cloak>Recording… Click mic again to stop and attach.</div>
+                            <div x-show="fileList.length > 0 && !recording" class="text-[11px] text-gray-500 flex flex-wrap gap-1" x-cloak>
                                 <span x-text="'Attachments: ' + fileList.join(', ')"></span>
                             </div>
                             @error('message')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
@@ -143,6 +144,9 @@
                                 return {
                                     emojiOpen: false,
                                     fileList: [],
+                                    recording: false,
+                                    mediaRecorder: null,
+                                    recordingChunks: [],
                                     emojis: ['😀','😃','😄','😁','😊','🥰','😍','🤩','😘','😋','😜','🤪','🤗','🤔','😐','😏','😒','🙄','😌','😔','😴','😷','🤒','🤕','🤢','😵','🤯','🥳','😎','🤓','😕','😟','😮','😲','😳','🥺','😢','😭','😱','😤','😡','🤬','💀','💩','🤡','👻','🤖','😺','😸','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','👌','🤏','👈','👉','🙌','🤲','🙏','💪','👂','👃','👀','❤️','🧡','💛','💚','💙','💜','🖤','💔','💕','💖','💯','✅','❌','🔥','⭐','🌟','✨','💫','🙏','👋','🖐️','✋','👌','✌️','🤞','🤟','🤙','👉','🙌','🙏','📎','📷','🎤','💬','📧','📩','🔔','⏰','📅','✅','❌','⚠️','ℹ️','🔒','🔓','⭐','🌟','💡','🔔','🎉','🎊','🏆','📌','📍','🔖','✏️','📝','📋','🗒️','📁','📂','🗂️','📊','📈','📉','🛒','💰','💳','🏠','🚗','✈️','🌍','☀️','🌙','⭐','🌈','🔥','💧','🌊','⚡','❄️','🌸','🌺','🍀','🌻','🍎','🍕','☕','🍺','🎂','🎁','🎈','🎀','🏳️','🏴','🔴','🟢','🔵','🟡','🟠','🟣','⚫','⚪'],
                                     insertEmoji(emoji) {
                                         const ta = this.$refs.messageInput;
@@ -159,6 +163,36 @@
                                         this.fileList = [];
                                         if (att && att.files) for (let i = 0; i < att.files.length; i++) this.fileList.push(att.files[i].name);
                                         if (voice && voice.files && voice.files[0]) this.fileList.push('Voice: ' + voice.files[0].name);
+                                    },
+                                    async toggleVoiceRecording() {
+                                        if (this.recording) {
+                                            this.mediaRecorder.stop();
+                                            return;
+                                        }
+                                        try {
+                                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                                            const rec = new MediaRecorder(stream);
+                                            this.recordingChunks = [];
+                                            rec.ondataavailable = (e) => { if (e.data.size) this.recordingChunks.push(e.data); };
+                                            rec.onstop = () => {
+                                                stream.getTracks().forEach(t => t.stop());
+                                                const blob = new Blob(this.recordingChunks, { type: 'audio/webm' });
+                                                const file = new File([blob], 'voice.webm', { type: 'audio/webm' });
+                                                const input = this.$refs.voice;
+                                                if (input && typeof DataTransfer !== 'undefined') {
+                                                    const dt = new DataTransfer();
+                                                    dt.items.add(file);
+                                                    input.files = dt.files;
+                                                    this.updateFileList();
+                                                }
+                                                this.recording = false;
+                                            };
+                                            rec.start();
+                                            this.mediaRecorder = rec;
+                                            this.recording = true;
+                                        } catch (err) {
+                                            alert('Microphone access is needed to record. Please allow mic and try again.');
+                                        }
                                     }
                                 };
                             }

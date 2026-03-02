@@ -4580,7 +4580,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations. Vacations are only in this API (no separate vacation endpoints). Optional query: from, to (filters breaks by date and vacations overlapping range)."
+                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations, leave_reasons. leave_reasons = [Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other]. Use for leave dropdown. Optional query: from, to (filters breaks and vacations by date range)."
                             }
                         },
                         {
@@ -4661,7 +4661,7 @@
                                         "availability"
                                     ]
                                 },
-                                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (JSON array of {start_date, end_date, reason?}). Sending breaks or vacations replaces all. Response returns service_area, service_areas, breaks, vacations. No separate vacation endpoints."
+                                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (JSON array of {start_date, end_date, reason?}). Reason can be: sick, annual, unpaid, paternity, other (or labels). Sending breaks or vacations replaces all. Response returns service_area, service_areas, breaks, vacations, leave_reasons."
                             }
                         },
                         {
