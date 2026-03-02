@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Admin Support Tickets (folder 13): list/respond to tickets from clients and technicians; web UI at /admin/support-tickets uses admin layout. Submit ticket (client/technician): POST /api/support/tickets with JSON body: subject, email, description (all required). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.80.0"
@@ -4528,6 +4528,22 @@
                             }
                         },
                         {
+                            "name": "GET Technician – Leave types",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/leave-types",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "technician", "leave-types"]
+                                },
+                                "description": "Leave reasons for the leave/vacation form: Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other (requires_notes). Use in dropdown; send selected value or label as vacations[].reason in PUT availability. For Other, send reason \"Other\" and append notes, e.g. \"Other: personal matter\"."
+                            }
+                        },
+                        {
                             "name": "GET Technician – Availability",
                             "request": {
                                 "method": "GET",
@@ -4802,6 +4818,61 @@
                                     "path": ["api", "technician", "support", "tickets"]
                                 },
                                 "description": "Submit a support ticket. Body: subject, email, description (required)."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Support list my tickets",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/support/tickets?per_page=20",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "support", "tickets"],
+                                    "query": [{"key": "per_page", "value": "20"}, {"key": "status", "value": "", "description": "optional: open, in_progress, resolved, closed"}]
+                                },
+                                "description": "Technician – List my support tickets (chat with admin). Same as client. Use technician Bearer token. Query: status, per_page."
+                            }
+                        },
+                        {
+                            "name": "GET Technician – Support get ticket by ID (chat thread)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/support/tickets/{{ticket_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "support", "tickets", "{{ticket_id}}"]
+                                },
+                                "description": "Technician – Get one ticket with full reply thread (chat). Set ticket_id. Use technician Bearer token."
+                            }
+                        },
+                        {
+                            "name": "POST Technician – Support reply to ticket",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"},
+                                    {"key": "Content-Type", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"message\": \"My reply message here.\"\n}",
+                                    "options": {"raw": {"language": "json"}}
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/support/tickets/{{ticket_id}}/reply",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "support", "tickets", "{{ticket_id}}", "reply"]
+                                },
+                                "description": "Technician – Reply in ticket chat. Body: message (required). Not allowed when status is resolved or closed. Use technician Bearer token."
                             }
                         }
                     ],
@@ -5705,6 +5776,68 @@
                                         "preferences"
                                     ]
                                 }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "F. Support Tickets (Chat)",
+                    "description": "Supervisor – Support ticket chat with admin. Same APIs as client/technician. Use /api/support/* with supervisor Bearer token.",
+                    "item": [
+                        {
+                            "name": "Support – Help Center",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]},
+                                "description": "Supervisor – Help center payload (contact, FAQs, submit_ticket info)."
+                            }
+                        },
+                        {
+                            "name": "Support – FAQs",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]},
+                                "description": "Supervisor – FAQ list."
+                            }
+                        },
+                        {
+                            "name": "Support – Submit ticket",
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+                                "body": {"mode": "raw", "raw": "{\n  \"subject\": \"Support request\",\n  \"email\": \"supervisor@example.com\",\n  \"description\": \"Describe your issue.\"\n}", "options": {"raw": {"language": "json"}}},
+                                "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]},
+                                "description": "Supervisor – Create support ticket. Body: subject, email, description (required)."
+                            }
+                        },
+                        {
+                            "name": "Support – List my tickets",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "url": {"raw": "{{base_url}}/api/support/tickets?per_page=20", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"], "query": [{"key": "per_page", "value": "20"}]},
+                                "description": "Supervisor – List my support tickets."
+                            }
+                        },
+                        {
+                            "name": "Support – Get ticket by ID (chat thread)",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "url": {"raw": "{{base_url}}/api/support/tickets/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["api", "support", "tickets", "{{ticket_id}}"]},
+                                "description": "Supervisor – Get one ticket with full chat (replies). Set ticket_id."
+                            }
+                        },
+                        {
+                            "name": "Support – Reply to ticket",
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+                                "body": {"mode": "raw", "raw": "{\n  \"message\": \"My reply.\"\n}", "options": {"raw": {"language": "json"}}},
+                                "url": {"raw": "{{base_url}}/api/support/tickets/{{ticket_id}}/reply", "host": ["{{base_url}}"], "path": ["api", "support", "tickets", "{{ticket_id}}", "reply"]},
+                                "description": "Supervisor – Reply in ticket chat. Body: message (required)."
                             }
                         }
                     ]
@@ -8034,6 +8167,36 @@
         {
             "name": "15. Other Modules",
             "item": [
+                {
+                    "name": "Support Tickets – All roles (Client, Technician, Supervisor, Area Manager, HR)",
+                    "description": "Same /api/support/* APIs for all these roles. Use Bearer token of the logged-in role (client, technician, supervisor, area_manager, or hr). For role-specific folders see: Module 3 (Client), Module 9 (Technician), Module 10 (Supervisor). Admin uses Module 13.",
+                    "item": [
+                        {
+                            "name": "Help Center (GET)",
+                            "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/help-center", "host": ["{{base_url}}"], "path": ["api", "support", "help-center"]}, "description": "Help center payload. Use with any role token."}
+                        },
+                        {
+                            "name": "FAQs (GET)",
+                            "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/faqs", "host": ["{{base_url}}"], "path": ["api", "support", "faqs"]}, "description": "FAQ list. Use with any role token."}
+                        },
+                        {
+                            "name": "Submit ticket (POST)",
+                            "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"subject\": \"Support request\",\n  \"email\": \"user@example.com\",\n  \"description\": \"Describe your issue.\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{base_url}}/api/support/tickets", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"]}, "description": "Create ticket. Body: subject, email, description (required)."}
+                        },
+                        {
+                            "name": "List my tickets (GET)",
+                            "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/tickets?per_page=20", "host": ["{{base_url}}"], "path": ["api", "support", "tickets"], "query": [{"key": "per_page", "value": "20"}]}, "description": "List my support tickets. Use with any role token."}
+                        },
+                        {
+                            "name": "Get ticket by ID – chat thread (GET)",
+                            "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/support/tickets/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["api", "support", "tickets", "{{ticket_id}}"]}, "description": "Get one ticket with full chat. Set ticket_id."}
+                        },
+                        {
+                            "name": "Reply to ticket (POST)",
+                            "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"message\": \"My reply.\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{base_url}}/api/support/tickets/{{ticket_id}}/reply", "host": ["{{base_url}}"], "path": ["api", "support", "tickets", "{{ticket_id}}", "reply"]}, "description": "Reply in ticket chat. Body: message (required)."}
+                        }
+                    ]
+                },
                 {
                     "name": "Exclusive Offers",
                     "description": "Exclusive offers for home screen. Public: List, Get by ID (no auth) – response shape same as admin (data array with image, image_url, is_active). Admin: List, Create, Get, Update, Delete (Bearer + admin). image_url = full URL for display; image = storage path.",

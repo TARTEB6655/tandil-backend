@@ -196,6 +196,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::post('/bank-accounts', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountStore']);
     Route::put('/bank-accounts/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountUpdate']);
     Route::delete('/bank-accounts/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountDestroy']);
+    Route::get('/leave-types', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'leaveTypes']);
     Route::get('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'availability']);
     Route::put('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateAvailability']);
     Route::get('/schedule', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'schedule']);

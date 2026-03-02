@@ -4,6 +4,8 @@ This document describes the **APIs** and **UI flow** the React Native app must i
 
 **Base URL:** `{base_url}/api` (e.g. `https://yoursite.com/api`)
 
+**Roles:** The same `/api/support/*` endpoints (help-center, faqs, tickets list/create, get by ID, reply) are used by **client**, **technician**, **supervisor**, **area_manager**, and **hr**. Use the logged-in user’s Bearer token. In Postman: Client = Module 3 (Help and Support); Technician = Module 9; Supervisor = Module 10 (F. Support Tickets); Area Manager / HR = Module 15 “Support Tickets – All roles”; Admin = Module 13.
+
 ---
 
 ## Table of Contents
