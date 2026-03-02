@@ -452,6 +452,16 @@ class TechnicianDashboardApiTest extends TestCase
         $response3->assertJsonCount(1, 'data.vacations');
         $response3->assertJsonPath('data.vacations.0.reason', 'Short leave');
         $this->assertSame(1, \App\Models\TechnicianVacation::where('user_id', $this->technician->id)->count());
+
+        // Notes are separate from reason
+        $response4 = $this->putJson('/api/technician/availability', [
+            'vacations' => [
+                ['start_date' => Carbon::today()->addDays(20)->toDateString(), 'end_date' => Carbon::today()->addDays(22)->toDateString(), 'reason' => 'Other', 'notes' => 'Personal matter'],
+            ],
+        ], $this->authHeaders());
+        $response4->assertStatus(200);
+        $response4->assertJsonPath('data.vacations.0.reason', 'Other');
+        $response4->assertJsonPath('data.vacations.0.notes', 'Personal matter');
     }
 
     public function test_schedule_returns_tasks_breaks_vacations(): void

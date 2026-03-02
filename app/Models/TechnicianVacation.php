@@ -12,6 +12,7 @@ class TechnicianVacation extends Model
         'start_date',
         'end_date',
         'reason',
+        'notes',
     ];
 
     protected $casts = [

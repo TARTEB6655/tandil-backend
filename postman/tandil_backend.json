@@ -3997,7 +3997,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Returns jobs in period: **in_progress**, **completed**, **rejected**, **cancelled**. Summary: total_earnings, jobs_completed, avg_rating. Query: period (week|month|year), per_page."
+                                "description": "Returns jobs in period: **accepted**, **in_progress**, **completed**, **rejected**, **cancelled**. Summary: total_earnings, jobs_completed, avg_rating. Query: period (week|month|year), per_page. Period uses current week/month/year; date range is inclusive."
                             }
                         },
                         {
@@ -4540,7 +4540,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "technician", "leave-types"]
                                 },
-                                "description": "Leave reasons for the leave/vacation form: Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other (requires_notes). Use in dropdown; send selected value or label as vacations[].reason in PUT availability. For Other, send reason \"Other\" and append notes, e.g. \"Other: personal matter\"."
+                                "description": "Leave reasons for the leave/vacation form: Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other (requires_notes). Use in dropdown; send selected value or label as vacations[].reason in PUT availability. Notes field only for **Other**: send reason as \"Other: \" + user notes (e.g. \"Other: personal matter\"). Same list is in GET/PUT availability as data.leave_reasons."
                             }
                         },
                         {
@@ -4580,7 +4580,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations, leave_reasons. leave_reasons = [Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other]. Use for leave dropdown. Optional query: from, to (filters breaks and vacations by date range)."
+                                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (each: id, start_date, end_date, reason, notes), leave_reasons. Optional query: from, to (filters breaks and vacations by date range)."
                             }
                         },
                         {
@@ -4644,9 +4644,9 @@
                                         },
                                         {
                                             "key": "vacations",
-                                            "value": "[{\"start_date\": \"2026-03-01\", \"end_date\": \"2026-03-05\", \"reason\": \"Leave\"}]",
+                                            "value": "[{\"start_date\": \"2026-03-01\", \"end_date\": \"2026-03-05\", \"reason\": \"Sick leave\", \"notes\": null}, {\"start_date\": \"2026-03-10\", \"end_date\": \"2026-03-12\", \"reason\": \"Other\", \"notes\": \"Personal matter\"}]",
                                             "type": "text",
-                                            "description": "JSON array of {start_date, end_date, reason?}. Replaces all vacations. Add/edit/delete via this API only."
+                                            "description": "JSON array of {start_date, end_date, reason?, notes?}. **reason** = leave type (Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other). **notes** = separate optional text (e.g. for Other or any extra detail). Replaces all vacations."
                                         }
                                     ]
                                 },
@@ -4661,7 +4661,7 @@
                                         "availability"
                                     ]
                                 },
-                                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (JSON array of {start_date, end_date, reason?}). Reason can be: sick, annual, unpaid, paternity, other (or labels). Sending breaks or vacations replaces all. Response returns service_area, service_areas, breaks, vacations, leave_reasons."
+                                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (JSON array of {start_date, end_date, reason?, notes?}). reason = leave type; notes = separate optional text. Response returns service_area, service_areas, breaks, vacations (each with reason + notes), leave_reasons."
                             }
                         },
                         {
@@ -4876,7 +4876,7 @@
                             }
                         }
                     ],
-                    "description": "Technician Dashboard. All require technician role + Bearer token.\n\n**Tasks vs Jobs (avoid confusion):**\n• **Tasks** = Your assigned work (visits). Use GET /api/technician/tasks with query **filter** (today | upcoming | all | completed | accepted | rejected). **filter=all** = all open jobs; **filter=completed** = completed only.\n• **Jobs – History** = The only \"history\" API: GET /api/technician/jobs. Returns **closed** jobs (completed, rejected, cancelled) in a **period** (week|month|year). Summary + list. Use this for \"all my past jobs\" or \"job history\".\n• Single task/job detail = GET /api/technician/tasks/{{visit_id}} or .../tasks/{{visit_id}}/detail (not under /jobs).\n• Profile, payout, bank accounts, availability, schedule as listed below."
+                    "description": "Technician Dashboard. All require technician role + Bearer token.\n\n**Tasks vs Jobs (avoid confusion):**\n• **Tasks** = Your assigned work (visits). Use GET /api/technician/tasks with query **filter** (today | upcoming | all | completed | accepted | rejected). **filter=all** = all open jobs; **filter=completed** = completed only.\n• **Jobs – History** = GET /api/technician/jobs. Returns jobs with status **accepted**, **in_progress**, **completed**, **rejected**, **cancelled** in a **period** (week|month|year). Summary + list.\n• Single task/job detail = GET /api/technician/tasks/{{visit_id}} or .../tasks/{{visit_id}}/detail (not under /jobs).\n• **Availability** = GET/PUT return breaks, vacations, **leave_reasons** (Sick leave, Annual Leave, Unpaid leave, Paternity Leave, Other). Use leave_reasons for Set Vacation reason dropdown.\n• Profile, payout, bank accounts, schedule as listed below."
                 }
             ],
             "description": "Technician-only endpoints: visits, photos, dashboard, profile, tasks, jobs, payouts, bank accounts, availability (GET/PUT return breaks + vacations + service_areas; vacations managed only via PUT availability, no separate vacation APIs), schedule. Profile and availability accept service_areas (JSON array) for multiple addresses."

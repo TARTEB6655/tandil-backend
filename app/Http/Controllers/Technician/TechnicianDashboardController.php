@@ -846,6 +846,7 @@ class TechnicianDashboardController extends Controller
                 'start_date' => $v->start_date?->toDateString(),
                 'end_date' => $v->end_date?->toDateString(),
                 'reason' => $v->reason,
+                'notes' => $v->notes,
             ])->values()->all(),
             'leave_reasons' => $this->getLeaveReasons(),
         ];
@@ -883,6 +884,7 @@ class TechnicianDashboardController extends Controller
             'vacations.*.start_date' => 'required|date',
             'vacations.*.end_date' => 'required|date',
             'vacations.*.reason' => 'nullable|string|max:255',
+            'vacations.*.notes' => 'nullable|string|max:1000',
         ];
         $validator = Validator::make($input, $rules);
         if ($validator->fails()) {
@@ -942,6 +944,7 @@ class TechnicianDashboardController extends Controller
                     'start_date' => $item['start_date'],
                     'end_date' => $item['end_date'],
                     'reason' => $item['reason'] ?? null,
+                    'notes' => $item['notes'] ?? null,
                 ]);
             }
         }
@@ -970,6 +973,7 @@ class TechnicianDashboardController extends Controller
                 'start_date' => $v->start_date?->toDateString(),
                 'end_date' => $v->end_date?->toDateString(),
                 'reason' => $v->reason,
+                'notes' => $v->notes,
             ])->values()->all(),
             'leave_reasons' => $this->getLeaveReasons(),
         ];
