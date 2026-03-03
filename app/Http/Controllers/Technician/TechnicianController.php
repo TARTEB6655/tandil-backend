@@ -58,9 +58,14 @@ class TechnicianController extends Controller
         if ($visit->technician_id !== $request->user()->id) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
-        $visit->status = 'accepted';
+        if ($visit->status !== 'pending') {
+            return response()->json(['status' => false, 'message' => 'Task cannot be accepted in current status.'], 422);
+        }
+        $visit->status = 'in_progress';
         $visit->accepted_at = now();
+        $visit->started_at = $visit->started_at ?? now();
         $visit->save();
+        $visit->refresh();
 
         // 🔔 Send notifications
         try {

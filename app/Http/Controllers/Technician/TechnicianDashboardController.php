@@ -98,6 +98,7 @@ class TechnicianDashboardController extends Controller
         $visit->accepted_at = now();
         $visit->started_at = $visit->started_at ?? now();
         $visit->save();
+        $visit->refresh();
         return response()->json(['success' => true, 'data' => $this->formatVisitAsTask($visit->load('subscription.client', 'area'))]);
     }
 
