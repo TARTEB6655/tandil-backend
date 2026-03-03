@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Visit;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\ParsesMultipartPhoto;
 use Illuminate\Http\Request;
+use App\Models\Area;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
 use App\Models\User;
@@ -82,6 +83,41 @@ class VisitController extends Controller
                 'message' => 'Failed to fetch visits: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * GET /api/visits/areas
+     * List areas (for visit creation). Client/admin use this to pick area_id when creating a visit.
+     * Optional ?with=supervisors to include supervisor(s) per area so client knows who oversees the area.
+     */
+    public function areas(Request $request)
+    {
+        $withSupervisors = $request->query('with') === 'supervisors';
+        $areas = Area::when($withSupervisors, fn ($q) => $q->with('supervisors'))
+            ->orderBy('name')
+            ->get();
+
+        $data = $areas->map(function ($area) use ($withSupervisors) {
+            $item = [
+                'id' => $area->id,
+                'name' => $area->name,
+                'description' => $area->description,
+            ];
+            if ($withSupervisors && $area->relationLoaded('supervisors')) {
+                $item['supervisors'] = $area->supervisors->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                ])->values()->toArray();
+            }
+            return $item;
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Areas retrieved successfully. Use area id when creating a visit so the job reaches the supervisor for that area.',
+            'data' => $data,
+        ], 200);
     }
 
     /**

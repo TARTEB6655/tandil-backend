@@ -1751,6 +1751,41 @@
                     }
                 },
                 {
+                    "name": "List Areas (for visit creation)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/visits/areas?with=supervisors",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "visits",
+                                "areas"
+                            ],
+                            "query": [
+                                {
+                                    "key": "with",
+                                    "value": "supervisors",
+                                    "description": "Include supervisor(s) per area so client knows who oversees each area"
+                                }
+                            ]
+                        },
+                        "description": "List areas so client (or admin) can pick **area_id** when creating a visit. Add **?with=supervisors** to see which supervisor(s) oversee each area – client does not need to set supervisor_id; the job goes to the supervisor for that area automatically."
+                    }
+                },
+                {
                     "name": "Get Visit Details",
                     "request": {
                         "method": "GET",
@@ -1817,7 +1852,7 @@
                                     "key": "area_id",
                                     "value": "",
                                     "type": "text",
-                                    "description": "Optional. Area ID."
+                                    "description": "Recommended. Area ID – required for the job to appear for the supervisor who supervises that area."
                                 },
                                 {
                                     "key": "scheduled_date",
@@ -1855,7 +1890,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**Price:** Either **admin** or **client** (when creating a job for their own subscription) can add the price:\n- Set the **price** field (e.g. 289.99) for a dedicated job price, or\n- Include price in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
+                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**How the client knows which area (and who the supervisor is):** Call **GET /api/visits/areas** (or **GET /api/visits/areas?with=supervisors**) to list areas. Use the area **id** as **area_id** when creating the visit. Optionally use **?with=supervisors** to see which supervisor(s) oversee each area – the client doesn't need to set supervisor_id; the job goes to the supervisor for that area automatically.\n\n**How the job reaches the supervisor:** Set **area_id** when creating the visit. The supervisor who supervises that area will then see this visit in **GET /api/supervisor/assignments/pending** and can assign a technician via **POST /api/supervisor/assignments** (visit_id + technician_id). If area_id is null, no supervisor will see the job.\n\n**Price:** Set the **price** field (e.g. 289.99) and/or include in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
                     }
                 },
                 {

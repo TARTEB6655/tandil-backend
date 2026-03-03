@@ -382,7 +382,7 @@ class TechnicianDashboardController extends Controller
     /**
      * GET /api/technician/tasks - Single list of all tasks (visits). Use filter for scope.
      * filter: today|upcoming|completed|all|accepted|rejected.
-     * today = open jobs (scheduled_date <= today). upcoming = open (scheduled_date > today).
+     * today = open jobs scheduled for today only (scheduled_date = today). upcoming = open (scheduled_date > today).
      * completed = completed only. all = all open (pending, accepted, in_progress).
      * accepted = accepted + in_progress. rejected = rejected only.
      * Closed history (completed, rejected, cancelled) with summary: GET /api/technician/jobs.
@@ -393,7 +393,7 @@ class TechnicianDashboardController extends Controller
         $query = Visit::where('technician_id', $user->id)->with(['subscription.client', 'area']);
         $filter = $request->input('filter', 'all');
         if ($filter === 'today') {
-            $query->whereDate('scheduled_date', '<=', Carbon::today())
+            $query->whereDate('scheduled_date', Carbon::today())
                 ->whereIn('status', $this->openJobStatuses());
         } elseif ($filter === 'upcoming') {
             $query->whereDate('scheduled_date', '>', Carbon::today())
