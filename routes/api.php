@@ -237,14 +237,10 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     // Dashboard
     Route::get('/dashboard/summary', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardSummary']);
     Route::get('/dashboard/kpis', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardKpis']);
-    Route::get('/dashboard/team-status', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardTeamStatus']);
     Route::get('/dashboard/alerts', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardAlerts']);
 
-    // Team
-    Route::get('/team/statistics', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamStatistics']);
-    Route::get('/team/performance', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamPerformance']);
-    Route::get('/team/attendance', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamAttendance']);
-    Route::get('/team/workload', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamWorkload']);
+    // Team (single "My Team" API: name, employee_id, status, current_activity, tasks)
+    Route::get('/team', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'myTeam']);
 
     // Assignments
     Route::get('/assignments/pending', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsPending']);

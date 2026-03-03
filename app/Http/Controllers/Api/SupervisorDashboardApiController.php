@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
+use App\Models\TechnicianBreak;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,26 +87,6 @@ class SupervisorDashboardApiController extends Controller
         ]);
     }
 
-    public function dashboardTeamStatus(Request $request): JsonResponse
-    {
-        $areaIds = $this->areaIds($request);
-
-        $technicians = User::role('technician')
-            ->whereHas('visits', fn ($q) => $q->whereIn('area_id', $areaIds))
-            ->with('technicianAvailability')
-            ->get()
-            ->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'is_online' => (bool) ($u->technicianAvailability?->is_online ?? false),
-                'profile_picture_url' => $u->profile_picture_url,
-            ])
-            ->values();
-
-        return response()->json(['success' => true, 'data' => $technicians]);
-    }
-
     public function dashboardAlerts(Request $request): JsonResponse
     {
         $alerts = [];
@@ -129,77 +110,66 @@ class SupervisorDashboardApiController extends Controller
         return response()->json(['success' => true, 'data' => $alerts]);
     }
 
-    public function teamStatistics(Request $request): JsonResponse
+    /**
+     * Single "My Team" API: list of team members with name, employee_id, status (Active/Break), current_activity, tasks (completed/total).
+     * Replaces dashboard/team-status, team/statistics, team/performance, team/attendance, team/workload.
+     */
+    public function myTeam(Request $request): JsonResponse
     {
         $areaIds = $this->areaIds($request);
-        $visits = $this->visitsQuery($request)->get(['technician_id', 'status']);
+        $now = Carbon::now();
+        $today = $now->toDateString();
 
-        $byTechnician = $visits
-            ->filter(fn ($v) => ! empty($v->technician_id))
-            ->groupBy('technician_id')
-            ->map(fn ($items, $technicianId) => [
-                'technician_id' => (int) $technicianId,
-                'assigned' => $items->count(),
-                'completed' => $items->where('status', 'completed')->count(),
-                'in_progress' => $items->where('status', 'in_progress')->count(),
-                'pending' => $items->whereIn('status', ['pending', 'scheduled'])->count(),
-            ])
-            ->values();
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'areas' => $areaIds,
-                'technician_stats' => $byTechnician,
-            ],
-        ]);
-    }
-
-    public function teamPerformance(Request $request): JsonResponse
-    {
-        $data = $this->teamStatistics($request)->getData(true);
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'summary' => [
-                    'total_technicians' => count($data['data']['technician_stats']),
-                    'generated_at' => now()->toIso8601String(),
-                ],
-                'technician_performance' => $data['data']['technician_stats'],
-            ],
-        ]);
-    }
-
-    public function teamAttendance(Request $request): JsonResponse
-    {
-        $areaIds = $this->areaIds($request);
         $technicians = User::role('technician')
             ->whereHas('visits', fn ($q) => $q->whereIn('area_id', $areaIds))
-            ->with('technicianAvailability')
-            ->get()
-            ->map(fn (User $u) => [
-                'technician_id' => $u->id,
-                'name' => $u->name,
-                'is_online' => (bool) ($u->technicianAvailability?->is_online ?? false),
-                'working_days' => $u->technicianAvailability?->working_days ?? [],
-            ])->values();
-
-        return response()->json(['success' => true, 'data' => $technicians]);
-    }
-
-    public function teamWorkload(Request $request): JsonResponse
-    {
-        $start = Carbon::today();
-        $end = Carbon::today()->addDays(7);
-
-        $workload = $this->visitsQuery($request)
-            ->whereBetween('scheduled_date', [$start, $end])
-            ->whereNotNull('technician_id')
-            ->selectRaw('technician_id, count(*) as assigned_count')
-            ->groupBy('technician_id')
+            ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
             ->get();
 
-        return response()->json(['success' => true, 'data' => $workload]);
+        $data = $technicians->map(function (User $u) use ($areaIds, $now, $today) {
+            $visits = $u->visits->whereIn('area_id', $areaIds);
+            $totalTasks = $visits->count();
+            $completedTasks = $visits->whereIn('status', ['completed', 'approved'])->count();
+            $currentVisit = $visits->where('status', 'in_progress')->first();
+
+            $onBreak = TechnicianBreak::where('user_id', $u->id)
+                ->whereDate('date', $today)
+                ->get()
+                ->contains(fn ($b) => $this->isTimeInBreak($now, $b->start_time ?? '', $b->end_time ?? ''));
+
+            $status = $onBreak ? 'Break' : 'Active';
+            $currentActivity = $onBreak ? 'On Break' : null;
+            if (! $onBreak && $currentVisit) {
+                $meta = $currentVisit->notes ? $this->parseVisitMetaFromNotes((string) $currentVisit->notes) : [];
+                $loc = $meta['farm_name'] ?? $currentVisit->area?->name ?? $currentVisit->subscription?->client?->name ?? 'Visit';
+                $svc = $meta['service_name'] ?? ($currentVisit->subscription?->plan ? str_replace('_', ' ', (string) $currentVisit->subscription->plan) : null) ?? '';
+                $currentActivity = $svc ? "{$loc} - {$svc}" : $loc;
+            }
+            $currentActivity = $currentActivity ?? ($status === 'Break' ? 'On Break' : '—');
+
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'employee_id' => $u->employee?->employee_id ?? ('TECH-' . $u->id),
+                'profile_picture_url' => $u->profile_picture_url,
+                'status' => $status,
+                'current_activity' => $currentActivity,
+                'tasks_completed' => $completedTasks,
+                'tasks_total' => $totalTasks,
+                'tasks_display' => $totalTasks > 0 ? "{$completedTasks}/{$totalTasks}" : '0/0',
+            ];
+        })->values()->all();
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    private function isTimeInBreak(Carbon $now, string $startTime, string $endTime): bool
+    {
+        if ($startTime === '' || $endTime === '') {
+            return false;
+        }
+        $start = Carbon::parse($now->toDateString() . ' ' . $startTime);
+        $end = Carbon::parse($now->toDateString() . ' ' . $endTime);
+        return $now->between($start, $end);
     }
 
     public function assignmentsPending(Request $request): JsonResponse

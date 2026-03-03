@@ -4998,35 +4998,6 @@
                             }
                         },
                         {
-                            "name": "Dashboard - Team Status",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/dashboard/team-status",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "dashboard",
-                                        "team-status"
-                                    ]
-                                },
-                                "description": "Team members (technicians in supervisor's areas). Also included in GET dashboard/summary."
-                            }
-                        },
-                        {
                             "name": "Dashboard - Alerts",
                             "request": {
                                 "method": "GET",
@@ -5058,10 +5029,10 @@
                     ]
                 },
                 {
-                    "name": "B. Team Stats",
+                    "name": "B. My Team",
                     "item": [
                         {
-                            "name": "Team - Statistics",
+                            "name": "Team (My Team)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5075,101 +5046,17 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/supervisor/team/statistics",
+                                    "raw": "{{base_url}}/api/supervisor/team",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
                                         "supervisor",
-                                        "team",
-                                        "statistics"
+                                        "team"
                                     ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "Team - Performance",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/team/performance",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "team",
-                                        "performance"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "Team - Attendance",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/team/attendance",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "team",
-                                        "attendance"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "Team - Workload",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/team/workload",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "team",
-                                        "workload"
-                                    ]
-                                }
+                                },
+                                "description": "Single My Team API: list of team members with name, employee_id, status (Active/Break), current_activity, tasks_completed, tasks_total, tasks_display."
                             }
                         }
                     ]
