@@ -83,7 +83,7 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * POST /api/technician/tasks/{id}/accept - Accept assigned task (visit).
+     * POST /api/technician/tasks/{id}/accept - Accept assigned task (visit). Status becomes in_progress automatically.
      */
     public function taskAccept(Request $request, $id)
     {
@@ -94,8 +94,9 @@ class TechnicianDashboardController extends Controller
         if ($visit->status !== 'pending') {
             return response()->json(['success' => false, 'message' => 'Task cannot be accepted in current status.'], 422);
         }
-        $visit->status = 'accepted';
+        $visit->status = 'in_progress';
         $visit->accepted_at = now();
+        $visit->started_at = $visit->started_at ?? now();
         $visit->save();
         return response()->json(['success' => true, 'data' => $this->formatVisitAsTask($visit->load('subscription.client', 'area'))]);
     }
