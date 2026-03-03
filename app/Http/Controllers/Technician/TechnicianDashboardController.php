@@ -473,7 +473,7 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/jobs - Returns jobs in period: accepted, in_progress, completed, rejected, cancelled.
+     * GET /api/technician/jobs - Returns ALL jobs in period (every status): pending, accepted, in_progress, completed, rejected, cancelled.
      * Query: period (week|month|year), per_page. Response: summary (total_earnings, jobs_completed, avg_rating) + paginated jobs.
      */
     public function jobs(Request $request)
@@ -481,7 +481,7 @@ class TechnicianDashboardController extends Controller
         $user = $request->user();
         $period = $request->input('period', 'month'); // week, month, year
         [$start, $end] = $this->resolvePeriodRange($period);
-        $jobStatuses = ['accepted', 'in_progress', 'completed', 'rejected', 'cancelled'];
+        $jobStatuses = ['pending', 'accepted', 'in_progress', 'completed', 'rejected', 'cancelled'];
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
             ->whereIn('status', $jobStatuses);
@@ -528,7 +528,9 @@ class TechnicianDashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Accepted/In-Progress jobs list.',
-            'data' => $items,
+            'data' => [
+                'jobs' => $items,
+            ],
         ]);
     }
 
@@ -552,7 +554,9 @@ class TechnicianDashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rejected jobs list.',
-            'data' => $items,
+            'data' => [
+                'jobs' => $items,
+            ],
         ]);
     }
 
