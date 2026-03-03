@@ -384,9 +384,8 @@ class TechnicianDashboardController extends Controller
     /**
      * GET /api/technician/tasks - Single list of all tasks (visits). Use filter for scope.
      * filter: today|upcoming|completed|all|accepted|rejected.
-     * today = open jobs scheduled for today only (scheduled_date = today). upcoming = open (scheduled_date > today).
-     * completed = completed only. all = all open (pending, accepted, in_progress).
-     * accepted = accepted + in_progress. rejected = rejected only.
+     * today = open jobs scheduled for today only (scheduled_date = today). No "accepted" status – only pending, in_progress, completed, etc.
+     * accepted = in_progress only (accepted jobs go to in_progress automatically). rejected = rejected only.
      * Closed history (completed, rejected, cancelled) with summary: GET /api/technician/jobs.
      */
     public function tasks(Request $request)
@@ -403,7 +402,7 @@ class TechnicianDashboardController extends Controller
         } elseif ($filter === 'completed') {
             $query->where('status', 'completed');
         } elseif ($filter === 'accepted') {
-            $query->whereIn('status', ['accepted', 'in_progress']);
+            $query->whereIn('status', ['in_progress']);
         } elseif ($filter === 'rejected') {
             $query->where('status', 'rejected');
         } else {
@@ -456,7 +455,7 @@ class TechnicianDashboardController extends Controller
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
         }
         $status = $request->input('status');
-        $allowed = ['accepted', 'in_progress', 'completed'];
+        $allowed = ['in_progress', 'completed'];
         if (!in_array($status, $allowed)) {
             return response()->json(['success' => false, 'message' => 'Invalid status.'], 422);
         }
@@ -475,7 +474,7 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * GET /api/technician/jobs - Returns ALL jobs in period (every status): pending, accepted, in_progress, completed, rejected, cancelled.
+     * GET /api/technician/jobs - Returns ALL jobs in period: pending, in_progress, completed, rejected, cancelled (no "accepted" – accept sets in_progress).
      * Query: period (week|month|year), per_page. Response: summary (total_earnings, jobs_completed, avg_rating) + paginated jobs.
      */
     public function jobs(Request $request)
@@ -483,7 +482,7 @@ class TechnicianDashboardController extends Controller
         $user = $request->user();
         $period = $request->input('period', 'month'); // week, month, year
         [$start, $end] = $this->resolvePeriodRange($period);
-        $jobStatuses = ['pending', 'accepted', 'in_progress', 'completed', 'rejected', 'cancelled'];
+        $jobStatuses = ['pending', 'in_progress', 'completed', 'rejected', 'cancelled'];
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
             ->whereIn('status', $jobStatuses);
@@ -522,7 +521,7 @@ class TechnicianDashboardController extends Controller
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
-            ->whereIn('status', ['accepted', 'in_progress'])
+            ->whereIn('status', ['in_progress'])
             ->with(['subscription.client', 'area'])
             ->orderByDesc('scheduled_date');
         $items = $query->paginate($perPage);
@@ -1158,7 +1157,7 @@ class TechnicianDashboardController extends Controller
         $photos = $visit->photos?->map(fn ($p) => [
             'id' => $p->id,
             'type' => $p->type ?? 'after',
-            'photo_url' => $p->photo_path ? (request()->getSchemeAndHttpHost() . '/storage/' . $p->photo_path) : null,
+            'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
         ]) ?? collect();
 
         return [
@@ -1365,7 +1364,7 @@ class TechnicianDashboardController extends Controller
 
     private function openJobStatuses(): array
     {
-        return ['pending', 'accepted', 'in_progress'];
+        return ['pending', 'in_progress'];
     }
 
     private function closedJobStatuses(): array
@@ -1430,7 +1429,7 @@ class TechnicianDashboardController extends Controller
             ] : null;
             $base['photos'] = $visit->photos?->map(fn ($p) => [
                 'id' => $p->id,
-                'photo_url' => $p->photo_path ? (request()->getSchemeAndHttpHost() . '/storage/' . $p->photo_path) : null,
+                'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
                 'type' => $p->type ?? 'after',
             ]) ?? [];
         }
