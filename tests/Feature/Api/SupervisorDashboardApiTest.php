@@ -198,8 +198,7 @@ class SupervisorDashboardApiTest extends TestCase
         $upload->assertStatus(200)->assertJsonPath('success', true);
         $this->assertNotEmpty($upload->json('data.profile_picture'));
 
-        $password = $this->post('/api/supervisor/profile/password', [
-            'current_password' => 'password',
+        $password = $this->post('/api/supervisor/profile', [
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ], $this->authHeaders());

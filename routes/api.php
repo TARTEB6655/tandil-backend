@@ -259,12 +259,10 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::get('/reports/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsShow']);
     Route::get('/reports/{id}/download', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsDownload']);
 
-    // Profile
+    // Profile (single API: GET profile, PUT/POST profile with form-data: name, email, phone, profile_picture, password, password_confirmation; no current_password)
     Route::get('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
-    Route::put('/profile/password', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updatePassword']);
-    Route::post('/profile/password', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updatePassword']);
     Route::get('/profile/preferences', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'profilePreferences']);
 
     Route::get('/visits', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listVisits']);

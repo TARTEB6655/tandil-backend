@@ -5726,6 +5726,7 @@
                 },
                 {
                     "name": "E. Profile",
+                    "description": "Single profile API: GET profile; PUT or POST profile with form-data (name, email, phone, profile_picture, password, password_confirmation). No separate password endpoint; no current_password required.",
                     "item": [
                         {
                             "name": "Profile - Get",
@@ -5763,13 +5764,13 @@
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         {
@@ -5792,69 +5793,33 @@
                                             "type": "file",
                                             "src": "",
                                             "description": "Optional. Add file to update photo."
-                                        }
-                                    ]
-                        },
-                        "url": {
-                                    "raw": "{{base_url}}/api/supervisor/profile",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "supervisor",
-                                        "profile"
-                                    ]
-                                },
-                                "description": "One request to update everything: name, email, phone, profile_picture. Use PUT (or POST — both work, same endpoint). Body: form-data. Optional fields; include profile_picture (file) to update photo. Returns profile_picture_url (full URL)."
-                            }
-                        },
-                        {
-                            "name": "Profile - Update Password (POST form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "current_password",
-                                            "value": "CurrentPassword123",
-                                            "type": "text"
                                         },
                                         {
                                             "key": "password",
-                                            "value": "NewPassword123",
-                                            "type": "text"
+                                            "value": "",
+                                            "type": "text",
+                                            "description": "Optional. New password (min 8 chars). Send with password_confirmation; no current_password required."
                                         },
                                         {
                                             "key": "password_confirmation",
-                                            "value": "NewPassword123",
-                                            "type": "text"
+                                            "value": "",
+                                            "type": "text",
+                                            "description": "Required when changing password; must match password."
                                         }
                                     ]
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}/api/supervisor/profile/password",
+                                    "raw": "{{base_url}}/api/supervisor/profile",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
                                         "supervisor",
-                                        "profile",
-                                        "password"
+                                        "profile"
                                     ]
-                                }
+                                },
+                                "description": "Single profile update API (form-data). Optional fields: name, email, phone, profile_picture (file), password, password_confirmation. To change password send password + password_confirmation only (no current_password). Use PUT or POST. Returns profile_picture_url (full URL)."
                             }
                         },
                         {

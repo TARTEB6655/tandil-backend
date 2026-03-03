@@ -379,6 +379,11 @@ class SupervisorDashboardApiController extends Controller
         ]);
     }
 
+    /**
+     * Single profile update API (form-data).
+     * Accepts: name, email, phone, profile_picture (file), password, password_confirmation.
+     * All fields optional. To change password send password + password_confirmation (no current_password).
+     */
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -393,6 +398,7 @@ class SupervisorDashboardApiController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
+            'password' => 'nullable|string|min:8|confirmed',
         ];
         if ($profileFile) {
             $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
@@ -410,6 +416,10 @@ class SupervisorDashboardApiController extends Controller
         }
         if ($request->has('phone')) {
             $user->phone = $request->input('phone') ?: null;
+        }
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->input('password'));
         }
 
         // Profile picture: POST has $request->file(); PUT + multipart must be parsed from raw body
@@ -434,25 +444,7 @@ class SupervisorDashboardApiController extends Controller
             'phone' => $user->phone,
             'profile_picture' => $user->profile_picture,
             'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
-        ]        ]);
-    }
-
-    public function updatePassword(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $validated = $request->validate([
-            'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if (! Hash::check($validated['current_password'], $user->password)) {
-            return response()->json(['success' => false, 'errors' => ['current_password' => ['Current password is incorrect.']]], 422);
-        }
-
-        $user->password = Hash::make($validated['password']);
-        $user->save();
-
-        return response()->json(['success' => true, 'message' => 'Password updated successfully.']);
+        ]]);
     }
 
     public function profilePreferences(Request $request): JsonResponse
