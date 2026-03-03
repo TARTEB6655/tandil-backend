@@ -1374,15 +1374,18 @@ class TechnicianDashboardController extends Controller
 
     private function resolvePeriodRange(string $period): array
     {
+        $today = Carbon::today();
         $start = match ($period) {
-            'week' => Carbon::now()->startOfWeek(),
-            'year' => Carbon::now()->startOfYear(),
-            default => Carbon::now()->startOfMonth(),
+            'week' => $today->copy()->subDays(6),   // last 7 days (rolling)
+            'year' => $today->copy()->startOfYear(),
+            'month' => $today->copy()->subDays(29), // last 30 days (rolling), not calendar month
+            default => $today->copy()->subDays(29),
         };
         $end = match ($period) {
-            'week' => Carbon::now()->endOfWeek(),
-            'year' => Carbon::now()->endOfYear(),
-            default => Carbon::now()->endOfMonth(),
+            'week' => $today,
+            'year' => $today->copy()->endOfYear(),
+            'month' => $today,
+            default => $today,
         };
         // Use date strings so whereBetween('scheduled_date', ...) matches DATE column reliably
         return [$start->toDateString(), $end->toDateString()];
