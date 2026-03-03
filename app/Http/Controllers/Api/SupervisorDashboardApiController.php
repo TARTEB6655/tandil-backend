@@ -29,44 +29,38 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
-     * Single dashboard API for the 3 tabs only: team_members, active_visits, completed_visits. Nothing else.
+     * Single dashboard API: profile (picture, name, id) + 3 counts only (team_members, active_visits, completed_visits). Nothing else.
      */
     public function dashboardSummary(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $user->load('employee');
+
         $query = $this->visitsQuery($request);
         $areaIds = $this->areaIds($request);
 
-        $teamMembers = User::role('technician')
+        $teamMembersCount = User::role('technician')
             ->whereHas('visits', fn ($q) => $q->whereIn('area_id', $areaIds))
-            ->with('technicianAvailability')
-            ->get()
-            ->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'is_online' => (bool) ($u->technicianAvailability?->is_online ?? false),
-                'profile_picture_url' => $u->profile_picture_url,
-            ])
-            ->values();
+            ->count();
 
-        $activeVisits = (clone $query)
+        $activeVisitsCount = (clone $query)
             ->whereIn('status', ['pending', 'scheduled', 'in_progress'])
-            ->with(['subscription.client', 'technician', 'report', 'photos'])
-            ->latest()
-            ->get();
+            ->count();
 
-        $completedVisits = (clone $query)
+        $completedVisitsCount = (clone $query)
             ->whereIn('status', ['completed', 'approved'])
-            ->with(['subscription.client', 'technician', 'report', 'photos'])
-            ->latest()
-            ->get();
+            ->count();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'team_members' => $teamMembers,
-                'active_visits' => $activeVisits,
-                'completed_visits' => $completedVisits,
+                'profile_picture' => $user->profile_picture,
+                'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
+                'name' => $user->name,
+                'id' => $user->employee?->employee_id ?? ('SUP-' . $user->id),
+                'team_members' => $teamMembersCount,
+                'active_visits' => $activeVisitsCount,
+                'completed_visits' => $completedVisitsCount,
             ],
         ]);
     }

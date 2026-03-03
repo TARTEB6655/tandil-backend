@@ -4965,7 +4965,7 @@
                                         "summary"
                                     ]
                                 },
-                                "description": "Single dashboard API. Returns only 3 things: data.team_members, data.active_visits, data.completed_visits (for the three tabs). Nothing else."
+                                "description": "Single dashboard API. Returns: profile_picture, profile_picture_url, name, id (e.g. SUP-2001), team_members (count only), active_visits (count only), completed_visits (count only). Nothing else."
                             }
                         },
                         {
