@@ -387,6 +387,12 @@ class SupervisorDashboardApiController extends Controller
     public function profile(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        $visitsQuery = $this->visitsQuery($request);
+        $completedVisits = (clone $visitsQuery)->whereIn('status', ['completed', 'approved']);
+        $jobsCompleted = $completedVisits->count();
+        $totalEarnings = (clone $completedVisits)->get()->sum(fn ($v) => (float) ($v->price ?? 0));
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -397,6 +403,12 @@ class SupervisorDashboardApiController extends Controller
                 'profile_picture' => $user->profile_picture,
                 'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
                 'role' => $user->role,
+                'jobs_completed' => $jobsCompleted,
+                'total_earnings' => round($totalEarnings, 2),
+                'total_earnings_display' => 'AED ' . number_format($totalEarnings, 2),
+                'member_since' => $user->created_at?->toDateString(),
+                'rating' => 0,
+                'rating_jobs' => 0,
             ],
         ]);
     }
