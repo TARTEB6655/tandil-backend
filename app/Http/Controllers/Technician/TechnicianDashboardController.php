@@ -1191,7 +1191,7 @@ class TechnicianDashboardController extends Controller
             ],
             'actions' => [
                 'can_submit_field_report' => $visit->status === 'in_progress',
-                'can_complete_visit' => $visit->status === 'completed',
+                'can_complete_visit' => in_array($visit->status, ['completed', 'approved'], true),
             ],
         ];
     }

@@ -3534,7 +3534,7 @@
                                 "reports"
                             ]
                         },
-                        "description": "Technician-only API: submit field report to supervisor (Job Details → Submit Field Report to Supervisor). Form-data: visit_id (required), technician_notes, before_photo (file), after_photo (file). Before/after photos are saved as visit photos. Visit must be completed and assigned to the technician. Response: status, message, data (report with visit.photos)."
+                        "description": "Technician-only API: submit field report to supervisor (Job Details → Submit Field Report to Supervisor). Form-data: visit_id (required), technician_notes, before_photo (file), after_photo (file). Before/after photos are saved as visit photos. Visit must be **in progress or completed** and assigned to the technician. Response: status, message, data (report with visit.photos)."
                     }
                 },
                 {
@@ -5719,7 +5719,7 @@
                                         "finalize"
                                     ]
                                 },
-                                "description": "Review report then Submit Report to Client. Body: notes, supervisor_notes, recommendations[] (e.g. Needs Fertilizer, Needs Vitamins, Needs Watering), recommended_products[] (product IDs), status. Use status=sent_to_client to submit to client (notifies client). Optional: status=pending|finalized|rejected."
+                                "description": "Review report then Submit Report to Client. **Requirement:** Technician must have submitted a field report (POST /api/technician/reports) for this visit first; otherwise 422. Body: notes, supervisor_notes, recommendations[] (e.g. Needs Fertilizer, Needs Vitamins, Needs Watering), recommended_products[] (product IDs), status. Use status=sent_to_client to submit to client (notifies client). Optional: status=pending|finalized|rejected."
                             }
                         }
                     ]
@@ -10192,7 +10192,7 @@
                                         "finalize"
                                     ]
                                 },
-                                "description": "Alternative path: Finalize report (same as /api/supervisor/visits/{id}/finalize)"
+                                "description": "Alternative path: Finalize report (same as /api/supervisor/visits/{id}/finalize). Technician must have submitted a field report for the visit first."
                             }
                         },
                         {
