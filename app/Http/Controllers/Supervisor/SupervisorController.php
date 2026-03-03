@@ -162,6 +162,15 @@ class SupervisorController extends Controller
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
+        // Only supervisors can check/complete the job, and only after the technician has submitted a field report.
+        $report = Report::where('visit_id', $visit->id)->first();
+        if (!$report) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Technician must submit a field report (POST /api/technician/reports) before the supervisor can check and complete this job.',
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'notes' => 'nullable|string|max:5000',
             'supervisor_notes' => 'nullable|string|max:5000',
@@ -175,8 +184,6 @@ class SupervisorController extends Controller
         if ($validator->fails()) {
             return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
         }
-
-        $report = Report::firstOrCreate(['visit_id' => $visit->id], ['status' => 'pending']);
 
         $report->supervisor_id = $user->id;
         if ($request->has('notes')) {
