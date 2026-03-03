@@ -74,15 +74,15 @@ class TechnicianDashboardApiTest extends TestCase
         ]);
     }
 
-    public function test_dashboard_today_tasks_includes_carry_forward_open_statuses(): void
+    public function test_dashboard_today_tasks_includes_only_today_scheduled_visits(): void
     {
         $client = User::factory()->create(['role' => 'client']);
         $sub = Subscription::factory()->create(['client_id' => $client->id]);
 
-        $yesterdayPending = Visit::factory()->create([
+        $todayPending = Visit::factory()->create([
             'subscription_id' => $sub->id,
             'technician_id' => $this->technician->id,
-            'scheduled_date' => Carbon::yesterday(),
+            'scheduled_date' => Carbon::today(),
             'status' => 'pending',
         ]);
 
@@ -90,13 +90,39 @@ class TechnicianDashboardApiTest extends TestCase
             'subscription_id' => $sub->id,
             'technician_id' => $this->technician->id,
             'scheduled_date' => Carbon::yesterday(),
-            'status' => 'completed',
+            'status' => 'pending',
         ]);
 
         $response = $this->getJson('/api/technician/dashboard', $this->authHeaders());
         $response->assertStatus(200);
         $ids = collect($response->json('data.today_tasks'))->pluck('id')->all();
-        $this->assertContains($yesterdayPending->id, $ids);
+        $this->assertContains($todayPending->id, $ids);
+        $this->assertCount(1, $ids);
+    }
+
+    public function test_dashboard_today_tasks_shows_price_when_visit_has_price(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+
+        Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => Carbon::today(),
+            'status' => 'accepted',
+            'price' => 199.99,
+        ]);
+
+        $response = $this->getJson('/api/technician/dashboard', $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $tasks = $response->json('data.today_tasks');
+        $this->assertNotEmpty($tasks);
+        $task = $tasks[0];
+        $this->assertArrayHasKey('price', $task);
+        $this->assertArrayHasKey('price_display', $task);
+        $this->assertSame(199.99, (float) $task['price']);
+        $this->assertSame('AED 199.99', $task['price_display']);
     }
 
     public function test_profile_get_returns_profile_data(): void

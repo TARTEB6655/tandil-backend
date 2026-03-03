@@ -140,39 +140,46 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'area_id' => $area->id,
         ];
 
+        // 5 dummy tasks for today – all types: in_progress, pending, accepted, with price so dashboard shows correctly
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'in_progress',
             'accepted_at' => $today->copy()->setTime(7, 45),
             'started_at' => $today->copy()->setTime(8, 0),
-            'notes' => '[DUMMY-SUP-ASSIGN] Mohammed Ali Farm | Tree Watering Visit | Al Ain Oasis, Abu Dhabi, UAE | 120 min',
+            'notes' => '[DUMMY-SUP-ASSIGN] Mohammed Ali Farm | Tree Watering Visit | Al Ain Oasis, Abu Dhabi, UAE | 120 min | AED 350.00 | 5/5',
+            'price' => 350.00,
         ]));
 
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'pending',
-            'notes' => '[DUMMY-SUP-ASSIGN] Palm Grove Estate | Palm Tree Maintenance | Liwa Desert, Abu Dhabi, UAE | 90 min',
+            'notes' => '[DUMMY-SUP-ASSIGN] Palm Grove Estate | Palm Tree Maintenance | Liwa Desert, Abu Dhabi, UAE | 90 min | AED 220.00',
+            'price' => 220.00,
         ]));
 
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'pending',
-            'notes' => '[DUMMY-SUP-ASSIGN] Al Noor Orchard | Soil Fertilizing | Al Ain, Abu Dhabi, UAE | 45 min',
+            'notes' => '[DUMMY-SUP-ASSIGN] Al Noor Orchard | Soil Fertilizing | Al Ain, Abu Dhabi, UAE | 45 min | AED 150.00',
+            'price' => 150.00,
         ]));
 
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'accepted',
             'accepted_at' => $today->copy()->setTime(10, 30),
-            'notes' => '[DUMMY-SUP-ASSIGN] Oasis Fields | Drip Irrigation Check | Al Faqa, Abu Dhabi, UAE | 60 min',
+            'notes' => '[DUMMY-SUP-ASSIGN] Oasis Fields | Drip Irrigation Check | Al Faqa, Abu Dhabi, UAE | 60 min | AED 199.99 | 5/5',
+            'price' => 199.99,
         ]));
 
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'pending',
-            'notes' => '[DUMMY-SUP-ASSIGN] Date Palm Sector B | Tree Pruning | Abu Dhabi, UAE | 75 min',
+            'notes' => '[DUMMY-SUP-ASSIGN] Date Palm Sector B | Tree Pruning | Abu Dhabi, UAE | 75 min | AED 275.50',
+            'price' => 275.50,
         ]));
 
+        // 2 completed visits (yesterday and 2 days ago) for recent_visits with price/rating
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->copy()->subDay()->toDateString(),
             'status' => 'completed',
@@ -181,6 +188,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'completed_at' => $today->copy()->subDay()->setTime(10, 40),
             'completed_date' => $today->copy()->subDay()->toDateString(),
             'notes' => '[DUMMY-SUP-ASSIGN] Green Valley Farm | Planting & Fertilizing | Abu Dhabi, UAE | 90 min | AED 289.99 | 5/5',
+            'price' => 289.99,
         ]));
 
         Visit::create(array_merge($base, [
@@ -191,9 +199,10 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'completed_at' => $today->copy()->subDays(2)->setTime(11, 0),
             'completed_date' => $today->copy()->subDays(2)->toDateString(),
             'notes' => '[DUMMY-SUP-ASSIGN] Desert Palm Resort | Garden Cleaning | Abu Dhabi, UAE | 50 min | AED 145.50 | 4/5',
+            'price' => 145.50,
         ]));
 
-        $this->command->info('Dummy supervisor-assigned technician tasks seeded successfully.');
+        $this->command->info('Dummy supervisor-assigned technician tasks seeded successfully (5 today tasks + 2 completed with price).');
     }
 }
 
