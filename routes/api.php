@@ -253,8 +253,10 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::post('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsUpdate']);
     Route::post('/assignments/{id}/reassign', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsReassign']);
 
-    // Reports
+    // Reports (field reports from technicians)
     Route::get('/reports', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsIndex']);
+    Route::post('/reports/{id}/accept', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportAccept']);
+    Route::post('/reports/{id}/reject', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportReject']);
     Route::post('/reports/generate', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsGenerate']);
     Route::get('/reports/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsShow']);
     Route::get('/reports/{id}/download', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'reportsDownload']);

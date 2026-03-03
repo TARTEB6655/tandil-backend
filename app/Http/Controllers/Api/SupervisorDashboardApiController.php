@@ -306,14 +306,19 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
-     * List field reports (visit reports) for supervisor's area.
-     * Optional: ?status=pending for "Pending Field Reports" dashboard widget.
+     * List field reports (reports given by technician to supervisor). Optional: ?status=pending&per_page=20.
+     * Returns only what the UI needs: technician name, employee_id, location, service, submitted_at, has_photos, before_photos, after_photos, report id, visit id.
      */
     public function reportsIndex(Request $request): JsonResponse
     {
         $visitIds = $this->visitsQuery($request)->pluck('id');
         $query = Report::whereIn('visit_id', $visitIds)
-            ->with(['visit.subscription.client', 'visit.technician', 'supervisor']);
+            ->with([
+                'visit.subscription.client',
+                'visit.technician.employee',
+                'visit.area',
+                'visit.photos',
+            ]);
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -322,7 +327,126 @@ class SupervisorDashboardApiController extends Controller
         $reports = $query->orderByDesc('created_at')
             ->paginate((int) $request->get('per_page', 20));
 
-        return response()->json(['success' => true, 'data' => $reports]);
+        $data = $reports->getCollection()->map(function (Report $report) {
+            $visit = $report->visit;
+            $technician = $visit?->technician;
+            $client = $visit?->subscription?->client;
+            $meta = $visit && $visit->notes
+                ? $this->parseVisitMetaFromNotes((string) $visit->notes)
+                : [];
+
+            $photos = $visit?->photos ?? collect();
+            $beforePhotos = $photos->where('type', 'before')->values()->map(fn ($p) => [
+                'id' => $p->id,
+                'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
+                'type' => 'before',
+            ])->values()->all();
+            $afterPhotos = $photos->where('type', 'after')->values()->map(fn ($p) => [
+                'id' => $p->id,
+                'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
+                'type' => 'after',
+            ])->values()->all();
+
+            return [
+                'id' => $report->id,
+                'visit_id' => $report->visit_id,
+                'technician_name' => $technician?->name,
+                'employee_id' => $technician?->employee?->employee_id ?? ($technician ? 'TECH-' . $technician->id : null),
+                'location' => $meta['farm_name'] ?? $client?->name ?? $visit?->area?->name ?? null,
+                'service' => $meta['service_name'] ?? ($visit?->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : null) ?? 'Visit',
+                'submitted_at' => $report->created_at?->toIso8601String(),
+                'has_photos' => $photos->count() > 0,
+                'before_photos' => $beforePhotos,
+                'after_photos' => $afterPhotos,
+                'technician_notes' => $report->technician_notes,
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'meta' => [
+                'current_page' => $reports->currentPage(),
+                'last_page' => $reports->lastPage(),
+                'per_page' => $reports->perPage(),
+                'total' => $reports->total(),
+            ],
+            'links' => [
+                'first' => $reports->url(1),
+                'last' => $reports->url($reports->lastPage()),
+                'prev' => $reports->previousPageUrl(),
+                'next' => $reports->nextPageUrl(),
+            ],
+        ]);
+    }
+
+    private function parseVisitMetaFromNotes(string $notes): array
+    {
+        $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? $notes);
+        $parts = array_map('trim', explode('|', $clean));
+        $farm = $parts[0] ?? null;
+        $service = isset($parts[1]) ? trim($parts[1]) : null;
+        if ($service && preg_match('/^(.+?)\s+Visit\s*$/i', $service, $m)) {
+            $service = trim($m[1]);
+        }
+        return [
+            'farm_name' => $farm ?: null,
+            'service_name' => $service ?: null,
+        ];
+    }
+
+    /**
+     * POST /api/supervisor/reports/{id}/accept
+     * Supervisor accepts the field report. After this, the technician can set the job status to completed.
+     */
+    public function reportAccept(Request $request, int $id): JsonResponse
+    {
+        $visitIds = $this->visitsQuery($request)->pluck('id');
+        $report = Report::whereIn('visit_id', $visitIds)->where('id', $id)->first();
+
+        if (! $report) {
+            return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
+        }
+        if ($report->status !== 'pending') {
+            return response()->json(['success' => false, 'message' => 'Report is not pending.'], 422);
+        }
+
+        $report->status = 'approved';
+        $report->approved_by = $request->user()->id;
+        $report->approved_at = now();
+        $report->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Report accepted. Technician can now complete the job.',
+            'data' => $report->load(['visit', 'visit.technician']),
+        ]);
+    }
+
+    /**
+     * POST /api/supervisor/reports/{id}/reject
+     * Supervisor rejects the field report. Technician cannot complete until they resubmit and it is accepted.
+     */
+    public function reportReject(Request $request, int $id): JsonResponse
+    {
+        $visitIds = $this->visitsQuery($request)->pluck('id');
+        $report = Report::whereIn('visit_id', $visitIds)->where('id', $id)->first();
+
+        if (! $report) {
+            return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
+        }
+        if ($report->status !== 'pending') {
+            return response()->json(['success' => false, 'message' => 'Report is not pending.'], 422);
+        }
+
+        $report->status = 'rejected';
+        $report->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Report rejected.',
+            'data' => $report->load(['visit', 'visit.technician']),
+        ]);
     }
 
     public function reportsGenerate(Request $request): JsonResponse

@@ -148,12 +148,24 @@ class TechnicianController extends Controller
 
     public function complete(Request $request, $id)
     {
-        $visit = Visit::find($id);
+        $visit = Visit::with('report')->find($id);
         if (! $visit) {
             return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
         }
         if ($visit->technician_id !== $request->user()->id) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+        }
+        if (! $visit->report) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Submit a field report before completing the job.',
+            ], 422);
+        }
+        if ($visit->report->status !== 'approved') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Supervisor must accept the field report before you can complete this job.',
+            ], 422);
         }
 
         $visit->status = 'completed';

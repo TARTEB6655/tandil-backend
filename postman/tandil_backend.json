@@ -5481,6 +5481,38 @@
                             }
                         },
                         {
+                            "name": "Reports - Accept (field report)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}/accept",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "reports", "{{report_id}}", "accept"]
+                                },
+                                "description": "Supervisor accepts the field report. After this, the technician can set the job status to completed. Use report_id from List Pending."
+                            }
+                        },
+                        {
+                            "name": "Reports - Reject (field report)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}/reject",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "reports", "{{report_id}}", "reject"]
+                                },
+                                "description": "Supervisor rejects the field report. Technician cannot complete the job until they resubmit and supervisor accepts."
+                            }
+                        },
+                        {
                             "name": "Reports - Generate (POST form-data)",
                             "request": {
                                 "method": "POST",

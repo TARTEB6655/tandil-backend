@@ -447,17 +447,32 @@ class TechnicianDashboardController extends Controller
 
     /**
      * PUT /api/technician/tasks/{id}/status - Update task status (start, complete, etc.).
+     * Technician can set status to completed only after the supervisor has accepted the field report.
      */
     public function taskUpdateStatus(Request $request, $id)
     {
-        $visit = Visit::where('technician_id', $request->user()->id)->find($id);
-        if (!$visit) {
+        $visit = Visit::where('technician_id', $request->user()->id)->with('report')->find($id);
+        if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
         }
         $status = $request->input('status');
         $allowed = ['in_progress', 'completed'];
-        if (!in_array($status, $allowed)) {
+        if (! in_array($status, $allowed)) {
             return response()->json(['success' => false, 'message' => 'Invalid status.'], 422);
+        }
+        if ($status === 'completed') {
+            if (! $visit->report) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Submit a field report (POST /api/technician/reports) before completing the job.',
+                ], 422);
+            }
+            if ($visit->report->status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Supervisor must accept the field report before you can complete this job.',
+                ], 422);
+            }
         }
         $visit->status = $status;
         if ($status === 'in_progress') {
@@ -1194,7 +1209,8 @@ class TechnicianDashboardController extends Controller
             ],
             'actions' => [
                 'can_submit_field_report' => $visit->status === 'in_progress',
-                'can_complete_visit' => in_array($visit->status, ['completed', 'approved'], true),
+                'can_complete_visit' => $visit->status === 'in_progress' && $visit->report && $visit->report->status === 'approved'
+                    || in_array($visit->status, ['completed', 'approved'], true),
             ],
         ];
     }
