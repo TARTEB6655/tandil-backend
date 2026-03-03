@@ -397,7 +397,6 @@ class SupervisorDashboardApiController extends Controller
                 'profile_picture' => $user->profile_picture,
                 'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
                 'role' => $user->role,
-                'areas_count' => count($user->supervisedAreaIds()),
             ],
         ]);
     }
