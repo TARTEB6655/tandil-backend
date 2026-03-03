@@ -1184,7 +1184,6 @@ class TechnicianDashboardController extends Controller
                 'get_directions' => true,
             ],
             'special_instructions' => null,
-            'field_notes' => $visit->notes,
             'before_after_photos' => [
                 'before' => $photos->where('type', 'before')->values(),
                 'after' => $photos->where('type', 'after')->values(),
