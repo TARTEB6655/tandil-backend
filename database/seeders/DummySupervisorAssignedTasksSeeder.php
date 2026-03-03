@@ -140,7 +140,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'area_id' => $area->id,
         ];
 
-        // 5 dummy tasks for today – all types: in_progress, pending, accepted, with price so dashboard shows correctly
+        // 5 dummy tasks for today – in_progress and pending only (no "accepted" status); with price so dashboard shows correctly
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'in_progress',
@@ -166,8 +166,9 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
 
         Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
-            'status' => 'accepted',
+            'status' => 'in_progress',
             'accepted_at' => $today->copy()->setTime(10, 30),
+            'started_at' => $today->copy()->setTime(10, 35),
             'notes' => '[DUMMY-SUP-ASSIGN] Oasis Fields | Drip Irrigation Check | Al Faqa, Abu Dhabi, UAE | 60 min | AED 199.99 | 5/5',
             'price' => 199.99,
         ]));
