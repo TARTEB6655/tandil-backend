@@ -29,7 +29,7 @@ class TechnicianDashboardController extends Controller
 
     /**
      * GET /api/technician/dashboard
-     * Home: name, employee ID, online status, weekly KPIs, today's tasks (visits). Greeting handled on frontend.
+     * Home: name, employee ID, online status, weekly KPIs, today's tasks (visits scheduled for today only), recent completed visits. Greeting handled on frontend.
      */
     public function dashboard(Request $request)
     {
@@ -44,7 +44,7 @@ class TechnicianDashboardController extends Controller
             ->where('status', 'completed')
             ->count();
         $todayVisits = Visit::where('technician_id', $user->id)
-            ->whereDate('scheduled_date', '<=', Carbon::today())
+            ->whereDate('scheduled_date', Carbon::today())
             ->whereIn('status', $this->openJobStatuses())
             ->orderBy('scheduled_date')
             ->with(['subscription.client', 'area'])
@@ -1410,6 +1410,8 @@ class TechnicianDashboardController extends Controller
             'client_name' => $client?->name,
             'client_id' => $client?->id,
             'area' => $visit->area?->name,
+            'price' => $meta['price'] ?? 0,
+            'price_display' => $meta['price_display'] ?? null,
             'accepted_at' => $visit->accepted_at?->toIso8601String(),
             'started_at' => $visit->started_at?->toIso8601String(),
             'completed_at' => $visit->completed_at?->toIso8601String(),

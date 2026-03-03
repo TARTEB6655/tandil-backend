@@ -667,18 +667,6 @@
   },
   {
     "folder": "Technician Dashboard (Full API)",
-    "name": "GET Technician – Tasks (accepted)",
-    "method": "GET",
-    "path": "/api/technician/tasks?filter=accepted&per_page=15"
-  },
-  {
-    "folder": "Technician Dashboard (Full API)",
-    "name": "GET Technician – Tasks (rejected)",
-    "method": "GET",
-    "path": "/api/technician/tasks?filter=rejected&per_page=15"
-  },
-  {
-    "folder": "Technician Dashboard (Full API)",
     "name": "GET Technician – Jobs status counts",
     "method": "GET",
     "path": "/api/technician/jobs/status-counts?period=month"
