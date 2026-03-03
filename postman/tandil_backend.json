@@ -3972,7 +3972,7 @@
                                         "detail"
                                     ]
                                 },
-                                "description": "Mobile job details screen: service_information, customer_information, service_address, before_after_photos, actions."
+                                "description": "Mobile job details screen: service_information (title, time, duration_minutes, price, price_display), customer_information, service_address, before_after_photos, actions. **actions**: can_submit_field_report = true only when status is in_progress; can_complete_visit = true only when status is completed. can_call_customer is not returned."
                             }
                         },
                         {

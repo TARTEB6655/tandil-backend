@@ -1190,9 +1190,8 @@ class TechnicianDashboardController extends Controller
                 'other' => $photos->whereNotIn('type', ['before', 'after'])->values(),
             ],
             'actions' => [
-                'can_submit_field_report' => in_array($visit->status, ['accepted', 'in_progress', 'completed'], true),
-                'can_complete_visit' => in_array($visit->status, ['accepted', 'in_progress'], true),
-                'can_call_customer' => ! empty($client?->phone),
+                'can_submit_field_report' => $visit->status === 'in_progress',
+                'can_complete_visit' => $visit->status === 'completed',
             ],
         ];
     }
