@@ -44,18 +44,27 @@ class SupervisorController extends Controller
 
     /**
      * List visits under supervisor's supervised areas.
+     * Optional ?status= for tabs: active (pending + in_progress), completed (completed + approved), or single status (pending, in_progress, completed, approved).
      */
     public function listVisits(Request $request)
     {
         $user = $request->user();
 
-        // Get IDs of supervised areas
         $areaIds = $user->supervisedAreaIds();
 
-        $visits = Visit::whereIn('area_id', $areaIds)
-            ->with(['subscription.client', 'technician', 'report', 'photos'])
-            ->latest()
-            ->get();
+        $query = Visit::whereIn('area_id', $areaIds)
+            ->with(['subscription.client', 'technician', 'report', 'photos']);
+
+        $status = $request->query('status');
+        if ($status === 'active') {
+            $query->whereIn('status', ['pending', 'in_progress']);
+        } elseif ($status === 'completed') {
+            $query->whereIn('status', ['completed', 'approved']);
+        } elseif ($status !== null && $status !== '') {
+            $query->where('status', $status);
+        }
+
+        $visits = $query->latest()->get();
 
         return response()->json(['status' => true, 'data' => $visits], 200);
     }

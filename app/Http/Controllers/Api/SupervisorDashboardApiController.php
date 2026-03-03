@@ -28,22 +28,45 @@ class SupervisorDashboardApiController extends Controller
         return Visit::query()->whereIn('area_id', $this->areaIds($request));
     }
 
+    /**
+     * Single dashboard API for the 3 tabs only: team_members, active_visits, completed_visits. Nothing else.
+     */
     public function dashboardSummary(Request $request): JsonResponse
     {
         $query = $this->visitsQuery($request);
+        $areaIds = $this->areaIds($request);
 
-        $total = (clone $query)->count();
-        $pending = (clone $query)->whereIn('status', ['pending', 'scheduled'])->count();
-        $inProgress = (clone $query)->where('status', 'in_progress')->count();
-        $completed = (clone $query)->where('status', 'completed')->count();
+        $teamMembers = User::role('technician')
+            ->whereHas('visits', fn ($q) => $q->whereIn('area_id', $areaIds))
+            ->with('technicianAvailability')
+            ->get()
+            ->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'is_online' => (bool) ($u->technicianAvailability?->is_online ?? false),
+                'profile_picture_url' => $u->profile_picture_url,
+            ])
+            ->values();
+
+        $activeVisits = (clone $query)
+            ->whereIn('status', ['pending', 'scheduled', 'in_progress'])
+            ->with(['subscription.client', 'technician', 'report', 'photos'])
+            ->latest()
+            ->get();
+
+        $completedVisits = (clone $query)
+            ->whereIn('status', ['completed', 'approved'])
+            ->with(['subscription.client', 'technician', 'report', 'photos'])
+            ->latest()
+            ->get();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'total_visits' => $total,
-                'pending_visits' => $pending,
-                'in_progress_visits' => $inProgress,
-                'completed_visits' => $completed,
+                'team_members' => $teamMembers,
+                'active_visits' => $activeVisits,
+                'completed_visits' => $completedVisits,
             ],
         ]);
     }
