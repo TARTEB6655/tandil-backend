@@ -23,6 +23,7 @@ class Visit extends Model
         'started_at',
         'completed_at',
         'notes',
+        'price',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class Visit extends Model
         'accepted_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'price' => 'decimal:2',
     ];
 
     /*

@@ -92,7 +92,7 @@ class VisitController extends Controller
         try {
             $user = $request->user();
 
-            // Validation
+            // Validation (accepts both JSON and form-data)
             $validator = Validator::make($request->all(), [
                 'subscription_id' => 'required|exists:subscriptions,id',
                 'technician_id' => 'nullable|exists:users,id',
@@ -100,6 +100,8 @@ class VisitController extends Controller
                 'area_id' => 'nullable|exists:areas,id',
                 'scheduled_date' => 'required|date',
                 'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
+                'notes' => 'nullable|string|max:5000',
+                'price' => 'nullable|numeric|min:0',
             ]);
 
             if ($validator->fails()) {
@@ -130,6 +132,8 @@ class VisitController extends Controller
                 'area_id' => $request->area_id,
                 'scheduled_date' => $request->scheduled_date,
                 'status' => $request->status ?? 'pending',
+                'notes' => $request->input('notes'),
+                'price' => $request->filled('price') ? (float) $request->input('price') : null,
             ]);
 
             // Load relationships
@@ -363,7 +367,8 @@ class VisitController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'scheduled_date' => 'nullable|date',
-                'notes' => 'nullable|string|max:2000',
+                'notes' => 'nullable|string|max:5000',
+                'price' => 'nullable|numeric|min:0',
                 'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
                 'technician_id' => 'nullable|exists:users,id',
                 'supervisor_id' => 'nullable|exists:users,id',
@@ -411,7 +416,10 @@ class VisitController extends Controller
             if ($request->has('notes')) {
                 $visit->notes = $request->input('notes');
             }
-            
+            if ($request->has('price')) {
+                $visit->price = $request->filled('price') ? (float) $request->input('price') : null;
+            }
+
             // Allow admin and client (own subscription) to assign technician/supervisor/area
             if ($user->hasRole('admin') || ($user->hasRole('client') && $visit->subscription && $visit->subscription->client_id === $user->id)) {
                 if ($request->has('technician_id')) {

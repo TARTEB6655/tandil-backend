@@ -1413,8 +1413,8 @@ class TechnicianDashboardController extends Controller
             'client_name' => $client?->name,
             'client_id' => $client?->id,
             'area' => $visit->area?->name,
-            'price' => $meta['price'] ?? 0,
-            'price_display' => $meta['price_display'] ?? null,
+            'price' => $visit->price !== null ? (float) $visit->price : ($meta['price'] ?? 0),
+            'price_display' => $visit->price !== null ? ('AED ' . number_format((float) $visit->price, 2)) : ($meta['price_display'] ?? null),
             'accepted_at' => $visit->accepted_at?->toIso8601String(),
             'started_at' => $visit->started_at?->toIso8601String(),
             'completed_at' => $visit->completed_at?->toIso8601String(),
@@ -1440,13 +1440,16 @@ class TechnicianDashboardController extends Controller
     {
         $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
 
+        $price = $visit->price !== null ? (float) $visit->price : ($meta['price'] ?? 0);
+        $priceDisplay = $visit->price !== null ? ('AED ' . number_format((float) $visit->price, 2)) : ($meta['price_display'] ?? null);
+
         return [
             'id' => $visit->id,
             'farm_name' => $meta['farm_name'] ?? ($visit->subscription?->client?->name ?? 'Visit #' . $visit->id),
             'service_name' => $meta['service_name'] ?? null,
             'date' => $visit->completed_date?->toDateString() ?? $visit->scheduled_date?->toDateString(),
-            'price' => $meta['price'] ?? 0,
-            'price_display' => $meta['price_display'] ?? null,
+            'price' => $price,
+            'price_display' => $priceDisplay,
             'rating' => $meta['rating'] ?? null,
         ];
     }

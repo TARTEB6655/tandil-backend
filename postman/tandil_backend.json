@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.80.0"
+        "version": "2.81.0"
     },
     "item": [
         {
@@ -1788,17 +1788,62 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"subscription_id\": {{subscription_id}},\n  \"technician_id\": null,\n  \"supervisor_id\": null,\n  \"area_id\": null,\n  \"scheduled_date\": \"2025-01-20\",\n  \"status\": \"pending\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "subscription_id",
+                                    "value": "{{subscription_id}}",
+                                    "type": "text",
+                                    "description": "Required. Subscription ID."
+                                },
+                                {
+                                    "key": "technician_id",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. User ID of technician to assign."
+                                },
+                                {
+                                    "key": "supervisor_id",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. User ID of supervisor."
+                                },
+                                {
+                                    "key": "area_id",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Area ID."
+                                },
+                                {
+                                    "key": "scheduled_date",
+                                    "value": "2025-01-20",
+                                    "type": "text",
+                                    "description": "Required. Date (YYYY-MM-DD)."
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "pending",
+                                    "type": "text",
+                                    "description": "Optional. pending|scheduled|in_progress|completed|approved|rejected"
+                                },
+                                {
+                                    "key": "notes",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Visit notes (can include price in format: Farm | Service | Location | 120 min | AED 289.99 | 5/5)."
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Job/visit price (number, e.g. 289.99). Who can set: Admin or Client (when creating job for own subscription)."
+                                }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/visits",
@@ -1810,7 +1855,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "Create a new visit (admin/supervisor only)"
+                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**Price:** Either **admin** or **client** (when creating a job for their own subscription) can add the price:\n- Set the **price** field (e.g. 289.99) for a dedicated job price, or\n- Include price in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
                     }
                 },
                 {
@@ -1823,17 +1868,56 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"scheduled_date\": \"2025-01-25\",\n  \"notes\": \"Updated notes\",\n  \"status\": \"in_progress\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "scheduled_date",
+                                    "value": "2025-01-25",
+                                    "type": "text",
+                                    "description": "Optional. Date (YYYY-MM-DD)."
+                                },
+                                {
+                                    "key": "notes",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Visit notes."
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Job/visit price (number, e.g. 289.99)."
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. pending|scheduled|in_progress|completed|approved|rejected"
+                                },
+                                {
+                                    "key": "technician_id",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Admin/Client only. User ID of technician."
+                                },
+                                {
+                                    "key": "supervisor_id",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Admin/Client only. User ID of supervisor."
+                                },
+                                {
+                                    "key": "area_id",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Optional. Admin/Client only. Area ID."
+                                }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/visits/{{visit_id}}",
@@ -1846,7 +1930,7 @@
                                 "{{visit_id}}"
                             ]
                         },
-                        "description": "Update visit details"
+                        "description": "Update visit (job) details. Use **form-data** body. Set **visit_id** in path.\n\n**Updatable fields:** scheduled_date, notes, price, status, technician_id, supervisor_id, area_id (all optional). Admin/Client can assign technician_id, supervisor_id, area_id; role-based status rules apply."
                     }
                 },
                 {
@@ -3476,7 +3560,7 @@
                                         "dashboard"
                             ]
                         },
-                                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. today_tasks includes carry-forward open jobs (pending, accepted, in_progress) where scheduled_date <= today."
+                                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. today_tasks = visits scheduled for **today only** (scheduled_date = today); each task includes price, price_display. recent_visits = recently completed with price_display and rating."
                     }
                 },
                 {
@@ -3999,7 +4083,7 @@
                                         {
                                             "key": "period",
                                             "value": "month",
-                                            "description": "week | month | year"
+                                            "description": "week = last 7 days; month = last 30 days; year = year to date"
                                         },
                                         {
                                             "key": "per_page",
@@ -4007,7 +4091,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Returns jobs in period: **accepted**, **in_progress**, **completed**, **rejected**, **cancelled**. Summary: total_earnings, jobs_completed, avg_rating. Query: period (week|month|year), per_page. Period uses current week/month/year; date range is inclusive."
+                                "description": "Returns **all** jobs in period: pending, accepted, in_progress, completed, rejected, cancelled. Summary: total_earnings, jobs_completed, avg_rating. Response: data.summary + data.jobs (paginated). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
                             }
                         },
                         {
@@ -4039,7 +4123,7 @@
                                         {
                                             "key": "period",
                                             "value": "month",
-                                            "description": "week | month | year"
+                                            "description": "week = last 7 days; month = last 30 days; year = year to date"
                                         },
                                         {
                                             "key": "per_page",
@@ -4047,7 +4131,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Accepted and in-progress jobs only. Same data as tasks?filter=accepted; under /jobs for frontend compatibility. Query: period (week|month|year), per_page."
+                                "description": "Accepted and in-progress jobs only. Response: data.jobs (paginated). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
                             }
                         },
                         {
@@ -4079,7 +4163,7 @@
                                         {
                                             "key": "period",
                                             "value": "month",
-                                            "description": "week | month | year"
+                                            "description": "week = last 7 days; month = last 30 days; year = year to date"
                                         },
                                         {
                                             "key": "per_page",
@@ -4087,7 +4171,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Rejected jobs only. Same data as tasks?filter=rejected; under /jobs for frontend compatibility. Query: period (week|month|year), per_page."
+                                "description": "Rejected jobs only. Response: data.jobs (paginated). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
                             }
                         },
                         {
@@ -4119,11 +4203,11 @@
                                         {
                                             "key": "period",
                                             "value": "month",
-                                            "description": "week|month|year"
+                                            "description": "week = last 7 days; month = last 30 days; year = year to date"
                                         }
                                     ]
                                 },
-                                "description": "Returns status-wise counts for quick action tiles (accepted, in_progress, rejected, completed, pending, cancelled)."
+                                "description": "Returns status-wise counts for quick action tiles (accepted, in_progress, rejected, completed, pending, cancelled). **Period**: week = last 7 days; month = last 30 days; year = year to date."
                             }
                         },
                         {
@@ -4809,7 +4893,7 @@
                             }
                         }
                     ],
-                    "description": "Technician Dashboard. All require technician role + Bearer token.\n\n**Tasks vs Jobs (avoid confusion):**\n• **Tasks** = Your assigned work (visits). Use GET /api/technician/tasks with query **filter** (today | upcoming | all | completed | accepted | rejected). **filter=all** = all open jobs; **filter=completed** = completed only.\n• **Jobs – History** = GET /api/technician/jobs. Returns jobs with status **accepted**, **in_progress**, **completed**, **rejected**, **cancelled** in a **period** (week|month|year). Summary + list.\n• Single task/job detail = GET /api/technician/tasks/{{visit_id}} or .../tasks/{{visit_id}}/detail (not under /jobs).\n• **Availability** = GET/PUT return breaks, vacations (reason + notes). For leave type dropdown use GET /api/technician/leave-types.\n• Profile, payout, bank accounts, schedule as listed below."
+                    "description": "Technician Dashboard. All require technician role + Bearer token.\n\n**Tasks vs Jobs (avoid confusion):**\n• **Tasks** = Your assigned work (visits). Use GET /api/technician/tasks with query **filter** (today | upcoming | all | completed | accepted | rejected). **filter=all** = all open jobs; **filter=completed** = completed only.\n• **Jobs – History** = GET /api/technician/jobs. Returns all jobs (pending, accepted, in_progress, completed, rejected, cancelled) in a **period**: week = last 7 days, month = last 30 days (rolling), year = year to date. Response: data.summary + data.jobs (paginated).\n• **Jobs (accepted)** / **Jobs (rejected)** = same period logic; response data.jobs.\n• Single task/job detail = GET /api/technician/tasks/{{visit_id}} or .../tasks/{{visit_id}}/detail (not under /jobs).\n• **Availability** = GET/PUT return breaks, vacations (reason + notes). For leave type dropdown use GET /api/technician/leave-types.\n• Profile, payout, bank accounts, schedule as listed below."
                 }
             ],
             "description": "Technician-only endpoints: visits, photos, dashboard, profile, tasks, jobs, payouts, bank accounts, availability (GET/PUT return breaks + vacations + service_areas; vacations managed only via PUT availability, no separate vacation APIs), schedule. Profile and availability accept service_areas (JSON array) for multiple addresses."
