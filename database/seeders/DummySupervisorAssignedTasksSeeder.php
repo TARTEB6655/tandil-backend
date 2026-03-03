@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Area;
 use App\Models\Employee;
+use App\Models\Report;
 use App\Models\Subscription;
 use App\Models\TechnicianAvailability;
 use App\Models\User;
@@ -141,7 +142,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
         ];
 
         // 5 dummy tasks for today – in_progress and pending only (no "accepted" status); with price so dashboard shows correctly
-        Visit::create(array_merge($base, [
+        $v1 = Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'in_progress',
             'accepted_at' => $today->copy()->setTime(7, 45),
@@ -164,7 +165,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'price' => 150.00,
         ]));
 
-        Visit::create(array_merge($base, [
+        $v4 = Visit::create(array_merge($base, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'in_progress',
             'accepted_at' => $today->copy()->setTime(10, 30),
@@ -181,7 +182,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
         ]));
 
         // 2 completed visits (yesterday and 2 days ago) for recent_visits with price/rating
-        Visit::create(array_merge($base, [
+        $v6 = Visit::create(array_merge($base, [
             'scheduled_date' => $today->copy()->subDay()->toDateString(),
             'status' => 'completed',
             'accepted_at' => $today->copy()->subDay()->setTime(9, 0),
@@ -192,7 +193,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'price' => 289.99,
         ]));
 
-        Visit::create(array_merge($base, [
+        $v7 = Visit::create(array_merge($base, [
             'scheduled_date' => $today->copy()->subDays(2)->toDateString(),
             'status' => 'completed',
             'accepted_at' => $today->copy()->subDays(2)->setTime(10, 0),
@@ -203,7 +204,26 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'price' => 145.50,
         ]));
 
-        $this->command->info('Dummy supervisor-assigned technician tasks seeded successfully (5 today tasks + 2 completed with price).');
+        // Field reports with technician_notes so task detail API returns technician_notes
+        $reportBase = ['supervisor_id' => $supervisor->id, 'user_id' => $client->id, 'status' => 'submitted'];
+        Report::create(array_merge($reportBase, [
+            'visit_id' => $v1->id,
+            'technician_notes' => 'Tree watering completed for all zones. Soil moisture levels good. No pest issues observed.',
+        ]));
+        Report::create(array_merge($reportBase, [
+            'visit_id' => $v4->id,
+            'technician_notes' => 'Drip lines checked and unblocked. Adjusted timers for Zone 2. Recommended follow-up in 2 weeks.',
+        ]));
+        Report::create(array_merge($reportBase, [
+            'visit_id' => $v6->id,
+            'technician_notes' => 'Planting and fertilizing done. New saplings staked. Client requested extra mulch for Section B.',
+        ]));
+        Report::create(array_merge($reportBase, [
+            'visit_id' => $v7->id,
+            'technician_notes' => 'Garden cleaning completed. Removed dry fronds and trimmed hedges. Client satisfied with result.',
+        ]));
+
+        $this->command->info('Dummy supervisor-assigned technician tasks seeded successfully (5 today + 2 completed with price; 4 with technician_notes).');
     }
 }
 

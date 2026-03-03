@@ -423,7 +423,7 @@ class TechnicianDashboardController extends Controller
     public function taskShow(Request $request, $id)
     {
         $visit = Visit::where('technician_id', $request->user()->id)
-            ->with(['subscription.client', 'area', 'photos'])
+            ->with(['subscription.client', 'area', 'photos', 'report'])
             ->find($id);
         if (!$visit) {
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
@@ -437,7 +437,7 @@ class TechnicianDashboardController extends Controller
     public function taskDetail(Request $request, $id)
     {
         $visit = Visit::where('technician_id', $request->user()->id)
-            ->with(['subscription.client', 'area', 'photos'])
+            ->with(['subscription.client', 'area', 'photos', 'report'])
             ->find($id);
         if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
@@ -1078,15 +1078,15 @@ class TechnicianDashboardController extends Controller
 
     /**
      * POST /api/technician/reports
-     * Technician-only: submit field report to supervisor (Job Details → "Submit Field Report to Supervisor").
-     * Accepts form-data: visit_id, technician_notes, recommended_products (array), before_photo (file), after_photo (file).
+     * Technician-only: submit or update field report to supervisor (Job Details → "Submit Field Report to Supervisor").
+     * Only technician_notes is used; no other note field. If a report already exists, technician_notes (and optional new photos) are updated.
+     * Accepts form-data: visit_id, technician_notes, before_photo (file), after_photo (file).
      */
     public function submitReport(Request $request)
     {
         $rules = [
             'visit_id' => 'required|integer|exists:visits,id',
             'technician_notes' => 'nullable|string|max:10000',
-            'notes' => 'nullable|string|max:5000',
             'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
             'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
         ];
@@ -1109,19 +1109,21 @@ class TechnicianDashboardController extends Controller
             ], 422);
         }
 
-        if ($visit->report) {
-            return response()->json([
-                'status' => false,
-                'message' => 'A report already exists for this visit.',
-            ], 422);
-        }
+        $report = $visit->report;
 
-        $report = Report::create([
-            'visit_id' => $visit->id,
-            'technician_notes' => $data['technician_notes'] ?? '',
-            'notes' => $data['notes'] ?? null,
-            'status' => 'pending',
-        ]);
+        if ($report) {
+            $report->update(['technician_notes' => $data['technician_notes'] ?? $report->technician_notes]);
+            $message = 'Report updated successfully.';
+            $statusCode = 200;
+        } else {
+            $report = Report::create([
+                'visit_id' => $visit->id,
+                'technician_notes' => $data['technician_notes'] ?? '',
+                'status' => 'pending',
+            ]);
+            $message = 'Report submitted to supervisor successfully.';
+            $statusCode = 201;
+        }
 
         foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
             if (! $request->hasFile($key)) {
@@ -1129,7 +1131,7 @@ class TechnicianDashboardController extends Controller
             }
             $file = $request->file($key);
             $path = $file->store('visit_photos', 'public');
-            ImageCompressionService::compressIfNeededFromPublicPath($path);
+            ImageCompressionService::compressVisitPhotoFromPublicPath($path);
             VisitPhoto::create([
                 'visit_id' => $visit->id,
                 'photo_path' => $path,
@@ -1139,9 +1141,9 @@ class TechnicianDashboardController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'Report submitted to supervisor successfully.',
+            'message' => $message,
             'data' => $report->load(['visit', 'visit.photos']),
-        ], 201);
+        ], $statusCode);
     }
 
     private function formatJobDetails(Visit $visit): array
@@ -1184,6 +1186,7 @@ class TechnicianDashboardController extends Controller
                 'get_directions' => true,
             ],
             'special_instructions' => null,
+            'technician_notes' => $visit->report?->technician_notes ?? null,
             'before_after_photos' => [
                 'before' => $photos->where('type', 'before')->values(),
                 'after' => $photos->where('type', 'after')->values(),
@@ -1419,7 +1422,7 @@ class TechnicianDashboardController extends Controller
             'completed_at' => $visit->completed_at?->toIso8601String(),
         ];
         if ($includeDetail) {
-            $base['notes'] = $visit->notes;
+            $base['technician_notes'] = $visit->report?->technician_notes ?? null;
             $base['metadata'] = $meta;
             $base['subscription'] = $visit->subscription ? [
                 'id' => $visit->subscription->id,
