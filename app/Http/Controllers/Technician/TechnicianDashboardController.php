@@ -1101,10 +1101,10 @@ class TechnicianDashboardController extends Controller
             ], 403);
         }
 
-        if ($visit->status !== 'completed') {
+        if (! in_array($visit->status, ['in_progress', 'completed'], true)) {
             return response()->json([
                 'status' => false,
-                'message' => 'You can only submit a report for a completed visit. Complete the visit first.',
+                'message' => 'You can only submit a report when the job is in progress or completed.',
             ], 422);
         }
 
