@@ -307,12 +307,14 @@ class SupervisorDashboardApiController extends Controller
 
     /**
      * List field reports (reports given by technician to supervisor). Optional: ?status=pending&per_page=20.
-     * Returns only what the UI needs: technician name, employee_id, location, service, submitted_at, has_photos, before_photos, after_photos, report id, visit id.
+     * Only reports for visits that are in_progress are shown (reports for jobs still in progress, not completed/approved).
+     * Returns only what the UI needs: technician name, employee_id, location, service, submitted_at, before_photos, after_photos, etc.
      */
     public function reportsIndex(Request $request): JsonResponse
     {
         $visitIds = $this->visitsQuery($request)->pluck('id');
         $query = Report::whereIn('visit_id', $visitIds)
+            ->whereHas('visit', fn ($q) => $q->where('status', 'in_progress'))
             ->with([
                 'visit.subscription.client',
                 'visit.technician.employee',
