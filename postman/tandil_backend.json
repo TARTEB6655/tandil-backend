@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.82.0"
+        "version": "2.83.0"
     },
     "item": [
         {
@@ -31,6 +31,19 @@
                             ]
                         },
                         "description": "✅ STEP 1: ALWAYS TEST THIS FIRST - Verify API server is running before testing any other endpoints"
+                    }
+                },
+                {
+                    "name": "Debug Performance",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/api/debug/performance",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "debug", "performance"]
+                        },
+                        "description": "Performance diagnostics: PHP loop, DB connection, product query, eager load, OPcache status, PHP version, total time. No auth."
                     }
                 }
             ],
@@ -9726,19 +9739,21 @@
                                 "method": "POST",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"technician_id\": 3,\n  \"area_id\": 1\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "technician_id", "value": "3", "type": "text", "description": "Required" },
+                                        { "key": "area_id", "value": "1", "type": "text", "description": "Required; must be one of the supervisor's zones" }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/supervisors/{{supervisor_id}}/team",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "supervisors", "{{supervisor_id}}", "team"]
                                 },
-                                "description": "Add a technician to the supervisor's team (assign technician to one of the supervisor's zones). POST /api/admin/supervisors/:id/team. Body: technician_id (required), area_id (required; must be one of the supervisor's zones). Set supervisor_id."
+                                "description": "Add a technician to the supervisor's team (assign technician to one of the supervisor's zones). POST /api/admin/supervisors/:id/team. Form: technician_id (required), area_id (required; must be one of the supervisor's zones). Set supervisor_id."
                             }
                         },
                         {
@@ -9750,19 +9765,18 @@
                                     { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"technician_id\": 3,\n  \"area_id\": 1\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisors/{{supervisor_id}}/team?technician_id=3&area_id=1",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "supervisors", "{{supervisor_id}}", "team"],
-                                    "query": [
-                                        { "key": "technician_id", "value": "3" },
-                                        { "key": "area_id", "value": "1" }
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "technician_id", "value": "3", "type": "text", "description": "Required" },
+                                        { "key": "area_id", "value": "1", "type": "text", "description": "Required; area must be one of the supervisor's zones" }
                                     ]
                                 },
-                                "description": "Remove a technician from the supervisor's team (unassign from a zone). DELETE /api/admin/supervisors/:id/team. Body or query: technician_id, area_id (area must be one of the supervisor's zones). Set supervisor_id."
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisors/{{supervisor_id}}/team",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "supervisors", "{{supervisor_id}}", "team"]
+                                },
+                                "description": "Remove a technician from the supervisor's team (unassign from a zone). DELETE /api/admin/supervisors/:id/team. Form: technician_id, area_id (area must be one of the supervisor's zones). Set supervisor_id."
                             }
                         },
                         {

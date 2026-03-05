@@ -1,0 +1,26 @@
+---
+description: Update Postman collection when adding or changing API routes/controllers
+globs: routes/api.php, app/Http/Controllers/Api/**/*.php, app/Http/Controllers/**/*Controller.php
+alwaysApply: false
+---
+
+# Keep Postman in sync with API changes
+
+When you **add, change, or remove** an API route or controller action that affects a public/admin endpoint:
+
+1. **Update** `postman/tandil_backend.json` in the same change:
+   - **New endpoint**: Add a request in the correct folder (e.g. "Admin - Areas (Zones)" for `/api/admin/areas`, `/api/admin/technicians`, `/api/admin/supervisors`, etc.). Match the folder to the feature/dashboard (see collection `item[].name` and `item[].item`).
+   - **Changed endpoint**: Update the matching request (method, path, query, body, description).
+   - **Removed endpoint**: Remove the request from the collection.
+
+2. **Request shape** (follow existing requests in the file):
+   - `method`: GET, POST, PUT, PATCH, DELETE.
+   - `header`: Include `Authorization: Bearer {{token}}` for protected routes, and `Accept: application/json`; add `Content-Type: application/json` for JSON body.
+   - `url`: Use `{{base_url}}` and path segments (e.g. `["api", "admin", "areas"]`). Use `{{variable}}` for path/query params (e.g. `{{supervisor_id}}`) where the user must set them.
+   - `query`: Array of `{ "key", "value", "description" }` for query params.
+   - `body`: For POST/PUT/PATCH use `"mode": "raw"` with `"raw": "{\n  \"key\": \"value\"\n}"` for JSON, or `"mode": "formdata"` with `formdata` array for form-data.
+   - `description`: One line summarizing route, method, path, main params/body, and response (e.g. "GET /api/admin/areas. Query: per_page, country, search. Response: data[], pagination.").
+
+3. **Version**: When adding or changing requests, bump `info.version` in the same file (e.g. 2.82.0 → 2.83.0) so changes are trackable.
+
+Do not skip Postman updates when the task includes creating or modifying API endpoints.
