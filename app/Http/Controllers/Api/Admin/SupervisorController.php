@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Validator;
 class SupervisorController extends Controller
 {
     /**
-     * GET /api/admin/supervisors – All supervisors for "Supervisors & Teams" screen.
-     * Returns: id, name, email, employee_id, assigned_zones (id, name), zone (first zone or null), team_count.
+     * GET /api/admin/supervisors – Supervisor list only (no team count). Click on a supervisor then call GET /api/admin/supervisors/{id}/team for team members.
+     * Returns: id, name, email, employee_id, zone (first zone or null), assigned_zones.
      * Query: per_page, search (name, email, employee_id, zone name).
      */
     public function index(Request $request): JsonResponse
@@ -49,10 +49,6 @@ class SupervisorController extends Controller
         $data = $supervisors->getCollection()->map(function (User $u) {
             $zones = $u->supervisedAreas->map(fn ($a) => ['id' => $a->id, 'name' => $a->name])->values()->all();
             $firstZone = $zones[0] ?? null;
-            $areaIds = $u->supervisedAreas->pluck('id')->all();
-            $teamCount = empty($areaIds)
-                ? 0
-                : (int) DB::table('area_technician')->whereIn('area_id', $areaIds)->count(DB::raw('DISTINCT user_id'));
 
             return [
                 'id' => $u->id,
@@ -61,13 +57,12 @@ class SupervisorController extends Controller
                 'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
                 'zone' => $firstZone,
                 'assigned_zones' => $zones,
-                'team_count' => $teamCount,
             ];
         })->all();
 
         return response()->json([
             'success' => true,
-            'message' => $search !== '' ? "Supervisors matching \"{$search}\"." : 'All supervisors with assigned zones and team count.',
+            'message' => $search !== '' ? "Supervisors matching \"{$search}\"." : 'All supervisors with assigned zones. Use GET /api/admin/supervisors/{id}/team for team members.',
             'data' => $data,
             'pagination' => [
                 'current_page' => $supervisors->currentPage(),
