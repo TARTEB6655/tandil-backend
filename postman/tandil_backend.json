@@ -5032,6 +5032,22 @@
                     "name": "B. My Team",
                     "item": [
                         {
+                            "name": "Areas - List (for service area)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/areas",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "areas"]
+                                },
+                                "description": "List all zones (areas = cities) for supervisor to set as service areas in profile. Use these ids in Profile - Update as area_ids[0], area_ids[1], etc. Admin also assigns supervisor to zones; supervisor can set/update their zones here."
+                            }
+                        },
+                        {
                             "name": "Team (My Team)",
                             "request": {
                                 "method": "GET",
@@ -5057,6 +5073,22 @@
                                     ]
                                 },
                                 "description": "Single My Team API: list of team members with name, employee_id, status (Active/Break), current_activity, tasks_completed, tasks_total, tasks_display."
+                            }
+                        },
+                        {
+                            "name": "Team Member - Detail (by id)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/team/{{technician_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "team", "{{technician_id}}"]
+                                },
+                                "description": "Single team member detail by id. GET /api/supervisor/team/:id. Only returns if technician is in supervisor's zones. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone. Set technician_id (e.g. from My Team list)."
                             }
                         }
                     ]
@@ -5631,7 +5663,7 @@
                 },
                 {
                     "name": "E. Profile",
-                    "description": "Single profile API: GET profile; PUT or POST profile with form-data (name, email, phone, profile_picture, password, password_confirmation). No separate password endpoint; no current_password required.",
+                    "description": "GET profile (includes service_areas = zones). PUT/POST profile with form-data: name, email, phone, profile_picture, password, password_confirmation, area_ids[] (zone ids for service area). Supervisor sets their zones here; admin can also assign via Admin Areas API.",
                     "item": [
                         {
                             "name": "Profile - Get",
@@ -5658,7 +5690,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Get supervisor profile. Response includes profile_picture, profile_picture_url (full URL for image load; use in img src)."
+                                "description": "Get supervisor profile. Response includes profile_picture, profile_picture_url, service_areas (zones: id, name, country). Supervisor's zones = where they operate; admin can assign via Admin Areas, supervisor can set via Profile Update (area_ids)."
                             }
                         },
                         {
@@ -5710,6 +5742,12 @@
                                             "value": "",
                                             "type": "text",
                                             "description": "Required when changing password; must match password."
+                                        },
+                                        {
+                                            "key": "area_ids[0]",
+                                            "value": "1",
+                                            "type": "text",
+                                            "description": "Optional. Zone (area) id for service area. Add area_ids[1], area_ids[2] for multiple. Supervisor sets which zones they work in."
                                         }
                                     ]
                                 },
@@ -5724,7 +5762,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Single profile update API (form-data). Optional fields: name, email, phone, profile_picture (file), password, password_confirmation. To change password send password + password_confirmation only (no current_password). Use PUT or POST. Returns profile_picture_url (full URL)."
+                                "description": "Profile update (form-data). Optional: name, email, phone, profile_picture, password, password_confirmation, area_ids[0], area_ids[1], ... (zone ids = service areas). Supervisor sets their zones; response includes service_areas."
                             }
                         },
                         {
@@ -9562,6 +9600,109 @@
                                     ]
                                 },
                                 "description": "Delete service. DELETE /api/admin/services/:id. Fails if service has products. Set service_id."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Areas (Zones)",
+                    "description": "Areas = cities, linked to country (default UAE). Assign supervisors and technicians to zones at setup. area_supervisor, area_technician. Auth: Bearer token, admin role. Env: area_id. List: ?country=UAE.",
+                    "item": [
+                        {
+                            "name": "Areas - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas?per_page=15&with=supervisors,technicians&country=UAE",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas"],
+                                    "query": [
+                                        { "key": "per_page", "value": "15" },
+                                        { "key": "with", "value": "supervisors,technicians", "description": "Optional: supervisors,technicians" },
+                                        { "key": "country", "value": "UAE", "description": "Filter by country (e.g. UAE); areas = cities" },
+                                        { "key": "search", "value": "", "description": "Optional: search name/description" }
+                                    ]
+                                },
+                                "description": "List areas (cities). GET /api/admin/areas. Query: per_page, with=supervisors,technicians, country=UAE, search. Response: data (id, name, description, country, supervisors[], technicians[], created_at, updated_at), pagination."
+                            }
+                        },
+                        {
+                            "name": "Areas - Create",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Dubai\",\n  \"description\": \"Dubai city\",\n  \"country\": \"UAE\",\n  \"supervisor_ids\": [2],\n  \"technician_ids\": [3, 4]\n}",
+                                    "options": { "raw": { "language": "json" } }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas"]
+                                },
+                                "description": "Create area (city). POST /api/admin/areas. JSON: name (required), description (optional), country (optional, default UAE), supervisor_ids, technician_ids. Areas = cities in the country. Syncs area_supervisor and area_technician."
+                            }
+                        },
+                        {
+                            "name": "Areas - Get",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas/{{area_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas", "{{area_id}}"]
+                                },
+                                "description": "Get one area (city) with supervisors and technicians. GET /api/admin/areas/:id. Response includes country (e.g. UAE). Set area_id."
+                            }
+                        },
+                        {
+                            "name": "Areas - Update",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Dubai\",\n  \"description\": \"Dubai city\",\n  \"country\": \"UAE\",\n  \"supervisor_ids\": [2, 5],\n  \"technician_ids\": [3, 4, 6]\n}",
+                                    "options": { "raw": { "language": "json" } }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas/{{area_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas", "{{area_id}}"]
+                                },
+                                "description": "Update area (city) and sync supervisors/technicians. PUT /api/admin/areas/:id. JSON: name, description, country (e.g. UAE), supervisor_ids, technician_ids. Set area_id."
+                            }
+                        },
+                        {
+                            "name": "Areas - Delete",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas/{{area_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas", "{{area_id}}"]
+                                },
+                                "description": "Delete area (city). DELETE /api/admin/areas/:id. Detaches supervisors and technicians then deletes. Set area_id."
                             }
                         }
                     ]

@@ -10,6 +10,7 @@ use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
 use App\Models\TechnicianBreak;
+use App\Models\Area;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -153,41 +154,72 @@ class SupervisorDashboardApiController extends Controller
             ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
             ->get();
 
-        $data = $technicians->map(function (User $u) use ($areaIds, $now, $today) {
-            $visits = $u->visits->whereIn('area_id', $areaIds);
-            $totalTasks = $visits->count();
-            $completedTasks = $visits->whereIn('status', ['completed', 'approved'])->count();
-            $currentVisit = $visits->where('status', 'in_progress')->first();
-
-            $onBreak = TechnicianBreak::where('user_id', $u->id)
-                ->whereDate('date', $today)
-                ->get()
-                ->contains(fn ($b) => $this->isTimeInBreak($now, $b->start_time ?? '', $b->end_time ?? ''));
-
-            $status = $onBreak ? 'Break' : 'Active';
-            $currentActivity = $onBreak ? 'On Break' : null;
-            if (! $onBreak && $currentVisit) {
-                $meta = $currentVisit->notes ? $this->parseVisitMetaFromNotes((string) $currentVisit->notes) : [];
-                $loc = $meta['farm_name'] ?? $currentVisit->area?->name ?? $currentVisit->subscription?->client?->name ?? 'Visit';
-                $svc = $meta['service_name'] ?? ($currentVisit->subscription?->plan ? str_replace('_', ' ', (string) $currentVisit->subscription->plan) : null) ?? '';
-                $currentActivity = $svc ? "{$loc} - {$svc}" : $loc;
-            }
-            $currentActivity = $currentActivity ?? ($status === 'Break' ? 'On Break' : '—');
-
-            return [
-                'id' => $u->id,
-                'name' => $u->name,
-                'employee_id' => $u->employee?->employee_id ?? ('TECH-' . $u->id),
-                'profile_picture_url' => $u->profile_picture_url,
-                'status' => $status,
-                'current_activity' => $currentActivity,
-                'tasks_completed' => $completedTasks,
-                'tasks_total' => $totalTasks,
-                'tasks_display' => $totalTasks > 0 ? "{$completedTasks}/{$totalTasks}" : '0/0',
-            ];
-        })->values()->all();
+        $data = $technicians->map(fn (User $u) => $this->mapTeamMemberToArray($u, $areaIds, $now, $today))->values()->all();
 
         return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /**
+     * GET /api/supervisor/team/{id} – Single team member detail by id (must be in supervisor's zones).
+     */
+    public function teamMemberShow(Request $request, int $id): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        $technicianIds = $this->teamMemberIdsInZones($areaIds);
+        if (! $technicianIds->contains($id)) {
+            return response()->json(['success' => false, 'message' => 'Team member not found or not in your zones.'], 404);
+        }
+
+        $now = Carbon::now();
+        $today = $now->toDateString();
+        $u = User::role('technician')
+            ->where('id', $id)
+            ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
+            ->firstOrFail();
+
+        $data = $this->mapTeamMemberToArray($u, $areaIds, $now, $today);
+        $data['email'] = $u->email;
+        $data['phone'] = $u->phone;
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
+
+    private function mapTeamMemberToArray(User $u, array $areaIds, Carbon $now, string $today): array
+    {
+        $visits = $u->visits->whereIn('area_id', $areaIds);
+        $totalTasks = $visits->count();
+        $completedTasks = $visits->whereIn('status', ['completed', 'approved'])->count();
+        $currentVisit = $visits->where('status', 'in_progress')->first();
+
+        $onBreak = TechnicianBreak::where('user_id', $u->id)
+            ->whereDate('date', $today)
+            ->get()
+            ->contains(fn ($b) => $this->isTimeInBreak($now, $b->start_time ?? '', $b->end_time ?? ''));
+
+        $status = $onBreak ? 'Break' : 'Active';
+        $currentActivity = $onBreak ? 'On Break' : null;
+        if (! $onBreak && $currentVisit) {
+            $meta = $currentVisit->notes ? $this->parseVisitMetaFromNotes((string) $currentVisit->notes) : [];
+            $loc = $meta['farm_name'] ?? $currentVisit->area?->name ?? $currentVisit->subscription?->client?->name ?? 'Visit';
+            $svc = $meta['service_name'] ?? ($currentVisit->subscription?->plan ? str_replace('_', ' ', (string) $currentVisit->subscription->plan) : null) ?? '';
+            $currentActivity = $svc ? "{$loc} - {$svc}" : $loc;
+        }
+        $currentActivity = $currentActivity ?? ($status === 'Break' ? 'On Break' : '—');
+
+        return [
+            'id' => $u->id,
+            'name' => $u->name,
+            'employee_id' => $u->employee?->employee_id ?? ('TECH-' . $u->id),
+            'profile_picture_url' => $u->profile_picture_url,
+            'status' => $status,
+            'current_activity' => $currentActivity,
+            'tasks_completed' => $completedTasks,
+            'tasks_total' => $totalTasks,
+            'tasks_display' => $totalTasks > 0 ? "{$completedTasks}/{$totalTasks}" : '0/0',
+        ];
     }
 
     private function isTimeInBreak(Carbon $now, string $startTime, string $endTime): bool
@@ -505,14 +537,41 @@ class SupervisorDashboardApiController extends Controller
         }, $filename, ['Content-Type' => 'text/csv']);
     }
 
+    /**
+     * GET /api/supervisor/areas – List all zones (areas) for supervisor to set as service areas in profile.
+     * Areas = cities (e.g. UAE). Supervisor picks from this list when updating profile (area_ids).
+     */
+    public function areasList(Request $request): JsonResponse
+    {
+        $areas = Area::orderBy('name')->get(['id', 'name', 'description', 'country']);
+        $data = $areas->map(fn (Area $a) => [
+            'id' => $a->id,
+            'name' => $a->name,
+            'description' => $a->description,
+            'country' => $a->country ?? 'UAE',
+        ])->values()->all();
+        return response()->json([
+            'success' => true,
+            'message' => 'Areas (zones) for service area selection. Use these ids in profile update (area_ids).',
+            'data' => $data,
+        ]);
+    }
+
     public function profile(Request $request): JsonResponse
     {
         $user = $request->user();
+        $user->load('supervisedAreas');
 
         $visitsQuery = $this->visitsQuery($request);
         $completedVisits = (clone $visitsQuery)->whereIn('status', ['completed', 'approved']);
         $jobsCompleted = $completedVisits->count();
         $totalEarnings = (clone $completedVisits)->get()->sum(fn ($v) => (float) ($v->price ?? 0));
+
+        $serviceAreas = $user->supervisedAreas->map(fn ($a) => [
+            'id' => $a->id,
+            'name' => $a->name,
+            'country' => $a->country ?? 'UAE',
+        ])->values()->all();
 
         return response()->json([
             'success' => true,
@@ -524,6 +583,7 @@ class SupervisorDashboardApiController extends Controller
                 'profile_picture' => $user->profile_picture,
                 'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
                 'role' => $user->role,
+                'service_areas' => $serviceAreas,
                 'jobs_completed' => $jobsCompleted,
                 'total_earnings' => round($totalEarnings, 2),
                 'total_earnings_display' => 'AED ' . number_format($totalEarnings, 2),
@@ -554,6 +614,8 @@ class SupervisorDashboardApiController extends Controller
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
             'password' => 'nullable|string|min:8|confirmed',
+            'area_ids' => 'nullable|array',
+            'area_ids.*' => 'integer|exists:areas,id',
         ];
         if ($profileFile) {
             $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
@@ -590,7 +652,18 @@ class SupervisorDashboardApiController extends Controller
             }
         }
 
+        if (array_key_exists('area_ids', $input)) {
+            $user->supervisedAreas()->sync($input['area_ids'] ?? []);
+        }
+
         $user->save();
+
+        $user->load('supervisedAreas');
+        $serviceAreas = $user->supervisedAreas->map(fn ($a) => [
+            'id' => $a->id,
+            'name' => $a->name,
+            'country' => $a->country ?? 'UAE',
+        ])->values()->all();
 
         return response()->json(['success' => true, 'message' => 'Profile updated successfully.', 'data' => [
             'id' => $user->id,
@@ -599,6 +672,7 @@ class SupervisorDashboardApiController extends Controller
             'phone' => $user->phone,
             'profile_picture' => $user->profile_picture,
             'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
+            'service_areas' => $serviceAreas,
         ]]);
     }
 

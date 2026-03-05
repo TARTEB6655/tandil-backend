@@ -41,6 +41,7 @@ class AreaController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'country' => 'nullable|string|max:100',
             'supervisors' => 'nullable|array',
             'supervisors.*' => 'exists:users,id',
             'technicians' => 'nullable|array',
@@ -50,6 +51,7 @@ class AreaController extends Controller
         $area = Area::create([
             'name' => $request->name,
             'description' => $request->description,
+            'country' => $request->input('country', 'UAE'),
         ]);
 
         if ($request->has('supervisors')) {
@@ -91,6 +93,7 @@ class AreaController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'country' => 'nullable|string|max:100',
             'supervisors' => 'nullable|array',
             'supervisors.*' => 'exists:users,id',
             'technicians' => 'nullable|array',
@@ -101,6 +104,7 @@ class AreaController extends Controller
         $area->update([
             'name' => $request->name,
             'description' => $request->description,
+            'country' => $request->input('country', 'UAE'),
         ]);
 
         if ($request->has('supervisors')) {

@@ -239,8 +239,11 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::get('/dashboard/kpis', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardKpis']);
     Route::get('/dashboard/alerts', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'dashboardAlerts']);
 
-    // Team (single "My Team" API: name, employee_id, status, current_activity, tasks)
+    // Zones list (for supervisor to set service areas in profile)
+    Route::get('/areas', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'areasList']);
+    // Team (list + detail by id)
     Route::get('/team', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'myTeam']);
+    Route::get('/team/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamMemberShow']);
 
     // Assignments
     Route::get('/assignments/pending', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsPending']);
@@ -303,6 +306,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
     Route::post('/services/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'toggleStatus']);
     Route::delete('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'destroy']);
+
+    // Zones (Areas): assign supervisors and technicians to zones at setup. area_supervisor, area_technician.
+    Route::get('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'index']);
+    Route::post('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'store']);
+    Route::get('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'show']);
+    Route::put('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'update']);
+    Route::delete('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'destroy']);
 
     // Products Management
     Route::get('/products', [\App\Http\Controllers\Admin\ProductController::class, 'index']);
