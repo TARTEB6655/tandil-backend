@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.88.0"
+        "version": "2.90.0"
     },
     "item": [
         {
@@ -9619,28 +9619,8 @@
                 },
                 {
                     "name": "Admin - Areas (Zones)",
-                    "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET list (per_page, search), GET all (?all=1), POST create (form-data: location, supervisor_id), GET one, PUT/POST update, DELETE. Response: id, location, supervisor_id only. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team. (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
+                    "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET all (?all=1, search), POST create (form-data: location, supervisor_id), GET one, PUT update, DELETE. Response: id, location, supervisor_id only. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team. (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
                     "item": [
-                        {
-                            "name": "Areas - List",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/areas?per_page=15",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "areas"],
-                                    "query": [
-                                        { "key": "per_page", "value": "15" },
-                                        { "key": "search", "value": "", "description": "Optional: search by location" }
-                                    ]
-                                },
-                                "description": "List areas (paginated). GET /api/admin/areas. Query: per_page, search (location). Response: data[] with id, location, supervisor_id only, pagination."
-                            }
-                        },
                         {
                             "name": "Areas - Get All",
                             "request": {
@@ -9658,7 +9638,7 @@
                                         { "key": "search", "value": "", "description": "Optional: filter by location" }
                                     ]
                                 },
-                                "description": "Get all areas (no pagination). GET /api/admin/areas?all=1. Response: data[] with id, location, supervisor_id only, total. Use for dropdowns."
+                                "description": "Get all areas (no pagination). GET /api/admin/areas?all=1. Response: data[] with id, location, supervisor_id only, total."
                             }
                         },
                         {
@@ -9855,29 +9835,6 @@
                             }
                         },
                         {
-                            "name": "Areas - Update (POST)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        { "key": "location", "value": "Abu Dhabi North", "type": "text" },
-                                        { "key": "supervisor_id", "value": "2", "type": "text" }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/areas/{{area_id}}",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "areas", "{{area_id}}"]
-                                },
-                                "description": "Update area (POST). Same as PUT: location (optional), supervisor_id (optional). Response: id, location, supervisor_id only. Set area_id."
-                            }
-                        },
-                        {
                             "name": "Areas - Delete",
                             "request": {
                                 "method": "DELETE",
@@ -9893,182 +9850,6 @@
                                 "description": "Delete area. DELETE /api/admin/areas/:id. Set area_id."
                             }
                         }
-                    ]
-                },
-                {
-                    "name": "Areas",
-                    "description": "Areas API – List, Create, Get, Update, Delete. Auth: Bearer token (Area Manager for write).",
-                    "item": [
-                {
-                    "name": "List",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('area_id')) {",
-                                    "        pm.environment.set('area_id', jsonData.data[0].id);",
-                                    "    }",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/areas",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "areas"
-                            ]
-                        },
-                        "description": "List all areas (Area Manager only)"
-                    }
-                },
-                {
-                    "name": "Areas - Create",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Dubai North\",\n  \"description\": \"Northern region of Dubai\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/areas",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "areas"
-                            ]
-                        },
-                        "description": "Create a new area (Area Manager only)"
-                    }
-                },
-                {
-                    "name": "Areas - Get",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/areas/{{area_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "areas",
-                                "{{area_id}}"
-                            ]
-                        },
-                        "description": "Get area details (Area Manager only)"
-                    }
-                },
-                {
-                    "name": "Areas - Update",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Dubai North Updated\",\n  \"description\": \"Updated description\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/areas/{{area_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "areas",
-                                "{{area_id}}"
-                            ]
-                        },
-                        "description": "Update area (Area Manager only)"
-                    }
-                },
-                {
-                    "name": "Areas - Delete",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/areas/{{area_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "areas",
-                                "{{area_id}}"
-                            ]
-                        },
-                        "description": "Delete area (Area Manager only)"
-                    }
-                }
                     ]
                 },
                 {

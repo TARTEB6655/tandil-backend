@@ -163,16 +163,20 @@ class AreaController extends Controller
         ]);
     }
 
-    /** Return only id, location, supervisor_id for area responses. */
+    /** Return only id, location, supervisor_id for area responses. All keys always present; location/supervisor_id may be null. */
     private function areaToArray(Area $area, array $extra = []): array
     {
         $supervisorId = null;
         if ($area->relationLoaded('supervisors') && $area->supervisors->isNotEmpty()) {
-            $supervisorId = $area->supervisors->first()->id;
+            $supervisorId = (int) $area->supervisors->first()->id;
+        }
+        $location = $area->location;
+        if ($location === '' || $location === null) {
+            $location = null;
         }
         return array_merge([
-            'id' => $area->id,
-            'location' => $area->location ?? null,
+            'id' => (int) $area->id,
+            'location' => $location,
             'supervisor_id' => $supervisorId,
         ], $extra);
     }
@@ -232,8 +236,15 @@ class AreaController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $location = $request->input('location');
         $supervisorId = (int) $request->input('supervisor_id');
+        if (! User::role('supervisor')->where('id', $supervisorId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The selected user is not a supervisor. supervisor_id must be a user with the supervisor role.',
+            ], 422);
+        }
+
+        $location = $request->input('location');
         $name = $location;
         $n = 0;
         while (Area::where('name', $name)->exists()) {
@@ -292,6 +303,12 @@ class AreaController extends Controller
 
         if ($request->has('supervisor_id')) {
             $supervisorId = (int) $request->input('supervisor_id');
+            if ($supervisorId && ! User::role('supervisor')->where('id', $supervisorId)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The selected user is not a supervisor. supervisor_id must be a user with the supervisor role.',
+                ], 422);
+            }
             $this->ensureSupervisorsAndSync($area, $supervisorId ? [$supervisorId] : []);
         }
 

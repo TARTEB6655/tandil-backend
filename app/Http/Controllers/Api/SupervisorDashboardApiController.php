@@ -136,8 +136,9 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
-     * Single "My Team" API: technicians linked to supervisor's zones at setup (not by visits).
+     * Single "My Team" API: technicians linked to supervisor's zones at setup (area_technician).
      * Returns: name, employee_id, status (Active/Break), current_activity, tasks (completed/total).
+     * Empty data: supervisor has no assigned zones (area_supervisor), or zones have no technicians (area_technician). Assign via Admin Areas and Admin Supervisor Team.
      */
     public function myTeam(Request $request): JsonResponse
     {
@@ -145,9 +146,21 @@ class SupervisorDashboardApiController extends Controller
         $now = Carbon::now();
         $today = $now->toDateString();
 
+        if (empty($areaIds)) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'message' => 'No zones assigned to you. Ask admin to assign you to areas (Admin Areas).',
+            ]);
+        }
+
         $technicianIds = $this->teamMemberIdsInZones($areaIds);
         if ($technicianIds->isEmpty()) {
-            return response()->json(['success' => true, 'data' => []]);
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'message' => 'No team members in your zones. Ask admin to add technicians to your areas (Admin Supervisor Team).',
+            ]);
         }
 
         $technicians = User::role('technician')
