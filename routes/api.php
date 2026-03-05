@@ -245,8 +245,9 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::get('/team', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'myTeam']);
     Route::get('/team/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamMemberShow']);
 
-    // Assignments
+    // Assignments (GET /assignments or GET /assignments/pending = pending list; POST /assignments = assign visit to technician)
     Route::get('/assignments/pending', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsPending']);
+    Route::get('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsPending']);
     Route::post('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsStore']);
     Route::put('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsUpdate']);
     Route::post('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsUpdate']);
