@@ -311,6 +311,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/technicians', [\App\Http\Controllers\Api\Admin\AreaController::class, 'technicians']);
     Route::get('/technicians-for-zones', [\App\Http\Controllers\Api\Admin\AreaController::class, 'techniciansForZones']);
     Route::get('/supervisors-for-zones', [\App\Http\Controllers\Api\Admin\AreaController::class, 'supervisorsForZones']);
+
+    // Supervisors & Teams: list supervisors, get team, add/remove team member
+    Route::get('/supervisors', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'index']);
+    Route::get('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'team']);
+    Route::post('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'addTeamMember']);
+    Route::delete('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'removeTeamMember']);
     Route::get('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'index']);
     Route::post('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'store']);
     Route::get('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'show']);

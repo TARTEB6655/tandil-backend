@@ -19,14 +19,36 @@ class AreaController extends Controller
     /**
      * GET /api/admin/technicians – All technicians for admin dashboard (e.g. "All Technicians" screen).
      * Returns: name, email, employee_id, service_areas, specializations; zone and supervisor the technician is linked with (empty if none).
+     * Query: per_page (1–100), search (optional) – filters by name, email, employee_id, zone name, or supervisor name.
      */
     public function technicians(Request $request): JsonResponse
     {
         $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
-        $technicians = User::role('technician')
+        $search = $request->query('search', '');
+        $search = is_string($search) ? trim($search) : '';
+
+        $query = User::role('technician')
             ->with(['employee', 'assignedAreas.supervisors'])
-            ->orderBy('name')
-            ->paginate($perPage);
+            ->orderBy('name');
+
+        if ($search !== '') {
+            $term = '%' . $search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('users.name', 'like', $term)
+                    ->orWhere('users.email', 'like', $term)
+                    ->orWhereHas('employee', function ($eq) use ($term) {
+                        $eq->where('employee_id', 'like', $term);
+                    })
+                    ->orWhereHas('assignedAreas', function ($eq) use ($term) {
+                        $eq->where('name', 'like', $term);
+                    })
+                    ->orWhereHas('assignedAreas.supervisors', function ($eq) use ($term) {
+                        $eq->where('name', 'like', $term);
+                    });
+            });
+        }
+
+        $technicians = $query->paginate($perPage);
 
         $data = $technicians->getCollection()->map(function (User $u) {
             $emp = $u->employee;
@@ -42,15 +64,13 @@ class AreaController extends Controller
                 'service_areas' => $emp?->service_areas ?? [],
                 'specializations' => $emp?->specializations ?? [],
                 'zone' => $firstZone,
-                'assigned_zones' => $zones,
                 'supervisor' => $firstSupervisor,
-                'assigned_supervisors' => $supervisors,
             ];
         })->all();
 
         return response()->json([
             'success' => true,
-            'message' => 'All technicians with zone and supervisor assignment. Zone and supervisor are empty when not linked.',
+            'message' => $search !== '' ? "Technicians matching \"{$search}\"." : 'All technicians with zone and supervisor assignment. Zone and supervisor are empty when not linked.',
             'data' => $data,
             'pagination' => [
                 'current_page' => $technicians->currentPage(),
@@ -58,6 +78,7 @@ class AreaController extends Controller
                 'per_page' => $technicians->perPage(),
                 'total' => $technicians->total(),
             ],
+            'search' => $search !== '' ? $search : null,
         ]);
     }
 
@@ -148,22 +169,27 @@ class AreaController extends Controller
             'id' => $area->id,
             'name' => $area->name,
             'description' => $area->description ?? null,
+            'location' => $area->location ?? null,
             'country' => $area->country ?? 'UAE',
             'created_at' => $area->created_at?->toIso8601String(),
             'updated_at' => $area->updated_at?->toIso8601String(),
         ];
 
         if ($area->relationLoaded('supervisors')) {
-            $data['supervisors'] = $area->supervisors->map(fn (User $u) => [
+            $supervisors = $area->supervisors->map(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
+                'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
                 'email' => $u->email,
             ])->values()->all();
+            $data['supervisors'] = $supervisors;
+            $data['supervisor'] = $supervisors[0] ?? null;
         }
         if ($area->relationLoaded('technicians')) {
             $data['technicians'] = $area->technicians->map(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
+                'employee_id' => $u->employee?->employee_id ?? ('TECH-' . $u->id),
                 'email' => $u->email,
             ])->values()->all();
         }
@@ -172,16 +198,14 @@ class AreaController extends Controller
     }
 
     /**
-     * GET /api/admin/areas – List zones. ?with=supervisors,technicians&per_page=15
+     * GET /api/admin/areas – List zones with supervisor name. ?with=supervisors,technicians&per_page=15
+     * Default includes supervisors so each zone has supervisor (id, name, employee_id) or null.
      */
     public function index(Request $request): JsonResponse
     {
-        $with = [];
+        $with = ['supervisors'];
         if ($request->filled('with')) {
             $parts = array_map('trim', explode(',', $request->input('with')));
-            if (in_array('supervisors', $parts)) {
-                $with[] = 'supervisors';
-            }
             if (in_array('technicians', $parts)) {
                 $with[] = 'technicians';
             }
@@ -230,7 +254,7 @@ class AreaController extends Controller
     }
 
     /**
-     * POST /api/admin/areas – Create zone. Form-data: name (required), description, country, supervisor_ids (comma or array), technician_ids (comma or array).
+     * POST /api/admin/areas – Add zone and assign supervisor(s). JSON or form-data: name (required), description, location, country, supervisor_ids (array or comma-separated), technician_ids (optional).
      */
     public function store(Request $request): JsonResponse
     {
@@ -244,6 +268,7 @@ class AreaController extends Controller
         ]), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'location' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:100',
             'supervisor_ids' => 'nullable|array',
             'supervisor_ids.*' => 'integer|exists:users,id',
@@ -257,6 +282,7 @@ class AreaController extends Controller
         $area = Area::create([
             'name' => $request->input('name'),
             'description' => $request->input('description'),
+            'location' => $request->input('location'),
             'country' => $request->input('country', 'UAE'),
         ]);
 
@@ -296,6 +322,7 @@ class AreaController extends Controller
         $rules = [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'location' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:100',
         ];
         if ($supervisorIds !== null) {
@@ -320,6 +347,9 @@ class AreaController extends Controller
         }
         if (array_key_exists('description', $input)) {
             $area->description = $request->input('description');
+        }
+        if (array_key_exists('location', $input)) {
+            $area->location = $request->input('location');
         }
         if (array_key_exists('country', $input)) {
             $area->country = $request->input('country', 'UAE');

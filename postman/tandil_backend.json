@@ -9627,7 +9627,7 @@
                                         { "key": "search", "value": "", "description": "Optional: search name/description" }
                                     ]
                                 },
-                                "description": "List areas (cities). GET /api/admin/areas. Query: per_page, with=supervisors,technicians, country=UAE, search. Response: data (id, name, description, country, supervisors[], technicians[], created_at, updated_at), pagination."
+                                "description": "Get zones with supervisor name. GET /api/admin/areas. Supervisors included by default. Query: per_page, with=technicians, country, search. Response: data[] with id, name, description, location, country, supervisor { id, name, employee_id } or null, supervisors[], pagination."
                             }
                         },
                         {
@@ -9639,12 +9639,15 @@
                                     { "key": "Accept", "value": "application/json" }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/admin/technicians?per_page=50",
+                                    "raw": "{{base_url}}/api/admin/technicians?per_page=50&search=",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "technicians"],
-                                    "query": [{ "key": "per_page", "value": "50" }]
+                                    "query": [
+                                        { "key": "per_page", "value": "50" },
+                                        { "key": "search", "value": "", "description": "Optional: filter by name, email, employee_id, zone name, or supervisor name" }
+                                    ]
                                 },
-                                "description": "All technicians for admin dashboard (e.g. \"All Technicians\" screen). GET /api/admin/technicians. Response: id, name, email, employee_id, service_areas[], specializations[], zone { id, name } or null, assigned_zones[], supervisor { id, name } or null, assigned_supervisors[]. Zone and supervisor are empty when not linked."
+                                "description": "All technicians for admin dashboard (e.g. \"All Technicians\" screen). GET /api/admin/technicians. Query: per_page (1–100), search (optional). Response: id, name, email, employee_id, service_areas[], specializations[], zone { id, name } or null, supervisor { id, name } or null, pagination, search (echo when provided)."
                             }
                         },
                         {
@@ -9682,6 +9685,87 @@
                             }
                         },
                         {
+                            "name": "All Supervisors (Admin)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisors?per_page=50&search=",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "supervisors"],
+                                    "query": [
+                                        { "key": "per_page", "value": "50" },
+                                        { "key": "search", "value": "", "description": "Optional: filter by name, email, employee_id, zone name" }
+                                    ]
+                                },
+                                "description": "All supervisors for \"Supervisors & Teams\" screen. GET /api/admin/supervisors. Response: id, name, email, employee_id, zone { id, name } or null, assigned_zones[], team_count. Query: per_page, search."
+                            }
+                        },
+                        {
+                            "name": "Supervisor Team (get)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisors/{{supervisor_id}}/team",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "supervisors", "{{supervisor_id}}", "team"]
+                                },
+                                "description": "Get a supervisor's team (technicians in their zones). GET /api/admin/supervisors/:id/team. Response: data.supervisor (id, name, employee_id, assigned_zones), data.team[] (id, name, email, employee_id, service_areas, specializations, assigned_zones). Set supervisor_id."
+                            }
+                        },
+                        {
+                            "name": "Supervisor Team - Add member",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"technician_id\": 3,\n  \"area_id\": 1\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisors/{{supervisor_id}}/team",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "supervisors", "{{supervisor_id}}", "team"]
+                                },
+                                "description": "Add a technician to the supervisor's team (assign technician to one of the supervisor's zones). POST /api/admin/supervisors/:id/team. Body: technician_id (required), area_id (required; must be one of the supervisor's zones). Set supervisor_id."
+                            }
+                        },
+                        {
+                            "name": "Supervisor Team - Remove member",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"technician_id\": 3,\n  \"area_id\": 1\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisors/{{supervisor_id}}/team?technician_id=3&area_id=1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "supervisors", "{{supervisor_id}}", "team"],
+                                    "query": [
+                                        { "key": "technician_id", "value": "3" },
+                                        { "key": "area_id", "value": "1" }
+                                    ]
+                                },
+                                "description": "Remove a technician from the supervisor's team (unassign from a zone). DELETE /api/admin/supervisors/:id/team. Body or query: technician_id, area_id (area must be one of the supervisor's zones). Set supervisor_id."
+                            }
+                        },
+                        {
                             "name": "Areas - Create",
                             "request": {
                                 "method": "POST",
@@ -9692,11 +9776,12 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        { "key": "name", "value": "Dubai", "type": "text", "description": "Required" },
-                                        { "key": "description", "value": "Dubai city", "type": "text" },
+                                        { "key": "name", "value": "North Zone", "type": "text", "description": "Required" },
+                                        { "key": "description", "value": "Zone for North area", "type": "text" },
+                                        { "key": "location", "value": "Abu Dhabi North", "type": "text", "description": "Zone location/address (e.g. city in UAE)" },
                                         { "key": "country", "value": "UAE", "type": "text" },
-                                        { "key": "supervisor_ids", "value": "2", "type": "text", "description": "Comma-separated user ids (e.g. 2,5)" },
-                                        { "key": "technician_ids", "value": "3,4", "type": "text", "description": "Comma-separated user ids" }
+                                        { "key": "supervisor_ids", "value": "2", "type": "text", "description": "Comma-separated supervisor user ids (e.g. 2,5)" },
+                                        { "key": "technician_ids", "value": "3,4", "type": "text", "description": "Optional: comma-separated technician ids" }
                                     ]
                                 },
                                 "url": {
@@ -9704,7 +9789,28 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas"]
                                 },
-                                "description": "Create area (city). Form-data: name (required), description, country, supervisor_ids (comma-separated), technician_ids (comma-separated). Syncs area_supervisor and area_technician."
+                                "description": "Add zone and assign supervisor(s). POST /api/admin/areas. Form-data or JSON: name (required), description, location (e.g. Abu Dhabi North), country, supervisor_ids (array or comma-separated), technician_ids (optional). Response: created zone with supervisor (id, name, employee_id)."
+                            }
+                        },
+                        {
+                            "name": "Areas - Create (JSON)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"North Zone\",\n  \"location\": \"Abu Dhabi North\",\n  \"description\": \"Zone for North area\",\n  \"country\": \"UAE\",\n  \"supervisor_ids\": [2]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas"]
+                                },
+                                "description": "Add zone and assign supervisor (JSON body). Same as form-data; use for mobile. Body: name (required), location, description, country, supervisor_ids (array of user ids), technician_ids (optional array)."
                             }
                         },
                         {
@@ -9720,7 +9826,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas", "{{area_id}}"]
                                 },
-                                "description": "Get one area (city) with supervisors and technicians. GET /api/admin/areas/:id. Response includes country (e.g. UAE). Set area_id."
+                                "description": "Get one zone with supervisor name(s). GET /api/admin/areas/:id. Response: id, name, description, location, country, supervisor (first), supervisors[] (id, name, employee_id, email), technicians[]. Set area_id."
                             }
                         },
                         {
@@ -9788,7 +9894,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas", "{{area_id}}"]
                                 },
-                                "description": "Delete area (city). DELETE /api/admin/areas/:id. Detaches supervisors and technicians then deletes. Set area_id."
+                                "description": "Delete zone and remove supervisor(s) assigned to that zone. DELETE /api/admin/areas/:id. Detaches all supervisors and technicians from the zone then deletes the zone. Set area_id."
                             }
                         }
                     ]
