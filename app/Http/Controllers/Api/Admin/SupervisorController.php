@@ -32,7 +32,7 @@ class SupervisorController extends Controller
 
         if ($search !== '') {
             $term = '%' . $search . '%';
-            $query->where(function ($q) use ($term) {
+            $query->where(function ($q) use ($term, $search) {
                 $q->where('users.name', 'like', $term)
                     ->orWhere('users.email', 'like', $term)
                     ->orWhereHas('employee', function ($eq) use ($term) {
@@ -41,6 +41,10 @@ class SupervisorController extends Controller
                     ->orWhereHas('supervisedAreas', function ($eq) use ($term) {
                         $eq->where('name', 'like', $term);
                     });
+                // Match displayed "SUP-{id}" when user has no Employee record (fallback is 'SUP-' . user id)
+                if (preg_match('/^SUP-(\d+)$/i', trim($search), $m)) {
+                    $q->orWhere('users.id', (int) $m[1]);
+                }
             });
         }
 
