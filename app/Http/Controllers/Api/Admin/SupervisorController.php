@@ -143,8 +143,8 @@ class SupervisorController extends Controller
     }
 
     /**
-     * POST /api/admin/supervisors/{id}/team – Add a technician to the supervisor's team (assign to one of their zones).
-     * Body: technician_id (required), area_id (required; must be one of the supervisor's zones).
+     * POST /api/admin/supervisors/{id}/team – Add a technician to the supervisor's team (assign to first assigned zone).
+     * Body: technician_id (required).
      */
     public function addTeamMember(Request $request, int $id): JsonResponse
     {
@@ -155,18 +155,16 @@ class SupervisorController extends Controller
 
         $validator = Validator::make($request->all(), [
             'technician_id' => 'required|integer|exists:users,id',
-            'area_id' => 'required|integer|exists:areas,id',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $areaId = (int) $request->input('area_id');
         $technicianId = (int) $request->input('technician_id');
-
         $supervisorAreaIds = $supervisor->supervisedAreaIds();
-        if (! in_array($areaId, $supervisorAreaIds, true)) {
-            return response()->json(['success' => false, 'message' => 'Area must be one of the supervisor\'s assigned zones.'], 422);
+
+        if (empty($supervisorAreaIds)) {
+            return response()->json(['success' => false, 'message' => 'Supervisor has no assigned zones.'], 422);
         }
 
         $technician = User::role('technician')->find($technicianId);
@@ -174,22 +172,22 @@ class SupervisorController extends Controller
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
         }
 
+        $areaId = $supervisorAreaIds[0];
         $area = Area::find($areaId);
         $area->technicians()->syncWithoutDetaching([$technicianId]);
 
         return response()->json([
             'success' => true,
-            'message' => "{$technician->name} has been added to the team (assigned to {$area->name}).",
+            'message' => "{$technician->name} has been added to the team.",
             'data' => [
                 'technician_id' => $technicianId,
-                'area_id' => $areaId,
             ],
         ], 201);
     }
 
     /**
-     * DELETE /api/admin/supervisors/{id}/team – Remove a technician from the supervisor's team (unassign from a zone).
-     * Body or query: technician_id (required), area_id (required; must be one of the supervisor's zones).
+     * DELETE /api/admin/supervisors/{id}/team – Remove a technician from the supervisor's team (unassign from all of the supervisor's zones).
+     * Body or query: technician_id (required).
      */
     public function removeTeamMember(Request $request, int $id): JsonResponse
     {
@@ -199,30 +197,25 @@ class SupervisorController extends Controller
         }
 
         $technicianId = (int) ($request->input('technician_id') ?? $request->query('technician_id'));
-        $areaId = (int) ($request->input('area_id') ?? $request->query('area_id'));
 
-        if (! $technicianId || ! $areaId) {
-            return response()->json(['success' => false, 'message' => 'technician_id and area_id are required.'], 422);
+        if (! $technicianId) {
+            return response()->json(['success' => false, 'message' => 'technician_id is required.'], 422);
         }
 
         $supervisorAreaIds = $supervisor->supervisedAreaIds();
-        if (! in_array($areaId, $supervisorAreaIds, true)) {
-            return response()->json(['success' => false, 'message' => 'Area must be one of the supervisor\'s assigned zones.'], 422);
+        if (empty($supervisorAreaIds)) {
+            return response()->json(['success' => true, 'message' => 'Technician has been removed from the team.', 'data' => ['technician_id' => $technicianId]]);
         }
 
-        $area = Area::find($areaId);
-        if (! $area) {
-            return response()->json(['success' => false, 'message' => 'Area not found.'], 404);
+        foreach ($supervisorAreaIds as $areaId) {
+            Area::find($areaId)?->technicians()->detach($technicianId);
         }
-
-        $area->technicians()->detach($technicianId);
 
         return response()->json([
             'success' => true,
-            'message' => 'Technician has been removed from the team for this zone.',
+            'message' => 'Technician has been removed from the team.',
             'data' => [
                 'technician_id' => $technicianId,
-                'area_id' => $areaId,
             ],
         ]);
     }

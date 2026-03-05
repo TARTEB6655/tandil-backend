@@ -163,66 +163,31 @@ class AreaController extends Controller
         ]);
     }
 
+    /** Return only id, location, supervisor_id for area responses. */
     private function areaToArray(Area $area, array $extra = []): array
     {
-        $data = [
+        $supervisorId = null;
+        if ($area->relationLoaded('supervisors') && $area->supervisors->isNotEmpty()) {
+            $supervisorId = $area->supervisors->first()->id;
+        }
+        return array_merge([
             'id' => $area->id,
-            'name' => $area->name,
-            'description' => $area->description ?? null,
             'location' => $area->location ?? null,
-            'country' => $area->country ?? 'UAE',
-            'created_at' => $area->created_at?->toIso8601String(),
-            'updated_at' => $area->updated_at?->toIso8601String(),
-        ];
-
-        if ($area->relationLoaded('supervisors')) {
-            $supervisors = $area->supervisors->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
-                'email' => $u->email,
-            ])->values()->all();
-            $data['supervisors'] = $supervisors;
-            $data['supervisor'] = $supervisors[0] ?? null;
-        }
-        if ($area->relationLoaded('technicians')) {
-            $data['technicians'] = $area->technicians->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'employee_id' => $u->employee?->employee_id ?? ('TECH-' . $u->id),
-                'email' => $u->email,
-            ])->values()->all();
-        }
-
-        return array_merge($data, $extra);
+            'supervisor_id' => $supervisorId,
+        ], $extra);
     }
 
     /**
-     * GET /api/admin/areas – List zones with supervisor name. ?with=supervisors,technicians&per_page=15
-     * Default includes supervisors so each zone has supervisor (id, name, employee_id) or null.
+     * GET /api/admin/areas – List zones. Response: id, location, supervisor_id only.
      */
     public function index(Request $request): JsonResponse
     {
-        $with = ['supervisors'];
-        if ($request->filled('with')) {
-            $parts = array_map('trim', explode(',', $request->input('with')));
-            if (in_array('technicians', $parts)) {
-                $with[] = 'technicians';
-            }
-        }
-
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
-        $query = Area::query()->with($with)->orderBy('name');
+        $query = Area::query()->with('supervisors')->orderBy('location');
 
-        if ($request->filled('country')) {
-            $query->where('country', $request->input('country'));
-        }
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
+            $query->where('location', 'like', '%' . $search . '%');
         }
 
         $areas = $query->paginate($perPage);
@@ -241,42 +206,26 @@ class AreaController extends Controller
         ]);
     }
 
-    /** Normalize IDs from form-data (comma-separated string or array) to array of integers. */
-    private function normalizeIds($value): array
-    {
-        if (is_array($value)) {
-            return array_values(array_filter(array_map('intval', $value)));
-        }
-        if (is_string($value) && $value !== '') {
-            return array_values(array_filter(array_map('intval', preg_split('/\s*,\s*/', $value))));
-        }
-        return [];
-    }
-
     /**
-     * POST /api/admin/areas – Add zone and assign supervisor(s). Form-data only: location (required), supervisor_ids (required; comma-separated or array, one or many).
+     * POST /api/admin/areas – Create zone. Form-data only: location (required), supervisor_id (required).
      */
     public function store(Request $request): JsonResponse
     {
-        $input = $request->all();
-        $supervisorIds = $this->normalizeIds($input['supervisor_ids'] ?? []);
-
-        $validator = Validator::make(array_merge($input, ['supervisor_ids' => $supervisorIds]), [
+        $validator = Validator::make($request->all(), [
             'location' => 'required|string|max:255',
-            'supervisor_ids' => 'required|array|min:1',
-            'supervisor_ids.*' => 'integer|exists:users,id',
+            'supervisor_id' => 'required|integer|exists:users,id',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
         $location = $request->input('location');
-        $baseName = $location;
-        $name = $baseName;
+        $supervisorId = (int) $request->input('supervisor_id');
+        $name = $location;
         $n = 0;
         while (Area::where('name', $name)->exists()) {
             $n++;
-            $name = $baseName . ' (' . $n . ')';
+            $name = $location . ' (' . $n . ')';
         }
         $area = Area::create([
             'name' => $name,
@@ -285,9 +234,9 @@ class AreaController extends Controller
             'country' => 'UAE',
         ]);
 
-        $this->ensureSupervisorsAndSync($area, $supervisorIds);
+        $this->ensureSupervisorsAndSync($area, [$supervisorId]);
 
-        $area->load(['supervisors', 'technicians']);
+        $area->load('supervisors');
         return response()->json([
             'success' => true,
             'message' => 'Area created successfully.',
@@ -296,11 +245,11 @@ class AreaController extends Controller
     }
 
     /**
-     * GET /api/admin/areas/{id} – Show one zone with supervisors and technicians.
+     * GET /api/admin/areas/{id} – Show one zone. Response: id, location, supervisor_id only.
      */
     public function show(int $id): JsonResponse
     {
-        $area = Area::with(['supervisors', 'technicians'])->findOrFail($id);
+        $area = Area::with('supervisors')->findOrFail($id);
         return response()->json([
             'success' => true,
             'message' => 'Area retrieved successfully.',
@@ -309,21 +258,14 @@ class AreaController extends Controller
     }
 
     /**
-     * PUT/POST /api/admin/areas/{id} – Update zone. Form-data only: location (optional), supervisor_ids (optional; comma-separated or array, one or many).
+     * PUT/POST /api/admin/areas/{id} – Update zone. Form-data only: location (optional), supervisor_id (optional).
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $input = $request->all();
-        $supervisorIds = array_key_exists('supervisor_ids', $input) ? $this->normalizeIds($input['supervisor_ids']) : null;
-
-        $rules = [
+        $validator = Validator::make($request->all(), [
             'location' => 'nullable|string|max:255',
-        ];
-        if ($supervisorIds !== null) {
-            $rules['supervisor_ids'] = 'nullable|array';
-            $rules['supervisor_ids.*'] = 'integer|exists:users,id';
-        }
-        $validator = Validator::make(array_merge($input, array_filter(['supervisor_ids' => $supervisorIds])), $rules);
+            'supervisor_id' => 'nullable|integer|exists:users,id',
+        ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
@@ -335,11 +277,12 @@ class AreaController extends Controller
         }
         $area->save();
 
-        if ($supervisorIds !== null) {
-            $this->ensureSupervisorsAndSync($area, $supervisorIds);
+        if ($request->has('supervisor_id')) {
+            $supervisorId = (int) $request->input('supervisor_id');
+            $this->ensureSupervisorsAndSync($area, $supervisorId ? [$supervisorId] : []);
         }
 
-        $area->load(['supervisors', 'technicians']);
+        $area->load('supervisors');
         return response()->json([
             'success' => true,
             'message' => 'Area updated successfully.',

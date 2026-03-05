@@ -23,7 +23,7 @@ class Area extends Model
     |--------------------------------------------------------------------------
     */
 
-    // Supervisors assigned to this area
+    // Supervisors assigned to this area (pivot area_supervisor; role enforced in controller)
     public function supervisors(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -31,10 +31,10 @@ class Area extends Model
             'area_supervisor',
             'area_id',
             'user_id'
-        )->where('role', 'supervisor');
+        );
     }
 
-    // Technicians assigned to this area
+    // Technicians assigned to this area (pivot area_technician; role enforced in controller)
     public function technicians(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -42,7 +42,7 @@ class Area extends Model
             'area_technician',
             'area_id',
             'user_id'
-        )->where('role', 'technician');
+        );
     }
 
     // Visits happening in this area
