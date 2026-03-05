@@ -9814,7 +9814,7 @@
                         {
                             "name": "Areas - Update",
                             "request": {
-                                "method": "PUT",
+                                "method": "POST",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
                                     { "key": "Accept", "value": "application/json" }
@@ -9831,7 +9831,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas", "{{area_id}}"]
                                 },
-                                "description": "Update area. PUT /api/admin/areas/:id. Form: location (optional), supervisor_id (optional). Response: id, location, supervisor_id only. Set area_id."
+                                "description": "Update area. POST /api/admin/areas/:id. Form: location (optional), supervisor_id (optional). Response: id, location, supervisor_id only. Set area_id."
                             }
                         },
                         {
