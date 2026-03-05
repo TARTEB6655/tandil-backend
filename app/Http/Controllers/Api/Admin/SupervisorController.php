@@ -198,9 +198,19 @@ class SupervisorController extends Controller
 
         $technicianId = (int) ($request->input('technician_id') ?? $request->query('technician_id'));
         if (! $technicianId && $request->getContent()) {
-            $body = json_decode($request->getContent(), true);
+            $content = $request->getContent();
+            $body = json_decode($content, true);
             if (is_array($body) && isset($body['technician_id'])) {
                 $technicianId = (int) $body['technician_id'];
+            }
+            if (! $technicianId && $request->header('Content-Type')) {
+                if (str_contains($request->header('Content-Type'), 'application/x-www-form-urlencoded')) {
+                    parse_str($content, $params);
+                    $technicianId = (int) ($params['technician_id'] ?? 0);
+                }
+                if (! $technicianId && str_contains($request->header('Content-Type'), 'multipart/form-data')) {
+                    $technicianId = (int) $this->parseFormDataValue($content, $request->header('Content-Type'), 'technician_id');
+                }
             }
         }
 
@@ -225,5 +235,23 @@ class SupervisorController extends Controller
                 'technician_id' => $technicianId,
             ],
         ]);
+    }
+
+    /** Parse a field value from multipart/form-data raw body (used for DELETE where PHP does not populate $_POST). */
+    private function parseFormDataValue(string $content, string $contentType, string $name): ?string
+    {
+        if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
+            return null;
+        }
+        $boundaryValue = trim($m[1] ?? $m[2], '"');
+        $delimiter = '\r?\n--' . preg_quote($boundaryValue, '/');
+        $parts = preg_split('/' . $delimiter . '(?=\r\n|\r|\n|--)/s', $content);
+        $parts = array_slice($parts, 1, -1);
+        foreach ($parts as $part) {
+            if (preg_match('/Content-Disposition:\s*form-data[^;]*;\s*name="' . preg_quote($name, '/') . '"(\r?\n\r?\n|\r\n\r\n)(.*)/s', $part, $match)) {
+                return trim(preg_replace('/\r?\n.*/s', '', $match[2]));
+            }
+        }
+        return null;
     }
 }
