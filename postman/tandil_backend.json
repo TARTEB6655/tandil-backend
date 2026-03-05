@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.87.0"
+        "version": "2.88.0"
     },
     "item": [
         {
@@ -9619,7 +9619,7 @@
                 },
                 {
                     "name": "Admin - Areas (Zones)",
-                    "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET list, POST create (form-data: location, supervisor_id), GET one, PUT/POST update (form-data: location, supervisor_id), DELETE. Response: id, location, supervisor_id only. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team. (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
+                    "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET list (per_page, search), GET all (?all=1), POST create (form-data: location, supervisor_id), GET one, PUT/POST update, DELETE. Response: id, location, supervisor_id only. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team. (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
                     "item": [
                         {
                             "name": "Areas - List",
@@ -9638,7 +9638,27 @@
                                         { "key": "search", "value": "", "description": "Optional: search by location" }
                                     ]
                                 },
-                                "description": "List areas. GET /api/admin/areas. Query: per_page, search (location). Response: data[] with id, location, supervisor_id only, pagination."
+                                "description": "List areas (paginated). GET /api/admin/areas. Query: per_page, search (location). Response: data[] with id, location, supervisor_id only, pagination."
+                            }
+                        },
+                        {
+                            "name": "Areas - Get All",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas?all=1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas"],
+                                    "query": [
+                                        { "key": "all", "value": "1", "description": "Return all areas (no pagination)" },
+                                        { "key": "search", "value": "", "description": "Optional: filter by location" }
+                                    ]
+                                },
+                                "description": "Get all areas (no pagination). GET /api/admin/areas?all=1. Response: data[] with id, location, supervisor_id only, total. Use for dropdowns."
                             }
                         },
                         {

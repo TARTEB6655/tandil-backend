@@ -179,10 +179,10 @@ class AreaController extends Controller
 
     /**
      * GET /api/admin/areas – List zones. Response: id, location, supervisor_id only.
+     * Query: per_page (1–100), search (by location), all=1 (return all areas, no pagination).
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $query = Area::query()->with('supervisors')->orderBy('location');
 
         if ($request->filled('search')) {
@@ -190,6 +190,19 @@ class AreaController extends Controller
             $query->where('location', 'like', '%' . $search . '%');
         }
 
+        $returnAll = $request->query('all') === '1' || $request->query('all') === 'true';
+        if ($returnAll) {
+            $areas = $query->get();
+            $data = $areas->map(fn (Area $a) => $this->areaToArray($a))->values()->all();
+            return response()->json([
+                'success' => true,
+                'message' => 'All areas retrieved successfully.',
+                'data' => $data,
+                'total' => count($data),
+            ]);
+        }
+
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $areas = $query->paginate($perPage);
         $data = $areas->getCollection()->map(fn (Area $a) => $this->areaToArray($a))->all();
 
