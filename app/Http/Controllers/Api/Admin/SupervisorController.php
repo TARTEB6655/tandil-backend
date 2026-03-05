@@ -196,26 +196,34 @@ class SupervisorController extends Controller
             return response()->json(['success' => false, 'message' => 'Supervisor not found.'], 404);
         }
 
-        $technicianId = (int) ($request->input('technician_id') ?? $request->query('technician_id'));
-        if (! $technicianId && $request->getContent()) {
+        // Prefer query param: many servers do not pass DELETE body to PHP, so form-data/body may be empty
+        $technicianId = (int) ($request->query('technician_id') ?? $request->input('technician_id'));
+        if (! $technicianId) {
             $content = $request->getContent();
-            $body = json_decode($content, true);
-            if (is_array($body) && isset($body['technician_id'])) {
-                $technicianId = (int) $body['technician_id'];
-            }
-            if (! $technicianId && $request->header('Content-Type')) {
-                if (str_contains($request->header('Content-Type'), 'application/x-www-form-urlencoded')) {
-                    parse_str($content, $params);
-                    $technicianId = (int) ($params['technician_id'] ?? 0);
+            if ($content !== '' && $content !== false) {
+                $body = json_decode($content, true);
+                if (is_array($body) && isset($body['technician_id'])) {
+                    $technicianId = (int) $body['technician_id'];
                 }
-                if (! $technicianId && str_contains($request->header('Content-Type'), 'multipart/form-data')) {
-                    $technicianId = (int) $this->parseFormDataValue($content, $request->header('Content-Type'), 'technician_id');
+                if (! $technicianId && $request->header('Content-Type')) {
+                    $ct = $request->header('Content-Type');
+                    if (str_contains($ct, 'application/x-www-form-urlencoded')) {
+                        parse_str($content, $params);
+                        $technicianId = (int) ($params['technician_id'] ?? 0);
+                    }
+                    if (! $technicianId && str_contains($ct, 'multipart/form-data')) {
+                        $parsed = $this->parseFormDataValue($content, $ct, 'technician_id');
+                        $technicianId = $parsed !== null && $parsed !== '' ? (int) $parsed : 0;
+                    }
                 }
             }
         }
 
         if (! $technicianId) {
-            return response()->json(['success' => false, 'message' => 'technician_id is required (query param or body).'], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'technician_id is required. Use query: ?technician_id=30 (DELETE body is often stripped by servers).',
+            ], 422);
         }
 
         $supervisorAreaIds = $supervisor->supervisedAreaIds();
@@ -237,19 +245,17 @@ class SupervisorController extends Controller
         ]);
     }
 
-    /** Parse a field value from multipart/form-data raw body (used for DELETE where PHP does not populate $_POST). */
+    /** Parse a field value from multipart/form-data raw body (used for DELETE when server passes body). */
     private function parseFormDataValue(string $content, string $contentType, string $name): ?string
     {
-        if (! preg_match('/boundary=(?:"([^"]+)"|([^\s;]+))/', $contentType, $m)) {
+        if (! preg_match('/boundary\s*=\s*["\']?([^"\';>\s]+)/', $contentType, $m)) {
             return null;
         }
-        $boundaryValue = trim($m[1] ?? $m[2], '"');
-        $delimiter = '\r?\n--' . preg_quote($boundaryValue, '/');
-        $parts = preg_split('/' . $delimiter . '(?=\r\n|\r|\n|--)/s', $content);
-        $parts = array_slice($parts, 1, -1);
+        $boundary = trim($m[1], '"\'');
+        $parts = preg_split('/\r?\n--' . preg_quote($boundary, '/') . '(?=\r\n|\r|\n|--)/s', $content);
         foreach ($parts as $part) {
-            if (preg_match('/Content-Disposition:\s*form-data[^;]*;\s*name="' . preg_quote($name, '/') . '"(\r?\n\r?\n|\r\n\r\n)(.*)/s', $part, $match)) {
-                return trim(preg_replace('/\r?\n.*/s', '', $match[2]));
+            if (preg_match('/Content-Disposition:\s*form-data[^;]*;\s*name="' . preg_quote($name, '/') . '"[\s\r\n]*[\r\n]+([^\r\n]*)/s', $part, $match)) {
+                return trim($match[1]);
             }
         }
         return null;
