@@ -9619,7 +9619,7 @@
                 },
                 {
                     "name": "Admin - Areas (Zones)",
-                    "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET list (with supervisor name), POST create (add zone + assign supervisor), GET one, PUT/POST update, DELETE zone. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team (view team, add/remove member). (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
+                    "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET list, POST create (form-data only: location + supervisor_ids, one or many), GET one, PUT/POST update (form-data: location, supervisor_ids), DELETE zone. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team. (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
                     "item": [
                         {
                             "name": "Areas - List",
@@ -9790,12 +9790,8 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        { "key": "name", "value": "North Zone", "type": "text", "description": "Required" },
-                                        { "key": "description", "value": "Zone for North area", "type": "text" },
-                                        { "key": "location", "value": "Abu Dhabi North", "type": "text", "description": "Zone location/address (e.g. city in UAE)" },
-                                        { "key": "country", "value": "UAE", "type": "text" },
-                                        { "key": "supervisor_ids", "value": "2", "type": "text", "description": "Comma-separated supervisor user ids (e.g. 2,5)" },
-                                        { "key": "technician_ids", "value": "3,4", "type": "text", "description": "Optional: comma-separated technician ids" }
+                                        { "key": "location", "value": "Abu Dhabi North", "type": "text", "description": "Required. Zone location/address." },
+                                        { "key": "supervisor_ids", "value": "2,5", "type": "text", "description": "Required. Comma-separated supervisor user ids (e.g. 2,5). Can be many." }
                                     ]
                                 },
                                 "url": {
@@ -9803,28 +9799,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas"]
                                 },
-                                "description": "Add zone and assign supervisor(s). POST /api/admin/areas. Form-data or JSON: name (required), description, location (e.g. Abu Dhabi North), country, supervisor_ids (array or comma-separated), technician_ids (optional). Response: created zone with supervisor (id, name, employee_id)."
-                            }
-                        },
-                        {
-                            "name": "Areas - Create (JSON)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"North Zone\",\n  \"location\": \"Abu Dhabi North\",\n  \"description\": \"Zone for North area\",\n  \"country\": \"UAE\",\n  \"supervisor_ids\": [2]\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/areas",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "areas"]
-                                },
-                                "description": "Add zone and assign supervisor (JSON body). Same as form-data; use for mobile. Body: name (required), location, description, country, supervisor_ids (array of user ids), technician_ids (optional array)."
+                                "description": "Add zone and assign supervisor(s). POST /api/admin/areas. Form-data only: location (required), supervisor_ids (required; comma-separated, one or many)."
                             }
                         },
                         {
@@ -9844,7 +9819,7 @@
                             }
                         },
                         {
-                            "name": "Areas - Update (PUT form-data)",
+                            "name": "Areas - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -9854,12 +9829,8 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        { "key": "name", "value": "North Zone", "type": "text" },
-                                        { "key": "description", "value": "Zone for North area", "type": "text" },
-                                        { "key": "location", "value": "Abu Dhabi North", "type": "text", "description": "Zone location/address" },
-                                        { "key": "country", "value": "UAE", "type": "text" },
-                                        { "key": "supervisor_ids", "value": "2,5", "type": "text", "description": "Comma-separated" },
-                                        { "key": "technician_ids", "value": "3,4,6", "type": "text", "description": "Comma-separated" }
+                                        { "key": "location", "value": "Abu Dhabi North", "type": "text", "description": "Optional" },
+                                        { "key": "supervisor_ids", "value": "2,5", "type": "text", "description": "Optional. Comma-separated supervisor user ids; can be many." }
                                     ]
                                 },
                                 "url": {
@@ -9867,11 +9838,11 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas", "{{area_id}}"]
                                 },
-                                "description": "Update zone. Form-data: name, description, location, country, supervisor_ids (comma-separated), technician_ids (comma-separated). PUT. Set area_id."
+                                "description": "Update zone. Form-data only: location (optional), supervisor_ids (optional; comma-separated). PUT. Set area_id."
                             }
                         },
                         {
-                            "name": "Areas - Update (POST form-data)",
+                            "name": "Areas - Update (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -9881,12 +9852,8 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        { "key": "name", "value": "North Zone", "type": "text" },
-                                        { "key": "description", "value": "Zone for North area", "type": "text" },
                                         { "key": "location", "value": "Abu Dhabi North", "type": "text" },
-                                        { "key": "country", "value": "UAE", "type": "text" },
-                                        { "key": "supervisor_ids", "value": "2,5", "type": "text" },
-                                        { "key": "technician_ids", "value": "3,4,6", "type": "text" }
+                                        { "key": "supervisor_ids", "value": "2,5", "type": "text" }
                                     ]
                                 },
                                 "url": {
@@ -9894,7 +9861,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas", "{{area_id}}"]
                                 },
-                                "description": "Update zone (POST form-data). Same as PUT; includes location. Set area_id."
+                                "description": "Update zone (POST form-data). Same as PUT: location, supervisor_ids. Set area_id."
                             }
                         },
                         {

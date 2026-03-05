@@ -254,40 +254,38 @@ class AreaController extends Controller
     }
 
     /**
-     * POST /api/admin/areas – Add zone and assign supervisor(s). JSON or form-data: name (required), description, location, country, supervisor_ids (array or comma-separated), technician_ids (optional).
+     * POST /api/admin/areas – Add zone and assign supervisor(s). Form-data only: location (required), supervisor_ids (required; comma-separated or array, one or many).
      */
     public function store(Request $request): JsonResponse
     {
         $input = $request->all();
         $supervisorIds = $this->normalizeIds($input['supervisor_ids'] ?? []);
-        $technicianIds = $this->normalizeIds($input['technician_ids'] ?? []);
 
-        $validator = Validator::make(array_merge($input, [
-            'supervisor_ids' => $supervisorIds,
-            'technician_ids' => $technicianIds,
-        ]), [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'location' => 'nullable|string|max:255',
-            'country' => 'nullable|string|max:100',
-            'supervisor_ids' => 'nullable|array',
+        $validator = Validator::make(array_merge($input, ['supervisor_ids' => $supervisorIds]), [
+            'location' => 'required|string|max:255',
+            'supervisor_ids' => 'required|array|min:1',
             'supervisor_ids.*' => 'integer|exists:users,id',
-            'technician_ids' => 'nullable|array',
-            'technician_ids.*' => 'integer|exists:users,id',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
+        $location = $request->input('location');
+        $baseName = $location;
+        $name = $baseName;
+        $n = 0;
+        while (Area::where('name', $name)->exists()) {
+            $n++;
+            $name = $baseName . ' (' . $n . ')';
+        }
         $area = Area::create([
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
-            'location' => $request->input('location'),
-            'country' => $request->input('country', 'UAE'),
+            'name' => $name,
+            'description' => null,
+            'location' => $location,
+            'country' => 'UAE',
         ]);
 
         $this->ensureSupervisorsAndSync($area, $supervisorIds);
-        $this->ensureTechniciansAndSync($area, $technicianIds);
 
         $area->load(['supervisors', 'technicians']);
         return response()->json([
@@ -311,56 +309,34 @@ class AreaController extends Controller
     }
 
     /**
-     * PUT/POST /api/admin/areas/{id} – Update zone and sync supervisors/technicians. Form-data: name, description, country, supervisor_ids, technician_ids.
+     * PUT/POST /api/admin/areas/{id} – Update zone. Form-data only: location (optional), supervisor_ids (optional; comma-separated or array, one or many).
      */
     public function update(Request $request, int $id): JsonResponse
     {
         $input = $request->all();
         $supervisorIds = array_key_exists('supervisor_ids', $input) ? $this->normalizeIds($input['supervisor_ids']) : null;
-        $technicianIds = array_key_exists('technician_ids', $input) ? $this->normalizeIds($input['technician_ids']) : null;
 
         $rules = [
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string|max:1000',
             'location' => 'nullable|string|max:255',
-            'country' => 'nullable|string|max:100',
         ];
         if ($supervisorIds !== null) {
             $rules['supervisor_ids'] = 'nullable|array';
             $rules['supervisor_ids.*'] = 'integer|exists:users,id';
         }
-        if ($technicianIds !== null) {
-            $rules['technician_ids'] = 'nullable|array';
-            $rules['technician_ids.*'] = 'integer|exists:users,id';
-        }
-        $validator = Validator::make(array_merge($input, array_filter([
-            'supervisor_ids' => $supervisorIds,
-            'technician_ids' => $technicianIds,
-        ])), $rules);
+        $validator = Validator::make(array_merge($input, array_filter(['supervisor_ids' => $supervisorIds])), $rules);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
         $area = Area::findOrFail($id);
-        if ($request->has('name')) {
-            $area->name = $request->input('name');
-        }
-        if (array_key_exists('description', $input)) {
-            $area->description = $request->input('description');
-        }
-        if (array_key_exists('location', $input)) {
+        if ($request->filled('location')) {
             $area->location = $request->input('location');
-        }
-        if (array_key_exists('country', $input)) {
-            $area->country = $request->input('country', 'UAE');
+            $area->name = $request->input('location');
         }
         $area->save();
 
         if ($supervisorIds !== null) {
             $this->ensureSupervisorsAndSync($area, $supervisorIds);
-        }
-        if ($technicianIds !== null) {
-            $this->ensureTechniciansAndSync($area, $technicianIds);
         }
 
         $area->load(['supervisors', 'technicians']);
