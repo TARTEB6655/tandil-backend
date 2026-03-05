@@ -187,19 +187,25 @@ class SupervisorController extends Controller
 
     /**
      * DELETE /api/admin/supervisors/{id}/team – Remove a technician from the supervisor's team (unassign from all of the supervisor's zones).
-     * Body or query: technician_id (required).
+     * Body or query: technician_id (required). For DELETE, prefer query string ?technician_id=3 if the client does not send a body.
      */
     public function removeTeamMember(Request $request, int $id): JsonResponse
     {
-        $supervisor = User::role('supervisor')->find($id);
+        $supervisor = User::role('supervisor')->with('supervisedAreas')->find($id);
         if (! $supervisor) {
             return response()->json(['success' => false, 'message' => 'Supervisor not found.'], 404);
         }
 
         $technicianId = (int) ($request->input('technician_id') ?? $request->query('technician_id'));
+        if (! $technicianId && $request->getContent()) {
+            $body = json_decode($request->getContent(), true);
+            if (is_array($body) && isset($body['technician_id'])) {
+                $technicianId = (int) $body['technician_id'];
+            }
+        }
 
         if (! $technicianId) {
-            return response()->json(['success' => false, 'message' => 'technician_id is required.'], 422);
+            return response()->json(['success' => false, 'message' => 'technician_id is required (query param or body).'], 422);
         }
 
         $supervisorAreaIds = $supervisor->supervisedAreaIds();
@@ -207,9 +213,10 @@ class SupervisorController extends Controller
             return response()->json(['success' => true, 'message' => 'Technician has been removed from the team.', 'data' => ['technician_id' => $technicianId]]);
         }
 
-        foreach ($supervisorAreaIds as $areaId) {
-            Area::find($areaId)?->technicians()->detach($technicianId);
-        }
+        DB::table('area_technician')
+            ->whereIn('area_id', $supervisorAreaIds)
+            ->where('user_id', $technicianId)
+            ->delete();
 
         return response()->json([
             'success' => true,
