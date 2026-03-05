@@ -4965,7 +4965,7 @@
                                         "summary"
                                     ]
                                 },
-                                "description": "Single dashboard API. Returns: profile_picture, profile_picture_url, name, id (e.g. SUP-2001), team_members (count only), active_visits (count only), completed_visits (count only). Nothing else."
+                                "description": "Dashboard summary. Returns: profile_picture, profile_picture_url, name, id (e.g. SUP-2001), team_members (count), active_visits (count), completed_visits (count), escalated_jobs (count of jobs escalated to supervisor after auto-dispatch failures)."
                             }
                         },
                         {
@@ -5069,39 +5069,22 @@
                             "request": {
                                 "method": "GET",
                                 "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/assignments/pending?per_page=20",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "assignments",
-                                        "pending"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "per_page",
-                                            "value": "20"
-                                        }
-                                    ]
-                                }
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "assignments", "pending"],
+                                    "query": [{ "key": "per_page", "value": "20" }]
+                                },
+                                "description": "Jobs needing supervisor action: unassigned, pending/scheduled, or escalated (after 2-3 auto-dispatch failures). Each visit may include escalated_at (ISO datetime when escalated)."
                             }
                         },
                         {
                             "name": "Assignments - Create (POST form-data)",
-                    "request": {
-                        "method": "POST",
+                            "request": {
+                                "method": "POST",
                         "header": [
                             {
                                 "key": "Authorization",
@@ -5147,7 +5130,8 @@
                                         "supervisor",
                                         "assignments"
                                     ]
-                                }
+                                },
+                                "description": "Assign a technician to a visit. Allowed only for assignable visits (unassigned, pending/scheduled, or escalated). Body: visit_id, technician_id, scheduled_date (optional), note (optional). Clears escalated_at on success."
                             }
                         },
                         {
@@ -5243,7 +5227,8 @@
                                         "assignments",
                                         "{{visit_id}}"
                                     ]
-                                }
+                                },
+                                "description": "Update assignment (technician_id, scheduled_date, note). Allowed only for assignable visits (unassigned, pending/scheduled, or escalated). Clears escalated_at when technician_id is set."
                             }
                         },
                         {
@@ -5284,10 +5269,11 @@
                                         "api",
                                         "supervisor",
                                         "assignments",
-                                "{{visit_id}}",
+                                        "{{visit_id}}",
                                         "reassign"
                                     ]
-                                }
+                                },
+                                "description": "Reassign to another technician. Allowed only for assignable visits (unassigned, pending/scheduled, or escalated). Body: technician_id (required), reason (optional). Clears escalated_at on success."
                             }
                         }
                     ]

@@ -22,6 +22,7 @@ class Visit extends Model
         'accepted_at',
         'started_at',
         'completed_at',
+        'escalated_at',
         'notes',
         'price',
     ];
@@ -33,6 +34,7 @@ class Visit extends Model
         'accepted_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'escalated_at' => 'datetime',
         'price' => 'decimal:2',
     ];
 

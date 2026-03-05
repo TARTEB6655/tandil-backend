@@ -13,6 +13,7 @@ use App\Models\TechnicianBreak;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -29,6 +30,16 @@ class SupervisorDashboardApiController extends Controller
         return Visit::query()->whereIn('area_id', $this->areaIds($request));
     }
 
+    /** Visits that need supervisor action: unassigned, pending/scheduled, or escalated after auto-dispatch failures. */
+    private function assignableVisitsQuery(Request $request)
+    {
+        return $this->visitsQuery($request)->where(function ($q) {
+            $q->whereNull('technician_id')
+                ->orWhereIn('status', ['pending', 'scheduled'])
+                ->orWhereNotNull('escalated_at');
+        });
+    }
+
     /**
      * Single dashboard API: profile (picture, name, id) + 3 counts only (team_members, active_visits, completed_visits). Nothing else.
      */
@@ -40,9 +51,7 @@ class SupervisorDashboardApiController extends Controller
         $query = $this->visitsQuery($request);
         $areaIds = $this->areaIds($request);
 
-        $teamMembersCount = User::role('technician')
-            ->whereHas('visits', fn ($q) => $q->whereIn('area_id', $areaIds))
-            ->count();
+        $teamMembersCount = $this->teamMemberIdsInZones($areaIds)->count();
 
         $activeVisitsCount = (clone $query)
             ->whereIn('status', ['pending', 'scheduled', 'in_progress'])
@@ -51,6 +60,8 @@ class SupervisorDashboardApiController extends Controller
         $completedVisitsCount = (clone $query)
             ->whereIn('status', ['completed', 'approved'])
             ->count();
+
+        $escalatedJobsCount = $this->assignableVisitsQuery($request)->whereNotNull('escalated_at')->count();
 
         return response()->json([
             'success' => true,
@@ -62,6 +73,7 @@ class SupervisorDashboardApiController extends Controller
                 'team_members' => $teamMembersCount,
                 'active_visits' => $activeVisitsCount,
                 'completed_visits' => $completedVisitsCount,
+                'escalated_jobs' => $escalatedJobsCount,
             ],
         ]);
     }
@@ -111,8 +123,19 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
-     * Single "My Team" API: list of team members with name, employee_id, status (Active/Break), current_activity, tasks (completed/total).
-     * Replaces dashboard/team-status, team/statistics, team/performance, team/attendance, team/workload.
+     * Technicians linked to supervisor's zones at setup (area_technician). Client: "Technicians are linked to a Supervisor during setup."
+     */
+    private function teamMemberIdsInZones(array $areaIds): \Illuminate\Support\Collection
+    {
+        if (empty($areaIds)) {
+            return collect();
+        }
+        return collect(DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id'));
+    }
+
+    /**
+     * Single "My Team" API: technicians linked to supervisor's zones at setup (not by visits).
+     * Returns: name, employee_id, status (Active/Break), current_activity, tasks (completed/total).
      */
     public function myTeam(Request $request): JsonResponse
     {
@@ -120,8 +143,13 @@ class SupervisorDashboardApiController extends Controller
         $now = Carbon::now();
         $today = $now->toDateString();
 
+        $technicianIds = $this->teamMemberIdsInZones($areaIds);
+        if ($technicianIds->isEmpty()) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
         $technicians = User::role('technician')
-            ->whereHas('visits', fn ($q) => $q->whereIn('area_id', $areaIds))
+            ->whereIn('id', $technicianIds)
             ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
             ->get();
 
@@ -172,14 +200,14 @@ class SupervisorDashboardApiController extends Controller
         return $now->between($start, $end);
     }
 
+    /**
+     * Pending assignments: unassigned, pending/scheduled, or escalated to supervisor (after 2-3 auto-dispatch failures).
+     */
     public function assignmentsPending(Request $request): JsonResponse
     {
-        $pending = $this->visitsQuery($request)
-            ->where(function ($q) {
-                $q->whereNull('technician_id')
-                    ->orWhereIn('status', ['pending', 'scheduled']);
-            })
+        $pending = $this->assignableVisitsQuery($request)
             ->with(['subscription.client', 'area'])
+            ->orderByRaw('escalated_at IS NOT NULL DESC')
             ->orderBy('scheduled_date')
             ->paginate((int) $request->get('per_page', 20));
 
@@ -198,7 +226,7 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $visit = $this->visitsQuery($request)->findOrFail((int) $request->input('visit_id'));
+        $visit = $this->assignableVisitsQuery($request)->findOrFail((int) $request->input('visit_id'));
         $technician = User::role('technician')->find((int) $request->input('technician_id'));
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
@@ -206,6 +234,7 @@ class SupervisorDashboardApiController extends Controller
 
         $visit->technician_id = $technician->id;
         $visit->supervisor_id = $request->user()->id;
+        $visit->escalated_at = null;
         if ($request->filled('scheduled_date')) {
             $visit->scheduled_date = $request->input('scheduled_date');
         }
@@ -228,7 +257,7 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $visit = $this->visitsQuery($request)->findOrFail($id);
+        $visit = $this->assignableVisitsQuery($request)->findOrFail($id);
 
         if ($request->filled('technician_id')) {
             $technician = User::role('technician')->find((int) $request->input('technician_id'));
@@ -237,6 +266,7 @@ class SupervisorDashboardApiController extends Controller
             }
             $visit->technician_id = $technician->id;
             $visit->supervisor_id = $request->user()->id;
+            $visit->escalated_at = null;
         }
         if ($request->filled('scheduled_date')) {
             $visit->scheduled_date = $request->input('scheduled_date');
@@ -259,7 +289,7 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $visit = $this->visitsQuery($request)->findOrFail($id);
+        $visit = $this->assignableVisitsQuery($request)->findOrFail($id);
         $technician = User::role('technician')->find((int) $request->input('technician_id'));
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
@@ -267,6 +297,7 @@ class SupervisorDashboardApiController extends Controller
 
         $visit->technician_id = $technician->id;
         $visit->supervisor_id = $request->user()->id;
+        $visit->escalated_at = null;
         if ($request->filled('reason')) {
             $visit->notes = trim(($visit->notes ? $visit->notes . PHP_EOL : '') . 'Reassign reason: ' . $request->input('reason'));
         }
