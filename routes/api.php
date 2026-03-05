@@ -308,10 +308,14 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::delete('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'destroy']);
 
     // Zones (Areas): assign supervisors and technicians to zones at setup. area_supervisor, area_technician.
+    Route::get('/technicians', [\App\Http\Controllers\Api\Admin\AreaController::class, 'technicians']);
+    Route::get('/technicians-for-zones', [\App\Http\Controllers\Api\Admin\AreaController::class, 'techniciansForZones']);
+    Route::get('/supervisors-for-zones', [\App\Http\Controllers\Api\Admin\AreaController::class, 'supervisorsForZones']);
     Route::get('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'index']);
     Route::post('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'store']);
     Route::get('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'show']);
     Route::put('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'update']);
+    Route::post('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'update']);
     Route::delete('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'destroy']);
 
     // Products Management

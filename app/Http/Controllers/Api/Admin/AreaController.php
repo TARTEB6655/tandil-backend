@@ -16,6 +16,132 @@ use Illuminate\Support\Facades\Validator;
  */
 class AreaController extends Controller
 {
+    /**
+     * GET /api/admin/technicians – All technicians for admin dashboard (e.g. "All Technicians" screen).
+     * Returns: name, email, employee_id, service_areas, specializations; zone and supervisor the technician is linked with (empty if none).
+     */
+    public function technicians(Request $request): JsonResponse
+    {
+        $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
+        $technicians = User::role('technician')
+            ->with(['employee', 'assignedAreas.supervisors'])
+            ->orderBy('name')
+            ->paginate($perPage);
+
+        $data = $technicians->getCollection()->map(function (User $u) {
+            $emp = $u->employee;
+            $zones = $u->assignedAreas->map(fn ($a) => ['id' => $a->id, 'name' => $a->name])->values()->all();
+            $supervisors = $u->assignedAreas->pluck('supervisors')->flatten(1)->unique('id')->values()->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->all();
+            $firstZone = $zones[0] ?? null;
+            $firstSupervisor = $supervisors[0] ?? null;
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email ?? '',
+                'employee_id' => $emp?->employee_id ?? ('TECH-' . $u->id),
+                'service_areas' => $emp?->service_areas ?? [],
+                'specializations' => $emp?->specializations ?? [],
+                'zone' => $firstZone,
+                'assigned_zones' => $zones,
+                'supervisor' => $firstSupervisor,
+                'assigned_supervisors' => $supervisors,
+            ];
+        })->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All technicians with zone and supervisor assignment. Zone and supervisor are empty when not linked.',
+            'data' => $data,
+            'pagination' => [
+                'current_page' => $technicians->currentPage(),
+                'last_page' => $technicians->lastPage(),
+                'per_page' => $technicians->perPage(),
+                'total' => $technicians->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/admin/technicians-for-zones – List technicians with region, specializations, and assigned zones.
+     * So admin knows who is available where and what work they specialize in when assigning to a zone.
+     */
+    public function techniciansForZones(Request $request): JsonResponse
+    {
+        $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
+        $technicians = User::role('technician')
+            ->with(['employee', 'assignedAreas'])
+            ->orderBy('name')
+            ->paginate($perPage);
+
+        $data = $technicians->getCollection()->map(function (User $u) {
+            $emp = $u->employee;
+            $zones = $u->assignedAreas->map(fn ($a) => ['id' => $a->id, 'name' => $a->name, 'country' => $a->country ?? 'UAE'])->values()->all();
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'phone' => $u->phone,
+                'employee_id' => $emp?->employee_id ?? ('TECH-' . $u->id),
+                'region' => $emp?->region,
+                'specializations' => $emp?->specializations ?? [],
+                'designation' => $emp?->designation,
+                'assigned_zone_ids' => $u->assignedAreas->pluck('id')->values()->all(),
+                'assigned_zones' => $zones,
+            ];
+        })->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Technicians with region, specializations and assigned zones. Use when assigning technicians to a zone.',
+            'data' => $data,
+            'pagination' => [
+                'current_page' => $technicians->currentPage(),
+                'last_page' => $technicians->lastPage(),
+                'per_page' => $technicians->perPage(),
+                'total' => $technicians->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/admin/supervisors-for-zones – List supervisors with assigned zones.
+     * So admin knows which supervisor is in which zone when assigning.
+     */
+    public function supervisorsForZones(Request $request): JsonResponse
+    {
+        $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
+        $supervisors = User::role('supervisor')
+            ->with(['employee', 'supervisedAreas'])
+            ->orderBy('name')
+            ->paginate($perPage);
+
+        $data = $supervisors->getCollection()->map(function (User $u) {
+            $zones = $u->supervisedAreas->map(fn ($a) => ['id' => $a->id, 'name' => $a->name, 'country' => $a->country ?? 'UAE'])->values()->all();
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'phone' => $u->phone,
+                'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
+                'region' => $u->employee?->region,
+                'assigned_zone_ids' => $u->supervisedAreas->pluck('id')->values()->all(),
+                'assigned_zones' => $zones,
+            ];
+        })->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Supervisors with assigned zones. Use when assigning supervisors to a zone.',
+            'data' => $data,
+            'pagination' => [
+                'current_page' => $supervisors->currentPage(),
+                'last_page' => $supervisors->lastPage(),
+                'per_page' => $supervisors->perPage(),
+                'total' => $supervisors->total(),
+            ],
+        ]);
+    }
+
     private function areaToArray(Area $area, array $extra = []): array
     {
         $data = [
@@ -91,12 +217,31 @@ class AreaController extends Controller
         ]);
     }
 
+    /** Normalize IDs from form-data (comma-separated string or array) to array of integers. */
+    private function normalizeIds($value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_filter(array_map('intval', $value)));
+        }
+        if (is_string($value) && $value !== '') {
+            return array_values(array_filter(array_map('intval', preg_split('/\s*,\s*/', $value))));
+        }
+        return [];
+    }
+
     /**
-     * POST /api/admin/areas – Create zone. Body: name (required), description (optional), supervisor_ids[] (optional), technician_ids[] (optional).
+     * POST /api/admin/areas – Create zone. Form-data: name (required), description, country, supervisor_ids (comma or array), technician_ids (comma or array).
      */
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $input = $request->all();
+        $supervisorIds = $this->normalizeIds($input['supervisor_ids'] ?? []);
+        $technicianIds = $this->normalizeIds($input['technician_ids'] ?? []);
+
+        $validator = Validator::make(array_merge($input, [
+            'supervisor_ids' => $supervisorIds,
+            'technician_ids' => $technicianIds,
+        ]), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'country' => 'nullable|string|max:100',
@@ -115,8 +260,6 @@ class AreaController extends Controller
             'country' => $request->input('country', 'UAE'),
         ]);
 
-        $supervisorIds = $request->input('supervisor_ids', []);
-        $technicianIds = $request->input('technician_ids', []);
         $this->ensureSupervisorsAndSync($area, $supervisorIds);
         $this->ensureTechniciansAndSync($area, $technicianIds);
 
@@ -142,19 +285,31 @@ class AreaController extends Controller
     }
 
     /**
-     * PUT /api/admin/areas/{id} – Update zone and sync supervisors/technicians.
+     * PUT/POST /api/admin/areas/{id} – Update zone and sync supervisors/technicians. Form-data: name, description, country, supervisor_ids, technician_ids.
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $input = $request->all();
+        $supervisorIds = array_key_exists('supervisor_ids', $input) ? $this->normalizeIds($input['supervisor_ids']) : null;
+        $technicianIds = array_key_exists('technician_ids', $input) ? $this->normalizeIds($input['technician_ids']) : null;
+
+        $rules = [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'country' => 'nullable|string|max:100',
-            'supervisor_ids' => 'nullable|array',
-            'supervisor_ids.*' => 'integer|exists:users,id',
-            'technician_ids' => 'nullable|array',
-            'technician_ids.*' => 'integer|exists:users,id',
-        ]);
+        ];
+        if ($supervisorIds !== null) {
+            $rules['supervisor_ids'] = 'nullable|array';
+            $rules['supervisor_ids.*'] = 'integer|exists:users,id';
+        }
+        if ($technicianIds !== null) {
+            $rules['technician_ids'] = 'nullable|array';
+            $rules['technician_ids.*'] = 'integer|exists:users,id';
+        }
+        $validator = Validator::make(array_merge($input, array_filter([
+            'supervisor_ids' => $supervisorIds,
+            'technician_ids' => $technicianIds,
+        ])), $rules);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
@@ -163,19 +318,19 @@ class AreaController extends Controller
         if ($request->has('name')) {
             $area->name = $request->input('name');
         }
-        if (array_key_exists('description', $request->all())) {
+        if (array_key_exists('description', $input)) {
             $area->description = $request->input('description');
         }
-        if (array_key_exists('country', $request->all())) {
+        if (array_key_exists('country', $input)) {
             $area->country = $request->input('country', 'UAE');
         }
         $area->save();
 
-        if (array_key_exists('supervisor_ids', $request->all())) {
-            $this->ensureSupervisorsAndSync($area, $request->input('supervisor_ids', []));
+        if ($supervisorIds !== null) {
+            $this->ensureSupervisorsAndSync($area, $supervisorIds);
         }
-        if (array_key_exists('technician_ids', $request->all())) {
-            $this->ensureTechniciansAndSync($area, $request->input('technician_ids', []));
+        if ($technicianIds !== null) {
+            $this->ensureTechniciansAndSync($area, $technicianIds);
         }
 
         $area->load(['supervisors', 'technicians']);

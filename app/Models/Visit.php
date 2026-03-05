@@ -23,6 +23,8 @@ class Visit extends Model
         'started_at',
         'completed_at',
         'escalated_at',
+        'accept_by',
+        'offer_count',
         'notes',
         'price',
     ];
@@ -35,6 +37,7 @@ class Visit extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'escalated_at' => 'datetime',
+        'accept_by' => 'datetime',
         'price' => 'decimal:2',
     ];
 
@@ -77,5 +80,10 @@ class Visit extends Model
     public function complaints()
     {
         return $this->hasMany(Complaint::class);
+    }
+
+    public function visitOffers()
+    {
+        return $this->hasMany(VisitOffer::class);
     }
 }

@@ -4,8 +4,9 @@
             <h1 class="text-xl font-medium text-gray-900">
                 Areas/Regions Management
             </h1>
-            <a href="{{ route('admin.areas.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-                Create New Area
+            <a href="{{ route('admin.zone-assignment.index') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Zone Assignment</a>
+            <a href="{{ route('admin.areas.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                Create New Zone
             </a>
         </div>
 
@@ -29,6 +30,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supervisors</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Technicians</th>
@@ -39,17 +41,18 @@
                     @forelse($areas as $area)
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $area->name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $area->country ?? 'UAE' }}</td>
                             <td class="px-6 py-4 text-sm text-gray-500">{{ Str::limit($area->description, 50) }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $area->supervisors->count() }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $area->technicians->count() }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <a href="{{ route('admin.areas.show', $area->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
-                                <a href="{{ route('admin.areas.edit', $area->id) }}" class="text-yellow-600 hover:text-yellow-900">Edit</a>
+                                <a href="{{ route('admin.areas.edit', $area->id) }}" class="text-amber-600 hover:text-amber-900">Edit</a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No areas found</td>
+                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No areas found</td>
                         </tr>
                     @endforelse
                 </tbody>

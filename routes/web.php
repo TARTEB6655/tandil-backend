@@ -177,6 +177,7 @@ Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
         Route::post('report-management/{id}/cancel', [ReportManagementController::class, 'cancel'])->name('report-management.cancel');
         Route::delete('report-management/{id}', [ReportManagementController::class, 'destroy'])->name('report-management.destroy');
         
+        Route::get('zone-assignment', [AreaController::class, 'zoneAssignment'])->name('zone-assignment.index');
         Route::resource('areas', AreaController::class);
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
         Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
@@ -280,6 +281,12 @@ Route::middleware(['auth', 'role:supervisor'])
     ->name('supervisor.')
     ->group(function () {
         Route::get('/dashboard', [SupervisorDashboardController::class, 'index'])->name('dashboard');
+
+        // My Team & Assign Jobs
+        Route::get('/team', [\App\Http\Controllers\Supervisor\TeamController::class, 'index'])->name('team.index');
+        Route::get('/team/{id}', [\App\Http\Controllers\Supervisor\TeamController::class, 'show'])->name('team.show');
+        Route::get('/assign-jobs', [\App\Http\Controllers\Supervisor\TeamController::class, 'assignJobs'])->name('assign-jobs.index');
+        Route::post('/assign-jobs', [\App\Http\Controllers\Supervisor\TeamController::class, 'assignJobStore'])->name('assign-jobs.store');
         
         // Visits
         Route::get('/visits', [\App\Http\Controllers\Supervisor\VisitController::class, 'index'])->name('visits.index');

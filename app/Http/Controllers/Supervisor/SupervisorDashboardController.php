@@ -41,6 +41,8 @@ class SupervisorDashboardController extends Controller
                 'totalComplaints' => 0,
                 'resolvedComplaints' => 0,
                 'pendingComplaints' => 0,
+                'teamMembers' => 0,
+                'escalatedJobs' => 0,
                 'visitsByStatus' => [],
                 'monthlyVisits' => [],
                 'recentVisits' => collect(),
@@ -160,6 +162,14 @@ class SupervisorDashboardController extends Controller
             ->take(5)
             ->get();
 
+        $teamMembers = (int) \Illuminate\Support\Facades\DB::table('area_technician')
+            ->whereIn('area_id', $areaIds)
+            ->distinct()
+            ->count('user_id');
+        $escalatedJobs = Visit::whereIn('area_id', $areaIds)
+            ->whereNotNull('escalated_at')
+            ->count();
+
         return view('supervisor.dashboard', compact(
             'totalVisits',
             'completedVisits',
@@ -170,6 +180,8 @@ class SupervisorDashboardController extends Controller
             'totalComplaints',
             'resolvedComplaints',
             'pendingComplaints',
+            'teamMembers',
+            'escalatedJobs',
             'visitsByStatus',
             'monthlyVisits',
             'recentVisits',

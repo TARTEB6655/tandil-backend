@@ -11,6 +11,7 @@ use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
 use App\Models\TechnicianBreak;
 use App\Models\Area;
+use App\Services\VisitOfferService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -264,18 +265,24 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
         }
 
-        $visit->technician_id = $technician->id;
         $visit->supervisor_id = $request->user()->id;
         $visit->escalated_at = null;
+        $visit->offer_count = 0;
         if ($request->filled('scheduled_date')) {
             $visit->scheduled_date = $request->input('scheduled_date');
         }
         if ($request->filled('note')) {
             $visit->notes = trim(($visit->notes ? $visit->notes . PHP_EOL : '') . $request->input('note'));
         }
-        $visit->save();
+        VisitOfferService::offerToTechnician($visit, $technician->id);
+        $visit->load(['subscription.client', 'area', 'technician']);
 
-        return response()->json(['success' => true, 'message' => 'Technician assigned successfully.', 'data' => $visit], 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept. If they reject or do not respond, the job will go to another technician in the same zone (same specialization) or escalate to you.',
+            'data' => $visit,
+            'accept_by' => $visit->accept_by?->toIso8601String(),
+        ], 201);
     }
 
     public function assignmentsUpdate(Request $request, int $id): JsonResponse

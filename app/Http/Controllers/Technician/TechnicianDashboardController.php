@@ -13,6 +13,7 @@ use App\Models\TechnicianVacation;
 use App\Models\Visit;
 use App\Models\Report;
 use App\Models\VisitPhoto;
+use App\Services\VisitOfferService;
 use App\Models\Tip;
 use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
@@ -83,38 +84,52 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
-     * POST /api/technician/tasks/{id}/accept - Accept assigned task (visit). Status becomes in_progress automatically.
+     * POST /api/technician/tasks/{id}/accept - Accept assigned task (visit). Works for pending or pending_acceptance (job offer with time limit).
      */
     public function taskAccept(Request $request, $id)
     {
         $visit = Visit::where('technician_id', $request->user()->id)->find($id);
-        if (!$visit) {
+        if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
         }
-        if ($visit->status !== 'pending') {
+        if (! in_array($visit->status, ['pending', 'pending_acceptance'], true)) {
             return response()->json(['success' => false, 'message' => 'Task cannot be accepted in current status.'], 422);
         }
-        $visit->status = 'in_progress';
-        $visit->accepted_at = now();
-        $visit->started_at = $visit->started_at ?? now();
-        $visit->save();
+        if ($visit->status === 'pending_acceptance') {
+            VisitOfferService::markAccepted($visit);
+            $visit->started_at = $visit->started_at ?? now();
+            $visit->save();
+        } else {
+            $visit->status = 'in_progress';
+            $visit->accepted_at = now();
+            $visit->started_at = $visit->started_at ?? now();
+            $visit->save();
+        }
         $visit->refresh();
         return response()->json(['success' => true, 'data' => $this->formatVisitAsTask($visit->load('subscription.client', 'area'))]);
     }
 
     /**
-     * POST /api/technician/tasks/{id}/reject - Reject task (optional reason).
+     * POST /api/technician/tasks/{id}/reject - Reject task (optional reason). If job was offered with time limit, it goes to next technician (same zone, same specialization) or escalates to supervisor.
      */
     public function taskReject(Request $request, $id)
     {
         $visit = Visit::where('technician_id', $request->user()->id)->find($id);
-        if (!$visit) {
+        if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
         }
-        if ($visit->status !== 'pending') {
+        if (! in_array($visit->status, ['pending', 'pending_acceptance'], true)) {
             return response()->json(['success' => false, 'message' => 'Task cannot be rejected in current status.'], 422);
         }
         $reason = $request->input('reason');
+        if ($visit->status === 'pending_acceptance') {
+            VisitOfferService::markRejectedAndOfferNextOrEscalate($visit, $reason);
+            return response()->json([
+                'success' => true,
+                'message' => 'You rejected the job. It has been offered to another technician in your zone (same specialization), or escalated to your supervisor if none available.',
+                'data' => ['id' => $visit->id, 'status' => 'rejected'],
+            ]);
+        }
         $visit->status = 'rejected';
         $visit->notes = $visit->notes ? $visit->notes . "\nRejected: " . ($reason ?? '') : ($reason ?? 'Rejected by technician');
         $visit->save();
@@ -1382,7 +1397,7 @@ class TechnicianDashboardController extends Controller
 
     private function openJobStatuses(): array
     {
-        return ['pending', 'in_progress'];
+        return ['pending', 'pending_acceptance', 'in_progress'];
     }
 
     private function closedJobStatuses(): array

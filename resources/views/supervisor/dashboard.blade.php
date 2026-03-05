@@ -79,6 +79,40 @@
             </div>
         </div>
     </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
+        <a href="{{ route('supervisor.team.index') }}" class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 block">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">My Team</p>
+                    <p class="text-base sm:text-lg font-medium text-indigo-600">{{ number_format($teamMembers ?? 0) }}</p>
+                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Technicians in your zones</p>
+                </div>
+                <div class="ml-3 flex-shrink-0">
+                    <div class="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-indigo-50">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
+        <a href="{{ route('supervisor.assign-jobs.index') }}" class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-amber-200 transition-all duration-200 block">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Escalated / Need assignment</p>
+                    <p class="text-base sm:text-lg font-medium text-amber-600">{{ number_format($escalatedJobs ?? 0) }}</p>
+                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Assign to technician</p>
+                </div>
+                <div class="ml-3 flex-shrink-0">
+                    <div class="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-amber-50">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
 
     <!-- Secondary Metrics -->
     <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">

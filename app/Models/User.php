@@ -128,6 +128,12 @@ class User extends Authenticatable
         return $this->supervisedAreas()->selectRaw('areas.id as id')->pluck('id')->toArray();
     }
 
+    /** Technician: zones (areas) this user is assigned to (area_technician). */
+    public function assignedAreas()
+    {
+        return $this->belongsToMany(Area::class, 'area_technician', 'user_id', 'area_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | ROLE HELPERS

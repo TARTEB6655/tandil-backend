@@ -9606,7 +9606,7 @@
                 },
                 {
                     "name": "Admin - Areas (Zones)",
-                    "description": "Areas = cities, linked to country (default UAE). Assign supervisors and technicians to zones at setup. area_supervisor, area_technician. Auth: Bearer token, admin role. Env: area_id. List: ?country=UAE.",
+                    "description": "Admin zone assignment flow: (1) GET technicians-for-zones → see who is where, region, specializations, assigned zones. (2) GET supervisors-for-zones → see which supervisor is in which zone. (3) POST/PUT areas with form-data: name, description, country, supervisor_ids=2,5, technician_ids=3,4,6 (comma-separated). All create/update are form-based. See docs/admin-zone-assignment-flow.md.",
                     "item": [
                         {
                             "name": "Areas - List",
@@ -9631,6 +9631,57 @@
                             }
                         },
                         {
+                            "name": "All Technicians (Admin)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/technicians?per_page=50",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "technicians"],
+                                    "query": [{ "key": "per_page", "value": "50" }]
+                                },
+                                "description": "All technicians for admin dashboard (e.g. \"All Technicians\" screen). GET /api/admin/technicians. Response: id, name, email, employee_id, service_areas[], specializations[], zone { id, name } or null, assigned_zones[], supervisor { id, name } or null, assigned_supervisors[]. Zone and supervisor are empty when not linked."
+                            }
+                        },
+                        {
+                            "name": "Technicians for Zones (list)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/technicians-for-zones?per_page=50",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "technicians-for-zones"],
+                                    "query": [{ "key": "per_page", "value": "50" }]
+                                },
+                                "description": "List technicians with region, specializations, and assigned zones. Use before assigning technicians to a zone so admin knows who is where and what work they specialize in. Response: id, name, email, employee_id, region, specializations[], assigned_zone_ids, assigned_zones[]."
+                            }
+                        },
+                        {
+                            "name": "Supervisors for Zones (list)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisors-for-zones?per_page=50",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "supervisors-for-zones"],
+                                    "query": [{ "key": "per_page", "value": "50" }]
+                                },
+                                "description": "List supervisors with assigned zones. Use before assigning supervisors to a zone so admin knows which supervisor is in which zone. Response: id, name, email, employee_id, region, assigned_zone_ids, assigned_zones[]."
+                            }
+                        },
+                        {
                             "name": "Areas - Create",
                             "request": {
                                 "method": "POST",
@@ -9639,16 +9690,21 @@
                                     { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Dubai\",\n  \"description\": \"Dubai city\",\n  \"country\": \"UAE\",\n  \"supervisor_ids\": [2],\n  \"technician_ids\": [3, 4]\n}",
-                                    "options": { "raw": { "language": "json" } }
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "name", "value": "Dubai", "type": "text", "description": "Required" },
+                                        { "key": "description", "value": "Dubai city", "type": "text" },
+                                        { "key": "country", "value": "UAE", "type": "text" },
+                                        { "key": "supervisor_ids", "value": "2", "type": "text", "description": "Comma-separated user ids (e.g. 2,5)" },
+                                        { "key": "technician_ids", "value": "3,4", "type": "text", "description": "Comma-separated user ids" }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/areas",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas"]
                                 },
-                                "description": "Create area (city). POST /api/admin/areas. JSON: name (required), description (optional), country (optional, default UAE), supervisor_ids, technician_ids. Areas = cities in the country. Syncs area_supervisor and area_technician."
+                                "description": "Create area (city). Form-data: name (required), description, country, supervisor_ids (comma-separated), technician_ids (comma-separated). Syncs area_supervisor and area_technician."
                             }
                         },
                         {
@@ -9668,25 +9724,55 @@
                             }
                         },
                         {
-                            "name": "Areas - Update",
+                            "name": "Areas - Update (PUT form-data)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Dubai\",\n  \"description\": \"Dubai city\",\n  \"country\": \"UAE\",\n  \"supervisor_ids\": [2, 5],\n  \"technician_ids\": [3, 4, 6]\n}",
-                                    "options": { "raw": { "language": "json" } }
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "name", "value": "Dubai", "type": "text" },
+                                        { "key": "description", "value": "Dubai city", "type": "text" },
+                                        { "key": "country", "value": "UAE", "type": "text" },
+                                        { "key": "supervisor_ids", "value": "2,5", "type": "text", "description": "Comma-separated" },
+                                        { "key": "technician_ids", "value": "3,4,6", "type": "text", "description": "Comma-separated" }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/areas/{{area_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "areas", "{{area_id}}"]
                                 },
-                                "description": "Update area (city) and sync supervisors/technicians. PUT /api/admin/areas/:id. JSON: name, description, country (e.g. UAE), supervisor_ids, technician_ids. Set area_id."
+                                "description": "Update area (city). Form-data: name, description, country, supervisor_ids (comma-separated), technician_ids (comma-separated). PUT or POST. Set area_id."
+                            }
+                        },
+                        {
+                            "name": "Areas - Update (POST form-data)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "name", "value": "Dubai", "type": "text" },
+                                        { "key": "description", "value": "Dubai city", "type": "text" },
+                                        { "key": "country", "value": "UAE", "type": "text" },
+                                        { "key": "supervisor_ids", "value": "2,5", "type": "text" },
+                                        { "key": "technician_ids", "value": "3,4,6", "type": "text" }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/areas/{{area_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "areas", "{{area_id}}"]
+                                },
+                                "description": "Same as PUT; use POST for form-data. Set area_id."
                             }
                         },
                         {

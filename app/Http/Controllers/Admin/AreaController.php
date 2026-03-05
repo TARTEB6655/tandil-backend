@@ -14,6 +14,17 @@ class AreaController extends Controller
         $this->middleware('role:admin');
     }
 
+    /**
+     * Zone Assignment hub: see supervisors with zones, technicians with zone + specialization, and assign from zones.
+     */
+    public function zoneAssignment(Request $request)
+    {
+        $areas = Area::with(['supervisors', 'technicians'])->orderBy('name')->get();
+        $supervisors = User::role('supervisor')->with(['employee', 'supervisedAreas'])->orderBy('name')->get();
+        $technicians = User::role('technician')->with(['employee', 'assignedAreas'])->orderBy('name')->get();
+        return view('admin.zone-assignment.index', compact('areas', 'supervisors', 'technicians'));
+    }
+
     public function index(Request $request)
     {
         $query = Area::with(['supervisors', 'technicians', 'visits']);
