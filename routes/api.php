@@ -206,7 +206,8 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markNotificationRead']);
     Route::post('/notifications/read-all', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markAllNotificationsRead']);
     Route::post('/notifications/clear-all', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'clearAllNotifications']);
-    // Submit field report to supervisor (technician only)
+    // Field notes: GET list (by supervisor_id); POST submit report
+    Route::get('/field-notes', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'fieldNotesIndex']);
     Route::post('/reports', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'submitReport']);
     // Help & Support (same as /api/support/*, under technician prefix for dashboard)
     Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
@@ -246,10 +247,11 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::get('/team/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamMemberShow']);
     Route::get('/team-stats', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamStats']);
 
-    // Assignments (GET /assignments = assignable list; POST /assignments = assign visit to technician)
+    // Assignments: GET list; GET assign-tasks; POST /assignments/{id} (body: technician_id, scheduled_date) – id = task/visit id
     Route::get('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsPending']);
+    Route::get('/assign-tasks', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignTasksPage']);
     Route::post('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsStore']);
-    Route::post('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsUpdate']);
+    Route::post('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsAssignOrUpdate']);
     Route::post('/assignments/{id}/reassign', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsReassign']);
 
     // Reports (field reports from technicians)

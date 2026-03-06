@@ -406,7 +406,7 @@ class TechnicianDashboardController extends Controller
     public function tasks(Request $request)
     {
         $user = $request->user();
-        $query = Visit::where('technician_id', $user->id)->with(['subscription.client', 'area']);
+        $query = Visit::where('technician_id', $user->id)->with(['subscription.client', 'area', 'supervisor']);
         $filter = $request->input('filter', 'all');
         if ($filter === 'today') {
             $query->whereDate('scheduled_date', Carbon::today())
@@ -438,9 +438,9 @@ class TechnicianDashboardController extends Controller
     public function taskShow(Request $request, $id)
     {
         $visit = Visit::where('technician_id', $request->user()->id)
-            ->with(['subscription.client', 'area', 'photos', 'report'])
+            ->with(['subscription.client', 'area', 'photos', 'report', 'supervisor'])
             ->find($id);
-        if (!$visit) {
+        if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
         }
         return response()->json(['success' => true, 'data' => $this->formatVisitAsTask($visit, true)]);
@@ -452,7 +452,7 @@ class TechnicianDashboardController extends Controller
     public function taskDetail(Request $request, $id)
     {
         $visit = Visit::where('technician_id', $request->user()->id)
-            ->with(['subscription.client', 'area', 'photos', 'report'])
+            ->with(['subscription.client', 'area', 'photos', 'report', 'supervisor'])
             ->find($id);
         if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Task not found.'], 404);
@@ -522,7 +522,7 @@ class TechnicianDashboardController extends Controller
         $list = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
             ->whereIn('status', $jobStatuses)
-            ->with(['subscription.client', 'area'])
+            ->with(['subscription.client', 'area', 'supervisor'])
             ->orderByDesc('scheduled_date')
             ->paginate((int) $request->input('per_page', 15));
         $list->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
@@ -552,7 +552,7 @@ class TechnicianDashboardController extends Controller
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
             ->whereIn('status', ['in_progress'])
-            ->with(['subscription.client', 'area'])
+            ->with(['subscription.client', 'area', 'supervisor'])
             ->orderByDesc('scheduled_date');
         $items = $query->paginate($perPage);
         $items->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
@@ -578,7 +578,7 @@ class TechnicianDashboardController extends Controller
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
             ->where('status', 'rejected')
-            ->with(['subscription.client', 'area'])
+            ->with(['subscription.client', 'area', 'supervisor'])
             ->orderByDesc('scheduled_date');
         $items = $query->paginate($perPage);
         $items->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
@@ -1107,6 +1107,62 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
+     * GET /api/technician/field-notes
+     * List field notes (reports) submitted by this technician. Optional ?supervisor_id= to filter by supervisor.
+     * Response: id, visit_id, supervisor_id, supervisor_name, technician_notes, status, before_photos, after_photos, submitted_at.
+     */
+    public function fieldNotesIndex(Request $request)
+    {
+        $user = $request->user();
+        $query = Report::whereHas('visit', fn ($q) => $q->where('technician_id', $user->id))
+            ->with(['visit.photos', 'supervisor'])
+            ->orderByDesc('created_at');
+        if ($request->filled('supervisor_id')) {
+            $query->where('supervisor_id', (int) $request->input('supervisor_id'));
+        }
+        $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
+        $reports = $query->paginate($perPage);
+        $data = $reports->getCollection()->map(function (Report $r) {
+            $photos = $r->visit?->photos ?? collect();
+            return [
+                'id' => $r->id,
+                'visit_id' => $r->visit_id,
+                'supervisor_id' => $r->supervisor_id,
+                'supervisor_name' => $r->supervisor?->name ?? null,
+                'technician_notes' => $r->technician_notes,
+                'status' => $r->status,
+                'before_photos' => $photos->where('type', 'before')->values()->map(fn ($p) => [
+                    'id' => $p->id,
+                    'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
+                    'type' => 'before',
+                ])->values()->all(),
+                'after_photos' => $photos->where('type', 'after')->values()->map(fn ($p) => [
+                    'id' => $p->id,
+                    'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
+                    'type' => 'after',
+                ])->values()->all(),
+                'submitted_at' => $r->created_at?->toIso8601String(),
+            ];
+        })->values()->all();
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'meta' => [
+                'current_page' => $reports->currentPage(),
+                'last_page' => $reports->lastPage(),
+                'per_page' => $reports->perPage(),
+                'total' => $reports->total(),
+            ],
+            'links' => [
+                'first' => $reports->url(1),
+                'last' => $reports->url($reports->lastPage()),
+                'prev' => $reports->previousPageUrl(),
+                'next' => $reports->nextPageUrl(),
+            ],
+        ]);
+    }
+
+    /**
      * POST /api/technician/reports
      * Technician-only: submit or update field report to supervisor (Job Details → "Submit Field Report to Supervisor").
      * Accepts form-data: supervisor_id (required – the supervisor to send the report to), technician_notes, before_photo (file), after_photo (file).
@@ -1204,13 +1260,14 @@ class TechnicianDashboardController extends Controller
             'job_number' => 'job_' . str_pad((string) $visit->id, 3, '0', STR_PAD_LEFT),
             'status' => $visit->status,
             'date' => $visit->scheduled_date?->toDateString(),
+            'supervisor_name' => $visit->supervisor?->name ?? null,
             'service_information' => [
                 'title' => $meta['service_name'] ?? ($visit->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : 'Service Visit'),
                 'description' => 'Visit details for technician execution.',
                 'time' => $scheduledAt?->format('g:i A'),
                 'duration_minutes' => $duration,
-                'price' => $meta['price'] ?? null,
-                'price_display' => $meta['price_display'] ?? null,
+                'price' => $visit->price !== null ? (float) $visit->price : ($meta['price'] ?? null),
+                'price_display' => $visit->price !== null ? ('AED ' . number_format((float) $visit->price, 2)) : ($meta['price_display'] ?? null),
             ],
             'customer_information' => [
                 'name' => $meta['farm_name'] ?? $client?->name,
@@ -1446,6 +1503,7 @@ class TechnicianDashboardController extends Controller
             'scheduled_date' => $visit->scheduled_date?->toDateString(),
             'scheduled_time' => $scheduledAt?->format('g:i A'),
             'status' => $visit->status,
+            'title' => $meta['farm_name'] ?? $client?->name ?? ('Task #' . $visit->id),
             'farm_name' => $meta['farm_name'] ?? $client?->name,
             'service_name' => $meta['service_name'] ?? ($visit->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : null),
             'location' => $meta['location'] ?? $visit->area?->name,
@@ -1455,6 +1513,7 @@ class TechnicianDashboardController extends Controller
             'area' => $visit->area?->name,
             'price' => $visit->price !== null ? (float) $visit->price : ($meta['price'] ?? 0),
             'price_display' => $visit->price !== null ? ('AED ' . number_format((float) $visit->price, 2)) : ($meta['price_display'] ?? null),
+            'supervisor_name' => $visit->supervisor?->name ?? null,
             'accepted_at' => $visit->accepted_at?->toIso8601String(),
             'started_at' => $visit->started_at?->toIso8601String(),
             'completed_at' => $visit->completed_at?->toIso8601String(),

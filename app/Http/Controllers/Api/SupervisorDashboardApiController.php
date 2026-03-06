@@ -396,12 +396,23 @@ class SupervisorDashboardApiController extends Controller
         }
 
         $pending = $this->assignableVisitsQuery($request)
+            ->with('supervisor')
             ->orderByRaw('escalated_at IS NOT NULL DESC')
             ->orderBy('scheduled_date')
             ->paginate((int) $request->get('per_page', 20));
 
-        // Remove subscription_id, area_id, and relation objects from response
-        $pending->getCollection()->transform(fn ($visit) => $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']));
+        $pending->getCollection()->transform(function ($visit) {
+            $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
+            $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+            $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
+            $visit->service_name = $meta['service_name'] ?? null;
+            $visit->location = $meta['location'] ?? null;
+            $visit->duration_minutes = $meta['duration_minutes'] ?? null;
+            $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
+            $visit->supervisor_name = $visit->supervisor?->name ?? null;
+            $visit->makeHidden(['supervisor']);
+            return $visit;
+        });
 
         $message = null;
         if ($pending->isEmpty()) {
@@ -413,6 +424,102 @@ class SupervisorDashboardApiController extends Controller
             'data' => $pending,
             'message' => $message,
         ]));
+    }
+
+    /**
+     * GET /api/supervisor/assign-tasks
+     * Assign Tasks screen: team_members (same as GET /team) + available_tasks (same as GET /assignments first page).
+     */
+    public function assignTasksPage(Request $request): JsonResponse
+    {
+        $teamResponse = $this->myTeam($request);
+        $teamData = $teamResponse->getData(true);
+        $team_members = $teamData['data'] ?? [];
+
+        $pending = $this->assignableVisitsQuery($request)
+                ->with('supervisor')
+                ->orderByRaw('escalated_at IS NOT NULL DESC')
+                ->orderBy('scheduled_date')
+                ->paginate((int) $request->get('per_page', 50));
+            $pending->getCollection()->transform(function ($visit) {
+                $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
+                $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+                $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
+                $visit->service_name = $meta['service_name'] ?? null;
+                $visit->location = $meta['location'] ?? null;
+                $visit->duration_minutes = $meta['duration_minutes'] ?? null;
+                $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
+                $visit->supervisor_name = $visit->supervisor?->name ?? null;
+                $visit->makeHidden(['supervisor']);
+                return $visit;
+            });
+        $available_tasks = $pending->getCollection()->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'team_members' => $team_members,
+                'available_tasks' => $available_tasks,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/supervisor/assignments/{id}
+     * Simple URL: id = task/visit id. Assign task to technician or update assignment.
+     * Body: technician_id (required to assign), scheduled_date (optional). No visit_id or notes in body.
+     * Example: POST /api/supervisor/assignments/44 with {"technician_id": 3}
+     */
+    public function assignmentsAssignOrUpdate(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'technician_id' => 'nullable|integer|exists:users,id',
+            'scheduled_date' => 'nullable|date',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
+
+        if ($request->filled('technician_id')) {
+            $technician = User::role('technician')->find((int) $request->input('technician_id'));
+            if (! $technician) {
+                return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
+            }
+            $areaIds = $this->areaIds($request);
+            if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+                return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
+            }
+            $visit->supervisor_id = $request->user()->id;
+            $visit->escalated_at = null;
+            $visit->offer_count = 0;
+            $visit->technician_id = $technician->id;
+            if ($request->filled('scheduled_date')) {
+                $visit->scheduled_date = $request->input('scheduled_date');
+            }
+            $visit->save();
+            VisitOfferService::offerToTechnician($visit, $technician->id);
+            $visit->load(['technician']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.',
+                'data' => $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']),
+                'accept_by' => $visit->accept_by?->toIso8601String(),
+            ], 200);
+        }
+
+        if ($request->filled('scheduled_date')) {
+            $visit->scheduled_date = $request->input('scheduled_date');
+            $visit->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment updated.',
+            'data' => $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']),
+        ]);
     }
 
     public function assignmentsStore(Request $request): JsonResponse
