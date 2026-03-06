@@ -3511,10 +3511,10 @@
                             "mode": "formdata",
                             "formdata": [
                                 {
-                                    "key": "visit_id",
-                                    "value": "{{visit_id}}",
+                                    "key": "supervisor_id",
+                                    "value": "{{supervisor_id}}",
                                     "type": "text",
-                                    "description": "Required. Job/visit ID (e.g. 15 for Job #15)."
+                                    "description": "Required. Supervisor user ID – the supervisor to send the report to (linked to the technician via assigned job)."
                                 },
                                 {
                                     "key": "technician_notes",
@@ -3547,7 +3547,7 @@
                                 "reports"
                             ]
                         },
-                        "description": "Technician-only API: submit field report to supervisor (Job Details → Submit Field Report to Supervisor). Form-data: visit_id (required), technician_notes, before_photo (file), after_photo (file). Before/after photos are saved as visit photos. Visit must be **in progress or completed** and assigned to the technician. Response: status, message, data (report with visit.photos)."
+                        "description": "**Technician sends report to supervisor** (this API).\n\n**Endpoint:** POST {{base_url}}/api/technician/reports\n**Auth:** Bearer token (technician).\n**Form-data:** supervisor_id (required – supervisor user ID to send the report to), technician_notes, before_photo (file), after_photo (file). No visit_id: the backend uses the technician’s most recent in-progress or completed job assigned to that supervisor and links the report to it.\n\n**Supervisor receives reports** via: GET {{base_url}}/api/supervisor/reports (Module 10 – Supervisor Dashboard → D. Reports). Reports where report.supervisor_id = that supervisor are shown."
                     }
                 },
                 {

@@ -62,6 +62,19 @@ class SupervisorDashboardApiController extends Controller
         return $fromAreas->merge($assignedToMe)->unique()->values();
     }
 
+    /** Reports the supervisor can see: report.supervisor_id = me (technician sent to me) OR visit in my scope. */
+    private function reportsForSupervisorQuery(Request $request)
+    {
+        $supervisorId = $request->user()->id;
+        $visitIds = $this->reportVisitIds($request);
+        return Report::where(function ($q) use ($supervisorId, $visitIds) {
+            $q->where('supervisor_id', $supervisorId);
+            if ($visitIds->isNotEmpty()) {
+                $q->orWhereIn('visit_id', $visitIds);
+            }
+        });
+    }
+
     /**
      * Single dashboard API: profile (picture, name, id) + 3 counts only (team_members, active_visits, completed_visits). Nothing else.
      */
@@ -511,19 +524,7 @@ class SupervisorDashboardApiController extends Controller
      */
     public function reportsIndex(Request $request): JsonResponse
     {
-        $visitIds = $this->reportVisitIds($request);
-
-        if ($visitIds->isEmpty()) {
-            return response()->json([
-                'success' => true,
-                'data' => [],
-                'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => (int) $request->get('per_page', 20), 'total' => 0],
-                'links' => ['first' => null, 'last' => null, 'prev' => null, 'next' => null],
-                'message' => 'No zones assigned and no visits assigned to you. Reports will appear when technicians submit field reports for your visits.',
-            ]);
-        }
-
-        $query = Report::whereIn('visit_id', $visitIds)
+        $query = $this->reportsForSupervisorQuery($request)
             ->where(function ($q) {
                 $q->whereHas('visit', fn ($v) => $v->where('status', 'in_progress'))
                     ->orWhere(function ($q2) {
@@ -544,6 +545,10 @@ class SupervisorDashboardApiController extends Controller
 
         $reports = $query->orderByDesc('created_at')
             ->paginate((int) $request->get('per_page', 20));
+
+        $message = $reports->isEmpty()
+            ? 'No reports yet. Technicians submit field reports for jobs assigned to you; they appear here when sent (report is linked to you by supervisor_id).'
+            : null;
 
         $data = $reports->getCollection()->map(function (Report $report) {
             $visit = $report->visit;
@@ -581,7 +586,7 @@ class SupervisorDashboardApiController extends Controller
             ];
         })->values();
 
-        return response()->json([
+        $payload = [
             'success' => true,
             'data' => $data,
             'meta' => [
@@ -596,7 +601,11 @@ class SupervisorDashboardApiController extends Controller
                 'prev' => $reports->previousPageUrl(),
                 'next' => $reports->nextPageUrl(),
             ],
-        ]);
+        ];
+        if ($message !== null) {
+            $payload['message'] = $message;
+        }
+        return response()->json($payload);
     }
 
     private function parseVisitMetaFromNotes(string $notes): array
@@ -640,8 +649,7 @@ class SupervisorDashboardApiController extends Controller
      */
     public function reportAccept(Request $request, int $id): JsonResponse
     {
-        $visitIds = $this->reportVisitIds($request);
-        $report = Report::whereIn('visit_id', $visitIds)->where('id', $id)->first();
+        $report = $this->reportsForSupervisorQuery($request)->where('id', $id)->first();
 
         if (! $report) {
             return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
@@ -668,8 +676,7 @@ class SupervisorDashboardApiController extends Controller
      */
     public function reportReject(Request $request, int $id): JsonResponse
     {
-        $visitIds = $this->reportVisitIds($request);
-        $report = Report::whereIn('visit_id', $visitIds)->where('id', $id)->first();
+        $report = $this->reportsForSupervisorQuery($request)->where('id', $id)->first();
 
         if (! $report) {
             return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
@@ -722,9 +729,8 @@ class SupervisorDashboardApiController extends Controller
      */
     public function reportsShow(Request $request, int $id): JsonResponse
     {
-        $visitIds = $this->reportVisitIds($request);
-        $report = Report::where('id', $id)
-            ->whereIn('visit_id', $visitIds)
+        $report = $this->reportsForSupervisorQuery($request)
+            ->where('id', $id)
             ->with([
                 'visit.subscription.client',
                 'visit.technician.employee',
@@ -758,6 +764,7 @@ class SupervisorDashboardApiController extends Controller
         $data = [
             'id' => $report->id,
             'visit_id' => $report->visit_id,
+            'supervisor_id' => $report->supervisor_id,
             'status' => $report->status,
             'technician_name' => $technician?->name,
             'employee_id' => $technician?->employee?->employee_id ?? ($technician ? 'TECH-' . $technician->id : null),

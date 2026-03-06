@@ -12,6 +12,8 @@ use App\Models\Visit;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Models\Role;
 
 class DummySupervisorAssignedTasksSeeder extends Seeder
 {
@@ -60,6 +62,15 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+        if (Schema::hasTable('roles') && method_exists($supervisor, 'syncRoles')) {
+            foreach (['supervisor', 'technician', 'client'] as $roleName) {
+                Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            }
+            $supervisor->syncRoles(['supervisor']);
+            $technician->syncRoles(['technician']);
+            $client->syncRoles(['client']);
+        }
 
         Employee::updateOrCreate(
             ['user_id' => $technician->id],
@@ -130,100 +141,90 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             ]
         );
 
-        // Refresh temporary dummy records each run.
+        // Remove old dummy visits (reports deleted by FK cascade or manually)
+        $dummyVisitIds = Visit::where('notes', 'like', '[DUMMY-SUP-ASSIGN]%')->pluck('id');
+        Report::whereIn('visit_id', $dummyVisitIds)->delete();
         Visit::where('notes', 'like', '[DUMMY-SUP-ASSIGN]%')->delete();
 
         $today = Carbon::today();
-        $base = [
+        $baseUnassigned = [
             'subscription_id' => $subscription->id,
-            'technician_id' => $technician->id,
+            'technician_id' => null,
             'supervisor_id' => $supervisor->id,
             'area_id' => $area->id,
         ];
 
-        // 5 dummy tasks for today – in_progress and pending only (no "accepted" status); with price so dashboard shows correctly
-        $v1 = Visit::create(array_merge($base, [
+        // 5 dummy tasks assigned TO supervisor (supervisor1@test.com) – unassigned so supervisor sees them in Assignments and can assign to technician
+        Visit::create(array_merge($baseUnassigned, [
             'scheduled_date' => $today->toDateString(),
-            'status' => 'in_progress',
-            'accepted_at' => $today->copy()->setTime(7, 45),
-            'started_at' => $today->copy()->setTime(8, 0),
-            'notes' => '[DUMMY-SUP-ASSIGN] Mohammed Ali Farm | Tree Watering Visit | Al Ain Oasis, Abu Dhabi, UAE | 120 min | AED 350.00 | 5/5',
+            'status' => 'pending',
+            'notes' => '[DUMMY-SUP-ASSIGN] Mohammed Ali Farm | Tree Watering Visit | Al Ain Oasis, Abu Dhabi, UAE | 120 min | AED 350.00',
             'price' => 350.00,
         ]));
-
-        Visit::create(array_merge($base, [
+        Visit::create(array_merge($baseUnassigned, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'pending',
             'notes' => '[DUMMY-SUP-ASSIGN] Palm Grove Estate | Palm Tree Maintenance | Liwa Desert, Abu Dhabi, UAE | 90 min | AED 220.00',
             'price' => 220.00,
         ]));
-
-        Visit::create(array_merge($base, [
+        Visit::create(array_merge($baseUnassigned, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'pending',
             'notes' => '[DUMMY-SUP-ASSIGN] Al Noor Orchard | Soil Fertilizing | Al Ain, Abu Dhabi, UAE | 45 min | AED 150.00',
             'price' => 150.00,
         ]));
-
-        $v4 = Visit::create(array_merge($base, [
+        Visit::create(array_merge($baseUnassigned, [
             'scheduled_date' => $today->toDateString(),
-            'status' => 'in_progress',
-            'accepted_at' => $today->copy()->setTime(10, 30),
-            'started_at' => $today->copy()->setTime(10, 35),
-            'notes' => '[DUMMY-SUP-ASSIGN] Oasis Fields | Drip Irrigation Check | Al Faqa, Abu Dhabi, UAE | 60 min | AED 199.99 | 5/5',
+            'status' => 'pending',
+            'notes' => '[DUMMY-SUP-ASSIGN] Oasis Fields | Drip Irrigation Check | Al Faqa, Abu Dhabi, UAE | 60 min | AED 199.99',
             'price' => 199.99,
         ]));
-
-        Visit::create(array_merge($base, [
+        Visit::create(array_merge($baseUnassigned, [
             'scheduled_date' => $today->toDateString(),
             'status' => 'pending',
             'notes' => '[DUMMY-SUP-ASSIGN] Date Palm Sector B | Tree Pruning | Abu Dhabi, UAE | 75 min | AED 275.50',
             'price' => 275.50,
         ]));
 
-        // 2 completed visits (yesterday and 2 days ago) for recent_visits with price/rating
-        $v6 = Visit::create(array_merge($base, [
-            'scheduled_date' => $today->copy()->subDay()->toDateString(),
-            'status' => 'completed',
-            'accepted_at' => $today->copy()->subDay()->setTime(9, 0),
-            'started_at' => $today->copy()->subDay()->setTime(9, 10),
-            'completed_at' => $today->copy()->subDay()->setTime(10, 40),
-            'completed_date' => $today->copy()->subDay()->toDateString(),
-            'notes' => '[DUMMY-SUP-ASSIGN] Green Valley Farm | Planting & Fertilizing | Abu Dhabi, UAE | 90 min | AED 289.99 | 5/5',
+        // 2 tasks already assigned to technician (linked via area) – technician sees these on his dashboard and can submit report to supervisor
+        $baseAssigned = [
+            'subscription_id' => $subscription->id,
+            'technician_id' => $technician->id,
+            'supervisor_id' => $supervisor->id,
+            'area_id' => $area->id,
+        ];
+        $vIn1 = Visit::create(array_merge($baseAssigned, [
+            'scheduled_date' => $today->toDateString(),
+            'status' => 'in_progress',
+            'accepted_at' => $today->copy()->setTime(7, 45),
+            'started_at' => $today->copy()->setTime(8, 0),
+            'notes' => '[DUMMY-SUP-ASSIGN] Green Valley Farm | Tree Watering | Al Ain Oasis, Abu Dhabi, UAE | 90 min | AED 289.99',
             'price' => 289.99,
         ]));
-
-        $v7 = Visit::create(array_merge($base, [
-            'scheduled_date' => $today->copy()->subDays(2)->toDateString(),
-            'status' => 'completed',
-            'accepted_at' => $today->copy()->subDays(2)->setTime(10, 0),
-            'started_at' => $today->copy()->subDays(2)->setTime(10, 10),
-            'completed_at' => $today->copy()->subDays(2)->setTime(11, 0),
-            'completed_date' => $today->copy()->subDays(2)->toDateString(),
-            'notes' => '[DUMMY-SUP-ASSIGN] Desert Palm Resort | Garden Cleaning | Abu Dhabi, UAE | 50 min | AED 145.50 | 4/5',
+        $vIn2 = Visit::create(array_merge($baseAssigned, [
+            'scheduled_date' => $today->toDateString(),
+            'status' => 'in_progress',
+            'accepted_at' => $today->copy()->setTime(10, 30),
+            'started_at' => $today->copy()->setTime(10, 35),
+            'notes' => '[DUMMY-SUP-ASSIGN] Desert Palm Resort | Garden Cleaning | Abu Dhabi, UAE | 50 min | AED 145.50',
             'price' => 145.50,
         ]));
 
-        // Field reports with technician_notes so task detail API returns technician_notes
-        $reportBase = ['supervisor_id' => $supervisor->id, 'user_id' => $client->id, 'status' => 'submitted'];
-        Report::create(array_merge($reportBase, [
-            'visit_id' => $v1->id,
-            'technician_notes' => 'Tree watering completed for all zones. Soil moisture levels good. No pest issues observed.',
-        ]));
-        Report::create(array_merge($reportBase, [
-            'visit_id' => $v4->id,
-            'technician_notes' => 'Drip lines checked and unblocked. Adjusted timers for Zone 2. Recommended follow-up in 2 weeks.',
-        ]));
-        Report::create(array_merge($reportBase, [
-            'visit_id' => $v6->id,
-            'technician_notes' => 'Planting and fertilizing done. New saplings staked. Client requested extra mulch for Section B.',
-        ]));
-        Report::create(array_merge($reportBase, [
-            'visit_id' => $v7->id,
-            'technician_notes' => 'Garden cleaning completed. Removed dry fronds and trimmed hedges. Client satisfied with result.',
-        ]));
+        // 2 field reports (linked to supervisor_id) – supervisor sees these in Reports list
+        Report::create([
+            'visit_id' => $vIn1->id,
+            'supervisor_id' => $supervisor->id,
+            'technician_notes' => 'Tree watering completed for all zones. Soil moisture levels good.',
+            'status' => 'pending',
+        ]);
+        Report::create([
+            'visit_id' => $vIn2->id,
+            'supervisor_id' => $supervisor->id,
+            'technician_notes' => 'Garden cleaning completed. Removed dry fronds and trimmed hedges.',
+            'status' => 'pending',
+        ]);
 
-        $this->command->info('Dummy supervisor-assigned technician tasks seeded successfully (5 today + 2 completed with price; 4 with technician_notes).');
+        $this->command->info('Dummy tasks seeded: 5 tasks for supervisor1@test.com (unassigned – visible in Assignments); 2 assigned to technician1 (in_progress, 2 reports visible to supervisor).');
     }
 }
 

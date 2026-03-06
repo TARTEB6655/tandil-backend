@@ -1109,13 +1109,13 @@ class TechnicianDashboardController extends Controller
     /**
      * POST /api/technician/reports
      * Technician-only: submit or update field report to supervisor (Job Details → "Submit Field Report to Supervisor").
-     * Only technician_notes is used; no other note field. If a report already exists, technician_notes (and optional new photos) are updated.
-     * Accepts form-data: visit_id, technician_notes, before_photo (file), after_photo (file).
+     * Accepts form-data: supervisor_id (required – the supervisor to send the report to), technician_notes, before_photo (file), after_photo (file).
+     * The technician is the logged-in user. Visit is resolved from the technician's in_progress or completed job assigned to that supervisor (most recent).
      */
     public function submitReport(Request $request)
     {
         $rules = [
-            'visit_id' => 'required|integer|exists:visits,id',
+            'supervisor_id' => 'required|integer|exists:users,id',
             'technician_notes' => 'nullable|string|max:10000',
             'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
             'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
@@ -1123,13 +1123,19 @@ class TechnicianDashboardController extends Controller
         $data = $request->validate($rules);
 
         $user = $request->user();
-        $visit = Visit::find($data['visit_id']);
+        $supervisorId = (int) $data['supervisor_id'];
 
-        if ($visit->technician_id !== (int) $user->id) {
+        $visit = Visit::where('technician_id', $user->id)
+            ->where('supervisor_id', $supervisorId)
+            ->whereIn('status', ['in_progress', 'completed'])
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $visit) {
             return response()->json([
                 'status' => false,
-                'message' => 'You can only submit reports for visits assigned to you.',
-            ], 403);
+                'message' => 'No in-progress or completed job found for you that is assigned to this supervisor. Accept a job from this supervisor first, then submit the report.',
+            ], 422);
         }
 
         if (! in_array($visit->status, ['in_progress', 'completed'], true)) {
@@ -1148,6 +1154,7 @@ class TechnicianDashboardController extends Controller
         } else {
             $report = Report::create([
                 'visit_id' => $visit->id,
+                'supervisor_id' => $supervisorId,
                 'technician_notes' => $data['technician_notes'] ?? '',
                 'status' => 'pending',
             ]);

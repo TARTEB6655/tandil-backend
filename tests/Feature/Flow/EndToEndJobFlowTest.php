@@ -94,7 +94,7 @@ class EndToEndJobFlowTest extends TestCase
 
         // Technician submits field report to supervisor.
         $submitReport = $this->post('/api/technician/reports', [
-            'visit_id' => (string) $visitId,
+            'supervisor_id' => (string) $supervisor->id,
             'technician_notes' => 'Completed watering. Minor leak repaired.',
         ], $this->jsonHeaders());
         $submitReport->assertStatus(201);
