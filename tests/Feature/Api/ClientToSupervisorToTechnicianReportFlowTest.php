@@ -78,7 +78,7 @@ class ClientToSupervisorToTechnicianReportFlowTest extends TestCase
 
     public function test_supervisor_assignments_pending_returns_200_with_supervisor_token(): void
     {
-        $pendingResponse = $this->getJson('/api/supervisor/assignments/pending?per_page=20', $this->authHeaders($this->supervisor));
+        $pendingResponse = $this->getJson('/api/supervisor/assignments?per_page=20', $this->authHeaders($this->supervisor));
         $pendingResponse->assertStatus(200);
         $pendingResponse->assertJsonPath('success', true);
     }
@@ -102,7 +102,7 @@ class ClientToSupervisorToTechnicianReportFlowTest extends TestCase
         $this->area->technicians()->attach($this->technician->id);
 
         // --- 2. Supervisor sees assignable tasks and assigns to technician ---
-        $pendingResponse = $this->asUser($this->supervisor)->getJson('/api/supervisor/assignments/pending?per_page=20');
+        $pendingResponse = $this->asUser($this->supervisor)->getJson('/api/supervisor/assignments?per_page=20');
         $pendingResponse->assertStatus(200);
         $pendingResponse->assertJsonPath('success', true);
         $ids = collect($pendingResponse->json('data.data'))->pluck('id')->all();

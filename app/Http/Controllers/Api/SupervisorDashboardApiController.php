@@ -30,7 +30,14 @@ class SupervisorDashboardApiController extends Controller
 
     private function visitsQuery(Request $request)
     {
-        return Visit::query()->whereIn('area_id', $this->areaIds($request));
+        $areaIds = $this->areaIds($request);
+        $supervisorId = $request->user()->id;
+        return Visit::query()->where(function ($q) use ($areaIds, $supervisorId) {
+            if (! empty($areaIds)) {
+                $q->whereIn('area_id', $areaIds);
+            }
+            $q->orWhere('supervisor_id', $supervisorId);
+        });
     }
 
     /** Visits that need supervisor action: unassigned, pending/scheduled, or escalated after auto-dispatch failures. */
@@ -389,10 +396,12 @@ class SupervisorDashboardApiController extends Controller
         }
 
         $pending = $this->assignableVisitsQuery($request)
-            ->with(['subscription.client', 'area'])
             ->orderByRaw('escalated_at IS NOT NULL DESC')
             ->orderBy('scheduled_date')
             ->paginate((int) $request->get('per_page', 20));
+
+        // Exclude subscription and area from response
+        $pending->getCollection()->transform(fn ($visit) => $visit->makeHidden(['subscription', 'area']));
 
         $message = null;
         if ($pending->isEmpty()) {

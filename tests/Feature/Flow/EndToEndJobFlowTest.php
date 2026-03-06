@@ -73,7 +73,7 @@ class EndToEndJobFlowTest extends TestCase
 
         // Supervisor sees it as assignable (because it escalated or is pending in their zones).
         Sanctum::actingAs($supervisor);
-        $pending = $this->getJson('/api/supervisor/assignments/pending?per_page=50', $this->jsonHeaders());
+        $pending = $this->getJson('/api/supervisor/assignments?per_page=50', $this->jsonHeaders());
         $pending->assertStatus(200)->assertJsonPath('success', true);
         $pendingIds = collect($pending->json('data.data'))->pluck('id')->all();
         $this->assertContains($visitId, $pendingIds);

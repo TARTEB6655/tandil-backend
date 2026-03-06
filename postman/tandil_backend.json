@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/reports (form-data: supervisor_id required, technician_notes, optional photos). Supervisor sees reports with GET /api/supervisor/reports. Set variable supervisor_id (supervisor user ID) when testing technician report submit.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.91.0"
@@ -1903,7 +1903,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**How the client knows which area (and who the supervisor is):** Call **GET /api/visits/areas** (or **GET /api/visits/areas?with=supervisors**) to list areas. Use the area **id** as **area_id** when creating the visit. Optionally use **?with=supervisors** to see which supervisor(s) oversee each area – the client doesn't need to set supervisor_id; the job goes to the supervisor for that area automatically.\n\n**How the job reaches the supervisor:** Set **area_id** when creating the visit. The supervisor who supervises that area will then see this visit in **GET /api/supervisor/assignments/pending** and can assign a technician via **POST /api/supervisor/assignments** (visit_id + technician_id). If area_id is null, no supervisor will see the job.\n\n**Price:** Set the **price** field (e.g. 289.99) and/or include in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
+                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**How the client knows which area (and who the supervisor is):** Call **GET /api/visits/areas** (or **GET /api/visits/areas?with=supervisors**) to list areas. Use the area **id** as **area_id** when creating the visit. Optionally use **?with=supervisors** to see which supervisor(s) oversee each area – the client doesn't need to set supervisor_id; the job goes to the supervisor for that area automatically.\n\n**How the job reaches the supervisor:** Set **area_id** when creating the visit. The supervisor who supervises that area will then see this visit in **GET /api/supervisor/assignments** and can assign a technician via **POST /api/supervisor/assignments** (visit_id + technician_id). If area_id is null, no supervisor will see the job.\n\n**Price:** Set the **price** field (e.g. 289.99) and/or include in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
                     }
                 },
                 {
@@ -5139,24 +5139,7 @@
                                     "path": ["api", "supervisor", "assignments"],
                                     "query": [{ "key": "per_page", "value": "20", "description": "Optional" }]
                                 },
-                                "description": "List assignable jobs (same as Assignments - Pending). Response: success, data (paginator with data.data array), and optional message when empty (no zones vs no assignable visits). Use POST /assignments to assign a technician."
-                            }
-                        },
-                        {
-                            "name": "Assignments - Pending",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/assignments/pending?per_page=20",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "assignments", "pending"],
-                                    "query": [{ "key": "per_page", "value": "20" }]
-                                },
-                                "description": "Same as Assignments - List. When empty, response includes message: no zones assigned vs no assignable visits in your zones (visits need area_id in supervisor zones)."
+                                "description": "List assignable jobs. GET /api/supervisor/assignments?per_page=20. Response: success, data (paginator with data.data array of visits; no subscription or area objects). Optional message when empty (no zones vs no assignable visits). Use POST /assignments to assign a technician."
                             }
                         },
                         {
@@ -5323,7 +5306,7 @@
                                         }
                                     ]
                                 },
-                                "description": "List field reports from technicians in supervisor's zones. Shows: (1) reports for visits in_progress, (2) pending reports for completed/approved visits. Response: success, data (array), meta, links. Each item has id, visit_id, status, technician_name, employee_id, location, service, submitted_at, has_photos, before_photos, after_photos, technician_notes. Optional ?status=pending. If no zones: message in response."
+                                "description": "**Supervisor receives reports** from technicians linked to them. GET /api/supervisor/reports. Reports shown where report.supervisor_id = this supervisor (or visit in supervisor's scope). (1) Reports for visits in_progress, (2) Pending reports for completed/approved visits. Response: success, data (array with id, visit_id, supervisor_id, status, technician_name, employee_id, location, service, submitted_at, has_photos, before_photos, after_photos, technician_notes), meta, links. Optional ?status=pending."
                             }
                         },
                         {
@@ -5467,7 +5450,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "reports", "{{report_id}}"]
                                 },
-                                "description": "GET single field report by id. **report_id** must be the **field report id** from the Reports list (GET /api/supervisor/reports). Response: success, data (id, visit_id, status, technician_notes, before_photos, after_photos, visit). 404 if report not found or not in your zones."
+                                "description": "GET single field report by id. **report_id** = field report id from Reports list (GET /api/supervisor/reports). Response: success, data (id, visit_id, supervisor_id, status, technician_notes, before_photos, after_photos, visit). 404 if report not found or not for this supervisor."
                             }
                         },
                         {
@@ -10962,6 +10945,18 @@
             "key": "report_id",
             "value": "1",
             "type": "string"
+        },
+        {
+            "key": "supervisor_id",
+            "value": "1",
+            "type": "string",
+            "description": "Supervisor user ID. Required for Technician - Submit Field Report (POST /api/technician/reports). Set after logging in as supervisor or from GET /api/supervisor/profile."
+        },
+        {
+            "key": "technician_id",
+            "value": "1",
+            "type": "string",
+            "description": "Technician user ID. Used in Assignments (assign/reassign) and Team detail. Set from GET /api/supervisor/team or login."
         },
         {
             "key": "complaint_id",

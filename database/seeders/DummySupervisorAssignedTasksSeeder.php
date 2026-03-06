@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Area;
 use App\Models\Employee;
 use App\Models\Report;
-use App\Models\Subscription;
 use App\Models\TechnicianAvailability;
 use App\Models\User;
 use App\Models\Visit;
@@ -127,31 +126,18 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             ['created_at' => now(), 'updated_at' => now()]
         );
 
-        $subscription = Subscription::firstOrCreate(
-            ['client_id' => $client->id, 'plan' => '3_month'],
-            [
-                'start_date' => Carbon::today()->subMonth()->toDateString(),
-                'end_date' => Carbon::today()->addMonths(2)->toDateString(),
-                'amount' => 899.00,
-                'payment_status' => 'paid',
-                'payment_reference' => 'DUMMY-SUB-1001',
-                'paid_at' => now()->subMonth(),
-                'total_visits' => 12,
-                'completed_visits' => 2,
-            ]
-        );
-
         // Remove old dummy visits (reports deleted by FK cascade or manually)
         $dummyVisitIds = Visit::where('notes', 'like', '[DUMMY-SUP-ASSIGN]%')->pluck('id');
         Report::whereIn('visit_id', $dummyVisitIds)->delete();
         Visit::where('notes', 'like', '[DUMMY-SUP-ASSIGN]%')->delete();
 
         $today = Carbon::today();
+        // No subscription_id, no area_id – tasks assigned to supervisor only (supervisor sees them via supervisor_id)
         $baseUnassigned = [
-            'subscription_id' => $subscription->id,
+            'subscription_id' => null,
             'technician_id' => null,
             'supervisor_id' => $supervisor->id,
-            'area_id' => $area->id,
+            'area_id' => null,
         ];
 
         // 5 dummy tasks assigned TO supervisor (supervisor1@test.com) – unassigned so supervisor sees them in Assignments and can assign to technician
@@ -186,12 +172,12 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'price' => 275.50,
         ]));
 
-        // 2 tasks already assigned to technician (linked via area) – technician sees these on his dashboard and can submit report to supervisor
+        // 2 tasks already assigned to technician – technician sees these on his dashboard and can submit report to supervisor
         $baseAssigned = [
-            'subscription_id' => $subscription->id,
+            'subscription_id' => null,
             'technician_id' => $technician->id,
             'supervisor_id' => $supervisor->id,
-            'area_id' => $area->id,
+            'area_id' => null,
         ];
         $vIn1 = Visit::create(array_merge($baseAssigned, [
             'scheduled_date' => $today->toDateString(),

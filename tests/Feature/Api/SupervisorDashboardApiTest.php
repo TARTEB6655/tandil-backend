@@ -129,7 +129,7 @@ class SupervisorDashboardApiTest extends TestCase
             'scheduled_date' => Carbon::today()->addDay()->toDateString(),
         ]);
 
-        $pending = $this->getJson('/api/supervisor/assignments/pending', $this->authHeaders());
+        $pending = $this->getJson('/api/supervisor/assignments', $this->authHeaders());
         $pending->assertStatus(200)->assertJsonPath('success', true);
         $ids = collect($pending->json('data.data'))->pluck('id')->all();
         $this->assertContains($unassignedVisit->id, $ids, 'Assignable list should contain the unassigned visit');
@@ -160,7 +160,7 @@ class SupervisorDashboardApiTest extends TestCase
         $this->assignRoleIfAvailable($supervisorNoZones, 'supervisor');
         $token = $supervisorNoZones->createToken('test')->plainTextToken;
 
-        $pending = $this->getJson('/api/supervisor/assignments/pending', [
+        $pending = $this->getJson('/api/supervisor/assignments', [
             'Accept' => 'application/json',
             'Authorization' => 'Bearer ' . $token,
         ]);
