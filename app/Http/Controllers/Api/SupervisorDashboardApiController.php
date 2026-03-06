@@ -543,6 +543,12 @@ class SupervisorDashboardApiController extends Controller
         $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
 
         if ($request->filled('technician_id')) {
+            if ($visit->status === 'pending_acceptance' && $visit->accept_by && Carbon::parse($visit->accept_by)->isFuture()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This job is already offered to a technician. You can assign it to someone else only after they reject it or the acceptance time (accept_by) expires.',
+                ], 422);
+            }
             $technician = User::role('technician')->find((int) $request->input('technician_id'));
             if (! $technician) {
                 return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
@@ -595,6 +601,12 @@ class SupervisorDashboardApiController extends Controller
         }
 
         $visit = $this->assignableVisitsQuery($request)->findOrFail((int) $request->input('visit_id'));
+        if ($visit->status === 'pending_acceptance' && $visit->accept_by && Carbon::parse($visit->accept_by)->isFuture()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This job is already offered to a technician. You can assign it to someone else only after they reject it or the acceptance time (accept_by) expires.',
+            ], 422);
+        }
         $technician = User::role('technician')->find((int) $request->input('technician_id'));
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
@@ -672,6 +684,12 @@ class SupervisorDashboardApiController extends Controller
         }
 
         $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
+        if ($visit->status === 'pending_acceptance' && $visit->accept_by && Carbon::parse($visit->accept_by)->isFuture()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This job is already offered to a technician. You can reassign only after they reject it or the acceptance time (accept_by) expires.',
+            ], 422);
+        }
         $technician = User::role('technician')->find((int) $request->input('technician_id'));
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
