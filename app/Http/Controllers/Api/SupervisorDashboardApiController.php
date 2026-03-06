@@ -11,6 +11,7 @@ use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
 use App\Models\TechnicianBreak;
 use App\Models\Area;
+use App\Models\Complaint;
 use App\Services\VisitOfferService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -38,6 +39,16 @@ class SupervisorDashboardApiController extends Controller
         return $this->visitsQuery($request)->where(function ($q) {
             $q->whereNull('technician_id')
                 ->orWhereIn('status', ['pending', 'scheduled'])
+                ->orWhereNotNull('escalated_at');
+        });
+    }
+
+    /** Visits the supervisor can update or reassign: assignable list + already assigned (pending_acceptance, in_progress). */
+    private function editableAssignmentVisitsQuery(Request $request)
+    {
+        return $this->visitsQuery($request)->where(function ($q) {
+            $q->whereNull('technician_id')
+                ->orWhereIn('status', ['pending', 'scheduled', 'pending_acceptance', 'in_progress'])
                 ->orWhereNotNull('escalated_at');
         });
     }
@@ -201,6 +212,98 @@ class SupervisorDashboardApiController extends Controller
         ]);
     }
 
+    /**
+     * GET /api/supervisor/team-stats
+     * Team Stats: aggregate (visits_today, avg_duration_minutes, customer_rating, open_issues) + members (id, name, initial, completed, rating).
+     */
+    public function teamStats(Request $request): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        $today = Carbon::today();
+
+        if (empty($areaIds)) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'visits_today' => 0,
+                    'avg_duration_minutes' => 0,
+                    'customer_rating' => 0,
+                    'open_issues' => 0,
+                    'members' => [],
+                ],
+                'message' => 'No zones assigned to you.',
+            ]);
+        }
+
+        $baseVisits = $this->visitsQuery($request);
+        $completedList = (clone $baseVisits)->whereIn('status', ['completed', 'approved'])->get();
+
+        $visitsToday = $completedList->filter(fn ($v) => $v->completed_at && $v->completed_at->isSameDay($today))->count();
+
+        $durations = [];
+        foreach ($completedList as $v) {
+            if ($v->started_at && $v->completed_at) {
+                $durations[] = (int) $v->started_at->diffInMinutes($v->completed_at);
+            } else {
+                $meta = $this->parseVisitMetaForStats((string) ($v->notes ?? ''));
+                if (isset($meta['duration_minutes'])) {
+                    $durations[] = (int) $meta['duration_minutes'];
+                }
+            }
+        }
+        $avgDurationMinutes = count($durations) > 0 ? (int) round(array_sum($durations) / count($durations)) : 0;
+
+        $ratings = [];
+        foreach ($completedList as $v) {
+            $meta = $this->parseVisitMetaForStats((string) ($v->notes ?? ''));
+            if (isset($meta['rating'])) {
+                $ratings[] = (float) $meta['rating'];
+            }
+        }
+        $customerRating = count($ratings) > 0 ? round(array_sum($ratings) / count($ratings), 1) : 0;
+
+        $openIssues = Complaint::whereHas('visit', function ($q) use ($areaIds) {
+            $q->whereIn('area_id', $areaIds);
+        })->whereIn('status', ['pending', 'in_progress'])->count();
+
+        $technicianIds = $this->teamMemberIdsInZones($areaIds);
+        $members = [];
+        if ($technicianIds->isNotEmpty()) {
+            $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
+            foreach ($technicians as $u) {
+                $memberVisits = Visit::where('technician_id', $u->id)->whereIn('area_id', $areaIds)->whereIn('status', ['completed', 'approved'])->get();
+                $completed = $memberVisits->count();
+                $memberRatings = [];
+                foreach ($memberVisits as $v) {
+                    $meta = $this->parseVisitMetaForStats((string) ($v->notes ?? ''));
+                    if (isset($meta['rating'])) {
+                        $memberRatings[] = (float) $meta['rating'];
+                    }
+                }
+                $rating = count($memberRatings) > 0 ? round(array_sum($memberRatings) / count($memberRatings), 1) : 0;
+                $initial = mb_substr(trim($u->name), 0, 1) ?: '?';
+                $members[] = [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'initial' => mb_strtoupper($initial),
+                    'completed' => $completed,
+                    'rating' => $rating,
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'visits_today' => $visitsToday,
+                'avg_duration_minutes' => $avgDurationMinutes,
+                'customer_rating' => $customerRating,
+                'open_issues' => $openIssues,
+                'members' => $members,
+            ],
+        ]);
+    }
+
     private function mapTeamMemberToArray(User $u, array $areaIds, Carbon $now, string $today): array
     {
         $visits = $u->visits->whereIn('area_id', $areaIds);
@@ -277,6 +380,10 @@ class SupervisorDashboardApiController extends Controller
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
         }
+        $areaIds = $this->areaIds($request);
+        if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
+        }
 
         $visit->supervisor_id = $request->user()->id;
         $visit->escalated_at = null;
@@ -309,12 +416,16 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $visit = $this->assignableVisitsQuery($request)->findOrFail($id);
+        $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
 
         if ($request->filled('technician_id')) {
             $technician = User::role('technician')->find((int) $request->input('technician_id'));
             if (! $technician) {
                 return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
+            }
+            $areaIds = $this->areaIds($request);
+            if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+                return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
             }
             $visit->technician_id = $technician->id;
             $visit->supervisor_id = $request->user()->id;
@@ -341,10 +452,14 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $visit = $this->assignableVisitsQuery($request)->findOrFail($id);
+        $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
         $technician = User::role('technician')->find((int) $request->input('technician_id'));
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
+        }
+        $areaIds = $this->areaIds($request);
+        if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
         }
 
         $visit->technician_id = $technician->id;
@@ -448,6 +563,26 @@ class SupervisorDashboardApiController extends Controller
             'farm_name' => $farm ?: null,
             'service_name' => $service ?: null,
         ];
+    }
+
+    /** Parse duration and rating from visit notes (e.g. seeded format with "120 min" and "4.6/5"). */
+    private function parseVisitMetaForStats(string $notes): array
+    {
+        $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? '');
+        if ($clean === '') {
+            return [];
+        }
+        $parts = array_values(array_filter(array_map('trim', explode('|', $clean)), fn ($p) => $p !== ''));
+        $meta = [];
+        if (isset($parts[3]) && preg_match('/(\d+)\s*min/i', $parts[3], $m)) {
+            $meta['duration_minutes'] = (int) $m[1];
+        }
+        if (isset($parts[5]) && preg_match('/([0-9]+(?:\.[0-9]+)?)\s*\/\s*5/', $parts[5], $m)) {
+            $meta['rating'] = (float) $m[1];
+        } elseif (isset($parts[3]) && preg_match('/([0-9]+(?:\.[0-9]+)?)\s*\/\s*5/', $parts[3], $m)) {
+            $meta['rating'] = (float) $m[1];
+        }
+        return $meta;
     }
 
     /**

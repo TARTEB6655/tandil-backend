@@ -10,6 +10,7 @@ use App\Models\Visit;
 use App\Models\VisitPhoto;
 use App\Models\User;
 use App\Notifications\AdminNotification;
+use App\Services\VisitOfferService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -172,6 +173,22 @@ class VisitController extends Controller
                 'price' => $request->filled('price') ? (float) $request->input('price') : null,
             ]);
 
+            // Smart Auto-Dispatch: when client order has zone (area_id) and no pre-assigned technician, offer to first available technician in zone or escalate to supervisor
+            if ($visit->area_id && ! $visit->technician_id) {
+                try {
+                    $next = VisitOfferService::findNextTechnician($visit);
+                    if ($next) {
+                        VisitOfferService::offerToTechnician($visit, $next->id);
+                    } else {
+                        $visit->escalated_at = now();
+                        $visit->status = 'pending';
+                        $visit->save();
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Auto-dispatch on visit create failed: ' . $e->getMessage());
+                }
+            }
+
             // Load relationships
             $visit->load(['subscription.client', 'technician', 'supervisor', 'area', 'photos']);
 
@@ -204,6 +221,19 @@ class VisitController extends Controller
                             'New Visit Created',
                             "A new visit has been created in your area, scheduled for {$visit->scheduled_date}."
                         ));
+                    }
+                }
+
+                // Notify area supervisors when job escalated (no technicians in zone – needs manual assignment)
+                if ($visit->escalated_at && $visit->area_id) {
+                    $area = Area::with('supervisors')->find($visit->area_id);
+                    if ($area && $area->supervisors->isNotEmpty()) {
+                        foreach ($area->supervisors as $sup) {
+                            $sup->notify(new AdminNotification(
+                                'Job Escalated – Manual Assignment Needed',
+                                "A visit scheduled for {$visit->scheduled_date} has been escalated to you (no available technician in zone). Assign via Supervisor dashboard."
+                            ));
+                        }
                     }
                 }
             } catch (\Exception $e) {
