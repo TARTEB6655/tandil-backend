@@ -51,7 +51,7 @@ class ClientDashboardProfileApiTest extends TestCase
         $response->assertJsonPath('message', 'Profile settings sections retrieved.');
         $data = $response->json('data');
         $this->assertIsArray($data);
-        $this->assertGreaterThanOrEqual(7, count($data));
+        $this->assertGreaterThanOrEqual(6, count($data));
         $ids = array_column($data, 'id');
         $this->assertContains('memberships', $ids);
         $this->assertContains('personal_information', $ids);

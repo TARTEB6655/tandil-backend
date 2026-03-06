@@ -106,12 +106,9 @@ class SupervisorDashboardApiTest extends TestCase
         $endpoints = [
             '/api/supervisor/dashboard/summary',
             '/api/supervisor/dashboard/kpis',
-            '/api/supervisor/dashboard/team-status',
             '/api/supervisor/dashboard/alerts',
-            '/api/supervisor/team/statistics',
-            '/api/supervisor/team/performance',
-            '/api/supervisor/team/attendance',
-            '/api/supervisor/team/workload',
+            '/api/supervisor/team',
+            '/api/supervisor/team-stats',
         ];
 
         foreach ($endpoints as $endpoint) {

@@ -5579,63 +5579,24 @@
                             }
                         },
                         {
-                            "name": "Visit Report - Finalize / Submit to Client (POST form-data)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                        "key": "Accept",
-                                "value": "application/json"
-                                    }
+                            "name": "Visit Report - Finalize / Share to Client (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Content-Type", "value": "application/json" },
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "notes",
-                                            "value": "Trees need fertilization. Recommended products added.",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "supervisor_notes",
-                                            "value": "Completed review. Recommend fertilizer for section B.",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "recommendations[]",
-                                            "value": "Needs Fertilizer",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "recommendations[]",
-                                            "value": "Needs Watering",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "status",
-                                            "value": "sent_to_client",
-                                            "type": "text"
-                                        }
-                                    ]
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"sent_to_client\",\n  \"supervisor_notes\": \"Good job. Follow up next week.\",\n  \"recommendations\": [\"Fix irrigation leak\", \"Add fertilizer\"]\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/visits/{{visit_id}}/finalize",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "visits",
-                                        "{{visit_id}}",
-                                        "finalize"
-                                    ]
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "visits", "{{visit_id}}", "finalize"]
                                 },
-                                "description": "Review report then Submit Report to Client. **Requirement:** Technician must have submitted a field report (POST /api/technician/reports) for this visit first; otherwise 422. Body: notes, supervisor_notes, recommendations[] (e.g. Needs Fertilizer, Needs Vitamins, Needs Watering), recommended_products[] (product IDs), status. Use status=sent_to_client to submit to client (notifies client). Optional: status=pending|finalized|rejected."
+                                "description": "**Module:** 10. Supervisor Dashboard – D. Reports / Visits.\n\n**Share report to client:** POST /api/supervisor/visits/{visit_id}/finalize. Set status=sent_to_client to submit the report to the client (client is notified and sees it in GET /api/reports).\n\n**Body (JSON or form-data):** status (required for share: sent_to_client), supervisor_notes, notes, recommendations[], recommended_products[]. Other status: pending, finalized, rejected.\n\n**Requirement:** Technician must have submitted a field report (POST /api/technician/reports) for this visit first; otherwise 422.\n\n**Response 200:** status: true, message: \"Report submitted to client successfully.\", data: report object (id, visit_id, status=sent_to_client, supervisor_notes, visit, supervisor).\n**Response 422:** Technician must submit field report first.\n**Response 403:** Visit not in your zones.\n**Response 404:** Visit not found."
                             }
                         }
                     ]
