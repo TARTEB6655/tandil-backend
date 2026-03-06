@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Area;
 use App\Models\Employee;
 use App\Models\Report;
+use App\Models\Subscription;
 use App\Models\TechnicianAvailability;
 use App\Models\User;
 use App\Models\Visit;
@@ -132,9 +133,23 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
         Visit::where('notes', 'like', '[DUMMY-SUP-ASSIGN]%')->delete();
 
         $today = Carbon::today();
-        // No subscription_id, no area_id – tasks assigned to supervisor only (supervisor sees them via supervisor_id)
+        $start = $today->copy()->subMonths(2);
+        $end = $today->copy()->addMonths(10);
+        $subscription = Subscription::firstOrCreate(
+            ['client_id' => $client->id],
+            [
+                'plan' => '6_month',
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
+                'amount' => 1999.00,
+                'payment_status' => 'paid',
+                'total_visits' => 12,
+                'completed_visits' => 0,
+            ]
+        );
+
         $baseUnassigned = [
-            'subscription_id' => null,
+            'subscription_id' => $subscription->id,
             'technician_id' => null,
             'supervisor_id' => $supervisor->id,
             'area_id' => null,
@@ -174,7 +189,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
 
         // 2 tasks already assigned to technician – technician sees these on his dashboard and can submit report to supervisor
         $baseAssigned = [
-            'subscription_id' => null,
+            'subscription_id' => $subscription->id,
             'technician_id' => $technician->id,
             'supervisor_id' => $supervisor->id,
             'area_id' => null,

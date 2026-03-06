@@ -430,14 +430,18 @@ class SupervisorDashboardApiController extends Controller
 
     /**
      * GET /api/supervisor/assignments/{id}
-     * Single assignment detail (same shape as one item from the list).
+     * Single assignment detail (same shape as one item from the list) + subscription + customer who ordered the service.
      */
     public function assignmentsShow(Request $request, int $id): JsonResponse
     {
-        $visit = $this->editableAssignmentVisitsQuery($request)->with('supervisor', 'technician')->find($id);
+        $visit = $this->editableAssignmentVisitsQuery($request)
+            ->with('supervisor', 'technician', 'subscription.client')
+            ->find($id);
         if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Assignment not found.'], 404);
         }
+        $sub = $visit->subscription;
+        $client = $sub?->client;
         $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
         $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
         $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
@@ -449,6 +453,30 @@ class SupervisorDashboardApiController extends Controller
         $visit->address = $visit->location;
         $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
         $visit->makeHidden(['supervisor']);
+        $visit->customer = $client ? [
+            'id' => $client->id,
+            'name' => $client->name,
+            'email' => $client->email,
+            'phone' => $client->phone ?? null,
+            'profile_picture_url' => $client->profile_picture_url ?? null,
+        ] : null;
+        $visit->subscription = $sub ? [
+            'id' => $sub->id,
+            'plan' => $sub->plan,
+            'start_date' => $sub->start_date?->format('Y-m-d'),
+            'end_date' => $sub->end_date?->format('Y-m-d'),
+            'amount' => $sub->amount !== null ? (float) $sub->amount : null,
+            'payment_status' => $sub->payment_status ?? null,
+            'total_visits' => $sub->total_visits ?? null,
+            'completed_visits' => $sub->completed_visits ?? null,
+            'client' => $client ? [
+                'id' => $client->id,
+                'name' => $client->name,
+                'email' => $client->email,
+                'phone' => $client->phone ?? null,
+                'profile_picture_url' => $client->profile_picture_url ?? null,
+            ] : null,
+        ] : null;
 
         return response()->json([
             'success' => true,
