@@ -410,6 +410,8 @@ class SupervisorDashboardApiController extends Controller
             $visit->duration_minutes = $meta['duration_minutes'] ?? null;
             $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
             $visit->supervisor_name = $visit->supervisor?->name ?? null;
+            $visit->address = $visit->location;
+            $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
             $visit->makeHidden(['supervisor']);
             return $visit;
         });
@@ -450,6 +452,8 @@ class SupervisorDashboardApiController extends Controller
                 $visit->duration_minutes = $meta['duration_minutes'] ?? null;
                 $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
                 $visit->supervisor_name = $visit->supervisor?->name ?? null;
+                $visit->address = $visit->location;
+                $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
                 $visit->makeHidden(['supervisor']);
                 return $visit;
             });
@@ -727,15 +731,24 @@ class SupervisorDashboardApiController extends Controller
     private function parseVisitMetaFromNotes(string $notes): array
     {
         $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? $notes);
-        $parts = array_map('trim', explode('|', $clean));
+        $parts = array_values(array_filter(array_map('trim', explode('|', $clean)), fn ($p) => $p !== ''));
         $farm = $parts[0] ?? null;
         $service = isset($parts[1]) ? trim($parts[1]) : null;
         if ($service && preg_match('/^(.+?)\s+Visit\s*$/i', $service, $m)) {
             $service = trim($m[1]);
         }
+        $location = isset($parts[2]) ? trim($parts[2]) : null;
+        $duration_minutes = null;
+        if (isset($parts[3]) && preg_match('/(\d+)\s*min/i', $parts[3], $m)) {
+            $duration_minutes = (int) $m[1];
+        }
+        $price_display = isset($parts[4]) ? trim($parts[4]) : null;
         return [
             'farm_name' => $farm ?: null,
             'service_name' => $service ?: null,
+            'location' => $location ?: null,
+            'duration_minutes' => $duration_minutes,
+            'price_display' => $price_display ?: null,
         ];
     }
 

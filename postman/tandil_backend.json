@@ -1903,7 +1903,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**How the client knows which area (and who the supervisor is):** Call **GET /api/visits/areas** (or **GET /api/visits/areas?with=supervisors**) to list areas. Use the area **id** as **area_id** when creating the visit. Optionally use **?with=supervisors** to see which supervisor(s) oversee each area – the client doesn't need to set supervisor_id; the job goes to the supervisor for that area automatically.\n\n**How the job reaches the supervisor:** Set **area_id** when creating the visit. The supervisor who supervises that area will then see this visit in **GET /api/supervisor/assignments** and can assign a technician via **POST /api/supervisor/assignments** (visit_id + technician_id). If area_id is null, no supervisor will see the job.\n\n**Price:** Set the **price** field (e.g. 289.99) and/or include in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
+                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**How the client knows which area (and who the supervisor is):** Call **GET /api/visits/areas** (or **GET /api/visits/areas?with=supervisors**) to list areas. Use the area **id** as **area_id** when creating the visit. Optionally use **?with=supervisors** to see which supervisor(s) oversee each area – the client doesn't need to set supervisor_id; the job goes to the supervisor for that area automatically.\n\n**How the job reaches the supervisor:** Set **area_id** when creating the visit. The supervisor who supervises that area will then see this visit in **GET /api/supervisor/assignments** and can assign a technician via **POST /api/supervisor/assignments/{id}** with body **technician_id** (id = task/visit id from the list). If area_id is null, no supervisor will see the job.\n\n**Price:** Set the **price** field (e.g. 289.99) and/or include in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
                     }
                 },
                 {
@@ -3551,6 +3551,23 @@
                     }
                 },
                 {
+                    "name": "Technician - Field notes (list)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/technician/field-notes?supervisor_id={{supervisor_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "technician", "field-notes"],
+                            "query": [{ "key": "supervisor_id", "value": "{{supervisor_id}}", "description": "Optional. Filter by supervisor." }]
+                        },
+                        "description": "List field notes (reports) for the technician. Optional query: supervisor_id. Returns reports with supervisor_id, technician_notes, before_photos, after_photos. GET /api/technician/field-notes."
+                    }
+                },
+                {
                     "name": "Technician - Delete Photo",
                     "request": {
                         "method": "DELETE",
@@ -5139,60 +5156,44 @@
                                     "path": ["api", "supervisor", "assignments"],
                                     "query": [{ "key": "per_page", "value": "20", "description": "Optional" }]
                                 },
-                                "description": "List assignable jobs. GET /api/supervisor/assignments?per_page=20. Response: success, data (paginator with data.data array of visits; no subscription or area objects). Optional message when empty (no zones vs no assignable visits). Use POST /assignments to assign a technician."
+                                "description": "List assignable jobs. GET /api/supervisor/assignments?per_page=20. Response: success, data (paginator; each item has id, title, duration_minutes, price_display, supervisor_name; no subscription_id/area_id). Use POST /assignments/{id} with body technician_id to assign (id = task id from this list)."
                             }
                         },
                         {
-                            "name": "Assignments - Create (POST form-data)",
+                            "name": "Assign tasks page (team + tasks)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/assign-tasks",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "assign-tasks"]
+                                },
+                                "description": "One-call data for Assign Tasks screen. Returns team_members (same as /team) and available_tasks (same shape as GET /assignments). GET /api/supervisor/assign-tasks."
+                            }
+                        },
+                        {
+                            "name": "Assignments - Assign task (POST)",
                             "request": {
                                 "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                        "key": "Accept",
-                                "value": "application/json"
-                                    }
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "visit_id",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "technician_id",
-                                            "value": "2",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "scheduled_date",
-                                            "value": "2026-02-20",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "note",
-                                            "value": "Assign for morning slot",
-                                            "type": "text"
-                                        }
-                                    ]
+                                    "mode": "raw",
+                                    "raw": "{\n  \"technician_id\": 3\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}/api/supervisor/assignments",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "assignments"
-                                    ]
+                                    "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
                                 },
-                                "description": "Assign a technician to a visit. Allowed only for assignable visits (unassigned, pending/scheduled, or escalated). Body: visit_id, technician_id, scheduled_date (optional), note (optional). Clears escalated_at on success."
+                                "description": "Assign a task to a technician. **URL:** id in path = task/visit id (from GET assignments list, e.g. 44). **Body (JSON):** technician_id (required), scheduled_date (optional). No visit_id or notes. Example: assign task 44 to technician 3 → POST /api/supervisor/assignments/44 with {\"technician_id\": 3}."
                             }
                         },
                         {
@@ -5210,19 +5211,15 @@
                                     }
                                 ],
                                 "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        { "key": "technician_id", "value": "3", "type": "text" },
-                                        { "key": "scheduled_date", "value": "2026-02-21", "type": "text" },
-                                        { "key": "note", "value": "Updated schedule", "type": "text" }
-                                    ]
+                                    "mode": "raw",
+                                    "raw": "{\n  \"scheduled_date\": \"2026-03-15\"\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
                                 },
-                                "description": "Update assignment (POST only; no PUT). Body: technician_id, scheduled_date, note (all optional). Allowed for assignable or already-assigned visits (pending_acceptance, in_progress). Set visit_id in URL."
+                                "description": "Same URL as assign. Update assignment: send only scheduled_date (optional) to change date without re-assigning. To assign or re-offer, use technician_id (see Assign task). URL: id = task/visit id."
                             }
                         },
                         {
