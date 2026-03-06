@@ -5139,7 +5139,7 @@
                                     "path": ["api", "supervisor", "assignments"],
                                     "query": [{ "key": "per_page", "value": "20", "description": "Optional" }]
                                 },
-                                "description": "List pending jobs (same as Assignments - Pending). GET /api/supervisor/assignments. Jobs needing supervisor action: unassigned, pending/scheduled, or escalated. Use POST /assignments to assign a technician."
+                                "description": "List assignable jobs (same as Assignments - Pending). Response: success, data (paginator with data.data array), and optional message when empty (no zones vs no assignable visits). Use POST /assignments to assign a technician."
                             }
                         },
                         {
@@ -5156,7 +5156,7 @@
                                     "path": ["api", "supervisor", "assignments", "pending"],
                                     "query": [{ "key": "per_page", "value": "20" }]
                                 },
-                                "description": "Same as Assignments - List. GET /api/supervisor/assignments/pending. Jobs needing supervisor action: unassigned, pending/scheduled, or escalated (after 2-3 auto-dispatch failures)."
+                                "description": "Same as Assignments - List. When empty, response includes message: no zones assigned vs no assignable visits in your zones (visits need area_id in supervisor zones)."
                             }
                         },
                         {
@@ -5213,51 +5213,33 @@
                             }
                         },
                         {
-                            "name": "Assignments - Update (POST form-data)",
+                            "name": "Assignments - Update (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
                                     {
                                         "key": "Authorization",
                                         "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {
-                                            "key": "technician_id",
-                                            "value": "3",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "scheduled_date",
-                                            "value": "2026-02-21",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "note",
-                                            "value": "Updated schedule",
-                                            "type": "text"
-                                        }
+                                        { "key": "technician_id", "value": "3", "type": "text" },
+                                        { "key": "scheduled_date", "value": "2026-02-21", "type": "text" },
+                                        { "key": "note", "value": "Updated schedule", "type": "text" }
                                     ]
-                        },
-                        "url": {
+                                },
+                                "url": {
                                     "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "supervisor",
-                                        "assignments",
-                                        "{{visit_id}}"
-                                    ]
-                                }
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
+                                },
+                                "description": "Update assignment (POST only; no PUT). Body: technician_id, scheduled_date, note (all optional). Allowed for assignable or already-assigned visits (pending_acceptance, in_progress). Set visit_id in URL."
                             }
                         },
                         {
@@ -5341,7 +5323,7 @@
                                         }
                                     ]
                                 },
-                                "description": "List all field reports for supervisor's area. Add ?status=pending for Pending Field Reports (dashboard widget). Response includes visit, client, technician. Use per_page and optional status."
+                                "description": "List field reports from technicians in supervisor's zones. Shows: (1) reports for visits in_progress, (2) pending reports for completed/approved visits. Response: success, data (array), meta, links. Each item has id, visit_id, status, technician_name, employee_id, location, service, submitted_at, has_photos, before_photos, after_photos, technician_notes. Optional ?status=pending. If no zones: message in response."
                             }
                         },
                         {
@@ -6827,7 +6809,7 @@
                                 "statistics"
                             ]
                         },
-                        "description": "Get user statistics for mobile app tabs\n\n**Purpose:**\n- Returns counts for All Users, Workers, Supervisors, and Managers\n- Used to display tab counts in user management screen\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"all_users\": 1258,\n    \"workers\": 506,\n    \"supervisors\": 12,\n    \"managers\": 4\n  }\n}\n```\n\n**Use Cases:**\n- Display tab counts in user management\n- Show statistics in admin mobile app"
+                        "description": "Get user statistics for mobile app tabs.\n\n**Response:**\n- data.all_users, data.workers, data.supervisors, data.managers, data.clients\n- Counts use role column + Spatie role (same as list so tab count matches list).\n\n**Example:**\n{\n  \"success\": true,\n  \"data\": {\n    \"all_users\": 32,\n    \"workers\": 23,\n    \"supervisors\": 5,\n    \"managers\": 1,\n    \"clients\": 0\n  }\n}\n\nWhen user clicks a tab (e.g. Supervisors), call GET /api/admin/users?category=supervisors and use response.data.data for the list below."
                     }
                 },
                 {
@@ -6857,8 +6839,8 @@
                             "query": [
                                 {
                                     "key": "category",
-                                    "value": "all",
-                                    "description": "Filter by category: all, workers, supervisors, managers"
+                                    "value": "supervisors",
+                                    "description": "Filter: all, workers, supervisors, managers, clients. Use same value as tab (e.g. supervisors for Supervisors tab)."
                                 },
                                 {
                                     "key": "status",
@@ -6882,7 +6864,7 @@
                                 }
                             ]
                         },
-                        "description": "Get list of users with filtering and pagination\n\n**Purpose:**\n- Returns paginated list of users\n- Supports filtering by category, status, and search\n- Formatted for mobile app display\n\n**Query Parameters:**\n- `category`: all, workers, supervisors, managers\n- `status`: active, inactive, suspended\n- `search`: Search by name, email, or phone\n- `page`: Page number (default: 1)\n- `per_page`: Items per page (default: 15)\n\n**Response:**\n- Each user includes: id, name, email, phone, role, role_display, employee_id (formatted), status, avatar (first letter), created_at\n\n**Use Cases:**\n- Display user list in admin mobile app\n- Filter users by category\n- Search functionality"
+                        "description": "Get list of users with filtering and pagination. When user clicks a tab (e.g. Supervisors with count 5), call with category=supervisors to show the list below.\n\n**Query:** category=all|workers|supervisors|managers|clients, status, search, page, per_page\n\n**Response:** List is in data.data (array). Pagination in data.current_page, data.last_page, data.total, data.per_page, data.from, data.to. Each user: id, name, email, phone, role, role_display, employee_id, status, avatar, created_at, updated_at."
                     }
                 },
                 {

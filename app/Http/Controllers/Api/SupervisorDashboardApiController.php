@@ -53,6 +53,15 @@ class SupervisorDashboardApiController extends Controller
         });
     }
 
+    /** Visit IDs the supervisor can see reports for: visits in their zones + visits assigned to them (supervisor_id = me). */
+    private function reportVisitIds(Request $request): \Illuminate\Support\Collection
+    {
+        $supervisorId = $request->user()->id;
+        $fromAreas = $this->visitsQuery($request)->pluck('id');
+        $assignedToMe = Visit::where('supervisor_id', $supervisorId)->pluck('id');
+        return $fromAreas->merge($assignedToMe)->unique()->values();
+    }
+
     /**
      * Single dashboard API: profile (picture, name, id) + 3 counts only (team_members, active_visits, completed_visits). Nothing else.
      */
@@ -497,18 +506,20 @@ class SupervisorDashboardApiController extends Controller
     /**
      * List field reports (reports given by technician to supervisor). Optional: ?status=pending&per_page=20.
      * Shows reports for: (1) visits that are in_progress, or (2) reports still pending (so supervisor can accept/reject even after job is completed).
+     * Includes visits in supervisor's zones OR visits assigned to this supervisor (supervisor_id = me), so reports show even when visit.area_id is null.
      * Returns only what the UI needs: technician name, employee_id, location, service, submitted_at, before_photos, after_photos, etc.
      */
     public function reportsIndex(Request $request): JsonResponse
     {
-        $visitIds = $this->visitsQuery($request)->pluck('id');
-        if (empty($visitIds)) {
+        $visitIds = $this->reportVisitIds($request);
+
+        if ($visitIds->isEmpty()) {
             return response()->json([
                 'success' => true,
                 'data' => [],
                 'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => (int) $request->get('per_page', 20), 'total' => 0],
                 'links' => ['first' => null, 'last' => null, 'prev' => null, 'next' => null],
-                'message' => 'No zones assigned to you. Reports will appear here when technicians in your zones submit field reports.',
+                'message' => 'No zones assigned and no visits assigned to you. Reports will appear when technicians submit field reports for your visits.',
             ]);
         }
 
@@ -629,7 +640,7 @@ class SupervisorDashboardApiController extends Controller
      */
     public function reportAccept(Request $request, int $id): JsonResponse
     {
-        $visitIds = $this->visitsQuery($request)->pluck('id');
+        $visitIds = $this->reportVisitIds($request);
         $report = Report::whereIn('visit_id', $visitIds)->where('id', $id)->first();
 
         if (! $report) {
@@ -657,7 +668,7 @@ class SupervisorDashboardApiController extends Controller
      */
     public function reportReject(Request $request, int $id): JsonResponse
     {
-        $visitIds = $this->visitsQuery($request)->pluck('id');
+        $visitIds = $this->reportVisitIds($request);
         $report = Report::whereIn('visit_id', $visitIds)->where('id', $id)->first();
 
         if (! $report) {
