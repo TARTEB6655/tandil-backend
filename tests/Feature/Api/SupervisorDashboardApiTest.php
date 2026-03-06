@@ -134,6 +134,8 @@ class SupervisorDashboardApiTest extends TestCase
 
         $pending = $this->getJson('/api/supervisor/assignments/pending', $this->authHeaders());
         $pending->assertStatus(200)->assertJsonPath('success', true);
+        $ids = collect($pending->json('data.data'))->pluck('id')->all();
+        $this->assertContains($unassignedVisit->id, $ids, 'Assignable list should contain the unassigned visit');
 
         $create = $this->post('/api/supervisor/assignments', [
             'visit_id' => (string) $unassignedVisit->id,
@@ -153,6 +155,36 @@ class SupervisorDashboardApiTest extends TestCase
             'reason' => 'Balance workload',
         ], $this->authHeaders());
         $reassign->assertStatus(200)->assertJsonPath('success', true);
+    }
+
+    public function test_assignments_pending_returns_message_when_no_zones(): void
+    {
+        $supervisorNoZones = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supervisorNoZones, 'supervisor');
+        $token = $supervisorNoZones->createToken('test')->plainTextToken;
+
+        $pending = $this->getJson('/api/supervisor/assignments/pending', [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
+        ]);
+        $pending->assertStatus(200)->assertJsonPath('success', true);
+        $pending->assertJsonPath('data.data', []);
+        $pending->assertJsonPath('message', 'No zones assigned to you. Ask admin to assign you to areas (Admin Areas) so you can see and assign visits.');
+    }
+
+    public function test_reports_list_includes_technician_submitted_report_when_visit_in_progress(): void
+    {
+        $this->visit->update(['status' => 'in_progress']);
+        $this->report->update(['status' => 'pending']);
+
+        $index = $this->getJson('/api/supervisor/reports', $this->authHeaders());
+        $index->assertStatus(200)->assertJsonPath('success', true);
+        $reports = $index->json('data');
+        $this->assertNotEmpty($reports, 'Supervisor should see report when visit is in_progress');
+        $ids = collect($reports)->pluck('id')->all();
+        $this->assertContains($this->report->id, $ids);
+        $first = collect($reports)->firstWhere('id', $this->report->id);
+        $this->assertSame('pending', $first['status'] ?? null);
     }
 
     public function test_reports_endpoints_support_generate_show_and_download(): void

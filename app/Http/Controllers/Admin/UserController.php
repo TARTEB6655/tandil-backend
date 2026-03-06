@@ -29,26 +29,39 @@ class UserController extends Controller
                   ->orWhere('phone', 'LIKE', "%{$search}%");
         }
 
-        // Filter by role
+        // Filter by role (use same logic as statistics so list and count match)
         if ($request->has('role') && $request->role) {
-            $query->where('role', $request->role);
+            $role = $request->role;
+            $query->where(function ($q) use ($role) {
+                $q->where('role', $role)
+                    ->orWhereHas('roles', fn ($r) => $r->where('name', $role));
+            });
         }
 
-        // Filter by category (for mobile app)
-        if ($request->has('category') && $request->category) {
+        // Filter by category (for mobile app – same as role so list and statistics match)
+        if ($request->has('category') && $request->category && $request->category !== 'all') {
             switch ($request->category) {
                 case 'workers':
-                    $query->where('role', 'technician');
+                    $query->where(function ($q) {
+                        $q->where('role', 'technician')->orWhereHas('roles', fn ($r) => $r->where('name', 'technician'));
+                    });
                     break;
                 case 'supervisors':
-                    $query->where('role', 'supervisor');
+                    $query->where(function ($q) {
+                        $q->where('role', 'supervisor')->orWhereHas('roles', fn ($r) => $r->where('name', 'supervisor'));
+                    });
                     break;
                 case 'managers':
-                    $query->where('role', 'area_manager');
+                    $query->where(function ($q) {
+                        $q->where('role', 'area_manager')->orWhereHas('roles', fn ($r) => $r->where('name', 'area_manager'));
+                    });
                     break;
-                case 'all':
+                case 'clients':
+                    $query->where(function ($q) {
+                        $q->where('role', 'client')->orWhereHas('roles', fn ($r) => $r->where('name', 'client'));
+                    });
+                    break;
                 default:
-                    // No filter - show all users
                     break;
             }
         }
@@ -94,7 +107,15 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Users retrieved successfully.',
-                'data' => $formattedUsers,
+                'data' => [
+                    'data' => $formattedUsers,
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                    'from' => $users->firstItem(),
+                    'to' => $users->lastItem(),
+                ],
                 'pagination' => [
                     'current_page' => $users->currentPage(),
                     'last_page' => $users->lastPage(),
@@ -112,13 +133,15 @@ class UserController extends Controller
     /**
      * Get user statistics for mobile app
      * GET /api/admin/users/statistics
+     * Counts by role column or Spatie role so list and stats always match.
      */
     public function statistics(Request $request)
     {
         $allUsers = User::count();
-        $workers = User::where('role', 'technician')->count();
-        $supervisors = User::where('role', 'supervisor')->count();
-        $managers = User::where('role', 'area_manager')->count();
+        $workers = $this->usersByRoleQuery('technician')->count();
+        $supervisors = $this->usersByRoleQuery('supervisor')->count();
+        $managers = $this->usersByRoleQuery('area_manager')->count();
+        $clients = $this->usersByRoleQuery('client')->count();
 
         return response()->json([
             'success' => true,
@@ -127,8 +150,18 @@ class UserController extends Controller
                 'workers' => $workers,
                 'supervisors' => $supervisors,
                 'managers' => $managers,
+                'clients' => $clients,
             ]
         ]);
+    }
+
+    /** Users that have this role in users.role column OR via Spatie (so list and statistics match). */
+    private function usersByRoleQuery(string $role)
+    {
+        return User::where(function ($q) use ($role) {
+            $q->where('role', $role)
+                ->orWhereHas('roles', fn ($r) => $r->where('name', $role));
+        });
     }
 
     // Show user details by ID

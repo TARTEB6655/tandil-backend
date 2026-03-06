@@ -5261,55 +5261,6 @@
                             }
                         },
                         {
-                            "name": "Assignments - Update (PUT form-data)",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "technician_id",
-                                            "value": "3",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "scheduled_date",
-                                            "value": "2026-02-21",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "note",
-                                            "value": "Updated schedule",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "assignments",
-                                        "{{visit_id}}"
-                                    ]
-                                },
-                                "description": "Update assignment (technician_id, scheduled_date, note). Allowed only for assignable visits (unassigned, pending/scheduled, or escalated). Clears escalated_at when technician_id is set."
-                            }
-                        },
-                        {
                             "name": "Assignments - Reassign (POST form-data)",
                             "request": {
                                 "method": "POST",

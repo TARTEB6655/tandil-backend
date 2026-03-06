@@ -351,16 +351,37 @@ class SupervisorDashboardApiController extends Controller
 
     /**
      * Pending assignments: unassigned, pending/scheduled, or escalated to supervisor (after 2-3 auto-dispatch failures).
+     * Returns paginated data. Message explains when list is empty (no zones vs no assignable visits).
      */
     public function assignmentsPending(Request $request): JsonResponse
     {
+        $areaIds = $this->areaIds($request);
+        if (empty($areaIds)) {
+            $paginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, (int) $request->get('per_page', 20));
+            $paginator->setPath($request->url());
+            return response()->json([
+                'success' => true,
+                'data' => $paginator,
+                'message' => 'No zones assigned to you. Ask admin to assign you to areas (Admin Areas) so you can see and assign visits.',
+            ]);
+        }
+
         $pending = $this->assignableVisitsQuery($request)
             ->with(['subscription.client', 'area'])
             ->orderByRaw('escalated_at IS NOT NULL DESC')
             ->orderBy('scheduled_date')
             ->paginate((int) $request->get('per_page', 20));
 
-        return response()->json(['success' => true, 'data' => $pending]);
+        $message = null;
+        if ($pending->isEmpty()) {
+            $message = 'No assignable visits in your zones. Visits must have area_id set to one of your zones to appear here. Create visits with an area in your zone, or wait for new jobs.';
+        }
+
+        return response()->json(array_filter([
+            'success' => true,
+            'data' => $pending,
+            'message' => $message,
+        ]));
     }
 
     public function assignmentsStore(Request $request): JsonResponse
@@ -475,14 +496,30 @@ class SupervisorDashboardApiController extends Controller
 
     /**
      * List field reports (reports given by technician to supervisor). Optional: ?status=pending&per_page=20.
-     * Only reports for visits that are in_progress are shown (reports for jobs still in progress, not completed/approved).
+     * Shows reports for: (1) visits that are in_progress, or (2) reports still pending (so supervisor can accept/reject even after job is completed).
      * Returns only what the UI needs: technician name, employee_id, location, service, submitted_at, before_photos, after_photos, etc.
      */
     public function reportsIndex(Request $request): JsonResponse
     {
         $visitIds = $this->visitsQuery($request)->pluck('id');
+        if (empty($visitIds)) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => (int) $request->get('per_page', 20), 'total' => 0],
+                'links' => ['first' => null, 'last' => null, 'prev' => null, 'next' => null],
+                'message' => 'No zones assigned to you. Reports will appear here when technicians in your zones submit field reports.',
+            ]);
+        }
+
         $query = Report::whereIn('visit_id', $visitIds)
-            ->whereHas('visit', fn ($q) => $q->where('status', 'in_progress'))
+            ->where(function ($q) {
+                $q->whereHas('visit', fn ($v) => $v->where('status', 'in_progress'))
+                    ->orWhere(function ($q2) {
+                        $q2->where('status', 'pending')
+                            ->whereHas('visit', fn ($v) => $v->whereIn('status', ['completed', 'approved']));
+                    });
+            })
             ->with([
                 'visit.subscription.client',
                 'visit.technician.employee',
@@ -520,6 +557,7 @@ class SupervisorDashboardApiController extends Controller
             return [
                 'id' => $report->id,
                 'visit_id' => $report->visit_id,
+                'status' => $report->status,
                 'technician_name' => $technician?->name,
                 'employee_id' => $technician?->employee?->employee_id ?? ($technician ? 'TECH-' . $technician->id : null),
                 'location' => $meta['farm_name'] ?? $client?->name ?? $visit?->area?->name ?? null,
