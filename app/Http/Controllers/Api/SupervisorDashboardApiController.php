@@ -400,8 +400,8 @@ class SupervisorDashboardApiController extends Controller
             ->orderBy('scheduled_date')
             ->paginate((int) $request->get('per_page', 20));
 
-        // Exclude subscription and area from response
-        $pending->getCollection()->transform(fn ($visit) => $visit->makeHidden(['subscription', 'area']));
+        // Remove subscription_id, area_id, and relation objects from response
+        $pending->getCollection()->transform(fn ($visit) => $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']));
 
         $message = null;
         if ($pending->isEmpty()) {
