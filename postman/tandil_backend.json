@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/reports (form-data: supervisor_id required, technician_notes, optional photos). Supervisor sees reports with GET /api/supervisor/reports. Set variable supervisor_id (supervisor user ID) when testing technician report submit.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/reports (form-data: technician_notes, before_photo, after_photo only; no supervisor_id or visit_id – backend uses current job). Supervisor sees reports with GET /api/supervisor/reports. Set variable supervisor_id (supervisor user ID) when testing technician report submit.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "2.91.0"
@@ -3511,16 +3511,10 @@
                             "mode": "formdata",
                             "formdata": [
                                 {
-                                    "key": "supervisor_id",
-                                    "value": "{{supervisor_id}}",
-                                    "type": "text",
-                                    "description": "Required. Supervisor user ID – the supervisor to send the report to (linked to the technician via assigned job)."
-                                },
-                                {
                                     "key": "technician_notes",
                                     "value": "Focus on date palm section. Check drip irrigation. Completed watering, one minor leak repaired.",
                                     "type": "text",
-                                    "description": "Field notes (observations, issues, work completed)."
+                                    "description": "Optional. Field notes (observations, issues, work completed)."
                                 },
                                 {
                                     "key": "before_photo",
@@ -3547,7 +3541,7 @@
                                 "reports"
                             ]
                         },
-                        "description": "**Technician sends report to supervisor** (this API).\n\n**Endpoint:** POST {{base_url}}/api/technician/reports\n**Auth:** Bearer token (technician).\n**Form-data:** supervisor_id (required – supervisor user ID to send the report to), technician_notes, before_photo (file), after_photo (file). No visit_id: the backend uses the technician’s most recent in-progress or completed job assigned to that supervisor and links the report to it.\n\n**Supervisor receives reports** via: GET {{base_url}}/api/supervisor/reports (Module 10 – Supervisor Dashboard → D. Reports). Reports where report.supervisor_id = that supervisor are shown."
+                        "description": "**Technician sends report to supervisor** (this API).\n\n**Endpoint:** POST {{base_url}}/api/technician/reports\n**Auth:** Bearer token (technician).\n**Form-data only:** technician_notes (optional), before_photo (file), after_photo (file). Do NOT send supervisor_id or visit_id. No visit_id: the backend uses the technician’s most recent in-progress or completed job assigned to that supervisor and links the report to it.\n\n**Supervisor receives reports** via: GET {{base_url}}/api/supervisor/reports (Module 10 – Supervisor Dashboard → D. Reports). Reports where report.supervisor_id = that supervisor are shown."
                     }
                 },
                 {

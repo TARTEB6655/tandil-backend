@@ -1164,14 +1164,13 @@ class TechnicianDashboardController extends Controller
 
     /**
      * POST /api/technician/reports
-     * Technician-only: submit or update field report to supervisor (Job Details → "Submit Field Report to Supervisor").
-     * Accepts form-data: supervisor_id (required – the supervisor to send the report to), technician_notes, before_photo (file), after_photo (file).
-     * The technician is the logged-in user. Visit is resolved from the technician's in_progress or completed job assigned to that supervisor (most recent).
+     * Technician submits field report. No technician_id or visit_id in body.
+     * Backend: uses logged-in user as technician, finds their most recent in_progress/completed job, sends report to that job's supervisor automatically.
+     * Form-data: technician_notes, before_photo, after_photo only.
      */
     public function submitReport(Request $request)
     {
         $rules = [
-            'supervisor_id' => 'required|integer|exists:users,id',
             'technician_notes' => 'nullable|string|max:10000',
             'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
             'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
@@ -1179,10 +1178,8 @@ class TechnicianDashboardController extends Controller
         $data = $request->validate($rules);
 
         $user = $request->user();
-        $supervisorId = (int) $data['supervisor_id'];
 
         $visit = Visit::where('technician_id', $user->id)
-            ->where('supervisor_id', $supervisorId)
             ->whereIn('status', ['in_progress', 'completed'])
             ->orderByDesc('id')
             ->first();
@@ -1190,16 +1187,11 @@ class TechnicianDashboardController extends Controller
         if (! $visit) {
             return response()->json([
                 'status' => false,
-                'message' => 'No in-progress or completed job found for you that is assigned to this supervisor. Accept a job from this supervisor first, then submit the report.',
+                'message' => 'You have no job in progress or completed. Start a job first, then submit the report.',
             ], 422);
         }
 
-        if (! in_array($visit->status, ['in_progress', 'completed'], true)) {
-            return response()->json([
-                'status' => false,
-                'message' => 'You can only submit a report when the job is in progress or completed.',
-            ], 422);
-        }
+        $supervisorId = (int) $visit->supervisor_id;
 
         $report = $visit->report;
 
