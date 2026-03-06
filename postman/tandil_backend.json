@@ -5160,6 +5160,22 @@
                             }
                         },
                         {
+                            "name": "Assignments - One detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
+                                },
+                                "description": "Get one assignment detail by id. GET /api/supervisor/assignments/{id}. Response: success, data (single assignment with title, service_name, address, duration_minutes, job_time, price_display, supervisor_name, technician if assigned)."
+                            }
+                        },
+                        {
                             "name": "Assign tasks page (team + tasks)",
                             "request": {
                                 "method": "GET",
@@ -5176,24 +5192,26 @@
                             }
                         },
                         {
-                            "name": "Assignments - Assign task (POST)",
+                            "name": "Assignments - Assign task (POST form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"technician_id\": 3\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "technician_id", "value": "{{technician_id}}", "type": "text", "description": "Required. Technician user id" },
+                                        { "key": "scheduled_date", "value": "2026-03-15", "type": "text", "description": "Optional. e.g. 2026-03-15" }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
                                 },
-                                "description": "Assign a task to a technician. **URL:** id in path = task/visit id (from GET assignments list, e.g. 44). **Body (JSON):** technician_id (required), scheduled_date (optional). No visit_id or notes. Example: assign task 44 to technician 3 → POST /api/supervisor/assignments/44 with {\"technician_id\": 3}."
+                                "description": "Assign a task to a technician. **URL:** POST /api/supervisor/assignments/{{visit_id}} – the task/visit id is in the URL (from GET assignments list). **Form-data (no visit_id):** technician_id (required), scheduled_date (optional)."
                             }
                         },
                         {

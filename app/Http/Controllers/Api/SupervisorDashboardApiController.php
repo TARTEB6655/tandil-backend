@@ -429,6 +429,34 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
+     * GET /api/supervisor/assignments/{id}
+     * Single assignment detail (same shape as one item from the list).
+     */
+    public function assignmentsShow(Request $request, int $id): JsonResponse
+    {
+        $visit = $this->editableAssignmentVisitsQuery($request)->with('supervisor', 'technician')->find($id);
+        if (! $visit) {
+            return response()->json(['success' => false, 'message' => 'Assignment not found.'], 404);
+        }
+        $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
+        $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+        $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
+        $visit->service_name = $meta['service_name'] ?? null;
+        $visit->location = $meta['location'] ?? null;
+        $visit->duration_minutes = $meta['duration_minutes'] ?? null;
+        $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
+        $visit->supervisor_name = $visit->supervisor?->name ?? null;
+        $visit->address = $visit->location;
+        $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
+        $visit->makeHidden(['supervisor']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $visit,
+        ]);
+    }
+
+    /**
      * GET /api/supervisor/assign-tasks
      * Assign Tasks screen: team_members (same as GET /team) + available_tasks (same as GET /assignments first page).
      */
@@ -558,12 +586,12 @@ class SupervisorDashboardApiController extends Controller
             $visit->notes = trim(($visit->notes ? $visit->notes . PHP_EOL : '') . $request->input('note'));
         }
         VisitOfferService::offerToTechnician($visit, $technician->id);
-        $visit->load(['subscription.client', 'area', 'technician']);
+        $visit->load(['technician']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept. If they reject or do not respond, the job will go to another technician in the same zone (same specialization) or escalate to you.',
-            'data' => $visit,
+            'message' => 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.',
+            'data' => $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']),
             'accept_by' => $visit->accept_by?->toIso8601String(),
         ], 201);
     }
