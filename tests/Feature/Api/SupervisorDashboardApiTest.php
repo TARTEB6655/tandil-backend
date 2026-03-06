@@ -184,11 +184,59 @@ class SupervisorDashboardApiTest extends TestCase
         $this->assertSame('pending', $first['status'] ?? null);
     }
 
-    public function test_reports_endpoints_support_generate_show_and_download(): void
+    public function test_reports_show_returns_field_report_by_id(): void
     {
-        $index = $this->getJson('/api/supervisor/reports', $this->authHeaders());
-        $index->assertStatus(200)->assertJsonPath('success', true);
+        $this->visit->update(['status' => 'in_progress']);
+        $this->report->update(['status' => 'pending', 'technician_notes' => 'Field notes here']);
 
+        $show = $this->getJson('/api/supervisor/reports/' . $this->report->id, $this->authHeaders());
+        $show->assertStatus(200)->assertJsonPath('success', true);
+        $show->assertJsonPath('data.id', $this->report->id);
+        $show->assertJsonPath('data.visit_id', $this->visit->id);
+        $show->assertJsonPath('data.status', 'pending');
+        $show->assertJsonPath('data.technician_notes', 'Field notes here');
+        $show->assertJsonStructure(['success', 'data' => ['id', 'visit_id', 'status', 'technician_notes', 'before_photos', 'after_photos', 'visit']]);
+    }
+
+    public function test_reports_show_returns_404_for_other_supervisors_report(): void
+    {
+        $otherArea = Area::factory()->create();
+        $otherVisit = Visit::factory()->create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $otherArea->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'in_progress',
+        ]);
+        $otherReport = Report::factory()->create(['visit_id' => $otherVisit->id, 'status' => 'pending']);
+
+        $show = $this->getJson('/api/supervisor/reports/' . $otherReport->id, $this->authHeaders());
+        $show->assertStatus(404)->assertJsonPath('success', false)->assertJsonPath('message', 'Report not found.');
+    }
+
+    public function test_reports_accept_and_reject(): void
+    {
+        $this->visit->update(['status' => 'in_progress']);
+        $this->report->update(['status' => 'pending']);
+
+        $accept = $this->postJson('/api/supervisor/reports/' . $this->report->id . '/accept', [], $this->authHeaders());
+        $accept->assertStatus(200)->assertJsonPath('success', true)->assertJsonPath('data.status', 'approved');
+
+        $this->report->refresh();
+        $this->assertSame('approved', $this->report->status);
+
+        $otherVisit = Visit::factory()->create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'in_progress',
+        ]);
+        $pendingReport = Report::factory()->create(['visit_id' => $otherVisit->id, 'status' => 'pending']);
+        $reject = $this->postJson('/api/supervisor/reports/' . $pendingReport->id . '/reject', [], $this->authHeaders());
+        $reject->assertStatus(200)->assertJsonPath('success', true)->assertJsonPath('data.status', 'rejected');
+    }
+
+    public function test_reports_generate_and_download(): void
+    {
         $generate = $this->postJson('/api/supervisor/reports/generate', [
             'title' => 'Supervisor Weekly Report',
             'type' => 'operational',
@@ -196,13 +244,10 @@ class SupervisorDashboardApiTest extends TestCase
         ], $this->authHeaders());
         $generate->assertStatus(201)->assertJsonPath('success', true);
 
-        $reportId = $generate->json('data.id');
-        $this->assertNotNull($reportId);
+        $generatedId = $generate->json('data.id');
+        $this->assertNotNull($generatedId);
 
-        $show = $this->getJson('/api/supervisor/reports/' . $reportId, $this->authHeaders());
-        $show->assertStatus(200)->assertJsonPath('success', true);
-
-        $download = $this->get('/api/supervisor/reports/' . $reportId . '/download', $this->authHeaders());
+        $download = $this->get('/api/supervisor/reports/' . $generatedId . '/download', $this->authHeaders());
         $download->assertStatus(200);
         $this->assertStringContainsString('text/csv', (string) $download->headers->get('content-type'));
     }

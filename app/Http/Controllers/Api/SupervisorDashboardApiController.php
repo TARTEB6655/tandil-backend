@@ -716,13 +716,67 @@ class SupervisorDashboardApiController extends Controller
         return response()->json(['success' => true, 'message' => 'Report generated successfully.', 'data' => $report], 201);
     }
 
+    /**
+     * GET /api/supervisor/reports/{id}
+     * Show a single field report (from technician). Id is the Report id from the list (GET /reports).
+     */
     public function reportsShow(Request $request, int $id): JsonResponse
     {
-        $report = AdminReport::where('id', $id)
-            ->where('created_by', $request->user()->id)
-            ->firstOrFail();
+        $visitIds = $this->reportVisitIds($request);
+        $report = Report::where('id', $id)
+            ->whereIn('visit_id', $visitIds)
+            ->with([
+                'visit.subscription.client',
+                'visit.technician.employee',
+                'visit.area',
+                'visit.photos',
+            ])
+            ->first();
 
-        return response()->json(['success' => true, 'data' => $report]);
+        if (! $report) {
+            return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
+        }
+
+        $visit = $report->visit;
+        $technician = $visit?->technician;
+        $client = $visit?->subscription?->client;
+        $meta = $visit && $visit->notes
+            ? $this->parseVisitMetaFromNotes((string) $visit->notes)
+            : [];
+        $photos = $visit?->photos ?? collect();
+        $beforePhotos = $photos->where('type', 'before')->values()->map(fn ($p) => [
+            'id' => $p->id,
+            'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
+            'type' => 'before',
+        ])->values()->all();
+        $afterPhotos = $photos->where('type', 'after')->values()->map(fn ($p) => [
+            'id' => $p->id,
+            'photo_url' => ProfilePictureUploadService::fullUrl($p->photo_path),
+            'type' => 'after',
+        ])->values()->all();
+
+        $data = [
+            'id' => $report->id,
+            'visit_id' => $report->visit_id,
+            'status' => $report->status,
+            'technician_name' => $technician?->name,
+            'employee_id' => $technician?->employee?->employee_id ?? ($technician ? 'TECH-' . $technician->id : null),
+            'location' => $meta['farm_name'] ?? $client?->name ?? $visit?->area?->name ?? null,
+            'service' => $meta['service_name'] ?? ($visit?->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : null) ?? 'Visit',
+            'submitted_at' => $report->created_at?->toIso8601String(),
+            'technician_notes' => $report->technician_notes,
+            'before_photos' => $beforePhotos,
+            'after_photos' => $afterPhotos,
+            'visit' => $visit ? [
+                'id' => $visit->id,
+                'status' => $visit->status,
+                'scheduled_at' => $visit->scheduled_at?->toIso8601String(),
+                'client_name' => $client?->name,
+                'area_name' => $visit->area?->name,
+            ] : null,
+        ];
+
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     public function reportsDownload(Request $request, int $id): StreamedResponse

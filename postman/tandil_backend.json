@@ -5456,30 +5456,18 @@
                         },
                         {
                             "name": "Reports - Show",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
                                     "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "supervisor",
-                                        "reports",
-                                        "{{report_id}}"
-                                    ]
-                                }
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "reports", "{{report_id}}"]
+                                },
+                                "description": "GET single field report by id. **report_id** must be the **field report id** from the Reports list (GET /api/supervisor/reports). Response: success, data (id, visit_id, status, technician_notes, before_photos, after_photos, visit). 404 if report not found or not in your zones."
                             }
                         },
                         {
@@ -5487,28 +5475,15 @@
                             "request": {
                                 "method": "GET",
                                 "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}/download",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "supervisor",
-                                        "reports",
-                                        "{{report_id}}",
-                                        "download"
-                                    ]
-                                }
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "reports", "{{report_id}}", "download"]
+                                },
+                                "description": "Download a **generated** report as CSV. **report_id** here is the id returned by POST /api/supervisor/reports/generate (not the field report id from the list). Returns CSV file."
                             }
                         },
                         {
