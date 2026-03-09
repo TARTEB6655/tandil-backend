@@ -6599,19 +6599,22 @@
                         "method": "POST",
                         "header": [
                             { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Content-Type", "value": "application/json" },
                             { "key": "Accept", "value": "application/json" }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"type\": \"weekly_summary\",\n  \"date_from\": \"2026-03-01\",\n  \"date_to\": \"2026-03-07\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                { "key": "type", "value": "weekly_summary", "type": "text", "description": "weekly_summary | team_performance | customer_satisfaction" },
+                                { "key": "date_from", "value": "2026-03-01", "type": "text" },
+                                { "key": "date_to", "value": "2026-03-07", "type": "text" }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/area-manager/reports/generate",
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "reports", "generate"]
                         },
-                        "description": "Request report generation. POST /api/area-manager/reports/generate. Body: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to. Stub returns 202; PDF generation can be added later."
+                        "description": "Request report generation. POST /api/area-manager/reports/generate. Form-data: type, date_from, date_to. Stub returns 202; PDF generation can be added later."
                     }
                 },
                 {
@@ -6631,24 +6634,30 @@
                     }
                 },
                 {
-                    "name": "Profile - Update",
+                    "name": "Profile - Update (PUT/POST form-data)",
                     "request": {
                         "method": "PUT",
                         "header": [
                             { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Content-Type", "value": "application/json" },
                             { "key": "Accept", "value": "application/json" }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Fatima Al Zaabi\",\n  \"email\": \"areamanager1@test.com\",\n  \"phone\": \"+971500000031\"\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                { "key": "name", "value": "Fatima Al Zaabi", "type": "text" },
+                                { "key": "email", "value": "areamanager1@test.com", "type": "text" },
+                                { "key": "phone", "value": "+971500000031", "type": "text" },
+                                { "key": "profile_picture", "type": "file", "src": [], "description": "Optional image file" },
+                                { "key": "password", "value": "", "type": "text", "description": "Optional; use with password_confirmation" },
+                                { "key": "password_confirmation", "value": "", "type": "text" }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/api/area-manager/profile",
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "profile"]
                         },
-                        "description": "Update profile. PUT /api/area-manager/profile. Body: name, email, phone (optional)."
+                        "description": "Update profile. PUT or POST /api/area-manager/profile. Form-data only: name, email, phone, profile_picture (file), password, password_confirmation. All optional. Same as technician/supervisor."
                     }
                 }
             ]

@@ -8,11 +8,14 @@ use App\Models\Order;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Visit;
+use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AreaManagerApiController extends Controller
 {
@@ -252,7 +255,7 @@ class AreaManagerApiController extends Controller
 
     /**
      * POST /api/area-manager/reports/generate
-     * Generate region report (stub: returns message; PDF generation can be added later).
+     * Form-data: type, date_from, date_to. Stub: returns message; PDF generation can be added later.
      */
     public function reportGenerate(Request $request): JsonResponse
     {
@@ -270,7 +273,7 @@ class AreaManagerApiController extends Controller
 
     /**
      * GET /api/area-manager/profile
-     * Area Manager profile: name, email, phone, id, rating, jobs_completed, total_earnings, member_since, specializations, service_area.
+     * Area Manager profile: name, email, phone, id, profile_picture_url, rating, jobs_completed, total_earnings, member_since, specializations, service_area.
      */
     public function profile(Request $request): JsonResponse
     {
@@ -286,6 +289,7 @@ class AreaManagerApiController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone ?? $user->employee?->phone,
                 'id' => $user->employee?->employee_id ?? ('AM-' . $user->id),
+                'profile_picture' => $user->profile_picture,
                 'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
                 'rating' => 0,
                 'jobs_completed' => 0,
@@ -298,41 +302,77 @@ class AreaManagerApiController extends Controller
     }
 
     /**
-     * PUT /api/area-manager/profile
-     * Update Area Manager profile (name, email, phone).
+     * PUT or POST /api/area-manager/profile
+     * Form-data only: name, email, phone, profile_picture (file), password, password_confirmation. All optional.
+     * Same as technician/supervisor: no current_password; profile_picture via multipart.
      */
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
+        $user->load('employee');
+
+        $profileFile = $request->file('profile_picture');
+        if (is_array($profileFile)) {
+            $profileFile = $profileFile[0] ?? null;
+        }
+
+        $input = $request->all();
         $rules = [
-            'name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
+            'password' => 'nullable|string|min:8|confirmed',
         ];
-        $data = $request->validate($rules);
-        if (! empty($data['name'])) {
-            $user->name = $data['name'];
+        if ($profileFile) {
+            $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
         }
-        if (! empty($data['email'])) {
-            $user->email = $data['email'];
+        $validator = Validator::make(array_merge($input, ['profile_picture' => $profileFile]), $rules);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
-        if (array_key_exists('phone', $data)) {
-            $user->phone = $data['phone'];
+
+        if ($request->has('name')) {
+            $user->name = $request->input('name');
+        }
+        if ($request->has('email')) {
+            $user->email = $request->input('email');
+        }
+        if ($request->has('phone')) {
+            $user->phone = $request->input('phone') ?: null;
             if ($user->employee) {
-                $user->employee->phone = $data['phone'];
+                $user->employee->phone = $user->phone;
                 $user->employee->save();
             }
         }
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->input('password'));
+        }
+
+        if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
+            $stored = $profileFile->store('profiles', 'public');
+            $user->profile_picture = $stored;
+            ImageCompressionService::compressIfNeededFromPublicPath($stored);
+        } elseif ($request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+            $stored = ProfilePictureUploadService::storeFromMultipartPut($request);
+            if ($stored) {
+                $user->profile_picture = $stored;
+                ImageCompressionService::compressIfNeededFromPublicPath($stored);
+            }
+        }
+
         $user->save();
         $user->load('employee');
+
         return response()->json([
             'success' => true,
-            'message' => 'Profile updated.',
+            'message' => 'Profile updated successfully.',
             'data' => [
+                'id' => $user->employee?->employee_id ?? ('AM-' . $user->id),
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone ?? $user->employee?->phone,
-                'id' => $user->employee?->employee_id ?? ('AM-' . $user->id),
+                'profile_picture' => $user->profile_picture,
+                'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
             ],
         ]);
     }

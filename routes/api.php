@@ -295,6 +295,7 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')
     Route::post('/reports/generate', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportGenerate']);
     Route::get('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'updateProfile']);
+    Route::post('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'updateProfile']);
 });
 
 /*
