@@ -6539,7 +6539,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "team-leaders", "{{team_leader_id}}"]
                         },
-                        "description": "Single team leader (supervisor) detail. Set team_leader_id from Team Leaders - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture_url, performance_percent, team, active, done."
+                        "description": "Single team leader (supervisor) detail. Set team_leader_id from Team Leaders - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture, profile_picture_url, location, performance_percent, team, active, done."
                     }
                 },
                 {

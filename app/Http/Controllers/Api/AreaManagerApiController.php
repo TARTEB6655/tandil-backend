@@ -316,6 +316,7 @@ class AreaManagerApiController extends Controller
             'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
             'initial' => mb_strtoupper($initial),
             'location' => $location,
+            'profile_picture' => $u->profile_picture,
             'profile_picture_url' => ProfilePictureUploadService::fullUrl($u->profile_picture),
             'performance_percent' => $performance,
             'team' => $teamCount,
