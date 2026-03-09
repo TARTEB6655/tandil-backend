@@ -187,7 +187,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'price' => 275.50,
         ]));
 
-        $this->command->info('Dummy tasks seeded: 5 unassigned tasks for supervisor1@test.com. Supervisor assigns to technician; technician sees nothing in Today\'s Tasks until assigned.');
+        $this->command->info('Dummy tasks seeded: 5 unassigned tasks for supervisor1@test.com. Assign to technician → technician submits report → supervisor shares to client via POST /api/supervisor/visits/{visit_id}/finalize with status sent_to_client.');
     }
 }
 

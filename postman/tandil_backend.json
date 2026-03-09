@@ -5101,22 +5101,6 @@
                             }
                         },
                         {
-                            "name": "Team Member - Detail (by id)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/supervisor/team/{{member_id}}",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "team", "{{member_id}}"]
-                                },
-                                "description": "Member detail when supervisor clicks a member from Team Stats. GET /api/supervisor/team/{{member_id}}. Set **member_id** = id from Team Stats response (GET team-stats) → data.members[].id. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone, and **jobs** { in_progress: [...], completed: [...] } with visit_id, status, location, service, scheduled_date, completed_at, duration_minutes. Member must be in supervisor's zones."
-                            }
-                        },
-                        {
                             "name": "Team Stats",
                             "request": {
                                 "method": "GET",
@@ -5129,7 +5113,23 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "team-stats"]
                                 },
-                                "description": "Team Stats: visits_today, avg_duration_minutes, customer_rating, open_issues, and members (id, name, initial, completed, rating). GET /api/supervisor/team-stats. Supervisor role required."
+                                "description": "Team Stats: visits_today, avg_duration_minutes, customer_rating, open_issues, and members (id, name, initial, completed, rating). GET /api/supervisor/team-stats. Use data.members[].id in next request (Team Member - Detail). Supervisor role required."
+                            }
+                        },
+                        {
+                            "name": "Team Member - Detail (by id)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/team/{{member_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "supervisor", "team", "{{member_id}}"]
+                                },
+                                "description": "Member detail when supervisor clicks a member from Team Stats. GET /api/supervisor/team/{{member_id}}. Set **member_id** = id from Team Stats response (previous request) → data.members[].id. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone, and **jobs** { in_progress: [...], completed: [...] } with visit_id, status, location, service, scheduled_date, completed_at, duration_minutes. Member must be in supervisor's zones."
                             }
                         }
                     ]

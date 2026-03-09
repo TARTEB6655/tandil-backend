@@ -167,7 +167,9 @@ class SupervisorController extends Controller
         }
 
         $areaIds = $user->supervisedAreaIds();
-        if (!in_array($visit->area_id, $areaIds)) {
+        $inMyArea = !empty($areaIds) && in_array($visit->area_id, $areaIds);
+        $assignedByMe = (int) $visit->supervisor_id === (int) $user->id;
+        if (!$inMyArea && !$assignedByMe) {
             return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
         }
 
