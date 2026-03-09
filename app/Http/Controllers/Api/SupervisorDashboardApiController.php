@@ -1114,7 +1114,8 @@ class SupervisorDashboardApiController extends Controller
 
     /**
      * Single profile update API (form-data).
-     * Accepts: name, email, phone, profile_picture (file), area_ids. All fields optional. No password fields.
+     * Accepts: name, email, phone, profile_picture (file). All fields optional. No password fields.
+     * Areas (zones) are assigned by admin only; supervisor cannot set area_ids via profile.
      */
     public function updateProfile(Request $request): JsonResponse
     {
@@ -1130,8 +1131,6 @@ class SupervisorDashboardApiController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'area_ids' => 'nullable|array',
-            'area_ids.*' => 'integer|exists:areas,id',
         ];
         if ($profileFile) {
             $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
@@ -1162,10 +1161,6 @@ class SupervisorDashboardApiController extends Controller
                 $user->profile_picture = $stored;
                 ImageCompressionService::compressIfNeededFromPublicPath($stored);
             }
-        }
-
-        if (array_key_exists('area_ids', $input)) {
-            $user->supervisedAreas()->sync($input['area_ids'] ?? []);
         }
 
         $user->save();

@@ -63,12 +63,60 @@ class AreaManagerApiController extends Controller
 
     /**
      * GET /api/area-manager/dashboard/alerts
-     * Region alerts (warning/success, message, timestamp). Placeholder until alerts table exists.
+     * System-generated alerts for the region: overdue visits, expiring subscriptions, stuck visits.
+     * Filled by backend from Visit & Subscription data (no separate alerts table).
      */
     public function dashboardAlerts(Request $request): JsonResponse
     {
+        $areaIds = Area::pluck('id')->toArray();
+        $today = Carbon::today();
         $alerts = [];
-        // Placeholder: no region_alerts table yet. Can be extended later.
+
+        // 1) Overdue visits (scheduled in the past, not yet completed)
+        $overdueCount = Visit::whereIn('area_id', $areaIds)
+            ->whereIn('status', ['pending', 'scheduled', 'in_progress'])
+            ->where('scheduled_date', '<', $today)
+            ->count();
+        if ($overdueCount > 0) {
+            $alerts[] = [
+                'type' => 'warning',
+                'message' => $overdueCount === 1
+                    ? '1 visit is overdue.'
+                    : "{$overdueCount} visits are overdue.",
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ];
+        }
+
+        // 2) Subscriptions expiring in next 7 days
+        $expiringCount = Subscription::where('payment_status', 'paid')
+            ->whereBetween('end_date', [$today, $today->copy()->addDays(7)])
+            ->count();
+        if ($expiringCount > 0) {
+            $alerts[] = [
+                'type' => 'warning',
+                'message' => $expiringCount === 1
+                    ? '1 subscription is expiring in the next 7 days.'
+                    : "{$expiringCount} subscriptions are expiring in the next 7 days.",
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ];
+        }
+
+        // 3) Visits stuck in_progress for more than 24 hours
+        $stuckCount = Visit::whereIn('area_id', $areaIds)
+            ->where('status', 'in_progress')
+            ->whereNotNull('started_at')
+            ->where('started_at', '<', Carbon::now()->subHours(24))
+            ->count();
+        if ($stuckCount > 0) {
+            $alerts[] = [
+                'type' => 'warning',
+                'message' => $stuckCount === 1
+                    ? '1 visit has been in progress for over 24 hours.'
+                    : "{$stuckCount} visits have been in progress for over 24 hours.",
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ];
+        }
+
         return response()->json(['success' => true, 'data' => $alerts]);
     }
 

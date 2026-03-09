@@ -5069,7 +5069,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "areas"]
                                 },
-                                "description": "List all zones (areas = cities) for supervisor to set as service areas in profile. Use these ids in Profile - Update as area_ids[0], area_ids[1], etc. Admin also assigns supervisor to zones; supervisor can set/update their zones here."
+                                "description": "List all zones (areas). Areas are assigned to supervisors by Admin only (Admin - Areas / supervisor assignment). Supervisor cannot change their zones via profile."
                             }
                         },
                         {
@@ -5571,7 +5571,7 @@
                 },
                 {
                     "name": "E. Profile",
-                    "description": "GET profile (includes service_areas = zones). PUT/POST profile with form-data: name, email, phone, profile_picture, area_ids[] (zone ids for service area). No password fields. Supervisor sets their zones here; admin can also assign via Admin Areas API.",
+                    "description": "GET profile (includes service_areas = zones assigned by admin). PUT/POST profile with form-data: name, email, phone, profile_picture only. No password, no area_ids (zones are set by admin only).",
                     "item": [
                         {
                             "name": "Profile - Get",
@@ -5598,7 +5598,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Get supervisor profile. Response includes profile_picture, profile_picture_url, service_areas (zones: id, name, country). Supervisor's zones = where they operate; admin can assign via Admin Areas, supervisor can set via Profile Update (area_ids)."
+                                "description": "Get supervisor profile. Response includes profile_picture, profile_picture_url, service_areas (zones: id, name, country). Zones are assigned by admin only; supervisor cannot change them."
                             }
                         },
                         {
@@ -5638,12 +5638,6 @@
                                             "type": "file",
                                             "src": "",
                                             "description": "Optional. Add file to update photo."
-                                        },
-                                        {
-                                            "key": "area_ids[0]",
-                                            "value": "1",
-                                            "type": "text",
-                                            "description": "Optional. Zone (area) id for service area. Add area_ids[1], area_ids[2] for multiple. Supervisor sets which zones they work in."
                                         }
                                     ]
                                 },
@@ -5658,7 +5652,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Profile update (form-data). Optional: name, email, phone, profile_picture, area_ids[0], area_ids[1], ... (zone ids = service areas). No password fields. Supervisor sets their zones; response includes service_areas."
+                                "description": "Profile update (form-data). Optional: name, email, phone, profile_picture. No password, no area_ids (zones are assigned by admin only). Response includes service_areas (read-only)."
                             }
                         },
                         {
@@ -6465,7 +6459,7 @@
             "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
-            "name": "Area Manager Dashboard",
+            "name": "11. Area Manager Dashboard",
             "description": "Area Manager mobile dashboard. Auth: Bearer token (area_manager). Dashboard: summary (profile, total_farms, active_subscriptions, monthly_revenue), region alerts, team leaders (supervisors) with performance %, team/active/done. Use team_leaders[].id in Team Leader - Detail.",
             "item": [
                 {
@@ -6649,7 +6643,7 @@
             ]
         },
         {
-            "name": "11. Admin Dashboard – Stats, Users & HR",
+            "name": "12. Admin Dashboard – Stats, Users & HR",
             "item": [
                 {
                     "name": "Admin Dashboard Statistics",
@@ -7379,7 +7373,7 @@
             "description": "Admin and HR endpoints - User management, roles, employee management"
         },
         {
-            "name": "12. Admin Dashboard – Reports Management",
+            "name": "13. Admin Dashboard – Reports Management",
             "item": [
                 {
                     "name": "Get All Reports",
@@ -7690,7 +7684,7 @@
             "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
         },
         {
-            "name": "13. Admin – Support Tickets",
+            "name": "14. Admin – Support Tickets",
             "description": "Tickets submitted by clients/technicians via POST /api/support/tickets. Admin can list, view, reply, and update status. Quick Overview count uses open + in_progress.",
             "item": [
                 {
@@ -7775,7 +7769,7 @@
             ]
         },
         {
-            "name": "14. Admin Dashboard – Settings (Mobile)",
+            "name": "15. Admin Dashboard – Settings (Mobile)",
             "item": [
                 {
                     "name": "Get All Settings",
@@ -8248,7 +8242,7 @@
             "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, shop (shipping_amount, tax_percent), legal, export, debug logs."
         },
         {
-            "name": "15. Other Modules",
+            "name": "16. Other Modules",
             "item": [
                 {
                     "name": "Support Tickets – All roles (Client, Technician, Supervisor, Area Manager, HR)",
