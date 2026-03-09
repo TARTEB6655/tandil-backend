@@ -1224,11 +1224,22 @@ class TechnicianDashboardController extends Controller
             ]);
         }
 
-        return response()->json([
+        $report->load(['visit', 'visit.photos']);
+        $payload = [
+            'success' => true,
             'status' => true,
             'message' => $message,
-            'data' => $report->load(['visit', 'visit.photos']),
-        ], $statusCode);
+            'data' => [
+                'id' => $report->id,
+                'report_id' => $report->id,
+                'visit_id' => $report->visit_id,
+                'supervisor_id' => $report->supervisor_id,
+                'status' => $report->status,
+                'technician_notes' => $report->technician_notes,
+                'visit' => $report->visit,
+            ],
+        ];
+        return response()->json($payload, $statusCode);
     }
 
     private function formatJobDetails(Visit $visit): array
