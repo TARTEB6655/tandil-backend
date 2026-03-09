@@ -1194,9 +1194,16 @@ class TechnicianDashboardController extends Controller
             ], 422);
         }
 
-        $supervisorId = (int) $visit->supervisor_id;
-
         $report = $visit->report;
+        if ($report && $report->status === 'approved') {
+            return response()->json([
+                'success' => false,
+                'status' => false,
+                'message' => 'Supervisor has already accepted this report. Submit button is no longer available. You can complete the visit now.',
+            ], 422);
+        }
+
+        $supervisorId = (int) $visit->supervisor_id;
 
         if ($report) {
             $report->update(['technician_notes' => $data['technician_notes'] ?? $report->technician_notes]);
@@ -1273,8 +1280,16 @@ class TechnicianDashboardController extends Controller
             ], 422);
         }
 
-        $supervisorId = (int) $visit->supervisor_id;
         $report = $visit->report;
+        if ($report && $report->status === 'approved') {
+            return response()->json([
+                'success' => false,
+                'status' => false,
+                'message' => 'Supervisor has already accepted this report. Submit button is no longer available. You can complete the visit now.',
+            ], 422);
+        }
+
+        $supervisorId = (int) $visit->supervisor_id;
 
         if ($report) {
             $report->update(['technician_notes' => $data['technician_notes'] ?? $report->technician_notes]);
@@ -1370,7 +1385,8 @@ class TechnicianDashboardController extends Controller
                 'other' => $photos->whereNotIn('type', ['before', 'after'])->values(),
             ],
             'actions' => [
-                'can_submit_field_report' => $visit->status === 'in_progress',
+                'can_submit_field_report' => $visit->status === 'in_progress'
+                    && (! $visit->report || $visit->report->status !== 'approved'),
                 'can_complete_visit' => $visit->status === 'in_progress' && $visit->report && $visit->report->status === 'approved'
                     || in_array($visit->status, ['completed', 'approved'], true),
             ],
