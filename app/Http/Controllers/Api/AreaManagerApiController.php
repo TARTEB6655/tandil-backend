@@ -146,7 +146,13 @@ class AreaManagerApiController extends Controller
             $firstArea = $u->supervisedAreas()->first();
             $location = $firstArea?->name ?? $firstArea?->location ?? $u->employee?->region ?? null;
             $teamCount = empty($areaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->count('user_id');
-            $visitQuery = Visit::whereIn('area_id', $areaIds);
+            // Count visits: in supervisor's areas OR directly assigned to this supervisor (supervisor_id)
+            $visitQuery = Visit::where(function ($q) use ($u, $areaIds) {
+                $q->where('supervisor_id', $u->id);
+                if (! empty($areaIds)) {
+                    $q->orWhereIn('area_id', $areaIds);
+                }
+            });
             $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
             $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
             $total = $activeCount + $doneCount;
@@ -186,7 +192,12 @@ class AreaManagerApiController extends Controller
 
         $areaIds = $u->supervisedAreaIds();
         $teamCount = empty($areaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->count('user_id');
-        $visitQuery = Visit::whereIn('area_id', $areaIds);
+        $visitQuery = Visit::where(function ($q) use ($u, $areaIds) {
+            $q->where('supervisor_id', $u->id);
+            if (! empty($areaIds)) {
+                $q->orWhereIn('area_id', $areaIds);
+            }
+        });
         $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
         $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $total = $activeCount + $doneCount;
