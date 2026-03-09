@@ -163,20 +163,21 @@ class SupervisorController extends Controller
         $visit = Visit::with('subscription.client')->find($id);
 
         if (!$visit) {
-            return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
+            return response()->json(['success' => false, 'status' => false, 'message' => 'Visit not found'], 404);
         }
 
         $areaIds = $user->supervisedAreaIds();
         $inMyArea = !empty($areaIds) && in_array($visit->area_id, $areaIds);
         $assignedByMe = (int) $visit->supervisor_id === (int) $user->id;
         if (!$inMyArea && !$assignedByMe) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+            return response()->json(['success' => false, 'status' => false, 'message' => 'Forbidden'], 403);
         }
 
         // Only supervisors can check/complete the job, and only after the technician has submitted a field report.
         $report = Report::where('visit_id', $visit->id)->first();
         if (!$report) {
             return response()->json([
+                'success' => false,
                 'status' => false,
                 'message' => 'Technician must submit a field report (POST /api/technician/reports) before the supervisor can check and complete this job.',
             ], 422);
@@ -193,7 +194,7 @@ class SupervisorController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            return response()->json(['success' => false, 'status' => false, 'errors' => $validator->errors()], 422);
         }
 
         $report->supervisor_id = $user->id;
@@ -233,6 +234,7 @@ class SupervisorController extends Controller
         $report->save();
 
         return response()->json([
+            'success' => true,
             'status' => true,
             'message' => in_array($status, ['finalized', 'sent_to_client'], true)
                 ? 'Report submitted to client successfully.'
