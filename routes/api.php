@@ -209,6 +209,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     // Field notes: GET list (by supervisor_id); POST submit report
     Route::get('/field-notes', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'fieldNotesIndex']);
     Route::post('/reports', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'submitReport']);
+    Route::post('/report/{visit_id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'submitReportForVisit']);
     // Help & Support (same as /api/support/*, under technician prefix for dashboard)
     Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
     Route::get('/support/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);

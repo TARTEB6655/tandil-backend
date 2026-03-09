@@ -1164,13 +1164,14 @@ class TechnicianDashboardController extends Controller
 
     /**
      * POST /api/technician/reports
-     * Technician submits field report. No technician_id or visit_id in body.
-     * Backend: uses logged-in user as technician, finds their most recent in_progress/completed job, sends report to that job's supervisor automatically.
-     * Form-data: technician_notes, before_photo, after_photo only.
+     * Technician submits field report for the job they are viewing (Job Details screen).
+     * Form-data: visit_id (required) = job id of the current job detail page. Backend gets supervisor from that visit.
+     * So we know exactly which job's report was submitted. technician_notes, before_photo, after_photo optional.
      */
     public function submitReport(Request $request)
     {
         $rules = [
+            'visit_id' => 'required|integer|exists:visits,id',
             'technician_notes' => 'nullable|string|max:10000',
             'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
             'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
@@ -1178,16 +1179,18 @@ class TechnicianDashboardController extends Controller
         $data = $request->validate($rules);
 
         $user = $request->user();
+        $visitId = (int) $data['visit_id'];
 
-        $visit = Visit::where('technician_id', $user->id)
+        $visit = Visit::where('id', $visitId)
+            ->where('technician_id', $user->id)
             ->whereIn('status', ['in_progress', 'completed'])
-            ->orderByDesc('id')
             ->first();
 
         if (! $visit) {
             return response()->json([
+                'success' => false,
                 'status' => false,
-                'message' => 'You have no job in progress or completed. Start a job first, then submit the report.',
+                'message' => 'This job is not assigned to you or is not in progress/completed. You can only submit a report for the job you are viewing.',
             ], 422);
         }
 
@@ -1240,6 +1243,83 @@ class TechnicianDashboardController extends Controller
             ],
         ];
         return response()->json($payload, $statusCode);
+    }
+
+    /**
+     * POST /api/technician/report/{visit_id}
+     * Submit field report for this job. visit_id in URL; form-data: technician_notes, before_photo, after_photo only.
+     */
+    public function submitReportForVisit(Request $request, int $visit_id)
+    {
+        $rules = [
+            'technician_notes' => 'nullable|string|max:10000',
+            'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
+        ];
+        $data = $request->validate($rules);
+
+        $user = $request->user();
+
+        $visit = Visit::where('id', $visit_id)
+            ->where('technician_id', $user->id)
+            ->whereIn('status', ['in_progress', 'completed'])
+            ->first();
+
+        if (! $visit) {
+            return response()->json([
+                'success' => false,
+                'status' => false,
+                'message' => 'This job is not assigned to you or is not in progress/completed.',
+            ], 422);
+        }
+
+        $supervisorId = (int) $visit->supervisor_id;
+        $report = $visit->report;
+
+        if ($report) {
+            $report->update(['technician_notes' => $data['technician_notes'] ?? $report->technician_notes]);
+            $message = 'Report updated successfully.';
+            $statusCode = 200;
+        } else {
+            $report = Report::create([
+                'visit_id' => $visit->id,
+                'supervisor_id' => $supervisorId,
+                'technician_notes' => $data['technician_notes'] ?? '',
+                'status' => 'pending',
+            ]);
+            $message = 'Report submitted to supervisor successfully.';
+            $statusCode = 201;
+        }
+
+        foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
+            if (! $request->hasFile($key)) {
+                continue;
+            }
+            $file = $request->file($key);
+            $path = $file->store('visit_photos', 'public');
+            ImageCompressionService::compressVisitPhotoFromPublicPath($path);
+            VisitPhoto::create([
+                'visit_id' => $visit->id,
+                'photo_path' => $path,
+                'type' => $type,
+            ]);
+        }
+
+        $report->load(['visit', 'visit.photos']);
+        return response()->json([
+            'success' => true,
+            'status' => true,
+            'message' => $message,
+            'data' => [
+                'id' => $report->id,
+                'report_id' => $report->id,
+                'visit_id' => $report->visit_id,
+                'supervisor_id' => $report->supervisor_id,
+                'status' => $report->status,
+                'technician_notes' => $report->technician_notes,
+                'visit' => $report->visit,
+            ],
+        ], $statusCode);
     }
 
     private function formatJobDetails(Visit $visit): array
