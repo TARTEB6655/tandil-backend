@@ -1195,30 +1195,27 @@ class TechnicianDashboardController extends Controller
         }
 
         $report = $visit->report;
-        if ($report && $report->status === 'approved') {
+        if ($report) {
             return response()->json([
                 'success' => false,
                 'status' => false,
-                'message' => 'Supervisor has already accepted this report. Submit button is no longer available. You can complete the visit now.',
+                'message' => 'Report already submitted. Visit is complete.',
             ], 422);
         }
 
         $supervisorId = (int) $visit->supervisor_id;
 
-        if ($report) {
-            $report->update(['technician_notes' => $data['technician_notes'] ?? $report->technician_notes]);
-            $message = 'Report updated successfully.';
-            $statusCode = 200;
-        } else {
-            $report = Report::create([
-                'visit_id' => $visit->id,
-                'supervisor_id' => $supervisorId,
-                'technician_notes' => $data['technician_notes'] ?? '',
-                'status' => 'pending',
-            ]);
-            $message = 'Report submitted to supervisor successfully.';
-            $statusCode = 201;
-        }
+        $report = Report::create([
+            'visit_id' => $visit->id,
+            'supervisor_id' => $supervisorId,
+            'technician_notes' => $data['technician_notes'] ?? '',
+            'status' => 'pending',
+        ]);
+
+        $visit->status = 'completed';
+        $visit->completed_at = now();
+        $visit->completed_date = Carbon::today();
+        $visit->save();
 
         foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
             if (! $request->hasFile($key)) {
@@ -1238,7 +1235,7 @@ class TechnicianDashboardController extends Controller
         $payload = [
             'success' => true,
             'status' => true,
-            'message' => $message,
+            'message' => 'Report submitted successfully.',
             'data' => [
                 'id' => $report->id,
                 'report_id' => $report->id,
@@ -1249,7 +1246,7 @@ class TechnicianDashboardController extends Controller
                 'visit' => $report->visit,
             ],
         ];
-        return response()->json($payload, $statusCode);
+        return response()->json($payload, 201);
     }
 
     /**
@@ -1281,30 +1278,28 @@ class TechnicianDashboardController extends Controller
         }
 
         $report = $visit->report;
-        if ($report && $report->status === 'approved') {
+        if ($report) {
             return response()->json([
                 'success' => false,
                 'status' => false,
-                'message' => 'Supervisor has already accepted this report. Submit button is no longer available. You can complete the visit now.',
+                'message' => 'Report already submitted. Visit is complete.',
             ], 422);
         }
 
         $supervisorId = (int) $visit->supervisor_id;
 
-        if ($report) {
-            $report->update(['technician_notes' => $data['technician_notes'] ?? $report->technician_notes]);
-            $message = 'Report updated successfully.';
-            $statusCode = 200;
-        } else {
-            $report = Report::create([
-                'visit_id' => $visit->id,
-                'supervisor_id' => $supervisorId,
-                'technician_notes' => $data['technician_notes'] ?? '',
-                'status' => 'pending',
-            ]);
-            $message = 'Report submitted to supervisor successfully.';
-            $statusCode = 201;
-        }
+        $report = Report::create([
+            'visit_id' => $visit->id,
+            'supervisor_id' => $supervisorId,
+            'technician_notes' => $data['technician_notes'] ?? '',
+            'status' => 'pending',
+        ]);
+        $message = 'Report submitted successfully.';
+
+        $visit->status = 'completed';
+        $visit->completed_at = now();
+        $visit->completed_date = Carbon::today();
+        $visit->save();
 
         foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
             if (! $request->hasFile($key)) {
@@ -1334,7 +1329,7 @@ class TechnicianDashboardController extends Controller
                 'technician_notes' => $report->technician_notes,
                 'visit' => $report->visit,
             ],
-        ], $statusCode);
+        ], 201);
     }
 
     private function formatJobDetails(Visit $visit): array
@@ -1385,10 +1380,8 @@ class TechnicianDashboardController extends Controller
                 'other' => $photos->whereNotIn('type', ['before', 'after'])->values(),
             ],
             'actions' => [
-                'can_submit_field_report' => $visit->status === 'in_progress'
-                    && (! $visit->report || $visit->report->status !== 'approved'),
-                'can_complete_visit' => $visit->status === 'in_progress' && $visit->report && $visit->report->status === 'approved'
-                    || in_array($visit->status, ['completed', 'approved'], true),
+                'can_submit_field_report' => $visit->status === 'in_progress' && ! $visit->report,
+                'can_complete_visit' => false,
             ],
         ];
     }
