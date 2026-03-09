@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Area;
 use App\Models\Employee;
-use App\Models\Report;
 use App\Models\Subscription;
 use App\Models\TechnicianAvailability;
 use App\Models\User;
@@ -187,45 +186,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             'price' => 275.50,
         ]));
 
-        // 2 tasks already assigned to technician – technician sees these on his dashboard and can submit report to supervisor
-        $baseAssigned = [
-            'subscription_id' => $subscription->id,
-            'technician_id' => $technician->id,
-            'supervisor_id' => $supervisor->id,
-            'area_id' => null,
-        ];
-        $vIn1 = Visit::create(array_merge($baseAssigned, [
-            'scheduled_date' => $today->toDateString(),
-            'status' => 'in_progress',
-            'accepted_at' => $today->copy()->setTime(7, 45),
-            'started_at' => $today->copy()->setTime(8, 0),
-            'notes' => '[DUMMY-SUP-ASSIGN] Green Valley Farm | Tree Watering | Al Ain Oasis, Abu Dhabi, UAE | 90 min | AED 289.99',
-            'price' => 289.99,
-        ]));
-        $vIn2 = Visit::create(array_merge($baseAssigned, [
-            'scheduled_date' => $today->toDateString(),
-            'status' => 'in_progress',
-            'accepted_at' => $today->copy()->setTime(10, 30),
-            'started_at' => $today->copy()->setTime(10, 35),
-            'notes' => '[DUMMY-SUP-ASSIGN] Desert Palm Resort | Garden Cleaning | Abu Dhabi, UAE | 50 min | AED 145.50',
-            'price' => 145.50,
-        ]));
-
-        // 2 field reports (linked to supervisor_id) – supervisor sees these in Reports list
-        Report::create([
-            'visit_id' => $vIn1->id,
-            'supervisor_id' => $supervisor->id,
-            'technician_notes' => 'Tree watering completed for all zones. Soil moisture levels good.',
-            'status' => 'pending',
-        ]);
-        Report::create([
-            'visit_id' => $vIn2->id,
-            'supervisor_id' => $supervisor->id,
-            'technician_notes' => 'Garden cleaning completed. Removed dry fronds and trimmed hedges.',
-            'status' => 'pending',
-        ]);
-
-        $this->command->info('Dummy tasks seeded: 5 tasks for supervisor1@test.com (unassigned – visible in Assignments); 2 assigned to technician1 (in_progress, 2 reports visible to supervisor).');
+        $this->command->info('Dummy tasks seeded: 5 unassigned tasks for supervisor1@test.com. Supervisor assigns to technician; technician sees nothing in Today\'s Tasks until assigned.');
     }
 }
 
