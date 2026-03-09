@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateReportJob;
+use App\Models\AdminReport;
 use App\Models\Area;
 use App\Models\Order;
+use App\Models\Report;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Visit;
@@ -14,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class AreaManagerApiController extends Controller
@@ -127,6 +131,54 @@ class AreaManagerApiController extends Controller
         }
 
         return response()->json(['success' => true, 'data' => $alerts]);
+    }
+
+    /**
+     * GET /api/area-manager/region-map
+     * Data for Region Map screen: areas (id, name, location, country, active, done) and team leaders (id, name, location).
+     * React Native map can plot areas and supervisor pins from this single response.
+     */
+    public function regionMap(Request $request): JsonResponse
+    {
+        $areaIds = Area::pluck('id')->toArray();
+
+        $areas = Area::orderBy('name')->get()->map(function (Area $a) {
+            $visitQuery = Visit::where('area_id', $a->id);
+            $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
+            $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
+            return [
+                'id' => $a->id,
+                'name' => $a->name,
+                'location' => $a->location,
+                'country' => $a->country,
+                'active' => $active,
+                'done' => $done,
+            ];
+        })->values()->all();
+
+        $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        $teamLeaders = User::role('supervisor')
+            ->whereIn('id', $supervisorIds)
+            ->with('employee')
+            ->get()
+            ->map(function (User $u) {
+                $firstArea = $u->supervisedAreas()->first();
+                $location = $firstArea?->name ?? $firstArea?->location ?? $u->employee?->region ?? null;
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
+                    'location' => $location,
+                ];
+            })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'areas' => $areas,
+                'team_leaders' => $teamLeaders,
+            ],
+        ]);
     }
 
     /**
@@ -312,30 +364,162 @@ class AreaManagerApiController extends Controller
 
     /**
      * GET /api/area-manager/reports
-     * Recent region reports (placeholder until report storage exists).
+     * List visit reports for the region (reports submitted after visits in any area).
+     * Each item = one Report (visit report) with visit and area info.
      */
     public function reportsIndex(Request $request): JsonResponse
     {
-        $list = [];
-        return response()->json(['success' => true, 'data' => $list]);
+        $areaIds = Area::pluck('id')->toArray();
+        $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
+
+        $reports = Report::with(['visit.area', 'visit.technician:id,name', 'supervisor:id,name'])
+            ->whereHas('visit', function ($q) use ($areaIds) {
+                $q->whereIn('area_id', $areaIds);
+            })
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        $list = $reports->getCollection()->map(function (Report $r) {
+            $visit = $r->visit;
+            return [
+                'id' => $r->id,
+                'visit_id' => $r->visit_id,
+                'status' => $r->status,
+                'created_at' => $r->created_at?->toIso8601String(),
+                'scheduled_date' => $visit?->scheduled_date?->toDateString(),
+                'area_name' => $visit?->area?->name ?? null,
+                'technician_name' => $visit?->technician?->name ?? null,
+                'supervisor_name' => $r->supervisor?->name ?? null,
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $list,
+            'meta' => [
+                'current_page' => $reports->currentPage(),
+                'last_page' => $reports->lastPage(),
+                'per_page' => $reports->perPage(),
+                'total' => $reports->total(),
+            ],
+        ]);
     }
 
     /**
      * POST /api/area-manager/reports/generate
-     * Form-data: type, date_from, date_to. Stub: returns message; PDF generation can be added later.
+     * Form-data or JSON: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to.
+     * Creates AdminReport (pending), dispatches GenerateReportJob. Report file generated in background.
      */
     public function reportGenerate(Request $request): JsonResponse
     {
         $request->validate([
-            'type' => 'nullable|string|in:weekly_summary,team_performance,customer_satisfaction',
+            'type' => 'required|string|in:weekly_summary,team_performance,customer_satisfaction',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
+
+        $type = $request->input('type');
+        $dateFrom = $request->input('date_from') ?? Carbon::now()->startOfMonth()->toDateString();
+        $dateTo = $request->input('date_to') ?? Carbon::now()->endOfMonth()->toDateString();
+
+        $adminReportType = match ($type) {
+            'weekly_summary' => 'operational',
+            'team_performance' => 'performance',
+            'customer_satisfaction' => 'customer',
+            default => 'operational',
+        };
+        $title = ucfirst(str_replace('_', ' ', $type)) . ' (' . $dateFrom . ' to ' . $dateTo . ')';
+
+        $report = AdminReport::create([
+            'title' => $title,
+            'type' => $adminReportType,
+            'status' => 'pending',
+            'format' => 'pdf',
+            'parameters' => [
+                'start_date' => $dateFrom,
+                'end_date' => $dateTo,
+                'format' => 'pdf',
+            ],
+            'created_by' => $request->user()->id,
+        ]);
+
+        GenerateReportJob::dispatch($report);
+
         return response()->json([
             'success' => true,
-            'message' => 'Report generation requested. Feature can be extended to generate PDF.',
-            'data' => ['id' => null, 'status' => 'pending'],
-        ], 202);
+            'message' => 'Report generation started. You will be notified when it\'s ready. Check generated reports list for status.',
+            'data' => [
+                'id' => $report->id,
+                'title' => $report->title,
+                'status' => $report->status,
+                'created_at' => $report->created_at?->toIso8601String(),
+            ],
+        ], 201);
+    }
+
+    /**
+     * GET /api/area-manager/generated-reports
+     * List reports generated by this Area Manager (AdminReport where created_by = current user).
+     */
+    public function generatedReportsIndex(Request $request): JsonResponse
+    {
+        $reports = AdminReport::where('created_by', $request->user()->id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function (AdminReport $r) {
+                return [
+                    'id' => $r->id,
+                    'title' => $r->title,
+                    'type' => $r->type,
+                    'status' => $r->status,
+                    'generated_at' => $r->generated_at?->toIso8601String(),
+                    'created_at' => $r->created_at?->toIso8601String(),
+                    'download_url' => $r->status === 'generated' && $r->file_path
+                        ? url('/api/area-manager/generated-reports/' . $r->id . '/download')
+                        : null,
+                ];
+            })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $reports,
+            'meta' => ['total' => count($reports)],
+        ]);
+    }
+
+    /**
+     * GET /api/area-manager/generated-reports/{id}/download
+     * Download generated report file (only own reports, only when status = generated).
+     */
+    public function generatedReportDownload(Request $request, int $id)
+    {
+        $report = AdminReport::where('created_by', $request->user()->id)->findOrFail($id);
+        if ($report->status !== 'generated' || ! $report->file_path) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Report file is not available yet or generation failed.',
+            ], 404);
+        }
+        if (! Storage::disk('local')->exists($report->file_path)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Report file not found.',
+            ], 404);
+        }
+
+        $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: $report->format;
+        $mime = match (strtolower($ext)) {
+            'csv' => 'text/csv',
+            'xlsx', 'xls' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            default => 'application/pdf',
+        };
+        $filename = 'area-manager-report-' . $report->id . '.' . $ext;
+
+        return Storage::disk('local')->download(
+            $report->file_path,
+            $filename,
+            ['Content-Type' => $mime]
+        );
     }
 
     /**
