@@ -17,7 +17,6 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -1115,8 +1114,7 @@ class SupervisorDashboardApiController extends Controller
 
     /**
      * Single profile update API (form-data).
-     * Accepts: name, email, phone, profile_picture (file), password, password_confirmation.
-     * All fields optional. To change password send password + password_confirmation (no current_password).
+     * Accepts: name, email, phone, profile_picture (file), area_ids. All fields optional. No password fields.
      */
     public function updateProfile(Request $request): JsonResponse
     {
@@ -1132,7 +1130,6 @@ class SupervisorDashboardApiController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'password' => 'nullable|string|min:8|confirmed',
             'area_ids' => 'nullable|array',
             'area_ids.*' => 'integer|exists:areas,id',
         ];
@@ -1152,10 +1149,6 @@ class SupervisorDashboardApiController extends Controller
         }
         if ($request->has('phone')) {
             $user->phone = $request->input('phone') ?: null;
-        }
-
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->input('password'));
         }
 
         // Profile picture: POST has $request->file(); PUT + multipart must be parsed from raw body

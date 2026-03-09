@@ -14,7 +14,6 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class AreaManagerApiController extends Controller
@@ -303,8 +302,7 @@ class AreaManagerApiController extends Controller
 
     /**
      * PUT or POST /api/area-manager/profile
-     * Form-data only: name, email, phone, profile_picture (file), password, password_confirmation. All optional.
-     * Same as technician/supervisor: no current_password; profile_picture via multipart.
+     * Form-data only: name, email, phone, profile_picture (file). All optional. No password fields.
      */
     public function updateProfile(Request $request): JsonResponse
     {
@@ -321,7 +319,6 @@ class AreaManagerApiController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'password' => 'nullable|string|min:8|confirmed',
         ];
         if ($profileFile) {
             $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
@@ -343,9 +340,6 @@ class AreaManagerApiController extends Controller
                 $user->employee->phone = $user->phone;
                 $user->employee->save();
             }
-        }
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->input('password'));
         }
 
         if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {

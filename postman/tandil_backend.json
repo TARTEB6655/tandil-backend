@@ -5571,7 +5571,7 @@
                 },
                 {
                     "name": "E. Profile",
-                    "description": "GET profile (includes service_areas = zones). PUT/POST profile with form-data: name, email, phone, profile_picture, password, password_confirmation, area_ids[] (zone ids for service area). Supervisor sets their zones here; admin can also assign via Admin Areas API.",
+                    "description": "GET profile (includes service_areas = zones). PUT/POST profile with form-data: name, email, phone, profile_picture, area_ids[] (zone ids for service area). No password fields. Supervisor sets their zones here; admin can also assign via Admin Areas API.",
                     "item": [
                         {
                             "name": "Profile - Get",
@@ -5640,18 +5640,6 @@
                                             "description": "Optional. Add file to update photo."
                                         },
                                         {
-                                            "key": "password",
-                                            "value": "",
-                                            "type": "text",
-                                            "description": "Optional. New password (min 8 chars). Send with password_confirmation; no current_password required."
-                                        },
-                                        {
-                                            "key": "password_confirmation",
-                                            "value": "",
-                                            "type": "text",
-                                            "description": "Required when changing password; must match password."
-                                        },
-                                        {
                                             "key": "area_ids[0]",
                                             "value": "1",
                                             "type": "text",
@@ -5670,7 +5658,7 @@
                                         "profile"
                                     ]
                                 },
-                                "description": "Profile update (form-data). Optional: name, email, phone, profile_picture, password, password_confirmation, area_ids[0], area_ids[1], ... (zone ids = service areas). Supervisor sets their zones; response includes service_areas."
+                                "description": "Profile update (form-data). Optional: name, email, phone, profile_picture, area_ids[0], area_ids[1], ... (zone ids = service areas). No password fields. Supervisor sets their zones; response includes service_areas."
                             }
                         },
                         {
@@ -6647,9 +6635,7 @@
                                 { "key": "name", "value": "Fatima Al Zaabi", "type": "text" },
                                 { "key": "email", "value": "areamanager1@test.com", "type": "text" },
                                 { "key": "phone", "value": "+971500000031", "type": "text" },
-                                { "key": "profile_picture", "type": "file", "src": [], "description": "Optional image file" },
-                                { "key": "password", "value": "", "type": "text", "description": "Optional; use with password_confirmation" },
-                                { "key": "password_confirmation", "value": "", "type": "text" }
+                                { "key": "profile_picture", "type": "file", "src": [], "description": "Optional image file" }
                             ]
                         },
                         "url": {
@@ -6657,7 +6643,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "profile"]
                         },
-                        "description": "Update profile. PUT or POST /api/area-manager/profile. Form-data only: name, email, phone, profile_picture (file), password, password_confirmation. All optional. Same as technician/supervisor."
+                        "description": "Update profile. PUT or POST /api/area-manager/profile. Form-data only: name, email, phone, profile_picture (file). All optional. No password fields."
                     }
                 }
             ]
@@ -6827,18 +6813,6 @@
                                     "key": "profile_picture",
                                     "type": "file",
                                     "description": "Optional: image file (jpeg,png,gif,webp) for profile picture"
-                                },
-                                {
-                                    "key": "password",
-                                    "value": "",
-                                    "type": "text",
-                                    "description": "Optional: new password (min 8 chars)"
-                                },
-                                {
-                                    "key": "password_confirmation",
-                                    "value": "",
-                                    "type": "text",
-                                    "description": "Required when password is set"
                                 }
                             ]
                         },
@@ -6854,7 +6828,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "Update admin profile: name, email, phone, profile_picture, password. **Form-data only (not JSON).** No current_password; to change password send password + password_confirmation only. For profile picture set key profile_picture, type File. If you send Content-Type: application/json the API returns 415. Response: same shape as GET profile with updated data."
+                        "description": "Update admin/HR profile: name, email, phone, profile_picture. **Form-data only (not JSON).** No password fields. For profile picture set key profile_picture, type File. If you send Content-Type: application/json the API returns 415. Response: same shape as GET profile with updated data."
                     }
                 },
                 {

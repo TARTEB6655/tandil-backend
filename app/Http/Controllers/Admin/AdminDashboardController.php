@@ -23,7 +23,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ProfilePictureUploadService;
@@ -1150,9 +1149,8 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * PUT/POST /api/admin/dashboard/profile - Update admin profile (name, email, phone, profile_picture, password).
-     * Body: form-data only. No current_password; to change password send password + password_confirmation only.
-     * Use POST with multipart/form-data when uploading profile_picture so PHP parses the file.
+     * PUT/POST /api/admin/dashboard/profile - Update admin/HR profile (name, email, phone, profile_picture).
+     * Body: form-data only. No password fields. Use POST with multipart when uploading profile_picture.
      */
     public function updateProfile(Request $request)
     {
@@ -1179,7 +1177,6 @@ class AdminDashboardController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:50',
-            'password' => 'nullable|string|min:8|confirmed',
         ];
         if ($profileFile || $storedFromPut) {
             $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp';
@@ -1189,9 +1186,6 @@ class AdminDashboardController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->input('password'));
-        }
         if ($request->has('name')) {
             $user->name = $request->input('name');
         }
