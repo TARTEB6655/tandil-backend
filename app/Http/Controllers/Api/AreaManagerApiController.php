@@ -117,6 +117,15 @@ class AreaManagerApiController extends Controller
             ];
         }
 
+        // Fallback: when no warnings, return a single info alert so UI always has something to show
+        if (empty($alerts)) {
+            $alerts[] = [
+                'type' => 'info',
+                'message' => 'No alerts at this time. All visits and subscriptions are on track.',
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ];
+        }
+
         return response()->json(['success' => true, 'data' => $alerts]);
     }
 
