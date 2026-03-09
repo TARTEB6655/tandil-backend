@@ -282,6 +282,23 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
 
 /*
 |--------------------------------------------------------------------------
+| AREA MANAGER ROUTES (mobile dashboard: summary, alerts, team leaders)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')->group(function () {
+    Route::get('/dashboard/summary', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'dashboardSummary']);
+    Route::get('/dashboard/alerts', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'dashboardAlerts']);
+    Route::get('/team-leaders', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaders']);
+    Route::get('/team-leaders/{id}', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderShow']);
+    Route::get('/analytics', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'analytics']);
+    Route::get('/reports', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportsIndex']);
+    Route::post('/reports/generate', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportGenerate']);
+    Route::get('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'profile']);
+    Route::put('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'updateProfile']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
 */

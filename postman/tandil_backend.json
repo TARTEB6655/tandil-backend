@@ -6477,6 +6477,183 @@
             "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
+            "name": "Area Manager Dashboard",
+            "description": "Area Manager mobile dashboard. Auth: Bearer token (area_manager). Dashboard: summary (profile, total_farms, active_subscriptions, monthly_revenue), region alerts, team leaders (supervisors) with performance %, team/active/done. Use team_leaders[].id in Team Leader - Detail.",
+            "item": [
+                {
+                    "name": "Dashboard - Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/dashboard/summary",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "dashboard", "summary"]
+                        },
+                        "description": "Profile + KPIs for Area Manager dashboard. Response: name, id (AM-xxx), role, region (employee.region), profile_picture_url, total_farms (areas count), active_subscriptions, monthly_revenue."
+                    }
+                },
+                {
+                    "name": "Dashboard - Alerts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/dashboard/alerts",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "dashboard", "alerts"]
+                        },
+                        "description": "Region alerts. Returns data array (placeholder until alerts table; empty for now)."
+                    }
+                },
+                {
+                    "name": "Team Leaders - List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/team-leaders",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "team-leaders"]
+                        },
+                        "description": "List supervisors (team leaders) with performance %, team size, active, done. Use data[].id in Team Leader - Detail. Response: id, name, employee_id, initial, performance_percent, team, active, done."
+                    }
+                },
+                {
+                    "name": "Team Leader - Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/team-leaders/{{team_leader_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "team-leaders", "{{team_leader_id}}"]
+                        },
+                        "description": "Single team leader (supervisor) detail. Set team_leader_id from Team Leaders - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture_url, performance_percent, team, active, done."
+                    }
+                },
+                {
+                    "name": "Areas - List (Area Manager)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/areas",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "areas"]
+                        },
+                        "description": "List all areas (Area Manager only). GET /api/areas. Response: success, data (areas with supervisors, technicians, visits)."
+                    }
+                },
+                {
+                    "name": "Analytics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/analytics?period=week",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "analytics"],
+                            "query": [{ "key": "period", "value": "week", "description": "today | week | month" }]
+                        },
+                        "description": "Analytics for Area Manager. GET /api/area-manager/analytics?period=week. Response: visits, completion_percent, avg_time_minutes, active_teams, weekly_trend (array of date/count), top_teams (supervisors with visits count)."
+                    }
+                },
+                {
+                    "name": "Reports - List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/reports",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "reports"]
+                        },
+                        "description": "Recent region reports. GET /api/area-manager/reports. Returns data array (placeholder until report storage)."
+                    }
+                },
+                {
+                    "name": "Reports - Generate",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"weekly_summary\",\n  \"date_from\": \"2026-03-01\",\n  \"date_to\": \"2026-03-07\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/reports/generate",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "reports", "generate"]
+                        },
+                        "description": "Request report generation. POST /api/area-manager/reports/generate. Body: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to. Stub returns 202; PDF generation can be added later."
+                    }
+                },
+                {
+                    "name": "Profile - Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "profile"]
+                        },
+                        "description": "Area Manager profile. GET /api/area-manager/profile. Response: name, email, phone, id, profile_picture_url, rating, jobs_completed, total_earnings, member_since, specializations, service_area."
+                    }
+                },
+                {
+                    "name": "Profile - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Fatima Al Zaabi\",\n  \"email\": \"areamanager1@test.com\",\n  \"phone\": \"+971500000031\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "profile"]
+                        },
+                        "description": "Update profile. PUT /api/area-manager/profile. Body: name, email, phone (optional)."
+                    }
+                }
+            ]
+        },
+        {
             "name": "11. Admin Dashboard – Stats, Users & HR",
             "item": [
                 {
