@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Area;
 use App\Models\Employee;
+use App\Models\Report;
 use App\Models\Subscription;
 use App\Models\TechnicianAvailability;
 use App\Models\User;
