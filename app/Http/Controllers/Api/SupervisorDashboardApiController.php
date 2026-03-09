@@ -40,6 +40,21 @@ class SupervisorDashboardApiController extends Controller
         });
     }
 
+    /** Visits for a specific technician that this supervisor can see (in my areas OR assigned by me). */
+    private function memberVisitsQuery(Request $request, int $technicianId)
+    {
+        $areaIds = $this->areaIds($request);
+        $supervisorId = $request->user()->id;
+        return Visit::query()
+            ->where('technician_id', $technicianId)
+            ->where(function ($q) use ($areaIds, $supervisorId) {
+                if (! empty($areaIds)) {
+                    $q->whereIn('area_id', $areaIds);
+                }
+                $q->orWhere('supervisor_id', $supervisorId);
+            });
+    }
+
     /** Visits that need supervisor action: unassigned, pending/scheduled, or escalated after auto-dispatch failures. */
     private function assignableVisitsQuery(Request $request)
     {
@@ -214,7 +229,8 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
-     * GET /api/supervisor/team/{id} – Single team member detail by id (must be in supervisor's zones).
+     * GET /api/supervisor/team/{id} – Single team member detail + their jobs (in_progress, completed).
+     * Member must be in supervisor's zones. Jobs include visits in supervisor's scope (areas or assigned by supervisor).
      */
     public function teamMemberShow(Request $request, int $id): JsonResponse
     {
@@ -228,17 +244,51 @@ class SupervisorDashboardApiController extends Controller
         $today = $now->toDateString();
         $u = User::role('technician')
             ->where('id', $id)
-            ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
+            ->with(['employee', 'technicianAvailability'])
             ->firstOrFail();
 
-        $data = $this->mapTeamMemberToArray($u, $areaIds, $now, $today);
+        $memberVisits = $this->memberVisitsQuery($request, $id)
+            ->with(['subscription.client', 'area'])
+            ->orderByDesc('scheduled_date')
+            ->get();
+        $u->setRelation('visits', $memberVisits);
+
+        $data = $this->mapTeamMemberToArray($u, $areaIds, $now, $today, true);
         $data['email'] = $u->email;
         $data['phone'] = $u->phone;
+        $data['jobs'] = $this->formatMemberJobsForResponse($memberVisits);
 
         return response()->json([
             'success' => true,
             'data' => $data,
         ]);
+    }
+
+    /**
+     * Format member's visits as jobs list: in_progress and completed for supervisor team member detail.
+     */
+    private function formatMemberJobsForResponse(\Illuminate\Support\Collection $visits): array
+    {
+        $inProgress = $visits->where('status', 'in_progress')->values();
+        $completed = $visits->whereIn('status', ['completed', 'approved'])->values();
+
+        $format = function ($v) {
+            $meta = $v->notes ? $this->parseVisitMetaFromNotes((string) $v->notes) : [];
+            return [
+                'visit_id' => $v->id,
+                'status' => $v->status,
+                'location' => $meta['farm_name'] ?? $v->subscription?->client?->name ?? $v->area?->name ?? null,
+                'service' => $meta['service_name'] ?? ($v->subscription?->plan ? str_replace('_', ' ', (string) $v->subscription->plan) : null) ?? 'Visit',
+                'scheduled_date' => $v->scheduled_date?->toDateString(),
+                'completed_at' => $v->completed_at?->toIso8601String(),
+                'duration_minutes' => $meta['duration_minutes'] ?? null,
+            ];
+        };
+
+        return [
+            'in_progress' => $inProgress->map($format)->values()->all(),
+            'completed' => $completed->map($format)->values()->all(),
+        ];
     }
 
     /**
@@ -300,7 +350,7 @@ class SupervisorDashboardApiController extends Controller
         if ($technicianIds->isNotEmpty()) {
             $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             foreach ($technicians as $u) {
-                $memberVisits = Visit::where('technician_id', $u->id)->whereIn('area_id', $areaIds)->whereIn('status', ['completed', 'approved'])->get();
+                $memberVisits = $this->memberVisitsQuery($request, $u->id)->whereIn('status', ['completed', 'approved'])->get();
                 $completed = $memberVisits->count();
                 $memberRatings = [];
                 foreach ($memberVisits as $v) {
@@ -333,9 +383,9 @@ class SupervisorDashboardApiController extends Controller
         ]);
     }
 
-    private function mapTeamMemberToArray(User $u, array $areaIds, Carbon $now, string $today): array
+    private function mapTeamMemberToArray(User $u, array $areaIds, Carbon $now, string $today, bool $useAllVisits = false): array
     {
-        $visits = $u->visits->whereIn('area_id', $areaIds);
+        $visits = $useAllVisits ? $u->visits : $u->visits->whereIn('area_id', $areaIds);
         $totalTasks = $visits->count();
         $completedTasks = $visits->whereIn('status', ['completed', 'approved'])->count();
         $currentVisit = $visits->where('status', 'in_progress')->first();
@@ -719,6 +769,7 @@ class SupervisorDashboardApiController extends Controller
     public function reportsIndex(Request $request): JsonResponse
     {
         $query = $this->reportsForSupervisorQuery($request)
+            ->whereNot('status', 'sent_to_client') // exclude reports already sent to client
             ->where(function ($q) {
                 $q->whereHas('visit', fn ($v) => $v->where('status', 'in_progress'))
                     ->orWhere(function ($q2) {

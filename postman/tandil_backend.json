@@ -5109,11 +5109,11 @@
                                     { "key": "Accept", "value": "application/json" }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/supervisor/team/{{technician_id}}",
+                                    "raw": "{{base_url}}/api/supervisor/team/{{member_id}}",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "team", "{{technician_id}}"]
+                                    "path": ["api", "supervisor", "team", "{{member_id}}"]
                                 },
-                                "description": "Single team member detail by id. GET /api/supervisor/team/:id. Only returns if technician is in supervisor's zones. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone. Set technician_id (e.g. from My Team list)."
+                                "description": "Member detail when supervisor clicks a member from Team Stats. GET /api/supervisor/team/{{member_id}}. Set **member_id** = id from Team Stats response (GET team-stats) → data.members[].id. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone, and **jobs** { in_progress: [...], completed: [...] } with visit_id, status, location, service, scheduled_date, completed_at, duration_minutes. Member must be in supervisor's zones."
                             }
                         },
                         {
