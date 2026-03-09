@@ -72,4 +72,21 @@ class ProfilePictureUploadService
         $base = rtrim(request()->getSchemeAndHttpHost() ?: config('app.url', ''), '/');
         return $base ? ($base . '/media/' . $path) : null;
     }
+
+    /**
+     * Full URL for profile picture, or default avatar URL when path is null (for APIs that must always return an image URL).
+     * When path is null, returns a generated avatar with initial (e.g. ui-avatars.com) so no server file is needed.
+     *
+     * @param  string|null  $path  Stored profile picture path
+     * @param  string  $initial  Letter for default avatar (e.g. first letter of name)
+     */
+    public static function fullUrlOrDefault(?string $path, string $initial = 'U'): string
+    {
+        $url = self::fullUrl($path);
+        if ($url !== null) {
+            return $url;
+        }
+        $letter = mb_substr(trim($initial), 0, 1) ?: 'U';
+        return 'https://ui-avatars.com/api/?name=' . urlencode(mb_strtoupper($letter)) . '&size=128&background=94a3b8&color=fff';
+    }
 }
