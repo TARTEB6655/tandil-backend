@@ -6491,7 +6491,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "dashboard", "alerts"]
                         },
-                        "description": "Region alerts. Returns data array: type (warning|info), message, timestamp. When no issues, one info alert returned."
+                        "description": "Region alerts. data[]: type (warning|info), message, timestamp. Alerts: overdue visits, expiring subscriptions, stuck visits, workers on leave. leave_by_supervisor[]: supervisor_id, supervisor_name, on_leave (for UI: 'Supervisor X has N on leave'). When no issues, one info alert returned."
                     }
                 },
                 {

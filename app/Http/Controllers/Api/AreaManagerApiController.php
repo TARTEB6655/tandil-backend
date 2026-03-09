@@ -9,6 +9,7 @@ use App\Models\Area;
 use App\Models\Order;
 use App\Models\Report;
 use App\Models\Subscription;
+use App\Models\TechnicianVacation;
 use App\Models\User;
 use App\Models\Visit;
 use App\Services\ImageCompressionService;
@@ -67,8 +68,8 @@ class AreaManagerApiController extends Controller
 
     /**
      * GET /api/area-manager/dashboard/alerts
-     * System-generated alerts for the region: overdue visits, expiring subscriptions, stuck visits.
-     * Filled by backend from Visit & Subscription data (no separate alerts table).
+     * System-generated alerts: overdue visits, expiring subscriptions, stuck visits, workers on leave.
+     * Also returns leave_by_supervisor so UI can show "Supervisor X has N on leave".
      */
     public function dashboardAlerts(Request $request): JsonResponse
     {
@@ -121,6 +122,48 @@ class AreaManagerApiController extends Controller
             ];
         }
 
+        // 4) Workers on leave (technicians in region whose leave covers today)
+        $technicianIdsInRegion = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        $onLeaveToday = TechnicianVacation::whereIn('user_id', $technicianIdsInRegion)
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->count();
+        if ($onLeaveToday > 0) {
+            $alerts[] = [
+                'type' => 'warning',
+                'message' => $onLeaveToday === 1
+                    ? '1 worker is on leave today.'
+                    : "{$onLeaveToday} workers are on leave today.",
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ];
+        }
+
+        // Leave by supervisor (for UI: "Supervisor X has N on leave")
+        $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        $leaveBySupervisor = [];
+        foreach ($supervisorIds as $supId) {
+            $u = User::find($supId);
+            if (! $u) {
+                continue;
+            }
+            $supAreaIds = $u->supervisedAreaIds();
+            if (empty($supAreaIds)) {
+                continue;
+            }
+            $techIds = DB::table('area_technician')->whereIn('area_id', $supAreaIds)->distinct()->pluck('user_id');
+            $count = TechnicianVacation::whereIn('user_id', $techIds)
+                ->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today)
+                ->count();
+            if ($count > 0) {
+                $leaveBySupervisor[] = [
+                    'supervisor_id' => $u->id,
+                    'supervisor_name' => $u->name,
+                    'on_leave' => $count,
+                ];
+            }
+        }
+
         // Fallback: when no warnings, return a single info alert so UI always has something to show
         if (empty($alerts)) {
             $alerts[] = [
@@ -130,7 +173,11 @@ class AreaManagerApiController extends Controller
             ];
         }
 
-        return response()->json(['success' => true, 'data' => $alerts]);
+        return response()->json([
+            'success' => true,
+            'data' => $alerts,
+            'leave_by_supervisor' => $leaveBySupervisor,
+        ]);
     }
 
     /**
