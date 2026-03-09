@@ -6523,7 +6523,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "team-leaders"]
                         },
-                        "description": "List supervisors (team leaders) with performance %, team size, active, done. Use data[].id in Team Leader - Detail. Response: id, name, employee_id, initial, performance_percent, team, active, done."
+                        "description": "List supervisors (team leaders) with performance %, team size, active, done, profile pic. Use data[].id in Team Leader - Detail. Response: id, name, employee_id, initial, profile_picture, profile_picture_url, location, performance_percent, team, active, done."
                     }
                 },
                 {
