@@ -292,15 +292,16 @@ class AreaManagerApiController extends Controller
         }
 
         $areaIds = $u->supervisedAreaIds();
-        $teamCount = empty($areaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->count('user_id');
-        $visitQuery = Visit::where(function ($q) use ($u, $areaIds) {
-            $q->where('supervisor_id', $u->id);
-            if (! empty($areaIds)) {
-                $q->orWhereIn('area_id', $areaIds);
-            }
-        });
-        $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
-        $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
+        $technicianIds = empty($areaIds) ? collect() : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        $teamCount = $technicianIds->count();
+        // Count only visits assigned to this team's technicians in these areas, so team active/done = sum of members' active/done.
+        $activeCount = 0;
+        $doneCount = 0;
+        if ($technicianIds->isNotEmpty()) {
+            $visitQuery = Visit::whereIn('area_id', $areaIds)->whereIn('technician_id', $technicianIds->all());
+            $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+            $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
+        }
         $total = $activeCount + $doneCount;
         $performance = $total > 0 ? round(($doneCount / $total) * 100, 0) : 0;
         $initial = mb_substr(trim($u->name), 0, 1) ?: '?';
@@ -587,8 +588,25 @@ class AreaManagerApiController extends Controller
     public function analytics(Request $request): JsonResponse
     {
         $period = $request->get('period', 'week');
-        $areaIds = Area::pluck('id')->toArray();
+        // Area Manager analytics should be scoped to this manager's assigned areas.
+        // Using all areas would inflate counts across the whole system.
+        $areaIds = $request->user()->supervisedAreaIds();
         $now = Carbon::now();
+
+        if (empty($areaIds)) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'period' => $period,
+                    'visits' => 0,
+                    'completion_percent' => 0,
+                    'avg_time_minutes' => 0,
+                    'active_teams' => 0,
+                    'weekly_trend' => [],
+                    'top_teams' => [],
+                ],
+            ]);
+        }
 
         if ($period === 'today') {
             $start = $now->copy()->startOfDay();
@@ -601,18 +619,14 @@ class AreaManagerApiController extends Controller
             $end = $now;
         }
 
-        // Count visits in period: scheduled_date in range OR created_at in range. Include area_id in list OR null (unassigned).
+        // Count visits in period: scheduled_date in range OR created_at in range. Only include visits in this manager's areas.
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
         $startDt = $start->copy()->startOfDay();
         $endDt = $end->copy()->endOfDay();
 
         $visitQuery = Visit::query()
-            ->when(! empty($areaIds), function ($q) use ($areaIds) {
-                $q->where(function ($q2) use ($areaIds) {
-                    $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
-                });
-            })
+            ->whereIn('area_id', $areaIds)
             ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
                 $q->whereBetween('scheduled_date', [$startDate, $endDate])
                     ->orWhereBetween('created_at', [$startDt, $endDt]);
@@ -622,11 +636,7 @@ class AreaManagerApiController extends Controller
         $completionPercent = $visitsCount > 0 ? round(($completedCount / $visitsCount) * 100, 0) : 0;
 
         $completedVisits = Visit::query()
-            ->when(! empty($areaIds), function ($q) use ($areaIds) {
-                $q->where(function ($q2) use ($areaIds) {
-                    $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
-                });
-            })
+            ->whereIn('area_id', $areaIds)
             ->whereIn('status', ['completed', 'approved'])
             ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
                 $q->whereBetween('scheduled_date', [$startDate, $endDate])
@@ -647,11 +657,7 @@ class AreaManagerApiController extends Controller
                 $day = $now->copy()->subDays($i);
                 $dayStr = $day->toDateString();
                 $count = Visit::query()
-                    ->when(! empty($areaIds), function ($q) use ($areaIds) {
-                        $q->where(function ($q2) use ($areaIds) {
-                            $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
-                        });
-                    })
+                    ->whereIn('area_id', $areaIds)
                     ->where(function ($q) use ($dayStr) {
                         $q->whereDate('scheduled_date', $dayStr)->orWhereDate('created_at', $dayStr);
                     })
@@ -663,11 +669,7 @@ class AreaManagerApiController extends Controller
             for ($d = $monthStart->copy(); $d->lte($now); $d->addDay()) {
                 $dayStr = $d->toDateString();
                 $count = Visit::query()
-                    ->when(! empty($areaIds), function ($q) use ($areaIds) {
-                        $q->where(function ($q2) use ($areaIds) {
-                            $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
-                        });
-                    })
+                    ->whereIn('area_id', $areaIds)
                     ->where(function ($q) use ($dayStr) {
                         $q->whereDate('scheduled_date', $dayStr)->orWhereDate('created_at', $dayStr);
                     })
