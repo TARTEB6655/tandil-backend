@@ -92,15 +92,73 @@ class GenerateReportJob implements ShouldQueue
         }
     }
 
-    /** Wrap plain text report content in HTML for PDF rendering. */
+    /** Wrap plain text report content in styled HTML for PDF rendering (colorful, professional). */
     protected function wrapContentAsHtml(string $text): string
     {
-        $escaped = htmlspecialchars($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $lines = str_replace("\n", '<br>', $escaped);
+        $lines = explode("\n", $text);
+        $out = '';
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            $escaped = htmlspecialchars($line, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($trimmed === '') {
+                $out .= '<div class="spacer"></div>';
+                continue;
+            }
+            if ($trimmed === '---') {
+                $out .= '<hr class="divider"/>';
+                continue;
+            }
+            if (preg_match('/^(WEEKLY SUMMARY|TEAM PERFORMANCE|CUSTOMER SATISFACTION)$/', $trimmed)) {
+                $out .= '<h1 class="report-title">' . htmlspecialchars($trimmed, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</h1>';
+                continue;
+            }
+            if (preg_match('/^Report:\s|^Period:\s|^Generated at:\s/', $trimmed)) {
+                $out .= '<p class="meta">' . $escaped . '</p>';
+                continue;
+            }
+            if (preg_match('/^Supervisor:\s+.+\(ID:/', $trimmed)) {
+                $out .= '<h2 class="supervisor-name">' . $escaped . '</h2>';
+                continue;
+            }
+            if (preg_match('/^\s+Team size:|^\s+No areas assigned/', $trimmed)) {
+                $out .= '<p class="stat-line">' . $escaped . '</p>';
+                continue;
+            }
+            if (preg_match('/^Visit #\d+/', $trimmed)) {
+                $out .= '<p class="visit-detail">' . $escaped . '</p>';
+                continue;
+            }
+            if (preg_match('/^Visit details|^By day \(scheduled|^By area:$|^Customers who had/', $trimmed)) {
+                $out .= '<h3 class="section-head">' . $escaped . '</h3>';
+                continue;
+            }
+            if (preg_match('/^Total visits|^Visits completed|^Completion %|^Revenue generated/', $trimmed)) {
+                $out .= '<p class="metric-line">' . $escaped . '</p>';
+                continue;
+            }
+            if (preg_match('/^  \d+ \w+ \d{4}:|^  [A-Za-z].+:\s*\d+$/', $trimmed) || preg_match('/^  [A-Za-z0-9 #\-]+:\s*\d+/', $trimmed)) {
+                $out .= '<p class="stat-item">' . $escaped . '</p>';
+                continue;
+            }
+            $out .= '<p class="body">' . $escaped . '</p>';
+        }
 
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report</title>' .
-            '<style>body{ font-family: DejaVu Sans, sans-serif; font-size: 11px; padding: 20px; line-height: 1.4; }</style></head>' .
-            '<body><pre style="white-space: pre-wrap; margin:0;">' . $lines . '</pre></body></html>';
+        $css = '
+            body { font-family: DejaVu Sans, sans-serif; font-size: 10pt; padding: 24px; line-height: 1.5; color: #1f2937; }
+            .report-title { color: #1e40af; font-size: 16pt; margin: 0 0 12px 0; padding-bottom: 6px; border-bottom: 2px solid #3b82f6; }
+            .meta { color: #6b7280; font-size: 9pt; margin: 2px 0; }
+            .divider { border: none; border-top: 1px solid #e5e7eb; margin: 12px 0; }
+            .supervisor-name { color: #059669; font-size: 11pt; margin: 14px 0 4px 0; }
+            .stat-line { color: #0369a1; margin: 2px 0 8px 0; padding-left: 8px; }
+            .section-head { color: #4f46e5; font-size: 10pt; margin: 12px 0 6px 0; }
+            .stat-item { margin: 2px 0; padding-left: 12px; color: #374151; }
+            .metric-line { margin: 4px 0; padding: 4px 8px; background: #eff6ff; color: #1e40af; font-weight: bold; }
+            .visit-detail { margin: 4px 0; padding: 6px 8px; background: #f3f4f6; border-left: 3px solid #6366f1; font-size: 9pt; }
+            .body { margin: 4px 0; }
+            .spacer { height: 6px; }
+            h1, h2, h3 { page-break-after: avoid; }
+        ';
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report</title><style>' . $css . '</style></head><body>' . $out . '</body></html>';
     }
 
     /** Build report content for a given report and date range (used by web download-as-CSV). */
@@ -247,7 +305,7 @@ class GenerateReportJob implements ShouldQueue
         return implode("\n", $lines);
     }
 
-    /** Team Performance: supervisor-wise performance. Visits scoped by area → supervisor → technician, scheduled_date. */
+    /** Team Performance: supervisor-wise. Same logic as API teamLeaders (no date filter) so PDF matches dashboard. */
     protected function buildTeamPerformanceContent(AdminReport $report, Carbon $start, Carbon $end, array $areaIds): string
     {
         $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
@@ -275,10 +333,12 @@ class GenerateReportJob implements ShouldQueue
                 $lines[] = '';
                 continue;
             }
-            $visitQuery = Visit::whereNotNull('area_id')->whereNotNull('technician_id')
-                ->whereIn('area_id', $supAreaIds)
-                ->whereBetween('scheduled_date', [$start->toDateString(), $end->toDateString()]);
-            $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
+            // Same as API teamLeaders: all visits in supervisor scope (no scheduled_date filter)
+            $visitQuery = Visit::where(function ($q) use ($u, $supAreaIds) {
+                $q->where('supervisor_id', $u->id);
+                $q->orWhereIn('area_id', $supAreaIds);
+            });
+            $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
             $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
             $total = $active + $done;
             $performance = $total > 0 ? round(($done / $total) * 100, 0) : 0;
