@@ -74,9 +74,10 @@
                                 <span class="px-2 py-1 text-xs font-medium rounded-full 
                                     @if($report->status === 'approved') bg-green-100 text-green-800
                                     @elseif($report->status === 'pending') bg-yellow-100 text-yellow-800
+                                    @elseif($report->status === 'sent_to_client') bg-sky-100 text-sky-800
                                     @else bg-gray-100 text-gray-800
                                     @endif">
-                                    {{ ucfirst($report->status ?? 'pending') }}
+                                    {{ \Illuminate\Support\Str::title(str_replace('_', ' ', $report->status ?? 'pending')) }}
                                 </span>
                             </td>
                             <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden lg:table-cell">

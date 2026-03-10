@@ -6460,7 +6460,7 @@
         },
         {
             "name": "11. Area Manager Dashboard",
-            "description": "Area Manager mobile dashboard. Auth: Bearer token (area_manager). Dashboard: summary (profile, total_farms, active_subscriptions, monthly_revenue), region alerts, team leaders (supervisors) with performance % (supervisor-wise), team/active/done. Reports: Weekly Summary (operational), Team Performance (by supervisor), Customer Satisfaction (customers with no feedback + message). Generate PDF flow: select type + date range → POST reports/generate → open Generated Reports list to see status and download when ready. Use team_leaders[].id in Team Leader - Detail.",
+            "description": "Area Manager mobile dashboard. Auth: Bearer token (area_manager). Use /teams APIs for All Teams flow (no team-leaders naming to avoid confusion). Flow: (1) All Teams screen → GET /teams. (2) Click team → GET /teams/{id}/members. (3) Click member → GET /teams/members/{id}/jobs. Reports: Generate PDF, generated-reports list/download.",
             "item": [
                 {
                     "name": "Dashboard - Summary",
@@ -6511,7 +6511,23 @@
                     }
                 },
                 {
-                    "name": "Team Leaders - List",
+                    "name": "Teams - List (All Teams screen)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams"]
+                        },
+                        "description": "List all teams (All Teams screen). Response: data[] with id, name, employee_id, initial, profile_picture_url, location, performance_percent, team, active, done. Use data[].id in Teams - Members and Teams - Detail. Prefer this over team-leaders to avoid confusion."
+                    }
+                },
+                {
+                    "name": "Team Leaders - List (legacy)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6523,11 +6539,63 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "team-leaders"]
                         },
-                        "description": "List supervisors (team leaders) with performance %, team size, active, done, profile pic. Use data[].id in Team Leader - Detail. Response: id, name, employee_id, initial, profile_picture, profile_picture_url, location, performance_percent, team, active, done."
+                        "description": "Legacy: same as Teams - List. Prefer GET /teams."
                     }
                 },
                 {
-                    "name": "Team Leader - Detail",
+                    "name": "Teams - Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams/{{team_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams", "{{team_id}}"]
+                        },
+                        "description": "Single team detail. Set team_id from Teams - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture_url, location, performance_percent, team, active, done."
+                    }
+                },
+                {
+                    "name": "Teams - Members (click team on All Teams)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams/{{team_id}}/members",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams", "{{team_id}}", "members"]
+                        },
+                        "description": "Team members for this team (second screen after clicking a team). Response: data.team_leader (id, name, employee_id, location), data.members[] (id, name, employee_id, area_names, linked_to, active, done). Use members[].id in Teams - Member Jobs."
+                    }
+                },
+                {
+                    "name": "Teams - Member Jobs (click member → Jobs screen)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams/members/{{member_id}}/jobs?status=processing",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams", "members", "{{member_id}}", "jobs"],
+                            "query": [
+                                { "key": "status", "value": "processing", "description": "processing | all | completed" },
+                                { "key": "per_page", "value": "20", "description": "Optional" }
+                            ]
+                        },
+                        "description": "Jobs for this team member (e.g. Omar Hassan – 3 jobs: Done, In progress, Scheduled). Set member_id from Teams - Members data.members[].id. Response: data.team_member, data.jobs[] (status, status_display, is_processing, client_name, area_name, scheduled_date)."
+                    }
+                },
+                {
+                    "name": "Team Leader - Detail (legacy)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6539,7 +6607,27 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "team-leaders", "{{team_leader_id}}"]
                         },
-                        "description": "Single team leader (supervisor) detail. Set team_leader_id from Team Leaders - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture, profile_picture_url, location, performance_percent, team, active, done."
+                        "description": "Legacy: same as Teams - Detail. Prefer GET /teams/{id}."
+                    }
+                },
+                {
+                    "name": "Team Leader - Jobs (legacy)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/team-leaders/{{team_leader_id}}/jobs?status=processing",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "team-leaders", "{{team_leader_id}}", "jobs"],
+                            "query": [
+                                { "key": "status", "value": "processing", "description": "processing (default) | all | completed" },
+                                { "key": "per_page", "value": "20", "description": "Optional, default 20" }
+                            ]
+                        },
+                        "description": "List jobs (visits) for this team leader. Default: processing only (pending, scheduled, in_progress). Use team_leader_id from Team Leaders list. Response: data.team_leader (id, name, employee_id), data.jobs[] (id, visit_id, status, scheduled_date, client_name, area_name, technician_name), meta (pagination)."
                     }
                 },
                 {

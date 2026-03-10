@@ -1,5 +1,5 @@
 @php
-    use Illuminate\Support\Facades\Storage;
+    use App\Services\ProfilePictureUploadService;
 @endphp
 <x-areamanager-layout>
     <!-- Page Header -->
@@ -25,9 +25,10 @@
                     <span class="px-3 py-1 text-xs sm:text-sm font-medium rounded-full 
                         @if($report->status === 'approved') bg-green-100 text-green-800
                         @elseif($report->status === 'pending') bg-yellow-100 text-yellow-800
+                        @elseif($report->status === 'sent_to_client') bg-sky-100 text-sky-800
                         @else bg-gray-100 text-gray-800
                         @endif">
-                        {{ ucfirst($report->status ?? 'pending') }}
+                        {{ \Illuminate\Support\Str::title(str_replace('_', ' ', $report->status ?? 'pending')) }}
                     </span>
                 </div>
                 @if($report->approved_at)
@@ -108,21 +109,46 @@
             </div>
             @endif
 
-            <!-- Visit Photos -->
-            @if($report->visit && $report->visit->photos && $report->visit->photos->count() > 0)
+            <!-- Visit Photos (Before & After) -->
+            @if($report->visit)
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
                 <h2 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Visit Photos</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    @foreach($report->visit->photos as $photo)
-                        <div class="relative group">
-                            <img src="{{ Storage::disk('public')->exists($photo->photo_path) ? asset('storage/' . $photo->photo_path) : asset('images/placeholder.png') }}" 
-                                 alt="Visit Photo" 
-                                 class="w-full h-40 sm:h-48 object-cover rounded-lg border border-gray-200">
-                            <div class="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                                {{ ucfirst($photo->type ?? 'Photo') }}
-                            </div>
+                @php
+                    $photos = $report->visit->photos ?? collect();
+                    $beforePhoto = $photos->firstWhere('type', 'before');
+                    $afterPhoto = $photos->firstWhere('type', 'after');
+                @endphp
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div class="rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                        <div class="aspect-[4/3] flex items-center justify-center min-h-[180px]">
+                            @if($beforePhoto && ($beforeUrl = ProfilePictureUploadService::fullUrl($beforePhoto->photo_path)))
+                                <img src="{{ $beforeUrl }}" alt="Before" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 150\'%3E%3Crect fill=\'%23e5e7eb\' width=\'200\' height=\'150\'/%3E%3Ctext fill=\'%239ca3af\' x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'14\'%3ENo image%3C/text%3E%3C/svg%3E';">
+                            @else
+                                <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4">
+                                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span class="text-sm">No before photo</span>
+                                </div>
+                            @endif
                         </div>
-                    @endforeach
+                        <div class="px-3 py-2 bg-gray-100 border-t border-gray-200">
+                            <span class="text-xs font-medium text-gray-600">Before</span>
+                        </div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                        <div class="aspect-[4/3] flex items-center justify-center min-h-[180px]">
+                            @if($afterPhoto && ($afterUrl = ProfilePictureUploadService::fullUrl($afterPhoto->photo_path)))
+                                <img src="{{ $afterUrl }}" alt="After" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 150\'%3E%3Crect fill=\'%23e5e7eb\' width=\'200\' height=\'150\'/%3E%3Ctext fill=\'%239ca3af\' x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'14\'%3ENo image%3C/text%3E%3C/svg%3E';">
+                            @else
+                                <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4">
+                                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span class="text-sm">No after photo</span>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="px-3 py-2 bg-gray-100 border-t border-gray-200">
+                            <span class="text-xs font-medium text-gray-600">After</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             @endif

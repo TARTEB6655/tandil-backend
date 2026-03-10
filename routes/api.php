@@ -282,15 +282,27 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
 
 /*
 |--------------------------------------------------------------------------
-| AREA MANAGER ROUTES (mobile dashboard: summary, alerts, team leaders)
+| AREA MANAGER ROUTES (dashboard, alerts, teams, reports)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')->group(function () {
     Route::get('/dashboard/summary', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'dashboardSummary']);
     Route::get('/dashboard/alerts', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'dashboardAlerts']);
     Route::get('/region-map', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'regionMap']);
+
+    /* Teams (All Teams screen → team members → member jobs). Use these to avoid confusion with "team leaders". */
+    Route::get('/teams', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaders']);
+    Route::get('/teams/members/{id}/jobs', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamMemberJobs']);
+    Route::get('/teams/{id}/members', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderMembers']);
+    Route::get('/teams/{id}/jobs', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderJobs']);
+    Route::get('/teams/{id}', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderShow']);
+
+    /* Legacy team-leaders paths (prefer /teams for new use). */
     Route::get('/team-leaders', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaders']);
+    Route::get('/team-leaders/{id}/members', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderMembers']);
+    Route::get('/team-leaders/{id}/jobs', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderJobs']);
     Route::get('/team-leaders/{id}', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderShow']);
+    Route::get('/team-members/{id}/jobs', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamMemberJobs']);
     Route::get('/analytics', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'analytics']);
     Route::get('/reports', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportsIndex']);
     Route::post('/reports/generate', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportGenerate']);

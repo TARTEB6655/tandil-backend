@@ -29,41 +29,57 @@ class GeneratedReportController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'type' => 'required|string|in:weekly_summary,team_performance,customer_satisfaction',
+            'types' => 'required|array',
+            'types.*' => 'string|in:weekly_summary,team_performance,customer_satisfaction',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
 
-        $type = $request->input('type');
+        $types = array_unique(array_values($request->input('types', [])));
+        if (empty($types)) {
+            return redirect()
+                ->route('areamanager.generated-reports.index')
+                ->with('error', 'Please select at least one report type.');
+        }
+
         $dateFrom = $request->input('date_from') ?? Carbon::now()->startOfMonth()->toDateString();
         $dateTo = $request->input('date_to') ?? Carbon::now()->endOfMonth()->toDateString();
 
-        $adminReportType = match ($type) {
+        $typeMap = [
             'weekly_summary' => 'operational',
             'team_performance' => 'performance',
             'customer_satisfaction' => 'customer',
-            default => 'operational',
-        };
-        $title = ucfirst(str_replace('_', ' ', $type)) . ' (' . $dateFrom . ' to ' . $dateTo . ')';
+        ];
 
-        $report = AdminReport::create([
-            'title' => $title,
-            'type' => $adminReportType,
-            'status' => 'pending',
-            'format' => 'pdf',
-            'parameters' => [
-                'start_date' => $dateFrom,
-                'end_date' => $dateTo,
+        $created = 0;
+        foreach ($types as $type) {
+            $adminReportType = $typeMap[$type] ?? 'operational';
+            $title = ucfirst(str_replace('_', ' ', $type)) . ' (' . $dateFrom . ' to ' . $dateTo . ')';
+
+            $report = AdminReport::create([
+                'title' => $title,
+                'type' => $adminReportType,
+                'status' => 'pending',
                 'format' => 'pdf',
-            ],
-            'created_by' => $request->user()->id,
-        ]);
+                'parameters' => [
+                    'start_date' => $dateFrom,
+                    'end_date' => $dateTo,
+                    'format' => 'pdf',
+                ],
+                'created_by' => $request->user()->id,
+            ]);
 
-        GenerateReportJob::dispatch($report);
+            GenerateReportJob::dispatch($report);
+            $created++;
+        }
+
+        $message = $created === 1
+            ? 'Report generation started. Refresh this page to see status; download when Ready.'
+            : "{$created} report generations started. Refresh this page to see status; download when Ready.";
 
         return redirect()
             ->route('areamanager.generated-reports.index')
-            ->with('success', 'Report generation started. You will be notified when it\'s ready. Refresh this page to see status and download.');
+            ->with('success', $message);
     }
 
     public function download(int $id)

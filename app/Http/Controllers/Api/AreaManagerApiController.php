@@ -328,6 +328,219 @@ class AreaManagerApiController extends Controller
     }
 
     /**
+     * GET /api/area-manager/team-leaders/{id}/jobs
+     * List jobs (visits) for this team leader. Default: processing only (pending, scheduled, in_progress).
+     * Query: status=processing (default) | all | completed.
+     */
+    public function teamLeaderJobs(Request $request, int $id): JsonResponse
+    {
+        $u = User::role('supervisor')->where('id', $id)->with('employee')->first();
+        if (! $u) {
+            return response()->json(['success' => false, 'message' => 'Team leader not found.'], 404);
+        }
+
+        $areaIds = $u->supervisedAreaIds();
+        $visitQuery = Visit::with(['subscription.client', 'technician:id,name', 'area:id,name'])
+            ->where(function ($q) use ($u, $areaIds) {
+                $q->where('supervisor_id', $u->id);
+                if (! empty($areaIds)) {
+                    $q->orWhereIn('area_id', $areaIds);
+                }
+            });
+
+        $statusFilter = $request->get('status', 'processing');
+        if ($statusFilter === 'processing') {
+            $visitQuery->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started']);
+        } elseif ($statusFilter === 'completed') {
+            $visitQuery->whereIn('status', ['completed', 'approved']);
+        }
+        // 'all' = no extra where
+
+        $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
+        $visits = $visitQuery->orderByRaw("CASE WHEN status IN ('in_progress','started') THEN 0 WHEN status IN ('pending','scheduled') THEN 1 ELSE 2 END")
+            ->orderBy('scheduled_date')
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        $list = $visits->getCollection()->map(function (Visit $v) {
+            $clientName = $v->subscription?->client?->name ?? 'N/A';
+            $areaName = $v->area?->name ?? 'N/A';
+            $technicianName = $v->technician?->name ?? null;
+            return [
+                'id' => $v->id,
+                'visit_id' => $v->id,
+                'status' => $v->status,
+                'scheduled_date' => $v->scheduled_date?->format('Y-m-d'),
+                'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
+                'client_name' => $clientName,
+                'area_name' => $areaName,
+                'technician_name' => $technicianName,
+                'technician_id' => $v->technician_id,
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'team_leader' => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
+                ],
+                'jobs' => $list,
+            ],
+            'meta' => [
+                'current_page' => $visits->currentPage(),
+                'last_page' => $visits->lastPage(),
+                'per_page' => $visits->perPage(),
+                'total' => $visits->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/area-manager/team-leaders/{id}/members
+     * Team members (technicians) under this team leader. Area manager clicks on a team → see all members, who is active, linked to whom.
+     * Returns: members with id, name, employee_id, area(s), team_leader (linked), active count, done count. Updates when assignments change.
+     */
+    public function teamLeaderMembers(Request $request, int $id): JsonResponse
+    {
+        $supervisor = User::role('supervisor')->where('id', $id)->with('employee')->first();
+        if (! $supervisor) {
+            return response()->json(['success' => false, 'message' => 'Team leader not found.'], 404);
+        }
+
+        $areaIds = $supervisor->supervisedAreaIds();
+        if (empty($areaIds)) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'team_leader' => [
+                        'id' => $supervisor->id,
+                        'name' => $supervisor->name,
+                        'employee_id' => $supervisor->employee?->employee_id ?? ('SUP-' . $supervisor->id),
+                        'location' => null,
+                    ],
+                    'members' => [],
+                ],
+                'meta' => ['total' => 0],
+            ]);
+        }
+
+        $technicianIds = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        $members = User::role('technician')->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor) {
+            $techAreaIds = DB::table('area_technician')->where('user_id', $tech->id)->whereIn('area_id', $areaIds)->pluck('area_id');
+            $areaNames = Area::whereIn('id', $techAreaIds)->pluck('name')->filter()->values()->all();
+            $visitQuery = Visit::where('technician_id', $tech->id)->whereIn('area_id', $areaIds);
+            $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+            $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
+            $initial = mb_substr(trim($tech->name), 0, 1) ?: '?';
+            return [
+                'id' => $tech->id,
+                'name' => $tech->name,
+                'employee_id' => $tech->employee?->employee_id ?? ('TEC-' . $tech->id),
+                'initial' => mb_strtoupper($initial),
+                'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($tech->profile_picture, $initial),
+                'area_names' => $areaNames,
+                'area_ids' => $techAreaIds->values()->all(),
+                'linked_to' => [
+                    'supervisor_id' => $supervisor->id,
+                    'supervisor_name' => $supervisor->name,
+                    'supervisor_employee_id' => $supervisor->employee?->employee_id ?? ('SUP-' . $supervisor->id),
+                ],
+                'active' => $active,
+                'done' => $done,
+                'team_leader_id' => $supervisor->id,
+            ];
+        })->values()->all();
+
+        $firstArea = $supervisor->supervisedAreas()->first();
+        $location = $firstArea?->name ?? $firstArea?->location ?? null;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'team_leader' => [
+                    'id' => $supervisor->id,
+                    'name' => $supervisor->name,
+                    'employee_id' => $supervisor->employee?->employee_id ?? ('SUP-' . $supervisor->id),
+                    'location' => $location,
+                ],
+                'members' => $members,
+            ],
+            'meta' => ['total' => count($members)],
+        ]);
+    }
+
+    /**
+     * GET /api/area-manager/team-members/{id}/jobs
+     * Jobs (visits) for this team member (technician). Area manager clicks on member → see their jobs, especially processing.
+     * Query: status=processing (default) | all | completed. per_page optional.
+     */
+    public function teamMemberJobs(Request $request, int $id): JsonResponse
+    {
+        $technician = User::role('technician')->where('id', $id)->with('employee')->first();
+        if (! $technician) {
+            return response()->json(['success' => false, 'message' => 'Team member not found.'], 404);
+        }
+
+        $areaIds = Area::pluck('id')->toArray();
+        $visitQuery = Visit::with(['subscription.client', 'area:id,name', 'supervisor:id,name'])
+            ->where('technician_id', $id)
+            ->whereIn('area_id', $areaIds);
+
+        $statusFilter = $request->get('status', 'processing');
+        if ($statusFilter === 'processing') {
+            $visitQuery->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started']);
+        } elseif ($statusFilter === 'completed') {
+            $visitQuery->whereIn('status', ['completed', 'approved']);
+        }
+
+        $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
+        $visits = $visitQuery->orderByRaw("CASE WHEN status IN ('in_progress','started') THEN 0 WHEN status IN ('pending','scheduled') THEN 1 ELSE 2 END")
+            ->orderBy('scheduled_date')
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        $list = $visits->getCollection()->map(function (Visit $v) {
+            return [
+                'id' => $v->id,
+                'visit_id' => $v->id,
+                'status' => $v->status,
+                'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $v->status)),
+                'scheduled_date' => $v->scheduled_date?->format('Y-m-d'),
+                'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
+                'client_name' => $v->subscription?->client?->name ?? 'N/A',
+                'area_name' => $v->area?->name ?? 'N/A',
+                'supervisor_name' => $v->supervisor?->name ?? null,
+                'supervisor_id' => $v->supervisor_id,
+                'is_processing' => in_array($v->status, ['in_progress', 'started']),
+            ];
+        })->values()->all();
+
+        $initial = mb_substr(trim($technician->name), 0, 1) ?: '?';
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'team_member' => [
+                    'id' => $technician->id,
+                    'name' => $technician->name,
+                    'employee_id' => $technician->employee?->employee_id ?? ('TEC-' . $technician->id),
+                    'initial' => mb_strtoupper($initial),
+                    'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($technician->profile_picture, $initial),
+                ],
+                'jobs' => $list,
+            ],
+            'meta' => [
+                'current_page' => $visits->currentPage(),
+                'last_page' => $visits->lastPage(),
+                'per_page' => $visits->perPage(),
+                'total' => $visits->total(),
+            ],
+        ]);
+    }
+
+    /**
      * GET /api/area-manager/analytics?period=today|week|month
      * Visits, completion %, avg time, active teams, weekly_trend, top_teams.
      */
