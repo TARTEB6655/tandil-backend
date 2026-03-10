@@ -119,7 +119,8 @@ class GenerateReportJob implements ShouldQueue
 
         // Avoid SQL "IN ()" with empty list and give a clear message when no areas exist.
         if (empty($areaIds)) {
-            return "Report: {$report->title}\nPeriod: {$startDate} to {$endDate}\nGenerated at: " . now()->toIso8601String() . "\n---\nNo areas configured. Add areas in the system to see report data.";
+            $genAt = $this->formatReportDateTime(now());
+            return "Report: {$report->title}\nPeriod: {$startDate} to {$endDate}\nGenerated at: {$genAt}\n\n---\nNo areas configured. Add areas in the system to see report data.";
         }
 
         return match ($report->type) {
@@ -136,86 +137,158 @@ class GenerateReportJob implements ShouldQueue
         return Area::pluck('id')->toArray();
     }
 
-    /** Weekly Summary: jobs (visits) completed, revenue generated, completion %, by day, by area. Auto from DB. */
+    /** Only area IDs that are linked to at least one supervisor (area_supervisor). */
+    protected function reportAreaIdsWithSupervisor(array $areaIds): array
+    {
+        if (empty($areaIds)) {
+            return [];
+        }
+        return DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('area_id')->toArray();
+    }
+
+    /** Base visit query: area linked to supervisor, scheduled in period, has area_id and technician assigned. */
+    protected function reportVisitsQuery(array $areaIds, Carbon $start, Carbon $end)
+    {
+        $areaIdsSupervised = $this->reportAreaIdsWithSupervisor($areaIds);
+        if (empty($areaIdsSupervised)) {
+            return Visit::whereRaw('1 = 0');
+        }
+        return Visit::whereNotNull('area_id')
+            ->whereIn('area_id', $areaIdsSupervised)
+            ->whereNotNull('technician_id')
+            ->whereBetween('scheduled_date', [$start->toDateString(), $end->toDateString()]);
+    }
+
+    /** Human-friendly date for report (e.g. 1 Mar 2026). */
+    protected function formatReportDate(Carbon $date): string
+    {
+        return $date->format('j M Y');
+    }
+
+    /** Human-friendly date and time for report (e.g. 10 Mar 2026, 12:11 PM). */
+    protected function formatReportDateTime(Carbon $date): string
+    {
+        return $date->format('j M Y, g:i A');
+    }
+
+    /** Weekly Summary: jobs (visits) in scope (area → supervisor → technician), by scheduled_date. Includes visit details with supervisor and member. */
     protected function buildWeeklySummaryContent(AdminReport $report, Carbon $start, Carbon $end, array $areaIds): string
     {
-        $visitQuery = Visit::whereIn('area_id', $areaIds)->whereBetween('created_at', [$start, $end]);
+        $visitQuery = $this->reportVisitsQuery($areaIds, $start, $end);
         $total = (clone $visitQuery)->count();
         $completed = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $completionPercent = $total > 0 ? round(($completed / $total) * 100, 0) : 0;
 
-        $revenueQuery = Visit::whereIn('area_id', $areaIds)
+        $revenueQuery = (clone $visitQuery)
             ->whereIn('status', ['completed', 'approved'])
-            ->whereBetween('completed_at', [$start, $end])
+            ->whereNotNull('completed_at')
             ->whereNotNull('price');
         $revenueGenerated = (clone $revenueQuery)->sum('price');
 
+        $periodStart = $this->formatReportDate($start);
+        $periodEnd = $this->formatReportDate($end);
+        $generatedAt = $this->formatReportDateTime(now());
+
         $lines = [
             'WEEKLY SUMMARY',
+            '',
             'Report: ' . $report->title,
-            'Period: ' . $start->toDateString() . ' to ' . $end->toDateString(),
-            'Generated at: ' . now()->toIso8601String(),
+            'Period: ' . $periodStart . ' to ' . $periodEnd,
+            'Generated at: ' . $generatedAt,
+            '',
             '---',
-            'Total jobs (visits): ' . $total,
-            'Jobs completed: ' . $completed,
+            '',
+            'Total visits (scheduled in period): ' . $total,
+            'Visits completed: ' . $completed,
             'Completion %: ' . $completionPercent . '%',
             'Revenue generated: ' . number_format((float) $revenueGenerated, 2),
             '',
-            'By day:',
+            'By day (scheduled date):',
         ];
         for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-            $count = Visit::whereIn('area_id', $areaIds)->whereDate('created_at', $d)->count();
-            $lines[] = '  ' . $d->toDateString() . ': ' . $count;
+            $count = (clone $visitQuery)->whereDate('scheduled_date', $d)->count();
+            $lines[] = '  ' . $this->formatReportDate($d) . ': ' . $count;
         }
         $lines[] = '';
         $lines[] = 'By area:';
-        foreach (Area::whereIn('id', $areaIds)->get() as $area) {
-            $areaVisitCount = Visit::where('area_id', $area->id)->whereBetween('created_at', [$start, $end])->count();
+        $areaIdsSupervised = $this->reportAreaIdsWithSupervisor($areaIds);
+        foreach (Area::whereIn('id', $areaIdsSupervised)->get() as $area) {
+            $areaVisitCount = (clone $visitQuery)->where('area_id', $area->id)->count();
             $lines[] = '  ' . ($area->name ?? 'Area #' . $area->id) . ': ' . $areaVisitCount;
         }
+
+        $visits = (clone $visitQuery)->with(['area', 'supervisor', 'technician'])->orderBy('scheduled_date')->orderBy('id')->get();
+        $lines[] = '';
+        $lines[] = '---';
+        $lines[] = '';
+        $lines[] = 'Visit details (Supervisor and member who completed the visit)';
+        $lines[] = '';
+        foreach ($visits as $v) {
+            $supName = $v->supervisor ? $v->supervisor->name : '—';
+            $techName = $v->technician ? $v->technician->name : '—';
+            $areaName = $v->area ? ($v->area->name ?? 'Area #' . $v->area_id) : '—';
+            $sched = $v->scheduled_date ? $this->formatReportDate(Carbon::parse($v->scheduled_date)) : '—';
+            $lines[] = 'Visit #' . $v->id . '  |  Supervisor: ' . $supName . '  |  Member: ' . $techName . '  |  Area: ' . $areaName . '  |  Scheduled: ' . $sched . '  |  Status: ' . $v->status;
+            $lines[] = '';
+        }
+        if ($visits->isEmpty()) {
+            $lines[] = 'No visits in this period.';
+        }
+
         return implode("\n", $lines);
     }
 
-    /** Team Performance: supervisor-wise performance (each supervisor's stats). */
+    /** Team Performance: supervisor-wise performance. Visits scoped by area → supervisor → technician, scheduled_date. */
     protected function buildTeamPerformanceContent(AdminReport $report, Carbon $start, Carbon $end, array $areaIds): string
     {
         $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
         $supervisors = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get();
 
+        $periodStart = $this->formatReportDate($start);
+        $periodEnd = $this->formatReportDate($end);
+        $generatedAt = $this->formatReportDateTime(now());
+
         $lines = [
             'TEAM PERFORMANCE (by Supervisor)',
+            '',
             'Report: ' . $report->title,
-            'Period: ' . $start->toDateString() . ' to ' . $end->toDateString(),
-            'Generated at: ' . now()->toIso8601String(),
+            'Period: ' . $periodStart . ' to ' . $periodEnd,
+            'Generated at: ' . $generatedAt,
+            '',
             '---',
+            '',
         ];
         foreach ($supervisors as $u) {
             $supAreaIds = $u->supervisedAreaIds();
-            $visitQuery = Visit::whereBetween('created_at', [$start, $end])
-                ->where(function ($q) use ($u, $supAreaIds) {
-                    $q->where('supervisor_id', $u->id);
-                    if (! empty($supAreaIds)) {
-                        $q->orWhereIn('area_id', $supAreaIds);
-                    }
-                });
+            if (empty($supAreaIds)) {
+                $lines[] = 'Supervisor: ' . $u->name . ' (ID: ' . ($u->employee?->employee_id ?? 'SUP-' . $u->id) . ')';
+                $lines[] = '  No areas assigned.';
+                $lines[] = '';
+                continue;
+            }
+            $visitQuery = Visit::whereNotNull('area_id')->whereNotNull('technician_id')
+                ->whereIn('area_id', $supAreaIds)
+                ->whereBetween('scheduled_date', [$start->toDateString(), $end->toDateString()]);
             $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
             $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
             $total = $active + $done;
             $performance = $total > 0 ? round(($done / $total) * 100, 0) : 0;
-            $teamCount = empty($supAreaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $supAreaIds)->distinct()->count('user_id');
-            $lines[] = '';
+            $teamCount = DB::table('area_technician')->whereIn('area_id', $supAreaIds)->distinct()->count('user_id');
             $lines[] = 'Supervisor: ' . $u->name . ' (ID: ' . ($u->employee?->employee_id ?? 'SUP-' . $u->id) . ')';
             $lines[] = '  Team size: ' . $teamCount . ' | Active: ' . $active . ' | Done: ' . $done . ' | Performance: ' . $performance . '%';
+            $lines[] = '';
         }
         return implode("\n", $lines);
     }
 
-    /** Customer Satisfaction: customers who did NOT send satisfaction feedback — show their info and message. */
+    /** Customer Satisfaction: customers who did NOT send satisfaction feedback. Visits scoped by area (with supervisor). */
     protected function buildCustomerSatisfactionContent(AdminReport $report, Carbon $start, Carbon $end, array $areaIds): string
     {
-        $completedVisitIds = Visit::whereIn('area_id', $areaIds)
+        $areaIdsSupervised = $this->reportAreaIdsWithSupervisor($areaIds);
+        $completedVisitIds = Visit::whereNotNull('area_id')->whereIn('area_id', $areaIdsSupervised)
             ->whereIn('status', ['completed', 'approved'])
-            ->whereBetween('completed_at', [$start, $end])
+            ->whereBetween('scheduled_date', [$start->toDateString(), $end->toDateString()])
+            ->whereNotNull('completed_at')
             ->pluck('id');
 
         $visitIdsWithRating = VisitReport::whereIn('visit_id', $completedVisitIds)
@@ -232,12 +305,20 @@ class GenerateReportJob implements ShouldQueue
         $visitIdsWithoutFeedback = $completedVisitIds->diff($visitIdsWithRating)->values();
         $visitsNoFeedback = Visit::with(['subscription.client'])->whereIn('id', $visitIdsWithoutFeedback)->get();
         $customersShown = [];
+
+        $periodStart = $this->formatReportDate($start);
+        $periodEnd = $this->formatReportDate($end);
+        $generatedAt = $this->formatReportDateTime(now());
+
         $lines = [
             'CUSTOMER SATISFACTION',
+            '',
             'Report: ' . $report->title,
-            'Period: ' . $start->toDateString() . ' to ' . $end->toDateString(),
-            'Generated at: ' . now()->toIso8601String(),
+            'Period: ' . $periodStart . ' to ' . $periodEnd,
+            'Generated at: ' . $generatedAt,
+            '',
             '---',
+            '',
             'Customers who had a completed visit in this period but did not submit satisfaction feedback:',
             '',
         ];
@@ -266,11 +347,13 @@ class GenerateReportJob implements ShouldQueue
 
     protected function buildDefaultReportContent(AdminReport $report, string $startDate, string $endDate, array $params): string
     {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
         $lines = [
             'Report: ' . $report->title,
             'Type: ' . $report->type,
-            'Period: ' . $startDate . ' to ' . $endDate,
-            'Generated at: ' . now()->toIso8601String(),
+            'Period: ' . $this->formatReportDate($start) . ' to ' . $this->formatReportDate($end),
+            'Generated at: ' . $this->formatReportDateTime(now()),
             '---',
             'Summary data would be generated here based on report type.',
         ];
