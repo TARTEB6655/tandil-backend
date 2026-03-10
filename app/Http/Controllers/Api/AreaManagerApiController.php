@@ -244,16 +244,16 @@ class AreaManagerApiController extends Controller
             $areaIds = $u->supervisedAreaIds();
             $firstArea = $u->supervisedAreas()->first();
             $location = $firstArea?->name ?? $firstArea?->location ?? $u->employee?->region ?? null;
-            $teamCount = empty($areaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->count('user_id');
-            // Count visits: in supervisor's areas OR directly assigned to this supervisor (supervisor_id)
-            $visitQuery = Visit::where(function ($q) use ($u, $areaIds) {
-                $q->where('supervisor_id', $u->id);
-                if (! empty($areaIds)) {
-                    $q->orWhereIn('area_id', $areaIds);
-                }
-            });
-            $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
-            $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
+            $technicianIds = empty($areaIds) ? collect() : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+            $teamCount = $technicianIds->count();
+            // Count only visits by this team's technicians in these areas (matches team detail and members).
+            $activeCount = 0;
+            $doneCount = 0;
+            if ($technicianIds->isNotEmpty()) {
+                $visitQuery = Visit::whereIn('area_id', $areaIds)->whereIn('technician_id', $technicianIds->all());
+                $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+                $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
+            }
             $total = $activeCount + $doneCount;
             $performance = $total > 0 ? round(($doneCount / $total) * 100, 0) : 0;
             $initial = mb_substr(trim($u->name), 0, 1) ?: '?';
@@ -341,13 +341,20 @@ class AreaManagerApiController extends Controller
         }
 
         $areaIds = $u->supervisedAreaIds();
+        $technicianIds = empty($areaIds) ? collect() : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        if (empty($areaIds) || $technicianIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'team_leader' => ['id' => $u->id, 'name' => $u->name, 'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id), 'active_count' => 0, 'done_count' => 0, 'total_jobs' => 0],
+                    'jobs' => [],
+                ],
+                'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 0],
+            ]);
+        }
         $visitQuery = Visit::with(['subscription.client', 'technician:id,name', 'area:id,name'])
-            ->where(function ($q) use ($u, $areaIds) {
-                $q->where('supervisor_id', $u->id);
-                if (! empty($areaIds)) {
-                    $q->orWhereIn('area_id', $areaIds);
-                }
-            });
+            ->whereIn('area_id', $areaIds)
+            ->whereIn('technician_id', $technicianIds->all());
 
         $statusFilter = strtolower((string) $request->get('status', 'processing'));
         if ($statusFilter === 'processing') {
@@ -355,7 +362,6 @@ class AreaManagerApiController extends Controller
         } elseif ($statusFilter === 'completed') {
             $visitQuery->whereIn('status', ['completed', 'approved']);
         }
-        // 'all' = no extra where
 
         $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
         $visits = $visitQuery->orderByRaw("CASE WHEN status IN ('in_progress','started') THEN 0 WHEN status IN ('pending','scheduled') THEN 1 ELSE 2 END")
@@ -363,12 +369,7 @@ class AreaManagerApiController extends Controller
             ->orderByDesc('created_at')
             ->paginate($perPage);
 
-        $baseCountQuery = Visit::where(function ($q) use ($u, $areaIds) {
-            $q->where('supervisor_id', $u->id);
-            if (! empty($areaIds)) {
-                $q->orWhereIn('area_id', $areaIds);
-            }
-        });
+        $baseCountQuery = Visit::whereIn('area_id', $areaIds)->whereIn('technician_id', $technicianIds->all());
         $totalActive = (clone $baseCountQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
         $totalDone = (clone $baseCountQuery)->whereIn('status', ['completed', 'approved'])->count();
 
@@ -491,9 +492,9 @@ class AreaManagerApiController extends Controller
     }
 
     /**
-     * GET /api/area-manager/team-members/{id}/jobs
-     * Jobs (visits) for this team member (technician). Area manager clicks on member → see their jobs, especially processing.
-     * Query: status=processing (default) | all | completed. per_page optional.
+     * GET /api/area-manager/teams/members/{id}/jobs
+     * Jobs (visits) for this team member (technician). Optional ?team_id= (supervisor id) scopes to that team's areas so counts match members list.
+     * Query: status=processing (default) | all | completed, per_page, team_id (optional).
      */
     public function teamMemberJobs(Request $request, int $id): JsonResponse
     {
@@ -502,7 +503,18 @@ class AreaManagerApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Team member not found.'], 404);
         }
 
-        $areaIds = Area::pluck('id')->toArray();
+        $teamId = $request->get('team_id');
+        $areaIds = [];
+        if ($teamId) {
+            $supervisor = User::role('supervisor')->where('id', $teamId)->first();
+            if ($supervisor) {
+                $areaIds = $supervisor->supervisedAreaIds();
+            }
+        }
+        if (empty($areaIds)) {
+            $areaIds = Area::pluck('id')->toArray();
+        }
+
         $visitQuery = Visit::with(['subscription.client', 'area:id,name,location', 'supervisor:id,name', 'technician:id,name', 'technician.employee'])
             ->where('technician_id', $id)
             ->whereIn('area_id', $areaIds);
@@ -588,9 +600,8 @@ class AreaManagerApiController extends Controller
     public function analytics(Request $request): JsonResponse
     {
         $period = $request->get('period', 'week');
-        // Area Manager analytics should be scoped to this manager's assigned areas.
-        // Using all areas would inflate counts across the whole system.
-        $areaIds = $request->user()->supervisedAreaIds();
+        // Area manager sees all areas (no per-manager area assignment in app). Use all area IDs so counts match dashboard/teams.
+        $areaIds = Area::pluck('id')->toArray();
         $now = Carbon::now();
 
         if (empty($areaIds)) {

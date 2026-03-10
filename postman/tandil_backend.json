@@ -6523,7 +6523,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "teams"]
                         },
-                        "description": "List all teams (All Teams screen). Response: data[] with id, name, employee_id, initial, profile_picture_url, location, performance_percent, team, active, done. Use data[].id in Teams - Members and Teams - Detail. Prefer this over team-leaders to avoid confusion."
+                        "description": "List all teams (All Teams screen). Response: data[] with id, name, employee_id, initial, profile_picture_url, location, performance_percent, team (member count), active, done. Team active/done count only visits by that team's technicians in that team's areas (matches Teams - Detail and sum of Teams - Members). Use data[].id as team_id in Teams - Detail, Teams - Members, and Teams - Member Jobs (query param)."
                     }
                 },
                 {
@@ -6555,7 +6555,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "teams", "{{team_id}}"]
                         },
-                        "description": "Single team detail. Set team_id from Teams - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture_url, location, performance_percent, team, active, done."
+                        "description": "Single team (supervisor) detail. Set team_id from Teams - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture_url, location, performance_percent, team (member count), active, done. Team active/done count only visits assigned to this team's technicians in this team's areas; they match the sum of members' active/done from Teams - Members."
                     }
                 },
                 {
@@ -6571,7 +6571,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "teams", "{{team_id}}", "members"]
                         },
-                        "description": "Team members for this team (second screen after clicking a team). Response: data.team_leader (id, name, employee_id, location), data.members[] (id, name, employee_id, area_names, linked_to, active, done). Use members[].id in Teams - Member Jobs."
+                        "description": "Team members for this team (second screen after clicking a team). Response: data.team_leader (id, name, employee_id, location), data.members[] (id, name, employee_id, area_names, linked_to, active, done, total_jobs). Each member's active/done/total_jobs are for this team's areas only; they match Team detail totals (sum of members = team active/done). Use data.members[].id as member_id and team_id (current team) in Teams - Member Jobs so job list and counts match."
                     }
                 },
                 {
@@ -6583,15 +6583,16 @@
                             { "key": "Accept", "value": "application/json" }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/area-manager/teams/members/{{member_id}}/jobs?status=processing",
+                            "raw": "{{base_url}}/api/area-manager/teams/members/{{member_id}}/jobs?status=processing&per_page=20&team_id={{team_id}}",
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "teams", "members", "{{member_id}}", "jobs"],
                             "query": [
-                                { "key": "status", "value": "processing", "description": "processing | all | completed" },
-                                { "key": "per_page", "value": "20", "description": "Optional" }
+                                { "key": "status", "value": "processing", "description": "processing (default) | all | completed" },
+                                { "key": "per_page", "value": "20", "description": "Optional, default 20" },
+                                { "key": "team_id", "value": "{{team_id}}", "description": "Optional. Supervisor/team id – when set, jobs are scoped to this team's areas so counts match Teams - Members. Set from current team (e.g. from Teams - Detail or Teams - Members URL)." }
                             ]
                         },
-                        "description": "Jobs for this team member (e.g. Omar Hassan – 3 jobs: Done, In progress, Scheduled). Set member_id from Teams - Members data.members[].id. Response: data.team_member, data.jobs[] (status, status_display, is_processing, client_name, area_name, scheduled_date)."
+                        "description": "Jobs (visits) for this team member. Set member_id from Teams - Members data.members[].id; set team_id from current team (same as in Teams - Members URL) so the list and total/active/done match the member's counts on the members list. Query: status=processing|all|completed, per_page, team_id (optional). Response: data.team_member (id, name, employee_id, active, done, total_jobs), data.jobs[], meta (pagination)."
                     }
                 },
                 {
@@ -6660,7 +6661,7 @@
                             "path": ["api", "area-manager", "analytics"],
                             "query": [{ "key": "period", "value": "week", "description": "today | week | month" }]
                         },
-                        "description": "Analytics for Area Manager. GET /api/area-manager/analytics?period=week. Response: visits, completion_percent, avg_time_minutes, active_teams, weekly_trend (array of date/count), top_teams (supervisors with visits count)."
+                        "description": "Analytics for Area Manager. GET /api/area-manager/analytics?period=today|week|month. Data is for all areas. Response: visits (in period), completion_percent, avg_time_minutes, active_teams, weekly_trend (array of {date, count}), top_teams (supervisors with visits count in period). Matches dashboard scope (all areas)."
                     }
                 },
                 {
