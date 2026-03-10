@@ -92,25 +92,18 @@
                             <p class="text-xs text-red-600 mt-1" title="{{ $r->failure_reason }}">Reason: {{ \Illuminate\Support\Str::limit($r->failure_reason, 80) }}</p>
                         @endif
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        @if($r->status === 'generated')
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Ready</span>
-                        @elseif($r->status === 'pending')
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>
-                        @else
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Failed</span>
-                        @endif
-                    </div>
                     <div class="flex items-center gap-1 sm:gap-2 flex-wrap">
                         @if($fileAvailable)
-                            <a href="{{ route('areamanager.generated-reports.view', ['id' => $r->id]) }}" target="_blank" rel="noopener noreferrer" class="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1" title="View in new tab" aria-label="View report">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <a href="{{ route('areamanager.generated-reports.view', ['id' => $r->id]) }}" target="_blank" rel="noopener noreferrer" class="min-h-[44px] px-3 min-w-[44px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1" title="View PDF in new tab" aria-label="View report in new tab">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span class="text-sm font-medium hidden sm:inline">View</span>
                             </a>
-                            <a href="{{ route('areamanager.generated-reports.download', ['id' => $r->id]) }}" class="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1" title="Download PDF" aria-label="Download PDF">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <a href="{{ route('areamanager.generated-reports.download', ['id' => $r->id]) }}" download="area-manager-report-{{ $r->id }}.pdf" class="min-h-[44px] px-3 min-w-[44px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1" title="Download PDF" aria-label="Download PDF">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span class="text-sm font-medium hidden sm:inline">Download</span>
                             </a>
-                            <a href="{{ route('areamanager.generated-reports.download', ['id' => $r->id]) }}?format=csv" class="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1" title="Download CSV" aria-label="Download CSV">
-                                <span class="text-xs font-medium px-2">CSV</span>
+                            <a href="{{ route('areamanager.generated-reports.download', ['id' => $r->id]) }}?format=csv" download="area-manager-report-{{ $r->id }}.csv" class="min-h-[44px] px-3 min-w-[44px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1" title="Download CSV" aria-label="Download CSV">
+                                <span class="text-xs font-medium">CSV</span>
                             </a>
                         @else
                             <span class="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed" aria-hidden="true" title="Available when Ready"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></span>

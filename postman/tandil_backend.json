@@ -6459,11 +6459,14 @@
             "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
-            "name": "11. Area Manager Dashboard",
-            "description": "Area Manager APIs. Auth: Bearer {{token}} (role area_manager).\n\n**Endpoints:**\n- Dashboard: GET /dashboard/summary, GET /dashboard/alerts\n- Region: GET /region-map\n- Teams: GET /teams → GET /teams/{team_id} → GET /teams/{team_id}/members → GET /teams/members/{member_id}/jobs?team_id={team_id}\n- Team jobs: GET /teams/{team_id}/jobs?status=processing&per_page=20\n- Analytics: GET /analytics?period=week\n- Reports: GET /reports, POST /reports/generate, GET /generated-reports, GET /generated-reports/{id}/download\n- Profile: GET /profile, PUT|POST /profile\n\n**Consistency:** Team active/done = sum of members' active/done. Use team_id in Member Jobs so counts match.",
+            "name": "11. Area Manager Dashboard – All APIs",
+            "description": "Area Manager APIs. Auth: Bearer {{token}} (role area_manager). Same folder structure as Supervisor: A. Dashboard, B. Teams, C. Analytics, D. Reports, E. Profile, F. Help & Support. Base: /api/area-manager/*.",
             "item": [
                 {
-                    "name": "Dashboard - Summary",
+                    "name": "A. Dashboard",
+                    "item": [
+                        {
+                            "name": "Dashboard - Summary",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6508,10 +6511,15 @@
                             "path": ["api", "area-manager", "region-map"]
                         },
                         "description": "Region map data. GET /api/area-manager/region-map. Response: data.areas (id, name, location, country, active, done), data.team_leaders (id, name, employee_id, location)."
-                    }
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Teams - List",
+                    "name": "B. Teams",
+                    "item": [
+                        {
+                            "name": "Teams - List",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6597,10 +6605,15 @@
                             ]
                         },
                         "description": "Jobs for one member. GET /api/area-manager/teams/members/{id}/jobs. Set {{member_id}} from Teams - Members; {{team_id}} from current team. Response: data.team_member (active, done, total_jobs), data.jobs[], meta."
-                    }
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Analytics",
+                    "name": "C. Analytics",
+                    "item": [
+                        {
+                            "name": "Analytics",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6614,10 +6627,15 @@
                             "query": [{ "key": "period", "value": "week", "description": "today | week | month" }]
                         },
                         "description": "Analytics. GET /api/area-manager/analytics?period=today|week|month. Response: visits, completion_percent, avg_time_minutes, active_teams, weekly_trend[], top_teams[]. All areas."
-                    }
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Reports - List",
+                    "name": "D. Reports",
+                    "item": [
+                        {
+                            "name": "Reports - List",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6647,11 +6665,12 @@
                             "raw": "{\n  \"type\": \"weekly_summary\",\n  \"date_from\": \"2026-03-01\",\n  \"date_to\": \"2026-03-31\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/area-manager/reports/generate",
+                            "raw": "{{base_url}}/api/area-manager/reports/generate?sync=1",
                             "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "reports", "generate"]
+                            "path": ["api", "area-manager", "reports", "generate"],
+                            "query": [{"key": "sync", "value": "1", "description": "If 1, report is generated in request and response includes download_url, view_url (ready in 2-3 sec). Omit for async."}]
                         },
-                        "description": "Start report generation. POST /api/area-manager/reports/generate. Body: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to. Then GET /generated-reports for status and download."
+                        "description": "Generate report. POST /api/area-manager/reports/generate. Body: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to. Add ?sync=1 for immediate result: response includes download_url and view_url; no status polling. Without sync, use GET /generated-reports to get download when ready."
                     }
                 },
                 {
@@ -6667,7 +6686,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "generated-reports"]
                         },
-                        "description": "List generated reports. GET /api/area-manager/generated-reports. Response: data[] (id, title, report_type, type, period, file_size, status, generated_at, created_at, download_url, share_url). download_url only when status=generated."
+                        "description": "List generated reports. GET /api/area-manager/generated-reports. Response: data[] (id, title, report_type, type, period, file_size, generated_at, created_at, download_url, view_url). download_url and view_url set when file is ready. Open view_url in new tab to view PDF; use download_url to save file."
                     }
                 },
                 {
@@ -6682,11 +6701,31 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "generated-reports", "{{generated_report_id}}", "download"]
                         },
-                        "description": "Download report file. GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from list. Returns file (PDF). Only when status=generated."
+                        "description": "Download report file (attachment). GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from list. Returns PDF/file. Use when download_url is present."
                     }
                 },
                 {
-                    "name": "Profile - Get",
+                    "name": "Generated Reports - View",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/generated-reports/{{generated_report_id}}/view",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "generated-reports", "{{generated_report_id}}", "view"]
+                        },
+                        "description": "Open report in browser (inline). GET /api/area-manager/generated-reports/{id}/view. Use view_url from list; open in new tab to view PDF."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "E. Profile",
+                    "item": [
+                        {
+                            "name": "Profile - Get",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6724,10 +6763,98 @@
                             "path": ["api", "area-manager", "profile"]
                         },
                         "description": "Update profile. PUT or POST /api/area-manager/profile. Form-data: name, email, phone, profile_picture (optional)."
-                    }
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Team Leaders - List (legacy)",
+                    "name": "F. Help & Support",
+                    "description": "Talk to admin (same as technician). All under /api/area-manager/support/*. Auth: Bearer {{token}} (area_manager).",
+                    "item": [
+                        {
+                            "name": "Help Center (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/area-manager/support/help-center", "host": ["{{base_url}}"], "path": ["api", "area-manager", "support", "help-center"] }
+                            },
+                            "description": "Full help center: heading, tagline, get_support, contact_info, submit_ticket (endpoint, fields), social_links, faqs."
+                        },
+                        {
+                            "name": "FAQs (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/area-manager/support/faqs", "host": ["{{base_url}}"], "path": ["api", "area-manager", "support", "faqs"] }
+                            },
+                            "description": "List FAQs. Response: data[] (id, question, answer, sort_order)."
+                        },
+                        {
+                            "name": "Submit ticket (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"subject\": \"Support request\",\n  \"email\": \"area-manager@example.com\",\n  \"description\": \"Describe your issue.\"\n}", "options": { "raw": { "language": "json" } } },
+                                "url": { "raw": "{{base_url}}/api/area-manager/support/tickets", "host": ["{{base_url}}"], "path": ["api", "area-manager", "support", "tickets"] }
+                            },
+                            "description": "Create a support ticket. Body: subject, email, description (required)."
+                        },
+                        {
+                            "name": "List my tickets (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/area-manager/support/tickets?per_page=20", "host": ["{{base_url}}"], "path": ["api", "area-manager", "support", "tickets"], "query": [{ "key": "per_page", "value": "20" }] }
+                            },
+                            "description": "List my support tickets (area manager). Paginated."
+                        },
+                        {
+                            "name": "Get ticket by ID (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/area-manager/support/tickets/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["api", "area-manager", "support", "tickets", "{{ticket_id}}"] }
+                            },
+                            "description": "Get one ticket with full chat thread. Set {{ticket_id}}."
+                        },
+                        {
+                            "name": "Reply to ticket (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"message\": \"My reply.\"\n}", "options": { "raw": { "language": "json" } } },
+                                "url": { "raw": "{{base_url}}/api/area-manager/support/tickets/{{ticket_id}}/reply", "host": ["{{base_url}}"], "path": ["api", "area-manager", "support", "tickets", "{{ticket_id}}", "reply"] }
+                            },
+                            "description": "Reply in ticket chat. Body: message (required). Set {{ticket_id}}."
+                        }
+                    ]
+                },
+                {
+                    "name": "Legacy – Team Leaders",
+                    "description": "Same as B. Teams; prefer /teams and /teams/{id}/jobs.",
+                    "item": [
+                        {
+                            "name": "Team Leaders - List (legacy)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6776,7 +6903,9 @@
                             ]
                         },
                         "description": "Legacy: same as Teams - Jobs. Prefer GET /teams/{id}/jobs."
-                    }
+                            }
+                        }
+                    ]
                 }
             ]
         },

@@ -54,8 +54,17 @@ class GenerateReportJob implements ShouldQueue
             } elseif ($ext === 'pdf') {
                 $html = $this->wrapContentAsHtml($content);
                 $fullPath = Storage::disk('local')->path($path);
-                $pdf = app('dompdf.wrapper');
-                $pdf->loadHTML($html)->setPaper('a4', 'portrait')->save($fullPath);
+                // Use dompdf/dompdf directly (no Laravel container) so queue workers and sync both work
+                if (! class_exists(\Dompdf\Dompdf::class)) {
+                    throw new \RuntimeException('PDF library not available. Run: composer require dompdf/dompdf');
+                }
+                $dompdf = new \Dompdf\Dompdf();
+                $dompdf->loadHtml($html);
+                $dompdf->setPaper('a4', 'portrait');
+                $basePath = realpath(base_path('public'));
+                $dompdf->setBasePath($basePath !== false ? $basePath : sys_get_temp_dir());
+                $dompdf->render();
+                file_put_contents($fullPath, $dompdf->output());
             } else {
                 Storage::disk('local')->put($path, $content);
             }

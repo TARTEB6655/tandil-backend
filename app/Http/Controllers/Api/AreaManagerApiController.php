@@ -834,17 +834,33 @@ class AreaManagerApiController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        GenerateReportJob::dispatch($report);
+        $sync = $request->boolean('sync');
+        if ($sync) {
+            GenerateReportJob::dispatchSync($report);
+            $report->refresh();
+        } else {
+            GenerateReportJob::dispatch($report);
+        }
+
+        $data = [
+            'id' => $report->id,
+            'title' => $report->title,
+            'status' => $report->status,
+            'created_at' => $report->created_at?->toIso8601String(),
+        ];
+        if ($report->status === 'generated' && $report->file_path) {
+            $data['download_url'] = url('/api/area-manager/generated-reports/' . $report->id . '/download');
+            $data['view_url'] = url('/api/area-manager/generated-reports/' . $report->id . '/view');
+        } elseif ($report->status === 'failed' && $report->failure_reason) {
+            $data['failure_reason'] = $report->failure_reason;
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Report generation started. You will be notified when it\'s ready. Check generated reports list for status.',
-            'data' => [
-                'id' => $report->id,
-                'title' => $report->title,
-                'status' => $report->status,
-                'created_at' => $report->created_at?->toIso8601String(),
-            ],
+            'message' => $sync
+                ? 'Report ready. Use download_url or view_url.'
+                : 'Report generation started. Check generated reports list for status.',
+            'data' => $data,
         ], 201);
     }
 
@@ -866,8 +882,11 @@ class AreaManagerApiController extends Controller
                 $period = $this->formatReportPeriod($start, $end);
                 $reportType = $this->reportTypeDisplayName($r->type, $r->title);
                 $fileSizeFormatted = $r->file_size !== null ? $this->formatFileSize((int) $r->file_size) : null;
-                $baseUrl = $r->status === 'generated' && $r->file_path
+                $downloadUrl = $r->status === 'generated' && $r->file_path
                     ? url('/api/area-manager/generated-reports/' . $r->id . '/download')
+                    : null;
+                $viewUrl = $r->status === 'generated' && $r->file_path
+                    ? url('/api/area-manager/generated-reports/' . $r->id . '/view')
                     : null;
 
                 return [
@@ -877,11 +896,10 @@ class AreaManagerApiController extends Controller
                     'type' => $r->type,
                     'period' => $period,
                     'file_size' => $fileSizeFormatted,
-                    'status' => $r->status,
                     'generated_at' => $r->generated_at?->toIso8601String(),
                     'created_at' => $r->created_at?->toIso8601String(),
-                    'download_url' => $baseUrl,
-                    'share_url' => $baseUrl,
+                    'download_url' => $downloadUrl,
+                    'view_url' => $viewUrl,
                 ];
             })->values()->all();
 
@@ -976,8 +994,32 @@ class AreaManagerApiController extends Controller
         return Storage::disk('local')->download(
             $report->file_path,
             $filename,
-            ['Content-Type' => $mime]
+            ['Content-Type' => $mime, 'Content-Disposition' => 'attachment; filename="' . $filename . '"']
         );
+    }
+
+    /**
+     * GET /api/area-manager/generated-reports/{id}/view
+     * Open report in browser (inline). Use this URL in a new tab for View. Same auth as download.
+     */
+    public function generatedReportView(Request $request, int $id)
+    {
+        $report = AdminReport::where('created_by', $request->user()->id)->findOrFail($id);
+        if ($report->status !== 'generated' || ! $report->file_path) {
+            return response()->json(['success' => false, 'message' => 'Report not available.'], 404);
+        }
+        if (! Storage::disk('local')->exists($report->file_path)) {
+            return response()->json(['success' => false, 'message' => 'Report file not found.'], 404);
+        }
+        $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+        $mime = strtolower($ext) === 'csv' ? 'text/csv' : 'application/pdf';
+        $filename = 'area-manager-report-' . $report->id . '.' . $ext;
+        $path = Storage::disk('local')->path($report->file_path);
+
+        return response()->file($path, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
 
     /**

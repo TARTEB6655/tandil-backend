@@ -308,6 +308,14 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')
     Route::post('/reports/generate', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportGenerate']);
     Route::get('/generated-reports', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'generatedReportsIndex']);
     Route::get('/generated-reports/{id}/download', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'generatedReportDownload']);
+    Route::get('/generated-reports/{id}/view', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'generatedReportView']);
+    /* Help & Support (talk to admin – same as /api/support/*) */
+    Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
+    Route::get('/support/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
+    Route::get('/support/tickets', [\App\Http\Controllers\Api\SupportController::class, 'indexMyTickets']);
+    Route::post('/support/tickets', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
+    Route::get('/support/tickets/{id}', [\App\Http\Controllers\Api\SupportController::class, 'showMyTicket']);
+    Route::post('/support/tickets/{id}/reply', [\App\Http\Controllers\Api\SupportController::class, 'replyToMyTicket']);
     Route::get('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'updateProfile']);
