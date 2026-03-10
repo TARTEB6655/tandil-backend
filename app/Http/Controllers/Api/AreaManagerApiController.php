@@ -601,13 +601,19 @@ class AreaManagerApiController extends Controller
             $end = $now;
         }
 
-        $visitQuery = Visit::whereIn('area_id', $areaIds)->whereBetween('created_at', [$start, $end]);
+        // Visits are tracked by scheduled_date in most flows; created_at may be outside the period (seed/import),
+        // which makes analytics show 0 even when visits occurred.
+        $startDate = $start->toDateString();
+        $endDate = $end->toDateString();
+
+        $visitQuery = Visit::whereIn('area_id', $areaIds)->whereBetween('scheduled_date', [$startDate, $endDate]);
         $visitsCount = (clone $visitQuery)->count();
         $completedCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $completionPercent = $visitsCount > 0 ? round(($completedCount / $visitsCount) * 100, 0) : 0;
 
         $completedVisits = Visit::whereIn('area_id', $areaIds)
             ->whereIn('status', ['completed', 'approved'])
+            ->whereBetween('scheduled_date', [$startDate, $endDate])
             ->whereBetween('completed_at', [$start, $end])
             ->whereNotNull('started_at')
             ->whereNotNull('completed_at')
@@ -622,7 +628,7 @@ class AreaManagerApiController extends Controller
             for ($i = 6; $i >= 0; $i--) {
                 $day = $now->copy()->subDays($i);
                 $count = Visit::whereIn('area_id', $areaIds)
-                    ->whereDate('created_at', $day)
+                    ->whereDate('scheduled_date', $day)
                     ->count();
                 $weeklyTrend[] = ['date' => $day->toDateString(), 'count' => $count];
             }
@@ -630,7 +636,7 @@ class AreaManagerApiController extends Controller
             $monthStart = $now->copy()->startOfMonth();
             for ($d = $monthStart->copy(); $d->lte($now); $d->addDay()) {
                 $count = Visit::whereIn('area_id', $areaIds)
-                    ->whereDate('created_at', $d)
+                    ->whereDate('scheduled_date', $d)
                     ->count();
                 $weeklyTrend[] = ['date' => $d->toDateString(), 'count' => $count];
             }
@@ -639,9 +645,9 @@ class AreaManagerApiController extends Controller
         }
 
         $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $topTeams = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get()->map(function (User $u) use ($start, $end) {
+        $topTeams = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get()->map(function (User $u) use ($startDate, $endDate) {
             $areaIds = $u->supervisedAreaIds();
-            $visits = Visit::whereIn('area_id', $areaIds)->whereBetween('created_at', [$start, $end])->count();
+            $visits = Visit::whereIn('area_id', $areaIds)->whereBetween('scheduled_date', [$startDate, $endDate])->count();
             return [
                 'id' => $u->id,
                 'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
