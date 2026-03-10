@@ -404,6 +404,30 @@ Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('admin/hr')->group(
 
 /*
 |--------------------------------------------------------------------------
+| HR DASHBOARD API (same structure as Area Manager: /api/hr/*)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('hr')->group(function () {
+    Route::get('/dashboard/summary', [\App\Http\Controllers\Api\HrApiController::class, 'dashboardSummary']);
+    Route::get('/dashboard/visit-assignments', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignments']);
+    Route::get('/positions', [\App\Http\Controllers\Api\HrApiController::class, 'positions']);
+    Route::get('/leave-requests', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestsIndex']);
+    Route::post('/leave-requests', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestStore']);
+    Route::get('/leave-requests/{id}', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestShow']);
+    Route::post('/leave-requests/{id}/approve', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestApprove']);
+    Route::post('/leave-requests/{id}/reject', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestReject']);
+    Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index']);
+    Route::post('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'store']);
+    Route::get('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'show']);
+    Route::put('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update']);
+    Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy']);
+    Route::get('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'profile']);
+    Route::put('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'updateProfile']);
+    Route::post('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'updateProfile']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | REPORTS
 |--------------------------------------------------------------------------
 */

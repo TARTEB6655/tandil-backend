@@ -6910,7 +6910,308 @@
             ]
         },
         {
-            "name": "12. Admin Dashboard – Stats, Users & HR",
+            "name": "12. HR Manager Dashboard – All APIs",
+            "description": "HR Manager APIs. Auth: Bearer {{token}} (role hr or admin). Same folder structure as Area Manager: A. Dashboard, B. Employees, C. Leave Requests, D. Profile. Base: /api/hr/*.",
+            "item": [
+                {
+                    "name": "A. Dashboard",
+                    "item": [
+                        {
+                            "name": "Dashboard - Summary",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/dashboard/summary",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "dashboard", "summary"]
+                                },
+                                "description": "Profile and KPIs. GET /api/hr/dashboard/summary. Response: name, id (HR-xxx), role, profile_picture_url, total_staff, new_hires, leave_requests (count), pending_leave_requests[] (id, applicant_name, applicant_id, leave_type, duration_days, start_date, end_date, reason, status)."
+                            }
+                        },
+                        {
+                            "name": "Dashboard - Visit Assignments",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/dashboard/visit-assignments",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "dashboard", "visit-assignments"]
+                                },
+                                "description": "Today and tomorrow visit counts. GET /api/hr/dashboard/visit-assignments. Response: data.today (total, assigned, unassigned), data.tomorrow (total, assigned, unassigned)."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "B. Employees",
+                    "item": [
+                        {
+                            "name": "Positions - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/positions",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "positions"]
+                                },
+                                "description": "List positions for Add Employee form. GET /api/hr/positions. Response: data[] (value, label): Field Worker, Team Leader, Area Manager, HR Staff."
+                            }
+                        },
+                        {
+                            "name": "Employees - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/employees?search=&per_page=20",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "employees"],
+                                    "query": [
+                                        { "key": "search", "value": "", "description": "Optional search" },
+                                        { "key": "per_page", "value": "20", "description": "Optional" }
+                                    ]
+                                },
+                                "description": "List employees. GET /api/hr/employees. Response: data[] (id, user_id, name, email, employee_id, phone, designation, region, joining_date, user), total."
+                            }
+                        },
+                        {
+                            "name": "Employees - Create",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Ahmed Hassan\",\n  \"email\": \"ahmed@example.com\",\n  \"phone\": \"+971501234567\",\n  \"employee_id\": \"EMP-1001\",\n  \"region\": \"Dubai\",\n  \"designation\": \"Field Worker\",\n  \"joining_date\": \"2023-05-15\"\n}",
+                                    "options": { "raw": { "language": "json" } }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/employees",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "employees"]
+                                },
+                                "description": "Create employee. POST /api/hr/employees. Body: name, email, employee_id (required), phone, region, designation (position), joining_date. designation = position (e.g. Field Worker, Team Leader)."
+                            }
+                        },
+                        {
+                            "name": "Employees - Show",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/employees/{{employee_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "employees", "{{employee_id}}"]
+                                },
+                                "description": "Get one employee. GET /api/hr/employees/{id}. Set {{employee_id}}."
+                            }
+                        },
+                        {
+                            "name": "Employees - Update",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Ahmed Hassan\",\n  \"email\": \"ahmed@example.com\",\n  \"phone\": \"+971501234567\",\n  \"employee_id\": \"EMP-1001\",\n  \"region\": \"Dubai\",\n  \"designation\": \"Field Worker\",\n  \"joining_date\": \"2023-05-15\"\n}",
+                                    "options": { "raw": { "language": "json" } }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/employees/{{employee_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "employees", "{{employee_id}}"]
+                                },
+                                "description": "Update employee. PUT /api/hr/employees/{id}. Body: name, email, employee_id, phone, region, designation, joining_date."
+                            }
+                        },
+                        {
+                            "name": "Employees - Delete",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/employees/{{employee_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "employees", "{{employee_id}}"]
+                                },
+                                "description": "Delete employee. DELETE /api/hr/employees/{id}. Set {{employee_id}}."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "C. Leave Requests",
+                    "item": [
+                        {
+                            "name": "Leave Requests - Create",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"user_id\": 1,\n  \"leave_type\": \"Sick Leave\",\n  \"start_date\": \"2024-01-20\",\n  \"end_date\": \"2024-01-21\",\n  \"reason\": \"Medical checkup and recovery\"\n}",
+                                    "options": { "raw": { "language": "json" } }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/leave-requests",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "leave-requests"]
+                                },
+                                "description": "Create leave request (HR on behalf of employee). POST /api/hr/leave-requests. Body: user_id, leave_type, start_date, end_date, reason."
+                            }
+                        },
+                        {
+                            "name": "Leave Requests - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/leave-requests?status=pending&per_page=20",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "leave-requests"],
+                                    "query": [
+                                        { "key": "status", "value": "pending", "description": "pending | approved | rejected (optional; omit for all)" },
+                                        { "key": "per_page", "value": "20", "description": "1-50" }
+                                    ]
+                                },
+                                "description": "List leave requests. GET /api/hr/leave-requests?status=pending|approved|rejected. Response: data[], counts (pending, approved, rejected), meta (pagination)."
+                            }
+                        },
+                        {
+                            "name": "Leave Requests - Show",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/leave-requests/{{leave_request_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "leave-requests", "{{leave_request_id}}"]
+                                },
+                                "description": "Get one leave request. GET /api/hr/leave-requests/{id}. Set {{leave_request_id}}."
+                            }
+                        },
+                        {
+                            "name": "Leave Requests - Approve",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/leave-requests/{{leave_request_id}}/approve",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "leave-requests", "{{leave_request_id}}", "approve"]
+                                },
+                                "description": "Approve leave request. POST /api/hr/leave-requests/{id}/approve. Set {{leave_request_id}}."
+                            }
+                        },
+                        {
+                            "name": "Leave Requests - Reject",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/leave-requests/{{leave_request_id}}/reject",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "leave-requests", "{{leave_request_id}}", "reject"]
+                                },
+                                "description": "Reject leave request. POST /api/hr/leave-requests/{id}/reject. Set {{leave_request_id}}."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "D. Profile",
+                    "item": [
+                        {
+                            "name": "Profile - Get",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/profile",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "profile"]
+                                },
+                                "description": "HR profile. GET /api/hr/profile. Response: name, email, phone, id, profile_picture_url, rating, jobs_completed, total_earnings, member_since, specializations, service_area."
+                            }
+                        },
+                        {
+                            "name": "Profile - Update",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "name", "value": "Mariam Al Hashimi", "type": "text" },
+                                        { "key": "email", "value": "hr@example.com", "type": "text" },
+                                        { "key": "phone", "value": "70000041", "type": "text" },
+                                        { "key": "profile_picture", "value": "", "type": "file", "description": "Optional image" }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/profile",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "hr", "profile"]
+                                },
+                                "description": "Update profile. PUT or POST /api/hr/profile. Form-data: name, email, phone, profile_picture (optional)."
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "13. Admin Dashboard – Stats, Users & HR",
             "item": [
                 {
                     "name": "Admin Dashboard Statistics",
@@ -7640,7 +7941,7 @@
             "description": "Admin and HR endpoints - User management, roles, employee management"
         },
         {
-            "name": "13. Admin Dashboard – Reports Management",
+            "name": "14. Admin Dashboard – Reports Management",
             "item": [
                 {
                     "name": "Get All Reports",
@@ -7951,7 +8252,7 @@
             "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
         },
         {
-            "name": "14. Admin – Support Tickets",
+            "name": "15. Admin – Support Tickets",
             "description": "Tickets submitted by clients/technicians via POST /api/support/tickets. Admin can list, view, reply, and update status. Quick Overview count uses open + in_progress.",
             "item": [
                 {
@@ -8036,7 +8337,7 @@
             ]
         },
         {
-            "name": "15. Admin Dashboard – Settings (Mobile)",
+            "name": "16. Admin Dashboard – Settings (Mobile)",
             "item": [
                 {
                     "name": "Get All Settings",
@@ -8509,7 +8810,7 @@
             "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, shop (shipping_amount, tax_percent), legal, export, debug logs."
         },
         {
-            "name": "16. Other Modules",
+            "name": "17. Other Modules",
             "item": [
                 {
                     "name": "Support Tickets – All roles (Client, Technician, Supervisor, Area Manager, HR)",
