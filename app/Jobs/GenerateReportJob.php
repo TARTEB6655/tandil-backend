@@ -68,7 +68,9 @@ class GenerateReportJob implements ShouldQueue
                 'failure_reason' => null,
             ]);
 
-            $report->creator->notify(new ReportGeneratedNotification($report));
+            if ($report->creator) {
+                $report->creator->notify(new ReportGeneratedNotification($report));
+            }
         } catch (\Throwable $e) {
             Log::error('Report generation failed: ' . $e->getMessage(), [
                 'report_id' => $report->id,
@@ -105,6 +107,11 @@ class GenerateReportJob implements ShouldQueue
         $areaIds = $this->reportAreaIds();
         $start = Carbon::parse($startDate)->startOfDay();
         $end = Carbon::parse($endDate)->endOfDay();
+
+        // Avoid SQL "IN ()" with empty list and give a clear message when no areas exist.
+        if (empty($areaIds)) {
+            return "Report: {$report->title}\nPeriod: {$startDate} to {$endDate}\nGenerated at: " . now()->toIso8601String() . "\n---\nNo areas configured. Add areas in the system to see report data.";
+        }
 
         return match ($report->type) {
             'operational' => $this->buildWeeklySummaryContent($report, $start, $end, $areaIds),

@@ -643,17 +643,26 @@ class AreaManagerApiController extends Controller
         $completedCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $completionPercent = $visitsCount > 0 ? round(($completedCount / $visitsCount) * 100, 0) : 0;
 
+        // Completed visits in period (with report). Include those with completed_at; started_at optional for duration.
         $completedVisits = Visit::query()
             ->whereNotNull('area_id')
             ->whereIn('area_id', $areaIds)
             ->whereIn('status', ['completed', 'approved'])
             ->whereBetween('scheduled_date', [$startDate, $endDate])
             ->whereBetween('completed_at', [$start, $end])
-            ->whereNotNull('started_at')
             ->whereNotNull('completed_at')
             ->whereHas('report')
             ->get();
-        $totalMinutes = $completedVisits->sum(fn ($v) => (int) $v->started_at->diffInMinutes($v->completed_at));
+        $totalMinutes = $completedVisits->sum(function ($v) {
+            if ($v->started_at && $v->completed_at) {
+                return (int) $v->started_at->diffInMinutes($v->completed_at);
+            }
+            // Fallback: use time from created_at to completed_at so avg time is non-zero when started_at wasn't set
+            if ($v->completed_at && $v->created_at) {
+                return max(0, (int) $v->created_at->diffInMinutes($v->completed_at));
+            }
+            return 0;
+        });
         $avgTimeMinutes = $completedVisits->isEmpty() ? 0 : (int) round($totalMinutes / $completedVisits->count());
 
         $activeTeamsCount = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->count('user_id');

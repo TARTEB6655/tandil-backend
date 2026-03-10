@@ -88,6 +88,9 @@
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate">{{ $typeLabel }}</p>
                         <p class="text-xs text-gray-500 mt-0.5">{{ $period }}</p>
+                        @if($r->status === 'failed' && $r->failure_reason)
+                            <p class="text-xs text-red-600 mt-1" title="{{ $r->failure_reason }}">Reason: {{ \Illuminate\Support\Str::limit($r->failure_reason, 80) }}</p>
+                        @endif
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                         @if($r->status === 'generated')
