@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\AreaManager;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Area;
-use App\Models\Visit;
 use App\Models\Report;
+use App\Models\Subscription;
+use App\Models\Visit;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AreaManagerDashboardController extends Controller
@@ -78,6 +81,70 @@ class AreaManagerDashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Team leaders (supervisors) with performance %
+        $areaIds = Area::pluck('id')->toArray();
+        $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        $teamLeaders = User::role('supervisor')
+            ->whereIn('id', $supervisorIds)
+            ->with('employee')
+            ->get()
+            ->map(function (User $u) {
+                $areaIds = $u->supervisedAreaIds();
+                $visitQuery = Visit::where(function ($q) use ($u, $areaIds) {
+                    $q->where('supervisor_id', $u->id);
+                    if (! empty($areaIds)) {
+                        $q->orWhereIn('area_id', $areaIds);
+                    }
+                });
+                $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
+                $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
+                $total = $active + $done;
+                $performance = $total > 0 ? round(($done / $total) * 100, 0) : 0;
+                $teamCount = empty($areaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->count('user_id');
+                $firstArea = $u->supervisedAreas()->first();
+                return (object) [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
+                    'location' => $firstArea?->name ?? $firstArea?->location ?? null,
+                    'performance_percent' => $performance,
+                    'team' => $teamCount,
+                    'active' => $active,
+                    'done' => $done,
+                ];
+            })
+            ->sortByDesc('performance_percent')
+            ->take(5)
+            ->values();
+
+        // Alerts (overdue, expiring subscriptions, stuck visits)
+        $today = Carbon::today();
+        $alerts = [];
+        $overdueCount = Visit::whereIn('area_id', $areaIds)
+            ->whereIn('status', ['pending', 'scheduled', 'in_progress'])
+            ->where('scheduled_date', '<', $today)
+            ->count();
+        if ($overdueCount > 0) {
+            $alerts[] = ['type' => 'warning', 'message' => $overdueCount === 1 ? '1 visit is overdue.' : "{$overdueCount} visits are overdue."];
+        }
+        $expiringCount = Subscription::where('payment_status', 'paid')
+            ->whereBetween('end_date', [$today, $today->copy()->addDays(7)])
+            ->count();
+        if ($expiringCount > 0) {
+            $alerts[] = ['type' => 'warning', 'message' => $expiringCount === 1 ? '1 subscription expiring in 7 days.' : "{$expiringCount} subscriptions expiring in 7 days."];
+        }
+        $stuckCount = Visit::whereIn('area_id', $areaIds)
+            ->whereIn('status', ['in_progress', 'started'])
+            ->whereNotNull('started_at')
+            ->where('started_at', '<', Carbon::now()->subHours(24))
+            ->count();
+        if ($stuckCount > 0) {
+            $alerts[] = ['type' => 'warning', 'message' => $stuckCount === 1 ? '1 visit in progress over 24 hours.' : "{$stuckCount} visits in progress over 24 hours."];
+        }
+        if (empty($alerts)) {
+            $alerts[] = ['type' => 'info', 'message' => 'No alerts. All visits and subscriptions are on track.'];
+        }
+
         return view('areamanager.dashboard', compact(
             'totalAreas',
             'totalSupervisors',
@@ -97,6 +164,8 @@ class AreaManagerDashboardController extends Controller
             'monthlyVisits',
             'recentVisits',
             'recentReports',
+            'teamLeaders',
+            'alerts',
             'search'
         ));
     }

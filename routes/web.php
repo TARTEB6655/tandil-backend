@@ -442,6 +442,11 @@ Route::middleware(['auth', 'role:area_manager'])
         // Reports
         Route::get('/reports', [\App\Http\Controllers\AreaManager\ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{id}', [\App\Http\Controllers\AreaManager\ReportController::class, 'show'])->name('reports.show');
+
+        // Generated Reports (Generate PDF)
+        Route::get('/generated-reports', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'index'])->name('generated-reports.index');
+        Route::post('/generated-reports', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'store'])->name('generated-reports.store');
+        Route::get('/generated-reports/{id}/download', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'download'])->name('generated-reports.download');
         
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
