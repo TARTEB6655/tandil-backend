@@ -424,7 +424,12 @@ class AreaManagerApiController extends Controller
 
         $reports = Report::with(['visit.area', 'visit.technician:id,name', 'supervisor:id,name'])
             ->whereHas('visit', function ($q) use ($areaIds) {
-                $q->whereIn('area_id', $areaIds);
+                if (empty($areaIds)) {
+                    return;
+                }
+                $q->where(function ($q2) use ($areaIds) {
+                    $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+                });
             })
             ->orderByDesc('created_at')
             ->paginate($perPage);
