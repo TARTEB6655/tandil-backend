@@ -100,10 +100,13 @@ class GeneratedReportController extends Controller
         $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
         $filename = 'area-manager-report-' . $report->id . '.' . $ext;
         $mime = $ext === 'pdf' ? 'application/pdf' : ($ext === 'csv' ? 'text/csv' : 'application/octet-stream');
+        $fullPath = Storage::disk('local')->path($report->file_path);
 
-        return Storage::disk('local')->download($report->file_path, $filename, [
+        return response()->file($fullPath, [
             'Content-Type' => $mime,
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'private, no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
         ]);
     }
 
