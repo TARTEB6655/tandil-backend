@@ -628,7 +628,7 @@ class AreaManagerApiController extends Controller
             $end = $now;
         }
 
-        // Count visits in period: scheduled_date in range OR created_at in range. Only include visits in this manager's areas.
+        // Count visits by scheduled_date in period only (no OR created_at) so each visit is counted once and "this week" = scheduled this week.
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
         $startDt = $start->copy()->startOfDay();
@@ -636,10 +636,7 @@ class AreaManagerApiController extends Controller
 
         $visitQuery = Visit::query()
             ->whereIn('area_id', $areaIds)
-            ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
-                $q->whereBetween('scheduled_date', [$startDate, $endDate])
-                    ->orWhereBetween('created_at', [$startDt, $endDt]);
-            });
+            ->whereBetween('scheduled_date', [$startDate, $endDate]);
         $visitsCount = (clone $visitQuery)->count();
         $completedCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $completionPercent = $visitsCount > 0 ? round(($completedCount / $visitsCount) * 100, 0) : 0;
@@ -647,10 +644,7 @@ class AreaManagerApiController extends Controller
         $completedVisits = Visit::query()
             ->whereIn('area_id', $areaIds)
             ->whereIn('status', ['completed', 'approved'])
-            ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
-                $q->whereBetween('scheduled_date', [$startDate, $endDate])
-                    ->orWhereBetween('created_at', [$startDt, $endDt]);
-            })
+            ->whereBetween('scheduled_date', [$startDate, $endDate])
             ->whereBetween('completed_at', [$start, $end])
             ->whereNotNull('started_at')
             ->whereNotNull('completed_at')
@@ -667,9 +661,7 @@ class AreaManagerApiController extends Controller
                 $dayStr = $day->toDateString();
                 $count = Visit::query()
                     ->whereIn('area_id', $areaIds)
-                    ->where(function ($q) use ($dayStr) {
-                        $q->whereDate('scheduled_date', $dayStr)->orWhereDate('created_at', $dayStr);
-                    })
+                    ->whereDate('scheduled_date', $dayStr)
                     ->count();
                 $weeklyTrend[] = ['date' => $dayStr, 'count' => $count];
             }
@@ -679,9 +671,7 @@ class AreaManagerApiController extends Controller
                 $dayStr = $d->toDateString();
                 $count = Visit::query()
                     ->whereIn('area_id', $areaIds)
-                    ->where(function ($q) use ($dayStr) {
-                        $q->whereDate('scheduled_date', $dayStr)->orWhereDate('created_at', $dayStr);
-                    })
+                    ->whereDate('scheduled_date', $dayStr)
                     ->count();
                 $weeklyTrend[] = ['date' => $dayStr, 'count' => $count];
             }
@@ -690,13 +680,10 @@ class AreaManagerApiController extends Controller
         }
 
         $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $topTeams = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get()->map(function (User $u) use ($startDate, $endDate, $startDt, $endDt) {
+        $topTeams = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get()->map(function (User $u) use ($startDate, $endDate) {
             $uAreaIds = $u->supervisedAreaIds();
             $visits = empty($uAreaIds) ? 0 : Visit::whereIn('area_id', $uAreaIds)
-                ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
-                    $q->whereBetween('scheduled_date', [$startDate, $endDate])
-                        ->orWhereBetween('created_at', [$startDt, $endDt]);
-                })
+                ->whereBetween('scheduled_date', [$startDate, $endDate])
                 ->count();
             return [
                 'id' => $u->id,
