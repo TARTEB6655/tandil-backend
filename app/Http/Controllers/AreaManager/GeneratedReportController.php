@@ -69,13 +69,13 @@ class GeneratedReportController extends Controller
                 'created_by' => $request->user()->id,
             ]);
 
-            GenerateReportJob::dispatch($report);
+            GenerateReportJob::dispatchSync($report);
             $created++;
         }
 
         $message = $created === 1
-            ? 'Report generation started. Refresh this page to see status; download when Ready.'
-            : "{$created} report generations started. Refresh this page to see status; download when Ready.";
+            ? 'Report generated. You can download, view, or delete it below.'
+            : "{$created} reports generated. You can download, view, or delete them below.";
 
         return redirect()
             ->route('areamanager.generated-reports.index')

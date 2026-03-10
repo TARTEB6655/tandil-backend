@@ -448,7 +448,7 @@ Route::middleware(['auth', 'role:area_manager'])
         Route::post('/generated-reports', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'store'])->name('generated-reports.store');
         Route::get('/generated-reports/{id}/download', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'download'])->name('generated-reports.download');
         Route::get('/generated-reports/{id}/view', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'view'])->name('generated-reports.view');
-        Route::delete('/generated-reports/{id}', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'destroy'])->name('generated-reports.destroy');
+        Route::post('/generated-reports/{id}/destroy', [\App\Http\Controllers\AreaManager\GeneratedReportController::class, 'destroy'])->name('generated-reports.destroy');
 
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');

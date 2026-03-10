@@ -430,7 +430,9 @@ class AreaManagerApiController extends Controller
         $technicianIds = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
         $members = User::role('technician')->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor) {
             $techAreaIds = DB::table('area_technician')->where('user_id', $tech->id)->whereIn('area_id', $areaIds)->pluck('area_id');
-            $areaNames = Area::whereIn('id', $techAreaIds)->pluck('name')->filter()->values()->all();
+            $areas = Area::whereIn('id', $techAreaIds)->get();
+            $areaNames = $areas->pluck('name')->filter()->values()->all();
+            $location = $areas->map(fn ($a) => trim($a->name . ($a->location ? ', ' . $a->location : '')))->filter()->unique()->values()->implode(', ') ?: null;
             $visitQuery = Visit::where('technician_id', $tech->id)->whereIn('area_id', $areaIds);
             $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
             $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
@@ -441,6 +443,7 @@ class AreaManagerApiController extends Controller
                 'employee_id' => $tech->employee?->employee_id ?? ('TEC-' . $tech->id),
                 'initial' => mb_strtoupper($initial),
                 'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($tech->profile_picture, $initial),
+                'location' => $location ?? implode(', ', $areaNames) ?: null,
                 'area_names' => $areaNames,
                 'area_ids' => $techAreaIds->values()->all(),
                 'linked_to' => [
@@ -450,6 +453,7 @@ class AreaManagerApiController extends Controller
                 ],
                 'active' => $active,
                 'done' => $done,
+                'total_jobs' => $active + $done,
                 'team_leader_id' => $supervisor->id,
             ];
         })->values()->all();
@@ -485,9 +489,14 @@ class AreaManagerApiController extends Controller
         }
 
         $areaIds = Area::pluck('id')->toArray();
-        $visitQuery = Visit::with(['subscription.client', 'area:id,name', 'supervisor:id,name'])
+        $visitQuery = Visit::with(['subscription.client', 'area:id,name,location', 'supervisor:id,name', 'technician:id,name', 'technician.employee'])
             ->where('technician_id', $id)
             ->whereIn('area_id', $areaIds);
+
+        $baseVisitQuery = Visit::where('technician_id', $id)->whereIn('area_id', $areaIds);
+        $totalJobsCount = (clone $baseVisitQuery)->count();
+        $activeCount = (clone $baseVisitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+        $doneCount = (clone $baseVisitQuery)->whereIn('status', ['completed', 'approved'])->count();
 
         $statusFilter = $request->get('status', 'processing');
         if ($statusFilter === 'processing') {
@@ -503,6 +512,7 @@ class AreaManagerApiController extends Controller
             ->paginate($perPage);
 
         $list = $visits->getCollection()->map(function (Visit $v) {
+            $tech = $v->technician;
             return [
                 'id' => $v->id,
                 'visit_id' => $v->id,
@@ -512,9 +522,23 @@ class AreaManagerApiController extends Controller
                 'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
                 'client_name' => $v->subscription?->client?->name ?? 'N/A',
                 'area_name' => $v->area?->name ?? 'N/A',
+                'area_location' => $v->area?->location ?? null,
                 'supervisor_name' => $v->supervisor?->name ?? null,
                 'supervisor_id' => $v->supervisor_id,
                 'is_processing' => in_array($v->status, ['in_progress', 'started']),
+                'completed_at' => $v->completed_at?->toIso8601String(),
+                'completed_at_display' => $v->completed_at?->format('M d, Y H:i'),
+                'started_at' => $v->started_at?->toIso8601String(),
+                'started_at_display' => $v->started_at?->format('M d, Y H:i'),
+                'completed_by' => $tech ? [
+                    'id' => $tech->id,
+                    'name' => $tech->name,
+                    'employee_id' => $tech->employee?->employee_id ?? ('TEC-' . $tech->id),
+                ] : null,
+                'technician_id' => $v->technician_id,
+                'technician_name' => $tech?->name ?? null,
+                'price' => $v->price !== null ? (float) $v->price : null,
+                'notes' => $v->notes ? \Illuminate\Support\Str::limit($v->notes, 200) : null,
             ];
         })->values()->all();
 
@@ -528,6 +552,9 @@ class AreaManagerApiController extends Controller
                     'employee_id' => $technician->employee?->employee_id ?? ('TEC-' . $technician->id),
                     'initial' => mb_strtoupper($initial),
                     'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($technician->profile_picture, $initial),
+                    'active_count' => $activeCount,
+                    'done_count' => $doneCount,
+                    'total_jobs' => $totalJobsCount,
                 ],
                 'jobs' => $list,
             ],
