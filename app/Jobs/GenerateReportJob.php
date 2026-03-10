@@ -15,7 +15,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -55,7 +54,8 @@ class GenerateReportJob implements ShouldQueue
             } elseif ($ext === 'pdf') {
                 $html = $this->wrapContentAsHtml($content);
                 $fullPath = Storage::disk('local')->path($path);
-                Pdf::loadHTML($html)->setPaper('a4', 'portrait')->save($fullPath);
+                $pdf = app('dompdf.wrapper');
+                $pdf->loadHTML($html)->setPaper('a4', 'portrait')->save($fullPath);
             } else {
                 Storage::disk('local')->put($path, $content);
             }
