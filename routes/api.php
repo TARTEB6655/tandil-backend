@@ -291,6 +291,7 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')
     Route::get('/region-map', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'regionMap']);
 
     /* Teams (All Teams screen → team members → member jobs). Use these to avoid confusion with "team leaders". */
+    Route::get('/teams', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaders']);
     Route::get('/teams/members/{id}/jobs', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamMemberJobs']);
     Route::get('/teams/{id}/members', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderMembers']);
     Route::get('/teams/{id}/jobs', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'teamLeaderJobs']);

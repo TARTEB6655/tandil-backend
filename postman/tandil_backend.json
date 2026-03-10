@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.91.0"
+        "version": "2.92.0"
     },
     "item": [
         {
@@ -6460,7 +6460,7 @@
         },
         {
             "name": "11. Area Manager Dashboard",
-            "description": "Area Manager mobile dashboard. Auth: Bearer token (area_manager). Use /teams APIs for All Teams flow (no team-leaders naming to avoid confusion). Flow: (1) All Teams screen → GET /teams. (2) Click team → GET /teams/{id}/members. (3) Click member → GET /teams/members/{id}/jobs. Reports: Generate PDF, generated-reports list/download.",
+            "description": "Area Manager APIs. Auth: Bearer {{token}} (role area_manager).\n\n**Endpoints:**\n- Dashboard: GET /dashboard/summary, GET /dashboard/alerts\n- Region: GET /region-map\n- Teams: GET /teams → GET /teams/{team_id} → GET /teams/{team_id}/members → GET /teams/members/{member_id}/jobs?team_id={team_id}\n- Team jobs: GET /teams/{team_id}/jobs?status=processing&per_page=20\n- Analytics: GET /analytics?period=week\n- Reports: GET /reports, POST /reports/generate, GET /generated-reports, GET /generated-reports/{id}/download\n- Profile: GET /profile, PUT|POST /profile\n\n**Consistency:** Team active/done = sum of members' active/done. Use team_id in Member Jobs so counts match.",
             "item": [
                 {
                     "name": "Dashboard - Summary",
@@ -6475,7 +6475,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "dashboard", "summary"]
                         },
-                        "description": "Profile + KPIs for Area Manager dashboard. Response: name, id (AM-xxx), role, region (employee.region), profile_picture_url, total_farms (areas count), active_subscriptions, monthly_revenue."
+                        "description": "Profile and KPIs. GET /api/area-manager/dashboard/summary. Response: name, id (AM-xxx), role, region, profile_picture_url, total_farms (areas count), active_subscriptions, monthly_revenue, team (supervisor count), active (visits), done (visits)."
                     }
                 },
                 {
@@ -6491,7 +6491,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "dashboard", "alerts"]
                         },
-                        "description": "Region alerts. data[]: type (warning|info), message, timestamp. Alerts: overdue visits, expiring subscriptions, stuck visits, workers on leave. leave_by_supervisor[]: supervisor_id, supervisor_name, on_leave (for UI: 'Supervisor X has N on leave'). When no issues, one info alert returned."
+                        "description": "Alerts. GET /api/area-manager/dashboard/alerts. Response: data[] (type: warning|info, message, timestamp). Includes: overdue visits, expiring subscriptions, stuck visits, workers on leave. leave_by_supervisor[]: supervisor_id, supervisor_name, on_leave."
                     }
                 },
                 {
@@ -6507,11 +6507,11 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "region-map"]
                         },
-                        "description": "Data for Region Map screen. Response: data.areas (id, name, location, country, active, done) and data.team_leaders (id, name, employee_id, location). Use for plotting area and supervisor pins on map."
+                        "description": "Region map data. GET /api/area-manager/region-map. Response: data.areas (id, name, location, country, active, done), data.team_leaders (id, name, employee_id, location)."
                     }
                 },
                 {
-                    "name": "Teams - List (All Teams screen)",
+                    "name": "Teams - List",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6523,7 +6523,207 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "teams"]
                         },
-                        "description": "List all teams (All Teams screen). Response: data[] with id, name, employee_id, initial, profile_picture_url, location, performance_percent, team (member count), active, done. Team active/done count only visits by that team's technicians in that team's areas (matches Teams - Detail and sum of Teams - Members). Use data[].id as team_id in Teams - Detail, Teams - Members, and Teams - Member Jobs (query param)."
+                        "description": "All teams. GET /api/area-manager/teams. Response: data[] (id, name, employee_id, initial, profile_picture_url, location, performance_percent, team, active, done). Use data[].id as {{team_id}} for Detail, Members, Jobs."
+                    }
+                },
+                {
+                    "name": "Teams - Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams/{{team_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams", "{{team_id}}"]
+                        },
+                        "description": "Single team (supervisor). GET /api/area-manager/teams/{id}. Set {{team_id}} from Teams - List. Response: id, name, email, phone, employee_id, initial, profile_picture_url, location, performance_percent, team, active, done. active/done = sum of members."
+                    }
+                },
+                {
+                    "name": "Teams - Jobs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams/{{team_id}}/jobs?status=processing&per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams", "{{team_id}}", "jobs"],
+                            "query": [
+                                { "key": "status", "value": "processing", "description": "processing | all | completed" },
+                                { "key": "per_page", "value": "20", "description": "Optional, max 50" }
+                            ]
+                        },
+                        "description": "Jobs (visits) for this team. GET /api/area-manager/teams/{id}/jobs. Only visits by this team's technicians in this team's areas. Response: data.team_leader (id, name, employee_id, active_count, done_count, total_jobs), data.jobs[], meta."
+                    }
+                },
+                {
+                    "name": "Teams - Members",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams/{{team_id}}/members",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams", "{{team_id}}", "members"]
+                        },
+                        "description": "Team members. GET /api/area-manager/teams/{id}/members. Response: data.team_leader, data.members[] (id, name, employee_id, area_names, linked_to, active, done, total_jobs). Use members[].id as {{member_id}} and same {{team_id}} in Member Jobs."
+                    }
+                },
+                {
+                    "name": "Teams - Member Jobs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/teams/members/{{member_id}}/jobs?status=processing&per_page=20&team_id={{team_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "teams", "members", "{{member_id}}", "jobs"],
+                            "query": [
+                                { "key": "status", "value": "processing", "description": "processing | all | completed" },
+                                { "key": "per_page", "value": "20", "description": "Optional" },
+                                { "key": "team_id", "value": "{{team_id}}", "description": "Optional; scope to team areas so counts match Members" }
+                            ]
+                        },
+                        "description": "Jobs for one member. GET /api/area-manager/teams/members/{id}/jobs. Set {{member_id}} from Teams - Members; {{team_id}} from current team. Response: data.team_member (active, done, total_jobs), data.jobs[], meta."
+                    }
+                },
+                {
+                    "name": "Analytics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/analytics?period=week",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "analytics"],
+                            "query": [{ "key": "period", "value": "week", "description": "today | week | month" }]
+                        },
+                        "description": "Analytics. GET /api/area-manager/analytics?period=today|week|month. Response: visits, completion_percent, avg_time_minutes, active_teams, weekly_trend[], top_teams[]. All areas."
+                    }
+                },
+                {
+                    "name": "Reports - List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/reports?per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "reports"],
+                            "query": [{ "key": "per_page", "value": "20", "description": "1-50" }]
+                        },
+                        "description": "Visit reports list. GET /api/area-manager/reports. Response: data[] (id, visit_id, status, scheduled_date, area_name, technician_name, supervisor_name), meta."
+                    }
+                },
+                {
+                    "name": "Reports - Generate",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"weekly_summary\",\n  \"date_from\": \"2026-03-01\",\n  \"date_to\": \"2026-03-31\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/reports/generate",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "reports", "generate"]
+                        },
+                        "description": "Start report generation. POST /api/area-manager/reports/generate. Body: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to. Then GET /generated-reports for status and download."
+                    }
+                },
+                {
+                    "name": "Generated Reports - List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/generated-reports",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "generated-reports"]
+                        },
+                        "description": "List generated reports. GET /api/area-manager/generated-reports. Response: data[] (id, title, report_type, type, period, file_size, status, generated_at, created_at, download_url, share_url). download_url only when status=generated."
+                    }
+                },
+                {
+                    "name": "Generated Reports - Download",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/generated-reports/{{generated_report_id}}/download",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "generated-reports", "{{generated_report_id}}", "download"]
+                        },
+                        "description": "Download report file. GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from list. Returns file (PDF). Only when status=generated."
+                    }
+                },
+                {
+                    "name": "Profile - Get",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "profile"]
+                        },
+                        "description": "Profile. GET /api/area-manager/profile. Response: name, email, phone, id, profile_picture_url, etc."
+                    }
+                },
+                {
+                    "name": "Profile - Update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{token}}" },
+                            { "key": "Accept", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                { "key": "name", "value": "", "type": "text" },
+                                { "key": "email", "value": "", "type": "text" },
+                                { "key": "phone", "value": "", "type": "text" },
+                                { "key": "profile_picture", "type": "file", "src": [], "description": "Optional" }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/area-manager/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "area-manager", "profile"]
+                        },
+                        "description": "Update profile. PUT or POST /api/area-manager/profile. Form-data: name, email, phone, profile_picture (optional)."
                     }
                 },
                 {
@@ -6540,59 +6740,6 @@
                             "path": ["api", "area-manager", "team-leaders"]
                         },
                         "description": "Legacy: same as Teams - List. Prefer GET /teams."
-                    }
-                },
-                {
-                    "name": "Teams - Detail",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/teams/{{team_id}}",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "teams", "{{team_id}}"]
-                        },
-                        "description": "Single team (supervisor) detail. Set team_id from Teams - List data[].id. Response: id, name, email, phone, employee_id, initial, profile_picture_url, location, performance_percent, team (member count), active, done. Team active/done count only visits assigned to this team's technicians in this team's areas; they match the sum of members' active/done from Teams - Members."
-                    }
-                },
-                {
-                    "name": "Teams - Members (click team on All Teams)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/teams/{{team_id}}/members",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "teams", "{{team_id}}", "members"]
-                        },
-                        "description": "Team members for this team (second screen after clicking a team). Response: data.team_leader (id, name, employee_id, location), data.members[] (id, name, employee_id, area_names, linked_to, active, done, total_jobs). Each member's active/done/total_jobs are for this team's areas only; they match Team detail totals (sum of members = team active/done). Use data.members[].id as member_id and team_id (current team) in Teams - Member Jobs so job list and counts match."
-                    }
-                },
-                {
-                    "name": "Teams - Member Jobs (click member → Jobs screen)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/teams/members/{{member_id}}/jobs?status=processing&per_page=20&team_id={{team_id}}",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "teams", "members", "{{member_id}}", "jobs"],
-                            "query": [
-                                { "key": "status", "value": "processing", "description": "processing (default) | all | completed" },
-                                { "key": "per_page", "value": "20", "description": "Optional, default 20" },
-                                { "key": "team_id", "value": "{{team_id}}", "description": "Optional. Supervisor/team id – when set, jobs are scoped to this team's areas so counts match Teams - Members. Set from current team (e.g. from Teams - Detail or Teams - Members URL)." }
-                            ]
-                        },
-                        "description": "Jobs (visits) for this team member. Set member_id from Teams - Members data.members[].id; set team_id from current team (same as in Teams - Members URL) so the list and total/active/done match the member's counts on the members list. Query: status=processing|all|completed, per_page, team_id (optional). Response: data.team_member (id, name, employee_id, active, done, total_jobs), data.jobs[], meta (pagination)."
                     }
                 },
                 {
@@ -6620,158 +6767,15 @@
                             { "key": "Accept", "value": "application/json" }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/area-manager/team-leaders/{{team_leader_id}}/jobs?status=processing",
+                            "raw": "{{base_url}}/api/area-manager/team-leaders/{{team_leader_id}}/jobs?status=processing&per_page=20",
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "team-leaders", "{{team_leader_id}}", "jobs"],
                             "query": [
-                                { "key": "status", "value": "processing", "description": "processing (default) | all | completed" },
-                                { "key": "per_page", "value": "20", "description": "Optional, default 20" }
+                                { "key": "status", "value": "processing" },
+                                { "key": "per_page", "value": "20" }
                             ]
                         },
-                        "description": "List jobs (visits) for this team leader. Default: processing only (pending, scheduled, in_progress). Use team_leader_id from Team Leaders list. Response: data.team_leader (id, name, employee_id), data.jobs[] (id, visit_id, status, scheduled_date, client_name, area_name, technician_name), meta (pagination)."
-                    }
-                },
-                {
-                    "name": "Areas / Region Map (areas list)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/region-map",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "region-map"]
-                        },
-                        "description": "Region map data: data.areas (id, name, location, country, active, done) and data.team_leaders. Use for areas list and map. Same as Region Map above; this alias highlights that areas list is here."
-                    }
-                },
-                {
-                    "name": "Analytics",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/analytics?period=week",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "analytics"],
-                            "query": [{ "key": "period", "value": "week", "description": "today | week | month" }]
-                        },
-                        "description": "Analytics for Area Manager. GET /api/area-manager/analytics?period=today|week|month. Data is for all areas. Response: visits (in period), completion_percent, avg_time_minutes, active_teams, weekly_trend (array of {date, count}), top_teams (supervisors with visits count in period). Matches dashboard scope (all areas)."
-                    }
-                },
-                {
-                    "name": "Reports - List",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/reports?per_page=20",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "reports"],
-                            "query": [{ "key": "per_page", "value": "20", "description": "Optional; default 20, max 50" }]
-                        },
-                        "description": "List visit reports for the region (reports submitted after visits). Paginated. Response: data (id, visit_id, status, scheduled_date, area_name, technician_name, supervisor_name), meta (current_page, last_page, per_page, total). Query: per_page (optional, 1-50)."
-                    }
-                },
-                {
-                    "name": "Reports - Generate",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Content-Type", "value": "application/json" }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"type\": \"weekly_summary\",\n  \"date_from\": \"2026-03-01\",\n  \"date_to\": \"2026-03-31\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/reports/generate",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "reports", "generate"]
-                        },
-                        "description": "Start report generation (Generate PDF). Body (JSON or form-data): type (required: weekly_summary | team_performance | customer_satisfaction), date_from, date_to (optional; default current month). Types: weekly_summary = Weekly Summary; team_performance = Team Performance (supervisor-wise); customer_satisfaction = customers who did not send satisfaction feedback (info + message). Response 201: data.id, data.title, data.status (pending). User then goes to Generated Reports list (GET generated-reports) to see status and download when status=generated."
-                    }
-                },
-                {
-                    "name": "Generated Reports - List",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/generated-reports",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "generated-reports"]
-                        },
-                        "description": "List generated reports (screen after Generate PDF). Response: data[] with id, title, report_type (Weekly Summary | Team Performance | Customer Satisfaction), type, period, file_size, status (pending|generated|failed), generated_at, created_at, download_url, share_url (only when status=generated). Use download_url or Generated Reports - Download to get file."
-                    }
-                },
-                {
-                    "name": "Generated Reports - Download",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/generated-reports/{{generated_report_id}}/download",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "generated-reports", "{{generated_report_id}}", "download"]
-                        },
-                        "description": "Download generated report file (PDF). Set generated_report_id from Generated Reports - List data[].id. Only works for own reports and when status=generated. Returns file stream; save as PDF."
-                    }
-                },
-                {
-                    "name": "Profile - Get",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/profile",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "profile"]
-                        },
-                        "description": "Area Manager profile. GET /api/area-manager/profile. Response: name, email, phone, id, profile_picture_url, rating, jobs_completed, total_earnings, member_since, specializations, service_area."
-                    }
-                },
-                {
-                    "name": "Profile - Update (PUT/POST form-data)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{token}}" },
-                            { "key": "Accept", "value": "application/json" }
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                { "key": "name", "value": "Fatima Al Zaabi", "type": "text" },
-                                { "key": "email", "value": "areamanager1@test.com", "type": "text" },
-                                { "key": "phone", "value": "+971500000031", "type": "text" },
-                                { "key": "profile_picture", "type": "file", "src": [], "description": "Optional image file" }
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/area-manager/profile",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "area-manager", "profile"]
-                        },
-                        "description": "Update profile. PUT or POST /api/area-manager/profile. Form-data only: name, email, phone, profile_picture (file). All optional. No password fields."
+                        "description": "Legacy: same as Teams - Jobs. Prefer GET /teams/{id}/jobs."
                     }
                 }
             ]

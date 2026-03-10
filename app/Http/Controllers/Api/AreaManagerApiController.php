@@ -244,16 +244,16 @@ class AreaManagerApiController extends Controller
             $areaIds = $u->supervisedAreaIds();
             $firstArea = $u->supervisedAreas()->first();
             $location = $firstArea?->name ?? $firstArea?->location ?? $u->employee?->region ?? null;
-            $technicianIds = empty($areaIds) ? collect() : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-            $teamCount = $technicianIds->count();
-            // Count only visits by this team's technicians in these areas (matches team detail and members).
-            $activeCount = 0;
-            $doneCount = 0;
-            if ($technicianIds->isNotEmpty()) {
-                $visitQuery = Visit::whereIn('area_id', $areaIds)->whereIn('technician_id', $technicianIds->all());
-                $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
-                $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
-            }
+            $teamCount = empty($areaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->count('user_id');
+            // Count all jobs in this supervisor's scope: assigned to them OR in their areas (includes unassigned and any technician).
+            $visitQuery = Visit::where(function ($q) use ($u, $areaIds) {
+                $q->where('supervisor_id', $u->id);
+                if (! empty($areaIds)) {
+                    $q->orWhereIn('area_id', $areaIds);
+                }
+            });
+            $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+            $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
             $total = $activeCount + $doneCount;
             $performance = $total > 0 ? round(($doneCount / $total) * 100, 0) : 0;
             $initial = mb_substr(trim($u->name), 0, 1) ?: '?';
@@ -292,16 +292,16 @@ class AreaManagerApiController extends Controller
         }
 
         $areaIds = $u->supervisedAreaIds();
-        $technicianIds = empty($areaIds) ? collect() : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $teamCount = $technicianIds->count();
-        // Count only visits assigned to this team's technicians in these areas, so team active/done = sum of members' active/done.
-        $activeCount = 0;
-        $doneCount = 0;
-        if ($technicianIds->isNotEmpty()) {
-            $visitQuery = Visit::whereIn('area_id', $areaIds)->whereIn('technician_id', $technicianIds->all());
-            $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
-            $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
-        }
+        $teamCount = empty($areaIds) ? 0 : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->count('user_id');
+        // Count all jobs in this supervisor's scope: assigned to them OR in their areas (so 5 added + 1 completed all show).
+        $visitQuery = Visit::where(function ($q) use ($u, $areaIds) {
+            $q->where('supervisor_id', $u->id);
+            if (! empty($areaIds)) {
+                $q->orWhereIn('area_id', $areaIds);
+            }
+        });
+        $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+        $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $total = $activeCount + $doneCount;
         $performance = $total > 0 ? round(($doneCount / $total) * 100, 0) : 0;
         $initial = mb_substr(trim($u->name), 0, 1) ?: '?';
@@ -341,20 +341,13 @@ class AreaManagerApiController extends Controller
         }
 
         $areaIds = $u->supervisedAreaIds();
-        $technicianIds = empty($areaIds) ? collect() : DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        if (empty($areaIds) || $technicianIds->isEmpty()) {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'team_leader' => ['id' => $u->id, 'name' => $u->name, 'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id), 'active_count' => 0, 'done_count' => 0, 'total_jobs' => 0],
-                    'jobs' => [],
-                ],
-                'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 0],
-            ]);
-        }
         $visitQuery = Visit::with(['subscription.client', 'technician:id,name', 'area:id,name'])
-            ->whereIn('area_id', $areaIds)
-            ->whereIn('technician_id', $technicianIds->all());
+            ->where(function ($q) use ($u, $areaIds) {
+                $q->where('supervisor_id', $u->id);
+                if (! empty($areaIds)) {
+                    $q->orWhereIn('area_id', $areaIds);
+                }
+            });
 
         $statusFilter = strtolower((string) $request->get('status', 'processing'));
         if ($statusFilter === 'processing') {
@@ -363,15 +356,20 @@ class AreaManagerApiController extends Controller
             $visitQuery->whereIn('status', ['completed', 'approved']);
         }
 
+        $baseCountQuery = Visit::where(function ($q) use ($u, $areaIds) {
+            $q->where('supervisor_id', $u->id);
+            if (! empty($areaIds)) {
+                $q->orWhereIn('area_id', $areaIds);
+            }
+        });
+        $totalActive = (clone $baseCountQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+        $totalDone = (clone $baseCountQuery)->whereIn('status', ['completed', 'approved'])->count();
+
         $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
         $visits = $visitQuery->orderByRaw("CASE WHEN status IN ('in_progress','started') THEN 0 WHEN status IN ('pending','scheduled') THEN 1 ELSE 2 END")
             ->orderBy('scheduled_date')
             ->orderByDesc('created_at')
             ->paginate($perPage);
-
-        $baseCountQuery = Visit::whereIn('area_id', $areaIds)->whereIn('technician_id', $technicianIds->all());
-        $totalActive = (clone $baseCountQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
-        $totalDone = (clone $baseCountQuery)->whereIn('status', ['completed', 'approved'])->count();
 
         $list = $visits->getCollection()->map(function (Visit $v) {
             $clientName = $v->subscription?->client?->name ?? 'N/A';
