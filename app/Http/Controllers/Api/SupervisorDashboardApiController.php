@@ -610,6 +610,14 @@ class SupervisorDashboardApiController extends Controller
             $visit->escalated_at = null;
             $visit->offer_count = 0;
             $visit->technician_id = $technician->id;
+            if (! $visit->area_id && ! empty($areaIds)) {
+                $techAreaId = $technician->assignedAreas()->whereIn('areas.id', $areaIds)->value('areas.id');
+                if ($techAreaId) {
+                    $visit->area_id = $techAreaId;
+                } else {
+                    $visit->area_id = $areaIds[0];
+                }
+            }
             if ($request->filled('scheduled_date')) {
                 $visit->scheduled_date = $request->input('scheduled_date');
             }
@@ -668,12 +676,18 @@ class SupervisorDashboardApiController extends Controller
         $visit->supervisor_id = $request->user()->id;
         $visit->escalated_at = null;
         $visit->offer_count = 0;
+        $visit->technician_id = $technician->id;
+        if (! $visit->area_id && ! empty($areaIds)) {
+            $techAreaId = $technician->assignedAreas()->whereIn('areas.id', $areaIds)->value('areas.id');
+            $visit->area_id = $techAreaId ?: $areaIds[0];
+        }
         if ($request->filled('scheduled_date')) {
             $visit->scheduled_date = $request->input('scheduled_date');
         }
         if ($request->filled('note')) {
             $visit->notes = trim(($visit->notes ? $visit->notes . PHP_EOL : '') . $request->input('note'));
         }
+        $visit->save();
         VisitOfferService::offerToTechnician($visit, $technician->id);
         $visit->load(['technician']);
 
@@ -710,6 +724,10 @@ class SupervisorDashboardApiController extends Controller
             $visit->technician_id = $technician->id;
             $visit->supervisor_id = $request->user()->id;
             $visit->escalated_at = null;
+            if (! $visit->area_id && ! empty($areaIds)) {
+                $techAreaId = $technician->assignedAreas()->whereIn('areas.id', $areaIds)->value('areas.id');
+                $visit->area_id = $techAreaId ?: $areaIds[0];
+            }
         }
         if ($request->filled('scheduled_date')) {
             $visit->scheduled_date = $request->input('scheduled_date');
@@ -751,6 +769,10 @@ class SupervisorDashboardApiController extends Controller
         $visit->technician_id = $technician->id;
         $visit->supervisor_id = $request->user()->id;
         $visit->escalated_at = null;
+        if (! $visit->area_id && ! empty($areaIds)) {
+            $techAreaId = $technician->assignedAreas()->whereIn('areas.id', $areaIds)->value('areas.id');
+            $visit->area_id = $techAreaId ?: $areaIds[0];
+        }
         if ($request->filled('reason')) {
             $visit->notes = trim(($visit->notes ? $visit->notes . PHP_EOL : '') . 'Reassign reason: ' . $request->input('reason'));
         }

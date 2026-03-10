@@ -601,27 +601,36 @@ class AreaManagerApiController extends Controller
             $end = $now;
         }
 
-        // Count visits in period: prefer scheduled_date; fallback to created_at so we never show 0 when visits exist.
+        // Count visits in period: scheduled_date in range OR created_at in range. Include area_id in list OR null (unassigned).
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
-        $areaCondition = empty($areaIds) ? fn ($q) => $q : fn ($q) => $q->whereIn('area_id', $areaIds);
+        $startDt = $start->copy()->startOfDay();
+        $endDt = $end->copy()->endOfDay();
 
         $visitQuery = Visit::query()
-            ->when(true, $areaCondition)
-            ->where(function ($q) use ($startDate, $endDate) {
+            ->when(! empty($areaIds), function ($q) use ($areaIds) {
+                $q->where(function ($q2) use ($areaIds) {
+                    $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+                });
+            })
+            ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
                 $q->whereBetween('scheduled_date', [$startDate, $endDate])
-                    ->orWhereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                    ->orWhereBetween('created_at', [$startDt, $endDt]);
             });
         $visitsCount = (clone $visitQuery)->count();
         $completedCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $completionPercent = $visitsCount > 0 ? round(($completedCount / $visitsCount) * 100, 0) : 0;
 
         $completedVisits = Visit::query()
-            ->when(true, $areaCondition)
+            ->when(! empty($areaIds), function ($q) use ($areaIds) {
+                $q->where(function ($q2) use ($areaIds) {
+                    $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+                });
+            })
             ->whereIn('status', ['completed', 'approved'])
-            ->where(function ($q) use ($startDate, $endDate) {
+            ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
                 $q->whereBetween('scheduled_date', [$startDate, $endDate])
-                    ->orWhereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                    ->orWhereBetween('created_at', [$startDt, $endDt]);
             })
             ->whereBetween('completed_at', [$start, $end])
             ->whereNotNull('started_at')
@@ -638,7 +647,11 @@ class AreaManagerApiController extends Controller
                 $day = $now->copy()->subDays($i);
                 $dayStr = $day->toDateString();
                 $count = Visit::query()
-                    ->when(true, $areaCondition)
+                    ->when(! empty($areaIds), function ($q) use ($areaIds) {
+                        $q->where(function ($q2) use ($areaIds) {
+                            $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+                        });
+                    })
                     ->where(function ($q) use ($dayStr) {
                         $q->whereDate('scheduled_date', $dayStr)->orWhereDate('created_at', $dayStr);
                     })
@@ -650,7 +663,11 @@ class AreaManagerApiController extends Controller
             for ($d = $monthStart->copy(); $d->lte($now); $d->addDay()) {
                 $dayStr = $d->toDateString();
                 $count = Visit::query()
-                    ->when(true, $areaCondition)
+                    ->when(! empty($areaIds), function ($q) use ($areaIds) {
+                        $q->where(function ($q2) use ($areaIds) {
+                            $q2->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+                        });
+                    })
                     ->where(function ($q) use ($dayStr) {
                         $q->whereDate('scheduled_date', $dayStr)->orWhereDate('created_at', $dayStr);
                     })
@@ -662,12 +679,12 @@ class AreaManagerApiController extends Controller
         }
 
         $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $topTeams = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get()->map(function (User $u) use ($startDate, $endDate) {
+        $topTeams = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get()->map(function (User $u) use ($startDate, $endDate, $startDt, $endDt) {
             $uAreaIds = $u->supervisedAreaIds();
             $visits = empty($uAreaIds) ? 0 : Visit::whereIn('area_id', $uAreaIds)
-                ->where(function ($q) use ($startDate, $endDate) {
+                ->where(function ($q) use ($startDate, $endDate, $startDt, $endDt) {
                     $q->whereBetween('scheduled_date', [$startDate, $endDate])
-                        ->orWhereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                        ->orWhereBetween('created_at', [$startDt, $endDt]);
                 })
                 ->count();
             return [
