@@ -92,6 +92,14 @@ class GenerateReportJob implements ShouldQueue
             '<body><pre style="white-space: pre-wrap; margin:0;">' . $lines . '</pre></body></html>';
     }
 
+    /** Build report content for a given report and date range (used by web download-as-CSV). */
+    public static function buildReportContentForReport(AdminReport $report, string $startDate, string $endDate): string
+    {
+        $params = $report->parameters ?? [];
+
+        return (new self($report))->buildReportContent($report, $startDate, $endDate, $params);
+    }
+
     protected function buildReportContent(AdminReport $report, string $startDate, string $endDate, array $params): string
     {
         $areaIds = $this->reportAreaIds();

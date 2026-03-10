@@ -85,49 +85,62 @@ class GeneratedReportController extends Controller
     public function download(int $id)
     {
         $report = AdminReport::where('created_by', request()->user()->id)->findOrFail($id);
+        $format = request()->get('format', pathinfo($report->file_path ?? '', PATHINFO_EXTENSION) ?: 'pdf');
 
-        if ($report->status !== 'generated' || ! $report->file_path) {
+        if ($format === 'csv') {
+            return $this->downloadAsCsv($report);
+        }
+
+        if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return redirect()
                 ->route('areamanager.generated-reports.index')
                 ->with('error', 'Report file is not available yet or generation failed.');
         }
 
-        if (! Storage::disk('local')->exists($report->file_path)) {
-            return redirect()
-                ->route('areamanager.generated-reports.index')
-                ->with('error', 'Report file not found.');
-        }
-
         $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
         $filename = 'area-manager-report-' . $report->id . '.' . $ext;
+        $mime = $ext === 'pdf' ? 'application/pdf' : ($ext === 'csv' ? 'text/csv' : 'application/octet-stream');
 
         return Storage::disk('local')->download($report->file_path, $filename, [
-            'Content-Type' => $ext === 'pdf' ? 'application/pdf' : 'text/plain',
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 
     /**
-     * Open PDF in browser (new tab).
+     * Open report in browser (inline) so user can view content. Works for PDF and text.
      */
     public function view(int $id)
     {
         $report = AdminReport::where('created_by', request()->user()->id)->findOrFail($id);
 
-        if ($report->status !== 'generated' || ! $report->file_path) {
+        if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return redirect()
                 ->route('areamanager.generated-reports.index')
                 ->with('error', 'Report file is not available yet or generation failed.');
         }
 
-        if (! Storage::disk('local')->exists($report->file_path)) {
-            return redirect()
-                ->route('areamanager.generated-reports.index')
-                ->with('error', 'Report file not found.');
-        }
+        $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+        $mime = $ext === 'pdf' ? 'application/pdf' : ($ext === 'csv' ? 'text/csv' : 'text/plain');
+        $path = Storage::disk('local')->path($report->file_path);
 
-        $mime = pathinfo($report->file_path, PATHINFO_EXTENSION) === 'pdf' ? 'application/pdf' : 'text/plain';
-        return response()->file(Storage::disk('local')->path($report->file_path), [
+        return response()->file($path, [
             'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="report-' . $report->id . '.' . $ext . '"',
+        ]);
+    }
+
+    protected function downloadAsCsv(AdminReport $report)
+    {
+        $params = $report->parameters ?? [];
+        $startDate = $params['start_date'] ?? now()->startOfMonth()->toDateString();
+        $endDate = $params['end_date'] ?? now()->endOfMonth()->toDateString();
+        $content = GenerateReportJob::buildReportContentForReport($report, $startDate, $endDate);
+        $filename = 'area-manager-report-' . $report->id . '-' . now()->format('Y-m-d-His') . '.csv';
+
+        return response($content, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 

@@ -299,7 +299,7 @@ class AreaManagerApiController extends Controller
                 $q->orWhereIn('area_id', $areaIds);
             }
         });
-        $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
+        $activeCount = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
         $doneCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $total = $activeCount + $doneCount;
         $performance = $total > 0 ? round(($doneCount / $total) * 100, 0) : 0;
@@ -348,7 +348,7 @@ class AreaManagerApiController extends Controller
                 }
             });
 
-        $statusFilter = $request->get('status', 'processing');
+        $statusFilter = strtolower((string) $request->get('status', 'processing'));
         if ($statusFilter === 'processing') {
             $visitQuery->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started']);
         } elseif ($statusFilter === 'completed') {
@@ -362,6 +362,15 @@ class AreaManagerApiController extends Controller
             ->orderByDesc('created_at')
             ->paginate($perPage);
 
+        $baseCountQuery = Visit::where(function ($q) use ($u, $areaIds) {
+            $q->where('supervisor_id', $u->id);
+            if (! empty($areaIds)) {
+                $q->orWhereIn('area_id', $areaIds);
+            }
+        });
+        $totalActive = (clone $baseCountQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+        $totalDone = (clone $baseCountQuery)->whereIn('status', ['completed', 'approved'])->count();
+
         $list = $visits->getCollection()->map(function (Visit $v) {
             $clientName = $v->subscription?->client?->name ?? 'N/A';
             $areaName = $v->area?->name ?? 'N/A';
@@ -370,6 +379,7 @@ class AreaManagerApiController extends Controller
                 'id' => $v->id,
                 'visit_id' => $v->id,
                 'status' => $v->status,
+                'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $v->status)),
                 'scheduled_date' => $v->scheduled_date?->format('Y-m-d'),
                 'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
                 'client_name' => $clientName,
@@ -386,6 +396,9 @@ class AreaManagerApiController extends Controller
                     'id' => $u->id,
                     'name' => $u->name,
                     'employee_id' => $u->employee?->employee_id ?? ('SUP-' . $u->id),
+                    'active_count' => $totalActive,
+                    'done_count' => $totalDone,
+                    'total_jobs' => $totalActive + $totalDone,
                 ],
                 'jobs' => $list,
             ],
@@ -498,7 +511,7 @@ class AreaManagerApiController extends Controller
         $activeCount = (clone $baseVisitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
         $doneCount = (clone $baseVisitQuery)->whereIn('status', ['completed', 'approved'])->count();
 
-        $statusFilter = $request->get('status', 'processing');
+        $statusFilter = strtolower((string) $request->get('status', 'processing'));
         if ($statusFilter === 'processing') {
             $visitQuery->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started']);
         } elseif ($statusFilter === 'completed') {
