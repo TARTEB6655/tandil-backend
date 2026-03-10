@@ -628,7 +628,7 @@ class AreaManagerApiController extends Controller
             $end = $now;
         }
 
-        // Only visits with area_id set (in our areas list) count; scheduled_date in period.
+        // Count only visits that have a report (same scope as /reports list) so analytics matches reports count.
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
         $startDt = $start->copy()->startOfDay();
@@ -637,7 +637,8 @@ class AreaManagerApiController extends Controller
         $visitQuery = Visit::query()
             ->whereNotNull('area_id')
             ->whereIn('area_id', $areaIds)
-            ->whereBetween('scheduled_date', [$startDate, $endDate]);
+            ->whereBetween('scheduled_date', [$startDate, $endDate])
+            ->whereHas('report');
         $visitsCount = (clone $visitQuery)->count();
         $completedCount = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
         $completionPercent = $visitsCount > 0 ? round(($completedCount / $visitsCount) * 100, 0) : 0;
@@ -650,6 +651,7 @@ class AreaManagerApiController extends Controller
             ->whereBetween('completed_at', [$start, $end])
             ->whereNotNull('started_at')
             ->whereNotNull('completed_at')
+            ->whereHas('report')
             ->get();
         $totalMinutes = $completedVisits->sum(fn ($v) => (int) $v->started_at->diffInMinutes($v->completed_at));
         $avgTimeMinutes = $completedVisits->isEmpty() ? 0 : (int) round($totalMinutes / $completedVisits->count());
@@ -665,6 +667,7 @@ class AreaManagerApiController extends Controller
                     ->whereNotNull('area_id')
                     ->whereIn('area_id', $areaIds)
                     ->whereDate('scheduled_date', $dayStr)
+                    ->whereHas('report')
                     ->count();
                 $weeklyTrend[] = ['date' => $dayStr, 'count' => $count];
             }
@@ -676,6 +679,7 @@ class AreaManagerApiController extends Controller
                     ->whereNotNull('area_id')
                     ->whereIn('area_id', $areaIds)
                     ->whereDate('scheduled_date', $dayStr)
+                    ->whereHas('report')
                     ->count();
                 $weeklyTrend[] = ['date' => $dayStr, 'count' => $count];
             }
@@ -690,6 +694,7 @@ class AreaManagerApiController extends Controller
                 ->whereNotNull('area_id')
                 ->whereIn('area_id', $uAreaIds)
                 ->whereBetween('scheduled_date', [$startDate, $endDate])
+                ->whereHas('report')
                 ->count();
             return [
                 'id' => $u->id,
