@@ -103,6 +103,7 @@ class MaintenancePhotosController extends Controller
                 'id' => $visit->id,
                 'scheduled_date' => $visit->scheduled_date?->format('Y-m-d'),
                 'status' => $visit->status,
+                'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $visit->status ?? '')),
                 'completed_at' => $visit->completed_at?->format('c'),
             ] : null;
             return $this->photoToItem($photo, $visitSummary);
@@ -147,6 +148,7 @@ class MaintenancePhotosController extends Controller
             'id' => $visit->id,
             'scheduled_date' => $visit->scheduled_date?->format('Y-m-d'),
             'status' => $visit->status,
+            'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $visit->status ?? '')),
             'completed_at' => $visit->completed_at?->format('c'),
         ];
 

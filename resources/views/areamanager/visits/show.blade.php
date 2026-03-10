@@ -38,7 +38,7 @@
                             @elseif($visit->status === 'accepted') bg-purple-100 text-purple-800
                             @else bg-yellow-100 text-yellow-800
                             @endif">
-                            {{ ucfirst($visit->status) }}
+                            {{ ucwords(str_replace('_', ' ', $visit->status ?? '')) }}
                         </span>
                     </div>
                     @if($visit->subscription && $visit->subscription->client)

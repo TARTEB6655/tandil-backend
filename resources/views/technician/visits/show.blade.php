@@ -49,7 +49,7 @@
                             @elseif($visit->status === 'pending') bg-yellow-100 text-yellow-800
                             @else bg-gray-100 text-gray-800
                             @endif">
-                            {{ ucfirst($visit->status) }}
+                            {{ ucwords(str_replace('_', ' ', $visit->status ?? '')) }}
                         </span>
                     </div>
                     @if($visit->subscription && $visit->subscription->client)

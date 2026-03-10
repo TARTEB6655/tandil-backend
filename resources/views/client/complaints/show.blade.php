@@ -85,7 +85,7 @@
                             @if($complaint->visit->status === 'completed') bg-green-100 text-green-800
                             @else bg-yellow-100 text-yellow-800
                             @endif">
-                            {{ ucfirst($complaint->visit->status) }}
+                            {{ ucwords(str_replace('_', ' ', $complaint->visit->status ?? '')) }}
                         </span>
                     </div>
                     @if($complaint->visit->technician)

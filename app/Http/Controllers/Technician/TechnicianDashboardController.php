@@ -1352,6 +1352,7 @@ class TechnicianDashboardController extends Controller
             'job_id' => $visit->id,
             'job_number' => 'job_' . str_pad((string) $visit->id, 3, '0', STR_PAD_LEFT),
             'status' => $visit->status,
+            'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $visit->status ?? '')),
             'date' => $visit->scheduled_date?->toDateString(),
             'supervisor_name' => $visit->supervisor?->name ?? null,
             'service_information' => [
@@ -1595,6 +1596,7 @@ class TechnicianDashboardController extends Controller
             'scheduled_date' => $visit->scheduled_date?->toDateString(),
             'scheduled_time' => $scheduledAt?->format('g:i A'),
             'status' => $visit->status,
+            'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $visit->status ?? '')),
             'title' => $meta['farm_name'] ?? $client?->name ?? ('Task #' . $visit->id),
             'farm_name' => $meta['farm_name'] ?? $client?->name,
             'service_name' => $meta['service_name'] ?? ($visit->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : null),

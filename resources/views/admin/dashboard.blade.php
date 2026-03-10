@@ -1087,7 +1087,7 @@
                     new Chart(document.getElementById('visitStatusChart'), {
                         type: 'pie',
                         data: {
-                            labels: data.labels.map(label => label.charAt(0).toUpperCase() + label.slice(1)),
+                            labels: data.labels,
                             datasets: [{
                                 data: data.counts,
                                 backgroundColor: [

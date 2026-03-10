@@ -60,7 +60,7 @@
                             @if($report->visit->status === 'completed') bg-green-100 text-green-800
                             @else bg-yellow-100 text-yellow-800
                             @endif">
-                            {{ ucfirst($report->visit->status) }}
+                            {{ ucwords(str_replace('_', ' ', $report->visit->status ?? '')) }}
                         </span>
                     </div>
                     @if($report->visit->subscription && $report->visit->subscription->client)

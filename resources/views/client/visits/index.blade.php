@@ -40,7 +40,7 @@
                                     @elseif($visit->status === 'pending') bg-yellow-100 text-yellow-800
                                     @else bg-gray-100 text-gray-800
                                     @endif">
-                                    {{ ucfirst($visit->status) }}
+                                    {{ ucwords(str_replace('_', ' ', $visit->status ?? '')) }}
                                 </span>
                             </td>
                             <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">

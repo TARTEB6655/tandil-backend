@@ -276,6 +276,7 @@ class SupervisorDashboardApiController extends Controller
             return [
                 'visit_id' => $v->id,
                 'status' => $v->status,
+                'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $v->status ?? '')),
                 'location' => $meta['farm_name'] ?? $v->subscription?->client?->name ?? $v->area?->name ?? null,
                 'service' => $meta['service_name'] ?? ($v->subscription?->plan ? str_replace('_', ' ', (string) $v->subscription->plan) : null) ?? 'Visit',
                 'scheduled_date' => $v->scheduled_date?->toDateString(),
@@ -1052,6 +1053,7 @@ class SupervisorDashboardApiController extends Controller
             'visit' => $visit ? [
                 'id' => $visit->id,
                 'status' => $visit->status,
+                'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $visit->status ?? '')),
                 'scheduled_at' => $visit->scheduled_at?->toIso8601String(),
                 'client_name' => $client?->name,
                 'area_name' => $visit->area?->name,

@@ -171,6 +171,15 @@ class GenerateReportJob implements ShouldQueue
         return $date->format('j M Y, g:i A');
     }
 
+    /** Display status without underscore (e.g. pending_acceptance → Pending Acceptance). */
+    protected function formatVisitStatus(?string $status): string
+    {
+        if ($status === null || $status === '') {
+            return '—';
+        }
+        return \Illuminate\Support\Str::title(str_replace('_', ' ', $status));
+    }
+
     /** Weekly Summary: jobs (visits) in scope (area → supervisor → technician), by scheduled_date. Includes visit details with supervisor and member. */
     protected function buildWeeklySummaryContent(AdminReport $report, Carbon $start, Carbon $end, array $areaIds): string
     {
@@ -228,7 +237,7 @@ class GenerateReportJob implements ShouldQueue
             $techName = $v->technician ? $v->technician->name : '—';
             $areaName = $v->area ? ($v->area->name ?? 'Area #' . $v->area_id) : '—';
             $sched = $v->scheduled_date ? $this->formatReportDate(Carbon::parse($v->scheduled_date)) : '—';
-            $lines[] = 'Visit #' . $v->id . '  |  Supervisor: ' . $supName . '  |  Member: ' . $techName . '  |  Area: ' . $areaName . '  |  Scheduled: ' . $sched . '  |  Status: ' . $v->status;
+            $lines[] = 'Visit #' . $v->id . '  |  Supervisor: ' . $supName . '  |  Member: ' . $techName . '  |  Area: ' . $areaName . '  |  Scheduled: ' . $sched . '  |  Status: ' . $this->formatVisitStatus($v->status);
             $lines[] = '';
         }
         if ($visits->isEmpty()) {

@@ -134,9 +134,11 @@ class AnalyticsController extends Controller
             ->groupBy('status')
             ->get();
 
+        $labels = $data->map(fn ($row) => \Illuminate\Support\Str::title(str_replace('_', ' ', $row->status ?? '')));
+
         return response()->json([
-            'labels' => $data->pluck('status'),
-            'counts' => $data->pluck('count'),
+            'labels' => $labels->values()->all(),
+            'counts' => $data->pluck('count')->values()->all(),
         ]);
     }
 

@@ -45,12 +45,12 @@
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ $visit->scheduled_date ? $visit->scheduled_date->format('M j, Y') : '—' }}</td>
                                 <td class="px-4 py-3 text-sm">
                                     @if($visit->status === 'pending_acceptance')
-                                        <span class="text-amber-600">Pending acceptance</span>
+                                        <span class="text-amber-600">{{ ucwords(str_replace('_', ' ', $visit->status)) }}</span>
                                         @if($visit->accept_by)
                                             <br><span class="text-xs text-gray-500">Accept by {{ $visit->accept_by->format('H:i') }}</span>
                                         @endif
                                     @else
-                                        {{ $visit->status }}
+                                        {{ ucwords(str_replace('_', ' ', $visit->status ?? '')) }}
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right">
