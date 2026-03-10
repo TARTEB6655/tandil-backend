@@ -5158,7 +5158,7 @@
                             "name": "Assignments - One detail (GET)",
                             "request": {
                                 "method": "GET",
-                                "header": [
+                        "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
                                     { "key": "Accept", "value": "application/json" }
                                 ],
@@ -5193,15 +5193,15 @@
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
                                     { "key": "Accept", "value": "application/json" }
-                                ],
-                                "body": {
+                        ],
+                        "body": {
                                     "mode": "formdata",
                                     "formdata": [
                                         { "key": "technician_id", "value": "{{technician_id}}", "type": "text", "description": "Required. Technician user id" },
                                         { "key": "scheduled_date", "value": "2026-03-15", "type": "text", "description": "Optional. e.g. 2026-03-15" }
                                     ]
-                                },
-                                "url": {
+                        },
+                        "url": {
                                     "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "assignments", "{{visit_id}}"]
@@ -5449,13 +5449,13 @@
                         },
                         {
                             "name": "Reports - Show",
-                            "request": {
-                                "method": "GET",
-                                "header": [
+                    "request": {
+                        "method": "GET",
+                        "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
                                     { "key": "Accept", "value": "application/json" }
-                                ],
-                                "url": {
+                        ],
+                        "url": {
                                     "raw": "{{base_url}}/api/supervisor/reports/{{report_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "reports", "{{report_id}}"]
@@ -5548,9 +5548,9 @@
                         },
                         {
                             "name": "Visit Report - Finalize / Share to Client (POST)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
+                    "request": {
+                        "method": "POST",
+                        "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
                                     { "key": "Content-Type", "value": "application/json" },
                                     { "key": "Accept", "value": "application/json" }
@@ -10030,8 +10030,8 @@
                                     "path": ["api", "admin", "areas", "{{area_id}}"]
                                 },
                                 "description": "Delete area. DELETE /api/admin/areas/:id. Set area_id."
-                            }
-                        }
+                    }
+                }
                     ]
                 },
                 {

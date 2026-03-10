@@ -105,4 +105,47 @@ class GeneratedReportController extends Controller
             'Content-Type' => $ext === 'pdf' ? 'application/pdf' : 'text/plain',
         ]);
     }
+
+    /**
+     * Open PDF in browser (new tab).
+     */
+    public function view(int $id)
+    {
+        $report = AdminReport::where('created_by', request()->user()->id)->findOrFail($id);
+
+        if ($report->status !== 'generated' || ! $report->file_path) {
+            return redirect()
+                ->route('areamanager.generated-reports.index')
+                ->with('error', 'Report file is not available yet or generation failed.');
+        }
+
+        if (! Storage::disk('local')->exists($report->file_path)) {
+            return redirect()
+                ->route('areamanager.generated-reports.index')
+                ->with('error', 'Report file not found.');
+        }
+
+        $mime = pathinfo($report->file_path, PATHINFO_EXTENSION) === 'pdf' ? 'application/pdf' : 'text/plain';
+        return response()->file(Storage::disk('local')->path($report->file_path), [
+            'Content-Type' => $mime,
+        ]);
+    }
+
+    /**
+     * Delete a generated report (and its file if any).
+     */
+    public function destroy(int $id)
+    {
+        $report = AdminReport::where('created_by', request()->user()->id)->findOrFail($id);
+
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            Storage::disk('local')->delete($report->file_path);
+        }
+
+        $report->delete();
+
+        return redirect()
+            ->route('areamanager.generated-reports.index')
+            ->with('success', 'Report deleted.');
+    }
 }
