@@ -628,13 +628,14 @@ class AreaManagerApiController extends Controller
             $end = $now;
         }
 
-        // Count visits by scheduled_date in period only (no OR created_at) so each visit is counted once and "this week" = scheduled this week.
+        // Only visits with area_id set (in our areas list) count; scheduled_date in period.
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
         $startDt = $start->copy()->startOfDay();
         $endDt = $end->copy()->endOfDay();
 
         $visitQuery = Visit::query()
+            ->whereNotNull('area_id')
             ->whereIn('area_id', $areaIds)
             ->whereBetween('scheduled_date', [$startDate, $endDate]);
         $visitsCount = (clone $visitQuery)->count();
@@ -642,6 +643,7 @@ class AreaManagerApiController extends Controller
         $completionPercent = $visitsCount > 0 ? round(($completedCount / $visitsCount) * 100, 0) : 0;
 
         $completedVisits = Visit::query()
+            ->whereNotNull('area_id')
             ->whereIn('area_id', $areaIds)
             ->whereIn('status', ['completed', 'approved'])
             ->whereBetween('scheduled_date', [$startDate, $endDate])
@@ -660,6 +662,7 @@ class AreaManagerApiController extends Controller
                 $day = $now->copy()->subDays($i);
                 $dayStr = $day->toDateString();
                 $count = Visit::query()
+                    ->whereNotNull('area_id')
                     ->whereIn('area_id', $areaIds)
                     ->whereDate('scheduled_date', $dayStr)
                     ->count();
@@ -670,6 +673,7 @@ class AreaManagerApiController extends Controller
             for ($d = $monthStart->copy(); $d->lte($now); $d->addDay()) {
                 $dayStr = $d->toDateString();
                 $count = Visit::query()
+                    ->whereNotNull('area_id')
                     ->whereIn('area_id', $areaIds)
                     ->whereDate('scheduled_date', $dayStr)
                     ->count();
@@ -682,7 +686,9 @@ class AreaManagerApiController extends Controller
         $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
         $topTeams = User::role('supervisor')->whereIn('id', $supervisorIds)->with('employee')->get()->map(function (User $u) use ($startDate, $endDate) {
             $uAreaIds = $u->supervisedAreaIds();
-            $visits = empty($uAreaIds) ? 0 : Visit::whereIn('area_id', $uAreaIds)
+            $visits = empty($uAreaIds) ? 0 : Visit::query()
+                ->whereNotNull('area_id')
+                ->whereIn('area_id', $uAreaIds)
                 ->whereBetween('scheduled_date', [$startDate, $endDate])
                 ->count();
             return [
