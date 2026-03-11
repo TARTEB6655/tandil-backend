@@ -1,11 +1,16 @@
+@php
+    $locale = app()->getLocale();
+    $isRtl = in_array($locale, ['ar', 'ur'], true);
+    $htmlLang = $locale === 'ur' ? 'ur' : str_replace('_', '-', $locale);
+@endphp
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ $htmlLang }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Tandil') }} - Admin Dashboard</title>
+    <title>{{ config('app.name', 'Tandil') }} - {{ __('admin.dashboard') }}</title>
 
     <!-- Favicon with cache busting -->
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}?v={{ time() }}">

@@ -27,8 +27,51 @@
 
             </div>
 
-            <!-- RIGHT: Search + Notifications + Profile -->
+            <!-- RIGHT: Language + Search + Notifications + Profile -->
             <div class="flex items-center gap-3 sm:gap-4 lg:gap-5 flex-shrink-0">
+
+                <!-- Language Switcher -->
+                <div class="relative flex-shrink-0" x-data="{ open: false }">
+                    <button
+                        @click="open = !open"
+                        class="p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+                        aria-label="{{ __('admin.language') }}"
+                        title="{{ __('admin.language') }}"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg>
+                    </button>
+                    <div
+                        x-show="open"
+                        x-transition
+                        @click.away="open = false"
+                        class="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+                        style="display: none;"
+                    >
+                        <form method="POST" action="{{ route('admin.locale') }}" class="block">
+                            @csrf
+                            <input type="hidden" name="locale" value="en">
+                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 {{ app()->getLocale() === 'en' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium' : '' }}">
+                                {{ __('admin.english') }}
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.locale') }}" class="block">
+                            @csrf
+                            <input type="hidden" name="locale" value="ar">
+                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 {{ app()->getLocale() === 'ar' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium' : '' }}" dir="rtl">
+                                {{ __('admin.arabic') }}
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.locale') }}" class="block">
+                            @csrf
+                            <input type="hidden" name="locale" value="ur">
+                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 {{ app()->getLocale() === 'ur' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium' : '' }}" dir="rtl">
+                                {{ __('admin.urdu') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
                 
                 <!-- Search Bar (hidden on mobile/tablet, visible on desktop >= 1024px) -->
                 <form
@@ -50,7 +93,7 @@
                             name="search"
                             x-model="searchValue"
                             value="{{ $searchValue }}"
-                            placeholder="Search users, orders, visits..."
+                            placeholder="{{ __('admin.search_placeholder') }}"
                             class="w-full h-11 pl-12 pr-10 text-sm placeholder:text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg
                                    focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600 focus:border-gray-300 dark:focus:border-gray-600 focus:bg-white dark:focus:bg-gray-800 text-gray-900 dark:text-gray-100
                                    transition-all duration-200"
@@ -105,7 +148,7 @@
                         <!-- Header -->
                         <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between flex-shrink-0">
                             <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.notifications') }}</h3>
                                 @if($unreadCount > 0)
                                     <span class="px-2 py-0.5 text-xs font-medium text-gray-600 bg-gray-200 rounded-full">{{ $unreadCount }} new</span>
                                 @endif
@@ -118,7 +161,7 @@
                                         class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                                         @click.stop
                                     >
-                                        Mark all read
+                                        {{ __('admin.mark_all_read') }}
                                     </button>
                                 </form>
                             @endif
@@ -215,8 +258,8 @@
                                     <svg class="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                                     </svg>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No notifications</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">You're all caught up!</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">{{ __('admin.no_notifications') }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('admin.all_caught_up') }}</p>
                                 </div>
                             @endforelse
                         </div>
@@ -228,7 +271,7 @@
                                 class="text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-center block py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                                 @click.stop="open = false"
                             >
-                                View all notifications
+                                {{ __('admin.view_all_notifications') }}
                             </a>
                         </div>
                     </div>
@@ -304,7 +347,7 @@
                             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                                 <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                             </svg>
-                            <span class="font-medium">My Profile</span>
+                            <span class="font-medium">{{ __('admin.my_profile') }}</span>
                         </a>
 
                         <!-- Sign Out Button -->
@@ -317,7 +360,7 @@
                                 <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                                     <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                                 </svg>
-                                <span class="font-medium">Sign Out</span>
+                                <span class="font-medium">{{ __('admin.sign_out') }}</span>
                             </button>
                         </form>
                     </div>

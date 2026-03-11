@@ -121,11 +121,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Admin routes (prevent.admin.cache so theme/settings changes show immediately)
-Route::middleware(['auth', 'role:admin', 'prevent.admin.cache'])
+// Admin routes (locale for dashboard translations, prevent.admin.cache so theme/settings changes show immediately)
+Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cache'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        Route::post('/locale', function (\Illuminate\Http\Request $request) {
+            $locale = $request->validate(['locale' => 'required|string|in:en,ar,ur'])['locale'];
+            session(['admin_locale' => $locale]);
+            return redirect()->back();
+        })->name('locale');
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('/recent-activities', [AdminDashboardController::class, 'recentActivitiesPage'])->name('recent-activities.index');
 

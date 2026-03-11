@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'prevent.admin.cache' => \App\Http\Middleware\PreventAdminCache::class,
             'optional.sanctum' => \App\Http\Middleware\OptionalSanctum::class,
+            'set.admin.locale' => \App\Http\Middleware\SetAdminLocale::class,
         ]);
         
         // All routes in routes/api.php use the api middleware group (prefix /api/).
