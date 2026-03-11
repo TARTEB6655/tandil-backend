@@ -3,8 +3,8 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-xl font-medium text-gray-900">Import Products</h1>
-                <p class="mt-1 text-sm text-gray-500">Import products from a CSV file</p>
+                <h1 class="text-xl font-medium text-gray-900">{{ __('admin.import_products') }}</h1>
+                <p class="mt-1 text-sm text-gray-500">{{ __('admin.import_products_description') }}</p>
             </div>
             <a href="{{ route('admin.products.index') }}" 
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors duration-200">
@@ -39,7 +39,7 @@
                         </svg>
                     </div>
                     <div class="ml-3 flex-1">
-                        <p class="text-sm font-medium text-red-800 mb-2">Import Errors:</p>
+                        <p class="text-sm font-medium text-red-800 mb-2">{{ __('admin.import_errors') }}</p>
                         <ul class="text-sm text-red-700 list-disc list-inside space-y-1 max-h-60 overflow-y-auto">
                             @foreach(session('import_errors') as $error)
                                 <li>{{ $error }}</li>
@@ -100,7 +100,7 @@
                             </a>
                             <button type="submit" 
                                     class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                                Import Products
+                                {{ __('admin.import_products') }}
                             </button>
                         </div>
                     </form>
@@ -140,7 +140,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
-                                Download Sample CSV
+                                {{ __('admin.download_sample_csv') }}
                             </a>
                         </div>
 

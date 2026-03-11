@@ -4,7 +4,7 @@
         <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-900">Create New Role</h1>
+                    <h1 class="text-2xl font-semibold text-gray-900">{{ __('admin.create_new_role') }}</h1>
                     <p class="mt-1 text-sm text-gray-500">Define a new role with permissions and assign it to users</p>
                 </div>
                 <a href="{{ route('admin.roles.index') }}" 
@@ -133,7 +133,7 @@
                             </a>
                             <button type="submit" 
                                     class="px-5 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors shadow-sm hover:shadow-md">
-                                Create Role
+                                {{ __('admin.create_role') }}
                             </button>
                         </div>
                     </form>

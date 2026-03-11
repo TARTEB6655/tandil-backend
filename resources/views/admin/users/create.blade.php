@@ -2,8 +2,8 @@
     <div class="space-y-4 sm:space-y-6">
         <!-- Page Header -->
         <div class="mb-6 md:mb-8">
-            <h1 class="text-xl font-medium text-gray-900">Create New User</h1>
-            <p class="mt-1 text-sm md:text-base text-gray-600">Add a new user to the system and assign their role</p>
+            <h1 class="text-xl font-medium text-gray-900">{{ __('admin.create_new_user') }}</h1>
+            <p class="mt-1 text-sm md:text-base text-gray-600">{{ __('admin.add_new_user_description') }}</p>
         </div>
 
         <!-- Success/Error Messages -->
@@ -248,7 +248,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
-                        Create User
+                        {{ __('admin.create_user') }}
                     </button>
                 </div>
             </form>

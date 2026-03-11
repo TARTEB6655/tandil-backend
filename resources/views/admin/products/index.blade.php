@@ -14,16 +14,16 @@
             <div class="flex items-center gap-3 flex-wrap">
                 <a href="{{ route('admin.products.export', request()->query()) }}" 
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    Export
+                    {{ __('admin.export') }}
                 </a>
                 <a href="{{ route('admin.products.import') }}" 
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    Import
+                    {{ __('admin.import') }}
                 </a>
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open" 
                             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        More actions
+                        {{ __('admin.more_actions') }}
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>

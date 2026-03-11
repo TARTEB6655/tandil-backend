@@ -73,7 +73,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No zones yet. <a href="{{ route('admin.areas.create') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">Create one</a>.</td>
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">{{ __('admin.no_zones_yet') }} <a href="{{ route('admin.areas.create') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ __('admin.create_one') }}</a>.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -107,7 +107,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No supervisors found.</td>
+                                <td colspan="3" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">{{ __('admin.no_supervisors_found') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -152,7 +152,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No technicians found.</td>
+                                <td colspan="4" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">{{ __('admin.no_technicians_found') }}</td>
                             </tr>
                         @endforelse
                     </tbody>

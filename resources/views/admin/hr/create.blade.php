@@ -1,7 +1,7 @@
 <x-admin-layout>
     <div class="space-y-6">
         <h1 class="text-xl font-medium text-gray-900 mb-6">
-            Add Employee
+            {{ __('admin.add_employee') }}
         </h1>
 
         <div class="bg-white shadow rounded-lg p-6">
@@ -25,7 +25,7 @@
                 </div>
 
                 <div class="flex gap-4">
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Create Employee</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">{{ __('admin.create_employee') }}</button>
                     <a href="{{ route('admin.hr.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</a>
                 </div>
             </form>

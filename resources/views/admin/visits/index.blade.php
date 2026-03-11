@@ -6,7 +6,7 @@
         <!-- Filters -->
         <div class="bg-white shadow rounded-lg p-4 mb-6">
             <form method="GET" action="{{ route('admin.visits.index') }}" class="flex gap-4">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by client..." class="flex-1 rounded-md border-gray-300">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('admin.search_by_client') }}" class="flex-1 rounded-md border-gray-300">
                 <select name="status" class="rounded-md border-gray-300">
                     <option value="">All Statuses</option>
                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
@@ -17,7 +17,7 @@
                     <option value="reviewed" {{ request('status') == 'reviewed' ? 'selected' : '' }}>Reviewed</option>
                 </select>
                 <select name="area_id" class="rounded-md border-gray-300">
-                    <option value="">All Areas</option>
+                    <option value="">{{ __('admin.all_areas') }}</option>
                     @foreach($areas as $area)
                         <option value="{{ $area->id }}" {{ request('area_id') == $area->id ? 'selected' : '' }}>{{ $area->name }}</option>
                     @endforeach
@@ -70,7 +70,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No visits found</td>
+                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">{{ __('admin.no_visits_found') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -4,20 +4,20 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Dashboard</a>
+                    <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">{{ __('admin.dashboard') }}</a>
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    <a href="{{ route('admin.products.index') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Products</a>
+                    <a href="{{ route('admin.products.index') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">{{ __('admin.products') }}</a>
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">Add product</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">{{ __('admin.create_new_product') }}</span>
                 </nav>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Add product</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a new product to add to your store</p>
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.create_new_product') }}</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('admin.create_product_description') }}</p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.products.index') }}" 
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    Cancel
+                    {{ __('admin.cancel') }}
                 </a>
             </div>
         </div>
@@ -73,7 +73,7 @@
                                     <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mb-4">
                                         <svg class="w-8 h-8 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                                     </div>
-                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Add product photos</p>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('admin.add_product_photos') }}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">or drop files here</p>
                                     <p id="dropHint" class="text-xs text-indigo-600 dark:text-indigo-400 mt-2 hidden font-medium">Drop to add</p>
                                 </div>

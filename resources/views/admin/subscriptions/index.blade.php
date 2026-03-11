@@ -1,12 +1,12 @@
 <x-admin-layout>
     <div class="space-y-6">
         <h1 class="text-xl font-medium text-gray-900 mb-6">
-            Subscriptions Management
+            {{ __('admin.subscriptions_management') }}
         </h1>
         <!-- Filters -->
         <div class="bg-white shadow rounded-lg p-4 mb-6">
             <form method="GET" action="{{ route('admin.subscriptions.index') }}" class="flex gap-4">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by client name or email..." class="flex-1 rounded-md border-gray-300">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('admin.search_by_client_email') }}" class="flex-1 rounded-md border-gray-300">
                 <select name="payment_status" class="rounded-md border-gray-300">
                     <option value="">All Statuses</option>
                     <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
@@ -20,8 +20,8 @@
                     <option value="6_month" {{ request('plan') == '6_month' ? 'selected' : '' }}>6 Months</option>
                     <option value="12_month" {{ request('plan') == '12_month' ? 'selected' : '' }}>12 Months</option>
                 </select>
-                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Filter</button>
-                <a href="{{ route('admin.subscriptions.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Clear</a>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">{{ __('admin.apply_filters') }}</button>
+                <a href="{{ route('admin.subscriptions.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">{{ __('admin.clear') }}</a>
             </form>
         </div>
 
@@ -80,7 +80,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">No subscriptions found</td>
+                            <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">{{ __('admin.no_subscriptions_found') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

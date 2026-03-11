@@ -569,23 +569,23 @@
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             <div class="p-5 md:p-6">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Services appear in the app under <strong>Place Service Orders</strong> (e.g. Tree Care, Fruits, Vegetables). Create a service (optionally link to a category), then link products to it. Disabled services show &quot;Coming Soon&quot; in the app.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ __('admin.services_description') }}</p>
                 <div class="flex flex-wrap items-center gap-3">
                     <a href="{{ route('admin.services.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                        Create Service
+                        {{ __('admin.create_service') }}
                     </a>
                     <a href="{{ route('admin.services.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                        View All Services
+                        {{ __('admin.view_all_services') }}
                     </a>
                     <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-600 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                        Categories ({{ $activeCategories ?? 0 }} active)
+                        {{ __('admin.categories_active', ['count' => $activeCategories ?? 0]) }}
                     </a>
                     <a href="{{ route('admin.products.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                        Products
+                        {{ __('admin.products') }}
                     </a>
                 </div>
             </div>
@@ -600,22 +600,22 @@
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             <div class="p-5 md:p-6">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Export orders to CSV or Excel, or email the export to your supplier. Use filters (date range, package) on the Orders page.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ __('admin.orders_export_description') }}</p>
                 <div class="flex flex-wrap items-center gap-3">
                     <a href="{{ route('admin.orders.export', ['format' => 'csv']) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Download CSV
+                        {{ __('admin.download_csv') }}
                     </a>
                     <a href="{{ route('admin.orders.export', ['format' => 'xlsx']) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Download Excel
+                        {{ __('admin.download_excel') }}
                     </a>
                     <a href="{{ route('admin.orders.index') }}#send-supplier" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                        Send to supplier
+                        {{ __('admin.send_to_supplier') }}
                     </a>
                 </div>
-                <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">Scheduled daily send runs at 07:00 (last 7 days). Configure MAIL_SUPPLIER_EMAIL in .env.</p>
+                <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">{{ __('admin.scheduled_send_note') }}</p>
             </div>
         </div>
     </div>
@@ -633,9 +633,9 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Paid Orders</p>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{{ __('admin.paid_orders') }}</p>
                         <p class="text-lg font-medium text-green-600 dark:text-green-400">{{ number_format($paidOrders ?? 0) }}</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ number_format(($paidOrders ?? 0) / max($totalOrders ?? 1, 1) * 100, 1) }}% of total</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ number_format(($paidOrders ?? 0) / max($totalOrders ?? 1, 1) * 100, 1) }}{{ __('admin.percent_of_total') }}</p>
                     </div>
                     <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
                         <svg class="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -649,9 +649,9 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Pending Payments</p>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{{ __('admin.pending_payments') }}</p>
                         <p class="text-lg font-medium text-yellow-600 dark:text-yellow-400">{{ number_format($pendingPayments ?? 0) }}</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Awaiting payment</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.awaiting_payment') }}</p>
                     </div>
                     <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
                         <svg class="w-5 h-5 md:w-6 md:h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -665,9 +665,9 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Revenue (Month)</p>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{{ __('admin.revenue_month') }}</p>
                         <p class="text-lg font-medium text-indigo-600 dark:text-indigo-400">AED {{ number_format($revenueThisMonth ?? 0) }}</p>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This month</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.this_month') }}</p>
                     </div>
                     <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                         <svg class="w-5 h-5 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -681,9 +681,9 @@
             <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Products</p>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('admin.total_products') }}</p>
                         <p class="text-lg font-medium text-blue-600">{{ number_format($totalProducts ?? 0) }}</p>
-                        <p class="mt-1 text-xs text-red-600">{{ $lowStockProducts ?? 0 }} low stock</p>
+                        <p class="mt-1 text-xs text-red-600">{{ $lowStockProducts ?? 0 }} {{ __('admin.low_stock') }}</p>
                     </div>
                     <div class="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-blue-50 flex items-center justify-center">
                         <svg class="w-5 h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1183,7 +1183,7 @@
                                             <button 
                                                 onclick="openRoleModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ addslashes($user->email) }}', '{{ $user->role }}')"
                                                 class="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                                                title="Change Role">
+                                                title="{{ __('admin.change_role') }}">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
@@ -1199,8 +1199,8 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                 </div>
-                                <p class="text-xs md:text-sm text-gray-500 font-medium">No users assigned</p>
-                                <p class="text-xs text-gray-400 mt-1">Assign users to this role</p>
+                                <p class="text-xs md:text-sm text-gray-500 font-medium">{{ __('admin.no_users_assigned') }}</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ __('admin.assign_users_to_role') }}</p>
                             </div>
                         @endif
                     </div>
@@ -1214,13 +1214,13 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
-                        <h3 class="text-base md:text-lg font-medium text-gray-900 mb-2">No Roles Found</h3>
-                        <p class="text-sm text-gray-500 mb-4">Create roles to start managing user assignments</p>
+                        <h3 class="text-base md:text-lg font-medium text-gray-900 mb-2">{{ __('admin.no_roles_found') }}</h3>
+                        <p class="text-sm text-gray-500 mb-4">{{ __('admin.create_roles_description') }}</p>
                         <a href="{{ route('admin.roles.index') }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
-                            Create Role
+                            {{ __('admin.create_role') }}
                         </a>
                     </div>
                 </div>
@@ -1233,15 +1233,15 @@
         <div class="mb-4 md:mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 class="text-lg md:text-xl font-semibold text-gray-900">All Active Users</h2>
-                    <p class="mt-1 text-sm text-gray-500">Complete list of all active users and their assigned roles</p>
+                    <h2 class="text-lg md:text-xl font-semibold text-gray-900">{{ __('admin.all_active_users') }}</h2>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('admin.complete_list_active_users') }}</p>
                 </div>
                 <a href="{{ route('admin.users.index') }}" 
                    class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
-                    View All Users
+                    {{ __('admin.view_all_users') }}
                 </a>
             </div>
         </div>
@@ -1252,29 +1252,29 @@
                 <div id="users-loading" class="hidden absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-xl">
                     <div class="flex flex-col items-center gap-3">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                        <p class="text-sm text-gray-600">Loading users...</p>
+                        <p class="text-sm text-gray-600">{{ __('admin.loading_users') }}</p>
                     </div>
                 </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                User
+                                {{ __('admin.user') }}
                             </th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Email
+                                {{ __('admin.email') }}
                             </th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Phone
+                                {{ __('admin.phone') }}
                             </th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Role
+                                {{ __('admin.role') }}
                             </th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
+                                {{ __('admin.status') }}
                             </th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions
+                                {{ __('admin.actions') }}
                             </th>
                         </tr>
                     </thead>
@@ -1312,7 +1312,7 @@
                                     <button 
                                         onclick="openRoleModal({{ $user['id'] }}, '{{ addslashes($user['name']) }}', '{{ addslashes($user['email']) }}', '{{ $user['role'] }}')"
                                         class="text-indigo-600 hover:text-indigo-900 transition-colors"
-                                        title="Change Role">
+                                        title="{{ __('admin.change_role') }}">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
@@ -1363,7 +1363,7 @@
             <div id="users-loading-mobile" class="hidden fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
                 <div class="flex flex-col items-center gap-3">
                     <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-                    <p class="text-sm text-gray-600">Loading users...</p>
+                    <p class="text-sm text-gray-600">{{ __('admin.loading_users') }}</p>
                 </div>
             </div>
             <div id="users-cards-wrapper">
@@ -1382,7 +1382,7 @@
                                     <button 
                                         onclick="openRoleModal({{ $user['id'] }}, '{{ addslashes($user['name']) }}', '{{ addslashes($user['email']) }}', '{{ $user['role'] }}')"
                                         class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors flex-shrink-0"
-                                        title="Change Role">
+                                        title="{{ __('admin.change_role') }}">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
@@ -1443,9 +1443,9 @@
     <div id="recent-tips" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <h2 class="text-lg font-semibold text-gray-900">Recent Tips</h2>
+                <h2 class="text-lg font-semibold text-gray-900">{{ __('admin.recent_tips') }}</h2>
                 <a href="{{ route('admin.tips.index') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors">
-                    View All
+                    {{ __('admin.view_all') }}
                 </a>
             </div>
             <div class="divide-y divide-gray-100">
@@ -1463,7 +1463,7 @@
                         </div>
                     </a>
                 @empty
-                    <div class="px-5 py-8 text-center text-sm text-gray-500">No tips yet. <a href="{{ route('admin.tips.create') }}" class="text-emerald-600 hover:underline">Create one</a></div>
+                    <div class="px-5 py-8 text-center text-sm text-gray-500">{{ __('admin.no_tips_yet') }} <a href="{{ route('admin.tips.create') }}" class="text-emerald-600 hover:underline">{{ __('admin.create_one') }}</a></div>
                 @endforelse
             </div>
         </div>
@@ -1473,9 +1473,9 @@
     <div id="recent-activities" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <h2 class="text-lg font-semibold text-gray-900">Recent Activities</h2>
+                <h2 class="text-lg font-semibold text-gray-900">{{ __('admin.recent_activities') }}</h2>
                 <a href="{{ route('admin.recent-activities.index') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors">
-                    View All
+                    {{ __('admin.view_all') }}
                 </a>
             </div>
             <div class="divide-y divide-gray-100">
@@ -1512,7 +1512,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="px-5 py-8 text-center text-sm text-gray-500">No recent activities yet.</div>
+                    <div class="px-5 py-8 text-center text-sm text-gray-500">{{ __('admin.no_recent_activities') }}</div>
                 @endforelse
             </div>
         </div>
@@ -1522,7 +1522,7 @@
     <div id="roleModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Change User Role</h3>
+                <h3 class="text-lg font-semibold text-gray-900">{{ __('admin.change_role') }}</h3>
                 <button onclick="closeRoleModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />

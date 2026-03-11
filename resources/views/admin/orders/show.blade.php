@@ -63,7 +63,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No items found</td>
+                                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">{{ __('admin.no_items_found') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>
