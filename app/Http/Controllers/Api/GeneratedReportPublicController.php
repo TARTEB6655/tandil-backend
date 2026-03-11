@@ -58,13 +58,18 @@ class GeneratedReportPublicController extends Controller
         $filename = 'area-manager-report-' . $report->id . '.' . $ext;
         $fullPath = Storage::disk('local')->path($report->file_path);
 
-        $disposition = $attachment
-            ? 'attachment; filename="' . $filename . '"'
-            : 'inline; filename="' . $filename . '"';
+        if ($attachment) {
+            return response()->download($fullPath, $filename, [
+                'Content-Type' => $mime,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'private, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+            ]);
+        }
 
         return response()->file($fullPath, [
             'Content-Type' => $mime,
-            'Content-Disposition' => $disposition,
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
             'Cache-Control' => 'private, no-cache, must-revalidate',
             'Pragma' => 'no-cache',
         ]);
