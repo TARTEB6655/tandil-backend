@@ -28,13 +28,13 @@
         </div>
     @endif
 
-    {{-- KPI cards --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8">
+    {{-- API-aligned summary: total_farms, active_subscriptions, monthly_revenue, team, active, done --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 mb-6 sm:mb-8">
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Areas</p>
-                    <p class="mt-1 text-2xl font-bold text-indigo-600">{{ number_format($totalAreas ?? 0) }}</p>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Farms</p>
+                    <p class="mt-1 text-2xl font-bold text-indigo-600">{{ number_format($totalFarms ?? 0) }}</p>
                     <p class="mt-1 text-xs text-gray-500">Managed regions</p>
                 </div>
                 <div class="h-12 w-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
@@ -45,9 +45,45 @@
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Visits</p>
-                    <p class="mt-1 text-2xl font-bold text-blue-600">{{ number_format($totalVisits ?? 0) }}</p>
-                    <p class="mt-1 text-xs text-gray-500">{{ $completedVisits ?? 0 }} completed</p>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Active Subscriptions</p>
+                    <p class="mt-1 text-2xl font-bold text-teal-600">{{ number_format($activeSubscriptions ?? 0) }}</p>
+                    <p class="mt-1 text-xs text-gray-500">Paid & current</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Monthly Revenue</p>
+                    <p class="mt-1 text-2xl font-bold text-emerald-600">{{ number_format($monthlyRevenue ?? 0, 2) }}</p>
+                    <p class="mt-1 text-xs text-gray-500">This month (orders)</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Team</p>
+                    <p class="mt-1 text-2xl font-bold text-violet-600">{{ number_format($teamCount ?? 0) }}</p>
+                    <p class="mt-1 text-xs text-gray-500">Supervisors in regions</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Active Visits</p>
+                    <p class="mt-1 text-2xl font-bold text-blue-600">{{ number_format($activeVisits ?? 0) }}</p>
+                    <p class="mt-1 text-xs text-gray-500">Pending, scheduled, in progress</p>
                 </div>
                 <div class="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -57,42 +93,34 @@
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Reports</p>
-                    <p class="mt-1 text-2xl font-bold text-purple-600">{{ number_format($totalReports ?? 0) }}</p>
-                    <p class="mt-1 text-xs text-gray-500">{{ $approvedReports ?? 0 }} approved</p>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Done Visits</p>
+                    <p class="mt-1 text-2xl font-bold text-green-600">{{ number_format($doneVisits ?? 0) }}</p>
+                    <p class="mt-1 text-xs text-gray-500">Completed & approved</p>
                 </div>
-                <div class="h-12 w-12 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Team</p>
-                    <p class="mt-1 text-2xl font-bold text-emerald-600">{{ number_format(($totalSupervisors ?? 0) + ($totalTechnicians ?? 0)) }}</p>
-                    <p class="mt-1 text-xs text-gray-500">{{ $totalSupervisors ?? 0 }} supervisors, {{ $totalTechnicians ?? 0 }} technicians</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <div class="h-12 w-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Visit status mini cards --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+    {{-- Visit status mini cards (API statuses) --}}
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
             <p class="text-xs font-medium text-gray-500 uppercase">Pending</p>
             <p class="text-xl font-bold text-amber-600">{{ number_format($pendingVisits ?? 0) }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Scheduled</p>
+            <p class="text-xl font-bold text-sky-600">{{ number_format($scheduledVisits ?? 0) }}</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
             <p class="text-xs font-medium text-gray-500 uppercase">In Progress</p>
             <p class="text-xl font-bold text-blue-600">{{ number_format($inProgressVisits ?? 0) }}</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-            <p class="text-xs font-medium text-gray-500 uppercase">Completed</p>
-            <p class="text-xl font-bold text-emerald-600">{{ number_format($completedVisits ?? 0) }}</p>
+            <p class="text-xs font-medium text-gray-500 uppercase">Completed / Approved</p>
+            <p class="text-xl font-bold text-emerald-600">{{ number_format(($completedVisits ?? 0) + ($approvedVisits ?? 0)) }}</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
             <p class="text-xs font-medium text-gray-500 uppercase">Pending Reports</p>
@@ -161,8 +189,8 @@
                         </div>
                         <span class="shrink-0 px-2.5 py-1 text-xs font-medium rounded-full
                             @if($visit->status === 'completed' || $visit->status === 'approved') bg-emerald-100 text-emerald-800
-                            @elseif($visit->status === 'started') bg-blue-100 text-blue-800
-                            @elseif($visit->status === 'accepted') bg-indigo-100 text-indigo-800
+                            @elseif($visit->status === 'in_progress' || $visit->status === 'started') bg-blue-100 text-blue-800
+                            @elseif($visit->status === 'scheduled') bg-sky-100 text-sky-800
                             @else bg-amber-100 text-amber-800
                             @endif">{{ ucfirst($visit->status) }}</span>
                     </div>

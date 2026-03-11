@@ -44,13 +44,13 @@ class AdminDashboardController extends Controller
         }
 
         try {
-            // Widget counts
+            // Key metrics aligned with GET /api/admin/dashboard/statistics (total_users, active_subscriptions, monthly_revenue)
             $totalUsers = User::count();
-        $totalTechnicians = User::where('role', 'technician')->count();
-        $totalSupervisors = User::where('role', 'supervisor')->count();
-        $activeSubscriptions = Subscription::where('payment_status', 'paid')
-            ->where('end_date', '>=', Carbon::today())
-            ->count();
+            $totalTechnicians = User::where('role', 'technician')->count();
+            $totalSupervisors = User::where('role', 'supervisor')->count();
+            $activeSubscriptions = Subscription::where('payment_status', 'paid')
+                ->where('end_date', '>=', Carbon::today())
+                ->count();
         
         // Visits counts
         $visitsToday = Visit::whereDate('scheduled_date', Carbon::today())->count();
@@ -77,12 +77,9 @@ class AdminDashboardController extends Controller
             ->whereMonth('created_at', date('m'))
             ->sum('total_amount');
         
-        $totalRevenue = Order::where('payment_status', 'paid')
-            ->sum('total_amount');
-        
-        $subscriptionRevenue = Subscription::where('payment_status', 'paid')
-            ->sum('amount');
-        
+        // Total revenue (matches API statistics: orders + subscriptions)
+        $totalRevenue = Order::where('payment_status', 'paid')->sum('total_amount');
+        $subscriptionRevenue = Subscription::where('payment_status', 'paid')->sum('amount');
         $totalRevenue = $totalRevenue + $subscriptionRevenue;
         
         // E-commerce Statistics

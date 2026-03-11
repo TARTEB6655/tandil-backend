@@ -47,6 +47,7 @@ class UserController extends Controller
                     });
                     break;
                 case 'supervisors':
+                case 'supervisor': // allow singular so tab click always returns supervisor list
                     $query->where(function ($q) {
                         $q->where('role', 'supervisor')->orWhereHas('roles', fn ($r) => $r->where('name', 'supervisor'));
                     });
@@ -66,9 +67,15 @@ class UserController extends Controller
             }
         }
 
-        // Filter by status
+        // Filter by status (treat null as active so list matches statistics when app sends status=active)
         if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
+            if (strtolower($request->status) === 'active') {
+                $query->where(function ($q) {
+                    $q->where('status', 'active')->orWhereNull('status');
+                });
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         $perPage = (int) $request->query('per_page', 15);
