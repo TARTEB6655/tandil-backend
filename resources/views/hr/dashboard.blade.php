@@ -70,19 +70,43 @@
         </div>
     </div>
 
-    <!-- Visit Assignments (aligned with API: today / tomorrow) -->
+    <!-- Visit Assignments (today / tomorrow: total, assigned, unassigned in a row) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
             <h3 class="text-base font-semibold text-gray-900 mb-3">Visit Assignments – Today</h3>
-            <p class="text-2xl font-medium text-gray-900">{{ $visitAssignments['today']['total'] ?? 0 }} total</p>
-            <p class="text-sm text-gray-600 mt-1">{{ $visitAssignments['today']['assigned'] ?? 0 }} assigned</p>
-            <p class="text-sm {{ ($visitAssignments['today']['unassigned'] ?? 0) > 0 ? 'text-red-600 font-medium' : 'text-gray-500' }}">{{ $visitAssignments['today']['unassigned'] ?? 0 }} unassigned</p>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl font-semibold text-gray-900">{{ $visitAssignments['today']['total'] ?? 0 }}</span>
+                    <span class="text-sm text-gray-500">total</span>
+                </div>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-xl font-medium text-gray-700">{{ $visitAssignments['today']['assigned'] ?? 0 }}</span>
+                    <span class="text-sm text-gray-500">assigned</span>
+                </div>
+                <div class="flex items-baseline gap-1.5">
+                    @php $uToday = $visitAssignments['today']['unassigned'] ?? 0; @endphp
+                    <span class="text-xl font-medium {{ $uToday > 0 ? 'text-red-600' : 'text-gray-600' }}">{{ $uToday }}</span>
+                    <span class="text-sm text-gray-500">unassigned</span>
+                </div>
+            </div>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
             <h3 class="text-base font-semibold text-gray-900 mb-3">Visit Assignments – Tomorrow</h3>
-            <p class="text-2xl font-medium text-gray-900">{{ $visitAssignments['tomorrow']['total'] ?? 0 }} total</p>
-            <p class="text-sm text-gray-600 mt-1">{{ $visitAssignments['tomorrow']['assigned'] ?? 0 }} assigned</p>
-            <p class="text-sm {{ ($visitAssignments['tomorrow']['unassigned'] ?? 0) > 0 ? 'text-red-600 font-medium' : 'text-gray-500' }}">{{ $visitAssignments['tomorrow']['unassigned'] ?? 0 }} unassigned</p>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl font-semibold text-gray-900">{{ $visitAssignments['tomorrow']['total'] ?? 0 }}</span>
+                    <span class="text-sm text-gray-500">total</span>
+                </div>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-xl font-medium text-gray-700">{{ $visitAssignments['tomorrow']['assigned'] ?? 0 }}</span>
+                    <span class="text-sm text-gray-500">assigned</span>
+                </div>
+                <div class="flex items-baseline gap-1.5">
+                    @php $uTomorrow = $visitAssignments['tomorrow']['unassigned'] ?? 0; @endphp
+                    <span class="text-xl font-medium {{ $uTomorrow > 0 ? 'text-red-600' : 'text-gray-600' }}">{{ $uTomorrow }}</span>
+                    <span class="text-sm text-gray-500">unassigned</span>
+                </div>
+            </div>
         </div>
     </div>
 
