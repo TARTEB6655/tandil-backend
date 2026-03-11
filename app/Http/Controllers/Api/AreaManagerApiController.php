@@ -355,6 +355,9 @@ class AreaManagerApiController extends Controller
             $visitQuery->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started']);
         } elseif ($statusFilter === 'completed') {
             $visitQuery->whereIn('status', ['completed', 'approved']);
+        } else {
+            // 'all' or other: never show pending_acceptance on Area Manager dashboard
+            $visitQuery->where('status', '!=', 'pending_acceptance');
         }
 
         $baseCountQuery = Visit::where(function ($q) use ($u, $areaIds) {
@@ -380,7 +383,7 @@ class AreaManagerApiController extends Controller
                 'id' => $v->id,
                 'visit_id' => $v->id,
                 'status' => $v->status,
-                'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $v->status)),
+                'status_display' => $v->status === 'pending_acceptance' ? 'Pending' : \Illuminate\Support\Str::title(str_replace('_', ' ', $v->status)),
                 'scheduled_date' => $v->scheduled_date?->format('Y-m-d'),
                 'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
                 'client_name' => $clientName,
@@ -528,6 +531,9 @@ class AreaManagerApiController extends Controller
             $visitQuery->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started']);
         } elseif ($statusFilter === 'completed') {
             $visitQuery->whereIn('status', ['completed', 'approved']);
+        } else {
+            // 'all' or other: never show pending_acceptance on Area Manager dashboard
+            $visitQuery->where('status', '!=', 'pending_acceptance');
         }
 
         $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
@@ -542,7 +548,7 @@ class AreaManagerApiController extends Controller
                 'id' => $v->id,
                 'visit_id' => $v->id,
                 'status' => $v->status,
-                'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $v->status)),
+                'status_display' => $v->status === 'pending_acceptance' ? 'Pending' : \Illuminate\Support\Str::title(str_replace('_', ' ', $v->status)),
                 'scheduled_date' => $v->scheduled_date?->format('Y-m-d'),
                 'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
                 'client_name' => $v->subscription?->client?->name ?? 'N/A',

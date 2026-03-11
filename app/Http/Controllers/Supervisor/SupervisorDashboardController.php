@@ -19,30 +19,97 @@ class SupervisorDashboardController extends Controller
     }
 
     /**
-     * Show the supervisor dashboard view.
+     * Same visit scope as API: visits in supervisor's areas OR assigned to supervisor (supervisor_id = me).
+     */
+    private function visitsQuery()
+    {
+        $user = Auth::user();
+        $areaIds = $user->supervisedAreaIds();
+        $supervisorId = $user->id;
+        return Visit::query()->where(function ($q) use ($areaIds, $supervisorId) {
+            if (! empty($areaIds)) {
+                $q->whereIn('area_id', $areaIds);
+            }
+            $q->orWhere('supervisor_id', $supervisorId);
+        });
+    }
+
+    /**
+     * Assignable visits (unassigned, pending/scheduled, or escalated) – same as API assignableVisitsQuery.
+     */
+    private function assignableVisitsQuery()
+    {
+        return $this->visitsQuery()->where(function ($q) {
+            $q->whereNull('technician_id')
+                ->orWhereIn('status', ['pending', 'scheduled'])
+                ->orWhereNotNull('escalated_at');
+        });
+    }
+
+    private function teamMemberIdsInZones(array $areaIds): \Illuminate\Support\Collection
+    {
+        if (empty($areaIds)) {
+            return collect();
+        }
+        return collect(DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id'));
+    }
+
+    /**
+     * Show the supervisor dashboard. Data aligned with API: dashboard/summary, dashboard/kpis, dashboard/alerts.
      */
     public function index(\Illuminate\Http\Request $request): View
     {
         $user = Auth::user();
         $search = $request->get('search', '');
-
-        // Get IDs of supervised areas
         $areaIds = $user->supervisedAreaIds();
 
-        if (empty($areaIds)) {
-            // If supervisor has no areas, return empty dashboard
+        // ---- API-aligned summary (GET /api/supervisor/dashboard/summary) ----
+        $teamMembers = $this->teamMemberIdsInZones($areaIds)->count();
+        $query = $this->visitsQuery();
+        $activeVisits = (clone $query)->whereIn('status', ['pending', 'scheduled', 'in_progress'])->count();
+        $completedVisits = (clone $query)->whereIn('status', ['completed', 'approved'])->count();
+        $escalatedJobs = $this->assignableVisitsQuery()->whereNotNull('escalated_at')->count();
+
+        // ---- API-aligned KPIs (GET /api/supervisor/dashboard/kpis) ----
+        $today = Carbon::today();
+        $completedToday = (clone $query)->whereDate('completed_at', $today)->count();
+        $totalVisits = (clone $query)->count();
+        $completionRatePercent = $totalVisits > 0 ? round(($completedVisits / $totalVisits) * 100, 2) : 0;
+
+        // ---- API-aligned alerts (GET /api/supervisor/dashboard/alerts) ----
+        $alerts = [];
+        $tomorrow = Carbon::tomorrow();
+        $overdue = (clone $query)
+            ->whereDate('scheduled_date', '<', $today)
+            ->whereNotIn('status', ['completed', 'approved', 'rejected'])
+            ->count();
+        if ($overdue > 0) {
+            $alerts[] = ['type' => 'overdue_visits', 'count' => $overdue, 'message' => "{$overdue} visits are overdue."];
+        }
+        $upcoming = (clone $query)->whereDate('scheduled_date', $tomorrow)->count();
+        if ($upcoming > 0) {
+            $alerts[] = ['type' => 'upcoming_visits', 'count' => $upcoming, 'message' => "{$upcoming} visits scheduled for tomorrow."];
+        }
+
+        // Visit IDs in scope (for reports/complaints)
+        $visitIds = $this->visitsQuery()->pluck('id');
+
+        if ($visitIds->isEmpty() && empty($areaIds)) {
             return view('supervisor.dashboard', [
-                'totalVisits' => 0,
+                'teamMembers' => 0,
+                'activeVisits' => 0,
                 'completedVisits' => 0,
-                'pendingVisits' => 0,
-                'totalReports' => 0,
+                'escalatedJobs' => 0,
+                'completedToday' => 0,
+                'completionRatePercent' => 0,
+                'alerts' => [],
+                'totalVisits' => 0,
                 'pendingReports' => 0,
                 'approvedReports' => 0,
+                'totalReports' => 0,
                 'totalComplaints' => 0,
                 'resolvedComplaints' => 0,
                 'pendingComplaints' => 0,
-                'teamMembers' => 0,
-                'escalatedJobs' => 0,
                 'visitsByStatus' => [],
                 'monthlyVisits' => [],
                 'recentVisits' => collect(),
@@ -51,137 +118,85 @@ class SupervisorDashboardController extends Controller
             ]);
         }
 
-        // Statistics - Visits in supervised areas
-        $totalVisits = Visit::whereIn('area_id', $areaIds)->count();
-        $completedVisits = Visit::whereIn('area_id', $areaIds)
-            ->where('status', 'completed')
-            ->count();
-        $pendingVisits = Visit::whereIn('area_id', $areaIds)
-            ->where('status', 'pending')
-            ->count();
-        
-        // Reports for visits in supervised areas
-        $visitIds = Visit::whereIn('area_id', $areaIds)->pluck('id');
+        // Reports for visits in scope (same as API report scope)
         $totalReports = Report::whereIn('visit_id', $visitIds)->count();
-        $pendingReports = Report::whereIn('visit_id', $visitIds)
-            ->where('status', 'pending')
-            ->count();
-        $approvedReports = Report::whereIn('visit_id', $visitIds)
-            ->where('status', 'approved')
-            ->count();
-        
-        // Complaints for visits in supervised areas
-        $totalComplaints = Complaint::whereHas('visit', function($q) use ($areaIds) {
-            $q->whereIn('area_id', $areaIds);
-        })->count();
-        $resolvedComplaints = Complaint::whereHas('visit', function($q) use ($areaIds) {
-            $q->whereIn('area_id', $areaIds);
-        })->where('status', 'resolved')->count();
-        $pendingComplaints = Complaint::whereHas('visit', function($q) use ($areaIds) {
-            $q->whereIn('area_id', $areaIds);
-        })->where('status', 'pending')->count();
+        $pendingReports = Report::whereIn('visit_id', $visitIds)->where('status', 'pending')->count();
+        $approvedReports = Report::whereIn('visit_id', $visitIds)->where('status', 'approved')->count();
 
-        // Visits by Status Chart Data
-        $visitsByStatus = Visit::whereIn('area_id', $areaIds)
+        // Complaints for visits in scope
+        $totalComplaints = Complaint::whereIn('visit_id', $visitIds)->count();
+        $resolvedComplaints = Complaint::whereIn('visit_id', $visitIds)->where('status', 'resolved')->count();
+        $pendingComplaints = Complaint::whereIn('visit_id', $visitIds)->where('status', 'pending')->count();
+
+        // Visits by Status (for chart)
+        $visitsByStatus = (clone $query)
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->get()
-            ->map(function($item) {
-                return [
-                    'status' => $item->status,
-                    'count' => $item->count
-                ];
-            })
+            ->map(fn ($item) => ['status' => $item->status, 'count' => $item->count])
             ->toArray();
 
-        // Monthly Visits Chart Data (Last 6 Months)
+        // Monthly Visits (last 6 months)
         $monthlyVisits = [];
         for ($i = 5; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
-            $count = Visit::whereIn('area_id', $areaIds)
+            $count = (clone $query)
                 ->whereYear('created_at', $date->year)
                 ->whereMonth('created_at', $date->month)
                 ->count();
-            $monthlyVisits[] = [
-                'month' => $date->format('M Y'),
-                'count' => $count
-            ];
+            $monthlyVisits[] = ['month' => $date->format('M Y'), 'count' => $count];
         }
 
-        // Recent Visits
-        $recentVisitsQuery = Visit::whereIn('area_id', $areaIds);
+        // Recent Visits (same scope)
+        $recentVisitsQuery = (clone $query)->with(['subscription.client', 'technician', 'area']);
         if ($search) {
-            $recentVisitsQuery->where(function($q) use ($search) {
+            $recentVisitsQuery->where(function ($q) use ($search) {
                 $q->where('status', 'LIKE', "%{$search}%")
-                  ->orWhere('notes', 'LIKE', "%{$search}%")
-                  ->orWhereHas('subscription.client', function($cq) use ($search) {
-                      $cq->where('name', 'LIKE', "%{$search}%");
-                  })
-                  ->orWhereHas('technician', function($tq) use ($search) {
-                      $tq->where('name', 'LIKE', "%{$search}%");
-                  });
+                    ->orWhere('notes', 'LIKE', "%{$search}%")
+                    ->orWhereHas('subscription.client', fn ($cq) => $cq->where('name', 'LIKE', "%{$search}%"))
+                    ->orWhereHas('technician', fn ($tq) => $tq->where('name', 'LIKE', "%{$search}%"));
             });
         }
-        $recentVisits = $recentVisitsQuery->with(['subscription.client', 'technician', 'area'])
-            ->orderBy('scheduled_date', 'desc')
-            ->take(5)
-            ->get();
-        
-        // Recent Reports
-        $recentReportsQuery = Report::whereIn('visit_id', $visitIds);
-        if ($search) {
-            $recentReportsQuery->where(function($q) use ($search) {
-                $q->where('notes', 'LIKE', "%{$search}%")
-                  ->orWhere('technician_notes', 'LIKE', "%{$search}%")
-                  ->orWhere('supervisor_notes', 'LIKE', "%{$search}%")
-                  ->orWhereHas('visit.subscription.client', function($cq) use ($search) {
-                      $cq->where('name', 'LIKE', "%{$search}%");
-                  });
-            });
-        }
-        $recentReports = $recentReportsQuery->with(['visit.subscription.client', 'supervisor'])
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-        
-        // Recent Complaints
-        $recentComplaintsQuery = Complaint::whereHas('visit', function($q) use ($areaIds) {
-            $q->whereIn('area_id', $areaIds);
-        });
-        if ($search) {
-            $recentComplaintsQuery->where(function($q) use ($search) {
-                $q->where('notes', 'LIKE', "%{$search}%")
-                  ->orWhere('status', 'LIKE', "%{$search}%")
-                  ->orWhereHas('visit.subscription.client', function($cq) use ($search) {
-                      $cq->where('name', 'LIKE', "%{$search}%");
-                  });
-            });
-        }
-        $recentComplaints = $recentComplaintsQuery->with(['visit.subscription.client'])
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
+        $recentVisits = $recentVisitsQuery->orderByDesc('scheduled_date')->take(5)->get();
 
-        $teamMembers = (int) \Illuminate\Support\Facades\DB::table('area_technician')
-            ->whereIn('area_id', $areaIds)
-            ->distinct()
-            ->count('user_id');
-        $escalatedJobs = Visit::whereIn('area_id', $areaIds)
-            ->whereNotNull('escalated_at')
-            ->count();
+        // Recent Reports
+        $recentReportsQuery = Report::whereIn('visit_id', $visitIds)->with(['visit.subscription.client', 'supervisor']);
+        if ($search) {
+            $recentReportsQuery->where(function ($q) use ($search) {
+                $q->where('notes', 'LIKE', "%{$search}%")
+                    ->orWhere('technician_notes', 'LIKE', "%{$search}%")
+                    ->orWhere('supervisor_notes', 'LIKE', "%{$search}%")
+                    ->orWhereHas('visit.subscription.client', fn ($cq) => $cq->where('name', 'LIKE', "%{$search}%"));
+            });
+        }
+        $recentReports = $recentReportsQuery->orderByDesc('created_at')->take(5)->get();
+
+        // Recent Complaints
+        $recentComplaintsQuery = Complaint::whereIn('visit_id', $visitIds)->with(['visit.subscription.client']);
+        if ($search) {
+            $recentComplaintsQuery->where(function ($q) use ($search) {
+                $q->where('notes', 'LIKE', "%{$search}%")
+                    ->orWhere('status', 'LIKE', "%{$search}%")
+                    ->orWhereHas('visit.subscription.client', fn ($cq) => $cq->where('name', 'LIKE', "%{$search}%"));
+            });
+        }
+        $recentComplaints = $recentComplaintsQuery->orderByDesc('created_at')->take(5)->get();
 
         return view('supervisor.dashboard', compact(
-            'totalVisits',
+            'teamMembers',
+            'activeVisits',
             'completedVisits',
-            'pendingVisits',
-            'totalReports',
+            'escalatedJobs',
+            'completedToday',
+            'completionRatePercent',
+            'alerts',
+            'totalVisits',
             'pendingReports',
             'approvedReports',
+            'totalReports',
             'totalComplaints',
             'resolvedComplaints',
             'pendingComplaints',
-            'teamMembers',
-            'escalatedJobs',
             'visitsByStatus',
             'monthlyVisits',
             'recentVisits',
