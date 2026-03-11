@@ -70,41 +70,45 @@
         </div>
     </div>
 
-    <!-- Visit Assignments (today / tomorrow: total, assigned, unassigned in a row) -->
+    <!-- Visit Assignments (today / tomorrow: total, assigned, unassigned with clear spacing) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
-            <h3 class="text-base font-semibold text-gray-900 mb-3">Visit Assignments – Today</h3>
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-2xl font-semibold text-gray-900">{{ $visitAssignments['today']['total'] ?? 0 }}</span>
-                    <span class="text-sm text-gray-500">total</span>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+                <h3 class="text-base font-semibold text-gray-900">Visit Assignments – Today</h3>
+            </div>
+            <div class="p-4 sm:p-5 flex flex-wrap gap-3 sm:gap-4">
+                <div class="flex-1 min-w-[calc(33.333%-0.5rem)] sm:min-w-0 rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">Total</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $visitAssignments['today']['total'] ?? 0 }}</p>
                 </div>
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-xl font-medium text-gray-700">{{ $visitAssignments['today']['assigned'] ?? 0 }}</span>
-                    <span class="text-sm text-gray-500">assigned</span>
+                <div class="flex-1 min-w-[calc(33.333%-0.5rem)] sm:min-w-0 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3">
+                    <p class="text-xs font-medium text-emerald-600 uppercase tracking-wide mb-0.5">Assigned</p>
+                    <p class="text-2xl font-semibold text-emerald-700">{{ $visitAssignments['today']['assigned'] ?? 0 }}</p>
                 </div>
-                <div class="flex items-baseline gap-1.5">
-                    @php $uToday = $visitAssignments['today']['unassigned'] ?? 0; @endphp
-                    <span class="text-xl font-medium {{ $uToday > 0 ? 'text-red-600' : 'text-gray-600' }}">{{ $uToday }}</span>
-                    <span class="text-sm text-gray-500">unassigned</span>
+                @php $uToday = $visitAssignments['today']['unassigned'] ?? 0; @endphp
+                <div class="flex-1 min-w-[calc(33.333%-0.5rem)] sm:min-w-0 rounded-lg {{ $uToday > 0 ? 'bg-red-50 border border-red-200' : 'bg-gray-50 border border-gray-100' }} px-4 py-3">
+                    <p class="text-xs font-medium {{ $uToday > 0 ? 'text-red-600' : 'text-gray-500' }} uppercase tracking-wide mb-0.5">Unassigned</p>
+                    <p class="text-2xl font-semibold {{ $uToday > 0 ? 'text-red-600' : 'text-gray-700' }}">{{ $uToday }}</p>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
-            <h3 class="text-base font-semibold text-gray-900 mb-3">Visit Assignments – Tomorrow</h3>
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-2xl font-semibold text-gray-900">{{ $visitAssignments['tomorrow']['total'] ?? 0 }}</span>
-                    <span class="text-sm text-gray-500">total</span>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+                <h3 class="text-base font-semibold text-gray-900">Visit Assignments – Tomorrow</h3>
+            </div>
+            <div class="p-4 sm:p-5 flex flex-wrap gap-3 sm:gap-4">
+                <div class="flex-1 min-w-[calc(33.333%-0.5rem)] sm:min-w-0 rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">Total</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $visitAssignments['tomorrow']['total'] ?? 0 }}</p>
                 </div>
-                <div class="flex items-baseline gap-1.5">
-                    <span class="text-xl font-medium text-gray-700">{{ $visitAssignments['tomorrow']['assigned'] ?? 0 }}</span>
-                    <span class="text-sm text-gray-500">assigned</span>
+                <div class="flex-1 min-w-[calc(33.333%-0.5rem)] sm:min-w-0 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3">
+                    <p class="text-xs font-medium text-emerald-600 uppercase tracking-wide mb-0.5">Assigned</p>
+                    <p class="text-2xl font-semibold text-emerald-700">{{ $visitAssignments['tomorrow']['assigned'] ?? 0 }}</p>
                 </div>
-                <div class="flex items-baseline gap-1.5">
-                    @php $uTomorrow = $visitAssignments['tomorrow']['unassigned'] ?? 0; @endphp
-                    <span class="text-xl font-medium {{ $uTomorrow > 0 ? 'text-red-600' : 'text-gray-600' }}">{{ $uTomorrow }}</span>
-                    <span class="text-sm text-gray-500">unassigned</span>
+                @php $uTomorrow = $visitAssignments['tomorrow']['unassigned'] ?? 0; @endphp
+                <div class="flex-1 min-w-[calc(33.333%-0.5rem)] sm:min-w-0 rounded-lg {{ $uTomorrow > 0 ? 'bg-red-50 border border-red-200' : 'bg-gray-50 border border-gray-100' }} px-4 py-3">
+                    <p class="text-xs font-medium {{ $uTomorrow > 0 ? 'text-red-600' : 'text-gray-500' }} uppercase tracking-wide mb-0.5">Unassigned</p>
+                    <p class="text-2xl font-semibold {{ $uTomorrow > 0 ? 'text-red-600' : 'text-gray-700' }}">{{ $uTomorrow }}</p>
                 </div>
             </div>
         </div>
