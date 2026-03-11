@@ -6911,7 +6911,7 @@
         },
         {
             "name": "12. HR Manager Dashboard – All APIs",
-            "description": "HR Manager APIs. Auth: Bearer {{token}} (role hr or admin). Same folder structure as Area Manager: A. Dashboard, B. Employees, C. Leave Requests, D. Profile. Base: /api/hr/*.",
+            "description": "HR Manager APIs. Auth: Bearer {{token}} (role hr or admin). Same folder structure as Area Manager: A. Dashboard, B. Employees, C. Leave Requests, D. Profile, E. Help & Support. Base: /api/hr/*.",
             "item": [
                 {
                     "name": "A. Dashboard",
@@ -7205,6 +7205,88 @@
                                 },
                                 "description": "Update profile. PUT or POST /api/hr/profile. Form-data: name, email, phone, profile_picture (optional)."
                             }
+                        }
+                    ]
+                },
+                {
+                    "name": "E. Help & Support",
+                    "description": "Talk to admin (same as Area Manager / Client). All under /api/hr/support/*. Auth: Bearer {{token}} (hr or admin).",
+                    "item": [
+                        {
+                            "name": "Help Center (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/hr/support/help-center", "host": ["{{base_url}}"], "path": ["api", "hr", "support", "help-center"] }
+                            },
+                            "description": "Help center content. GET /api/hr/support/help-center."
+                        },
+                        {
+                            "name": "FAQs (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/hr/support/faqs", "host": ["{{base_url}}"], "path": ["api", "hr", "support", "faqs"] }
+                            },
+                            "description": "List FAQs. GET /api/hr/support/faqs. Response: data[] (id, question, answer, sort_order)."
+                        },
+                        {
+                            "name": "Submit ticket (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"subject\": \"Support request\",\n  \"email\": \"hr@example.com\",\n  \"description\": \"Describe your issue.\"\n}", "options": { "raw": { "language": "json" } } },
+                                "url": { "raw": "{{base_url}}/api/hr/support/tickets", "host": ["{{base_url}}"], "path": ["api", "hr", "support", "tickets"] }
+                            },
+                            "description": "Create a support ticket. Body: subject, email, description (required)."
+                        },
+                        {
+                            "name": "List my tickets (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/hr/support/tickets?per_page=20", "host": ["{{base_url}}"], "path": ["api", "hr", "support", "tickets"], "query": [{ "key": "per_page", "value": "20" }] }
+                            },
+                            "description": "List my support tickets (HR). Paginated. GET /api/hr/support/tickets."
+                        },
+                        {
+                            "name": "Get ticket by ID (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": { "raw": "{{base_url}}/api/hr/support/tickets/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["api", "hr", "support", "tickets", "{{ticket_id}}"] }
+                            },
+                            "description": "Get one ticket with full chat thread. Set {{ticket_id}}."
+                        },
+                        {
+                            "name": "Reply to ticket (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"message\": \"My reply.\"\n}", "options": { "raw": { "language": "json" } } },
+                                "url": { "raw": "{{base_url}}/api/hr/support/tickets/{{ticket_id}}/reply", "host": ["{{base_url}}"], "path": ["api", "hr", "support", "tickets", "{{ticket_id}}", "reply"] }
+                            },
+                            "description": "Reply in ticket chat. Body: message (required). Set {{ticket_id}}."
                         }
                     ]
                 }

@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Models\Visit;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -21,15 +24,43 @@ class HrDashboardController extends Controller
     {
         try {
             $user = Auth::user();
+            $user->load('employee');
             $search = $request->get('search', '');
 
-            // Get employee statistics
+            // Staff stats (aligned with API)
             $totalEmployees = Employee::count();
+            $newHires = Employee::where('created_at', '>=', Carbon::now()->subDays(30))->count();
             $totalTechnicians = User::where('role', 'technician')->count();
             $totalSupervisors = User::where('role', 'supervisor')->count();
             $totalAreaManagers = User::where('role', 'area_manager')->count();
-            
-            // Employees by designation - handle case where designation column might not exist
+
+            // Leave requests (aligned with API)
+            $leaveRequestsCount = LeaveRequest::where('status', 'pending')->count();
+            $pendingLeaveRequests = LeaveRequest::with('user.employee')
+                ->where('status', 'pending')
+                ->orderBy('created_at')
+                ->limit(10)
+                ->get();
+
+            // Visit assignments today / tomorrow (aligned with API)
+            $today = Carbon::today();
+            $tomorrow = Carbon::today()->addDay();
+            $todayQuery = Visit::whereDate('scheduled_date', $today);
+            $tomorrowQuery = Visit::whereDate('scheduled_date', $tomorrow);
+            $visitAssignments = [
+                'today' => [
+                    'total' => (clone $todayQuery)->count(),
+                    'assigned' => (clone $todayQuery)->whereNotNull('technician_id')->count(),
+                ],
+                'tomorrow' => [
+                    'total' => (clone $tomorrowQuery)->count(),
+                    'assigned' => (clone $tomorrowQuery)->whereNotNull('technician_id')->count(),
+                ],
+            ];
+            $visitAssignments['today']['unassigned'] = $visitAssignments['today']['total'] - $visitAssignments['today']['assigned'];
+            $visitAssignments['tomorrow']['unassigned'] = $visitAssignments['tomorrow']['total'] - $visitAssignments['tomorrow']['assigned'];
+
+            // Employees by designation
             try {
                 $employeesByDesignation = Employee::select('designation', DB::raw('count(*) as count'))
                     ->whereNotNull('designation')
@@ -41,20 +72,17 @@ class HrDashboardController extends Controller
                 $employeesByDesignation = [];
             }
 
-            // Recent employees - handle case where created_at might not exist
+            // Recent employees
             try {
                 $recentEmployees = Employee::with('user')
                     ->orderBy('created_at', 'desc')
                     ->limit(5)
                     ->get();
             } catch (\Exception $e) {
-                // Fallback: try without created_at
-                $recentEmployees = Employee::with('user')
-                    ->limit(5)
-                    ->get();
+                $recentEmployees = Employee::with('user')->limit(5)->get();
             }
 
-            // Employees by region - handle case where region column might not exist
+            // Employees by region
             try {
                 $employeesByRegion = Employee::select('region', DB::raw('count(*) as count'))
                     ->whereNotNull('region')
@@ -66,8 +94,16 @@ class HrDashboardController extends Controller
                 $employeesByRegion = [];
             }
 
+            $hrId = $user->employee?->employee_id ?? ('HR-' . $user->id);
+
             return view('hr.dashboard', compact(
+                'user',
+                'hrId',
                 'totalEmployees',
+                'newHires',
+                'leaveRequestsCount',
+                'pendingLeaveRequests',
+                'visitAssignments',
                 'totalTechnicians',
                 'totalSupervisors',
                 'totalAreaManagers',
@@ -77,22 +113,27 @@ class HrDashboardController extends Controller
                 'search'
             ));
         } catch (\Exception $e) {
-            // Log the error and return a safe view with default values
             \Log::error('HR Dashboard Error: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return view('hr.dashboard', [
+                'user' => Auth::user(),
+                'hrId' => 'HR-' . Auth::id(),
                 'totalEmployees' => 0,
+                'newHires' => 0,
+                'leaveRequestsCount' => 0,
+                'pendingLeaveRequests' => collect(),
+                'visitAssignments' => ['today' => ['total' => 0, 'assigned' => 0, 'unassigned' => 0], 'tomorrow' => ['total' => 0, 'assigned' => 0, 'unassigned' => 0]],
                 'totalTechnicians' => 0,
                 'totalSupervisors' => 0,
                 'totalAreaManagers' => 0,
                 'employeesByDesignation' => [],
                 'employeesByRegion' => [],
                 'recentEmployees' => collect(),
-                'search' => $request->get('search', '')
+                'search' => $request->get('search', ''),
             ]);
         }
     }

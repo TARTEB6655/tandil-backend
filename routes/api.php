@@ -421,6 +421,13 @@ Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('hr')->group(functi
     Route::get('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'show']);
     Route::put('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update']);
     Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy']);
+    /* Help & Support (talk to admin – same as /api/support/*, under hr prefix for dashboard) */
+    Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
+    Route::get('/support/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
+    Route::get('/support/tickets', [\App\Http\Controllers\Api\SupportController::class, 'indexMyTickets']);
+    Route::post('/support/tickets', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
+    Route::get('/support/tickets/{id}', [\App\Http\Controllers\Api\SupportController::class, 'showMyTicket']);
+    Route::post('/support/tickets/{id}/reply', [\App\Http\Controllers\Api\SupportController::class, 'replyToMyTicket']);
     Route::get('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'updateProfile']);

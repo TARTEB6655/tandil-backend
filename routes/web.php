@@ -483,6 +483,11 @@ Route::middleware(['auth', 'role:hr'])
         Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy'])->name('employees.destroy');
         Route::post('/employees/{id}/create-user', [\App\Http\Controllers\HR\EmployeeController::class, 'createUser'])->name('employees.create-user');
         Route::post('/employees/{id}/update-user-status', [\App\Http\Controllers\HR\EmployeeController::class, 'updateUserStatus'])->name('employees.update-user-status');
+
+        // Leave requests (manage leaves – list, approve, reject)
+        Route::get('/leave-requests', [\App\Http\Controllers\HR\LeaveRequestController::class, 'index'])->name('leave-requests.index');
+        Route::post('/leave-requests/{id}/approve', [\App\Http\Controllers\HR\LeaveRequestController::class, 'approve'])->name('leave-requests.approve');
+        Route::post('/leave-requests/{id}/reject', [\App\Http\Controllers\HR\LeaveRequestController::class, 'reject'])->name('leave-requests.reject');
         
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');

@@ -1,17 +1,24 @@
 <x-hr-layout>
-    <!-- Page Header -->
-    <div class="mb-4 sm:mb-6">
-        <h1 class="text-lg sm:text-xl font-medium text-gray-900">HR Dashboard</h1>
-        <p class="mt-1 text-xs sm:text-sm text-gray-500">Welcome back! Manage employees and track workforce statistics.</p>
+    @php
+        $hour = (int) now()->format('G');
+        $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+    @endphp
+
+    <!-- Welcome / Profile header (aligned with API) -->
+    <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <p class="text-sm text-gray-500">{{ $greeting }}!</p>
+            <h1 class="text-lg sm:text-xl font-semibold text-gray-900 mt-0.5">{{ $user->name ?? 'HR User' }}</h1>
+            <p class="text-xs sm:text-sm text-gray-500 mt-0.5">HR Manager · ID: {{ $hrId ?? 'HR-' }}</p>
+        </div>
     </div>
 
-    <!-- Key Metrics Cards -->
+    <!-- Key metrics (aligned with API: total_staff, new_hires, leave_requests) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
-        <!-- Total Employees Card -->
         <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Employees</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Staff</p>
                     <p class="text-base sm:text-lg font-medium text-pink-600">{{ number_format($totalEmployees ?? 0) }}</p>
                     <p class="mt-1 sm:mt-2 text-xs text-gray-500">All employee records</p>
                 </div>
@@ -25,49 +32,46 @@
             </div>
         </div>
 
-        <!-- Technicians Card -->
         <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Technicians</p>
-                    <p class="text-base sm:text-lg font-medium text-blue-600">{{ number_format($totalTechnicians ?? 0) }}</p>
-                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Active technicians</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">New Hires</p>
+                    <p class="text-base sm:text-lg font-medium text-blue-600">{{ number_format($newHires ?? 0) }}</p>
+                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Last 30 days</p>
                 </div>
                 <div class="ml-3 sm:ml-4 flex-shrink-0">
                     <div class="flex h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-blue-50">
                         <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                         </svg>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Supervisors Card -->
         <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Supervisors</p>
-                    <p class="text-base sm:text-lg font-medium text-green-600">{{ number_format($totalSupervisors ?? 0) }}</p>
-                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Active supervisors</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Leave Requests</p>
+                    <p class="text-base sm:text-lg font-medium text-amber-600">{{ number_format($leaveRequestsCount ?? 0) }}</p>
+                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Pending approval</p>
                 </div>
                 <div class="ml-3 sm:ml-4 flex-shrink-0">
-                    <div class="flex h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <div class="flex h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Area Managers Card -->
         <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Area Managers</p>
                     <p class="text-base sm:text-lg font-medium text-purple-600">{{ number_format($totalAreaManagers ?? 0) }}</p>
-                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Active area managers</p>
+                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Active</p>
                 </div>
                 <div class="ml-3 sm:ml-4 flex-shrink-0">
                     <div class="flex h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-purple-50">
@@ -80,17 +84,71 @@
         </div>
     </div>
 
+    <!-- Visit Assignments (aligned with API: today / tomorrow) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-3">Visit Assignments – Today</h3>
+            <p class="text-2xl font-medium text-gray-900">{{ $visitAssignments['today']['total'] ?? 0 }} total</p>
+            <p class="text-sm text-gray-600 mt-1">{{ $visitAssignments['today']['assigned'] ?? 0 }} assigned</p>
+            <p class="text-sm {{ ($visitAssignments['today']['unassigned'] ?? 0) > 0 ? 'text-red-600 font-medium' : 'text-gray-500' }}">{{ $visitAssignments['today']['unassigned'] ?? 0 }} unassigned</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-3">Visit Assignments – Tomorrow</h3>
+            <p class="text-2xl font-medium text-gray-900">{{ $visitAssignments['tomorrow']['total'] ?? 0 }} total</p>
+            <p class="text-sm text-gray-600 mt-1">{{ $visitAssignments['tomorrow']['assigned'] ?? 0 }} assigned</p>
+            <p class="text-sm {{ ($visitAssignments['tomorrow']['unassigned'] ?? 0) > 0 ? 'text-red-600 font-medium' : 'text-gray-500' }}">{{ $visitAssignments['tomorrow']['unassigned'] ?? 0 }} unassigned</p>
+        </div>
+    </div>
+
+    <!-- Pending Leave Requests (aligned with API; approve/reject from dashboard) -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6 md:mb-8">
+        <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900">Pending Leave Requests @if(count($pendingLeaveRequests ?? [])) <span class="text-gray-500 font-normal">({{ count($pendingLeaveRequests) }})</span> @endif</h3>
+            <a href="{{ route('hr.leave-requests.index', ['status' => 'pending']) }}" class="text-xs sm:text-sm text-indigo-600 hover:text-indigo-900">Manage all</a>
+        </div>
+        <div class="divide-y divide-gray-200">
+            @forelse($pendingLeaveRequests ?? [] as $lr)
+                @php
+                    $applicant = $lr->user;
+                    $applicantId = $applicant?->employee?->employee_id ?? ('EMP-' . $applicant?->id);
+                    $days = $lr->start_date->diffInDays($lr->end_date) + 1;
+                @endphp
+                <div class="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50/50 transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900">{{ $applicant?->name ?? 'N/A' }}</p>
+                            <p class="text-xs text-gray-500">{{ $applicantId }} · {{ $lr->leave_type }} · {{ $days }} day(s)</p>
+                            <p class="text-xs text-gray-500 mt-0.5">From {{ $lr->start_date->format('Y-m-d') }}</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 flex-shrink-0">
+                            <form action="{{ route('hr.leave-requests.approve', $lr->id) }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">Approve</button>
+                            </form>
+                            <form action="{{ route('hr.leave-requests.reject', $lr->id) }}" method="POST" class="inline" onsubmit="return confirm('Reject this leave request?');">
+                                @csrf
+                                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">Reject</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="px-4 sm:px-6 py-8 text-center">
+                    <p class="text-sm text-gray-500">No pending leave requests.</p>
+                    <a href="{{ route('hr.leave-requests.index') }}" class="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-900">Manage leaves</a>
+                </div>
+            @endforelse
+        </div>
+    </div>
+
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
-        <!-- Employees by Designation Chart -->
         @if(!empty($employeesByDesignation))
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
             <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-4">Employees by Designation</h3>
             <canvas id="designationChart" class="w-full" style="max-height: 300px;"></canvas>
         </div>
         @endif
-
-        <!-- Employees by Region Chart -->
         @if(!empty($employeesByRegion))
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
             <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-4">Employees by Region</h3>
@@ -114,7 +172,7 @@
                                 {{ $employee->user ? $employee->user->name : 'N/A' }}
                             </p>
                             <p class="text-xs text-gray-500 mt-1">
-                                {{ $employee->employee_id }} • {{ $employee->designation ?? 'No designation' }}
+                                {{ $employee->employee_id }} · {{ $employee->designation ?? 'No designation' }}
                             </p>
                         </div>
                         <div class="ml-4 flex-shrink-0">
@@ -132,9 +190,8 @@
         </div>
     </div>
 
-    <!-- Chart Scripts -->
+    @if(!empty($employeesByDesignation) || !empty($employeesByRegion))
     <script>
-        // Employees by Designation Chart
         @if(!empty($employeesByDesignation))
         const designationCtx = document.getElementById('designationChart');
         if (designationCtx) {
@@ -152,17 +209,11 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
+                    plugins: { legend: { position: 'bottom' } }
                 }
             });
         }
         @endif
-
-        // Employees by Region Chart
         @if(!empty($employeesByRegion))
         const regionCtx = document.getElementById('regionChart');
         if (regionCtx) {
@@ -181,19 +232,12 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
                 }
             });
         }
         @endif
     </script>
+    @endif
 </x-hr-layout>
