@@ -6670,7 +6670,7 @@
                             "path": ["api", "area-manager", "reports", "generate"],
                             "query": [{"key": "sync", "value": "1", "description": "If 1, report is generated in request and response includes download_url, view_url (ready in 2-3 sec). Omit for async."}]
                         },
-                        "description": "Generate report. POST /api/area-manager/reports/generate. Body: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to. Add ?sync=1 for immediate result: response includes download_url and view_url; no status polling. Without sync, use GET /generated-reports to get download when ready."
+                        "description": "Generate report. POST /api/area-manager/reports/generate. Body: type (weekly_summary|team_performance|customer_satisfaction), date_from, date_to. Add ?sync=1 for immediate result: response includes download_url and view_url (signed, 7-day valid). Without sync, use GET /generated-reports to get download when ready."
                     }
                 },
                 {
@@ -6686,7 +6686,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "generated-reports"]
                         },
-                        "description": "List generated reports. GET /api/area-manager/generated-reports. Response: data[] (id, title, report_type, type, period, file_size, generated_at, created_at, download_url, view_url). download_url and view_url set when file is ready. Open view_url in new tab to view PDF; use download_url to save file."
+                        "description": "List generated reports. GET /api/area-manager/generated-reports. Response: data[] (id, title, report_type, type, period, file_size, generated_at, created_at, download_url, view_url). download_url and view_url are signed URLs (valid 7 days); open in browser to download/view without auth. For API: use Generated Reports - Download with {{generated_report_id}} and Bearer token."
                     }
                 },
                 {
@@ -6701,7 +6701,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "generated-reports", "{{generated_report_id}}", "download"]
                         },
-                        "description": "Download report file (attachment). GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from Generated Reports list (id of a report with status generated). Auth: same Bearer {{token}} as area_manager who created the report. In Postman: use **Send and Download** (not Send) to save the file; remove Accept: application/json for this request if your collection sends it, so the response is treated as a file."
+                        "description": "Download report file (attachment). GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from list (e.g. 40). Works with: (1) ID + Bearer {{token}} (area_manager who created the report) – use Send and Download in Postman; (2) or open the signed download_url from the list in browser (no auth). Do not set Accept: application/json for this request."
                     }
                 },
                 {
@@ -6716,7 +6716,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "generated-reports", "{{generated_report_id}}", "view"]
                         },
-                        "description": "Open report in browser (inline). GET /api/area-manager/generated-reports/{id}/view. Use view_url from list; open in new tab to view PDF."
+                        "description": "View report inline (e.g. PDF in browser). GET /api/area-manager/generated-reports/{id}/view. Set {{generated_report_id}}. Works with Bearer {{token}} (area_manager) or open the signed view_url from the list in browser (no auth)."
                             }
                         }
                     ]
