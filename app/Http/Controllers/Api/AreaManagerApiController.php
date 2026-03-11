@@ -342,7 +342,7 @@ class AreaManagerApiController extends Controller
         }
 
         $areaIds = $u->supervisedAreaIds();
-        $visitQuery = Visit::with(['subscription.client', 'technician:id,name', 'area:id,name'])
+        $visitQuery = Visit::with(['subscription.client', 'technician:id,name', 'area:id,name,location'])
             ->where(function ($q) use ($u, $areaIds) {
                 $q->where('supervisor_id', $u->id);
                 if (! empty($areaIds)) {
@@ -378,6 +378,8 @@ class AreaManagerApiController extends Controller
         $list = $visits->getCollection()->map(function (Visit $v) {
             $clientName = $v->subscription?->client?->name ?? 'N/A';
             $areaName = $v->area?->name ?? 'N/A';
+            $areaLocation = $v->area?->location ?? null;
+            $location = $areaLocation ?: $areaName;
             $technicianName = $v->technician?->name ?? null;
             return [
                 'id' => $v->id,
@@ -388,6 +390,8 @@ class AreaManagerApiController extends Controller
                 'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
                 'client_name' => $clientName,
                 'area_name' => $areaName,
+                'location' => $location,
+                'area_location' => $areaLocation,
                 'technician_name' => $technicianName,
                 'technician_id' => $v->technician_id,
             ];
@@ -544,6 +548,8 @@ class AreaManagerApiController extends Controller
 
         $list = $visits->getCollection()->map(function (Visit $v) {
             $tech = $v->technician;
+            $areaLocation = $v->area?->location ?? null;
+            $location = $areaLocation ?: ($v->area?->name ?? null);
             return [
                 'id' => $v->id,
                 'visit_id' => $v->id,
@@ -553,7 +559,8 @@ class AreaManagerApiController extends Controller
                 'scheduled_date_display' => $v->scheduled_date?->format('M d, Y'),
                 'client_name' => $v->subscription?->client?->name ?? 'N/A',
                 'area_name' => $v->area?->name ?? 'N/A',
-                'area_location' => $v->area?->location ?? null,
+                'location' => $location,
+                'area_location' => $areaLocation,
                 'supervisor_name' => $v->supervisor?->name ?? null,
                 'supervisor_id' => $v->supervisor_id,
                 'is_processing' => in_array($v->status, ['in_progress', 'started']),
