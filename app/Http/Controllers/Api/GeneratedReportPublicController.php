@@ -59,9 +59,12 @@ class GeneratedReportPublicController extends Controller
         $fullPath = Storage::disk('local')->path($report->file_path);
 
         if ($attachment) {
+            // Use application/octet-stream so browser always downloads (no inline view).
+            // Some servers/proxies force inline for application/pdf; octet-stream avoids that.
             return response()->download($fullPath, $filename, [
-                'Content-Type' => $mime,
+                'Content-Type' => 'application/octet-stream',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'X-Content-Type-Options' => 'nosniff',
                 'Cache-Control' => 'private, no-cache, must-revalidate',
                 'Pragma' => 'no-cache',
             ]);

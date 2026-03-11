@@ -21,7 +21,14 @@ class EnsureApiJsonResponse
             return $response;
         }
 
+        // Do not touch file/download responses (would consume stream or alter headers).
         $contentType = $response->headers->get('Content-Type', '');
+        if (str_contains($contentType, 'application/octet-stream')
+            || str_contains($contentType, 'application/pdf')
+            || $response->headers->get('Content-Disposition')) {
+            return $response;
+        }
+
         $isHtml = str_contains(strtolower($contentType), 'text/html')
             || (strlen($response->getContent()) > 0 && preg_match('/^\s*<\s*!?\s*DOCTYPE\s+html/i', $response->getContent()));
 

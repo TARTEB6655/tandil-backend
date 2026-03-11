@@ -73,11 +73,24 @@ class HrApiController extends Controller
     /**
      * GET /api/hr/dashboard/visit-assignments
      * Today and tomorrow: total visits, assigned, unassigned.
+     * Counts from visits table where scheduled_date = today/tomorrow.
+     * Optional: ?timezone=Asia/Kolkata so "today" matches that timezone (default: app timezone).
      */
     public function visitAssignments(Request $request): JsonResponse
     {
-        $today = Carbon::today();
-        $tomorrow = Carbon::today()->addDay();
+        $tz = $request->input('timezone');
+        try {
+            if ($tz) {
+                $today = Carbon::today($tz);
+                $tomorrow = Carbon::today($tz)->addDay();
+            } else {
+                $today = Carbon::today();
+                $tomorrow = Carbon::today()->addDay();
+            }
+        } catch (\Exception $e) {
+            $today = Carbon::today();
+            $tomorrow = Carbon::today()->addDay();
+        }
 
         $todayQuery = Visit::whereDate('scheduled_date', $today);
         $tomorrowQuery = Visit::whereDate('scheduled_date', $tomorrow);
@@ -89,6 +102,12 @@ class HrApiController extends Controller
         $tomorrowTotal = (clone $tomorrowQuery)->count();
         $tomorrowAssigned = (clone $tomorrowQuery)->whereNotNull('technician_id')->count();
         $tomorrowUnassigned = $tomorrowTotal - $tomorrowAssigned;
+
+        // Overall counts (no date filter) – same logic as Area Manager dashboard so HR sees same visit numbers.
+        $allVisitsQuery = Visit::query();
+        $overallActive = (clone $allVisitsQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
+        $overallDone = Visit::whereIn('status', ['completed', 'approved'])->count();
+        $overallTotal = Visit::count();
 
         return response()->json([
             'success' => true,
@@ -102,6 +121,15 @@ class HrApiController extends Controller
                     'total' => $tomorrowTotal,
                     'assigned' => $tomorrowAssigned,
                     'unassigned' => $tomorrowUnassigned,
+                ],
+                'overall' => [
+                    'total' => $overallTotal,
+                    'active' => $overallActive,
+                    'done' => $overallDone,
+                ],
+                'dates_used' => [
+                    'today' => $today->toDateString(),
+                    'tomorrow' => $tomorrow->toDateString(),
                 ],
             ],
         ]);
