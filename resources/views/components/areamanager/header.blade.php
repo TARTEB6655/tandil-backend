@@ -3,6 +3,8 @@
     $searchValue = request()->get('search', '');
     $unreadNotifications = $user->unreadNotifications()->latest()->take(5)->get();
     $unreadCount = $user->unreadNotifications()->count();
+    $headerProfilePic = $user->profile_picture_url ?? null;
+    $headerInitial = $user->name ? mb_substr(trim($user->name), 0, 1) : 'A';
 @endphp
 
 <header class="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm py-4">
@@ -151,10 +153,14 @@
                         class="flex items-center gap-2 sm:gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                         aria-label="User menu"
                     >
-                        <!-- Avatar -->
-                        <div class="h-8 w-8 flex items-center justify-center rounded-full text-white text-sm font-semibold shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #8b5cf6, #7c3aed);">
-                            {{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}
-                        </div>
+                        <!-- Avatar: profile picture if set, else initial -->
+                        @if($headerProfilePic)
+                            <img src="{{ $headerProfilePic }}" alt="{{ $user->name ?? 'User' }}" class="h-8 w-8 rounded-full object-cover shadow-sm flex-shrink-0 border border-gray-200" />
+                        @else
+                            <div class="h-8 w-8 flex items-center justify-center rounded-full text-white text-sm font-semibold shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #8b5cf6, #7c3aed);">
+                                {{ mb_strtoupper($headerInitial) }}
+                            </div>
+                        @endif
 
                         <!-- User Info (hidden on mobile, visible on desktop) -->
                         <div class="hidden lg:flex flex-col items-start text-left min-w-0">

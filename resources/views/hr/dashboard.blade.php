@@ -1,39 +1,4 @@
 <x-hr-layout>
-    @php
-        $hour = (int) now()->format('G');
-        $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
-        $profilePictureUrl = $user->profile_picture_url ?? null;
-        $initial = $user->name ? mb_substr(trim($user->name), 0, 1) : 'H';
-        $memberSince = $user->employee?->joining_date?->format('Y-m-d') ?? $user->created_at?->format('Y-m-d');
-    @endphp
-
-    <!-- Welcome / Profile header (aligned with API: name, id, role, profile picture, email, phone) -->
-    <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="flex-1 min-w-0">
-            <p class="text-sm text-gray-500">{{ $greeting }}!</p>
-            <h1 class="text-lg sm:text-xl font-semibold text-gray-900 mt-0.5">{{ $user->name ?? 'HR User' }}</h1>
-            <p class="text-xs sm:text-sm text-gray-500 mt-0.5">HR Manager · ID: {{ $hrId ?? 'HR-' }}</p>
-            @if($user->email ?? null)
-                <p class="text-xs text-gray-600 mt-1">{{ $user->email }}</p>
-            @endif
-            @if($user->phone ?? $user->employee?->phone ?? null)
-                <p class="text-xs text-gray-600">{{ $user->phone ?? $user->employee?->phone }}</p>
-            @endif
-            @if($memberSince)
-                <p class="text-xs text-gray-500 mt-0.5">Member since {{ \Carbon\Carbon::parse($memberSince)->format('F j, Y') }}</p>
-            @endif
-        </div>
-        <div class="flex-shrink-0">
-            @if($profilePictureUrl)
-                <img src="{{ $profilePictureUrl }}" alt="{{ $user->name ?? 'HR' }}" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm" />
-            @else
-                <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xl sm:text-2xl font-semibold border-2 border-gray-200 shadow-sm">
-                    {{ mb_strtoupper($initial) }}
-                </div>
-            @endif
-        </div>
-    </div>
-
     <!-- Key metrics (aligned with API: total_staff, new_hires, leave_requests) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
         <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">

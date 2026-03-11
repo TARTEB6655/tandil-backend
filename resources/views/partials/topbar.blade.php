@@ -41,9 +41,14 @@
                         @click="open = !open"
                         class="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-100"
                     >
-                        <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
-                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-                        </div>
+                        @php $u = auth()->user(); $pic = $u->profile_picture_url ?? null; $initial = $u->name ? mb_substr(trim($u->name), 0, 1) : 'A'; @endphp
+                        @if($pic)
+                            <img src="{{ $pic }}" alt="{{ $u->name ?? 'User' }}" class="h-8 w-8 rounded-full object-cover border border-gray-200" />
+                        @else
+                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+                                {{ mb_strtoupper($initial) }}
+                            </div>
+                        @endif
                         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>

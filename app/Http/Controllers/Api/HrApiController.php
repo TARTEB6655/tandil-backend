@@ -74,7 +74,8 @@ class HrApiController extends Controller
      * GET /api/hr/dashboard/visit-assignments
      * Today and tomorrow: total visits, assigned, unassigned.
      * Counts from visits table where scheduled_date = today/tomorrow.
-     * Optional: ?timezone=Asia/Kolkata so "today" matches that timezone (default: app timezone).
+     * NOTE: Response shape is fixed to { today, tomorrow } only (no extra keys),
+     * to match the mobile app and Postman contract.
      */
     public function visitAssignments(Request $request): JsonResponse
     {
@@ -103,12 +104,6 @@ class HrApiController extends Controller
         $tomorrowAssigned = (clone $tomorrowQuery)->whereNotNull('technician_id')->count();
         $tomorrowUnassigned = $tomorrowTotal - $tomorrowAssigned;
 
-        // Overall counts (no date filter) – same logic as Area Manager dashboard so HR sees same visit numbers.
-        $allVisitsQuery = Visit::query();
-        $overallActive = (clone $allVisitsQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
-        $overallDone = Visit::whereIn('status', ['completed', 'approved'])->count();
-        $overallTotal = Visit::count();
-
         return response()->json([
             'success' => true,
             'data' => [
@@ -121,15 +116,6 @@ class HrApiController extends Controller
                     'total' => $tomorrowTotal,
                     'assigned' => $tomorrowAssigned,
                     'unassigned' => $tomorrowUnassigned,
-                ],
-                'overall' => [
-                    'total' => $overallTotal,
-                    'active' => $overallActive,
-                    'done' => $overallDone,
-                ],
-                'dates_used' => [
-                    'today' => $today->toDateString(),
-                    'tomorrow' => $tomorrow->toDateString(),
                 ],
             ],
         ]);

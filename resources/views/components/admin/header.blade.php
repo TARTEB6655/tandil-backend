@@ -4,6 +4,8 @@
     $unreadCount = $user->unreadNotifications()->count();
     // Recent notifications (read + unread): unread stand out with bold; clicking one marks it read and goes to target
     $recentNotifications = $user->notifications()->latest()->take(8)->get();
+    $headerProfilePic = $user->profile_picture_url ?? null;
+    $headerInitial = $user->name ? mb_substr(trim($user->name), 0, 1) : 'A';
 @endphp
 
 <header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b-2 border-gray-200 dark:border-gray-700 dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] shadow-md py-4">
@@ -239,10 +241,14 @@
                         class="flex items-center gap-2 sm:gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                         aria-label="User menu"
                     >
-                        <!-- Avatar - Fixed Size (Never Collapses) -->
-                        <div class="h-8 w-8 flex items-center justify-center rounded-full text-white text-sm font-semibold shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #3b82f6, #4f46e5);">
-                            {{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}
-                        </div>
+                        <!-- Avatar: profile picture if set, else initial -->
+                        @if($headerProfilePic)
+                            <img src="{{ $headerProfilePic }}" alt="{{ $user->name ?? 'User' }}" class="h-8 w-8 rounded-full object-cover shadow-sm flex-shrink-0 border border-gray-200 dark:border-gray-600" />
+                        @else
+                            <div class="h-8 w-8 flex items-center justify-center rounded-full text-white text-sm font-semibold shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #3b82f6, #4f46e5);">
+                                {{ mb_strtoupper($headerInitial) }}
+                            </div>
+                        @endif
 
                         <!-- User Info (hidden on mobile, visible on desktop) -->
                         <div class="hidden lg:flex flex-col items-start text-left min-w-0">

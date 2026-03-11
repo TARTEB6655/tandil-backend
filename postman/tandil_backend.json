@@ -6911,7 +6911,7 @@
         },
         {
             "name": "12. HR Manager Dashboard – All APIs",
-            "description": "HR Manager APIs. Auth: Bearer {{token}} (role hr or admin). Same folder structure as Area Manager: A. Dashboard, B. Employees, C. Leave Requests, D. Profile, E. Help & Support. Base: /api/hr/*.",
+            "description": "HR Manager APIs. Auth: Bearer {{token}} (role hr or admin). Same folder structure as Area Manager: A. Dashboard, B. Employees, C. Leave Requests, D. Profile, E. Help & Support. Base: /api/hr/*. **All create and update APIs use form-data (multipart/form-data) only – no raw JSON.**",
             "item": [
                 {
                     "name": "A. Dashboard",
@@ -6995,20 +6995,27 @@
                                 "method": "POST",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Ahmed Hassan\",\n  \"email\": \"ahmed@example.com\",\n  \"phone\": \"+971501234567\",\n  \"employee_id\": \"EMP-1001\",\n  \"region\": \"Dubai\",\n  \"designation\": \"Field Worker\",\n  \"joining_date\": \"2023-05-15\"\n}",
-                                    "options": { "raw": { "language": "json" } }
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "name", "value": "Ahmed Hassan", "description": "Required", "type": "text" },
+                                        { "key": "email", "value": "ahmed@example.com", "description": "Required", "type": "text" },
+                                        { "key": "employee_id", "value": "EMP-1001", "description": "Required, unique", "type": "text" },
+                                        { "key": "phone", "value": "+971501234567", "description": "Optional", "type": "text" },
+                                        { "key": "region", "value": "Dubai", "description": "Optional", "type": "text" },
+                                        { "key": "designation", "value": "Field Worker", "description": "Optional (e.g. Field Worker, Team Leader, Area Manager, HR Staff)", "type": "text" },
+                                        { "key": "joining_date", "value": "2023-05-15", "description": "Optional, Y-m-d", "type": "text" },
+                                        { "key": "profile_picture", "description": "Optional; image file (jpeg, png, jpg, gif, webp)", "type": "file", "src": [] }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/hr/employees",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "hr", "employees"]
                                 },
-                                "description": "Create employee. POST /api/hr/employees. Body: name, email, employee_id (required), phone, region, designation (position), joining_date. designation = position (e.g. Field Worker, Team Leader)."
+                                "description": "**Create Employee API** – POST /api/hr/employees. Use **form-data** (multipart/form-data), not raw JSON. Required: name, email, employee_id (unique). Optional: phone, region, designation (e.g. Field Worker, Team Leader, Area Manager, HR Staff), joining_date (Y-m-d), profile_picture (file). Do not set Content-Type header; Postman sets it automatically for form-data."
                             }
                         },
                         {
@@ -7033,20 +7040,27 @@
                                 "method": "PUT",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Ahmed Hassan\",\n  \"email\": \"ahmed@example.com\",\n  \"phone\": \"+971501234567\",\n  \"employee_id\": \"EMP-1001\",\n  \"region\": \"Dubai\",\n  \"designation\": \"Field Worker\",\n  \"joining_date\": \"2023-05-15\"\n}",
-                                    "options": { "raw": { "language": "json" } }
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "name", "value": "Ahmed Hassan", "description": "Optional", "type": "text" },
+                                        { "key": "email", "value": "ahmed@example.com", "description": "Optional", "type": "text" },
+                                        { "key": "employee_id", "value": "EMP-1001", "description": "Optional", "type": "text" },
+                                        { "key": "phone", "value": "+971501234567", "description": "Optional", "type": "text" },
+                                        { "key": "region", "value": "Dubai", "description": "Optional", "type": "text" },
+                                        { "key": "designation", "value": "Field Worker", "description": "Optional", "type": "text" },
+                                        { "key": "joining_date", "value": "2023-05-15", "description": "Optional, Y-m-d", "type": "text" },
+                                        { "key": "profile_picture", "description": "Optional; image file (jpeg, png, jpg, gif, webp)", "type": "file", "src": [] }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/hr/employees/{{employee_id}}",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "hr", "employees", "{{employee_id}}"]
                                 },
-                                "description": "Update employee. PUT /api/hr/employees/{id}. Body: name, email, employee_id, phone, region, designation, joining_date."
+                                "description": "**Update Employee API** – PUT /api/hr/employees/{id}. Use **form-data** only. Optional: name, email, employee_id, phone, region, designation, joining_date (Y-m-d), profile_picture (file). Send only fields to update. Do not set Content-Type; Postman sets multipart/form-data for form-data."
                             }
                         },
                         {
@@ -7076,20 +7090,24 @@
                                 "method": "POST",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"user_id\": 1,\n  \"leave_type\": \"Sick Leave\",\n  \"start_date\": \"2024-01-20\",\n  \"end_date\": \"2024-01-21\",\n  \"reason\": \"Medical checkup and recovery\"\n}",
-                                    "options": { "raw": { "language": "json" } }
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        { "key": "user_id", "value": "1", "description": "Required; employee user id", "type": "text" },
+                                        { "key": "leave_type", "value": "Sick Leave", "description": "Required (e.g. Sick Leave, Annual Leave)", "type": "text" },
+                                        { "key": "start_date", "value": "2024-01-20", "description": "Required, Y-m-d", "type": "text" },
+                                        { "key": "end_date", "value": "2024-01-21", "description": "Required, Y-m-d, >= start_date", "type": "text" },
+                                        { "key": "reason", "value": "Medical checkup and recovery", "description": "Optional", "type": "text" }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/hr/leave-requests",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "hr", "leave-requests"]
                                 },
-                                "description": "Create leave request (HR on behalf of employee). POST /api/hr/leave-requests. Body: user_id, leave_type, start_date, end_date, reason."
+                                "description": "**Create Leave Request API** – POST /api/hr/leave-requests. Use **form-data** only. Required: user_id, leave_type, start_date, end_date. Optional: reason. Do not set Content-Type; Postman sets multipart/form-data for form-data."
                             }
                         },
                         {
