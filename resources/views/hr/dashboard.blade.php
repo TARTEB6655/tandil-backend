@@ -2,14 +2,35 @@
     @php
         $hour = (int) now()->format('G');
         $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+        $profilePictureUrl = $user->profile_picture_url ?? null;
+        $initial = $user->name ? mb_substr(trim($user->name), 0, 1) : 'H';
+        $memberSince = $user->employee?->joining_date?->format('Y-m-d') ?? $user->created_at?->format('Y-m-d');
     @endphp
 
-    <!-- Welcome / Profile header (aligned with API) -->
-    <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
+    <!-- Welcome / Profile header (aligned with API: name, id, role, profile picture, email, phone) -->
+    <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex-1 min-w-0">
             <p class="text-sm text-gray-500">{{ $greeting }}!</p>
             <h1 class="text-lg sm:text-xl font-semibold text-gray-900 mt-0.5">{{ $user->name ?? 'HR User' }}</h1>
             <p class="text-xs sm:text-sm text-gray-500 mt-0.5">HR Manager · ID: {{ $hrId ?? 'HR-' }}</p>
+            @if($user->email ?? null)
+                <p class="text-xs text-gray-600 mt-1">{{ $user->email }}</p>
+            @endif
+            @if($user->phone ?? $user->employee?->phone ?? null)
+                <p class="text-xs text-gray-600">{{ $user->phone ?? $user->employee?->phone }}</p>
+            @endif
+            @if($memberSince)
+                <p class="text-xs text-gray-500 mt-0.5">Member since {{ \Carbon\Carbon::parse($memberSince)->format('F j, Y') }}</p>
+            @endif
+        </div>
+        <div class="flex-shrink-0">
+            @if($profilePictureUrl)
+                <img src="{{ $profilePictureUrl }}" alt="{{ $user->name ?? 'HR' }}" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm" />
+            @else
+                <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xl sm:text-2xl font-semibold border-2 border-gray-200 shadow-sm">
+                    {{ mb_strtoupper($initial) }}
+                </div>
+            @endif
         </div>
     </div>
 
@@ -165,20 +186,41 @@
         </div>
         <div class="divide-y divide-gray-200">
             @forelse($recentEmployees ?? [] as $employee)
+                @php
+                    $empUser = $employee->user;
+                    $empName = $employee->name ?? $empUser->name ?? 'N/A';
+                    $empPicUrl = $empUser->profile_picture_url ?? null;
+                    $empInitial = $empName !== 'N/A' ? mb_substr(trim($empName), 0, 1) : '?';
+                    $empLeave = $leaveStatusMap[$employee->user_id ?? 0] ?? ['status' => 'active', 'leave_days' => null, 'leave_remaining_days' => null];
+                @endphp
                 <div class="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        @if($empPicUrl)
+                            <img src="{{ $empPicUrl }}" alt="{{ $empName }}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                        @else
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                                {{ mb_strtoupper($empInitial) }}
+                            </div>
+                        @endif
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs sm:text-sm font-medium text-gray-900">
-                                {{ $employee->user ? $employee->user->name : 'N/A' }}
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                {{ $employee->employee_id }} · {{ $employee->designation ?? 'No designation' }}
-                            </p>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="text-xs sm:text-sm font-medium text-gray-900">{{ $empName }}</p>
+                                @if(($empLeave['status'] ?? 'active') === 'on_leave')
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">On Leave</span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-gray-500 mt-0.5">{{ $employee->employee_id }} · {{ $employee->designation ?? 'No designation' }}</p>
+                            @if($employee->joining_date)
+                                <p class="text-xs text-gray-500 mt-0.5">Joined: {{ \Carbon\Carbon::parse($employee->joining_date)->format('Y-m-d') }}</p>
+                            @endif
+                            @if(($empLeave['status'] ?? '') === 'on_leave' && !empty($empLeave['leave_days']))
+                                <p class="text-xs text-gray-600 mt-0.5">Leave: {{ $empLeave['leave_days'] }} days</p>
+                            @endif
                         </div>
-                        <div class="ml-4 flex-shrink-0">
-                            <span class="text-xs text-gray-500">
-                                {{ $employee->created_at->format('M d, Y') }}
-                            </span>
+                        <div class="flex-shrink-0 text-right">
+                            <span class="text-xs text-gray-500">{{ $employee->created_at->format('M d, Y') }}</span>
                         </div>
                     </div>
                 </div>

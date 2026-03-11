@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
+use App\Services\ImageCompressionService;
+use App\Services\ProfilePictureUploadService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
@@ -37,44 +41,66 @@ class EmployeeController extends Controller
 
             // Check if this is an API request
             if ($request->expectsJson() || $request->is('api/*')) {
-                $employees = $query->orderBy('created_at', 'desc')
-                    ->get()
-                    ->map(function ($employee) {
-                        return [
-                            'id' => $employee->id,
-                            'user_id' => $employee->user_id,
-                            'name' => $employee->name ?? $employee->user->name ?? null,
-                            'email' => $employee->email ?? $employee->user->email ?? null,
-                            'employee_id' => $employee->employee_id,
-                            'phone' => $employee->phone ?? $employee->user->phone ?? null,
-                            'designation' => $employee->designation,
-                            'region' => $employee->region,
-                            'joining_date' => $employee->joining_date,
-                            'created_at' => $employee->created_at,
-                            'updated_at' => $employee->updated_at,
-                            'user' => $employee->user ? [
-                                'id' => $employee->user->id,
-                                'name' => $employee->user->name,
-                                'email' => $employee->user->email,
-                                'phone' => $employee->user->phone,
-                                'role' => $employee->user->role,
-                            ] : null,
-                        ];
-                    });
-                
+                $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
+                $paginator = $query->orderBy('created_at', 'desc')->paginate($perPage);
+                $today = Carbon::today();
+                $employees = $paginator->getCollection()->map(function ($employee) use ($today) {
+                    $user = $employee->user;
+                    $name = $employee->name ?? $user?->name ?? null;
+                    $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
+                    $profilePictureUrl = $user ? ProfilePictureUploadService::fullUrl($user->profile_picture) : null;
+                    $leaveInfo = $this->employeeLeaveStatus($employee->user_id, $today);
+                    return [
+                        'id' => $employee->id,
+                        'user_id' => $employee->user_id,
+                        'name' => $name,
+                        'email' => $employee->email ?? $user?->email ?? null,
+                        'employee_id' => $employee->employee_id,
+                        'phone' => $employee->phone ?? $user?->phone ?? null,
+                        'designation' => $employee->designation,
+                        'region' => $employee->region,
+                        'joining_date' => $employee->joining_date,
+                        'created_at' => $employee->created_at,
+                        'updated_at' => $employee->updated_at,
+                        'profile_picture' => $user?->profile_picture ?? null,
+                        'profile_picture_url' => $profilePictureUrl,
+                        'initial' => mb_strtoupper($initial),
+                        'status' => $leaveInfo['status'],
+                        'leave_days' => $leaveInfo['leave_days'],
+                        'leave_remaining_days' => $leaveInfo['leave_remaining_days'],
+                        'leave_end_date' => $leaveInfo['leave_end_date'],
+                        'user' => $user ? [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'phone' => $user->phone,
+                            'role' => $user->role,
+                            'profile_picture' => $user->profile_picture ?? null,
+                            'profile_picture_url' => $profilePictureUrl,
+                            'initial' => mb_strtoupper($initial),
+                        ] : null,
+                    ];
+                })->values()->all();
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Employees retrieved successfully',
                     'data' => $employees,
-                    'total' => $employees->count()
+                    'total' => $paginator->total(),
+                    'meta' => [
+                        'current_page' => $paginator->currentPage(),
+                        'last_page' => $paginator->lastPage(),
+                        'per_page' => $paginator->perPage(),
+                    ],
                 ], 200);
             }
 
             // Web request - return view with pagination
             $employees = $query->orderBy('created_at', 'desc')->paginate(15);
             $search = $request->get('search', '');
+            $leaveStatusMap = $this->leaveStatusMapForUserIds($employees->pluck('user_id')->filter()->unique()->values()->all());
 
-            return view('hr.employees.index', compact('employees', 'search'));
+            return view('hr.employees.index', compact('employees', 'search', 'leaveStatusMap'));
         } catch (\Exception $e) {
             // For API requests, return JSON error
             if ($request->expectsJson() || $request->is('api/*')) {
@@ -96,11 +122,16 @@ class EmployeeController extends Controller
         return view('hr.employees.create');
     }
 
-    // Add a new employee
+    // Add a new employee (accepts JSON or form-data; form-data me profile_picture file bhi bhej sakte hain)
     public function store(Request $request)
     {
         try {
-            $data = $request->validate([
+            $profileFile = $request->file('profile_picture');
+            if (is_array($profileFile)) {
+                $profileFile = $profileFile[0] ?? null;
+            }
+
+            $rules = [
                 'user_id' => 'nullable|exists:users,id',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
@@ -109,32 +140,72 @@ class EmployeeController extends Controller
                 'designation' => 'nullable|string|max:255',
                 'region' => 'nullable|string|max:255',
                 'joining_date' => 'nullable|date',
-            ]);
+            ];
+            if ($profileFile) {
+                $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
+            }
+            $data = $request->validate($rules);
 
-            $employee = Employee::create($data);
+            $employee = Employee::create(\Illuminate\Support\Arr::except($data, ['profile_picture']));
+
+            // Agar linked user hai aur profile_picture file bheji hai to user ki photo update karo
+            $user = $employee->user;
+            if ($user) {
+                if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
+                    $stored = $profileFile->store('profiles', 'public');
+                    $user->profile_picture = $stored;
+                    ImageCompressionService::compressIfNeededFromPublicPath($stored);
+                    $user->save();
+                } elseif (str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+                    $stored = ProfilePictureUploadService::storeFromMultipartPut($request);
+                    if ($stored) {
+                        $user->profile_picture = $stored;
+                        ImageCompressionService::compressIfNeededFromPublicPath($stored);
+                        $user->save();
+                    }
+                }
+            }
+
             $employee->load('user');
 
             // Check if this is an API request
             if ($request->expectsJson() || $request->is('api/*')) {
+                $user = $employee->user;
+                $name = $employee->name ?? $user?->name ?? null;
+                $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
+                $profilePictureUrl = $user ? ProfilePictureUploadService::fullUrl($user->profile_picture) : null;
+                $leaveInfo = $this->employeeLeaveStatus($employee->user_id, Carbon::today());
                 return response()->json([
                     'success' => true,
                     'message' => 'Employee created successfully',
                     'data' => [
                         'id' => $employee->id,
                         'user_id' => $employee->user_id,
-                        'name' => $employee->name,
-                        'email' => $employee->email,
+                        'name' => $name,
+                        'email' => $employee->email ?? $user?->email ?? null,
                         'employee_id' => $employee->employee_id,
-                        'phone' => $employee->phone,
+                        'phone' => $employee->phone ?? $user?->phone ?? null,
                         'designation' => $employee->designation,
                         'region' => $employee->region,
                         'joining_date' => $employee->joining_date,
                         'created_at' => $employee->created_at,
                         'updated_at' => $employee->updated_at,
-                        'user' => $employee->user ? [
-                            'id' => $employee->user->id,
-                            'name' => $employee->user->name,
-                            'email' => $employee->user->email,
+                        'profile_picture' => $user?->profile_picture ?? null,
+                        'profile_picture_url' => $profilePictureUrl,
+                        'initial' => mb_strtoupper($initial),
+                        'status' => $leaveInfo['status'],
+                        'leave_days' => $leaveInfo['leave_days'],
+                        'leave_remaining_days' => $leaveInfo['leave_remaining_days'],
+                        'leave_end_date' => $leaveInfo['leave_end_date'],
+                        'user' => $user ? [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'phone' => $user->phone,
+                            'role' => $user->role,
+                            'profile_picture' => $user->profile_picture ?? null,
+                            'profile_picture_url' => $profilePictureUrl,
+                            'initial' => mb_strtoupper($initial),
                         ] : null,
                     ]
                 ], 201);
@@ -177,34 +248,50 @@ class EmployeeController extends Controller
 
             // Check if this is an API request
             if ($request->expectsJson() || $request->is('api/*')) {
+                $user = $employee->user;
+                $name = $employee->name ?? $user?->name ?? null;
+                $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
+                $profilePictureUrl = $user ? ProfilePictureUploadService::fullUrl($user->profile_picture) : null;
+                $leaveInfo = $this->employeeLeaveStatus($employee->user_id, Carbon::today());
                 return response()->json([
                     'success' => true,
                     'message' => 'Employee retrieved successfully',
                     'data' => [
                         'id' => $employee->id,
                         'user_id' => $employee->user_id,
-                        'name' => $employee->name ?? $employee->user->name ?? null,
-                        'email' => $employee->email ?? $employee->user->email ?? null,
+                        'name' => $name,
+                        'email' => $employee->email ?? $user?->email ?? null,
                         'employee_id' => $employee->employee_id,
-                        'phone' => $employee->phone ?? $employee->user->phone ?? null,
+                        'phone' => $employee->phone ?? $user?->phone ?? null,
                         'designation' => $employee->designation,
                         'region' => $employee->region,
                         'joining_date' => $employee->joining_date,
                         'created_at' => $employee->created_at,
                         'updated_at' => $employee->updated_at,
-                        'user' => $employee->user ? [
-                            'id' => $employee->user->id,
-                            'name' => $employee->user->name,
-                            'email' => $employee->user->email,
-                            'phone' => $employee->user->phone,
-                            'role' => $employee->user->role,
+                        'profile_picture' => $user?->profile_picture ?? null,
+                        'profile_picture_url' => $profilePictureUrl,
+                        'initial' => mb_strtoupper($initial),
+                        'status' => $leaveInfo['status'],
+                        'leave_days' => $leaveInfo['leave_days'],
+                        'leave_remaining_days' => $leaveInfo['leave_remaining_days'],
+                        'leave_end_date' => $leaveInfo['leave_end_date'],
+                        'user' => $user ? [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'phone' => $user->phone,
+                            'role' => $user->role,
+                            'profile_picture' => $user->profile_picture ?? null,
+                            'profile_picture_url' => $profilePictureUrl,
+                            'initial' => mb_strtoupper($initial),
                         ] : null,
                     ]
                 ], 200);
             }
 
-            // Web request - return view
-            return view('hr.employees.show', compact('employee'));
+            // Web request - return view with leave status
+            $leaveInfo = $this->employeeLeaveStatus($employee->user_id, Carbon::today());
+            return view('hr.employees.show', compact('employee', 'leaveInfo'));
         } catch (\Exception $e) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
@@ -225,13 +312,18 @@ class EmployeeController extends Controller
         return view('hr.employees.edit', compact('employee'));
     }
 
-    // Update an existing employee
+    // Update an existing employee (accepts form-data for profile_picture when HR updates employee's photo)
     public function update(Request $request, $id)
     {
         try {
-            $employee = Employee::findOrFail($id);
+            $employee = Employee::with('user')->findOrFail($id);
 
-            $data = $request->validate([
+            $profileFile = $request->file('profile_picture');
+            if (is_array($profileFile)) {
+                $profileFile = $profileFile[0] ?? null;
+            }
+
+            $rules = [
                 'user_id' => 'nullable|exists:users,id',
                 'name' => 'sometimes|required|string|max:255',
                 'email' => 'sometimes|required|email|max:255',
@@ -240,32 +332,82 @@ class EmployeeController extends Controller
                 'designation' => 'nullable|string|max:255',
                 'region' => 'nullable|string|max:255',
                 'joining_date' => 'nullable|date',
-            ]);
+            ];
+            if ($profileFile) {
+                $rules['profile_picture'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
+            }
+            $data = $request->validate($rules);
 
-            $employee->update($data);
+            $employee->update(\Illuminate\Support\Arr::except($data, ['profile_picture']));
+
+            // If employee has linked user, sync name/email/phone and optionally update profile picture (form-data)
+            $user = $employee->user;
+            if ($user) {
+                if ($request->has('name')) {
+                    $user->name = $request->input('name');
+                }
+                if ($request->has('email')) {
+                    $user->email = $request->input('email');
+                }
+                if ($request->has('phone')) {
+                    $user->phone = $request->input('phone') ?: null;
+                }
+
+                if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
+                    $stored = $profileFile->store('profiles', 'public');
+                    $user->profile_picture = $stored;
+                    ImageCompressionService::compressIfNeededFromPublicPath($stored);
+                } elseif ($request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+                    $stored = ProfilePictureUploadService::storeFromMultipartPut($request);
+                    if ($stored) {
+                        $user->profile_picture = $stored;
+                        ImageCompressionService::compressIfNeededFromPublicPath($stored);
+                    }
+                }
+
+                $user->save();
+            }
+
             $employee->load('user');
 
             // Check if this is an API request
             if ($request->expectsJson() || $request->is('api/*')) {
+                $user = $employee->user;
+                $name = $employee->name ?? $user?->name ?? null;
+                $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
+                $profilePictureUrl = $user ? ProfilePictureUploadService::fullUrl($user->profile_picture) : null;
+                $leaveInfo = $this->employeeLeaveStatus($employee->user_id, Carbon::today());
                 return response()->json([
                     'success' => true,
                     'message' => 'Employee updated successfully',
                     'data' => [
                         'id' => $employee->id,
                         'user_id' => $employee->user_id,
-                        'name' => $employee->name,
-                        'email' => $employee->email,
+                        'name' => $name,
+                        'email' => $employee->email ?? $user?->email ?? null,
                         'employee_id' => $employee->employee_id,
-                        'phone' => $employee->phone,
+                        'phone' => $employee->phone ?? $user?->phone ?? null,
                         'designation' => $employee->designation,
                         'region' => $employee->region,
                         'joining_date' => $employee->joining_date,
                         'created_at' => $employee->created_at,
                         'updated_at' => $employee->updated_at,
-                        'user' => $employee->user ? [
-                            'id' => $employee->user->id,
-                            'name' => $employee->user->name,
-                            'email' => $employee->user->email,
+                        'profile_picture' => $user?->profile_picture ?? null,
+                        'profile_picture_url' => $profilePictureUrl,
+                        'initial' => mb_strtoupper($initial),
+                        'status' => $leaveInfo['status'],
+                        'leave_days' => $leaveInfo['leave_days'],
+                        'leave_remaining_days' => $leaveInfo['leave_remaining_days'],
+                        'leave_end_date' => $leaveInfo['leave_end_date'],
+                        'user' => $user ? [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'phone' => $user->phone,
+                            'role' => $user->role,
+                            'profile_picture' => $user->profile_picture ?? null,
+                            'profile_picture_url' => $profilePictureUrl,
+                            'initial' => mb_strtoupper($initial),
                         ] : null,
                     ]
                 ], 200);
@@ -329,5 +471,75 @@ class EmployeeController extends Controller
             return redirect()->route('hr.employees.index')
                 ->with('error', 'Failed to delete employee. Please try again.');
         }
+    }
+
+    /**
+     * Get leave status for an employee (user_id): active or on_leave, with leave days when on leave.
+     */
+    private function employeeLeaveStatus(?int $userId, Carbon $today): array
+    {
+        $default = [
+            'status' => 'active',
+            'leave_days' => null,
+            'leave_remaining_days' => null,
+            'leave_end_date' => null,
+        ];
+        if (! $userId) {
+            return $default;
+        }
+
+        $leave = LeaveRequest::where('user_id', $userId)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->orderByDesc('end_date')
+            ->first();
+
+        if (! $leave) {
+            return $default;
+        }
+
+        $totalDays = $leave->start_date->diffInDays($leave->end_date) + 1;
+        $remainingDays = $today->diffInDays($leave->end_date, false) + 1;
+
+        return [
+            'status' => 'on_leave',
+            'leave_days' => $totalDays,
+            'leave_remaining_days' => max(0, $remainingDays),
+            'leave_end_date' => $leave->end_date->format('Y-m-d'),
+        ];
+    }
+
+    /**
+     * Build a map of user_id => leave status for web views (avoid N+1).
+     */
+    private function leaveStatusMapForUserIds(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+        $today = Carbon::today();
+        $leaves = LeaveRequest::whereIn('user_id', $userIds)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->orderByDesc('end_date')
+            ->get();
+
+        $map = [];
+        foreach ($userIds as $uid) {
+            $map[$uid] = ['status' => 'active', 'leave_days' => null, 'leave_remaining_days' => null, 'leave_end_date' => null];
+        }
+        foreach ($leaves as $leave) {
+            $totalDays = $leave->start_date->diffInDays($leave->end_date) + 1;
+            $remainingDays = $today->diffInDays($leave->end_date, false) + 1;
+            $map[$leave->user_id] = [
+                'status' => 'on_leave',
+                'leave_days' => $totalDays,
+                'leave_remaining_days' => max(0, $remainingDays),
+                'leave_end_date' => $leave->end_date->format('Y-m-d'),
+            ];
+        }
+        return $map;
     }
 }

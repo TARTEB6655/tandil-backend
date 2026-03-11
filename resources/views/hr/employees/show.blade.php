@@ -38,6 +38,17 @@
                 <h2 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Employee Information</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
+                        <p class="text-xs text-gray-500 mb-1">Status</p>
+                        @if(($leaveInfo['status'] ?? 'active') === 'on_leave')
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">On Leave</span>
+                            @if(!empty($leaveInfo['leave_days']))
+                                <p class="text-xs text-gray-600 mt-1">Leave: {{ $leaveInfo['leave_days'] }} days @if(!empty($leaveInfo['leave_end_date'])) (until {{ \Carbon\Carbon::parse($leaveInfo['leave_end_date'])->format('M d, Y') }}) @endif</p>
+                            @endif
+                        @else
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+                        @endif
+                    </div>
+                    <div>
                         <p class="text-xs text-gray-500 mb-1">Employee ID</p>
                         <p class="text-xs sm:text-sm font-medium text-gray-900">{{ $employee->employee_id }}</p>
                     </div>

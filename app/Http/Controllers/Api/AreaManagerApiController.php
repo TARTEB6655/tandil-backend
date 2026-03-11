@@ -19,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 
 class AreaManagerApiController extends Controller
@@ -849,8 +850,8 @@ class AreaManagerApiController extends Controller
             'created_at' => $report->created_at?->toIso8601String(),
         ];
         if ($report->status === 'generated' && $report->file_path) {
-            $data['download_url'] = url('/api/area-manager/generated-reports/' . $report->id . '/download');
-            $data['view_url'] = url('/api/area-manager/generated-reports/' . $report->id . '/view');
+            $data['download_url'] = URL::temporarySignedRoute('api.area-manager.generated-reports.download.public', now()->addDays(7), ['id' => $report->id]);
+            $data['view_url'] = URL::temporarySignedRoute('api.area-manager.generated-reports.view.public', now()->addDays(7), ['id' => $report->id]);
         } elseif ($report->status === 'failed' && $report->failure_reason) {
             $data['failure_reason'] = $report->failure_reason;
         }
@@ -883,10 +884,10 @@ class AreaManagerApiController extends Controller
                 $reportType = $this->reportTypeDisplayName($r->type, $r->title);
                 $fileSizeFormatted = $r->file_size !== null ? $this->formatFileSize((int) $r->file_size) : null;
                 $downloadUrl = $r->status === 'generated' && $r->file_path
-                    ? url('/api/area-manager/generated-reports/' . $r->id . '/download')
+                    ? URL::temporarySignedRoute('api.area-manager.generated-reports.download.public', now()->addDays(7), ['id' => $r->id])
                     : null;
                 $viewUrl = $r->status === 'generated' && $r->file_path
-                    ? url('/api/area-manager/generated-reports/' . $r->id . '/view')
+                    ? URL::temporarySignedRoute('api.area-manager.generated-reports.view.public', now()->addDays(7), ['id' => $r->id])
                     : null;
 
                 return [
@@ -965,10 +966,17 @@ class AreaManagerApiController extends Controller
     /**
      * GET /api/area-manager/generated-reports/{id}/download
      * Download generated report file (only own reports, only when status = generated).
+     * In Postman: use Send and Download (not Send) so the file is saved; do not set Accept: application/json for this request.
      */
     public function generatedReportDownload(Request $request, int $id)
     {
-        $report = AdminReport::where('created_by', $request->user()->id)->findOrFail($id);
+        $report = AdminReport::where('created_by', $request->user()->id)->find($id);
+        if (! $report) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Report not found or you do not have access to it.',
+            ], 404);
+        }
         if ($report->status !== 'generated' || ! $report->file_path) {
             return response()->json([
                 'success' => false,
@@ -978,11 +986,11 @@ class AreaManagerApiController extends Controller
         if (! Storage::disk('local')->exists($report->file_path)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Report file not found.',
+                'message' => 'Report file not found on server.',
             ], 404);
         }
 
-        $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: $report->format;
+        $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: ($report->format ?? 'pdf');
         $mime = match (strtolower($ext)) {
             'csv' => 'text/csv',
             'txt' => 'text/plain',
@@ -990,12 +998,14 @@ class AreaManagerApiController extends Controller
             default => 'application/pdf',
         };
         $filename = 'area-manager-report-' . $report->id . '.' . $ext;
+        $fullPath = Storage::disk('local')->path($report->file_path);
 
-        return Storage::disk('local')->download(
-            $report->file_path,
-            $filename,
-            ['Content-Type' => $mime, 'Content-Disposition' => 'attachment; filename="' . $filename . '"']
-        );
+        return response()->file($fullPath, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'private, no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+        ]);
     }
 
     /**

@@ -22,10 +22,21 @@
         </div>
     @endif
 
-    <!-- Form -->
+    <!-- Form (form-data: sab fields + optional profile_picture file) -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
-        <form action="{{ route('hr.employees.store') }}" method="POST" class="space-y-4 sm:space-y-6">
+        <form action="{{ route('hr.employees.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4 sm:space-y-6">
             @csrf
+
+            <!-- Profile Picture (optional; agar user link kiya hai to uski photo set hogi) -->
+            <div>
+                <label for="profile_picture" class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Profile Picture (Optional)</label>
+                <input type="file"
+                       name="profile_picture"
+                       id="profile_picture"
+                       accept="image/jpeg,image/png,image/gif,image/webp"
+                       class="w-full text-xs sm:text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <p class="mt-1 text-xs text-gray-500">Agar aap ne niche existing user select kiya hai to uski photo set ho jayegi.</p>
+            </div>
 
             <!-- User Selection -->
             <div>

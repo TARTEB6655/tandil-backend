@@ -282,6 +282,21 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
 
 /*
 |--------------------------------------------------------------------------
+| AREA MANAGER – Report download/view (works with ID + Bearer OR signed URL)
+| GET .../generated-reports/{id}/download and .../view
+| - With Bearer token (area_manager): allow if report created_by = user.
+| - With valid signed URL (signature + expires): allow without auth.
+|--------------------------------------------------------------------------
+*/
+Route::get('/area-manager/generated-reports/{id}/download', [\App\Http\Controllers\Api\GeneratedReportPublicController::class, 'download'])
+    ->name('api.area-manager.generated-reports.download.public')
+    ->middleware('optional.sanctum');
+Route::get('/area-manager/generated-reports/{id}/view', [\App\Http\Controllers\Api\GeneratedReportPublicController::class, 'view'])
+    ->name('api.area-manager.generated-reports.view.public')
+    ->middleware('optional.sanctum');
+
+/*
+|--------------------------------------------------------------------------
 | AREA MANAGER ROUTES (dashboard, alerts, teams, reports)
 |--------------------------------------------------------------------------
 */
@@ -307,8 +322,6 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')
     Route::get('/reports', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportsIndex']);
     Route::post('/reports/generate', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'reportGenerate']);
     Route::get('/generated-reports', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'generatedReportsIndex']);
-    Route::get('/generated-reports/{id}/download', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'generatedReportDownload']);
-    Route::get('/generated-reports/{id}/view', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'generatedReportView']);
     /* Help & Support (talk to admin – same as /api/support/*) */
     Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);
     Route::get('/support/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
@@ -420,6 +433,7 @@ Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('hr')->group(functi
     Route::post('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'store']);
     Route::get('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'show']);
     Route::put('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update']);
+    Route::post('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'update']);
     Route::delete('/employees/{id}', [\App\Http\Controllers\HR\EmployeeController::class, 'destroy']);
     /* Help & Support (talk to admin – same as /api/support/*, under hr prefix for dashboard) */
     Route::get('/support/help-center', [\App\Http\Controllers\Api\SupportController::class, 'helpCenter']);

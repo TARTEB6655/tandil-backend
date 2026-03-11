@@ -96,6 +96,9 @@ class HrDashboardController extends Controller
 
             $hrId = $user->employee?->employee_id ?? ('HR-' . $user->id);
 
+            $recentUserIds = $recentEmployees->pluck('user_id')->filter()->unique()->values()->all();
+            $leaveStatusMap = $this->dashboardLeaveStatusMap($recentUserIds);
+
             return view('hr.dashboard', compact(
                 'user',
                 'hrId',
@@ -110,6 +113,7 @@ class HrDashboardController extends Controller
                 'employeesByDesignation',
                 'employeesByRegion',
                 'recentEmployees',
+                'leaveStatusMap',
                 'search'
             ));
         } catch (\Exception $e) {
@@ -133,8 +137,38 @@ class HrDashboardController extends Controller
                 'employeesByDesignation' => [],
                 'employeesByRegion' => [],
                 'recentEmployees' => collect(),
+                'leaveStatusMap' => [],
                 'search' => $request->get('search', ''),
             ]);
         }
+    }
+
+    private function dashboardLeaveStatusMap(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+        $today = Carbon::today();
+        $leaves = LeaveRequest::whereIn('user_id', $userIds)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->orderByDesc('end_date')
+            ->get();
+
+        $map = [];
+        foreach ($userIds as $uid) {
+            $map[$uid] = ['status' => 'active', 'leave_days' => null, 'leave_remaining_days' => null];
+        }
+        foreach ($leaves as $leave) {
+            $totalDays = $leave->start_date->diffInDays($leave->end_date) + 1;
+            $remainingDays = $today->diffInDays($leave->end_date, false) + 1;
+            $map[$leave->user_id] = [
+                'status' => 'on_leave',
+                'leave_days' => $totalDays,
+                'leave_remaining_days' => max(0, $remainingDays),
+            ];
+        }
+        return $map;
     }
 }

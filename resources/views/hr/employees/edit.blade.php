@@ -24,9 +24,27 @@
 
     <!-- Form -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
-        <form action="{{ route('hr.employees.update', $employee->id) }}" method="POST" class="space-y-4 sm:space-y-6">
+        <form action="{{ route('hr.employees.update', $employee->id) }}" method="POST" enctype="multipart/form-data" class="space-y-4 sm:space-y-6">
             @csrf
             @method('PUT')
+
+            @if($employee->user)
+            <!-- Profile Picture (form-data: file upload) -->
+            <div>
+                <label for="profile_picture" class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
+                @if($employee->user->profile_picture_url ?? null)
+                    <div class="mb-2">
+                        <img src="{{ $employee->user->profile_picture_url }}" alt="Current" class="w-16 h-16 rounded-full object-cover border border-gray-200">
+                    </div>
+                @endif
+                <input type="file"
+                       name="profile_picture"
+                       id="profile_picture"
+                       accept="image/jpeg,image/png,image/gif,image/webp"
+                       class="w-full text-xs sm:text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <p class="mt-1 text-xs text-gray-500">Optional. JPG, PNG, GIF or WebP. Leave empty to keep current.</p>
+            </div>
+            @endif
 
             <!-- Employee ID -->
             <div>

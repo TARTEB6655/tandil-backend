@@ -58,28 +58,56 @@
             <table class="w-full divide-y divide-gray-200 min-w-[640px]">
                 <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">Photo</th>
                         <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
                         <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Email</th>
                         <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Designation</th>
+                        <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Role</th>
                         <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($employees as $employee)
+                        @php
+                            $eu = $employee->user;
+                            $ename = $employee->name ?? $eu->name ?? 'N/A';
+                            $epicUrl = $eu->profile_picture_url ?? null;
+                            $einitial = $ename !== 'N/A' ? mb_substr(trim($ename), 0, 1) : '?';
+                            $eLeave = $leaveStatusMap[$employee->user_id ?? 0] ?? ['status' => 'active', 'leave_days' => null];
+                        @endphp
                         <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                @if($epicUrl)
+                                    <img src="{{ $epicUrl }}" alt="{{ $ename }}" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-gray-200" />
+                                @else
+                                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-semibold">
+                                        {{ mb_strtoupper($einitial) }}
+                                    </div>
+                                @endif
+                            </td>
                             <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
                                 {{ $employee->employee_id }}
                             </td>
                             <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                                {{ $employee->user ? $employee->user->name : 'N/A' }}
+                                {{ $ename }}
                             </td>
                             <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden sm:table-cell">
                                 {{ $employee->user ? $employee->user->email : 'N/A' }}
                             </td>
                             <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden md:table-cell">
                                 {{ $employee->designation ?? 'N/A' }}
+                            </td>
+                            <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                @if(($eLeave['status'] ?? 'active') === 'on_leave')
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">On Leave</span>
+                                    @if(!empty($eLeave['leave_days']))
+                                        <span class="text-xs text-gray-500 block mt-0.5">{{ $eLeave['leave_days'] }} days</span>
+                                    @endif
+                                @else
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+                                @endif
                             </td>
                             <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden lg:table-cell">
                                 @if($employee->user)
@@ -106,7 +134,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500">No employees found</td>
+                            <td colspan="8" class="px-3 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500">No employees found</td>
                         </tr>
                     @endforelse
                 </tbody>

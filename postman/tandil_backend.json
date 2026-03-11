@@ -6701,7 +6701,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "area-manager", "generated-reports", "{{generated_report_id}}", "download"]
                         },
-                        "description": "Download report file (attachment). GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from list. Returns PDF/file. Use when download_url is present."
+                        "description": "Download report file (attachment). GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from Generated Reports list (id of a report with status generated). Auth: same Bearer {{token}} as area_manager who created the report. In Postman: use **Send and Download** (not Send) to save the file; remove Accept: application/json for this request if your collection sends it, so the response is treated as a file."
                     }
                 },
                 {
