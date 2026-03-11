@@ -61,7 +61,7 @@
                     <!-- 2. Media (after title & description, like Shopify) -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-                            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Media</h2>
+                            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.media') }}</h2>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">First image is the main product image. Drag to reorder, or click a thumbnail to set as main.</p>
                         </div>
                         <div class="p-5">
@@ -93,7 +93,7 @@
                                         </div>
                                         <button type="button" id="addMoreBtn" class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors gap-0.5 bg-transparent" title="Add more photos">
                                             <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                                            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">Add</span>
+                                            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">{{ __('admin.add') }}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -103,7 +103,7 @@
 
                     <!-- Pricing -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <h2 class="text-lg font-medium text-gray-900 mb-4">Pricing</h2>
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">{{ __('admin.pricing') }}</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
@@ -170,7 +170,7 @@
 
                     <!-- Inventory -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <h2 class="text-lg font-medium text-gray-900 mb-4">Inventory</h2>
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">{{ __('admin.inventory') }}</h2>
                         <div class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -242,7 +242,7 @@
 
                     <!-- Shipping -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <h2 class="text-lg font-medium text-gray-900 mb-4">Shipping</h2>
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">{{ __('admin.shipping') }}</h2>
                         <div class="space-y-4">
                             <div class="flex items-center">
                                 <input type="checkbox" 
@@ -302,7 +302,7 @@
                                        name="meta_title" 
                                        value="{{ old('meta_title') }}"
                                        maxlength="60"
-                                       placeholder="Product title"
+                                       placeholder="{{ __('admin.product_title') }}"
                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                        oninput="updatePreview('title', this.value)">
                                 <p class="text-xs text-gray-500 mt-1"><span id="titleCount">0</span>/60 characters</p>
@@ -352,15 +352,15 @@
                         <select id="status" 
                                 name="status"
                                 class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="draft" {{ old('status', 'draft') == 'draft' ? 'selected' : '' }}>Draft</option>
-                            <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="archived" {{ old('status') == 'archived' ? 'selected' : '' }}>Archived</option>
+                            <option value="draft" {{ old('status', 'draft') == 'draft' ? 'selected' : '' }}>{{ __('admin.draft') }}</option>
+                            <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>{{ __('admin.active') }}</option>
+                            <option value="archived" {{ old('status') == 'archived' ? 'selected' : '' }}>{{ __('admin.archived') }}</option>
                         </select>
                     </div>
 
                     <!-- Product Organization -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <h2 class="text-lg font-medium text-gray-900 mb-4">Product organization</h2>
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">{{ __('admin.product_organization') }}</h2>
                         <div class="space-y-4">
                             <div>
                                 <label for="category_id" class="block text-sm font-medium text-gray-700 mb-2">
@@ -369,7 +369,7 @@
                                 <select id="category_id" 
                                         name="category_id"
                                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">No category</option>
+                                    <option value="">{{ __('admin.no_category') }}</option>
                                     @foreach($categories as $category)
                                         <option value="{{ $category->id }}" {{ old('category_id', request('category_id')) == $category->id ? 'selected' : '' }}>
                                             {{ $category->name }}
@@ -430,7 +430,7 @@
 
                     <!-- Tax -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                        <h2 class="text-lg font-medium text-gray-900 mb-4">Tax</h2>
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">{{ __('admin.tax') }}</h2>
                         <div class="flex items-center">
                             <input type="checkbox" 
                                    id="taxable" 
@@ -471,6 +471,7 @@
             var imagePreviewSection = document.getElementById('imagePreviewSection');
             var imagePreviewGrid = document.getElementById('imagePreviewGrid');
             var primaryPreviewImg = document.getElementById('primaryPreviewImg');
+            var mainLabel = @json(__('admin.main'));
 
             function addFiles(files) {
                 var list = Array.from(files || []).filter(function(f) { return f.type && f.type.indexOf('image/') === 0; });
@@ -510,7 +511,7 @@
                         return '<div class="media-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-move ' + (isPrimary ? 'border-indigo-500 ring-2 ring-indigo-500/40' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500') + '" data-index="' + index + '" draggable="true" title="Drag to reorder, click to set as main">' +
                             '<img src="' + img.preview + '" alt="" class="w-full h-full object-cover pointer-events-none">' +
                             '<span class="absolute top-0.5 left-0.5 w-5 h-5 flex items-center justify-center bg-black/50 rounded cursor-move text-white text-[10px] font-bold leading-none" title="Drag to reorder">⋮⋮</span>' +
-                            (isPrimary ? '<span class="absolute bottom-0 left-0 right-0 bg-indigo-600 text-white text-[10px] font-medium text-center py-0.5">Main</span>' : '') +
+                            (isPrimary ? '<span class="absolute bottom-0 left-0 right-0 bg-indigo-600 text-white text-[10px] font-medium text-center py-0.5">' + mainLabel + '</span>' : '') +
                             '<button type="button" class="media-remove absolute top-0.5 right-0.5 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity" data-index="' + index + '" title="Remove"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>' +
                             '</div>';
                     }).join('');

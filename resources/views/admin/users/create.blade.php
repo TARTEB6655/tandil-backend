@@ -96,7 +96,7 @@
 
                 <!-- Security Section -->
                 <div class="space-y-5 pt-5 border-t border-gray-200">
-                    <h3 class="text-base font-medium text-gray-900 border-b border-gray-200 pb-2">Security</h3>
+                    <h3 class="text-base font-medium text-gray-900 border-b border-gray-200 pb-2">{{ __('admin.security') }}</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <!-- Password -->
@@ -177,7 +177,7 @@
                                                     </p>
                                                 @else
                                                     <p class="text-xs text-gray-400 italic mt-1">
-                                                        No description available
+                                                        {{ __('admin.no_description') }}
                                                     </p>
                                                 @endif
                                             </div>

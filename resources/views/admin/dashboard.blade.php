@@ -1536,7 +1536,7 @@
                 <input type="hidden" name="redirect_to" value="dashboard">
                 
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">User</p>
+                    <p class="text-sm text-gray-600 mb-1">{{ __('admin.user') }}</p>
                     <p class="text-sm font-medium text-gray-900" id="modalUserName"></p>
                     <p class="text-xs text-gray-500" id="modalUserEmail"></p>
                 </div>

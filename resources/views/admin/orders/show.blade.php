@@ -7,7 +7,7 @@
                 <p class="text-sm text-gray-500 mt-1">Order #{{ $order->id }}</p>
             </div>
             <a href="{{ route('admin.orders.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                ← Back to Orders
+                ← {{ __('admin.back_to_orders') }}
             </a>
         </div>
 
@@ -23,16 +23,16 @@
                 <!-- Order Items -->
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                        <h3 class="text-base font-medium text-gray-900">Order Items</h3>
+                        <h3 class="text-base font-medium text-gray-900">{{ __('admin.order_items') }}</h3>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.product') }}</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.price') }}</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.quantity') }}</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.subtotal') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -69,7 +69,7 @@
                             </tbody>
                             <tfoot class="bg-gray-50">
                                 <tr>
-                                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">Total:</td>
+                                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">{{ __('admin.total') }}:</td>
                                     <td class="px-6 py-4 text-sm font-semibold text-gray-900">AED {{ number_format($order->total_amount, 2) }}</td>
                                 </tr>
                             </tfoot>
@@ -82,18 +82,18 @@
             <div class="space-y-6">
                 <!-- Order Status -->
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                    <h3 class="text-base font-medium text-gray-900 mb-4">Order Status</h3>
+                    <h3 class="text-base font-medium text-gray-900 mb-4">{{ __('admin.order_status') }}</h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Order Status</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.order_status') }}</label>
                             <form method="POST" action="{{ route('admin.orders.update-status', $order->id) }}" class="mb-3">
                                 @csrf
                                 <select name="order_status" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="pending" {{ $order->order_status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                    <option value="processing" {{ $order->order_status === 'processing' ? 'selected' : '' }}>Processing</option>
-                                    <option value="shipped" {{ $order->order_status === 'shipped' ? 'selected' : '' }}>Shipped</option>
-                                    <option value="delivered" {{ $order->order_status === 'delivered' ? 'selected' : '' }}>Delivered</option>
-                                    <option value="cancelled" {{ $order->order_status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                    <option value="pending" {{ $order->order_status === 'pending' ? 'selected' : '' }}>{{ __('admin.pending') }}</option>
+                                    <option value="processing" {{ $order->order_status === 'processing' ? 'selected' : '' }}>{{ __('admin.processing') }}</option>
+                                    <option value="shipped" {{ $order->order_status === 'shipped' ? 'selected' : '' }}>{{ __('admin.shipped') }}</option>
+                                    <option value="delivered" {{ $order->order_status === 'delivered' ? 'selected' : '' }}>{{ __('admin.delivered') }}</option>
+                                    <option value="cancelled" {{ $order->order_status === 'cancelled' ? 'selected' : '' }}>{{ __('admin.cancelled') }}</option>
                                 </select>
                             </form>
                             <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full 
@@ -101,16 +101,16 @@
                                    ($order->order_status === 'processing' ? 'bg-blue-100 text-blue-800' : 
                                    ($order->order_status === 'shipped' ? 'bg-purple-100 text-purple-800' : 
                                    ($order->order_status === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'))) }}">
-                                {{ ucfirst($order->order_status) }}
+                                {{ __('admin.' . $order->order_status) }}
                             </span>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.payment_status') }}</label>
                             @if($order->payment_status !== 'paid' && $order->payment_status !== 'refunded')
                                 <form method="POST" action="{{ route('admin.orders.mark-paid', $order->id) }}" class="mb-3">
                                     @csrf
                                     <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                        Mark as Paid
+                                        {{ __('admin.mark_as_paid') }}
                                     </button>
                                 </form>
                             @endif
@@ -118,18 +118,18 @@
                                 {{ $order->payment_status === 'paid' ? 'bg-green-100 text-green-800' : 
                                    ($order->payment_status === 'failed' ? 'bg-red-100 text-red-800' : 
                                    ($order->payment_status === 'refunded' ? 'bg-gray-100 text-gray-800' : 'bg-yellow-100 text-yellow-800')) }}">
-                                {{ ucfirst($order->payment_status) }}
+                                {{ $order->payment_status === 'refunded' ? __('admin.refunded') : __('admin.' . $order->payment_status) }}
                             </span>
                         </div>
                         
-                        <!-- Cancel Order -->
+                        <!-- {{ __('admin.cancel_order') }} -->
                         @if(!in_array($order->order_status, ['cancelled', 'delivered']))
                             <div class="pt-4 border-t border-gray-200">
                                 <form method="POST" action="{{ route('admin.orders.cancel', $order->id) }}" 
                                       onsubmit="return confirm('Are you sure you want to cancel this order?');">
                                     @csrf
                                     <button type="submit" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                                        Cancel Order
+                                        {{ __('admin.cancel_order') }}
                                     </button>
                                 </form>
                             </div>
@@ -141,7 +141,7 @@
                                 <button type="button" 
                                         onclick="document.getElementById('refundModal').classList.remove('hidden')"
                                         class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-                                    Process Refund
+                                    {{ __('admin.process_refund') }}
                                 </button>
                             </div>
                         @endif
@@ -150,18 +150,18 @@
 
                 <!-- Customer Information -->
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                    <h3 class="text-base font-medium text-gray-900 mb-4">Customer Information</h3>
+                    <h3 class="text-base font-medium text-gray-900 mb-4">{{ __('admin.customer_information') }}</h3>
                     <div class="space-y-3">
                         <div>
                             <p class="text-xs text-gray-500">Name</p>
                             <p class="text-sm font-medium text-gray-900">{{ $order->user->name ?? 'N/A' }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">Email</p>
+                            <p class="text-xs text-gray-500">{{ __('admin.email') }}</p>
                             <p class="text-sm font-medium text-gray-900">{{ $order->user->email ?? 'N/A' }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">Phone</p>
+                            <p class="text-xs text-gray-500">{{ __('admin.phone') }}</p>
                             <p class="text-sm font-medium text-gray-900">{{ $order->user->phone ?? 'N/A' }}</p>
                         </div>
                     </div>
@@ -227,7 +227,7 @@
         <!-- Refund Modal -->
         <div id="refundModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-lg p-6 max-w-md w-full">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Process Refund</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('admin.process_refund') }}</h3>
                 <form method="POST" action="{{ route('admin.orders.refund', $order->id) }}">
                     @csrf
                     <div class="space-y-4">
@@ -250,12 +250,12 @@
                     </div>
                     <div class="flex items-center gap-3 mt-6">
                         <button type="submit" class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-                            Process Refund
+                            {{ __('admin.process_refund') }}
                         </button>
                         <button type="button" 
                                 onclick="document.getElementById('refundModal').classList.add('hidden')"
                                 class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                            Cancel
+                            {{ __('admin.cancel') }}
                         </button>
                     </div>
                 </form>

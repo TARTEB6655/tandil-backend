@@ -74,7 +74,7 @@
                         <!-- Permissions Section -->
                         <div class="pt-6 border-t border-gray-200">
                 <div class="mb-4">
-                                <h3 class="text-base font-semibold text-gray-900 mb-1">Permissions</h3>
+                                <h3 class="text-base font-semibold text-gray-900 mb-1">{{ __('admin.permissions') }}</h3>
                                 <p class="text-sm text-gray-500">Select the permissions this role should have</p>
                             </div>
 
@@ -179,7 +179,7 @@
                                         @if($role->description)
                                             <p class="text-xs text-gray-600 mt-2 line-clamp-2">{{ $role->description }}</p>
                                         @else
-                                            <p class="text-xs text-gray-400 italic mt-2">No description</p>
+                                            <p class="text-xs text-gray-400 italic mt-2">{{ __('admin.no_description') }}</p>
                                         @endif
                                         
                                         <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">

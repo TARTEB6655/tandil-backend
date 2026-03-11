@@ -9,9 +9,9 @@
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by client..." class="flex-1 rounded-md border-gray-300">
                 <select name="status" class="rounded-md border-gray-300">
                     <option value="">{{ __('admin.all_statuses') }}</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
-                    <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>{{ __('admin.pending') }}</option>
+                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>{{ __('admin.approved') }}</option>
+                    <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>{{ __('admin.rejected') }}</option>
                 </select>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">{{ __('admin.apply_filters') }}</button>
                 <a href="{{ route('admin.reports.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">{{ __('admin.clear') }}</a>
@@ -43,19 +43,19 @@
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     {{ $report->status == 'approved' ? 'bg-green-100 text-green-800' : 
                                        ($report->status == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
-                                    {{ ucfirst($report->status ?? 'pending') }}
+                                    {{ $report->status === 'approved' ? __('admin.approved') : ($report->status === 'rejected' ? __('admin.rejected') : __('admin.pending')) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $report->created_at->format('M d, Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('admin.reports.show', $report) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                <a href="{{ route('admin.reports.show', $report) }}" class="text-indigo-600 hover:text-indigo-900">{{ __('admin.view') }}</a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No reports found</td>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">{{ __('admin.no_reports_found') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

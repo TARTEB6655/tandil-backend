@@ -9,7 +9,7 @@
                 @csrf
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">User</label>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('admin.user') }}</label>
                     <select name="user_id" required class="mt-1 block w-full rounded-md border-gray-300">
                         <option value="">Select User</option>
                         @foreach($users as $user)
@@ -26,7 +26,7 @@
 
                 <div class="flex gap-4">
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">{{ __('admin.create_employee') }}</button>
-                    <a href="{{ route('admin.hr.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</a>
+                    <a href="{{ route('admin.hr.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">{{ __('admin.cancel') }}</a>
                 </div>
             </form>
         </div>

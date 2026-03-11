@@ -87,7 +87,7 @@
                                                 </span>
                                             @endif
                                         @else
-                                            <span class="text-xs text-gray-400 italic">No permissions</span>
+                                            <span class="text-xs text-gray-400 italic">{{ __('admin.no_permissions') }}</span>
                                         @endif
                                     </div>
                                 </td>

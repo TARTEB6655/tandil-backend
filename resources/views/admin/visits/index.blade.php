@@ -8,13 +8,13 @@
             <form method="GET" action="{{ route('admin.visits.index') }}" class="flex gap-4">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('admin.search_by_client') }}" class="flex-1 rounded-md border-gray-300">
                 <select name="status" class="rounded-md border-gray-300">
-                    <option value="">All Statuses</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="accepted" {{ request('status') == 'accepted' ? 'selected' : '' }}>Accepted</option>
-                    <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                    <option value="reviewed" {{ request('status') == 'reviewed' ? 'selected' : '' }}>Reviewed</option>
+                    <option value="">{{ __('admin.all_statuses') }}</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>{{ __('admin.pending') }}</option>
+                    <option value="accepted" {{ request('status') == 'accepted' ? 'selected' : '' }}>{{ __('admin.accepted') }}</option>
+                    <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>{{ __('admin.in_progress') }}</option>
+                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>{{ __('admin.completed') }}</option>
+                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>{{ __('admin.cancelled') }}</option>
+                    <option value="reviewed" {{ request('status') == 'reviewed' ? 'selected' : '' }}>{{ __('admin.reviewed') }}</option>
                 </select>
                 <select name="area_id" class="rounded-md border-gray-300">
                     <option value="">{{ __('admin.all_areas') }}</option>
@@ -58,7 +58,7 @@
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     {{ $visit->status == 'completed' ? 'bg-green-100 text-green-800' : 
                                        ($visit->status == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800') }}">
-                                    {{ ucwords(str_replace('_', ' ', $visit->status ?? '')) }}
+                                    {{ __('admin.' . str_replace(' ', '_', $visit->status ?? 'pending')) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
