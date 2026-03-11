@@ -2,7 +2,7 @@
     <div class="space-y-6" x-data="{ sendModal: false }" x-init="if (window.location.hash === '#send-supplier') sendModal = true">
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">Orders: All locations</h1>
+            <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">{{ __('admin.orders_management') }}</h1>
             <div class="flex items-center gap-3 flex-wrap">
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open"

@@ -4,12 +4,12 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Dashboard</a>
+                    <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">{{ __('admin.dashboard') }}</a>
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    <span class="text-gray-900 dark:text-gray-100 font-medium">Products</span>
+                    <span class="text-gray-900 dark:text-gray-100 font-medium">{{ __('admin.products') }}</span>
                 </nav>
-                <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Products</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage your product catalog</p>
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.products_management') }}</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('admin.catalog') }}</p>
             </div>
             <div class="flex items-center gap-3 flex-wrap">
                 <a href="{{ route('admin.products.export', request()->query()) }}" 
@@ -40,7 +40,7 @@
                 <a href="{{ route('admin.products.create') }}" 
                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                    Add product
+                    {{ __('admin.create_new_product') }}
                 </a>
             </div>
         </div>

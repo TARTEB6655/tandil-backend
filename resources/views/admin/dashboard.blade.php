@@ -15,39 +15,39 @@
 
     <!-- Jump to Section - Sticky quick navigation (grouped) -->
     <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-4 py-4 md:-mx-4 md:px-5 lg:-mx-6 lg:px-6 mb-5 md:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg ring-1 ring-gray-200/50 dark:ring-gray-700/50">
-        <p class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider mb-3">Quick navigation</p>
+        <p class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider mb-3">{{ __('admin.quick_navigation') }}</p>
         <div class="flex flex-wrap gap-2.5 sm:gap-3">
-            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">Catalog</span>
-            <a href="{{ route('admin.products.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">Products</a>
-            <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">Categories</a>
-            <a href="{{ route('admin.services.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">Services</a>
+            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">{{ __('admin.catalog') }}</span>
+            <a href="{{ route('admin.products.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">{{ __('admin.products') }}</a>
+            <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">{{ __('admin.categories') }}</a>
+            <a href="{{ route('admin.services.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">{{ __('admin.services') }}</a>
             <span class="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center" aria-hidden="true"></span>
-            <a href="#key-metrics" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">Key Metrics</a>
-            <a href="#ecommerce" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">E-Commerce</a>
-            <a href="#manage-services" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors">Manage Services</a>
-            <a href="#orders-export-supplier" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Orders Export</a>
-            <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Orders</a>
-            <a href="{{ route('admin.banners.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Banners</a>
-            <a href="{{ route('admin.packages.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">Packages</a>
+            <a href="#key-metrics" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">{{ __('admin.key_metrics') }}</a>
+            <a href="#ecommerce" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">{{ __('admin.ecommerce_section') }}</a>
+            <a href="#manage-services" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors">{{ __('admin.manage_services') }}</a>
+            <a href="#orders-export-supplier" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.orders_export') }}</a>
+            <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.orders') }}</a>
+            <a href="{{ route('admin.banners.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.banners') }}</a>
+            <a href="{{ route('admin.packages.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.packages') }}</a>
         </div>
     </div>
 
     <!-- Catalog overview (Products, Categories, Services) -->
     <div id="catalog-overview" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-indigo-500 pl-3">Catalog</h2>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-indigo-500 pl-3">{{ __('admin.catalog') }}</h2>
         <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.products.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                    New Product
+                    {{ __('admin.new_product') }}
                 </a>
                 <a href="{{ route('admin.categories.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                    New Category
+                    {{ __('admin.new_category') }}
                 </a>
                 <a href="{{ route('admin.services.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/60 transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                    New Service
+                    {{ __('admin.new_service') }}
                 </a>
             </div>
         </div>
@@ -57,9 +57,9 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Products</p>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.products') }}</p>
                     <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($totalProducts ?? 0) }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Add & edit · Link to services</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ __('admin.add_edit_link_services') }}</p>
                 </div>
                 <svg class="w-5 h-5 text-gray-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </a>
@@ -68,9 +68,9 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Categories</p>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.categories') }}</p>
                     <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($totalCategories ?? 0) }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ $activeCategories ?? 0 }} active</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ $activeCategories ?? 0 }} {{ __('admin.active_count') }}</p>
                 </div>
                 <svg class="w-5 h-5 text-gray-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </a>
@@ -79,9 +79,9 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Services</p>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.services') }}</p>
                     <p class="text-2xl font-bold text-teal-700 dark:text-teal-300">{{ number_format($totalServices ?? 0) }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Place Service Orders · Optional category</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ __('admin.place_service_orders_optional') }}</p>
                 </div>
                 <svg class="w-5 h-5 text-gray-500 group-hover:text-teal-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </a>
@@ -90,9 +90,9 @@
 
     @php
         $hour = (int) now()->format('G');
-        $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+        $greeting = $hour < 12 ? __('admin.good_morning') : ($hour < 17 ? __('admin.good_afternoon') : __('admin.good_evening'));
         $adminUser = auth()->user();
-        $adminRole = $adminUser ? (ucwords(str_replace('_', ' ', $adminUser->role ?? 'Admin'))) : 'Admin';
+        $adminRole = $adminUser ? (ucwords(str_replace('_', ' ', $adminUser->role ?? 'Admin'))) : __('admin.administrator');
         $adminId = $adminUser ? ('ID: ' . strtoupper(substr($adminUser->role ?? 'ADMIN', 0, 5)) . '-' . $adminUser->id) : '';
     @endphp
 
@@ -103,7 +103,7 @@
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ $greeting }}</p>
-                    <p class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ $adminUser->name ?? 'Administrator' }}</p>
+                    <p class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ $adminUser->name ?? __('admin.administrator') }}</p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $adminRole }} @if($adminId) · {{ $adminId }} @endif</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
@@ -120,9 +120,9 @@
         <a href="{{ route('admin.reports.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:border-amber-400 dark:hover:border-amber-500">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Pending Reports</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ __('admin.pending_reports') }}</p>
                     <p class="text-xl font-bold text-amber-700 dark:text-amber-300">{{ number_format($pendingReports ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">View reports</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.view_reports') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/30">
@@ -138,9 +138,9 @@
         <a href="{{ route('admin.orders.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:border-green-400 dark:hover:border-green-500">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">New Orders</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ __('admin.new_orders') }}</p>
                     <p class="text-xl font-bold text-green-700 dark:text-green-300">{{ number_format($ordersToday ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Manage orders</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.manage_orders') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/30">
@@ -156,9 +156,9 @@
         <a href="{{ route('admin.tips.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-emerald-300 dark:hover:border-emerald-600">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Tips</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('admin.tips') }}</p>
                     <p class="text-lg font-medium text-emerald-600">{{ number_format($totalTips ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Manage tips</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.manage_tips') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-900/30">
@@ -174,9 +174,9 @@
         <a href="{{ route('admin.banners.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-sky-300 dark:hover:border-sky-600">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Home Screen Banners</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('admin.home_screen_banners') }}</p>
                     <p class="text-lg font-medium text-sky-600 dark:text-sky-400">{{ number_format($totalBanners ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $activeBannersCount ?? 0 }} active · Manage</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $activeBannersCount ?? 0 }} {{ __('admin.active_count') }} · {{ __('admin.manage') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/30">
@@ -192,9 +192,9 @@
         <a href="{{ route('admin.packages.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-orange-300 dark:hover:border-orange-600">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Packages</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('admin.packages') }}</p>
                     <p class="text-lg font-medium text-orange-600 dark:text-orange-400">{{ number_format($totalPackages ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Set price & image · View orders</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.set_price_image_view_orders') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-900/30">
@@ -210,9 +210,9 @@
         <a href="#manage-services" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-teal-300 dark:hover:border-teal-600">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Services (Place Service Orders)</p>
-                    <p class="text-lg font-medium text-teal-600 dark:text-teal-400">{{ number_format($totalServices ?? 0) }} services</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Create & manage · {{ number_format($totalProducts ?? 0) }} products</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('admin.services_place_orders') }}</p>
+                    <p class="text-lg font-medium text-teal-600 dark:text-teal-400">{{ number_format($totalServices ?? 0) }} {{ __('admin.services_count') }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.create_manage_products', ['count' => number_format($totalProducts ?? 0)]) }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-900/30">
@@ -228,9 +228,9 @@
         <a href="{{ route('admin.report-management.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200 hover:border-violet-300 dark:hover:border-violet-600">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Report Management</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('admin.report_management') }}</p>
                     <p class="text-lg font-medium text-violet-600">{{ number_format($totalAdminReports ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Generate & schedule</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.generate_schedule') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-900/30">
@@ -265,15 +265,15 @@
 
     <!-- 1. Key Metrics -->
     <div id="key-metrics" class="scroll-mt-24 mb-6 md:mb-8">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-blue-500 pl-3 mb-4">Key Metrics</h2>
+        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-blue-500 pl-3 mb-4">{{ __('admin.key_metrics_section') }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <!-- Total Users Card -->
         <a href="{{ route('admin.users.index') }}" class="block bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Total Users</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ __('admin.total_users') }}</p>
                     <p class="text-xl font-bold text-blue-700 dark:text-blue-300">{{ number_format($totalUsers ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">All registered users</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.all_registered_users') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/30">
@@ -289,9 +289,9 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Active Subscriptions</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ __('admin.active_subscriptions') }}</p>
                     <p class="text-xl font-bold text-green-700 dark:text-green-300">{{ number_format($activeSubscriptions ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Currently active</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.currently_active') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/30">
@@ -307,9 +307,9 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Total Revenue</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ __('admin.total_revenue') }}</p>
                     <p class="text-xl font-bold text-amber-700 dark:text-amber-300">AED {{ number_format($totalRevenue ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">All time revenue</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('admin.all_time_revenue') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/30">
@@ -325,9 +325,9 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 md:p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">Total Orders</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ __('admin.total_orders') }}</p>
                     <p class="text-xl font-bold text-purple-700 dark:text-purple-300">{{ number_format($totalOrders ?? 0) }}</p>
-                    <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">{{ $ordersToday ?? 0 }} today</p>
+                    <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">{{ $ordersToday ?? 0 }} {{ __('admin.today') }}</p>
                 </div>
                 <div class="ml-4 flex-shrink-0">
                     <div class="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-900/30">
@@ -346,17 +346,17 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-md p-6">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-purple-500 pl-3">User Statistics</h2>
-                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Track growth of customers, technicians, and employees</p>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-purple-500 pl-3">{{ __('admin.user_statistics') }}</h2>
+                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ __('admin.track_growth_users') }}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <label for="stats_range" class="text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</label>
+                    <label for="stats_range" class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('admin.time_range') }}:</label>
                     <select id="stats_range" name="stats_range" onchange="updateStatistics()" 
                             class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                        <option value="daily" {{ ($timeRange ?? 'monthly') == 'daily' ? 'selected' : '' }}>Daily</option>
-                        <option value="weekly" {{ ($timeRange ?? 'monthly') == 'weekly' ? 'selected' : '' }}>Weekly</option>
-                        <option value="monthly" {{ ($timeRange ?? 'monthly') == 'monthly' ? 'selected' : '' }}>Monthly</option>
-                        <option value="yearly" {{ ($timeRange ?? 'monthly') == 'yearly' ? 'selected' : '' }}>Yearly</option>
+                        <option value="daily" {{ ($timeRange ?? 'monthly') == 'daily' ? 'selected' : '' }}>{{ __('admin.daily') }}</option>
+                        <option value="weekly" {{ ($timeRange ?? 'monthly') == 'weekly' ? 'selected' : '' }}>{{ __('admin.weekly') }}</option>
+                        <option value="monthly" {{ ($timeRange ?? 'monthly') == 'monthly' ? 'selected' : '' }}>{{ __('admin.monthly') }}</option>
+                        <option value="yearly" {{ ($timeRange ?? 'monthly') == 'yearly' ? 'selected' : '' }}>{{ __('admin.yearly') }}</option>
                     </select>
                 </div>
             </div>
@@ -371,12 +371,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Customers</h3>
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('admin.customers') }}</h3>
                         </div>
                     </div>
                     <div class="mb-2">
                         <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($stats['customers']['current'] ?? 0) }}</p>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? __('admin.this_month') }}</p>
                     </div>
                     @if(isset($stats['customers']['growth']))
                         <div class="flex items-center gap-2">
@@ -391,7 +391,7 @@
                                 </svg>
                                 <span class="text-sm font-medium text-red-600">{{ $stats['customers']['growth'] }}%</span>
                             @endif
-                            <span class="text-xs text-gray-500">vs previous period</span>
+                            <span class="text-xs text-gray-500">{{ __('admin.vs_previous_period') }}</span>
                         </div>
                     @endif
                 </div>
@@ -405,12 +405,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Technicians</h3>
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('admin.technicians') }}</h3>
                         </div>
                     </div>
                     <div class="mb-2">
                         <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ number_format($stats['technicians']['current'] ?? 0) }}</p>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? __('admin.this_month') }}</p>
                     </div>
                     @if(isset($stats['technicians']['growth']))
                         <div class="flex items-center gap-2">
@@ -425,7 +425,7 @@
                                 </svg>
                                 <span class="text-sm font-medium text-red-600">{{ $stats['technicians']['growth'] }}%</span>
                             @endif
-                            <span class="text-xs text-gray-500">vs previous period</span>
+                            <span class="text-xs text-gray-500">{{ __('admin.vs_previous_period') }}</span>
                         </div>
                     @endif
                 </div>
@@ -439,12 +439,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Employees/Staff</h3>
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('admin.employees_staff') }}</h3>
                         </div>
                     </div>
                     <div class="mb-2">
                         <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ number_format($stats['employees']['current'] ?? 0) }}</p>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? 'This Month' }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ $stats['period_label'] ?? __('admin.this_month') }}</p>
                     </div>
                     @if(isset($stats['employees']['growth']))
                         <div class="flex items-center gap-2">
@@ -459,7 +459,7 @@
                                 </svg>
                                 <span class="text-sm font-medium text-red-600">{{ $stats['employees']['growth'] }}%</span>
                             @endif
-                            <span class="text-xs text-gray-500">vs previous period</span>
+                            <span class="text-xs text-gray-500">{{ __('admin.vs_previous_period') }}</span>
                         </div>
                     @endif
                 </div>
@@ -482,9 +482,9 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Total Visits</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ __('admin.total_visits') }}</p>
                     <p class="text-lg font-medium text-indigo-600 dark:text-indigo-400">{{ number_format($totalVisits ?? 0) }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $visitsToday ?? 0 }} today</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $visitsToday ?? 0 }} {{ __('admin.today') }}</p>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
                     <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -499,9 +499,9 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Today's Visits</p>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ __('admin.todays_visits') }}</p>
                     <p class="text-lg font-medium text-indigo-600 dark:text-indigo-400">{{ $visitsToday ?? 0 }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Scheduled today</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ __('admin.scheduled_today') }}</p>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
                     <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -560,11 +560,11 @@
     <!-- Manage Services (Place Service Orders – Categories & Products) -->
     <div id="manage-services" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Manage Services (Place Service Orders)</h2>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ __('admin.manage_services') }} ({{ __('admin.services_place_orders') }})</h2>
             <div class="flex flex-wrap gap-2">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-200">{{ number_format($totalServices ?? 0) }} services</span>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ number_format($totalCategories ?? 0) }} categories</span>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ number_format($totalProducts ?? 0) }} products</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-200">{{ number_format($totalServices ?? 0) }} {{ __('admin.services_count') }}</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ number_format($totalCategories ?? 0) }} {{ __('admin.categories') }}</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ number_format($totalProducts ?? 0) }} {{ __('admin.products') }}</span>
             </div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
@@ -595,8 +595,8 @@
     <!-- Orders Export & Send to Supplier -->
     <div id="orders-export-supplier" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Orders Export & Send to Supplier</h2>
-            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">Orders page →</a>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ __('admin.orders_export') }}</h2>
+            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">{{ __('admin.orders') }} →</a>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             <div class="p-5 md:p-6">
@@ -623,8 +623,8 @@
     <!-- 4. E-Commerce Section -->
     <div id="ecommerce" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-emerald-500 pl-3">E-Commerce Overview</h2>
-            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">View All Orders →</a>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-emerald-500 pl-3">{{ __('admin.ecommerce_section') }}</h2>
+            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">{{ __('admin.view_all') }} {{ __('admin.orders') }} →</a>
         </div>
 
         <!-- E-Commerce Stats Grid -->
@@ -698,7 +698,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- Order Status Breakdown -->
             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">Order Status</h3>
+                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">{{ __('admin.order_status') }}</h3>
                 <div class="space-y-3">
                     @foreach($ordersByStatus ?? [] as $status)
                         <div class="flex items-center justify-between">
@@ -719,7 +719,7 @@
 
             <!-- Payment Status Breakdown -->
             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">Payment Status</h3>
+                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">{{ __('admin.payment_status') }}</h3>
                 <div class="space-y-3">
                     @foreach($ordersByPaymentStatus ?? [] as $payment)
                         <div class="flex items-center justify-between">
@@ -745,8 +745,8 @@
         <!-- Technician Performance Summary -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
-                <h3 class="text-base font-medium text-gray-900">Technician Performance</h3>
-                <p class="text-sm text-gray-500 mt-1">Top 10 technicians by completed visits</p>
+                <h3 class="text-base font-medium text-gray-900">{{ __('admin.technician_performance') }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ __('admin.visits_count') }} · {{ __('admin.technicians') }}</p>
             </div>
             <div class="space-y-3">
                 @forelse($technicianPerformance ?? [] as $technician)
@@ -774,8 +774,8 @@
         <!-- Area Performance Summary -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
-                <h3 class="text-base font-medium text-gray-900">Area Performance</h3>
-                <p class="text-sm text-gray-500 mt-1">Visits by area/region</p>
+                <h3 class="text-base font-medium text-gray-900">{{ __('admin.area_performance') }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ __('admin.visits') }} · {{ __('admin.areas_regions') }}</p>
             </div>
             <div class="space-y-3">
                 @forelse($areaPerformance ?? [] as $area)
@@ -809,8 +809,8 @@
         <!-- Revenue Growth Chart -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
-                <h3 class="text-base font-medium text-gray-900">Revenue Growth</h3>
-                <p class="text-sm text-gray-500 mt-1">Monthly revenue over the last 6 months</p>
+                <h3 class="text-base font-medium text-gray-900">{{ __('admin.revenue_by_month') }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ __('admin.revenue_by_month') }}</p>
             </div>
             <div class="h-64 md:h-80">
                 <canvas id="revenueChart"></canvas>
@@ -820,8 +820,8 @@
         <!-- Visits Activity Chart -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
-                <h3 class="text-base font-medium text-gray-900">Visits Activity</h3>
-                <p class="text-sm text-gray-500 mt-1">Weekly visits over the last 8 weeks</p>
+                <h3 class="text-base font-medium text-gray-900">{{ __('admin.visits_by_status') }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ __('admin.monthly_visits') }}</p>
             </div>
             <div class="h-64 md:h-80">
                 <canvas id="visitsChart"></canvas>
@@ -834,8 +834,8 @@
         <!-- Subscription Distribution -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
-                <h3 class="text-base font-medium text-gray-900">Subscription Distribution</h3>
-                <p class="text-sm text-gray-500 mt-1">Active subscriptions by plan type</p>
+                <h3 class="text-base font-medium text-gray-900">{{ __('admin.subscriptions') }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ __('admin.active_subscriptions') }} · {{ __('admin.plans') }}</p>
             </div>
             <div class="h-64 md:h-80">
                 <canvas id="subscriptionsChart"></canvas>
@@ -845,8 +845,8 @@
         <!-- Visit Status Distribution -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 md:p-6 shadow-sm">
             <div class="mb-4 md:mb-6">
-                <h3 class="text-base font-medium text-gray-900">Visit Status</h3>
-                <p class="text-sm text-gray-500 mt-1">Distribution of visits by status</p>
+                <h3 class="text-base font-medium text-gray-900">{{ __('admin.visits_by_status') }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ __('admin.status') }}</p>
             </div>
             <div class="h-64 md:h-80">
                 <canvas id="visitStatusChart"></canvas>

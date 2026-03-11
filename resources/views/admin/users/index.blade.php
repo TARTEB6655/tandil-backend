@@ -2,8 +2,8 @@
     <div class="space-y-4 sm:space-y-6">
         <!-- Page Header -->
         <div class="mb-6 md:mb-8">
-            <h1 class="text-xl font-medium text-gray-900">Users Management</h1>
-            <p class="mt-1 text-sm text-gray-500">Manage and monitor all system users</p>
+            <h1 class="text-xl font-medium text-gray-900">{{ __('admin.users_management') }}</h1>
+            <p class="mt-1 text-sm text-gray-500">{{ __('admin.manage_monitor_users') }}</p>
         </div>
 
         <!-- Success Message -->
@@ -23,7 +23,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Create New User
+                {{ __('admin.create_new_user') }}
             </a>
         </div>
 
@@ -43,16 +43,16 @@
                             <input type="text" 
                                    name="search" 
                                    value="{{ request('search') }}" 
-                                   placeholder="Search by name, email, or phone..." 
+                                   placeholder="{{ __('admin.search_by_name_email_phone') }}" 
                                    class="block w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition">
                         </div>
                     </div>
 
                     <!-- Role Filter -->
                     <div>
-                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Role</label>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{{ __('admin.role') }}</label>
                         <select name="role" class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition">
-                            <option value="">All Roles</option>
+                            <option value="">{{ __('admin.all_roles') }}</option>
                             <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                             <option value="client" {{ request('role') == 'client' ? 'selected' : '' }}>Client</option>
                             <option value="technician" {{ request('role') == 'technician' ? 'selected' : '' }}>Technician</option>
@@ -64,11 +64,11 @@
 
                     <!-- Status Filter -->
                     <div>
-                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Status</label>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{{ __('admin.status') }}</label>
                         <select name="status" class="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition">
-                            <option value="">All Statuses</option>
-                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            <option value="">{{ __('admin.all_statuses') }}</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>{{ __('admin.active') }}</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>{{ __('admin.inactive') }}</option>
                         </select>
                     </div>
                 </div>
@@ -87,7 +87,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Clear
+                        {{ __('admin.clear') }}
                     </a>
                 </div>
             </form>
@@ -99,12 +99,12 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User</th>
-                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">Email</th>
-                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">Phone</th>
-                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role</th>
-                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.user') }}</th>
+                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">{{ __('admin.email') }}</th>
+                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">{{ __('admin.phone') }}</th>
+                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.role') }}</th>
+                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.status') }}</th>
+                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.actions') }}</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -138,7 +138,7 @@
                                     <div class="flex items-center gap-3">
                                         <a href="{{ route('admin.users.show', $user) }}" 
                                            class="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-                                           title="View">
+                                           title="{{ __('admin.view') }}">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -146,7 +146,7 @@
                                         </a>
                                         <a href="{{ route('admin.users.edit', $user) }}" 
                                            class="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-                                           title="Edit">
+                                           title="{{ __('admin.edit') }}">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
@@ -161,8 +161,8 @@
                                         <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                         </svg>
-                                        <p class="text-sm font-medium text-gray-900">No users found</p>
-                                        <p class="text-xs text-gray-500 mt-1">Try adjusting your filters or create a new user</p>
+                                        <p class="text-sm font-medium text-gray-900">{{ __('admin.no_users_found') }}</p>
+                                        <p class="text-xs text-gray-500 mt-1">{{ __('admin.try_adjusting_filters') }}</p>
                                     </div>
                                 </td>
                             </tr>

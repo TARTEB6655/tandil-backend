@@ -2,8 +2,8 @@
     <div class="space-y-4 sm:space-y-6">
         <!-- Page Header -->
         <div class="mb-6 md:mb-8">
-            <h1 class="text-xl font-medium text-gray-900">Roles & Permissions</h1>
-            <p class="mt-1 text-sm text-gray-500">Manage user roles and their permissions</p>
+            <h1 class="text-xl font-medium text-gray-900">{{ __('admin.roles_management') }}</h1>
+            <p class="mt-1 text-sm text-gray-500">{{ __('admin.roles_manage_description') }}</p>
         </div>
 
         <!-- Success Message -->
@@ -23,7 +23,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Create New Role
+                {{ __('admin.create_new_role') }}
             </a>
         </div>
 
@@ -33,11 +33,11 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role Name</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">Description</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Users Count</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">Permissions</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.role_name') }}</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">{{ __('admin.description') }}</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.users_count') }}</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">{{ __('admin.permissions') }}</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.actions') }}</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -61,7 +61,7 @@
                                         @if($role->description)
                                             <p class="text-sm text-gray-600 line-clamp-2">{{ $role->description }}</p>
                                         @else
-                                            <p class="text-sm text-gray-400 italic">No description</p>
+                                            <p class="text-sm text-gray-400 italic">{{ __('admin.no_description') }}</p>
                                         @endif
                                     </div>
                                 </td>
@@ -132,7 +132,7 @@
                                         <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                         </svg>
-                                        <p class="text-sm font-medium text-gray-900">No roles found</p>
+                                        <p class="text-sm font-medium text-gray-900">{{ __('admin.no_roles_found') }}</p>
                                         <p class="text-xs text-gray-500 mt-1">Create your first role to get started</p>
                                     </div>
                                 </td>

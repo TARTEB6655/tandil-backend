@@ -1,6 +1,7 @@
 <?php
 
 return [
+    // Sidebar & nav
     'dashboard' => 'Dashboard',
     'dashboard_overview' => 'Dashboard Overview',
     'dashboard_welcome' => "Welcome back! Here's what's happening with your business today.",
@@ -55,4 +56,210 @@ return [
     'english' => 'English',
     'arabic' => 'العربية',
     'urdu' => 'اردو',
+
+    // Common UI
+    'add' => 'Add',
+    'edit' => 'Edit',
+    'delete' => 'Delete',
+    'view' => 'View',
+    'save' => 'Save',
+    'cancel' => 'Cancel',
+    'back' => 'Back',
+    'search' => 'Search',
+    'filter' => 'Filter',
+    'apply_filters' => 'Apply Filters',
+    'clear' => 'Clear',
+    'actions' => 'Actions',
+    'active' => 'Active',
+    'inactive' => 'Inactive',
+    'status' => 'Status',
+    'name' => 'Name',
+    'email' => 'Email',
+    'phone' => 'Phone',
+    'role' => 'Role',
+    'date' => 'Date',
+    'created_at' => 'Created At',
+    'no_results' => 'No results found',
+    'create_new' => 'Create New',
+    'manage' => 'Manage',
+    'view_all' => 'View all',
+
+    // Dashboard page
+    'quick_navigation' => 'Quick navigation',
+    'catalog' => 'Catalog',
+    'new_product' => 'New Product',
+    'new_category' => 'New Category',
+    'new_service' => 'New Service',
+    'key_metrics' => 'Key Metrics',
+    'ecommerce_section' => 'E-Commerce',
+    'manage_services' => 'Manage Services',
+    'orders_export' => 'Orders Export',
+    'add_edit_link_services' => 'Add & edit · Link to services',
+    'active_count' => 'active',
+    'place_service_orders_optional' => 'Place Service Orders · Optional category',
+    'good_morning' => 'Good morning',
+    'good_afternoon' => 'Good afternoon',
+    'good_evening' => 'Good evening',
+    'administrator' => 'Administrator',
+    'pending_reports' => 'Pending Reports',
+    'view_reports' => 'View reports',
+    'new_orders' => 'New Orders',
+    'manage_orders' => 'Manage orders',
+    'tips' => 'Tips',
+    'manage_tips' => 'Manage tips',
+    'home_screen_banners' => 'Home Screen Banners',
+    'set_price_image_view_orders' => 'Set price & image · View orders',
+    'services_place_orders' => 'Services (Place Service Orders)',
+    'services_count' => 'services',
+    'visits_count' => 'visits',
+    'create_manage_products' => 'Create & manage · :count products',
+    'generate_schedule' => 'Generate & schedule',
+    'key_metrics_section' => 'Key Metrics',
+    'total_users' => 'Total Users',
+    'active_subscriptions' => 'Active Subscriptions',
+    'visits_today' => 'Visits Today',
+    'total_visits' => 'Total Visits',
+    'revenue_today' => 'Revenue Today',
+    'total_revenue' => 'Total Revenue',
+    'visits_by_status' => 'Visits by Status',
+    'monthly_visits' => 'Monthly Visits (Last 6 Months)',
+    'recent_orders' => 'Recent Orders',
+    'recent_visits' => 'Recent Visits',
+    'recent_subscriptions' => 'Recent Subscriptions',
+    'orders_by_status' => 'Orders by Status',
+    'revenue_by_month' => 'Revenue by Month',
+    'top_customers' => 'Top Customers',
+    'area_performance' => 'Area Performance',
+    'technician_performance' => 'Technician Performance',
+    'view_details' => 'View details',
+    'view_order' => 'View order',
+    'no_orders' => 'No orders yet',
+    'no_visits' => 'No visits yet',
+    'no_subscriptions' => 'No subscriptions yet',
+    'all_registered_users' => 'All registered users',
+    'currently_active' => 'Currently active',
+    'all_time_revenue' => 'All time revenue',
+    'total_orders' => 'Total Orders',
+    'today' => 'today',
+    'user_statistics' => 'User Statistics',
+    'track_growth_users' => 'Track growth of customers, technicians, and employees',
+    'time_range' => 'Time Range',
+    'daily' => 'Daily',
+    'weekly' => 'Weekly',
+    'monthly' => 'Monthly',
+    'yearly' => 'Yearly',
+    'customers' => 'Customers',
+    'employees_staff' => 'Employees/Staff',
+    'this_month' => 'This Month',
+    'vs_previous_period' => 'vs previous period',
+    'todays_visits' => "Today's Visits",
+    'scheduled_today' => 'Scheduled today',
+
+    // Users
+    'users_management' => 'Users Management',
+    'manage_monitor_users' => 'Manage and monitor all system users',
+    'create_new_user' => 'Create New User',
+    'search_by_name_email_phone' => 'Search by name, email, or phone...',
+    'all_roles' => 'All Roles',
+    'all_statuses' => 'All Statuses',
+    'user' => 'User',
+    'no_users_found' => 'No users found',
+    'try_adjusting_filters' => 'Try adjusting your filters or create a new user',
+
+    // Roles
+    'roles_management' => 'Roles & Permissions',
+    'roles_manage_description' => 'Manage user roles and their permissions',
+    'create_new_role' => 'Create New Role',
+    'permissions' => 'Permissions',
+    'role_name' => 'Role Name',
+    'description' => 'Description',
+    'users_count' => 'Users Count',
+    'no_description' => 'No description',
+    'no_roles_found' => 'No roles found',
+
+    // Products
+    'products_management' => 'Products',
+    'create_new_product' => 'New Product',
+    'price' => 'Price',
+    'stock' => 'Stock',
+    'no_products_found' => 'No products found',
+
+    // Categories
+    'categories_management' => 'Categories',
+    'create_new_category' => 'New Category',
+
+    // Orders
+    'orders_management' => 'Orders',
+    'order' => 'Order',
+    'total' => 'Total',
+    'payment_status' => 'Payment Status',
+    'order_status' => 'Order Status',
+    'no_orders_found' => 'No orders found',
+
+    // Visits
+    'visits_management' => 'Visits',
+    'scheduled_date' => 'Scheduled Date',
+    'client' => 'Client',
+    'technician' => 'Technician',
+    'no_visits_found' => 'No visits found',
+
+    // Reports
+    'reports_management' => 'Reports',
+    'pending' => 'Pending',
+    'approved' => 'Approved',
+    'no_reports_found' => 'No reports found',
+
+    // Subscriptions
+    'subscriptions_management' => 'Subscriptions',
+    'start_date' => 'Start Date',
+    'end_date' => 'End Date',
+    'no_subscriptions_found' => 'No subscriptions found',
+
+    // Complaints
+    'complaints_management' => 'Complaints',
+    'resolved' => 'Resolved',
+    'no_complaints_found' => 'No complaints found',
+
+    // Areas
+    'areas_management' => 'Areas / Regions',
+    'location' => 'Location',
+    'no_areas_found' => 'No areas found',
+
+    // Banners
+    'banners_management' => 'Banners',
+    'no_banners_found' => 'No banners found',
+
+    // Tips
+    'tips_management' => 'Tips & Notifications',
+    'no_tips_found' => 'No tips found',
+
+    // Support tickets
+    'support_tickets_management' => 'Support Tickets',
+    'no_tickets_found' => 'No tickets found',
+
+    // HR / Technicians
+    'hr_management' => 'Technicians',
+    'employee_id' => 'Employee ID',
+    'no_hr_found' => 'No records found',
+
+    // Audit logs
+    'audit_logs_management' => 'Audit Logs',
+    'no_audit_logs_found' => 'No audit logs found',
+
+    // Notifications
+    'notifications_management' => 'Notifications',
+    'create_notification' => 'Create Notification',
+    'no_notifications_found' => 'No notifications found',
+
+    // Pagination & generic
+    'showing' => 'Showing',
+    'to' => 'to',
+    'of' => 'of',
+    'results' => 'results',
+    'previous' => 'Previous',
+    'next' => 'Next',
+    'confirm_delete' => 'Are you sure you want to delete this?',
+    'success' => 'Success',
+    'error' => 'Error',
+    'info' => 'Info',
 ];
