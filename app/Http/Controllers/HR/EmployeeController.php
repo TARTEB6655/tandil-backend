@@ -49,9 +49,13 @@ class EmployeeController extends Controller
                 // 1) Rows from Employee table (technicians + any supervisors with employee record)
                 $employeeRows = $query->orderBy('created_at', 'desc')->get();
 
-                // 2) Supervisors who do NOT have an Employee record – include them so HR sees all staff
+                // 2) Supervisors who do NOT have an Employee record – include them so HR sees all staff.
+                //    Use both users.role and Spatie role so supervisors assigned only via Spatie (e.g. supervisor1@test.com) are included.
                 $employeeUserIds = $employeeRows->pluck('user_id')->filter()->unique()->values()->all();
-                $supervisorsWithoutEmployee = User::where('role', 'supervisor')
+                $supervisorsWithoutEmployee = User::where(function ($q) {
+                    $q->where('role', 'supervisor')
+                        ->orWhereHas('roles', fn ($r) => $r->where('name', 'supervisor'));
+                })
                     ->whereNotIn('id', $employeeUserIds);
 
                 if ($request->has('search') && $request->search) {
