@@ -198,6 +198,11 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::put('/bank-accounts/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountUpdate']);
     Route::delete('/bank-accounts/{id}', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'bankAccountDestroy']);
     Route::get('/leave-types', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'leaveTypes']);
+    Route::get('/leave-request-types', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'leaveTypes']);
+    Route::get('/leave-requests', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'index']);
+    Route::post('/leave-requests', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'store']);
+    Route::get('/leave-requests/{id}', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'show']);
+    Route::get('/alerts', [\App\Http\Controllers\Api\AlertsController::class, 'index']);
     Route::get('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'availability']);
     Route::put('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateAvailability']);
     Route::get('/schedule', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'schedule']);
@@ -269,6 +274,12 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::put('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'updateProfile']);
     Route::get('/profile/preferences', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'profilePreferences']);
+
+    Route::get('/leave-request-types', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'leaveTypes']);
+    Route::get('/leave-requests', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'index']);
+    Route::post('/leave-requests', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'store']);
+    Route::get('/leave-requests/{id}', [\App\Http\Controllers\Api\EmployeeLeaveRequestController::class, 'show']);
+    Route::get('/alerts', [\App\Http\Controllers\Api\AlertsController::class, 'index']);
 
     Route::get('/visits', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listVisits']);
     Route::get('/visits/{id}', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'reviewVisit']);

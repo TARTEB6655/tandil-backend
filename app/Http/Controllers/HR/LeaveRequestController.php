@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
+use App\Notifications\LeaveRequestStatusNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -76,6 +77,8 @@ class LeaveRequestController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        $leaveRequest->user?->notify(new LeaveRequestStatusNotification($leaveRequest->fresh(), 'rejected'));
 
         return back()->with('success', 'Leave request rejected.');
     }

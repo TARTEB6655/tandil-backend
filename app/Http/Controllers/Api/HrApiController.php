@@ -26,12 +26,14 @@ class HrApiController extends Controller
         $user->load('employee');
 
         $totalStaff = Employee::count();
-        $newHires = Employee::where('created_at', '>=', Carbon::now()->subDays(30))->count();
+        // New hires = only employees added (created) in the last 30 days, not all staff
+        $newHiresCutoff = Carbon::now()->subDays(30);
+        $newHires = Employee::where('created_at', '>=', $newHiresCutoff)->count();
         $leaveRequestsCount = LeaveRequest::where('status', 'pending')->count();
 
         $pendingLeaves = LeaveRequest::with('user.employee')
             ->where('status', 'pending')
-            ->orderBy('created_at')
+            ->orderByDesc('created_at')
             ->limit(10)
             ->get()
             ->map(function (LeaveRequest $lr) {
@@ -73,9 +75,11 @@ class HrApiController extends Controller
     /**
      * GET /api/hr/dashboard/visit-assignments
      * Today and tomorrow: total visits, assigned, unassigned.
-     * Counts from visits table where scheduled_date = today/tomorrow.
-     * NOTE: Response shape is fixed to { today, tomorrow } only (no extra keys),
-     * to match the mobile app and Postman contract.
+     * - total: visits scheduled for that day (scheduled_date = today/tomorrow).
+     * - assigned: visits that have a technician assigned (technician_id is set).
+     * - unassigned: visits with no technician yet (total - assigned).
+     * Data is 0 when there are no visits for that day in the visits table.
+     * Optional query: ?timezone=Asia/Dubai to use that timezone for today/tomorrow.
      */
     public function visitAssignments(Request $request): JsonResponse
     {
@@ -283,6 +287,8 @@ class HrApiController extends Controller
         $lr->reviewed_at = now();
         $lr->save();
 
+        $lr->user?->notify(new \App\Notifications\LeaveRequestStatusNotification($lr->fresh(), 'approved'));
+
         return response()->json([
             'success' => true,
             'message' => 'Leave request approved.',
@@ -310,6 +316,8 @@ class HrApiController extends Controller
         $lr->reviewed_by = $request->user()->id;
         $lr->reviewed_at = now();
         $lr->save();
+
+        $lr->user?->notify(new \App\Notifications\LeaveRequestStatusNotification($lr->fresh(), 'rejected'));
 
         return response()->json([
             'success' => true,
