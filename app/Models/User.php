@@ -136,6 +136,21 @@ class User extends Authenticatable
 
     /*
     |--------------------------------------------------------------------------
+    | SCOPES
+    |--------------------------------------------------------------------------
+    */
+
+    /** Scope: only users with status = active (for listings where inactive should be hidden). */
+    public function scopeActive($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('status', 'active')
+                ->orWhereNull('status');
+        });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | ROLE HELPERS
     |--------------------------------------------------------------------------
     */

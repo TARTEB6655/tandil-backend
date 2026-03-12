@@ -47,6 +47,7 @@ class VisitOfferService
         $serviceType = self::getServiceTypeForVisit($visit);
 
         $query = User::role('technician')
+            ->active()
             ->whereHas('assignedAreas', fn ($q) => $q->where('areas.id', $areaId))
             ->whereNotIn('id', $alreadyOfferedIds)
             ->with('employee');

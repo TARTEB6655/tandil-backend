@@ -218,6 +218,7 @@ class SupervisorDashboardApiController extends Controller
         }
 
         $technicians = User::role('technician')
+            ->active()
             ->whereIn('id', $technicianIds)
             ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
             ->get();
@@ -242,6 +243,7 @@ class SupervisorDashboardApiController extends Controller
         $now = Carbon::now();
         $today = $now->toDateString();
         $u = User::role('technician')
+            ->active()
             ->where('id', $id)
             ->with(['employee', 'technicianAvailability'])
             ->firstOrFail();
@@ -348,7 +350,7 @@ class SupervisorDashboardApiController extends Controller
         $technicianIds = $this->teamMemberIdsInZones($areaIds);
         $members = [];
         if ($technicianIds->isNotEmpty()) {
-            $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
+            $technicians = User::role('technician')->active()->whereIn('id', $technicianIds)->get();
             foreach ($technicians as $u) {
                 $memberVisits = $this->memberVisitsQuery($request, $u->id)->whereIn('status', ['completed', 'approved'])->get();
                 $completed = $memberVisits->count();
@@ -599,9 +601,9 @@ class SupervisorDashboardApiController extends Controller
                     'message' => 'This job is already offered to a technician. You can assign it to someone else only after they reject it or the acceptance time (accept_by) expires.',
                 ], 422);
             }
-            $technician = User::role('technician')->find((int) $request->input('technician_id'));
+            $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
             if (! $technician) {
-                return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
+                return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
             }
             $areaIds = $this->areaIds($request);
             if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
@@ -665,9 +667,9 @@ class SupervisorDashboardApiController extends Controller
                 'message' => 'This job is already offered to a technician. You can assign it to someone else only after they reject it or the acceptance time (accept_by) expires.',
             ], 422);
         }
-        $technician = User::role('technician')->find((int) $request->input('technician_id'));
+        $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
         if (! $technician) {
-            return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
+            return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
         }
         $areaIds = $this->areaIds($request);
         if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
@@ -714,9 +716,9 @@ class SupervisorDashboardApiController extends Controller
         $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
 
         if ($request->filled('technician_id')) {
-            $technician = User::role('technician')->find((int) $request->input('technician_id'));
+            $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
             if (! $technician) {
-                return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
+                return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
             }
             $areaIds = $this->areaIds($request);
             if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
@@ -758,9 +760,9 @@ class SupervisorDashboardApiController extends Controller
                 'message' => 'This job is already offered to a technician. You can reassign only after they reject it or the acceptance time (accept_by) expires.',
             ], 422);
         }
-        $technician = User::role('technician')->find((int) $request->input('technician_id'));
+        $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
         if (! $technician) {
-            return response()->json(['success' => false, 'message' => 'Technician not found.'], 404);
+            return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
         }
         $areaIds = $this->areaIds($request);
         if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {

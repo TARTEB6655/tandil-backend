@@ -28,6 +28,7 @@ class AreaController extends Controller
         $search = is_string($search) ? trim($search) : '';
 
         $query = User::role('technician')
+            ->active()
             ->with(['employee', 'assignedAreas.supervisors'])
             ->orderBy('name');
 
@@ -90,6 +91,7 @@ class AreaController extends Controller
     {
         $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
         $technicians = User::role('technician')
+            ->active()
             ->with(['employee', 'assignedAreas'])
             ->orderBy('name')
             ->paginate($perPage);

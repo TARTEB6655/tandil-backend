@@ -449,7 +449,7 @@ class AreaManagerApiController extends Controller
         }
 
         $technicianIds = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $members = User::role('technician')->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor) {
+        $members = User::role('technician')->active()->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor) {
             $techAreaIds = DB::table('area_technician')->where('user_id', $tech->id)->whereIn('area_id', $areaIds)->pluck('area_id');
             $areas = Area::whereIn('id', $techAreaIds)->get();
             $areaNames = $areas->pluck('name')->filter()->values()->all();
@@ -504,7 +504,7 @@ class AreaManagerApiController extends Controller
      */
     public function teamMemberJobs(Request $request, int $id): JsonResponse
     {
-        $technician = User::role('technician')->where('id', $id)->with('employee')->first();
+        $technician = User::role('technician')->active()->where('id', $id)->with('employee')->first();
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Team member not found.'], 404);
         }

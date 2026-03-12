@@ -116,6 +116,7 @@ class TeamController extends Controller
         $teamMembers = [];
         if ($technicianIds->isNotEmpty()) {
             $technicians = User::role('technician')
+                ->active()
                 ->whereIn('id', $technicianIds)
                 ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
                 ->orderBy('name')
@@ -167,6 +168,7 @@ class TeamController extends Controller
         $teamMembers = [];
         if ($technicianIds->isNotEmpty()) {
             $teamMembers = User::role('technician')
+                ->active()
                 ->whereIn('id', $technicianIds)
                 ->orderBy('name')
                 ->get(['id', 'name'])
@@ -190,9 +192,9 @@ class TeamController extends Controller
         ]);
 
         $visit = $this->assignableVisitsQuery()->findOrFail((int) $request->input('visit_id'));
-        $technician = User::role('technician')->find((int) $request->input('technician_id'));
+        $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
         if (! $technician) {
-            return back()->with('error', 'Technician not found.');
+            return back()->with('error', 'Technician not found or inactive.');
         }
 
         $visit->supervisor_id = $request->user()->id;

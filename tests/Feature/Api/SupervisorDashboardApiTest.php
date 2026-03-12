@@ -147,6 +147,9 @@ class SupervisorDashboardApiTest extends TestCase
         ], $this->authHeaders());
         $update->assertStatus(200)->assertJsonPath('success', true);
 
+        // Reassign is only allowed when job is not in pending_acceptance window (or accept_by has passed)
+        $unassignedVisit->refresh();
+        $unassignedVisit->update(['accept_by' => Carbon::now()->subMinute()]);
         $reassign = $this->post('/api/supervisor/assignments/' . $unassignedVisit->id . '/reassign', [
             'technician_id' => (string) $this->technician->id,
             'reason' => 'Balance workload',
@@ -322,6 +325,30 @@ class SupervisorDashboardApiTest extends TestCase
             'note' => 'Needs higher escalation',
         ], $this->authHeaders());
         $escalate->assertStatus(200)->assertJsonPath('status', true);
+    }
+
+    public function test_inactive_technician_not_in_team_and_assign_fails(): void
+    {
+        $this->technician->update(['status' => 'inactive']);
+
+        $team = $this->getJson('/api/supervisor/team', $this->authHeaders());
+        $team->assertStatus(200)->assertJsonPath('success', true);
+        $memberIds = collect($team->json('data.team'))->pluck('id')->all();
+        $this->assertNotContains($this->technician->id, $memberIds, 'Inactive technician must not appear in supervisor team');
+
+        $unassignedVisit = Visit::factory()->create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'technician_id' => null,
+            'status' => 'pending',
+            'scheduled_date' => Carbon::today()->addDay()->toDateString(),
+        ]);
+        $assign = $this->post('/api/supervisor/assignments', [
+            'visit_id' => (string) $unassignedVisit->id,
+            'technician_id' => (string) $this->technician->id,
+        ], $this->authHeaders());
+        $assign->assertStatus(404);
+        $assign->assertJsonPath('message', 'Technician not found or inactive. Only active technicians can be assigned.');
     }
 }
 
