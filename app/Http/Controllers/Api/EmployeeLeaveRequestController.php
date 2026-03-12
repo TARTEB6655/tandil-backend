@@ -36,7 +36,7 @@ class EmployeeLeaveRequestController extends Controller
 
         $list = $paginator->getCollection()->map(function (LeaveRequest $lr) {
             $days = $lr->start_date->diffInDays($lr->end_date) + 1;
-            return [
+            $item = [
                 'id' => $lr->id,
                 'leave_type' => $lr->leave_type,
                 'start_date' => $lr->start_date->format('Y-m-d'),
@@ -47,6 +47,10 @@ class EmployeeLeaveRequestController extends Controller
                 'reviewed_at' => $lr->reviewed_at?->toIso8601String(),
                 'created_at' => $lr->created_at->toIso8601String(),
             ];
+            if ($lr->working_days !== null) {
+                $item['working_days'] = $lr->working_days;
+            }
+            return $item;
         })->values()->all();
 
         return response()->json([
@@ -63,42 +67,67 @@ class EmployeeLeaveRequestController extends Controller
 
     /**
      * POST /api/technician/leave-requests or /api/supervisor/leave-requests
-     * Submit a leave request to HR. Body: leave_type, start_date, end_date, reason (optional).
+     * Submit a leave request to HR.
+     * Body (form-data or JSON): leave_type, start_date, end_date, reason (optional).
+     * Supervisor only: working_days (optional) – e.g. "mon,tue,wed,thu,fri,sat" or JSON array.
      */
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'leave_type' => 'required|string|max:100',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string|max:2000',
-        ]);
+        ];
+        $isSupervisor = $request->user()->hasRole('supervisor');
+        if ($isSupervisor) {
+            $rules['working_days'] = 'nullable|string|max:500'; // e.g. "mon,tue,wed,thu,fri,sat"
+        }
+        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $lr = LeaveRequest::create([
+        $payload = [
             'user_id' => $request->user()->id,
             'leave_type' => $request->input('leave_type'),
             'start_date' => $request->input('start_date'),
             'end_date' => $request->input('end_date'),
             'reason' => $request->input('reason'),
             'status' => 'pending',
-        ]);
+        ];
+        if ($isSupervisor && $request->has('working_days')) {
+            $wd = $request->input('working_days');
+            $payload['working_days'] = is_array($wd)
+                ? array_map('strtolower', array_map('trim', $wd))
+                : array_map('strtolower', array_map('trim', explode(',', (string) $wd)));
+            $allowed = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+            $payload['working_days'] = array_values(array_unique(array_filter($payload['working_days'], fn ($d) => in_array($d, $allowed, true))));
+            if (empty($payload['working_days'])) {
+                $payload['working_days'] = null;
+            }
+        }
+
+        $lr = LeaveRequest::create($payload);
+
+        $data = [
+            'id' => $lr->id,
+            'leave_type' => $lr->leave_type,
+            'start_date' => $lr->start_date->format('Y-m-d'),
+            'end_date' => $lr->end_date->format('Y-m-d'),
+            'duration_days' => $lr->start_date->diffInDays($lr->end_date) + 1,
+            'reason' => $lr->reason,
+            'status' => $lr->status,
+            'created_at' => $lr->created_at->toIso8601String(),
+        ];
+        if ($isSupervisor) {
+            $data['working_days'] = $lr->working_days;
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Leave request submitted. HR will review it.',
-            'data' => [
-                'id' => $lr->id,
-                'leave_type' => $lr->leave_type,
-                'start_date' => $lr->start_date->format('Y-m-d'),
-                'end_date' => $lr->end_date->format('Y-m-d'),
-                'duration_days' => $lr->start_date->diffInDays($lr->end_date) + 1,
-                'reason' => $lr->reason,
-                'status' => $lr->status,
-                'created_at' => $lr->created_at->toIso8601String(),
-            ],
+            'data' => $data,
         ], 201);
     }
 
@@ -111,21 +140,22 @@ class EmployeeLeaveRequestController extends Controller
         $lr = LeaveRequest::where('user_id', $request->user()->id)->findOrFail($id);
         $days = $lr->start_date->diffInDays($lr->end_date) + 1;
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $lr->id,
-                'leave_type' => $lr->leave_type,
-                'start_date' => $lr->start_date->format('Y-m-d'),
-                'end_date' => $lr->end_date->format('Y-m-d'),
-                'duration_days' => $days,
-                'reason' => $lr->reason,
-                'status' => $lr->status,
-                'reviewed_by' => $lr->reviewed_by,
-                'reviewed_at' => $lr->reviewed_at?->toIso8601String(),
-                'created_at' => $lr->created_at->toIso8601String(),
-            ],
-        ]);
+        $data = [
+            'id' => $lr->id,
+            'leave_type' => $lr->leave_type,
+            'start_date' => $lr->start_date->format('Y-m-d'),
+            'end_date' => $lr->end_date->format('Y-m-d'),
+            'duration_days' => $days,
+            'reason' => $lr->reason,
+            'status' => $lr->status,
+            'reviewed_by' => $lr->reviewed_by,
+            'reviewed_at' => $lr->reviewed_at?->toIso8601String(),
+            'created_at' => $lr->created_at->toIso8601String(),
+        ];
+        if ($lr->working_days !== null) {
+            $data['working_days'] = $lr->working_days;
+        }
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**

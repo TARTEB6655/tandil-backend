@@ -13,6 +13,7 @@ class LeaveRequest extends Model
         'start_date',
         'end_date',
         'reason',
+        'working_days',
         'status',
         'reviewed_by',
         'reviewed_at',
@@ -22,6 +23,7 @@ class LeaveRequest extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'reviewed_at' => 'datetime',
+        'working_days' => 'array',
     ];
 
     public function user(): BelongsTo

@@ -6306,6 +6306,12 @@
                                             "value": "Family trip",
                                             "description": "Optional",
                                             "type": "text"
+                                        },
+                                        {
+                                            "key": "working_days",
+                                            "value": "mon,tue,wed,thu,fri,sat",
+                                            "description": "Optional (supervisor only). Comma-separated: mon,tue,wed,thu,fri,sat,sun",
+                                            "type": "text"
                                         }
                                     ]
                                 },
@@ -6314,7 +6320,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "leave-requests"]
                                 },
-                                "description": "Submit leave request to HR. POST /api/supervisor/leave-requests. Use form-data. Required: leave_type, start_date, end_date. Optional: reason. Do not set Content-Type; Postman sets multipart/form-data."
+                                "description": "Submit leave request to HR. POST /api/supervisor/leave-requests. Use form-data. Required: leave_type, start_date, end_date. Optional: reason, working_days (supervisor only, e.g. mon,tue,wed,thu,fri,sat). Do not set Content-Type; Postman sets multipart/form-data."
                             }
                         },
                         {
