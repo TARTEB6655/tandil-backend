@@ -50,11 +50,12 @@ class EmployeeController extends Controller
                 $employeeRows = $query->orderBy('created_at', 'desc')->get();
 
                 // 2) Staff (technicians + supervisors) who do NOT have an Employee record – include so HR sees all staff from DB.
-                //    Use both users.role and Spatie role so seeder-created users (only User, no Employee) are included.
+                //    Match by users.role column OR Spatie role so seeder users like supervisor1@test.com are included.
                 $employeeUserIds = $employeeRows->pluck('user_id')->filter()->unique()->values()->all();
                 $staffRoleQuery = function ($q, $roleName) {
-                    $q->where('role', $roleName)
-                        ->orWhereHas('roles', fn ($r) => $r->where('name', $roleName));
+                    $lower = strtolower($roleName);
+                    $q->whereRaw('LOWER(role) = ?', [$lower])
+                        ->orWhereHas('roles', fn ($r) => $r->whereRaw('LOWER(name) = ?', [$lower]));
                 };
 
                 $techniciansWithoutEmployee = User::where(function ($q) use ($staffRoleQuery) {
