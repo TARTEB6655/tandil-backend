@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\AreaManager;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 
 class NotificationController extends Controller
 {
@@ -18,9 +18,10 @@ class NotificationController extends Controller
     public function index(): View
     {
         $user = Auth::user();
-        $notifications = $user->notifications()->paginate(20);
+        $notifications = $user->notifications()->orderBy('created_at', 'desc')->paginate(20);
+        $unreadCount = $user->unreadNotifications()->count();
 
-        return view('areamanager.notifications.index', compact('notifications'));
+        return view('areamanager.notifications.index', compact('notifications', 'unreadCount'));
     }
 
     public function markAsRead($id): RedirectResponse
@@ -28,7 +29,6 @@ class NotificationController extends Controller
         $user = Auth::user();
         $notification = $user->notifications()->findOrFail($id);
         $notification->markAsRead();
-
         return back()->with('success', 'Notification marked as read.');
     }
 
@@ -36,8 +36,34 @@ class NotificationController extends Controller
     {
         $user = Auth::user();
         $user->unreadNotifications->markAsRead();
-
         return back()->with('success', 'All notifications marked as read.');
+    }
+
+    public function destroy($id): RedirectResponse
+    {
+        $user = Auth::user();
+        $notification = $user->notifications()->find($id);
+        if ($notification) {
+            $notification->delete();
+            return back()->with('success', 'Notification deleted.');
+        }
+        return back()->with('error', 'Notification not found.');
+    }
+
+    public function destroyBulk(Request $request): RedirectResponse
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'uuid']);
+        $user = Auth::user();
+        $deleted = $user->notifications()->whereIn('id', $request->ids)->delete();
+        return back()->with('success', $deleted . ' notification(s) deleted.');
+    }
+
+    public function destroyAll(): RedirectResponse
+    {
+        $user = Auth::user();
+        $count = $user->notifications()->count();
+        $user->notifications()->delete();
+        return back()->with('success', $count . ' notification(s) deleted.');
     }
 }
 

@@ -162,6 +162,33 @@
         </div>
     </div>
 
+    <!-- Staff on leave today (technicians + supervisors – approved leave) -->
+    @if(count($staffOnLeaveToday ?? []) > 0)
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6 md:mb-8">
+        <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900">Staff on leave today</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Technicians and supervisors with approved leave for today</p>
+        </div>
+        <div class="divide-y divide-gray-200">
+            @foreach($staffOnLeaveToday as $lr)
+                @php
+                    $u = $lr->user;
+                    $empName = $u?->name ?? 'N/A';
+                    $roleDisplay = $u?->role ? ucfirst(str_replace('_', ' ', $u->role)) : 'N/A';
+                    $days = $lr->start_date->diffInDays($lr->end_date) + 1;
+                @endphp
+                <div class="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50/50 transition-colors flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">On Leave</span>
+                        <p class="text-sm font-medium text-gray-900">{{ $empName }}</p>
+                        <p class="text-xs text-gray-500">{{ $roleDisplay }} · {{ $days }} day(s) · Until {{ $lr->end_date->format('M d, Y') }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
         @if(!empty($employeesByDesignation))

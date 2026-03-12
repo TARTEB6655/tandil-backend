@@ -1,9 +1,3 @@
-@php
-    $user = auth()->user();
-    $notifications = $user->notifications()->orderBy('created_at', 'desc')->paginate(20);
-    $unreadCount = $user->unreadNotifications()->count();
-@endphp
-
 <x-admin-layout>
     <div class="space-y-4 sm:space-y-6">
         <!-- Page Header -->
@@ -22,19 +16,32 @@
                         Send Notification
                     </a>
                     @if($unreadCount > 0)
-                        <form method="POST" action="{{ route('admin.notifications.mark-all-read') }}" class="flex-shrink-0">
+                        <form method="POST" action="{{ route('admin.notifications.mark-all-read') }}" class="flex-shrink-0 inline">
                             @csrf
-                            <button type="submit" 
-                                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200 shadow-sm hover:shadow-md">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
+                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200 shadow-sm hover:shadow-md">
                                 Mark All as Read
                             </button>
                         </form>
                     @endif
                 </div>
             </div>
+        </div>
+
+        <!-- Bulk actions: Select all, Delete selected, Delete all -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" id="select-all-notifications" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                Select all on page
+            </label>
+            <button type="submit" form="form-notifications-bulk" id="btn-delete-selected" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200" onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
+                Delete selected
+            </button>
+            <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL your notifications?');">
+                @csrf
+                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200">
+                    Delete all
+                </button>
+            </form>
         </div>
 
         <!-- Success/Error Messages -->
@@ -101,7 +108,9 @@
             </div>
         </div>
 
-        <!-- Notifications List: new = bold + highlight; read = normal. Click = mark read and go to target -->
+        <!-- Notifications List with checkboxes for bulk delete -->
+        <form method="POST" action="{{ route('admin.notifications.destroy-bulk') }}" id="form-notifications-bulk">
+            @csrf
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             @forelse($notifications as $notification)
                 @php
@@ -110,6 +119,9 @@
                 <div class="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150 {{ $isUnread ? 'bg-blue-50/30' : '' }}">
                     <div class="px-5 py-4">
                         <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 pt-1">
+                                <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                            </div>
                             <!-- Notification Icon -->
                             <div class="flex-shrink-0 mt-0.5">
                                 @php
@@ -210,6 +222,13 @@
                 </div>
             @endforelse
         </div>
+        </form>
+
+        <script>
+            document.getElementById('select-all-notifications')?.addEventListener('change', function() {
+                document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+            });
+        </script>
 
         <!-- Pagination -->
         @if($notifications->hasPages())

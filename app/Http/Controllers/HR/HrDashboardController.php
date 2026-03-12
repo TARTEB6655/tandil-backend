@@ -99,6 +99,15 @@ class HrDashboardController extends Controller
             $recentUserIds = $recentEmployees->pluck('user_id')->filter()->unique()->values()->all();
             $leaveStatusMap = $this->dashboardLeaveStatusMap($recentUserIds);
 
+            // Staff on leave today (technicians + supervisors with approved leave) – for HR & admin visibility
+            $staffOnLeaveToday = LeaveRequest::with('user')
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $today)
+                ->whereDate('end_date', '>=', $today)
+                ->whereHas('user', fn ($q) => $q->whereIn('role', ['technician', 'supervisor']))
+                ->orderBy('end_date')
+                ->get();
+
             return view('hr.dashboard', compact(
                 'user',
                 'hrId',
@@ -114,6 +123,7 @@ class HrDashboardController extends Controller
                 'employeesByRegion',
                 'recentEmployees',
                 'leaveStatusMap',
+                'staffOnLeaveToday',
                 'search'
             ));
         } catch (\Exception $e) {
@@ -138,6 +148,7 @@ class HrDashboardController extends Controller
                 'employeesByRegion' => [],
                 'recentEmployees' => collect(),
                 'leaveStatusMap' => [],
+                'staffOnLeaveToday' => collect(),
                 'search' => $request->get('search', ''),
             ]);
         }

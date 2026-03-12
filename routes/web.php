@@ -257,6 +257,8 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::post('notifications/delete-selected', [NotificationController::class, 'destroyBulk'])->name('notifications.destroy-bulk');
+        Route::post('notifications/delete-all', [NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
         Route::get('notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
 
         // Support tickets (client submitted tickets with admin reply thread)
@@ -312,7 +314,12 @@ Route::middleware(['auth', 'role:supervisor'])
         
         // Areas
         Route::get('/areas', [\App\Http\Controllers\Supervisor\AreaController::class, 'index'])->name('areas.index');
-        
+
+        // Leave requests (apply & view my requests – HR approves)
+        Route::get('/leave-requests', [\App\Http\Controllers\Supervisor\LeaveRequestController::class, 'index'])->name('leave-requests.index');
+        Route::get('/leave-requests/create', [\App\Http\Controllers\Supervisor\LeaveRequestController::class, 'create'])->name('leave-requests.create');
+        Route::post('/leave-requests', [\App\Http\Controllers\Supervisor\LeaveRequestController::class, 'store'])->name('leave-requests.store');
+
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
         Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
@@ -321,6 +328,9 @@ Route::middleware(['auth', 'role:supervisor'])
         Route::get('/notifications', [\App\Http\Controllers\Supervisor\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\Supervisor\NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::post('/notifications/delete-selected', [\App\Http\Controllers\Supervisor\NotificationController::class, 'destroyBulk'])->name('notifications.destroy-bulk');
+        Route::post('/notifications/delete-all', [\App\Http\Controllers\Supervisor\NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
 
         // Help & Support (tickets + chat with admin)
         Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
@@ -363,6 +373,9 @@ Route::middleware(['auth', 'role:technician'])
         Route::get('/notifications', [\App\Http\Controllers\Technician\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\Technician\NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::post('/notifications/delete-selected', [\App\Http\Controllers\Technician\NotificationController::class, 'destroyBulk'])->name('notifications.destroy-bulk');
+        Route::post('/notifications/delete-all', [\App\Http\Controllers\Technician\NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
 
         // Help & Support (tickets + chat with admin)
         Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
@@ -427,6 +440,9 @@ Route::middleware(['auth', 'role:client'])
         Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\Client\NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::post('/notifications/delete-selected', [\App\Http\Controllers\Client\NotificationController::class, 'destroyBulk'])->name('notifications.destroy-bulk');
+        Route::post('/notifications/delete-all', [\App\Http\Controllers\Client\NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
     });
 
 // Area Manager routes
@@ -463,6 +479,9 @@ Route::middleware(['auth', 'role:area_manager'])
         Route::get('/notifications', [\App\Http\Controllers\AreaManager\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\AreaManager\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\AreaManager\NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::post('/notifications/delete-selected', [\App\Http\Controllers\AreaManager\NotificationController::class, 'destroyBulk'])->name('notifications.destroy-bulk');
+        Route::post('/notifications/delete-all', [\App\Http\Controllers\AreaManager\NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
 
         // Help & Support (tickets + chat with admin)
         Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
@@ -503,6 +522,9 @@ Route::middleware(['auth', 'role:hr'])
         Route::get('/notifications', [\App\Http\Controllers\HR\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\HR\NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::post('/notifications/delete-selected', [\App\Http\Controllers\HR\NotificationController::class, 'destroyBulk'])->name('notifications.destroy-bulk');
+        Route::post('/notifications/delete-all', [\App\Http\Controllers\HR\NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
 
         // Help & Support (tickets + chat with admin)
         Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');

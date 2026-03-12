@@ -5,6 +5,8 @@ namespace App\Http\Controllers\HR;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\User;
+use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use Carbon\Carbon;
@@ -19,32 +21,88 @@ class EmployeeController extends Controller
         $this->middleware(['auth', 'role:hr|admin']);
     }
 
-    // Show list of employees
+    // Show list of employees (technicians + supervisors; supervisors included even without Employee record)
     public function index(Request $request)
     {
         try {
             $query = Employee::with('user');
 
-            // Search functionality
+            // Search functionality (for web and for building API list)
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('employee_id', 'LIKE', "%{$search}%")
-                      ->orWhere('designation', 'LIKE', "%{$search}%")
-                      ->orWhere('region', 'LIKE', "%{$search}%")
-                      ->orWhereHas('user', function($userQuery) use ($search) {
-                          $userQuery->where('name', 'LIKE', "%{$search}%")
-                                    ->orWhere('email', 'LIKE', "%{$search}%");
-                      });
+                        ->orWhere('designation', 'LIKE', "%{$search}%")
+                        ->orWhere('region', 'LIKE', "%{$search}%")
+                        ->orWhereHas('user', function ($userQuery) use ($search) {
+                            $userQuery->where('name', 'LIKE', "%{$search}%")
+                                ->orWhere('email', 'LIKE', "%{$search}%");
+                        });
                 });
             }
 
             // Check if this is an API request
             if ($request->expectsJson() || $request->is('api/*')) {
                 $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
-                $paginator = $query->orderBy('created_at', 'desc')->paginate($perPage);
                 $today = Carbon::today();
-                $employees = $paginator->getCollection()->map(function ($employee) use ($today) {
+
+                // 1) Rows from Employee table (technicians + any supervisors with employee record)
+                $employeeRows = $query->orderBy('created_at', 'desc')->get();
+
+                // 2) Supervisors who do NOT have an Employee record – include them so HR sees all staff
+                $employeeUserIds = $employeeRows->pluck('user_id')->filter()->unique()->values()->all();
+                $supervisorsWithoutEmployee = User::where('role', 'supervisor')
+                    ->whereNotIn('id', $employeeUserIds);
+
+                if ($request->has('search') && $request->search) {
+                    $search = $request->search;
+                    $supervisorsWithoutEmployee->where(function ($q) use ($search) {
+                        $q->where('name', 'LIKE', "%{$search}%")
+                            ->orWhere('email', 'LIKE', "%{$search}%");
+                    });
+                }
+                $supervisorsWithoutEmployee = $supervisorsWithoutEmployee->orderBy('name')->get();
+
+                // Build same-shaped items for each supervisor (no Employee row)
+                $supervisorItems = $supervisorsWithoutEmployee->map(function ($user) use ($today) {
+                    $name = $user->name ?? null;
+                    $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
+                    $profilePictureUrl = ProfilePictureUploadService::fullUrl($user->profile_picture);
+                    $leaveInfo = $this->employeeLeaveStatus($user->id, $today);
+                    return [
+                        'id' => null,
+                        'user_id' => $user->id,
+                        'name' => $name,
+                        'email' => $user->email,
+                        'employee_id' => 'SUP-' . $user->id,
+                        'phone' => $user->phone,
+                        'designation' => 'Supervisor',
+                        'region' => null,
+                        'joining_date' => null,
+                        'created_at' => $user->created_at,
+                        'updated_at' => $user->updated_at,
+                        'profile_picture' => $user->profile_picture,
+                        'profile_picture_url' => $profilePictureUrl,
+                        'initial' => mb_strtoupper($initial),
+                        'status' => $leaveInfo['status'],
+                        'leave_days' => $leaveInfo['leave_days'],
+                        'leave_remaining_days' => $leaveInfo['leave_remaining_days'],
+                        'leave_end_date' => $leaveInfo['leave_end_date'],
+                        'user' => [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'phone' => $user->phone,
+                            'role' => $user->role,
+                            'profile_picture' => $user->profile_picture,
+                            'profile_picture_url' => $profilePictureUrl,
+                            'initial' => mb_strtoupper($initial),
+                        ],
+                    ];
+                });
+
+                // 3) Map Employee rows to same response shape
+                $employeeItems = $employeeRows->map(function ($employee) use ($today) {
                     $user = $employee->user;
                     $name = $employee->name ?? $user?->name ?? null;
                     $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
@@ -80,13 +138,20 @@ class EmployeeController extends Controller
                             'initial' => mb_strtoupper($initial),
                         ] : null,
                     ];
-                })->values()->all();
+                });
+
+                // Merge: employees first, then supervisors without employee record; sort by name
+                $all = $employeeItems->concat($supervisorItems)->values()->sortBy('name')->values()->all();
+                $total = count($all);
+                $page = max(1, (int) $request->get('page', 1));
+                $slice = array_slice($all, ($page - 1) * $perPage, $perPage);
+                $paginator = new LengthAwarePaginator($slice, $total, $perPage, $page, ['path' => $request->url(), 'query' => $request->query()]);
 
                 return response()->json([
                     'success' => true,
                     'message' => 'Employees retrieved successfully',
-                    'data' => $employees,
-                    'total' => $paginator->total(),
+                    'data' => $paginator->items(),
+                    'total' => $total,
                     'meta' => [
                         'current_page' => $paginator->currentPage(),
                         'last_page' => $paginator->lastPage(),

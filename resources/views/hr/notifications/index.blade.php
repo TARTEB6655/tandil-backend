@@ -25,18 +25,39 @@
             <p class="text-xs sm:text-sm text-green-700">{{ session('success') }}</p>
         </div>
     @endif
+    @if(session('error'))
+        <div class="mb-4 bg-red-50 border-l-4 border-red-400 p-3 sm:p-4 rounded-md">
+            <p class="text-xs sm:text-sm text-red-700">{{ session('error') }}</p>
+        </div>
+    @endif
 
-    <!-- Notifications List -->
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" id="select-all-notifications" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            Select all on page
+        </label>
+        <button type="submit" form="form-notifications-bulk" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200" onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected?');">Delete selected</button>
+        <form method="POST" action="{{ route('hr.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL notifications?');">
+            @csrf
+            <button type="submit" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200">Delete all</button>
+        </form>
+    </div>
+
+    <form method="POST" action="{{ route('hr.notifications.destroy-bulk') }}" id="form-notifications-bulk">
+        @csrf
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div class="divide-y divide-gray-200">
             @forelse($notifications as $notification)
                 @php
-                    $data = $notification->data;
-                    $type = $notification->type;
+                    $data = $notification->data ?? [];
+                    $type = $notification->type ?? '';
                     $isRead = !is_null($notification->read_at);
                 @endphp
                 <div class="p-3 sm:p-4 hover:bg-gray-50 transition-colors {{ !$isRead ? 'bg-blue-50' : '' }}">
                     <div class="flex items-start gap-3 sm:gap-4">
+                        <div class="flex-shrink-0 pt-0.5">
+                            <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                        </div>
                         <div class="flex-shrink-0">
                             <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 flex items-center justify-center">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,5 +110,7 @@
             </div>
         @endif
     </div>
+    </form>
+    <script>document.getElementById('select-all-notifications')?.addEventListener('change', function() { document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this); });</script>
 </x-hr-layout>
 

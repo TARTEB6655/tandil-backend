@@ -106,6 +106,28 @@ class NotificationController extends Controller
     }
 
     /**
+     * Delete selected notifications (POST ids[]).
+     */
+    public function destroyBulk(Request $request)
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'uuid']);
+        $user = Auth::user();
+        $deleted = $user->notifications()->whereIn('id', $request->ids)->delete();
+        return redirect()->back()->with('success', $deleted . ' notification(s) deleted.');
+    }
+
+    /**
+     * Delete all notifications for the user.
+     */
+    public function destroyAll()
+    {
+        $user = Auth::user();
+        $count = $user->notifications()->count();
+        $user->notifications()->delete();
+        return redirect()->back()->with('success', $count . ' notification(s) deleted.');
+    }
+
+    /**
      * Get unread notifications count (for AJAX requests).
      */
     public function getUnreadCount()

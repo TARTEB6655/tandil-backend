@@ -71,6 +71,22 @@
                 </div>
             </div>
         </a>
+        <a href="{{ route('supervisor.leave-requests.index') }}" class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-md hover:border-violet-200 transition-all duration-200 block">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Leave</p>
+                    <p class="text-base sm:text-lg font-medium text-violet-600">Apply / My requests</p>
+                    <p class="mt-1 sm:mt-2 text-xs text-gray-500">Submit leave for HR approval</p>
+                </div>
+                <div class="ml-3 sm:ml-4 flex-shrink-0">
+                    <div class="flex h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-violet-50">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
     </div>
 
     <!-- API-aligned Alerts: overdue_visits, upcoming_visits -->

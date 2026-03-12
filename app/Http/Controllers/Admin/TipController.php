@@ -56,7 +56,11 @@ class TipController extends Controller
 
         $validated['created_by'] = auth()->id();
 
-        Tip::create($validated);
+        $tip = Tip::create($validated);
+
+        if (($tip->status ?? '') === 'published') {
+            $this->notifyClientsOfPublishedTip($tip);
+        }
 
         return redirect()->route('admin.tips.index')
             ->with('success', 'Tip created successfully.');
@@ -89,6 +93,10 @@ class TipController extends Controller
 
         $tip->update($validated);
 
+        if (($tip->fresh()->status ?? '') === 'published') {
+            $this->notifyClientsOfPublishedTip($tip->fresh());
+        }
+
         return redirect()->route('admin.tips.index')
             ->with('success', 'Tip updated successfully.');
     }
@@ -108,7 +116,27 @@ class TipController extends Controller
         $tip->status = $tip->status === 'published' ? 'draft' : 'published';
         $tip->save();
 
+        if ($tip->status === 'published') {
+            $this->notifyClientsOfPublishedTip($tip);
+        }
+
         return redirect()->back()
             ->with('success', 'Tip status updated successfully.');
+    }
+
+    /**
+     * Send tip as database notification to all clients so it appears in their unified Notifications list.
+     */
+    private function notifyClientsOfPublishedTip(Tip $tip): void
+    {
+        $users = \App\Models\User::role('client')->get();
+        $notification = new \App\Notifications\TipPublishedNotification(
+            $tip->title,
+            $tip->content,
+            $tip->id
+        );
+        foreach ($users as $user) {
+            $user->notify($notification);
+        }
     }
 }
