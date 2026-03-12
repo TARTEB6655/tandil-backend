@@ -395,7 +395,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
 
         $accountStatus = $u->status ?? 'active';
         $onLeaveFromApproved = LeaveRequest::where('user_id', $u->id)
-            ->where('status', 'approved')
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->where('start_date', '<=', $today)
             ->where('end_date', '>=', $today)
             ->exists();
@@ -436,7 +436,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             return false;
         }
         return LeaveRequest::where('user_id', $userId)
-            ->where('status', 'approved')
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->where('start_date', '<=', $date)
             ->where('end_date', '>=', $date)
             ->exists();

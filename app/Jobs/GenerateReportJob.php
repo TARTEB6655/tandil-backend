@@ -78,7 +78,7 @@ class GenerateReportJob implements ShouldQueue
             ]);
 
             if ($report->creator) {
-                $report->creator->notify(new ReportGeneratedNotification($report));
+            $report->creator->notify(new ReportGeneratedNotification($report));
             }
         } catch (\Throwable $e) {
             Log::error('Report generation failed: ' . $e->getMessage(), [

@@ -24,8 +24,11 @@ class EmployeeLeaveRequestController extends Controller
         $query = LeaveRequest::where('user_id', $userId)->orderByDesc('created_at');
 
         $status = $request->get('status');
-        if (in_array($status, ['pending', 'approved', 'rejected'], true)) {
-            $query->where('status', $status);
+        if ($status !== null && $status !== '') {
+            $statusLower = strtolower((string) $status);
+            if (in_array($statusLower, ['pending', 'approved', 'rejected'], true)) {
+                $query->whereRaw('LOWER(status) = ?', [$statusLower]);
+            }
         }
 
         $perPage = max(1, min(50, (int) $request->get('per_page', 20)));

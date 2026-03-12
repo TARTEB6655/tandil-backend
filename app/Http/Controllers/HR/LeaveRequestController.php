@@ -82,6 +82,9 @@ class LeaveRequestController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        // Notify technician/supervisor so they see "Leave approved" in app notifications
+        $leaveRequest->user?->notify(new LeaveRequestStatusNotification($leaveRequest->fresh(), 'approved'));
+
         // Do NOT set user to inactive – account stays active; "on leave" is shown from approved LeaveRequest only.
 
         return back()->with('success', 'Leave request approved.');

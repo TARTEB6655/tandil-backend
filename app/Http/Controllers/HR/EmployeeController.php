@@ -43,7 +43,10 @@ class EmployeeController extends Controller
 
             // Check if this is an API request
             if ($request->expectsJson() || $request->is('api/*')) {
-                $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
+                // Default: no per_page = return all employees in one response. Pass ?per_page=20 for pagination.
+                $perPageParam = $request->query('per_page');
+                $returnAll = ($perPageParam === null || $perPageParam === '');
+                $perPage = $returnAll ? 999999 : max(1, min(10000, (int) $perPageParam));
                 $today = Carbon::today();
 
                 // 1) Rows from Employee table (technicians + any supervisors with employee record)
@@ -196,6 +199,9 @@ class EmployeeController extends Controller
                 // Merge: employees first, then technicians without employee, then supervisors without employee; sort by name
                 $all = $employeeItems->concat($technicianItems)->concat($supervisorItems)->values()->sortBy('name')->values()->all();
                 $total = count($all);
+                if ($returnAll) {
+                    $perPage = $total; // one page with all results
+                }
                 $page = max(1, (int) $request->get('page', 1));
                 $slice = array_slice($all, ($page - 1) * $perPage, $perPage);
                 $paginator = new LengthAwarePaginator($slice, $total, $perPage, $page, ['path' => $request->url(), 'query' => $request->query()]);
@@ -607,7 +613,7 @@ class EmployeeController extends Controller
         }
 
         $leave = LeaveRequest::where('user_id', $userId)
-            ->where('status', 'approved')
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
             ->orderByDesc('end_date')
@@ -636,9 +642,9 @@ class EmployeeController extends Controller
         if (empty($userIds)) {
             return [];
         }
-        $today = Carbon::today();
+        $today = Carbon::today(config('app.timezone', 'UTC'));
         $leaves = LeaveRequest::whereIn('user_id', $userIds)
-            ->where('status', 'approved')
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
             ->orderByDesc('end_date')

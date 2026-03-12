@@ -124,26 +124,30 @@ class AreaManagerApiController extends Controller
             ];
         }
 
-        // 4) Workers on leave (technicians in region whose leave covers today)
+        // 4) Workers on leave (technicians + supervisors with HR-approved LeaveRequest covering today)
         $technicianIdsInRegion = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $onLeaveToday = TechnicianVacation::whereIn('user_id', $technicianIdsInRegion)
+        $supervisorIdsInRegion = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        $allStaffIds = $technicianIdsInRegion->merge($supervisorIdsInRegion)->unique()->values();
+        $onLeaveToday = LeaveRequest::whereIn('user_id', $allStaffIds)
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->where('start_date', '<=', $today)
             ->where('end_date', '>=', $today)
+            ->pluck('user_id')
+            ->unique()
             ->count();
         if ($onLeaveToday > 0) {
             $alerts[] = [
                 'type' => 'warning',
                 'message' => $onLeaveToday === 1
-                    ? '1 worker is on leave today.'
-                    : "{$onLeaveToday} workers are on leave today.",
+                    ? '1 staff member is on leave today (HR-approved).'
+                    : "{$onLeaveToday} staff members are on leave today (HR-approved).",
                 'timestamp' => Carbon::now()->toIso8601String(),
             ];
         }
 
-        // Leave by supervisor (for UI: "Supervisor X has N on leave")
-        $supervisorIds = DB::table('area_supervisor')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
+        // Leave by supervisor (for UI: "Supervisor X has N technicians on leave" + supervisor's own on_leave)
         $leaveBySupervisor = [];
-        foreach ($supervisorIds as $supId) {
+        foreach ($supervisorIdsInRegion as $supId) {
             $u = User::find($supId);
             if (! $u) {
                 continue;
@@ -153,15 +157,24 @@ class AreaManagerApiController extends Controller
                 continue;
             }
             $techIds = DB::table('area_technician')->whereIn('area_id', $supAreaIds)->distinct()->pluck('user_id');
-            $count = TechnicianVacation::whereIn('user_id', $techIds)
+            $count = LeaveRequest::whereIn('user_id', $techIds)
+                ->whereRaw('LOWER(status) = ?', ['approved'])
                 ->where('start_date', '<=', $today)
                 ->where('end_date', '>=', $today)
+                ->pluck('user_id')
+                ->unique()
                 ->count();
-            if ($count > 0) {
+            $supOnLeave = LeaveRequest::where('user_id', $u->id)
+                ->whereRaw('LOWER(status) = ?', ['approved'])
+                ->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today)
+                ->exists();
+            if ($count > 0 || $supOnLeave) {
                 $leaveBySupervisor[] = [
                     'supervisor_id' => $u->id,
                     'supervisor_name' => $u->name,
                     'on_leave' => $count,
+                    'supervisor_on_leave' => $supOnLeave,
                 ];
             }
         }
@@ -242,7 +255,8 @@ class AreaManagerApiController extends Controller
             ->with('employee')
             ->get();
 
-        $list = $supervisors->map(function (User $u) {
+        $today = Carbon::today()->toDateString();
+        $list = $supervisors->map(function (User $u) use ($today) {
             $areaIds = $u->supervisedAreaIds();
             $firstArea = $u->supervisedAreas()->first();
             $location = $firstArea?->name ?? $firstArea?->location ?? $u->employee?->region ?? null;
@@ -259,6 +273,11 @@ class AreaManagerApiController extends Controller
             $total = $activeCount + $doneCount;
             $performance = $total > 0 ? round(($doneCount / $total) * 100, 0) : 0;
             $initial = mb_substr(trim($u->name), 0, 1) ?: '?';
+            $supervisorOnLeave = LeaveRequest::where('user_id', $u->id)
+                ->whereRaw('LOWER(status) = ?', ['approved'])
+                ->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today)
+                ->exists();
 
             return [
                 'id' => $u->id,
@@ -272,6 +291,7 @@ class AreaManagerApiController extends Controller
                 'team' => $teamCount,
                 'active' => $activeCount,
                 'done' => $doneCount,
+                'on_leave' => $supervisorOnLeave,
             ];
         })->values()->all();
 
@@ -311,6 +331,13 @@ class AreaManagerApiController extends Controller
         $firstArea = $u->supervisedAreas()->first();
         $location = $firstArea?->name ?? $firstArea?->location ?? $u->employee?->region ?? null;
 
+        $today = Carbon::today()->toDateString();
+        $supervisorOnLeave = LeaveRequest::where('user_id', $u->id)
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->exists();
+
         $data = [
             'id' => $u->id,
             'name' => $u->name,
@@ -325,6 +352,7 @@ class AreaManagerApiController extends Controller
             'team' => $teamCount,
             'active' => $activeCount,
             'done' => $doneCount,
+            'on_leave' => $supervisorOnLeave,
         ];
 
         return response()->json(['success' => true, 'data' => $data]);
@@ -461,7 +489,7 @@ class AreaManagerApiController extends Controller
             $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
             $initial = mb_substr(trim($tech->name), 0, 1) ?: '?';
             $accountStatus = $tech->status ?? 'active';
-            $onLeave = LeaveRequest::where('user_id', $tech->id)->where('status', 'approved')->where('start_date', '<=', $today)->where('end_date', '>=', $today)->exists();
+            $onLeave = LeaveRequest::where('user_id', $tech->id)->whereRaw('LOWER(status) = ?', ['approved'])->where('start_date', '<=', $today)->where('end_date', '>=', $today)->exists();
             return [
                 'id' => $tech->id,
                 'name' => $tech->name,
@@ -487,6 +515,11 @@ class AreaManagerApiController extends Controller
 
         $firstArea = $supervisor->supervisedAreas()->first();
         $location = $firstArea?->name ?? $firstArea?->location ?? null;
+        $supervisorOnLeave = LeaveRequest::where('user_id', $supervisor->id)
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->exists();
 
         return response()->json([
             'success' => true,
@@ -496,6 +529,7 @@ class AreaManagerApiController extends Controller
                     'name' => $supervisor->name,
                     'employee_id' => $supervisor->employee?->employee_id ?? ('SUP-' . $supervisor->id),
                     'location' => $location,
+                    'on_leave' => $supervisorOnLeave,
                 ],
                 'members' => $members,
             ],
@@ -597,7 +631,7 @@ class AreaManagerApiController extends Controller
                     'initial' => mb_strtoupper($initial),
                     'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($technician->profile_picture, $initial),
                     'account_status' => $technician->status ?? 'active',
-                    'on_leave' => LeaveRequest::where('user_id', $technician->id)->where('status', 'approved')->where('start_date', '<=', Carbon::today()->toDateString())->where('end_date', '>=', Carbon::today()->toDateString())->exists(),
+                    'on_leave' => LeaveRequest::where('user_id', $technician->id)->whereRaw('LOWER(status) = ?', ['approved'])->where('start_date', '<=', Carbon::today()->toDateString())->where('end_date', '>=', Carbon::today()->toDateString())->exists(),
                     'active_count' => $activeCount,
                     'done_count' => $doneCount,
                     'total_jobs' => $totalJobsCount,
