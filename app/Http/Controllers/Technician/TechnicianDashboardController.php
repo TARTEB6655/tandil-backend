@@ -9,6 +9,7 @@ use App\Services\ProfilePictureUploadService;
 use App\Models\TechnicianAvailability;
 use App\Models\TechnicianBankAccount;
 use App\Models\TechnicianBreak;
+use App\Models\LeaveRequest;
 use App\Models\TechnicianVacation;
 use App\Models\Visit;
 use App\Models\Report;
@@ -975,13 +976,32 @@ class TechnicianDashboardController extends Controller
         if (array_key_exists('vacations', $input)) {
             TechnicianVacation::where('user_id', $user->id)->delete();
             foreach ($input['vacations'] ?? [] as $item) {
+                $start = $item['start_date'] ?? null;
+                $end = $item['end_date'] ?? null;
+                $leaveType = $item['leave_type'] ?? 'Leave';
+                $reason = $item['reason'] ?? null;
                 TechnicianVacation::create([
                     'user_id' => $user->id,
-                    'start_date' => $item['start_date'],
-                    'end_date' => $item['end_date'],
-                    'leave_type' => $item['leave_type'] ?? null,
-                    'reason' => $item['reason'] ?? null,
+                    'start_date' => $start,
+                    'end_date' => $end,
+                    'leave_type' => $leaveType,
+                    'reason' => $reason,
                 ]);
+                // So HR dashboard shows this leave: create pending LeaveRequest if not already present (same user + dates)
+                if ($start && $end) {
+                    LeaveRequest::firstOrCreate(
+                        [
+                            'user_id' => $user->id,
+                            'start_date' => $start,
+                            'end_date' => $end,
+                            'status' => 'pending',
+                        ],
+                        [
+                            'leave_type' => $leaveType,
+                            'reason' => $reason,
+                        ]
+                    );
+                }
             }
         }
 
