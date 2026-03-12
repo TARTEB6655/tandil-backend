@@ -63,25 +63,25 @@ class EmployeeController extends Controller
                 }
                 $supervisorsWithoutEmployee = $supervisorsWithoutEmployee->orderBy('name')->get();
 
-                // Build same-shaped items for each supervisor (no Employee row)
+                // Build same-shaped items for each supervisor (no Employee row). Use non-null id/strings so app never gets null (avoids "toString of null" crash).
                 $supervisorItems = $supervisorsWithoutEmployee->map(function ($user) use ($today) {
-                    $name = $user->name ?? null;
-                    $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
-                    $profilePictureUrl = ProfilePictureUploadService::fullUrl($user->profile_picture);
+                    $name = $user->name ?? '';
+                    $initial = $name !== '' ? mb_substr(trim($name), 0, 1) : '?';
+                    $profilePictureUrl = ProfilePictureUploadService::fullUrl($user->profile_picture) ?? '';
                     $leaveInfo = $this->employeeLeaveStatus($user->id, $today);
                     return [
-                        'id' => null,
+                        'id' => 'sup-' . $user->id,
                         'user_id' => $user->id,
                         'name' => $name,
-                        'email' => $user->email,
+                        'email' => (string) ($user->email ?? ''),
                         'employee_id' => 'SUP-' . $user->id,
-                        'phone' => $user->phone,
+                        'phone' => (string) ($user->phone ?? ''),
                         'designation' => 'Supervisor',
-                        'region' => null,
+                        'region' => '',
                         'joining_date' => null,
                         'created_at' => $user->created_at,
                         'updated_at' => $user->updated_at,
-                        'profile_picture' => $user->profile_picture,
+                        'profile_picture' => $user->profile_picture ?? '',
                         'profile_picture_url' => $profilePictureUrl,
                         'initial' => mb_strtoupper($initial),
                         'status' => $leaveInfo['status'],
@@ -90,37 +90,37 @@ class EmployeeController extends Controller
                         'leave_end_date' => $leaveInfo['leave_end_date'],
                         'user' => [
                             'id' => $user->id,
-                            'name' => $user->name,
-                            'email' => $user->email,
-                            'phone' => $user->phone,
-                            'role' => $user->role,
-                            'profile_picture' => $user->profile_picture,
+                            'name' => (string) ($user->name ?? ''),
+                            'email' => (string) ($user->email ?? ''),
+                            'phone' => (string) ($user->phone ?? ''),
+                            'role' => (string) ($user->role ?? ''),
+                            'profile_picture' => $user->profile_picture ?? '',
                             'profile_picture_url' => $profilePictureUrl,
                             'initial' => mb_strtoupper($initial),
                         ],
                     ];
                 });
 
-                // 3) Map Employee rows to same response shape
+                // 3) Map Employee rows to same response shape. Use empty string instead of null for strings so app never hits "toString of null".
                 $employeeItems = $employeeRows->map(function ($employee) use ($today) {
                     $user = $employee->user;
-                    $name = $employee->name ?? $user?->name ?? null;
-                    $initial = $name ? mb_substr(trim($name), 0, 1) : '?';
-                    $profilePictureUrl = $user ? ProfilePictureUploadService::fullUrl($user->profile_picture) : null;
+                    $name = (string) ($employee->name ?? $user?->name ?? '');
+                    $initial = $name !== '' ? mb_substr(trim($name), 0, 1) : '?';
+                    $profilePictureUrl = $user ? (ProfilePictureUploadService::fullUrl($user->profile_picture) ?? '') : '';
                     $leaveInfo = $this->employeeLeaveStatus($employee->user_id, $today);
                     return [
                         'id' => $employee->id,
                         'user_id' => $employee->user_id,
                         'name' => $name,
-                        'email' => $employee->email ?? $user?->email ?? null,
-                        'employee_id' => $employee->employee_id,
-                        'phone' => $employee->phone ?? $user?->phone ?? null,
-                        'designation' => $employee->designation,
-                        'region' => $employee->region,
+                        'email' => (string) ($employee->email ?? $user?->email ?? ''),
+                        'employee_id' => (string) ($employee->employee_id ?? ''),
+                        'phone' => (string) ($employee->phone ?? $user?->phone ?? ''),
+                        'designation' => (string) ($employee->designation ?? ''),
+                        'region' => (string) ($employee->region ?? ''),
                         'joining_date' => $employee->joining_date,
                         'created_at' => $employee->created_at,
                         'updated_at' => $employee->updated_at,
-                        'profile_picture' => $user?->profile_picture ?? null,
+                        'profile_picture' => $user?->profile_picture ?? '',
                         'profile_picture_url' => $profilePictureUrl,
                         'initial' => mb_strtoupper($initial),
                         'status' => $leaveInfo['status'],
@@ -129,11 +129,11 @@ class EmployeeController extends Controller
                         'leave_end_date' => $leaveInfo['leave_end_date'],
                         'user' => $user ? [
                             'id' => $user->id,
-                            'name' => $user->name,
-                            'email' => $user->email,
-                            'phone' => $user->phone,
-                            'role' => $user->role,
-                            'profile_picture' => $user->profile_picture ?? null,
+                            'name' => (string) ($user->name ?? ''),
+                            'email' => (string) ($user->email ?? ''),
+                            'phone' => (string) ($user->phone ?? ''),
+                            'role' => (string) ($user->role ?? ''),
+                            'profile_picture' => $user->profile_picture ?? '',
                             'profile_picture_url' => $profilePictureUrl,
                             'initial' => mb_strtoupper($initial),
                         ] : null,
