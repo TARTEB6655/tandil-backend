@@ -273,8 +273,7 @@ class HrApiController extends Controller
         $lr->reviewed_at = now();
         $lr->save();
 
-        // When HR approves leave, applicant is automatically set inactive (not by their own choice)
-        $lr->user?->update(['status' => 'inactive']);
+        // Do NOT set user to inactive – account stays active; "on leave" is shown from approved LeaveRequest only.
 
         $lr->user?->notify(new \App\Notifications\LeaveRequestStatusNotification($lr->fresh(), 'approved'));
 

@@ -12,6 +12,7 @@ use App\Models\Visit;
 use App\Models\TechnicianBreak;
 use App\Models\Area;
 use App\Models\Complaint;
+use App\Models\LeaveRequest;
 use App\Services\VisitOfferService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -393,13 +394,18 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $currentVisit = $visits->where('status', 'in_progress')->first();
 
         $accountStatus = $u->status ?? 'active';
+        $onLeaveFromApproved = LeaveRequest::where('user_id', $u->id)
+            ->where('status', 'approved')
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->exists();
         $onBreak = TechnicianBreak::where('user_id', $u->id)
             ->whereDate('date', $today)
             ->get()
             ->contains(fn ($b) => $this->isTimeInBreak($now, $b->start_time ?? '', $b->end_time ?? ''));
 
-        $status = $accountStatus === 'inactive' ? 'On leave' : ($onBreak ? 'Break' : 'Active');
-        $currentActivity = $onBreak ? 'On Break' : ($accountStatus === 'inactive' ? 'On leave' : null);
+        $status = $onLeaveFromApproved ? 'On leave' : ($accountStatus === 'inactive' ? 'Inactive' : ($onBreak ? 'Break' : 'Active'));
+        $currentActivity = $onBreak ? 'On Break' : ($onLeaveFromApproved ? 'On leave' : ($accountStatus === 'inactive' ? 'Inactive' : null));
         if (! $onBreak && $currentVisit) {
             $meta = $currentVisit->notes ? $this->parseVisitMetaFromNotes((string) $currentVisit->notes) : [];
             $loc = $meta['farm_name'] ?? $currentVisit->area?->name ?? $currentVisit->subscription?->client?->name ?? 'Visit';
@@ -415,11 +421,25 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             'profile_picture_url' => $u->profile_picture_url,
             'status' => $status,
             'account_status' => $accountStatus,
+            'on_leave' => $onLeaveFromApproved,
             'current_activity' => $currentActivity,
             'tasks_completed' => $completedTasks,
             'tasks_total' => $totalTasks,
             'tasks_display' => $totalTasks > 0 ? "{$completedTasks}/{$totalTasks}" : '0/0',
         ];
+    }
+
+    /** Check if technician has approved leave covering the given date (Y-m-d). Used to block assignment on leave dates. */
+    private function isTechnicianOnLeave(int $userId, ?string $date): bool
+    {
+        if (! $date) {
+            return false;
+        }
+        return LeaveRequest::where('user_id', $userId)
+            ->where('status', 'approved')
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->exists();
     }
 
     private function isTimeInBreak(Carbon $now, string $startTime, string $endTime): bool
@@ -611,6 +631,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
                 return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
             }
+            $scheduledDate = $visit->scheduled_date?->toDateString() ?? $request->input('scheduled_date') ?? Carbon::today()->toDateString();
+            if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+                return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
+            }
             $visit->supervisor_id = $request->user()->id;
             $visit->escalated_at = null;
             $visit->offer_count = 0;
@@ -677,6 +701,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
             return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
         }
+        $scheduledDate = $visit->scheduled_date?->toDateString() ?? $request->input('scheduled_date') ?? Carbon::today()->toDateString();
+        if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+            return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
+        }
 
         $visit->supervisor_id = $request->user()->id;
         $visit->escalated_at = null;
@@ -726,6 +754,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
                 return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
             }
+            $scheduledDate = $visit->scheduled_date?->toDateString() ?? $request->input('scheduled_date') ?? Carbon::today()->toDateString();
+            if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+                return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
+            }
             $visit->technician_id = $technician->id;
             $visit->supervisor_id = $request->user()->id;
             $visit->escalated_at = null;
@@ -769,6 +801,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $areaIds = $this->areaIds($request);
         if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
             return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
+        }
+        $scheduledDate = $visit->scheduled_date?->toDateString() ?? Carbon::today()->toDateString();
+        if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+            return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
         }
 
         $visit->technician_id = $technician->id;

@@ -9,6 +9,7 @@ use App\Models\Area;
 use App\Models\Order;
 use App\Models\Report;
 use App\Models\Subscription;
+use App\Models\LeaveRequest;
 use App\Models\TechnicianVacation;
 use App\Models\User;
 use App\Models\Visit;
@@ -449,7 +450,8 @@ class AreaManagerApiController extends Controller
         }
 
         $technicianIds = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $members = User::role('technician')->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor) {
+        $today = Carbon::today()->toDateString();
+        $members = User::role('technician')->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor, $today) {
             $techAreaIds = DB::table('area_technician')->where('user_id', $tech->id)->whereIn('area_id', $areaIds)->pluck('area_id');
             $areas = Area::whereIn('id', $techAreaIds)->get();
             $areaNames = $areas->pluck('name')->filter()->values()->all();
@@ -459,6 +461,7 @@ class AreaManagerApiController extends Controller
             $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
             $initial = mb_substr(trim($tech->name), 0, 1) ?: '?';
             $accountStatus = $tech->status ?? 'active';
+            $onLeave = LeaveRequest::where('user_id', $tech->id)->where('status', 'approved')->where('start_date', '<=', $today)->where('end_date', '>=', $today)->exists();
             return [
                 'id' => $tech->id,
                 'name' => $tech->name,
@@ -478,6 +481,7 @@ class AreaManagerApiController extends Controller
                 'total_jobs' => $active + $done,
                 'team_leader_id' => $supervisor->id,
                 'account_status' => $accountStatus,
+                'on_leave' => $onLeave,
             ];
         })->values()->all();
 
@@ -593,6 +597,7 @@ class AreaManagerApiController extends Controller
                     'initial' => mb_strtoupper($initial),
                     'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($technician->profile_picture, $initial),
                     'account_status' => $technician->status ?? 'active',
+                    'on_leave' => LeaveRequest::where('user_id', $technician->id)->where('status', 'approved')->where('start_date', '<=', Carbon::today()->toDateString())->where('end_date', '>=', Carbon::today()->toDateString())->exists(),
                     'active_count' => $activeCount,
                     'done_count' => $doneCount,
                     'total_jobs' => $totalJobsCount,
