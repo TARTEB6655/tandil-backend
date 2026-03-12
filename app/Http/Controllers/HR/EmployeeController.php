@@ -49,23 +49,71 @@ class EmployeeController extends Controller
                 // 1) Rows from Employee table (technicians + any supervisors with employee record)
                 $employeeRows = $query->orderBy('created_at', 'desc')->get();
 
-                // 2) Supervisors who do NOT have an Employee record – include them so HR sees all staff.
-                //    Use both users.role and Spatie role so supervisors assigned only via Spatie (e.g. supervisor1@test.com) are included.
+                // 2) Staff (technicians + supervisors) who do NOT have an Employee record – include so HR sees all staff from DB.
+                //    Use both users.role and Spatie role so seeder-created users (only User, no Employee) are included.
                 $employeeUserIds = $employeeRows->pluck('user_id')->filter()->unique()->values()->all();
-                $supervisorsWithoutEmployee = User::where(function ($q) {
-                    $q->where('role', 'supervisor')
-                        ->orWhereHas('roles', fn ($r) => $r->where('name', 'supervisor'));
-                })
-                    ->whereNotIn('id', $employeeUserIds);
+                $staffRoleQuery = function ($q, $roleName) {
+                    $q->where('role', $roleName)
+                        ->orWhereHas('roles', fn ($r) => $r->where('name', $roleName));
+                };
+
+                $techniciansWithoutEmployee = User::where(function ($q) use ($staffRoleQuery) {
+                    $staffRoleQuery($q, 'technician');
+                })->whereNotIn('id', $employeeUserIds);
+
+                $supervisorsWithoutEmployee = User::where(function ($q) use ($staffRoleQuery) {
+                    $staffRoleQuery($q, 'supervisor');
+                })->whereNotIn('id', $employeeUserIds);
 
                 if ($request->has('search') && $request->search) {
                     $search = $request->search;
-                    $supervisorsWithoutEmployee->where(function ($q) use ($search) {
+                    $filter = function ($q) use ($search) {
                         $q->where('name', 'LIKE', "%{$search}%")
                             ->orWhere('email', 'LIKE', "%{$search}%");
-                    });
+                    };
+                    $techniciansWithoutEmployee->where($filter);
+                    $supervisorsWithoutEmployee->where($filter);
                 }
+                $techniciansWithoutEmployee = $techniciansWithoutEmployee->orderBy('name')->get();
                 $supervisorsWithoutEmployee = $supervisorsWithoutEmployee->orderBy('name')->get();
+
+                // Build same-shaped items for technicians without Employee row.
+                $technicianItems = $techniciansWithoutEmployee->map(function ($user) use ($today) {
+                    $name = $user->name ?? '';
+                    $initial = $name !== '' ? mb_substr(trim($name), 0, 1) : '?';
+                    $profilePictureUrl = ProfilePictureUploadService::fullUrl($user->profile_picture) ?? '';
+                    $leaveInfo = $this->employeeLeaveStatus($user->id, $today);
+                    return [
+                        'id' => 'tech-' . $user->id,
+                        'user_id' => $user->id,
+                        'name' => $name,
+                        'email' => (string) ($user->email ?? ''),
+                        'employee_id' => 'TECH-' . $user->id,
+                        'phone' => (string) ($user->phone ?? ''),
+                        'designation' => 'Technician',
+                        'region' => '',
+                        'joining_date' => null,
+                        'created_at' => $user->created_at,
+                        'updated_at' => $user->updated_at,
+                        'profile_picture' => $user->profile_picture ?? '',
+                        'profile_picture_url' => $profilePictureUrl,
+                        'initial' => mb_strtoupper($initial),
+                        'status' => $leaveInfo['status'],
+                        'leave_days' => $leaveInfo['leave_days'],
+                        'leave_remaining_days' => $leaveInfo['leave_remaining_days'],
+                        'leave_end_date' => $leaveInfo['leave_end_date'],
+                        'user' => [
+                            'id' => $user->id,
+                            'name' => (string) ($user->name ?? ''),
+                            'email' => (string) ($user->email ?? ''),
+                            'phone' => (string) ($user->phone ?? ''),
+                            'role' => (string) ($user->role ?? ''),
+                            'profile_picture' => $user->profile_picture ?? '',
+                            'profile_picture_url' => $profilePictureUrl,
+                            'initial' => mb_strtoupper($initial),
+                        ],
+                    ];
+                });
 
                 // Build same-shaped items for each supervisor (no Employee row). Use non-null id/strings so app never gets null (avoids "toString of null" crash).
                 $supervisorItems = $supervisorsWithoutEmployee->map(function ($user) use ($today) {
@@ -144,8 +192,8 @@ class EmployeeController extends Controller
                     ];
                 });
 
-                // Merge: employees first, then supervisors without employee record; sort by name
-                $all = $employeeItems->concat($supervisorItems)->values()->sortBy('name')->values()->all();
+                // Merge: employees first, then technicians without employee, then supervisors without employee; sort by name
+                $all = $employeeItems->concat($technicianItems)->concat($supervisorItems)->values()->sortBy('name')->values()->all();
                 $total = count($all);
                 $page = max(1, (int) $request->get('page', 1));
                 $slice = array_slice($all, ($page - 1) * $perPage, $perPage);
