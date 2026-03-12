@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Technician;
 
 use App\Http\Controllers\Controller;
+use App\Models\Complaint;
 use App\Models\Employee;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
@@ -21,12 +22,90 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Illuminate\View\View;
 
 class TechnicianDashboardController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:sanctum');
+        // index() is for web /technician/dashboard (uses session auth from route). API methods use auth:sanctum from route.
+        $this->middleware('auth:sanctum')->except('index');
+    }
+
+    /**
+     * GET /technician/dashboard (web). Renders technician dashboard view with visits, reports, complaints stats.
+     */
+    public function index(Request $request): View
+    {
+        $user = $request->user();
+        $technicianId = $user->id;
+
+        $totalVisits = Visit::where('technician_id', $technicianId)->count();
+        $completedVisits = Visit::where('technician_id', $technicianId)->whereIn('status', ['completed', 'approved'])->count();
+        $pendingVisits = Visit::where('technician_id', $technicianId)->where('status', 'pending')->count();
+        $acceptedVisits = Visit::where('technician_id', $technicianId)->where('status', 'pending_acceptance')->count();
+        $inProgressVisits = Visit::where('technician_id', $technicianId)->whereIn('status', ['in_progress', 'started', 'scheduled'])->count();
+
+        $visitIds = Visit::where('technician_id', $technicianId)->pluck('id');
+        $totalReports = Report::whereIn('visit_id', $visitIds)->count();
+        $approvedReports = Report::whereIn('visit_id', $visitIds)->where('status', 'approved')->count();
+        $pendingReports = Report::whereIn('visit_id', $visitIds)->where('status', 'pending')->count();
+
+        $totalComplaints = Complaint::whereIn('visit_id', $visitIds)->count();
+        $resolvedComplaints = Complaint::whereIn('visit_id', $visitIds)->where('status', 'resolved')->count();
+
+        $recentVisits = Visit::where('technician_id', $technicianId)
+            ->with(['subscription.client', 'area'])
+            ->orderByDesc('scheduled_date')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+        $recentReports = Report::whereIn('visit_id', $visitIds)
+            ->with('visit.subscription.client')
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
+        $recentComplaints = Complaint::whereIn('visit_id', $visitIds)
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
+
+        $visitsByStatus = Visit::where('technician_id', $technicianId)
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->get()
+            ->map(fn ($r) => ['status' => $r->status ?? 'unknown', 'count' => (int) $r->count])
+            ->values()
+            ->all();
+
+        $sixMonthsAgo = Carbon::now()->subMonths(5)->startOfMonth();
+        $monthlyVisits = Visit::where('technician_id', $technicianId)
+            ->where('scheduled_date', '>=', $sixMonthsAgo)
+            ->selectRaw("DATE_FORMAT(scheduled_date, '%Y-%m') as month, count(*) as count")
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(fn ($r) => ['month' => $r->month, 'count' => (string) $r->count])
+            ->values()
+            ->all();
+
+        return view('technician.dashboard', compact(
+            'totalVisits',
+            'completedVisits',
+            'pendingVisits',
+            'acceptedVisits',
+            'inProgressVisits',
+            'totalReports',
+            'approvedReports',
+            'pendingReports',
+            'totalComplaints',
+            'resolvedComplaints',
+            'recentVisits',
+            'recentReports',
+            'recentComplaints',
+            'visitsByStatus',
+            'monthlyVisits'
+        ));
     }
 
     /**
