@@ -333,8 +333,11 @@ class SupervisorDashboardApiTest extends TestCase
 
         $team = $this->getJson('/api/supervisor/team', $this->authHeaders());
         $team->assertStatus(200)->assertJsonPath('success', true);
-        $memberIds = collect($team->json('data.team'))->pluck('id')->all();
-        $this->assertNotContains($this->technician->id, $memberIds, 'Inactive technician must not appear in supervisor team');
+        $memberList = $team->json('data') ?? [];
+        $this->assertIsArray($memberList);
+        $technicianMember = collect($memberList)->firstWhere('id', $this->technician->id);
+        $this->assertNotNull($technicianMember, 'Inactive technician must appear in team list so supervisor/AM/admin see status');
+        $this->assertSame('inactive', $technicianMember['account_status'] ?? null, 'Inactive member must have account_status inactive');
 
         $unassignedVisit = Visit::factory()->create([
             'subscription_id' => $this->subscription->id,

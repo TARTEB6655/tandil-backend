@@ -449,7 +449,7 @@ class AreaManagerApiController extends Controller
         }
 
         $technicianIds = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
-        $members = User::role('technician')->active()->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor) {
+        $members = User::role('technician')->whereIn('id', $technicianIds)->with('employee')->get()->map(function (User $tech) use ($areaIds, $supervisor) {
             $techAreaIds = DB::table('area_technician')->where('user_id', $tech->id)->whereIn('area_id', $areaIds)->pluck('area_id');
             $areas = Area::whereIn('id', $techAreaIds)->get();
             $areaNames = $areas->pluck('name')->filter()->values()->all();
@@ -458,6 +458,7 @@ class AreaManagerApiController extends Controller
             $active = (clone $visitQuery)->whereIn('status', ['pending', 'scheduled', 'in_progress', 'started'])->count();
             $done = (clone $visitQuery)->whereIn('status', ['completed', 'approved'])->count();
             $initial = mb_substr(trim($tech->name), 0, 1) ?: '?';
+            $accountStatus = $tech->status ?? 'active';
             return [
                 'id' => $tech->id,
                 'name' => $tech->name,
@@ -476,6 +477,7 @@ class AreaManagerApiController extends Controller
                 'done' => $done,
                 'total_jobs' => $active + $done,
                 'team_leader_id' => $supervisor->id,
+                'account_status' => $accountStatus,
             ];
         })->values()->all();
 
@@ -504,7 +506,7 @@ class AreaManagerApiController extends Controller
      */
     public function teamMemberJobs(Request $request, int $id): JsonResponse
     {
-        $technician = User::role('technician')->active()->where('id', $id)->with('employee')->first();
+        $technician = User::role('technician')->where('id', $id)->with('employee')->first();
         if (! $technician) {
             return response()->json(['success' => false, 'message' => 'Team member not found.'], 404);
         }
@@ -590,6 +592,7 @@ class AreaManagerApiController extends Controller
                     'employee_id' => $technician->employee?->employee_id ?? ('TEC-' . $technician->id),
                     'initial' => mb_strtoupper($initial),
                     'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($technician->profile_picture, $initial),
+                    'account_status' => $technician->status ?? 'active',
                     'active_count' => $activeCount,
                     'done_count' => $doneCount,
                     'total_jobs' => $totalJobsCount,

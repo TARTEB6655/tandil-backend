@@ -28,7 +28,6 @@ class AreaController extends Controller
         $search = is_string($search) ? trim($search) : '';
 
         $query = User::role('technician')
-            ->active()
             ->with(['employee', 'assignedAreas.supervisors'])
             ->orderBy('name');
 
@@ -66,6 +65,7 @@ class AreaController extends Controller
                 'specializations' => $emp?->specializations ?? [],
                 'zone' => $firstZone,
                 'supervisor' => $firstSupervisor,
+                'account_status' => $u->status ?? 'active',
             ];
         })->all();
 
@@ -91,7 +91,6 @@ class AreaController extends Controller
     {
         $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
         $technicians = User::role('technician')
-            ->active()
             ->with(['employee', 'assignedAreas'])
             ->orderBy('name')
             ->paginate($perPage);
@@ -110,6 +109,7 @@ class AreaController extends Controller
                 'designation' => $emp?->designation,
                 'assigned_zone_ids' => $u->assignedAreas->pluck('id')->values()->all(),
                 'assigned_zones' => $zones,
+                'account_status' => $u->status ?? 'active',
             ];
         })->all();
 

@@ -106,7 +106,6 @@ class SupervisorController extends Controller
 
         $technicianIds = DB::table('area_technician')->whereIn('area_id', $areaIds)->distinct()->pluck('user_id');
         $team = User::role('technician')
-            ->active()
             ->whereIn('id', $technicianIds)
             ->with(['employee', 'assignedAreas' => fn ($q) => $q->whereIn('areas.id', $areaIds)])
             ->orderBy('name')
@@ -121,6 +120,7 @@ class SupervisorController extends Controller
                     'service_areas' => $u->employee?->service_areas ?? [],
                     'specializations' => $u->employee?->specializations ?? [],
                     'assigned_zones' => $zonesInScope,
+                    'account_status' => $u->status ?? 'active',
                 ];
             })
             ->values()

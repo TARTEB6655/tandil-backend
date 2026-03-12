@@ -217,8 +217,8 @@ class SupervisorDashboardApiController extends Controller
             ]);
         }
 
+        // Include all team members (active + inactive) so supervisor/AM/admin see status; assign flow still uses active() only
         $technicians = User::role('technician')
-            ->active()
             ->whereIn('id', $technicianIds)
             ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
             ->get();
@@ -243,7 +243,6 @@ class SupervisorDashboardApiController extends Controller
         $now = Carbon::now();
         $today = $now->toDateString();
         $u = User::role('technician')
-            ->active()
             ->where('id', $id)
             ->with(['employee', 'technicianAvailability'])
             ->firstOrFail();
@@ -350,7 +349,7 @@ class SupervisorDashboardApiController extends Controller
         $technicianIds = $this->teamMemberIdsInZones($areaIds);
         $members = [];
         if ($technicianIds->isNotEmpty()) {
-            $technicians = User::role('technician')->active()->whereIn('id', $technicianIds)->get();
+$technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             foreach ($technicians as $u) {
                 $memberVisits = $this->memberVisitsQuery($request, $u->id)->whereIn('status', ['completed', 'approved'])->get();
                 $completed = $memberVisits->count();
@@ -369,6 +368,7 @@ class SupervisorDashboardApiController extends Controller
                     'initial' => mb_strtoupper($initial),
                     'completed' => $completed,
                     'rating' => $rating,
+                    'account_status' => $u->status ?? 'active',
                 ];
             }
         }
@@ -392,20 +392,21 @@ class SupervisorDashboardApiController extends Controller
         $completedTasks = $visits->whereIn('status', ['completed', 'approved'])->count();
         $currentVisit = $visits->where('status', 'in_progress')->first();
 
+        $accountStatus = $u->status ?? 'active';
         $onBreak = TechnicianBreak::where('user_id', $u->id)
             ->whereDate('date', $today)
             ->get()
             ->contains(fn ($b) => $this->isTimeInBreak($now, $b->start_time ?? '', $b->end_time ?? ''));
 
-        $status = $onBreak ? 'Break' : 'Active';
-        $currentActivity = $onBreak ? 'On Break' : null;
+        $status = $accountStatus === 'inactive' ? 'On leave' : ($onBreak ? 'Break' : 'Active');
+        $currentActivity = $onBreak ? 'On Break' : ($accountStatus === 'inactive' ? 'On leave' : null);
         if (! $onBreak && $currentVisit) {
             $meta = $currentVisit->notes ? $this->parseVisitMetaFromNotes((string) $currentVisit->notes) : [];
             $loc = $meta['farm_name'] ?? $currentVisit->area?->name ?? $currentVisit->subscription?->client?->name ?? 'Visit';
             $svc = $meta['service_name'] ?? ($currentVisit->subscription?->plan ? str_replace('_', ' ', (string) $currentVisit->subscription->plan) : null) ?? '';
             $currentActivity = $svc ? "{$loc} - {$svc}" : $loc;
         }
-        $currentActivity = $currentActivity ?? ($status === 'Break' ? 'On Break' : '—');
+        $currentActivity = $currentActivity ?? ($status === 'On leave' ? 'On leave' : ($status === 'Break' ? 'On Break' : '—'));
 
         return [
             'id' => $u->id,
@@ -413,6 +414,7 @@ class SupervisorDashboardApiController extends Controller
             'employee_id' => $u->employee?->employee_id ?? ('TECH-' . $u->id),
             'profile_picture_url' => $u->profile_picture_url,
             'status' => $status,
+            'account_status' => $accountStatus,
             'current_activity' => $currentActivity,
             'tasks_completed' => $completedTasks,
             'tasks_total' => $totalTasks,

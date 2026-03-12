@@ -36,23 +36,7 @@ class HrApiController extends Controller
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
-            ->map(function (LeaveRequest $lr) {
-                $u = $lr->user;
-                $emp = $u?->employee;
-                $applicantId = $emp?->employee_id ?? ('EMP-' . $u->id);
-                $days = $lr->start_date->diffInDays($lr->end_date) + 1;
-                return [
-                    'id' => $lr->id,
-                    'applicant_name' => $u?->name ?? 'N/A',
-                    'applicant_id' => $applicantId,
-                    'leave_type' => $lr->leave_type,
-                    'duration_days' => $days,
-                    'start_date' => $lr->start_date->format('Y-m-d'),
-                    'end_date' => $lr->end_date->format('Y-m-d'),
-                    'reason' => $lr->reason,
-                    'status' => $lr->status,
-                ];
-            })
+            ->map(fn (LeaveRequest $lr) => $this->mapLeaveRequestForHr($lr))
             ->values()
             ->all();
 
@@ -202,23 +186,7 @@ class HrApiController extends Controller
         $perPage = max(1, min(50, (int) $request->get('per_page', 20)));
         $paginator = $query->paginate($perPage);
 
-        $list = $paginator->getCollection()->map(function (LeaveRequest $lr) {
-            $u = $lr->user;
-            $emp = $u?->employee;
-            $applicantId = $emp?->employee_id ?? ('EMP-' . $u->id);
-            $days = $lr->start_date->diffInDays($lr->end_date) + 1;
-            return [
-                'id' => $lr->id,
-                'applicant_name' => $u?->name ?? 'N/A',
-                'applicant_id' => $applicantId,
-                'leave_type' => $lr->leave_type,
-                'duration_days' => $days,
-                'start_date' => $lr->start_date->format('Y-m-d'),
-                'end_date' => $lr->end_date->format('Y-m-d'),
-                'reason' => $lr->reason,
-                'status' => $lr->status,
-            ];
-        })->values()->all();
+        $list = $paginator->getCollection()->map(fn (LeaveRequest $lr) => $this->mapLeaveRequestForHr($lr))->values()->all();
 
         return response()->json([
             'success' => true,
@@ -239,6 +207,7 @@ class HrApiController extends Controller
 
     /**
      * GET /api/hr/leave-requests/{id}
+     * Full detail for HR when they click on a leave: name, emp id, role, profile/avatar, leave type, dates, days, reason, status.
      */
     public function leaveRequestShow(Request $request, int $id): JsonResponse
     {
@@ -247,26 +216,43 @@ class HrApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Leave request not found.'], 404);
         }
 
-        $u = $lr->user;
-        $emp = $u?->employee;
-        $applicantId = $emp?->employee_id ?? ('EMP-' . $u->id);
-        $days = $lr->start_date->diffInDays($lr->end_date) + 1;
+        $data = $this->mapLeaveRequestForHr($lr);
+        $data['reviewed_at'] = $lr->reviewed_at?->toIso8601String();
+        $data['created_at'] = $lr->created_at?->toIso8601String();
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $lr->id,
-                'applicant_name' => $u?->name ?? 'N/A',
-                'applicant_id' => $applicantId,
-                'leave_type' => $lr->leave_type,
-                'duration_days' => $days,
-                'start_date' => $lr->start_date->format('Y-m-d'),
-                'end_date' => $lr->end_date->format('Y-m-d'),
-                'reason' => $lr->reason,
-                'status' => $lr->status,
-                'reviewed_at' => $lr->reviewed_at?->toIso8601String(),
-            ],
+            'data' => $data,
         ]);
+    }
+
+    /**
+     * Map LeaveRequest + user to array for HR (list and detail): name, applicant_id, role, profile_picture_url/avatar, leave type, dates, duration_days, reason, status.
+     */
+    private function mapLeaveRequestForHr(LeaveRequest $lr): array
+    {
+        $u = $lr->user;
+        $emp = $u?->employee;
+        $applicantId = $emp?->employee_id ?? ('EMP-' . ($u?->id ?? 0));
+        $days = $lr->start_date->diffInDays($lr->end_date) + 1;
+        $name = $u?->name ?? 'N/A';
+        $initial = $name !== 'N/A' ? mb_substr(trim($name), 0, 1) : '?';
+        $role = $u?->role ?? null;
+        $roleDisplay = $role ? ucfirst(str_replace('_', ' ', $role)) : 'N/A';
+
+        return [
+            'id' => $lr->id,
+            'applicant_name' => $name,
+            'applicant_id' => $applicantId,
+            'applicant_role' => $roleDisplay,
+            'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($u?->profile_picture ?? null, $initial),
+            'leave_type' => $lr->leave_type,
+            'duration_days' => $days,
+            'start_date' => $lr->start_date->format('Y-m-d'),
+            'end_date' => $lr->end_date->format('Y-m-d'),
+            'reason' => $lr->reason,
+            'status' => $lr->status,
+        ];
     }
 
     /**
@@ -286,6 +272,9 @@ class HrApiController extends Controller
         $lr->reviewed_by = $request->user()->id;
         $lr->reviewed_at = now();
         $lr->save();
+
+        // When HR approves leave, applicant is automatically set inactive (not by their own choice)
+        $lr->user?->update(['status' => 'inactive']);
 
         $lr->user?->notify(new \App\Notifications\LeaveRequestStatusNotification($lr->fresh(), 'approved'));
 

@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes.\n\n**Technician \u2192 Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) \u00b7 CLIENT \u00b7 TECHNICIAN (folder 9) \u00b7 SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10\u201314). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token \u2013 see Module 15 'Support Tickets \u2013 All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list \u2192 detail \u2192 members \u2192 member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician \u2192 Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) \u00b7 CLIENT \u00b7 TECHNICIAN (folder 9) \u00b7 SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10\u201314). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token \u2013 see Module 15 'Support Tickets \u2013 All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list \u2192 detail \u2192 members \u2192 member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.93.0"
+        "version": "2.94.0"
     },
     "item": [
         {
@@ -4354,15 +4354,36 @@
                                     {
                                         "key": "Accept",
                                         "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
                                     }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"leave_type\": \"annual\",\n  \"start_date\": \"2026-03-15\",\n  \"end_date\": \"2026-03-17\",\n  \"reason\": \"Family trip\"\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "leave_type",
+                                            "value": "annual",
+                                            "description": "Required (e.g. annual, sick, unpaid, paternity, other)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "start_date",
+                                            "value": "2026-03-15",
+                                            "description": "Required, Y-m-d",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "end_date",
+                                            "value": "2026-03-17",
+                                            "description": "Required, Y-m-d, >= start_date",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "reason",
+                                            "value": "Family trip",
+                                            "description": "Optional",
+                                            "type": "text"
+                                        }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/technician/leave-requests",
@@ -4375,7 +4396,7 @@
                                         "leave-requests"
                                     ]
                                 },
-                                "description": "Submit leave request to HR. POST /api/technician/leave-requests. Body: leave_type, start_date, end_date, reason (optional)."
+                                "description": "Submit leave request to HR. POST /api/technician/leave-requests. Use form-data. Required: leave_type, start_date, end_date. Optional: reason. Do not set Content-Type; Postman sets multipart/form-data."
                             }
                         },
                         {
@@ -6257,19 +6278,43 @@
                                 "method": "POST",
                                 "header": [
                                     { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" },
-                                    { "key": "Content-Type", "value": "application/json" }
+                                    { "key": "Accept", "value": "application/json" }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"leave_type\": \"annual\",\n  \"start_date\": \"2026-03-15\",\n  \"end_date\": \"2026-03-17\",\n  \"reason\": \"Family trip\"\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "leave_type",
+                                            "value": "annual",
+                                            "description": "Required (e.g. annual, sick, unpaid, paternity, other)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "start_date",
+                                            "value": "2026-03-15",
+                                            "description": "Required, Y-m-d",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "end_date",
+                                            "value": "2026-03-17",
+                                            "description": "Required, Y-m-d, >= start_date",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "reason",
+                                            "value": "Family trip",
+                                            "description": "Optional",
+                                            "type": "text"
+                                        }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/leave-requests",
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "supervisor", "leave-requests"]
                                 },
-                                "description": "Submit leave request to HR. POST /api/supervisor/leave-requests. Body: leave_type, start_date, end_date, reason (optional)."
+                                "description": "Submit leave request to HR. POST /api/supervisor/leave-requests. Use form-data. Required: leave_type, start_date, end_date. Optional: reason. Do not set Content-Type; Postman sets multipart/form-data."
                             }
                         },
                         {

@@ -59,6 +59,9 @@ class LeaveRequestController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        // When HR approves leave, applicant is automatically set inactive
+        $leaveRequest->user?->update(['status' => 'inactive']);
+
         return back()->with('success', 'Leave request approved.');
     }
 
