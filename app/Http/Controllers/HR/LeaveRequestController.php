@@ -5,6 +5,7 @@ namespace App\Http\Controllers\HR;
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
 use App\Notifications\LeaveRequestStatusNotification;
+use App\Services\ProfilePictureUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,6 +41,28 @@ class LeaveRequestController extends Controller
             'pendingCount',
             'approvedCount',
             'rejectedCount'
+        ));
+    }
+
+    /**
+     * Show single leave request (full detail). For clickable cards from dashboard / manage list.
+     */
+    public function show(Request $request, int $id): View
+    {
+        $lr = LeaveRequest::with('user.employee')->findOrFail($id);
+        $u = $lr->user;
+        $applicantId = $u?->employee?->employee_id ?? ('EMP-' . ($u?->id ?? 0));
+        $days = $lr->start_date->diffInDays($lr->end_date) + 1;
+        $initial = $u?->name ? mb_substr(trim($u->name), 0, 1) : '?';
+        $profilePictureUrl = ProfilePictureUploadService::fullUrlOrDefault($u?->profile_picture ?? null, $initial);
+        $applicantRole = $u?->role ? ucfirst(str_replace('_', ' ', $u->role)) : 'N/A';
+
+        return view('hr.leave-requests.show', compact(
+            'lr',
+            'applicantId',
+            'days',
+            'profilePictureUrl',
+            'applicantRole'
         ));
     }
 

@@ -114,11 +114,11 @@
         </div>
     </div>
 
-    <!-- Pending Leave Requests (aligned with API; approve/reject from dashboard) -->
+    <!-- Pending Leave Requests (profile, role, clickable for full detail) -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 sm:mb-6 md:mb-8">
         <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 class="text-base sm:text-lg font-semibold text-gray-900">Pending Leave Requests @if(count($pendingLeaveRequests ?? [])) <span class="text-gray-500 font-normal">({{ count($pendingLeaveRequests) }})</span> @endif</h3>
-            <a href="{{ route('hr.leave-requests.index', ['status' => 'pending']) }}" class="text-xs sm:text-sm text-indigo-600 hover:text-indigo-900">Manage all</a>
+            <a href="{{ route('hr.leave-requests.index', ['status' => 'pending']) }}" class="text-xs sm:text-sm text-indigo-600 hover:text-indigo-900 font-medium">Manage all</a>
         </div>
         <div class="divide-y divide-gray-200">
             @forelse($pendingLeaveRequests ?? [] as $lr)
@@ -126,22 +126,29 @@
                     $applicant = $lr->user;
                     $applicantId = $applicant?->employee?->employee_id ?? ('EMP-' . $applicant?->id);
                     $days = $lr->start_date->diffInDays($lr->end_date) + 1;
+                    $initial = $applicant?->name ? mb_substr(trim($applicant->name), 0, 1) : '?';
+                    $avatarUrl = \App\Services\ProfilePictureUploadService::fullUrlOrDefault($applicant?->profile_picture ?? null, $initial);
+                    $roleDisplay = $applicant?->role ? ucfirst(str_replace('_', ' ', $applicant->role)) : 'N/A';
                 @endphp
                 <div class="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50/50 transition-colors">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-900">{{ $applicant?->name ?? 'N/A' }}</p>
-                            <p class="text-xs text-gray-500">{{ $applicantId }} · {{ $lr->leave_type }} · {{ $days }} day(s)</p>
-                            <p class="text-xs text-gray-500 mt-0.5">From {{ $lr->start_date->format('Y-m-d') }}</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2 flex-shrink-0">
+                        <a href="{{ route('hr.leave-requests.show', $lr->id) }}" class="flex flex-1 min-w-0 items-start sm:items-center gap-3 group">
+                            <img src="{{ $avatarUrl }}" alt="" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 flex-shrink-0 ring-1 ring-gray-100">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $applicant?->name ?? 'N/A' }}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">{{ $applicantId }} · <span class="font-medium text-gray-600">{{ $roleDisplay }}</span></p>
+                                <p class="text-xs text-gray-500 mt-0.5">{{ ucfirst($lr->leave_type) }} · {{ $days }} day(s) · From {{ $lr->start_date->format('M d, Y') }}</p>
+                            </div>
+                            <svg class="w-4 h-4 text-gray-400 group-hover:text-indigo-500 flex-shrink-0 mt-0.5 sm:mt-0 sm:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </a>
+                        <div class="flex flex-wrap gap-2 flex-shrink-0 sm:pl-3">
                             <form action="{{ route('hr.leave-requests.approve', $lr->id) }}" method="POST" class="inline">
                                 @csrf
-                                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">Approve</button>
+                                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-sm">Approve</button>
                             </form>
                             <form action="{{ route('hr.leave-requests.reject', $lr->id) }}" method="POST" class="inline" onsubmit="return confirm('Reject this leave request?');">
                                 @csrf
-                                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">Reject</button>
+                                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-sm">Reject</button>
                             </form>
                         </div>
                     </div>

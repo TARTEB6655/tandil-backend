@@ -38,38 +38,41 @@
                     $applicant = $lr->user;
                     $applicantId = $applicant?->employee?->employee_id ?? ('EMP-' . $applicant?->id);
                     $days = $lr->start_date->diffInDays($lr->end_date) + 1;
+                    $initial = $applicant?->name ? mb_substr(trim($applicant->name), 0, 1) : '?';
+                    $avatarUrl = \App\Services\ProfilePictureUploadService::fullUrlOrDefault($applicant?->profile_picture ?? null, $initial);
+                    $roleDisplay = $applicant?->role ? ucfirst(str_replace('_', ' ', $applicant->role)) : 'N/A';
                 @endphp
                 <div class="px-4 sm:px-6 py-4 sm:py-5 hover:bg-gray-50/50 transition-colors">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <p class="text-sm font-semibold text-gray-900">{{ $applicant?->name ?? 'N/A' }}</p>
-                                <span class="px-2 py-0.5 rounded-full text-xs font-medium
-                                    {{ $lr->status === 'pending' ? 'bg-amber-100 text-amber-800' : '' }}
-                                    {{ $lr->status === 'approved' ? 'bg-green-100 text-green-800' : '' }}
-                                    {{ $lr->status === 'rejected' ? 'bg-red-100 text-red-800' : '' }}
-                                ">{{ ucfirst($lr->status) }}</span>
+                        <a href="{{ route('hr.leave-requests.show', $lr->id) }}" class="flex flex-1 min-w-0 items-start sm:items-center gap-4 group">
+                            <img src="{{ $avatarUrl }}" alt="" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-gray-200 flex-shrink-0 ring-1 ring-gray-100">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $applicant?->name ?? 'N/A' }}</p>
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                                        {{ $lr->status === 'pending' ? 'bg-amber-100 text-amber-800' : '' }}
+                                        {{ $lr->status === 'approved' ? 'bg-green-100 text-green-800' : '' }}
+                                        {{ $lr->status === 'rejected' ? 'bg-red-100 text-red-800' : '' }}
+                                    ">{{ ucfirst($lr->status) }}</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">{{ $applicantId }} · <span class="font-medium text-gray-600">{{ $roleDisplay }}</span></p>
+                                <p class="text-sm text-gray-600 mt-1">{{ ucfirst($lr->leave_type) }} · {{ $days }} day(s)</p>
+                                <p class="text-xs text-gray-500 mt-0.5">{{ $lr->start_date->format('M d, Y') }} – {{ $lr->end_date->format('M d, Y') }}</p>
+                                @if($lr->reason)
+                                    <p class="text-xs text-gray-600 mt-2"><span class="font-medium">Reason:</span> {{ \Illuminate\Support\Str::limit($lr->reason, 60) }}</p>
+                                @endif
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">{{ $applicantId }}</p>
-                            <p class="text-sm text-gray-600 mt-1">{{ $lr->leave_type }} · {{ $days }} day(s)</p>
-                            <p class="text-xs text-gray-500 mt-1">{{ $lr->start_date->format('M d, Y') }} – {{ $lr->end_date->format('M d, Y') }}</p>
-                            @if($lr->reason)
-                                <p class="text-xs text-gray-600 mt-2"><span class="font-medium">Reason:</span> {{ $lr->reason }}</p>
-                            @endif
-                        </div>
+                            <svg class="w-5 h-5 text-gray-400 group-hover:text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </a>
                         @if($lr->status === 'pending')
-                            <div class="flex flex-wrap gap-2 flex-shrink-0">
+                            <div class="flex flex-wrap gap-2 flex-shrink-0 sm:pl-3">
                                 <form action="{{ route('hr.leave-requests.approve', $lr->id) }}" method="POST" class="inline">
                                     @csrf
-                                    <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
-                                        Approve
-                                    </button>
+                                    <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-sm">Approve</button>
                                 </form>
                                 <form action="{{ route('hr.leave-requests.reject', $lr->id) }}" method="POST" class="inline" onsubmit="return confirm('Reject this leave request?');">
                                     @csrf
-                                    <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
-                                        Reject
-                                    </button>
+                                    <button type="submit" class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-sm">Reject</button>
                                 </form>
                             </div>
                         @endif

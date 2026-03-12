@@ -491,6 +491,7 @@ Route::middleware(['auth', 'role:hr'])
 
         // Leave requests (manage leaves – list, approve, reject)
         Route::get('/leave-requests', [\App\Http\Controllers\HR\LeaveRequestController::class, 'index'])->name('leave-requests.index');
+        Route::get('/leave-requests/{id}', [\App\Http\Controllers\HR\LeaveRequestController::class, 'show'])->name('leave-requests.show');
         Route::post('/leave-requests/{id}/approve', [\App\Http\Controllers\HR\LeaveRequestController::class, 'approve'])->name('leave-requests.approve');
         Route::post('/leave-requests/{id}/reject', [\App\Http\Controllers\HR\LeaveRequestController::class, 'reject'])->name('leave-requests.reject');
         
