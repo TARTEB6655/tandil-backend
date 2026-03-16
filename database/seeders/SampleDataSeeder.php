@@ -81,13 +81,61 @@ class SampleDataSeeder extends Seeder
             }
         }
 
-        // Tips (created by admin)
+        // Tips: reset and seed exactly 5 fixed tips
+        Tip::query()->delete();
+
         $admin = User::where('role', 'admin')->first();
-        if ($admin) {
-            Tip::factory()->count(12)->create(['created_by' => $admin->id]);
-        } else {
-            Tip::factory()->count(12)->create();
-        }
+        $createdBy = $admin?->id;
+
+        $tips = [
+            [
+                'title' => 'Weekly Safety Check',
+                'content' => 'Review all active tickets and make sure critical issues are prioritized for this week.',
+                'type' => 'weekly',
+                'status' => 'published',
+                'language' => 'en',
+                'scheduled_at' => null,
+                'created_by' => $createdBy,
+            ],
+            [
+                'title' => 'Monthly Performance Review',
+                'content' => 'Check technician performance reports and follow up on any overdue visits or complaints.',
+                'type' => 'monthly',
+                'status' => 'published',
+                'language' => 'en',
+                'scheduled_at' => null,
+                'created_by' => $createdBy,
+            ],
+            [
+                'title' => 'Client Communication Reminder',
+                'content' => 'Always update clients after each visit with a short summary and next steps.',
+                'type' => 'general',
+                'status' => 'published',
+                'language' => 'en',
+                'scheduled_at' => null,
+                'created_by' => $createdBy,
+            ],
+            [
+                'title' => 'Supervisor Daily Checklist',
+                'content' => 'Supervisors should verify route completion, visit photos, and reports before end of day.',
+                'type' => 'weekly',
+                'status' => 'published',
+                'language' => 'en',
+                'scheduled_at' => null,
+                'created_by' => $createdBy,
+            ],
+            [
+                'title' => 'HR Policy Reminder',
+                'content' => 'Ensure leave requests and overtime approvals are processed within 48 hours.',
+                'type' => 'general',
+                'status' => 'published',
+                'language' => 'en',
+                'scheduled_at' => null,
+                'created_by' => $createdBy,
+            ],
+        ];
+
+        Tip::insert($tips);
 
         // Notifications (database) for some clients and admin
         $notificationExamples = [
