@@ -129,9 +129,13 @@ class EmployeeLeaveRequestController extends Controller
             'applicant_id' => $applicant->id,
             'applicant_role' => $applicant->role ?? null,
         ];
-        User::role('hr')->each(function (User $hr) use ($title, $message, $meta) {
+        // Include HR users matched either by users.role column or Spatie role, so no HR user is missed.
+        $hrUsers = User::whereRaw('LOWER(role) = ?', ['hr'])
+            ->orWhereHas('roles', fn ($q) => $q->whereRaw('LOWER(name) = ?', ['hr']))
+            ->get();
+        foreach ($hrUsers as $hr) {
             $hr->notify(new AdminNotification($title, $message, $meta));
-        });
+        }
 
         $data = [
             'id' => $lr->id,
