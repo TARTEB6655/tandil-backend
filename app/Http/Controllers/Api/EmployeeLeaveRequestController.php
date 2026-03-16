@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -109,6 +111,27 @@ class EmployeeLeaveRequestController extends Controller
         }
 
         $lr = LeaveRequest::create($payload);
+
+        // Notify all HR users that a new leave request has been submitted
+        $applicant = $request->user();
+        $title = 'New leave request submitted';
+        $message = sprintf(
+            '%s (%s) submitted a %s leave from %s to %s.',
+            $applicant->name ?? 'Employee',
+            $applicant->email ?? 'N/A',
+            $lr->leave_type,
+            $lr->start_date->format('Y-m-d'),
+            $lr->end_date->format('Y-m-d')
+        );
+        $meta = [
+            'type' => 'hr_leave_request',
+            'leave_request_id' => $lr->id,
+            'applicant_id' => $applicant->id,
+            'applicant_role' => $applicant->role ?? null,
+        ];
+        User::role('hr')->each(function (User $hr) use ($title, $message, $meta) {
+            $hr->notify(new AdminNotification($title, $message, $meta));
+        });
 
         $data = [
             'id' => $lr->id,
