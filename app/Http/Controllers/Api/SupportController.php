@@ -271,6 +271,27 @@ class SupportController extends Controller
             $ticket->update(['status' => 'in_progress']);
         }
 
+        // Notify all admins so they get every user message in the ticket.
+        try {
+            $admins = User::whereRaw('LOWER(role) = ?', ['admin'])
+                ->orWhereHas('roles', fn ($q) => $q->whereRaw('LOWER(name) = ?', ['admin']))
+                ->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification(
+                    'User Replied on Support Ticket',
+                    $request->user()->name . ' replied on ticket ' . $ticket->ticket_number . '.',
+                    [
+                        'entity' => 'support_ticket',
+                        'ticket_id' => $ticket->id,
+                        'ticket_number' => $ticket->ticket_number,
+                        'action' => 'open_ticket_reply',
+                    ]
+                ));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Support ticket user-reply admin notification failed', ['ticket_id' => $ticket->id, 'error' => $e->getMessage()]);
+        }
+
         return ApiResponse::success('Message sent successfully.', [
             'id' => $reply->id,
             'message' => $reply->message,
