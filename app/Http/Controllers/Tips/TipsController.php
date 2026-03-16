@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Tips;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Tip;
+use App\Models\User;
+use App\Notifications\TipPublishedNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class TipsController extends Controller
@@ -71,6 +74,20 @@ class TipsController extends Controller
             'language' => 'en',
             'created_by' => $user->id,
         ]);
+
+        // Send tip as database notification to all relevant users so it appears in unified Notifications list.
+        $roles = ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin'];
+        $recipients = User::query()
+            ->whereIn(DB::raw('LOWER(role)'), array_map('strtolower', $roles))
+            ->orWhereHas('roles', function ($q) use ($roles) {
+                $lower = array_map('strtolower', $roles);
+                $q->whereIn(DB::raw('LOWER(name)'), $lower);
+            })
+            ->get();
+        $notification = new TipPublishedNotification($tip->title, $tip->content, $tip->id);
+        foreach ($recipients as $recipient) {
+            $recipient->notify($notification);
+        }
 
         return ApiResponse::success('Tip sent successfully.', $this->tipToResponse($tip), 201);
     }
