@@ -75,8 +75,8 @@ class TipsController extends Controller
             'created_by' => $user->id,
         ]);
 
-        // Send tip as database notification to all relevant users so it appears in unified Notifications list.
-        $roles = ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin'];
+        // Send tip as database notification to relevant users (technician, supervisor, area manager, hr).
+        $roles = ['technician', 'supervisor', 'area_manager', 'hr'];
         $recipients = User::query()
             ->whereIn(DB::raw('LOWER(role)'), array_map('strtolower', $roles))
             ->orWhereHas('roles', function ($q) use ($roles) {

@@ -126,14 +126,14 @@ class TipController extends Controller
 
     /**
      * Send tip as database notification so it appears in unified Notifications list
-     * for all relevant users (client, technician, supervisor, area manager, hr, admin).
+     * for all relevant users (technician, supervisor, area manager, hr).
      */
     private function notifyClientsOfPublishedTip(Tip $tip): void
     {
         $users = \App\Models\User::query()
-            ->whereIn('role', ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin'])
+            ->whereIn('role', ['technician', 'supervisor', 'area_manager', 'hr'])
             ->orWhereHas('roles', function ($q) {
-                $q->whereIn('name', ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin']);
+                $q->whereIn('name', ['technician', 'supervisor', 'area_manager', 'hr']);
             })
             ->get();
         $notification = new \App\Notifications\TipPublishedNotification(

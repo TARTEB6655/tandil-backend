@@ -14,7 +14,7 @@ class TipsNotificationTest extends TestCase
     use RefreshDatabase;
 
     /** @test */
-    public function posting_tip_sends_tip_published_notification_to_all_roles()
+    public function posting_tip_sends_tip_published_notification_to_non_client_non_admin_roles()
     {
         Notification::fake();
 
@@ -35,8 +35,9 @@ class TipsNotificationTest extends TestCase
         $response->assertStatus(201);
         $this->assertDatabaseHas('tips', ['title' => 'Tip from test']);
 
-        // Assert that each role received a TipPublishedNotification
-        foreach ($users as $user) {
+        // Assert that technician, supervisor, area_manager, hr received the notification
+        foreach (['technician', 'supervisor', 'area_manager', 'hr'] as $role) {
+            $user = $users[$role];
             Notification::assertSentTo(
                 $user,
                 TipPublishedNotification::class,
@@ -45,6 +46,10 @@ class TipsNotificationTest extends TestCase
                 }
             );
         }
+
+        // Assert that client and admin did NOT receive the notification
+        Notification::assertNotSentTo($users['client'], TipPublishedNotification::class);
+        Notification::assertNotSentTo($users['admin'], TipPublishedNotification::class);
     }
 }
 
