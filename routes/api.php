@@ -760,7 +760,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->gro
 | TIPS & NOTIFICATIONS
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager|hr'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manager|hr|admin'])->group(function () {
     Route::get('/tips', [\App\Http\Controllers\Tips\TipsController::class, 'index']);
     Route::post('/tips', [\App\Http\Controllers\Tips\TipsController::class, 'store']);
     Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipsController::class, 'show']);
