@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
-use App\Models\Cart;
 use App\Models\UserAddress;
 use Illuminate\Http\Request;
 
@@ -44,16 +43,9 @@ class CheckoutController extends Controller
     {
         $user = $request->user();
 
-        $cartItems = Cart::where('user_id', $user->id)
-            ->with(['product.category', 'product.primaryImage'])
-            ->get();
-
-        $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
-        $items = $validItems->map(fn ($item) => CartController::cartItemToFrontend($item))->values()->all();
-
-        $subtotal = $validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price);
-        $subtotal = round($subtotal, 2);
-        $orderSummary = CartController::buildOrderSummary($subtotal, 0);
+        $preview = CartController::checkoutPreview($request, $user->id);
+        $items = $preview['items']->map(fn ($item) => CartController::cartItemToFrontend($item))->values()->all();
+        $orderSummary = CartController::buildOrderSummary($preview['subtotal'], 0);
 
         $addresses = UserAddress::where('user_id', $user->id)
             ->orderByDesc('is_default')

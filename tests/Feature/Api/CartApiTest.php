@@ -215,4 +215,32 @@ class CartApiTest extends TestCase
         $response->assertJsonPath('data.id', $cartItem->id);
         $this->assertDatabaseHas('carts', ['id' => $cartItem->id, 'quantity' => 5]);
     }
+
+    public function test_order_summary_empty_cart_returns_zero_subtotal(): void
+    {
+        $response = $this->getJson('/api/shop/order-summary', $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.subtotal', 0);
+        $response->assertJsonPath('data.total', 0);
+    }
+
+    public function test_order_summary_buy_now_query_without_cart(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 15,
+            'status' => 'active',
+        ]);
+
+        $response = $this->getJson(
+            '/api/shop/order-summary?product_id=' . $product->id . '&quantity=10',
+            $this->authHeaders()
+        );
+
+        $response->assertStatus(200);
+        $this->assertSame(150.0, (float) $response->json('data.subtotal'));
+        $this->assertGreaterThan(0, (float) $response->json('data.total'));
+    }
 }

@@ -118,18 +118,59 @@ class CartController extends Controller
     }
 
     /**
+     * Cart lines + subtotal for checkout preview. Default = DB cart.
+     * Optional query product_id + quantity = Buy Now without persisting cart (same idea as POST create-payment-session with items).
+     *
+     * @return array{items: \Illuminate\Support\Collection<int, Cart>, subtotal: float}
+     */
+    public static function checkoutPreview(Request $request, int $userId): array
+    {
+        if ($request->filled('product_id')) {
+            $request->validate([
+                'product_id' => 'required|exists:products,id',
+                'quantity' => 'sometimes|integer|min:1',
+            ]);
+            $qty = max(1, (int) $request->query('quantity', 1));
+            $product = Product::with(['category', 'primaryImage'])->findOrFail((int) $request->query('product_id'));
+            $cart = new Cart([
+                'user_id' => $userId,
+                'product_id' => $product->id,
+                'quantity' => $qty,
+            ]);
+            $cart->setRelation('product', $product);
+            $cart->id = 0;
+            $subtotal = round($qty * (float) $product->price, 2);
+
+            return [
+                'items' => collect([$cart]),
+                'subtotal' => $subtotal,
+            ];
+        }
+
+        $cartItems = Cart::where('user_id', $userId)
+            ->with(['product.category', 'product.primaryImage'])
+            ->get();
+        $validItems = $cartItems->filter(fn ($item) => $item->product !== null)->values();
+        $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
+
+        return [
+            'items' => $validItems,
+            'subtotal' => $subtotal,
+        ];
+    }
+
+    /**
      * GET /api/shop/order-summary
      * Returns order summary for checkout (Address/Payment/Review).
      * Tax-exclusive: subtotal = sum of item prices; tax = subtotal × (tax_percent/100); total = subtotal - discount + shipping + tax.
-     * Uses current user's cart; shipping and tax % from shop settings (settings table).
+     * Uses current user's cart unless query product_id (+ optional quantity) is sent for Buy Now preview (cart can be empty).
+     * Shipping and tax % from shop settings (settings table).
      */
     public function orderSummary(Request $request)
     {
         $user = $request->user();
-        $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
-        $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
-        $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
-        $orderSummary = self::buildOrderSummary($subtotal, 0);
+        $preview = self::checkoutPreview($request, $user->id);
+        $orderSummary = self::buildOrderSummary($preview['subtotal'], 0);
         // Ensure numeric fields for JSON (floats). Exclude tax amount from response – only tax_percent is returned.
         $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
         $orderSummary['discount'] = (float) $orderSummary['discount'];
