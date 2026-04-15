@@ -129,8 +129,16 @@ class CartController extends Controller
             $request->validate([
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'sometimes|integer|min:1',
+                'qty' => 'sometimes|integer|min:1',
             ]);
-            $qty = max(1, (int) $request->query('quantity', 1));
+            // quantity preferred; else qty (same as POST create-payment-session items.*.qty)
+            if ($request->filled('quantity')) {
+                $qty = max(1, (int) $request->query('quantity'));
+            } elseif ($request->filled('qty')) {
+                $qty = max(1, (int) $request->query('qty'));
+            } else {
+                $qty = 1;
+            }
             $product = Product::with(['category', 'primaryImage'])->findOrFail((int) $request->query('product_id'));
             $cart = new Cart([
                 'user_id' => $userId,

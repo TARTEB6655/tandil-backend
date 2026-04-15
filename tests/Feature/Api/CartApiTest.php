@@ -241,6 +241,48 @@ class CartApiTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertSame(150.0, (float) $response->json('data.subtotal'));
-        $this->assertGreaterThan(0, (float) $response->json('data.total'));
+        // Default config: tax 5%, shipping 0 → total = 150 + 7.5 = 157.5
+        $taxPercent = (float) config('shop.tax_percent', 5);
+        $expectedTotal = round(150 + (150 * $taxPercent / 100), 2);
+        $this->assertSame($expectedTotal, (float) $response->json('data.total'));
+    }
+
+    public function test_order_summary_buy_now_accepts_qty_alias(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 20,
+            'status' => 'active',
+        ]);
+
+        $response = $this->getJson(
+            '/api/shop/order-summary?product_id=' . $product->id . '&qty=10',
+            $this->authHeaders()
+        );
+
+        $response->assertStatus(200);
+        $this->assertSame(200.0, (float) $response->json('data.subtotal'));
+    }
+
+    public function test_order_summary_cart_quantity_10_matches_line_total(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 15,
+            'status' => 'active',
+        ]);
+
+        Cart::create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'quantity' => 10,
+        ]);
+
+        $response = $this->getJson('/api/shop/order-summary', $this->authHeaders());
+
+        $response->assertStatus(200);
+        $this->assertSame(150.0, (float) $response->json('data.subtotal'));
     }
 }
