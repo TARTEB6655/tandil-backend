@@ -511,6 +511,7 @@ Route::prefix('shop')->group(function () {
         Route::post('/cart/add', [\App\Http\Controllers\Shop\CartController::class, 'add']);
         Route::get('/cart', [\App\Http\Controllers\Shop\CartController::class, 'view']);
         Route::get('/order-summary', [\App\Http\Controllers\Shop\CartController::class, 'orderSummary']);
+        Route::post('/buy-now/summary', [\App\Http\Controllers\Shop\CartController::class, 'buyNowSummary']);
         Route::put('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::patch('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);

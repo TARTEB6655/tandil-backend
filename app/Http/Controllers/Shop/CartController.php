@@ -84,6 +84,21 @@ class CartController extends Controller
     }
 
     /**
+     * Resolve Buy Now quantity from request (quantity preferred, then qty, default 1).
+     */
+    private static function resolveBuyNowQuantity(Request $request): int
+    {
+        if ($request->filled('quantity')) {
+            return max(1, (int) $request->input('quantity'));
+        }
+        if ($request->filled('qty')) {
+            return max(1, (int) $request->input('qty'));
+        }
+
+        return 1;
+    }
+
+    /**
      * Add item to cart (Product Details → Add to Cart).
      */
     public function add(Request $request)
@@ -131,15 +146,8 @@ class CartController extends Controller
                 'quantity' => 'sometimes|integer|min:1',
                 'qty' => 'sometimes|integer|min:1',
             ]);
-            // quantity preferred; else qty (same as POST create-payment-session items.*.qty)
-            if ($request->filled('quantity')) {
-                $qty = max(1, (int) $request->query('quantity'));
-            } elseif ($request->filled('qty')) {
-                $qty = max(1, (int) $request->query('qty'));
-            } else {
-                $qty = 1;
-            }
-            $product = Product::with(['category', 'primaryImage'])->findOrFail((int) $request->query('product_id'));
+            $qty = self::resolveBuyNowQuantity($request);
+            $product = Product::with(['category', 'primaryImage'])->findOrFail((int) $request->input('product_id'));
             $cart = new Cart([
                 'user_id' => $userId,
                 'product_id' => $product->id,
@@ -187,6 +195,36 @@ class CartController extends Controller
         $orderSummary['total'] = (float) $orderSummary['total'];
         unset($orderSummary['tax']);
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
+    }
+
+    /**
+     * POST /api/shop/buy-now/summary
+     * Dedicated Buy Now summary endpoint for mobile apps using JSON body.
+     */
+    public function buyNowSummary(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'sometimes|integer|min:1',
+            'qty' => 'sometimes|integer|min:1',
+        ]);
+
+        $user = $request->user();
+        $preview = self::checkoutPreview($request, $user->id);
+        $firstItem = $preview['items']->first();
+        $item = $firstItem ? self::cartItemToFrontend($firstItem) : null;
+        $orderSummary = self::buildOrderSummary($preview['subtotal'], 0);
+        $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
+        $orderSummary['discount'] = (float) $orderSummary['discount'];
+        $orderSummary['shipping'] = (float) $orderSummary['shipping'];
+        $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
+        $orderSummary['total'] = (float) $orderSummary['total'];
+        unset($orderSummary['tax']);
+
+        return ApiResponse::success('Buy now summary retrieved.', [
+            'item' => $item,
+            'order_summary' => $orderSummary,
+        ]);
     }
 
     /**

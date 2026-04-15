@@ -285,4 +285,43 @@ class CartApiTest extends TestCase
         $response->assertStatus(200);
         $this->assertSame(150.0, (float) $response->json('data.subtotal'));
     }
+
+    public function test_buy_now_summary_endpoint_accepts_json_body(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 65,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 10,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.item.product_id', $product->id);
+        $response->assertJsonPath('data.item.quantity', 10);
+        $this->assertSame(650.0, (float) $response->json('data.order_summary.subtotal'));
+    }
+
+    public function test_buy_now_summary_endpoint_accepts_qty_alias(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 30,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'qty' => 10,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $this->assertSame(300.0, (float) $response->json('data.order_summary.subtotal'));
+    }
 }

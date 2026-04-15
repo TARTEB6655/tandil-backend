@@ -2324,6 +2324,43 @@
                     }
                 },
                 {
+                    "name": "Buy now summary (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 10\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/buy-now/summary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "shop",
+                                "buy-now",
+                                "summary"
+                            ]
+                        },
+                        "description": "POST /api/shop/buy-now/summary \u2013 Buy Now order summary without adding to cart. Send product_id + quantity (or qty). Auth: Bearer token."
+                    }
+                },
+                {
                     "name": "Cart - Add Item",
                     "event": [
                         {
