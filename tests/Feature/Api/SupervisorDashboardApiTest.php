@@ -187,6 +187,20 @@ class SupervisorDashboardApiTest extends TestCase
         $this->assertSame(['+971500000002', '+971500000003'], $tech2->extra_phones);
     }
 
+    public function test_supervisor_update_team_member_rejects_duplicate_phone(): void
+    {
+        $tech2 = User::factory()->create(['role' => 'technician', 'phone' => '+971500009001']);
+        $this->assignRoleIfAvailable($tech2, 'technician');
+        $this->area->technicians()->attach($tech2->id);
+
+        $response = $this->post('/api/supervisor/team/' . $this->technician->id, [
+            'phone' => '+971500009001',
+        ], $this->authHeaders());
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['phone']);
+    }
+
     public function test_assignments_endpoints_support_create_and_update_flows(): void
     {
         $unassignedVisit = Visit::factory()->create([

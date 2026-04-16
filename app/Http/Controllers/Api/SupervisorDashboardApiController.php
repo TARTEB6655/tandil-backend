@@ -293,7 +293,7 @@ class SupervisorDashboardApiController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $id,
-            'phone' => 'nullable|string|max:50',
+            'phone' => 'nullable|string|max:50|unique:users,phone,' . $id,
             'emails' => 'sometimes|array|min:1',
             'emails.*' => 'email|max:255',
             'phones' => 'sometimes|array|min:1',
@@ -424,7 +424,20 @@ class SupervisorDashboardApiController extends Controller
                     $member->email = $payload['email'];
                 }
                 if (array_key_exists('phone', $payload)) {
-                    $member->phone = $payload['phone'] ?: null;
+                    $newPhone = $payload['phone'] ?: null;
+                    if ($newPhone !== null) {
+                        $phoneExists = User::where('phone', $newPhone)
+                            ->where('id', '!=', $memberId)
+                            ->exists();
+                        if ($phoneExists) {
+                            DB::rollBack();
+                            return response()->json([
+                                'success' => false,
+                                'message' => "Phone '{$newPhone}' is already used by another user.",
+                            ], 422);
+                        }
+                    }
+                    $member->phone = $newPhone;
                 }
                 if ($this->supportsExtraContacts() && isset($payload['emails'])) {
                     $member->extra_emails = collect((array) $payload['emails'])
