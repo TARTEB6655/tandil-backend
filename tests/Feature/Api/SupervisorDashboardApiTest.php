@@ -119,6 +119,62 @@ class SupervisorDashboardApiTest extends TestCase
         }
     }
 
+    public function test_supervisor_can_update_single_team_member_contact_fields(): void
+    {
+        $response = $this->post('/api/supervisor/team/' . $this->technician->id, [
+            'name' => 'Updated Technician',
+            'email' => 'updated.tech@example.com',
+            'phone' => '+971555555555',
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.id', $this->technician->id);
+        $response->assertJsonPath('data.name', 'Updated Technician');
+        $response->assertJsonPath('data.email', 'updated.tech@example.com');
+        $response->assertJsonPath('data.phone', '+971555555555');
+
+        $this->technician->refresh();
+        $this->assertSame('Updated Technician', $this->technician->name);
+        $this->assertSame('updated.tech@example.com', $this->technician->email);
+        $this->assertSame('+971555555555', $this->technician->phone);
+    }
+
+    public function test_supervisor_can_bulk_update_team_members(): void
+    {
+        $tech2 = User::factory()->create(['role' => 'technician']);
+        $this->assignRoleIfAvailable($tech2, 'technician');
+        $this->area->technicians()->attach($tech2->id);
+
+        $payload = [
+            'members' => [
+                [
+                    'id' => $this->technician->id,
+                    'name' => 'Bulk Tech One',
+                    'phone' => '+971500000001',
+                ],
+                [
+                    'id' => $tech2->id,
+                    'email' => 'bulk.tech.two@example.com',
+                ],
+            ],
+        ];
+
+        $response = $this->post('/api/supervisor/team/update', $payload, $this->authHeaders());
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.0.id', $this->technician->id);
+        $response->assertJsonPath('data.0.name', 'Bulk Tech One');
+        $response->assertJsonPath('data.1.id', $tech2->id);
+        $response->assertJsonPath('data.1.email', 'bulk.tech.two@example.com');
+
+        $this->technician->refresh();
+        $tech2->refresh();
+        $this->assertSame('Bulk Tech One', $this->technician->name);
+        $this->assertSame('+971500000001', $this->technician->phone);
+        $this->assertSame('bulk.tech.two@example.com', $tech2->email);
+    }
+
     public function test_assignments_endpoints_support_create_and_update_flows(): void
     {
         $unassignedVisit = Visit::factory()->create([

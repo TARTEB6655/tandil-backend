@@ -5687,6 +5687,114 @@
                                 },
                                 "description": "Member detail when supervisor clicks a member from Team Stats. GET /api/supervisor/team/{{member_id}}. Set **member_id** = id from Team Stats response (previous request) \u2192 data.members[].id. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone, and **jobs** { in_progress: [...], completed: [...] } with visit_id, status, location, service, scheduled_date, completed_at, duration_minutes. Member must be in supervisor's zones."
                             }
+                        },
+                        {
+                            "name": "Team Member - Update (POST form-data)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "name",
+                                            "value": "Updated Technician Name",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "email",
+                                            "value": "updated.tech@example.com",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "phone",
+                                            "value": "+971500000000",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/team/{{member_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "team",
+                                        "{{member_id}}"
+                                    ]
+                                },
+                                "description": "Update one team member from My Team edit screen. POST form-data to /api/supervisor/team/{{member_id}} with any of: name, email, phone."
+                            }
+                        },
+                        {
+                            "name": "Team Members - Bulk Update (POST form-data)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "members[0][id]",
+                                            "value": "{{member_id}}",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "members[0][name]",
+                                            "value": "Tech One Updated",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "members[0][phone]",
+                                            "value": "+971500000001",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "members[1][id]",
+                                            "value": "{{member2_id}}",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "members[1][email]",
+                                            "value": "tech.two.updated@example.com",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/team/update",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "team",
+                                        "update"
+                                    ]
+                                },
+                                "description": "Bulk update multiple My Team members in one request. POST form-data to /api/supervisor/team/update with members[index][id|name|email|phone]."
+                            }
                         }
                     ]
                 },

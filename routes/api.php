@@ -250,7 +250,9 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::get('/areas', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'areasList']);
     // Team (list + detail by id)
     Route::get('/team', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'myTeam']);
+    Route::post('/team/update', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamMembersBulkUpdate']);
     Route::get('/team/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamMemberShow']);
+    Route::post('/team/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamMemberUpdate']);
     Route::get('/team-stats', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'teamStats']);
 
     // Assignments: GET list; GET one detail; GET assign-tasks; POST /assignments/{id} (body: technician_id, scheduled_date)

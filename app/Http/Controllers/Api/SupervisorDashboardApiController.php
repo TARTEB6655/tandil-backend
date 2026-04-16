@@ -266,6 +266,149 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
+     * PUT/PATCH /api/supervisor/team/{id}
+     * Update one team member basic contact fields (name, email, phone).
+     * Member must belong to supervisor's zones.
+     */
+    public function teamMemberUpdate(Request $request, int $id): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        $technicianIds = $this->teamMemberIdsInZones($areaIds);
+        if (! $technicianIds->contains($id)) {
+            return response()->json(['success' => false, 'message' => 'Team member not found or not in your zones.'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255|unique:users,email,' . $id,
+            'phone' => 'nullable|string|max:50',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+        if (! $request->hasAny(['name', 'email', 'phone'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Provide at least one field to update: name, email, or phone.',
+            ], 422);
+        }
+
+        $member = User::role('technician')->where('id', $id)->firstOrFail();
+        if ($request->has('name')) {
+            $member->name = $request->input('name');
+        }
+        if ($request->has('email')) {
+            $member->email = $request->input('email');
+        }
+        if ($request->has('phone')) {
+            $member->phone = $request->input('phone') ?: null;
+        }
+        $member->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Team member updated successfully.',
+            'data' => [
+                'id' => $member->id,
+                'name' => $member->name,
+                'email' => $member->email,
+                'phone' => $member->phone,
+            ],
+        ]);
+    }
+
+    /**
+     * PUT/PATCH /api/supervisor/team
+     * Bulk update team members (name/email/phone) in one request.
+     */
+    public function teamMembersBulkUpdate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'members' => 'required|array|min:1',
+            'members.*.id' => 'required|integer|exists:users,id',
+            'members.*.name' => 'sometimes|string|max:255',
+            'members.*.email' => 'sometimes|email|max:255',
+            'members.*.phone' => 'nullable|string|max:50',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $allowedIds = $this->teamMemberIdsInZones($this->areaIds($request))->values();
+        $members = collect($request->input('members', []));
+
+        foreach ($members as $index => $payload) {
+            if (! collect($allowedIds)->contains((int) ($payload['id'] ?? 0))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Team member id {$payload['id']} is not in your zones.",
+                ], 422);
+            }
+            if (! isset($payload['name']) && ! isset($payload['email']) && ! array_key_exists('phone', $payload)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "members.$index must include at least one of: name, email, phone.",
+                ], 422);
+            }
+        }
+
+        $updated = [];
+        DB::beginTransaction();
+        try {
+            foreach ($members as $payload) {
+                $memberId = (int) $payload['id'];
+                if (isset($payload['email'])) {
+                    $emailExists = User::where('email', $payload['email'])->where('id', '!=', $memberId)->exists();
+                    if ($emailExists) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Email '{$payload['email']}' is already used by another user.",
+                        ], 422);
+                    }
+                }
+
+                $member = User::role('technician')->where('id', $memberId)->first();
+                if (! $member) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Technician with id {$memberId} not found.",
+                    ], 404);
+                }
+
+                if (isset($payload['name'])) {
+                    $member->name = $payload['name'];
+                }
+                if (isset($payload['email'])) {
+                    $member->email = $payload['email'];
+                }
+                if (array_key_exists('phone', $payload)) {
+                    $member->phone = $payload['phone'] ?: null;
+                }
+                $member->save();
+
+                $updated[] = [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                ];
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Team members updated successfully.',
+            'data' => $updated,
+        ]);
+    }
+
+    /**
      * Format member's visits as jobs list: in_progress and completed for supervisor team member detail.
      */
     private function formatMemberJobsForResponse(\Illuminate\Support\Collection $visits): array
