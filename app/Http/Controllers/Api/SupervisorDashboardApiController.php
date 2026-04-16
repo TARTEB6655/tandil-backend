@@ -18,11 +18,17 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupervisorDashboardApiController extends Controller
 {
+    private function supportsExtraContacts(): bool
+    {
+        return Schema::hasColumn('users', 'extra_emails') && Schema::hasColumn('users', 'extra_phones');
+    }
+
     private function areaIds(Request $request): array
     {
         return $request->user()->supervisedAreaIds();
@@ -257,8 +263,12 @@ class SupervisorDashboardApiController extends Controller
         $data = $this->mapTeamMemberToArray($u, $areaIds, $now, $today, true);
         $data['email'] = $u->email;
         $data['phone'] = $u->phone;
-        $data['emails'] = array_values(array_filter((array) ($u->extra_emails ?? []), fn ($v) => is_string($v) && $v !== ''));
-        $data['phones'] = array_values(array_filter((array) ($u->extra_phones ?? []), fn ($v) => is_string($v) && $v !== ''));
+        $data['emails'] = $this->supportsExtraContacts()
+            ? array_values(array_filter((array) ($u->extra_emails ?? []), fn ($v) => is_string($v) && $v !== ''))
+            : [];
+        $data['phones'] = $this->supportsExtraContacts()
+            ? array_values(array_filter((array) ($u->extra_phones ?? []), fn ($v) => is_string($v) && $v !== ''))
+            : [];
         $data['jobs'] = $this->formatMemberJobsForResponse($memberVisits);
 
         return response()->json([
@@ -309,7 +319,7 @@ class SupervisorDashboardApiController extends Controller
         if ($request->has('phone')) {
             $member->phone = $request->input('phone') ?: null;
         }
-        if ($request->has('emails')) {
+        if ($this->supportsExtraContacts() && $request->has('emails')) {
             $emails = collect((array) $request->input('emails'))
                 ->map(fn ($v) => is_string($v) ? trim($v) : '')
                 ->filter(fn ($v) => $v !== '')
@@ -318,7 +328,7 @@ class SupervisorDashboardApiController extends Controller
                 ->all();
             $member->extra_emails = $emails;
         }
-        if ($request->has('phones')) {
+        if ($this->supportsExtraContacts() && $request->has('phones')) {
             $phones = collect((array) $request->input('phones'))
                 ->map(fn ($v) => is_string($v) ? trim($v) : '')
                 ->filter(fn ($v) => $v !== '')
@@ -337,8 +347,8 @@ class SupervisorDashboardApiController extends Controller
                 'name' => $member->name,
                 'email' => $member->email,
                 'phone' => $member->phone,
-                'emails' => $member->extra_emails ?? [],
-                'phones' => $member->extra_phones ?? [],
+                'emails' => $this->supportsExtraContacts() ? ($member->extra_emails ?? []) : [],
+                'phones' => $this->supportsExtraContacts() ? ($member->extra_phones ?? []) : [],
             ],
         ]);
     }
@@ -416,7 +426,7 @@ class SupervisorDashboardApiController extends Controller
                 if (array_key_exists('phone', $payload)) {
                     $member->phone = $payload['phone'] ?: null;
                 }
-                if (isset($payload['emails'])) {
+                if ($this->supportsExtraContacts() && isset($payload['emails'])) {
                     $member->extra_emails = collect((array) $payload['emails'])
                         ->map(fn ($v) => is_string($v) ? trim($v) : '')
                         ->filter(fn ($v) => $v !== '')
@@ -424,7 +434,7 @@ class SupervisorDashboardApiController extends Controller
                         ->values()
                         ->all();
                 }
-                if (isset($payload['phones'])) {
+                if ($this->supportsExtraContacts() && isset($payload['phones'])) {
                     $member->extra_phones = collect((array) $payload['phones'])
                         ->map(fn ($v) => is_string($v) ? trim($v) : '')
                         ->filter(fn ($v) => $v !== '')
@@ -439,8 +449,8 @@ class SupervisorDashboardApiController extends Controller
                     'name' => $member->name,
                     'email' => $member->email,
                     'phone' => $member->phone,
-                    'emails' => $member->extra_emails ?? [],
-                    'phones' => $member->extra_phones ?? [],
+                    'emails' => $this->supportsExtraContacts() ? ($member->extra_emails ?? []) : [],
+                    'phones' => $this->supportsExtraContacts() ? ($member->extra_phones ?? []) : [],
                 ];
             }
             DB::commit();
