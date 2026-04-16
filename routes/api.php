@@ -74,6 +74,7 @@ Route::get('/debug/performance', function () {
 */
 Route::prefix('auth')->group(function () {
     Route::post('/register', [\App\Http\Controllers\Auth\AuthController::class, 'register']);
+    Route::post('/register-technician', [\App\Http\Controllers\Auth\AuthController::class, 'registerTechnician']);
     Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login']);
     // Password reset endpoints (placeholder - implement if needed)
     Route::post('/forgot-password', [\App\Http\Controllers\Auth\AuthController::class, 'forgotPassword']);

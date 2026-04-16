@@ -125,6 +125,8 @@ class SupervisorDashboardApiTest extends TestCase
             'name' => 'Updated Technician',
             'email' => 'updated.tech@example.com',
             'phone' => '+971555555555',
+            'emails' => ['tech.alt1@example.com', 'tech.alt2@example.com'],
+            'phones' => ['+971500001111', '+971500001112'],
         ], $this->authHeaders());
 
         $response->assertStatus(200);
@@ -133,11 +135,15 @@ class SupervisorDashboardApiTest extends TestCase
         $response->assertJsonPath('data.name', 'Updated Technician');
         $response->assertJsonPath('data.email', 'updated.tech@example.com');
         $response->assertJsonPath('data.phone', '+971555555555');
+        $response->assertJsonPath('data.emails.0', 'tech.alt1@example.com');
+        $response->assertJsonPath('data.phones.0', '+971500001111');
 
         $this->technician->refresh();
         $this->assertSame('Updated Technician', $this->technician->name);
         $this->assertSame('updated.tech@example.com', $this->technician->email);
         $this->assertSame('+971555555555', $this->technician->phone);
+        $this->assertSame(['tech.alt1@example.com', 'tech.alt2@example.com'], $this->technician->extra_emails);
+        $this->assertSame(['+971500001111', '+971500001112'], $this->technician->extra_phones);
     }
 
     public function test_supervisor_can_bulk_update_team_members(): void
@@ -152,10 +158,12 @@ class SupervisorDashboardApiTest extends TestCase
                     'id' => $this->technician->id,
                     'name' => 'Bulk Tech One',
                     'phone' => '+971500000001',
+                    'emails' => ['bulk.one+1@example.com', 'bulk.one+2@example.com'],
                 ],
                 [
                     'id' => $tech2->id,
                     'email' => 'bulk.tech.two@example.com',
+                    'phones' => ['+971500000002', '+971500000003'],
                 ],
             ],
         ];
@@ -165,14 +173,18 @@ class SupervisorDashboardApiTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.0.id', $this->technician->id);
         $response->assertJsonPath('data.0.name', 'Bulk Tech One');
+        $response->assertJsonPath('data.0.emails.1', 'bulk.one+2@example.com');
         $response->assertJsonPath('data.1.id', $tech2->id);
         $response->assertJsonPath('data.1.email', 'bulk.tech.two@example.com');
+        $response->assertJsonPath('data.1.phones.0', '+971500000002');
 
         $this->technician->refresh();
         $tech2->refresh();
         $this->assertSame('Bulk Tech One', $this->technician->name);
         $this->assertSame('+971500000001', $this->technician->phone);
+        $this->assertSame(['bulk.one+1@example.com', 'bulk.one+2@example.com'], $this->technician->extra_emails);
         $this->assertSame('bulk.tech.two@example.com', $tech2->email);
+        $this->assertSame(['+971500000002', '+971500000003'], $tech2->extra_phones);
     }
 
     public function test_assignments_endpoints_support_create_and_update_flows(): void

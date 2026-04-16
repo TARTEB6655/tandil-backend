@@ -164,6 +164,38 @@
                         },
                         "description": "\u2705 STEP 2 (Alternative): Login with existing account"
                     }
+                },
+                {
+                    "name": "Register Technician",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"New Technician\",\n  \"email\": \"new.tech@example.com\",\n  \"phone\": \"+971500001234\",\n  \"service_area\": \"Dubai Marina\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/register-technician",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "register-technician"
+                            ]
+                        },
+                        "description": "Technician signup endpoint. Required: name, email, phone, service_area, password, password_confirmation."
+                    }
                 }
             ],
             "description": "Authentication endpoints - Register and Login"
@@ -5719,6 +5751,26 @@
                                             "key": "phone",
                                             "value": "+971500000000",
                                             "type": "text"
+                                        },
+                                        {
+                                            "key": "emails[0]",
+                                            "value": "updated.tech+1@example.com",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "emails[1]",
+                                            "value": "updated.tech+2@example.com",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "phones[0]",
+                                            "value": "+971500000010",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "phones[1]",
+                                            "value": "+971500000011",
+                                            "type": "text"
                                         }
                                     ]
                                 },
@@ -5770,6 +5822,16 @@
                                             "type": "text"
                                         },
                                         {
+                                            "key": "members[0][emails][0]",
+                                            "value": "tech.one+1@example.com",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "members[0][emails][1]",
+                                            "value": "tech.one+2@example.com",
+                                            "type": "text"
+                                        },
+                                        {
                                             "key": "members[1][id]",
                                             "value": "{{member2_id}}",
                                             "type": "text"
@@ -5777,6 +5839,16 @@
                                         {
                                             "key": "members[1][email]",
                                             "value": "tech.two.updated@example.com",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "members[1][phones][0]",
+                                            "value": "+971500000020",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "members[1][phones][1]",
+                                            "value": "+971500000021",
                                             "type": "text"
                                         }
                                     ]

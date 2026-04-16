@@ -257,6 +257,8 @@ class SupervisorDashboardApiController extends Controller
         $data = $this->mapTeamMemberToArray($u, $areaIds, $now, $today, true);
         $data['email'] = $u->email;
         $data['phone'] = $u->phone;
+        $data['emails'] = array_values(array_filter((array) ($u->extra_emails ?? []), fn ($v) => is_string($v) && $v !== ''));
+        $data['phones'] = array_values(array_filter((array) ($u->extra_phones ?? []), fn ($v) => is_string($v) && $v !== ''));
         $data['jobs'] = $this->formatMemberJobsForResponse($memberVisits);
 
         return response()->json([
@@ -266,7 +268,7 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
-     * PUT/PATCH /api/supervisor/team/{id}
+     * POST /api/supervisor/team/{id}
      * Update one team member basic contact fields (name, email, phone).
      * Member must belong to supervisor's zones.
      */
@@ -282,14 +284,18 @@ class SupervisorDashboardApiController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $id,
             'phone' => 'nullable|string|max:50',
+            'emails' => 'sometimes|array|min:1',
+            'emails.*' => 'email|max:255',
+            'phones' => 'sometimes|array|min:1',
+            'phones.*' => 'string|max:50',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
-        if (! $request->hasAny(['name', 'email', 'phone'])) {
+        if (! $request->hasAny(['name', 'email', 'phone', 'emails', 'phones'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Provide at least one field to update: name, email, or phone.',
+                'message' => 'Provide at least one field to update: name, email, phone, emails, or phones.',
             ], 422);
         }
 
@@ -303,6 +309,24 @@ class SupervisorDashboardApiController extends Controller
         if ($request->has('phone')) {
             $member->phone = $request->input('phone') ?: null;
         }
+        if ($request->has('emails')) {
+            $emails = collect((array) $request->input('emails'))
+                ->map(fn ($v) => is_string($v) ? trim($v) : '')
+                ->filter(fn ($v) => $v !== '')
+                ->unique()
+                ->values()
+                ->all();
+            $member->extra_emails = $emails;
+        }
+        if ($request->has('phones')) {
+            $phones = collect((array) $request->input('phones'))
+                ->map(fn ($v) => is_string($v) ? trim($v) : '')
+                ->filter(fn ($v) => $v !== '')
+                ->unique()
+                ->values()
+                ->all();
+            $member->extra_phones = $phones;
+        }
         $member->save();
 
         return response()->json([
@@ -313,12 +337,14 @@ class SupervisorDashboardApiController extends Controller
                 'name' => $member->name,
                 'email' => $member->email,
                 'phone' => $member->phone,
+                'emails' => $member->extra_emails ?? [],
+                'phones' => $member->extra_phones ?? [],
             ],
         ]);
     }
 
     /**
-     * PUT/PATCH /api/supervisor/team
+     * POST /api/supervisor/team/update
      * Bulk update team members (name/email/phone) in one request.
      */
     public function teamMembersBulkUpdate(Request $request): JsonResponse
@@ -329,6 +355,10 @@ class SupervisorDashboardApiController extends Controller
             'members.*.name' => 'sometimes|string|max:255',
             'members.*.email' => 'sometimes|email|max:255',
             'members.*.phone' => 'nullable|string|max:50',
+            'members.*.emails' => 'sometimes|array|min:1',
+            'members.*.emails.*' => 'email|max:255',
+            'members.*.phones' => 'sometimes|array|min:1',
+            'members.*.phones.*' => 'string|max:50',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
@@ -344,10 +374,10 @@ class SupervisorDashboardApiController extends Controller
                     'message' => "Team member id {$payload['id']} is not in your zones.",
                 ], 422);
             }
-            if (! isset($payload['name']) && ! isset($payload['email']) && ! array_key_exists('phone', $payload)) {
+            if (! isset($payload['name']) && ! isset($payload['email']) && ! array_key_exists('phone', $payload) && ! isset($payload['emails']) && ! isset($payload['phones'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => "members.$index must include at least one of: name, email, phone.",
+                    'message' => "members.$index must include at least one of: name, email, phone, emails, phones.",
                 ], 422);
             }
         }
@@ -386,6 +416,22 @@ class SupervisorDashboardApiController extends Controller
                 if (array_key_exists('phone', $payload)) {
                     $member->phone = $payload['phone'] ?: null;
                 }
+                if (isset($payload['emails'])) {
+                    $member->extra_emails = collect((array) $payload['emails'])
+                        ->map(fn ($v) => is_string($v) ? trim($v) : '')
+                        ->filter(fn ($v) => $v !== '')
+                        ->unique()
+                        ->values()
+                        ->all();
+                }
+                if (isset($payload['phones'])) {
+                    $member->extra_phones = collect((array) $payload['phones'])
+                        ->map(fn ($v) => is_string($v) ? trim($v) : '')
+                        ->filter(fn ($v) => $v !== '')
+                        ->unique()
+                        ->values()
+                        ->all();
+                }
                 $member->save();
 
                 $updated[] = [
@@ -393,6 +439,8 @@ class SupervisorDashboardApiController extends Controller
                     'name' => $member->name,
                     'email' => $member->email,
                     'phone' => $member->phone,
+                    'emails' => $member->extra_emails ?? [],
+                    'phones' => $member->extra_phones ?? [],
                 ];
             }
             DB::commit();

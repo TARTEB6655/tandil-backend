@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -48,6 +49,55 @@ class AuthController extends Controller
                 'role'  => $user->role,
                 'user'  => $user
             ]
+        ], 201);
+    }
+
+    /**
+     * TECHNICIAN REGISTER
+     * Dedicated endpoint for technician signup flow.
+     */
+    public function registerTechnician(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|max:20|unique:users,phone',
+            'service_area' => 'required|string|max:255',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'password' => $validated['password'],
+            'role' => 'technician',
+            'status' => 'active',
+        ]);
+
+        $user->assignRole('technician');
+
+        Employee::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'employee_id' => 'TECH-' . $user->id,
+                'phone' => $validated['phone'],
+                'designation' => 'Technician',
+                'region' => $validated['service_area'],
+                'service_areas' => [$validated['service_area']],
+            ]
+        );
+
+        $token = $user->createToken('api_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Technician registered successfully.',
+            'data' => [
+                'token' => $token,
+                'role' => $user->role,
+                'user' => $user->fresh('employee'),
+            ],
         ], 201);
     }
 
