@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
-use App\Models\Employee;
+use App\Models\Area;
+use App\Models\TechnicianSignupRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -66,37 +67,52 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $user = User::create([
+        $area = Area::query()->whereRaw('LOWER(name) = ?', [strtolower(trim($validated['service_area']))])->first();
+        if (! $area) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid service_area. Please choose an existing area.',
+            ], 422);
+        }
+
+        if (! $area->supervisors()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No supervisor is assigned to this area yet. Please contact admin.',
+            ], 422);
+        }
+
+        $pendingExists = TechnicianSignupRequest::query()
+            ->where('status', 'pending')
+            ->where(function ($q) use ($validated) {
+                $q->where('email', $validated['email'])
+                    ->orWhere('phone', $validated['phone']);
+            })
+            ->exists();
+        if ($pendingExists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A signup request with this email or phone is already pending approval.',
+            ], 422);
+        }
+
+        $signupRequest = TechnicianSignupRequest::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
-            'password' => $validated['password'],
-            'role' => 'technician',
-            'status' => 'active',
+            'area_id' => $area->id,
+            'service_area' => $area->name,
+            'password' => Hash::make($validated['password']),
+            'status' => 'pending',
         ]);
-
-        $user->assignRole('technician');
-
-        Employee::updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'employee_id' => 'TECH-' . $user->id,
-                'phone' => $validated['phone'],
-                'designation' => 'Technician',
-                'region' => $validated['service_area'],
-                'service_areas' => [$validated['service_area']],
-            ]
-        );
-
-        $token = $user->createToken('api_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'Technician registered successfully.',
+            'message' => 'Technician signup request submitted. Waiting for supervisor approval.',
             'data' => [
-                'token' => $token,
-                'role' => $user->role,
-                'user' => $user->fresh('employee'),
+                'request_id' => $signupRequest->id,
+                'status' => $signupRequest->status,
+                'service_area' => $signupRequest->service_area,
             ],
         ], 201);
     }

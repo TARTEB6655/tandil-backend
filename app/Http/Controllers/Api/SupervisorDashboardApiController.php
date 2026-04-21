@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminReport;
+use App\Models\Employee;
 use App\Models\Report;
+use App\Models\TechnicianSignupRequest;
 use App\Models\User;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
@@ -664,6 +666,151 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $start = Carbon::parse($now->toDateString() . ' ' . $startTime);
         $end = Carbon::parse($now->toDateString() . ' ' . $endTime);
         return $now->between($start, $end);
+    }
+
+    /**
+     * GET /api/supervisor/technician-signup-requests
+     * Pending technician signup requests for supervisor's areas.
+     */
+    public function technicianSignupRequests(Request $request): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        if (empty($areaIds)) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'message' => 'No zones assigned to you.',
+            ]);
+        }
+
+        $requests = TechnicianSignupRequest::query()
+            ->whereIn('area_id', $areaIds)
+            ->where('status', 'pending')
+            ->with('area:id,name')
+            ->latest()
+            ->get()
+            ->map(fn (TechnicianSignupRequest $r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'email' => $r->email,
+                'phone' => $r->phone,
+                'service_area' => $r->service_area,
+                'area' => $r->area ? ['id' => $r->area->id, 'name' => $r->area->name] : null,
+                'created_at' => $r->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $requests,
+        ]);
+    }
+
+    /**
+     * POST /api/supervisor/technician-signup-requests/{id}/confirm
+     * Supervisor approves a signup request and creates technician account.
+     */
+    public function technicianSignupRequestConfirm(Request $request, int $id): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        $signup = TechnicianSignupRequest::query()
+            ->where('id', $id)
+            ->where('status', 'pending')
+            ->whereIn('area_id', $areaIds)
+            ->first();
+        if (! $signup) {
+            return response()->json(['success' => false, 'message' => 'Signup request not found.'], 404);
+        }
+
+        if (User::where('email', $signup->email)->exists() || User::where('phone', $signup->phone)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A user with this email or phone already exists.',
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $user = User::create([
+                'name' => $signup->name,
+                'email' => $signup->email,
+                'phone' => $signup->phone,
+                'password' => $signup->password,
+                'role' => 'technician',
+                'status' => 'active',
+            ]);
+            $user->assignRole('technician');
+
+            Employee::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'employee_id' => 'TECH-' . $user->id,
+                    'phone' => $signup->phone,
+                    'designation' => 'Technician',
+                    'region' => $signup->service_area,
+                    'service_areas' => [$signup->service_area],
+                ]
+            );
+
+            DB::table('area_technician')->updateOrInsert(
+                ['area_id' => $signup->area_id, 'user_id' => $user->id],
+                ['updated_at' => now(), 'created_at' => now()]
+            );
+
+            $signup->status = 'approved';
+            $signup->reviewed_by = $request->user()->id;
+            $signup->reviewed_at = now();
+            $signup->user_id = $user->id;
+            $signup->save();
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Technician signup request approved.',
+            'data' => [
+                'request_id' => $signup->id,
+                'status' => $signup->status,
+                'user_id' => $signup->user_id,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/supervisor/technician-signup-requests/{id}/cancel
+     * Supervisor rejects/cancels a pending signup request.
+     */
+    public function technicianSignupRequestCancel(Request $request, int $id): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        $signup = TechnicianSignupRequest::query()
+            ->where('id', $id)
+            ->where('status', 'pending')
+            ->whereIn('area_id', $areaIds)
+            ->first();
+        if (! $signup) {
+            return response()->json(['success' => false, 'message' => 'Signup request not found.'], 404);
+        }
+
+        $signup->status = 'cancelled';
+        $signup->reviewed_by = $request->user()->id;
+        $signup->reviewed_at = now();
+        $signup->review_note = $request->input('reason');
+        $signup->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Technician signup request cancelled.',
+            'data' => [
+                'request_id' => $signup->id,
+                'status' => $signup->status,
+            ],
+        ]);
     }
 
     /**

@@ -5867,6 +5867,98 @@
                                 },
                                 "description": "Bulk update multiple My Team members in one request. POST form-data to /api/supervisor/team/update with members[index][id|name|email|phone]."
                             }
+                        },
+                        {
+                            "name": "Technician Signup Requests (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/technician-signup-requests",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "technician-signup-requests"
+                                    ]
+                                },
+                                "description": "List pending technician signup requests for supervisor zones."
+                            }
+                        },
+                        {
+                            "name": "Technician Signup Request - Confirm (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/technician-signup-requests/{{request_id}}/confirm",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "technician-signup-requests",
+                                        "{{request_id}}",
+                                        "confirm"
+                                    ]
+                                },
+                                "description": "Supervisor approves request and creates technician account."
+                            }
+                        },
+                        {
+                            "name": "Technician Signup Request - Cancel (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"Profile details are incomplete\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/technician-signup-requests/{{request_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "technician-signup-requests",
+                                        "{{request_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Supervisor cancels/rejects pending signup request."
+                            }
                         }
                     ]
                 },

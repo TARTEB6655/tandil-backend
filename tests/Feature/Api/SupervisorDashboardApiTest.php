@@ -8,6 +8,7 @@ use App\Models\Complaint;
 use App\Models\Product;
 use App\Models\Report;
 use App\Models\Subscription;
+use App\Models\TechnicianSignupRequest;
 use App\Models\User;
 use App\Models\Visit;
 use Carbon\Carbon;
@@ -109,6 +110,7 @@ class SupervisorDashboardApiTest extends TestCase
             '/api/supervisor/dashboard/alerts',
             '/api/supervisor/team',
             '/api/supervisor/team-stats',
+            '/api/supervisor/technician-signup-requests',
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -117,6 +119,41 @@ class SupervisorDashboardApiTest extends TestCase
             $response->assertJsonPath('success', true);
             $response->assertJsonStructure(['success', 'data']);
         }
+    }
+
+    public function test_supervisor_can_list_confirm_and_cancel_technician_signup_requests(): void
+    {
+        $pending = TechnicianSignupRequest::create([
+            'name' => 'Signup Tech One',
+            'email' => 'signup.tech.one@example.com',
+            'phone' => '+971500101010',
+            'area_id' => $this->area->id,
+            'service_area' => $this->area->name,
+            'password' => bcrypt('password123'),
+            'status' => 'pending',
+        ]);
+
+        $list = $this->getJson('/api/supervisor/technician-signup-requests', $this->authHeaders());
+        $list->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertContains($pending->id, collect($list->json('data'))->pluck('id')->all());
+
+        $confirm = $this->postJson('/api/supervisor/technician-signup-requests/' . $pending->id . '/confirm', [], $this->authHeaders());
+        $confirm->assertStatus(200)->assertJsonPath('success', true)->assertJsonPath('data.status', 'approved');
+        $this->assertDatabaseHas('users', ['email' => 'signup.tech.one@example.com', 'role' => 'technician']);
+
+        $pending2 = TechnicianSignupRequest::create([
+            'name' => 'Signup Tech Two',
+            'email' => 'signup.tech.two@example.com',
+            'phone' => '+971500202020',
+            'area_id' => $this->area->id,
+            'service_area' => $this->area->name,
+            'password' => bcrypt('password123'),
+            'status' => 'pending',
+        ]);
+        $cancel = $this->postJson('/api/supervisor/technician-signup-requests/' . $pending2->id . '/cancel', [
+            'reason' => 'Incomplete profile',
+        ], $this->authHeaders());
+        $cancel->assertStatus(200)->assertJsonPath('success', true)->assertJsonPath('data.status', 'cancelled');
     }
 
     public function test_supervisor_can_update_single_team_member_contact_fields(): void
