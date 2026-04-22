@@ -776,6 +776,8 @@ Route::middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manag
     Route::get('/notifications', [\App\Http\Controllers\Notification\NotificationController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Notification\NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Notification\NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Notification\NotificationController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Notification\NotificationController::class, 'clearAll']);
 });
 
 /*

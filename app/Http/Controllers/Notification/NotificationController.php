@@ -54,4 +54,35 @@ class NotificationController extends Controller
 
         return ApiResponse::success('All notifications marked as read.');
     }
+
+    /**
+     * Delete one notification for authenticated user.
+     */
+    public function destroy(Request $request, $id)
+    {
+        $user = $request->user();
+        $notification = $user->notifications()->find($id);
+
+        if (! $notification) {
+            return ApiResponse::error('Notification not found. Make sure you are using the correct notification UUID from GET /api/notifications response.', 404);
+        }
+
+        $notification->delete();
+
+        return ApiResponse::success('Notification deleted successfully.');
+    }
+
+    /**
+     * Delete all notifications for authenticated user.
+     */
+    public function clearAll(Request $request)
+    {
+        $user = $request->user();
+        $deleted = $user->notifications()->count();
+        $user->notifications()->delete();
+
+        return ApiResponse::success('All notifications cleared successfully.', [
+            'deleted_count' => $deleted,
+        ]);
+    }
 }
