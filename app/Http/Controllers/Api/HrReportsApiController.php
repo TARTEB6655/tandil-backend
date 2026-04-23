@@ -175,27 +175,37 @@ class HrReportsApiController extends Controller
         ], 201);
     }
 
-    public function download(Request $request, int $id)
+    public function download(Request $request, string $id)
     {
-        $report = AdminReport::where('created_by', $request->user()->id)->find($id);
+        $reportId = (int) $id;
+        if ($reportId < 1) {
+            return response()->json(['success' => false, 'message' => 'Invalid report id.'], 422);
+        }
+
+        $report = AdminReport::where('created_by', $request->user()->id)->find($reportId);
         if (! $report) {
             return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
         }
         return $this->downloadReportFile($report);
     }
 
-    public function downloadPublic(Request $request, int $id)
+    public function downloadPublic(Request $request, string $id)
     {
+        $reportId = (int) $id;
+        if ($reportId < 1) {
+            return response()->json(['success' => false, 'message' => 'Invalid report id.'], 422);
+        }
+
         $report = null;
         if ($request->user()) {
-            $report = AdminReport::where('created_by', $request->user()->id)->find($id);
+            $report = AdminReport::where('created_by', $request->user()->id)->find($reportId);
         }
 
         if (! $report) {
             if (! $request->hasValidSignature()) {
                 return response()->json(['success' => false, 'message' => 'Invalid or expired download link.'], 403);
             }
-            $report = AdminReport::find($id);
+            $report = AdminReport::find($reportId);
         }
 
         if (! $report) {
@@ -222,9 +232,14 @@ class HrReportsApiController extends Controller
         return Storage::disk('local')->download($report->file_path, $filename, ['Content-Type' => $mime]);
     }
 
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $report = AdminReport::where('created_by', $request->user()->id)->find($id);
+        $reportId = (int) $id;
+        if ($reportId < 1) {
+            return response()->json(['success' => false, 'message' => 'Invalid report id.'], 422);
+        }
+
+        $report = AdminReport::where('created_by', $request->user()->id)->find($reportId);
         if (! $report) {
             return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
         }
