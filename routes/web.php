@@ -496,7 +496,15 @@ Route::middleware(['auth', 'role:hr'])
     ->name('hr.')
     ->group(function () {
         Route::get('/dashboard', [HrDashboardController::class, 'index'])->name('dashboard');
-        
+
+        Route::get('/visit-assignments', [\App\Http\Controllers\HR\HrVisitAssignmentWebController::class, 'index'])->name('visit-assignments.index');
+        Route::post('/visit-assignments/{visit}/assign', [\App\Http\Controllers\HR\HrVisitAssignmentWebController::class, 'assign'])->name('visit-assignments.assign');
+
+        Route::get('/reports/technician-monthly', [\App\Http\Controllers\HR\HrReportWebController::class, 'technicianMonthlyForm'])->name('reports.technician-monthly');
+        Route::post('/reports/technician-monthly/preview', [\App\Http\Controllers\HR\HrReportWebController::class, 'technicianMonthlyPreview'])->name('reports.technician-monthly.preview');
+        Route::post('/reports/technician-monthly/generate', [\App\Http\Controllers\HR\HrReportWebController::class, 'technicianMonthlyGenerate'])->name('reports.technician-monthly.generate');
+        Route::get('/reports/generated/{id}/download', [\App\Http\Controllers\HR\HrReportWebController::class, 'downloadGenerated'])->name('reports.generated.download');
+
         // Employees
         Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index'])->name('employees.index');
         Route::get('/employees/create', [\App\Http\Controllers\HR\EmployeeController::class, 'create'])->name('employees.create');

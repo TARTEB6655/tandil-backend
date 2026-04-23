@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Models\Visit;
+use App\Services\HrVisitAssignmentService;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use Carbon\Carbon;
@@ -416,5 +417,131 @@ class HrApiController extends Controller
                 'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture),
             ],
         ]);
+    }
+
+    /**
+     * GET /api/hr/visit-assignments/assign-screen
+     * Technicians + paginated assignable visits (same shape as supervisor assign-tasks, company-wide).
+     */
+    public function visitAssignmentsAssignScreen(Request $request): JsonResponse
+    {
+        $perPage = max(1, min(100, (int) $request->get('per_page', 50)));
+        $pending = HrVisitAssignmentService::assignableQuery()
+            ->with(['supervisor', 'subscription.client', 'area', 'technician'])
+            ->orderByRaw('escalated_at IS NOT NULL DESC')
+            ->orderBy('scheduled_date')
+            ->paginate($perPage);
+
+        $teamMembers = User::role('technician')
+            ->active()
+            ->with('employee')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $u) => $this->mapTechnicianForHrAssign($u))
+            ->values()
+            ->all();
+
+        $availableTasks = $pending->getCollection()->map(fn (Visit $v) => HrVisitAssignmentService::mapVisit($v))->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'team_members' => $teamMembers,
+                'available_tasks' => $availableTasks,
+            ],
+            'meta' => [
+                'current_page' => $pending->currentPage(),
+                'last_page' => $pending->lastPage(),
+                'per_page' => $pending->perPage(),
+                'total' => $pending->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/hr/visit-assignments
+     * Paginated visits: scope=assignable (default) | all; optional date_from, date_on, status.
+     */
+    public function visitAssignmentsIndex(Request $request): JsonResponse
+    {
+        $scope = $request->get('scope', 'assignable');
+        $query = $scope === 'all' ? Visit::query() : HrVisitAssignmentService::assignableQuery();
+        $query->with(['supervisor', 'subscription.client', 'area', 'technician']);
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('scheduled_date', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('scheduled_date', '<=', $request->input('date_to'));
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $perPage = max(1, min(100, (int) $request->get('per_page', 20)));
+        $paginator = $query->orderByDesc('id')->paginate($perPage);
+        $list = $paginator->getCollection()->map(fn (Visit $v) => HrVisitAssignmentService::mapVisit($v))->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $list,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/hr/visit-assignments/{visitId}
+     * Assign or re-offer visit to technician (company-wide; no zone restriction for HR).
+     */
+    public function visitAssignmentsAssign(Request $request, int $visitId): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'technician_id' => 'required|integer|exists:users,id',
+            'scheduled_date' => 'nullable|date',
+            'note' => 'nullable|string|max:1000',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $result = HrVisitAssignmentService::assignVisit(
+            $visitId,
+            (int) $request->input('technician_id'),
+            $request->input('scheduled_date'),
+            $request->input('note')
+        );
+
+        if (! ($result['success'] ?? false)) {
+            $status = ($result['message'] ?? '') === 'Visit not found or not assignable.' ? 404 : 422;
+
+            return response()->json(array_merge(['success' => false], $result), $status);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'data' => $result['data'],
+            'accept_by' => $result['accept_by'] ?? null,
+        ], 200);
+    }
+
+    private function mapTechnicianForHrAssign(User $u): array
+    {
+        $today = Carbon::today()->toDateString();
+        $onLeave = HrVisitAssignmentService::isTechnicianOnLeave($u->id, $today);
+        $initial = mb_substr(trim((string) $u->name), 0, 1) ?: '?';
+
+        return [
+            'id' => $u->id,
+            'name' => $u->name,
+            'employee_id' => $u->employee?->employee_id ?? ('TECH-' . $u->id),
+            'profile_picture_url' => ProfilePictureUploadService::fullUrlOrDefault($u->profile_picture ?? null, $initial),
+            'on_leave_today' => $onLeave,
+        ];
     }
 }

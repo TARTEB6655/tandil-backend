@@ -440,6 +440,14 @@ Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('admin/hr')->group(
 Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('hr')->group(function () {
     Route::get('/dashboard/summary', [\App\Http\Controllers\Api\HrApiController::class, 'dashboardSummary']);
     Route::get('/dashboard/visit-assignments', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignments']);
+    Route::get('/visit-assignments/assign-screen', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignmentsAssignScreen']);
+    Route::get('/visit-assignments', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignmentsIndex']);
+    Route::post('/visit-assignments/{visitId}', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignmentsAssign']);
+    Route::get('/reports/technician-monthly', [\App\Http\Controllers\Api\HrReportsApiController::class, 'technicianMonthlyPreview']);
+    Route::get('/reports', [\App\Http\Controllers\Api\HrReportsApiController::class, 'index']);
+    Route::post('/reports/generate', [\App\Http\Controllers\Api\HrReportsApiController::class, 'generate']);
+    Route::get('/reports/{id}/download', [\App\Http\Controllers\Api\HrReportsApiController::class, 'download'])->name('api.hr.reports.download');
+    Route::get('/reports/{id}', [\App\Http\Controllers\Api\HrReportsApiController::class, 'show']);
     Route::get('/positions', [\App\Http\Controllers\Api\HrApiController::class, 'positions']);
     Route::get('/leave-requests', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestsIndex']);
     Route::post('/leave-requests', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestStore']);

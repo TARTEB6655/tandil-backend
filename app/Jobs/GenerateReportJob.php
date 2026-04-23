@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Visit;
 use App\Notifications\ReportGeneratedNotification;
+use App\Services\HrTechnicianMonthlyReportService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -172,6 +173,10 @@ class GenerateReportJob implements ShouldQueue
 
     protected function buildReportContent(AdminReport $report, string $startDate, string $endDate, array $params): string
     {
+        if ($report->type === 'hr_technician_monthly') {
+            return $this->buildHrTechnicianMonthlyContent($report, $params);
+        }
+
         $areaIds = $this->reportAreaIds();
         $start = Carbon::parse($startDate)->startOfDay();
         $end = Carbon::parse($endDate)->endOfDay();
@@ -413,6 +418,19 @@ class GenerateReportJob implements ShouldQueue
             $lines[] = 'No customer info available for visits without feedback.';
         }
         return implode("\n", $lines);
+    }
+
+    /** HR: per-technician monthly PDF/text (parameters: technician_id, year, month). */
+    protected function buildHrTechnicianMonthlyContent(AdminReport $report, array $params): string
+    {
+        $technicianId = (int) ($params['technician_id'] ?? 0);
+        $year = (int) ($params['year'] ?? now()->year);
+        $month = (int) ($params['month'] ?? now()->month);
+        if ($technicianId < 1 || $month < 1 || $month > 12) {
+            return "Report: {$report->title}\n---\nInvalid parameters: technician_id, year, and month (1–12) are required.";
+        }
+
+        return HrTechnicianMonthlyReportService::buildPlainText($technicianId, $year, $month, $report->title);
     }
 
     protected function buildDefaultReportContent(AdminReport $report, string $startDate, string $endDate, array $params): string

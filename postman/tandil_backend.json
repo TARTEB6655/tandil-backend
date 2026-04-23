@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician \u2192 Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) \u00b7 CLIENT \u00b7 TECHNICIAN (folder 9) \u00b7 SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10\u201314). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token \u2013 see Module 15 'Support Tickets \u2013 All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list \u2192 detail \u2192 members \u2192 member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "2.95.0"
+        "version": "2.96.0"
     },
     "item": [
         {
@@ -9453,6 +9453,327 @@
                                 }
                             },
                             "description": "Reply in ticket chat. Body: message (required). Set {{ticket_id}}."
+                        }
+                    ]
+                },
+                {
+                    "name": "F. Visit assignments & Monthly reports",
+                    "item": [
+                        {
+                            "name": "Visit assignments - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/visit-assignments?scope=assignable&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "visit-assignments"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "scope",
+                                            "value": "assignable",
+                                            "description": "assignable | all"
+                                        },
+                                        {
+                                            "key": "date_from",
+                                            "value": "",
+                                            "description": "Optional Y-m-d"
+                                        },
+                                        {
+                                            "key": "date_to",
+                                            "value": "",
+                                            "description": "Optional Y-m-d"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "",
+                                            "description": "Optional visit status"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/hr/visit-assignments. Paginated visit cards (id, scheduled_date, status, client, area, technician, flags). scope=assignable (default) or all."
+                            }
+                        },
+                        {
+                            "name": "Visit assignments - Assign screen",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/visit-assignments/assign-screen?per_page=50",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "visit-assignments",
+                                        "assign-screen"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "50"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/hr/visit-assignments/assign-screen. Response: data.team_members[], data.available_tasks[], meta pagination. Same idea as supervisor assign-tasks but company-wide."
+                            }
+                        },
+                        {
+                            "name": "Visit assignments - Offer to technician (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"technician_id\": 1,\n  \"scheduled_date\": \"\",\n  \"note\": \"\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/visit-assignments/{{visit_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "visit-assignments",
+                                        "{{visit_id}}"
+                                    ]
+                                },
+                                "description": "POST /api/hr/visit-assignments/{visitId}. JSON body: technician_id (required), scheduled_date (optional), note (optional). Offers job (pending_acceptance + accept_by). Set {{visit_id}}."
+                            }
+                        },
+                        {
+                            "name": "Reports - Technician monthly preview (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/reports/technician-monthly?technician_id={{technician_id}}&year=2026&month=4",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "reports",
+                                        "technician-monthly"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "technician_id",
+                                            "value": "{{technician_id}}",
+                                            "description": "User id with technician role"
+                                        },
+                                        {
+                                            "key": "year",
+                                            "value": "2026"
+                                        },
+                                        {
+                                            "key": "month",
+                                            "value": "4"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/hr/reports/technician-monthly. Query: technician_id, year, month. JSON: technician, period, summary (leave days, completed jobs, visits), leave_requests[], visits[]."
+                            }
+                        },
+                        {
+                            "name": "Reports - List my generated (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/reports?per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "reports"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "",
+                                            "description": "Optional pending|generated|failed"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "",
+                                            "description": "Optional filter"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/hr/reports. Paginated AdminReport rows created by this user (HR monthly PDFs)."
+                            }
+                        },
+                        {
+                            "name": "Reports - Generate PDF (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"type\": \"hr_technician_monthly\",\n  \"title\": \"Technician — April 2026\",\n  \"parameters\": {\n    \"technician_id\": 1,\n    \"year\": 2026,\n    \"month\": 4,\n    \"format\": \"pdf\"\n  }\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/reports/generate",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "reports",
+                                        "generate"
+                                    ]
+                                },
+                                "description": "POST /api/hr/reports/generate. Queues GenerateReportJob. type must be hr_technician_monthly; parameters: technician_id, year, month, format pdf|csv optional."
+                            }
+                        },
+                        {
+                            "name": "Reports - Get by ID (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/reports/{{hr_report_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "reports",
+                                        "{{hr_report_id}}"
+                                    ]
+                                },
+                                "description": "GET /api/hr/reports/{id}. Own reports only. Set {{hr_report_id}} from list response."
+                            }
+                        },
+                        {
+                            "name": "Reports - Download (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/reports/{{hr_report_id}}/download",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "reports",
+                                        "{{hr_report_id}}",
+                                        "download"
+                                    ]
+                                },
+                                "description": "GET /api/hr/reports/{id}/download. File when status=generated. Set {{hr_report_id}}."
+                            }
                         }
                     ]
                 }
