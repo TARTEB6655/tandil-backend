@@ -17,6 +17,15 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HrReportWebController extends Controller
 {
+    private function paginatedReports(Request $request)
+    {
+        return AdminReport::where('created_by', $request->user()->id)
+            ->where('type', 'hr_technician_monthly')
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();
+    }
+
     public function __construct()
     {
         $this->middleware(['auth', 'role:hr']);
@@ -29,11 +38,7 @@ class HrReportWebController extends Controller
         $defaultMonth = (int) $request->get('month', now()->month);
         $selectedTechId = (int) $request->get('technician_id', 0);
 
-        $myReports = AdminReport::where('created_by', $request->user()->id)
-            ->where('type', 'hr_technician_monthly')
-            ->orderByDesc('id')
-            ->limit(20)
-            ->get();
+        $myReports = $this->paginatedReports($request);
 
         return view('hr.reports.technician-monthly', [
             'technicians' => $technicians,
@@ -63,11 +68,7 @@ class HrReportWebController extends Controller
         );
 
         $technicians = User::role('technician')->active()->with('employee')->orderBy('name')->get();
-        $myReports = AdminReport::where('created_by', $request->user()->id)
-            ->where('type', 'hr_technician_monthly')
-            ->orderByDesc('id')
-            ->limit(20)
-            ->get();
+        $myReports = $this->paginatedReports($request);
 
         return view('hr.reports.technician-monthly', [
             'technicians' => $technicians,
