@@ -56,6 +56,37 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
             ->assertJsonStructure(['data' => ['team_members', 'available_tasks'], 'meta']);
     }
 
+    public function test_hr_visit_assignments_summary_returns_correct_counts(): void
+    {
+        $tech = User::factory()->create(['role' => 'technician', 'status' => 'active']);
+        $this->assignRoleIfAvailable($tech, 'technician');
+
+        Visit::factory()->create([
+            'technician_id' => null,
+            'status' => 'pending',
+            'scheduled_date' => Carbon::today()->toDateString(),
+        ]);
+        Visit::factory()->create([
+            'technician_id' => null,
+            'status' => 'pending_acceptance',
+            'scheduled_date' => Carbon::today()->toDateString(),
+        ]);
+        Visit::factory()->create([
+            'technician_id' => $tech->id,
+            'status' => 'pending_acceptance',
+            'scheduled_date' => Carbon::today()->toDateString(),
+        ]);
+
+        $res = $this->actingAs($this->adminHr, 'sanctum')
+            ->getJson('/api/hr/visit-assignments/summary?scope=all');
+
+        $res->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_jobs', 3)
+            ->assertJsonPath('data.unassigned', 2)
+            ->assertJsonPath('data.pending_acceptance', 2);
+    }
+
     public function test_hr_technician_monthly_preview_requires_technician_role(): void
     {
         $client = User::factory()->create(['role' => 'client']);

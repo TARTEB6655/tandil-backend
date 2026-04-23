@@ -495,6 +495,40 @@ class HrApiController extends Controller
     }
 
     /**
+     * GET /api/hr/visit-assignments/summary
+     * Summary cards for Assign Visits screen: total, unassigned, pending_acceptance.
+     * Supports same filters as list endpoint (scope, date_from, date_to, status).
+     */
+    public function visitAssignmentsSummary(Request $request): JsonResponse
+    {
+        $scope = $request->get('scope', 'assignable');
+        $baseQuery = $scope === 'all' ? Visit::query() : HrVisitAssignmentService::assignableQuery();
+
+        if ($request->filled('date_from')) {
+            $baseQuery->whereDate('scheduled_date', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $baseQuery->whereDate('scheduled_date', '<=', $request->input('date_to'));
+        }
+        if ($request->filled('status')) {
+            $baseQuery->where('status', $request->input('status'));
+        }
+
+        $total = (clone $baseQuery)->count();
+        $unassigned = (clone $baseQuery)->whereNull('technician_id')->count();
+        $pendingAcceptance = (clone $baseQuery)->where('status', 'pending_acceptance')->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_jobs' => $total,
+                'unassigned' => $unassigned,
+                'pending_acceptance' => $pendingAcceptance,
+            ],
+        ]);
+    }
+
+    /**
      * POST /api/hr/visit-assignments/{visitId}
      * Assign or re-offer visit to technician (company-wide; no zone restriction for HR).
      */

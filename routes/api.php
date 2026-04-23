@@ -440,6 +440,7 @@ Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('admin/hr')->group(
 Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('hr')->group(function () {
     Route::get('/dashboard/summary', [\App\Http\Controllers\Api\HrApiController::class, 'dashboardSummary']);
     Route::get('/dashboard/visit-assignments', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignments']);
+    Route::get('/visit-assignments/summary', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignmentsSummary']);
     Route::get('/visit-assignments/assign-screen', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignmentsAssignScreen']);
     Route::get('/visit-assignments', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignmentsIndex']);
     Route::post('/visit-assignments/{visitId}', [\App\Http\Controllers\Api\HrApiController::class, 'visitAssignmentsAssign']);
