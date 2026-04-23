@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\GenerateReportJob;
 use App\Models\AdminReport;
+use App\Models\User;
 use App\Services\HrTechnicianMonthlyReportService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -109,8 +111,6 @@ class HrReportsApiController extends Controller
     public function generate(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'type' => 'required|in:hr_technician_monthly',
-            'title' => 'required|string|max:255',
             'parameters' => 'required|array',
             'parameters.technician_id' => 'required|integer|exists:users,id',
             'parameters.year' => 'required|integer|min:2000|max:2100',
@@ -122,14 +122,17 @@ class HrReportsApiController extends Controller
         }
 
         $techId = (int) $request->input('parameters.technician_id');
-        if (! \App\Models\User::role('technician')->whereKey($techId)->exists()) {
+        $technician = User::role('technician')->whereKey($techId)->first();
+        if (! $technician) {
             return response()->json(['success' => false, 'message' => 'User is not a technician.'], 422);
         }
 
         $year = (int) $request->input('parameters.year');
         $month = (int) $request->input('parameters.month');
-        $start = \Carbon\Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
-        $end = \Carbon\Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+        $monthDate = Carbon::create($year, $month, 1);
+        $start = $monthDate->copy()->startOfMonth()->toDateString();
+        $end = $monthDate->copy()->endOfMonth()->toDateString();
+        $autoTitle = ($technician->name ?? 'Technician') . ' — ' . $monthDate->format('F Y');
 
         $params = array_merge($request->input('parameters', []), [
             'start_date' => $start,
@@ -138,7 +141,7 @@ class HrReportsApiController extends Controller
         $format = $params['format'] ?? 'pdf';
 
         $report = AdminReport::create([
-            'title' => $request->input('title'),
+            'title' => $autoTitle,
             'type' => 'hr_technician_monthly',
             'status' => 'pending',
             'format' => $format,

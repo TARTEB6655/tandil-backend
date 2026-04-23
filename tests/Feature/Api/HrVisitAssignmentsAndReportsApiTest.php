@@ -121,8 +121,6 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
         $this->assignRoleIfAvailable($tech, 'technician');
 
         $res = $this->actingAs($this->adminHr, 'sanctum')->postJson('/api/hr/reports/generate', [
-            'type' => 'hr_technician_monthly',
-            'title' => 'Test monthly',
             'parameters' => [
                 'technician_id' => $tech->id,
                 'year' => now()->year,
@@ -138,5 +136,8 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
             'type' => 'hr_technician_monthly',
             'created_by' => $this->adminHr->id,
         ]);
+        $title = $res->json('data.title');
+        $this->assertIsString($title);
+        $this->assertNotSame('', trim($title));
     }
 }
