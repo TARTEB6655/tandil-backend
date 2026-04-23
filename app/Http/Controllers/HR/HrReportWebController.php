@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HrReportWebController extends Controller
@@ -123,9 +124,10 @@ class HrReportWebController extends Controller
         $report->refresh();
 
         if ($report->status !== 'generated' || ! $report->file_path) {
+            $reason = $report->failure_reason ? (' Reason: ' . $report->failure_reason) : '';
             return redirect()
                 ->route('hr.reports.technician-monthly', ['year' => $year, 'month' => $month, 'technician_id' => $tid])
-                ->withErrors(['download' => 'Could not generate report instantly. Please try again.']);
+                ->withErrors(['download' => 'Could not generate report instantly.' . $reason]);
         }
         if (! Storage::disk('local')->exists($report->file_path)) {
             return redirect()
@@ -147,8 +149,31 @@ class HrReportWebController extends Controller
         }
 
         $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+        $mime = strtolower($ext) === 'pdf' ? 'application/pdf' : 'application/octet-stream';
+        $filename = 'hr-report-' . $report->id . '.' . $ext;
+        $disk = Storage::disk('local');
+        $fullPath = $disk->path($report->file_path);
 
-        return Storage::disk('local')->download($report->file_path, 'hr-report-' . $report->id . '.' . $ext);
+        return response()->streamDownload(
+            static function () use ($fullPath): void {
+                $fp = fopen($fullPath, 'rb');
+                if ($fp === false) {
+                    return;
+                }
+                while (! feof($fp)) {
+                    echo fread($fp, 8192);
+                }
+                fclose($fp);
+            },
+            $filename,
+            [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'Content-Disposition' => ResponseHeaderBag::DISPOSITION_ATTACHMENT . '; filename="' . $filename . '"',
+            ]
+        );
     }
 }
 

@@ -170,4 +170,26 @@ class GeneratedReportTest extends TestCase
         $response->assertRedirect(route('areamanager.generated-reports.index'));
         $this->assertSame(0, AdminReport::where('created_by', $this->areaManager->id)->count());
     }
+
+    public function test_hr_download_generated_streams_pdf_attachment(): void
+    {
+        $hr = User::factory()->create(['name' => 'HR User', 'email' => 'hr@test.com']);
+        $this->assignRoleIfAvailable($hr, 'hr');
+
+        $report = AdminReport::create([
+            'title' => 'HR Report',
+            'type' => 'hr_technician_monthly',
+            'status' => 'generated',
+            'format' => 'pdf',
+            'file_path' => 'admin_reports/500/hr-report.pdf',
+            'parameters' => [],
+            'created_by' => $hr->id,
+        ]);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4 fake hr pdf');
+
+        $response = $this->actingAs($hr)->get(route('hr.reports.generated.download', ['id' => $report->id]));
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('attachment', strtolower((string) $response->headers->get('Content-Disposition')));
+    }
 }
