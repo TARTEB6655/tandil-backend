@@ -80,7 +80,7 @@ class HrReportWebController extends Controller
         ]);
     }
 
-    public function technicianMonthlyGenerate(Request $request): RedirectResponse
+    public function technicianMonthlyGenerate(Request $request): StreamedResponse|RedirectResponse
     {
         $v = Validator::make($request->all(), [
             'technician_id' => 'required|integer|exists:users,id',
@@ -119,11 +119,23 @@ class HrReportWebController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        GenerateReportJob::dispatch($report);
+        GenerateReportJob::dispatchSync($report);
+        $report->refresh();
 
-        return redirect()
-            ->route('hr.reports.technician-monthly', ['year' => $year, 'month' => $month, 'technician_id' => $tid])
-            ->with('status', 'PDF report queued. When status shows Generated, use Download from the list below.');
+        if ($report->status !== 'generated' || ! $report->file_path) {
+            return redirect()
+                ->route('hr.reports.technician-monthly', ['year' => $year, 'month' => $month, 'technician_id' => $tid])
+                ->withErrors(['download' => 'Could not generate report instantly. Please try again.']);
+        }
+        if (! Storage::disk('local')->exists($report->file_path)) {
+            return redirect()
+                ->route('hr.reports.technician-monthly', ['year' => $year, 'month' => $month, 'technician_id' => $tid])
+                ->withErrors(['download' => 'Generated file not found. Please try again.']);
+        }
+
+        $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+
+        return Storage::disk('local')->download($report->file_path, 'hr-report-' . $report->id . '.' . $ext);
     }
 
     public function downloadGenerated(Request $request, int $id): StreamedResponse|RedirectResponse

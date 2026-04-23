@@ -3,7 +3,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
             <div>
                 <h1 class="text-lg sm:text-xl font-medium text-gray-900">Technician Monthly Reports</h1>
-                <p class="mt-1 text-xs sm:text-sm text-gray-500">Preview data on screen or queue a PDF (same engine as admin generated reports).</p>
+                <p class="mt-1 text-xs sm:text-sm text-gray-500">Preview data and generate PDF instantly (no queue wait).</p>
             </div>
             <a href="{{ route('hr.dashboard') }}"
                class="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 text-center">
@@ -71,7 +71,7 @@
                         <input type="number" name="month" min="1" max="12" value="{{ old('month', $defaultMonth) }}" class="w-full rounded-lg border-gray-300 text-sm" required />
                     </div>
                 </div>
-                <button type="submit" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">Queue PDF</button>
+                <button type="submit" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">Generate & Download PDF</button>
             </form>
         </div>
     </div>
@@ -102,7 +102,7 @@
         </div>
         <div class="p-4 sm:p-6">
             @if($myReports->isEmpty())
-                <p class="text-sm text-gray-500">None yet. Use Queue PDF above.</p>
+                <p class="text-sm text-gray-500">No generated reports yet. Use Generate & Download PDF above.</p>
             @else
                 <ul class="divide-y divide-gray-100 text-sm">
                     @foreach($myReports as $r)

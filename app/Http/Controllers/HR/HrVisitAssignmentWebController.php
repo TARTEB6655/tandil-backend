@@ -21,6 +21,7 @@ class HrVisitAssignmentWebController extends Controller
     public function index(Request $request): View
     {
         $scope = $request->get('scope', 'assignable');
+        $perPage = max(6, min(30, (int) $request->get('per_page', 12)));
         $query = $scope === 'all' ? Visit::query() : HrVisitAssignmentService::assignableQuery();
         $query->with(['supervisor', 'subscription.client', 'area', 'technician']);
 
@@ -31,11 +32,24 @@ class HrVisitAssignmentWebController extends Controller
             $query->whereDate('scheduled_date', '<=', $request->get('date_to'));
         }
 
-        $visits = $query->orderBy('scheduled_date')->orderBy('id')->paginate(25)->withQueryString();
+        $statsQuery = clone $query;
+        $total = (clone $statsQuery)->count();
+        $unassigned = (clone $statsQuery)->whereNull('technician_id')->count();
+        $pendingAcceptance = (clone $statsQuery)->where('status', 'pending_acceptance')->count();
+
+        $visits = $query->orderBy('scheduled_date')->orderBy('id')->paginate($perPage)->withQueryString();
 
         $technicians = User::role('technician')->active()->with('employee')->orderBy('name')->get();
 
-        return view('hr.visit-assignments.index', compact('visits', 'technicians', 'scope'));
+        return view('hr.visit-assignments.index', compact(
+            'visits',
+            'technicians',
+            'scope',
+            'perPage',
+            'total',
+            'unassigned',
+            'pendingAcceptance'
+        ));
     }
 
     public function assign(Request $request, int $visit): RedirectResponse
