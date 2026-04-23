@@ -136,7 +136,7 @@ class ClientToSupervisorToTechnicianReportFlowTest extends TestCase
 
         // --- 4. Technician submits report to supervisor ---
         $reportResponse = $this->asUser($this->technician)->postJson('/api/technician/reports', [
-            'supervisor_id' => $this->supervisor->id,
+            'visit_id' => $visit->id,
             'technician_notes' => 'Completed tree watering. All sections checked. Minor leak repaired.',
         ]);
         $reportResponse->assertStatus(201);
