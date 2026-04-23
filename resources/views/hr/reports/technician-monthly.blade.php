@@ -116,9 +116,13 @@
                                 <form method="post" action="{{ route('hr.reports.generated.destroy', $r->id) }}" onsubmit="return confirm('Delete this report?')" class="inline-flex">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-500 hover:text-red-700" title="Delete report" aria-label="Delete report">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M6 8a1 1 0 011 1v6a1 1 0 102 0V9a1 1 0 112 0v6a1 1 0 102 0V9a1 1 0 112 0v6a3 3 0 11-6 0V9a1 1 0 10-2 0v6a3 3 0 11-6 0V9a1 1 0 011-1zm10-3a1 1 0 01-1 1H5a1 1 0 110-2h2.586A2 2 0 019.414 2h1.172a2 2 0 011.828 1.2L13 3h2a1 1 0 011 1z" clip-rule="evenodd" />
+                                    <button type="submit" class="inline-flex items-center justify-center rounded-md p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700" title="Delete report" aria-label="Delete report">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M3 6h18"></path>
+                                            <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path>
+                                            <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"></path>
+                                            <path d="M10 11v6"></path>
+                                            <path d="M14 11v6"></path>
                                         </svg>
                                     </button>
                                 </form>
@@ -138,7 +142,27 @@
                                 <span class="font-medium text-gray-900">{{ $myReports->total() }}</span>
                                 reports
                             </div>
-                            <div>{{ $myReports->withQueryString()->links() }}</div>
+                            <nav class="flex items-center gap-1" aria-label="Reports pagination">
+                                @if($myReports->onFirstPage())
+                                    <span class="px-3 py-1.5 text-xs sm:text-sm text-gray-400 bg-gray-100 rounded-md cursor-not-allowed">Prev</span>
+                                @else
+                                    <a href="{{ $myReports->previousPageUrl() }}" class="px-3 py-1.5 text-xs sm:text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Prev</a>
+                                @endif
+
+                                @foreach($myReports->getUrlRange(max(1, $myReports->currentPage() - 1), min($myReports->lastPage(), $myReports->currentPage() + 1)) as $page => $url)
+                                    @if($page == $myReports->currentPage())
+                                        <span class="px-3 py-1.5 text-xs sm:text-sm text-white bg-indigo-600 rounded-md">{{ $page }}</span>
+                                    @else
+                                        <a href="{{ $url }}" class="px-3 py-1.5 text-xs sm:text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">{{ $page }}</a>
+                                    @endif
+                                @endforeach
+
+                                @if($myReports->hasMorePages())
+                                    <a href="{{ $myReports->nextPageUrl() }}" class="px-3 py-1.5 text-xs sm:text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Next</a>
+                                @else
+                                    <span class="px-3 py-1.5 text-xs sm:text-sm text-gray-400 bg-gray-100 rounded-md cursor-not-allowed">Next</span>
+                                @endif
+                            </nav>
                         </div>
                     </div>
                 @endif
