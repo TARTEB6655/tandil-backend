@@ -311,6 +311,9 @@ Route::get('/area-manager/generated-reports/{id}/download', [\App\Http\Controlle
 Route::get('/area-manager/generated-reports/{id}/view', [\App\Http\Controllers\Api\GeneratedReportPublicController::class, 'view'])
     ->name('api.area-manager.generated-reports.view.public')
     ->middleware('optional.sanctum');
+Route::get('/hr/reports/{id}/download-public', [\App\Http\Controllers\Api\HrReportsApiController::class, 'downloadPublic'])
+    ->name('api.hr.reports.download.public')
+    ->middleware('optional.sanctum');
 
 /*
 |--------------------------------------------------------------------------

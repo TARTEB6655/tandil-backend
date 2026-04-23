@@ -11,13 +11,18 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 
 class HrReportsApiController extends Controller
 {
     protected function fileUrl(AdminReport $report): ?string
     {
-        return url('/api/hr/reports/' . $report->id . '/download');
+        return URL::temporarySignedRoute(
+            'api.hr.reports.download.public',
+            now()->addDays(7),
+            ['id' => $report->id]
+        );
     }
 
     protected function transformReport(AdminReport $report): array
@@ -176,6 +181,32 @@ class HrReportsApiController extends Controller
         if (! $report) {
             return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
         }
+        return $this->downloadReportFile($report);
+    }
+
+    public function downloadPublic(Request $request, int $id)
+    {
+        $report = null;
+        if ($request->user()) {
+            $report = AdminReport::where('created_by', $request->user()->id)->find($id);
+        }
+
+        if (! $report) {
+            if (! $request->hasValidSignature()) {
+                return response()->json(['success' => false, 'message' => 'Invalid or expired download link.'], 403);
+            }
+            $report = AdminReport::find($id);
+        }
+
+        if (! $report) {
+            return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
+        }
+
+        return $this->downloadReportFile($report);
+    }
+
+    protected function downloadReportFile(AdminReport $report)
+    {
         $report = $this->ensureReportFile($report);
         if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return response()->json(['success' => false, 'message' => 'Report file not found.'], 404);
