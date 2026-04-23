@@ -47,7 +47,7 @@
                         <input type="number" name="month" min="1" max="12" value="{{ old('month', $defaultMonth) }}" class="w-full rounded-lg border-gray-300 text-sm" required />
                     </div>
                 </div>
-                <button type="submit" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-900">Preview JSON</button>
+                <button type="submit" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-900">Preview Detail</button>
             </form>
 
             <form method="post" action="{{ route('hr.reports.technician-monthly.generate') }}" class="space-y-3 border-t lg:border-t-0 lg:border-l border-gray-100 lg:pl-6 pt-4 lg:pt-0">
