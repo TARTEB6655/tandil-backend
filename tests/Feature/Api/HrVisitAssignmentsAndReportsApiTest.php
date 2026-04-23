@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\AdminReport;
 use App\Models\User;
 use App\Models\Visit;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -19,6 +21,7 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
         $this->adminHr = User::factory()->create(['role' => 'admin', 'name' => 'HR Admin']);
         $this->assignRoleIfAvailable($this->adminHr, 'admin');
     }
@@ -54,6 +57,28 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
         $screen->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonStructure(['data' => ['team_members', 'available_tasks'], 'meta']);
+    }
+
+    public function test_hr_visit_assignments_offer_to_technician_smoke(): void
+    {
+        $tech = User::factory()->create(['role' => 'technician', 'status' => 'active']);
+        $this->assignRoleIfAvailable($tech, 'technician');
+
+        $visit = Visit::factory()->create([
+            'technician_id' => null,
+            'status' => 'pending',
+            'scheduled_date' => Carbon::today()->toDateString(),
+            'accept_by' => null,
+        ]);
+
+        $res = $this->actingAs($this->adminHr, 'sanctum')
+            ->postJson('/api/hr/visit-assignments/' . $visit->id, [
+                'technician_id' => $tech->id,
+            ]);
+
+        $res->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['id', 'status'], 'accept_by']);
     }
 
     public function test_hr_visit_assignments_summary_returns_correct_counts(): void
@@ -140,6 +165,64 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
         $this->assertIsString($title);
         $this->assertNotSame('', trim($title));
         $this->assertNotNull($res->json('data.file_url'));
+    }
+
+    public function test_hr_reports_list_generated_smoke(): void
+    {
+        AdminReport::create([
+            'title' => 'My HR Report',
+            'type' => 'hr_technician_monthly',
+            'status' => 'pending',
+            'format' => 'pdf',
+            'parameters' => [],
+            'created_by' => $this->adminHr->id,
+        ]);
+
+        $res = $this->actingAs($this->adminHr, 'sanctum')
+            ->getJson('/api/hr/reports?per_page=10');
+
+        $res->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data', 'meta' => ['current_page', 'last_page', 'per_page', 'total']]);
+    }
+
+    public function test_hr_reports_download_smoke_for_generated_file(): void
+    {
+        $report = AdminReport::create([
+            'title' => 'Ready File',
+            'type' => 'hr_technician_monthly',
+            'status' => 'generated',
+            'format' => 'pdf',
+            'file_path' => 'admin_reports/777/hr-api-report.pdf',
+            'parameters' => [],
+            'created_by' => $this->adminHr->id,
+        ]);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4 fake hr api pdf');
+
+        $res = $this->actingAs($this->adminHr, 'sanctum')
+            ->get('/api/hr/reports/' . $report->id . '/download');
+
+        $res->assertStatus(200);
+        $res->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_hr_reports_public_download_smoke_without_auth(): void
+    {
+        $report = AdminReport::create([
+            'title' => 'Public Ready File',
+            'type' => 'hr_technician_monthly',
+            'status' => 'generated',
+            'format' => 'pdf',
+            'file_path' => 'admin_reports/778/hr-api-public-report.pdf',
+            'parameters' => [],
+            'created_by' => $this->adminHr->id,
+        ]);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4 fake hr public api pdf');
+
+        $res = $this->get('/api/hr/reports/' . $report->id . '/download-public');
+
+        $res->assertStatus(200);
+        $res->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_hr_reports_delete_removes_owned_report(): void

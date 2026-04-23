@@ -11,18 +11,14 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class HrReportsApiController extends Controller
 {
     protected function fileUrl(AdminReport $report): ?string
     {
-        return URL::temporarySignedRoute(
-            'api.hr.reports.download.public',
-            now()->addDays(7),
-            ['id' => $report->id]
-        );
+        return url('/api/hr/reports/' . $report->id . '/download-public');
     }
 
     protected function transformReport(AdminReport $report): array
@@ -195,18 +191,7 @@ class HrReportsApiController extends Controller
         if ($reportId < 1) {
             return response()->json(['success' => false, 'message' => 'Invalid report id.'], 422);
         }
-
-        $report = null;
-        if ($request->user()) {
-            $report = AdminReport::where('created_by', $request->user()->id)->find($reportId);
-        }
-
-        if (! $report) {
-            if (! $request->hasValidSignature()) {
-                return response()->json(['success' => false, 'message' => 'Invalid or expired download link.'], 403);
-            }
-            $report = AdminReport::find($reportId);
-        }
+        $report = AdminReport::find($reportId);
 
         if (! $report) {
             return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
@@ -229,7 +214,29 @@ class HrReportsApiController extends Controller
         };
         $filename = 'hr-report-' . $report->id . '.' . $ext;
 
-        return Storage::disk('local')->download($report->file_path, $filename, ['Content-Type' => $mime]);
+        $disk = Storage::disk('local');
+        $fullPath = $disk->path($report->file_path);
+
+        return response()->streamDownload(
+            static function () use ($fullPath): void {
+                $fp = fopen($fullPath, 'rb');
+                if ($fp === false) {
+                    return;
+                }
+                while (! feof($fp)) {
+                    echo fread($fp, 8192);
+                }
+                fclose($fp);
+            },
+            $filename,
+            [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'Content-Disposition' => ResponseHeaderBag::DISPOSITION_ATTACHMENT . '; filename="' . $filename . '"',
+            ]
+        );
     }
 
     public function destroy(Request $request, string $id): JsonResponse

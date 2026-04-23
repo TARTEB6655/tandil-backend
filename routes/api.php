@@ -313,7 +313,7 @@ Route::get('/area-manager/generated-reports/{id}/view', [\App\Http\Controllers\A
     ->middleware('optional.sanctum');
 Route::get('/hr/reports/{id}/download-public', [\App\Http\Controllers\Api\HrReportsApiController::class, 'downloadPublic'])
     ->name('api.hr.reports.download.public')
-    ->middleware('optional.sanctum');
+    ->withoutMiddleware(['auth:sanctum']);
 
 /*
 |--------------------------------------------------------------------------
