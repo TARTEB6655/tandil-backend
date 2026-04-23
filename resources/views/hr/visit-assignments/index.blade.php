@@ -56,8 +56,8 @@
                     <option value="24" @selected(($perPage ?? 12) == 24)>24</option>
                 </select>
             </div>
-            <div class="flex items-end">
-                <button type="submit" class="w-full px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">Apply Filters</button>
+            <div class="flex items-end justify-end">
+                <button type="submit" class="w-auto min-w-[150px] px-5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">Apply Filters</button>
             </div>
         </div>
     </form>

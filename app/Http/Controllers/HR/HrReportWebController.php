@@ -80,7 +80,7 @@ class HrReportWebController extends Controller
         ]);
     }
 
-    public function technicianMonthlyGenerate(Request $request): StreamedResponse|RedirectResponse
+    public function technicianMonthlyGenerate(Request $request): RedirectResponse|StreamedResponse
     {
         $v = Validator::make($request->all(), [
             'technician_id' => 'required|integer|exists:users,id',
@@ -133,9 +133,7 @@ class HrReportWebController extends Controller
                 ->withErrors(['download' => 'Generated file not found. Please try again.']);
         }
 
-        $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
-
-        return Storage::disk('local')->download($report->file_path, 'hr-report-' . $report->id . '.' . $ext);
+        return redirect()->route('hr.reports.generated.download', ['id' => $report->id]);
     }
 
     public function downloadGenerated(Request $request, int $id): StreamedResponse|RedirectResponse
