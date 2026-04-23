@@ -504,6 +504,7 @@ Route::middleware(['auth', 'role:hr'])
         Route::post('/reports/technician-monthly/preview', [\App\Http\Controllers\HR\HrReportWebController::class, 'technicianMonthlyPreview'])->name('reports.technician-monthly.preview');
         Route::post('/reports/technician-monthly/generate', [\App\Http\Controllers\HR\HrReportWebController::class, 'technicianMonthlyGenerate'])->name('reports.technician-monthly.generate');
         Route::get('/reports/generated/{id}/download', [\App\Http\Controllers\HR\HrReportWebController::class, 'downloadGenerated'])->name('reports.generated.download');
+        Route::delete('/reports/generated/{id}', [\App\Http\Controllers\HR\HrReportWebController::class, 'destroyGenerated'])->name('reports.generated.destroy');
 
         // Employees
         Route::get('/employees', [\App\Http\Controllers\HR\EmployeeController::class, 'index'])->name('employees.index');

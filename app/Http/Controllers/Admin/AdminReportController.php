@@ -16,10 +16,23 @@ class AdminReportController extends Controller
 {
     protected function fileUrl(AdminReport $report): ?string
     {
-        if (! $report->file_path || $report->status !== 'generated') {
-            return null;
-        }
         return url('/api/admin/reports/' . $report->id . '/download');
+    }
+
+    protected function ensureReportFile(AdminReport $report): AdminReport
+    {
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            return $report;
+        }
+
+        $report->forceFill([
+            'status' => 'pending',
+            'failure_reason' => null,
+        ])->save();
+
+        GenerateReportJob::dispatchSync($report);
+
+        return $report->fresh();
     }
 
     protected function transformReport(AdminReport $report, bool $includeCreatorEmail = false): array
@@ -207,13 +220,8 @@ class AdminReportController extends Controller
     public function download(string $id)
     {
         $report = AdminReport::findOrFail($id);
-        if ($report->status !== 'generated' || ! $report->file_path) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Report file is not available.',
-            ], 404);
-        }
-        if (! Storage::disk('local')->exists($report->file_path)) {
+        $report = $this->ensureReportFile($report);
+        if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Report file not found.',

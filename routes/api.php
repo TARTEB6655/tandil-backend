@@ -448,7 +448,7 @@ Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('hr')->group(functi
     Route::get('/reports', [\App\Http\Controllers\Api\HrReportsApiController::class, 'index']);
     Route::post('/reports/generate', [\App\Http\Controllers\Api\HrReportsApiController::class, 'generate']);
     Route::get('/reports/{id}/download', [\App\Http\Controllers\Api\HrReportsApiController::class, 'download'])->name('api.hr.reports.download');
-    Route::get('/reports/{id}', [\App\Http\Controllers\Api\HrReportsApiController::class, 'show']);
+    Route::delete('/reports/{id}', [\App\Http\Controllers\Api\HrReportsApiController::class, 'destroy']);
     Route::get('/positions', [\App\Http\Controllers\Api\HrApiController::class, 'positions']);
     Route::get('/leave-requests', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestsIndex']);
     Route::post('/leave-requests', [\App\Http\Controllers\Api\HrApiController::class, 'leaveRequestStore']);

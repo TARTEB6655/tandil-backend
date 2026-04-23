@@ -18,6 +18,22 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HrReportWebController extends Controller
 {
+    private function ensureReportFile(AdminReport $report): AdminReport
+    {
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            return $report;
+        }
+
+        $report->forceFill([
+            'status' => 'pending',
+            'failure_reason' => null,
+        ])->save();
+
+        GenerateReportJob::dispatchSync($report);
+
+        return $report->fresh();
+    }
+
     private function paginatedReports(Request $request)
     {
         return AdminReport::where('created_by', $request->user()->id)
@@ -141,10 +157,11 @@ class HrReportWebController extends Controller
     public function downloadGenerated(Request $request, int $id): StreamedResponse|RedirectResponse
     {
         $report = AdminReport::where('created_by', $request->user()->id)->find($id);
-        if (! $report || $report->status !== 'generated' || ! $report->file_path) {
-            return redirect()->route('hr.reports.technician-monthly')->withErrors(['download' => 'Report not ready or not found.']);
+        if (! $report) {
+            return redirect()->route('hr.reports.technician-monthly')->withErrors(['download' => 'Report not found.']);
         }
-        if (! Storage::disk('local')->exists($report->file_path)) {
+        $report = $this->ensureReportFile($report);
+        if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return redirect()->route('hr.reports.technician-monthly')->withErrors(['download' => 'File missing on server.']);
         }
 
@@ -174,6 +191,23 @@ class HrReportWebController extends Controller
                 'Content-Disposition' => ResponseHeaderBag::DISPOSITION_ATTACHMENT . '; filename="' . $filename . '"',
             ]
         );
+    }
+
+    public function destroyGenerated(Request $request, int $id): RedirectResponse
+    {
+        $report = AdminReport::where('created_by', $request->user()->id)->find($id);
+        if (! $report) {
+            return redirect()->route('hr.reports.technician-monthly')->withErrors(['delete' => 'Report not found.']);
+        }
+
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            Storage::disk('local')->delete($report->file_path);
+        }
+
+        $report->delete();
+
+        return redirect()->route('hr.reports.technician-monthly')
+            ->with('status', 'Report deleted successfully.');
     }
 }
 

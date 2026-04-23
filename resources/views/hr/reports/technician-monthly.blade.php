@@ -111,11 +111,18 @@
                                 <p class="font-medium text-gray-900">{{ $r->title }}</p>
                                 <p class="text-xs text-gray-500">{{ $r->created_at->format('Y-m-d H:i') }} - {{ ucfirst($r->status) }}</p>
                             </div>
-                            @if($r->status === 'generated')
+                            <div class="flex items-center gap-3">
                                 <a href="{{ route('hr.reports.generated.download', $r->id) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Download</a>
-                            @else
-                                <span class="text-xs text-gray-400">{{ ucfirst($r->status) }}</span>
-                            @endif
+                                <form method="post" action="{{ route('hr.reports.generated.destroy', $r->id) }}" onsubmit="return confirm('Delete this report?')" class="inline-flex">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-500 hover:text-red-700" title="Delete report" aria-label="Delete report">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M6 8a1 1 0 011 1v6a1 1 0 102 0V9a1 1 0 112 0v6a1 1 0 102 0V9a1 1 0 112 0v6a3 3 0 11-6 0V9a1 1 0 10-2 0v6a3 3 0 11-6 0V9a1 1 0 011-1zm10-3a1 1 0 01-1 1H5a1 1 0 110-2h2.586A2 2 0 019.414 2h1.172a2 2 0 011.828 1.2L13 3h2a1 1 0 011 1z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
                         </li>
                     @endforeach
                 </ul>

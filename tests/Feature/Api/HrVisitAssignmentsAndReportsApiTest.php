@@ -139,5 +139,24 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
         $title = $res->json('data.title');
         $this->assertIsString($title);
         $this->assertNotSame('', trim($title));
+        $this->assertNotNull($res->json('data.file_url'));
+    }
+
+    public function test_hr_reports_delete_removes_owned_report(): void
+    {
+        $report = \App\Models\AdminReport::create([
+            'title' => 'Delete me',
+            'type' => 'hr_technician_monthly',
+            'status' => 'pending',
+            'format' => 'pdf',
+            'parameters' => [],
+            'created_by' => $this->adminHr->id,
+        ]);
+
+        $res = $this->actingAs($this->adminHr, 'sanctum')
+            ->deleteJson('/api/hr/reports/' . $report->id);
+
+        $res->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertDatabaseMissing('admin_reports', ['id' => $report->id]);
     }
 }

@@ -13,6 +13,22 @@ use Illuminate\Support\Facades\Validator;
 
 class ReportManagementController extends Controller
 {
+    protected function ensureReportFile(AdminReport $report): AdminReport
+    {
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            return $report;
+        }
+
+        $report->forceFill([
+            'status' => 'pending',
+            'failure_reason' => null,
+        ])->save();
+
+        GenerateReportJob::dispatchSync($report);
+
+        return $report->fresh();
+    }
+
     /**
      * List generated/scheduled reports.
      */
@@ -141,11 +157,8 @@ class ReportManagementController extends Controller
     public function download(string $id)
     {
         $report = AdminReport::findOrFail($id);
-        if ($report->status !== 'generated' || ! $report->file_path) {
-            return redirect()->route('admin.report-management.show', $id)
-                ->with('error', 'Report file is not available.');
-        }
-        if (! Storage::disk('local')->exists($report->file_path)) {
+        $report = $this->ensureReportFile($report);
+        if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return redirect()->route('admin.report-management.show', $id)
                 ->with('error', 'Report file not found.');
         }

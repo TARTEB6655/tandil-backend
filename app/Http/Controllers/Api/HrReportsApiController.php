@@ -17,10 +17,6 @@ class HrReportsApiController extends Controller
 {
     protected function fileUrl(AdminReport $report): ?string
     {
-        if ($report->status !== 'generated' || ! $report->file_path) {
-            return null;
-        }
-
         return url('/api/hr/reports/' . $report->id . '/download');
     }
 
@@ -40,6 +36,22 @@ class HrReportsApiController extends Controller
             'parameters' => $report->parameters,
             'failure_reason' => $report->failure_reason,
         ];
+    }
+
+    protected function ensureReportFile(AdminReport $report): AdminReport
+    {
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            return $report;
+        }
+
+        $report->forceFill([
+            'status' => 'pending',
+            'failure_reason' => null,
+        ])->save();
+
+        GenerateReportJob::dispatchSync($report);
+
+        return $report->fresh();
     }
 
     /**
@@ -158,26 +170,14 @@ class HrReportsApiController extends Controller
         ], 201);
     }
 
-    public function show(Request $request, int $id): JsonResponse
-    {
-        $report = AdminReport::where('created_by', $request->user()->id)->find($id);
-        if (! $report) {
-            return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
-        }
-
-        return response()->json(['success' => true, 'data' => $this->transformReport($report)]);
-    }
-
     public function download(Request $request, int $id)
     {
         $report = AdminReport::where('created_by', $request->user()->id)->find($id);
         if (! $report) {
             return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
         }
-        if ($report->status !== 'generated' || ! $report->file_path) {
-            return response()->json(['success' => false, 'message' => 'Report file is not available.'], 404);
-        }
-        if (! Storage::disk('local')->exists($report->file_path)) {
+        $report = $this->ensureReportFile($report);
+        if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return response()->json(['success' => false, 'message' => 'Report file not found.'], 404);
         }
 
@@ -189,5 +189,24 @@ class HrReportsApiController extends Controller
         $filename = 'hr-report-' . $report->id . '.' . $ext;
 
         return Storage::disk('local')->download($report->file_path, $filename, ['Content-Type' => $mime]);
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $report = AdminReport::where('created_by', $request->user()->id)->find($id);
+        if (! $report) {
+            return response()->json(['success' => false, 'message' => 'Report not found.'], 404);
+        }
+
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            Storage::disk('local')->delete($report->file_path);
+        }
+
+        $report->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Report deleted successfully.',
+        ]);
     }
 }
