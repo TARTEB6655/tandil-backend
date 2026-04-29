@@ -82,6 +82,58 @@ class AuthApiTest extends TestCase
         ]);
     }
 
+    public function test_technician_signup_areas_returns_supervised_zones(): void
+    {
+        $response = $this->getJson('/api/auth/technician-signup-areas');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+        $rows = $response->json('data');
+        $this->assertIsArray($rows);
+        $this->assertNotEmpty($rows);
+        $this->assertArrayHasKey('id', $rows[0]);
+        $this->assertArrayHasKey('name', $rows[0]);
+        $this->assertSame($this->area->id, $rows[0]['id']);
+    }
+
+    public function test_register_technician_success_with_area_id(): void
+    {
+        $response = $this->postJson('/api/auth/register-technician', [
+            'name' => 'Tech By Area Id',
+            'email' => 'tech.byareaid@example.com',
+            'phone' => '+971500008888',
+            'area_id' => $this->area->id,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.service_area', 'Dubai Marina');
+
+        $this->assertDatabaseHas('technician_signup_requests', [
+            'email' => 'tech.byareaid@example.com',
+            'area_id' => $this->area->id,
+        ]);
+    }
+
+    public function test_register_technician_invalid_service_area_returns_available_areas(): void
+    {
+        $response = $this->postJson('/api/auth/register-technician', [
+            'name' => 'Bad Area',
+            'email' => 'bad.area@example.com',
+            'phone' => '+971500007777',
+            'service_area' => 'Current Location GPS String',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonStructure(['data' => ['available_areas']]);
+        $this->assertNotEmpty($response->json('data.available_areas'));
+    }
+
     public function test_register_technician_rejects_duplicate_email_or_phone(): void
     {
         User::factory()->create([
