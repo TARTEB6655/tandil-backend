@@ -38,8 +38,6 @@ class AdminReport extends Model
         'customer',
         'operational',
         'user',
-        'subscription',
-        'hr_technician_monthly',
     ];
 
     public const STATUSES = [
