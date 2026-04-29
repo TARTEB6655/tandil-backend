@@ -60,7 +60,7 @@ class ReportManagementController extends Controller
     }
 
     /**
-     * Start report generation (async job).
+     * Start report generation and download immediately.
      */
     public function store(Request $request)
     {
@@ -92,10 +92,16 @@ class ReportManagementController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        GenerateReportJob::dispatch($report);
+        GenerateReportJob::dispatchSync($report);
+        $report->refresh();
 
-        return redirect()->route('admin.report-management.index')
-            ->with('success', 'Report generation started. You will be notified when it\'s ready.');
+        if ($report->status !== 'generated' || ! $report->file_path) {
+            $reason = $report->failure_reason ? (' Reason: ' . $report->failure_reason) : '';
+            return redirect()->route('admin.report-management.index')
+                ->with('error', 'Could not generate report instantly.' . $reason);
+        }
+
+        return redirect()->route('admin.report-management.download', ['id' => $report->id]);
     }
 
     /**

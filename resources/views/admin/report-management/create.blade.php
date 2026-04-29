@@ -6,7 +6,7 @@
                 Back to Report Management
             </a>
             <h1 class="text-xl font-semibold text-gray-900">Generate Report</h1>
-            <p class="mt-1 text-sm text-gray-500">Start a one-time report generation. You will be notified when it is ready.</p>
+            <p class="mt-1 text-sm text-gray-500">Generate a one-time report and download it instantly.</p>
         </div>
 
         @if($errors->any())
@@ -59,7 +59,7 @@
                 </div>
                 <div class="mt-6 flex gap-3">
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
-                        Generate Report
+                        Generate & Download
                     </button>
                     <a href="{{ route('admin.report-management.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium">
                         Cancel

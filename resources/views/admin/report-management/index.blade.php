@@ -119,6 +119,19 @@
                                         <button type="submit" class="text-red-600 hover:text-red-900">Cancel</button>
                                     </form>
                                 @endif
+                                <form action="{{ route('admin.report-management.destroy', $report->id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this report?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="inline-flex items-center justify-center rounded-md p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700" title="Delete report" aria-label="Delete report">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M3 6h18"></path>
+                                            <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path>
+                                            <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"></path>
+                                            <path d="M10 11v6"></path>
+                                            <path d="M14 11v6"></path>
+                                        </svg>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @empty

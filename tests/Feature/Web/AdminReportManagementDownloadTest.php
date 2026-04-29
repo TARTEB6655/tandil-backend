@@ -51,5 +51,29 @@ class AdminReportManagementDownloadTest extends TestCase
         $response->assertHeader('content-type', 'application/pdf');
         $this->assertStringContainsString('attachment', strtolower((string) $response->headers->get('Content-Disposition')));
     }
+
+    public function test_admin_report_management_store_generates_without_pending_and_redirects_to_download(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['role' => 'admin', 'email' => 'admin.instant@test.com']);
+        $this->assignRoleIfAvailable($admin, 'admin');
+
+        $response = $this->actingAs($admin)->post(route('admin.report-management.store'), [
+            'title' => 'Instant CSV',
+            'type' => 'financial',
+            'parameters' => [
+                'format' => 'csv',
+                'start_date' => now()->startOfMonth()->toDateString(),
+                'end_date' => now()->endOfMonth()->toDateString(),
+            ],
+        ]);
+
+        $report = AdminReport::where('created_by', $admin->id)->latest()->first();
+        $this->assertNotNull($report);
+        $this->assertSame('generated', $report->status);
+        $this->assertNotNull($report->file_path);
+
+        $response->assertRedirect(route('admin.report-management.download', ['id' => $report->id]));
+    }
 }
 
