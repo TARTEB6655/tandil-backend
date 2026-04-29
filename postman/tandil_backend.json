@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician \u2192 Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) \u00b7 CLIENT \u00b7 TECHNICIAN (folder 9) \u00b7 SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10\u201314). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token \u2013 see Module 15 'Support Tickets \u2013 All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list \u2192 detail \u2192 members \u2192 member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.2.1"
+        "version": "3.2.2"
     },
     "item": [
         {
@@ -186,7 +186,7 @@
                                 "technician-signup-areas"
                             ]
                         },
-                        "description": "GET /api/auth/technician-signup-areas. Public. Returns zones (id, name, location, country) that have at least one supervisor — use for signup picker. Call before POST register-technician; send area_id or exact service_area name (GPS text will not match)."
+                        "description": "GET /api/auth/technician-signup-areas (alias: GET /api/technician-signup-areas — same JSON). Public. Returns zones (id, name, location, country) with at least one supervisor. If you get 404, server needs latest deploy + run: php artisan route:clear && php artisan optimize:clear. base_url must not already end with /api."
                     }
                 },
                 {

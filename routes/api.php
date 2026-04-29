@@ -11,6 +11,10 @@ Route::get('/health', function () {
     return ['status' => 'API is working'];
 });
 
+// Alias (same handler as api/auth/technician-signup-areas) — useful if proxies/docs use a shorter path; always deploy latest routes.
+Route::get('/technician-signup-areas', [\App\Http\Controllers\Auth\AuthController::class, 'technicianSignupAreas'])
+    ->name('api.technician-signup-areas');
+
 // Performance diagnostic endpoint - helps identify server slowness
 Route::get('/debug/performance', function () {
     $start = microtime(true);

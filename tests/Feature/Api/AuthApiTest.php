@@ -94,6 +94,10 @@ class AuthApiTest extends TestCase
         $this->assertArrayHasKey('id', $rows[0]);
         $this->assertArrayHasKey('name', $rows[0]);
         $this->assertSame($this->area->id, $rows[0]['id']);
+
+        $alias = $this->getJson('/api/technician-signup-areas');
+        $alias->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertEquals($rows, $alias->json('data'));
     }
 
     public function test_register_technician_success_with_area_id(): void
