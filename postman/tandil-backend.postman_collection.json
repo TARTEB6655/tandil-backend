@@ -3758,44 +3758,6 @@
                   }
               },
               {
-                  "name": "Share Report",
-                  "request": {
-                      "method": "POST",
-                      "header": [
-                          {
-                              "key": "Authorization",
-                              "value": "Bearer {{token}}"
-                          },
-                          {
-                              "key": "Accept",
-                              "value": "application/json"
-                          },
-                          {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                          }
-                      ],
-                      "body": {
-                          "mode": "raw",
-                          "raw": "{\n  \"method\": \"email\",\n  \"recipients\": [\"user1@example.com\", \"user2@example.com\"],\n  \"message\": \"Please find the attached report\"\n}"
-                      },
-                      "url": {
-                          "raw": "{{base_url}}/api/admin/reports/1/share",
-                          "host": [
-                              "{{base_url}}"
-                          ],
-                          "path": [
-                              "api",
-                              "admin",
-                              "reports",
-                              "1",
-                              "share"
-                          ]
-                      },
-                      "description": "POST /api/admin/reports/{id}/share - method: email (recipients required) or link. Replace 1 with report id."
-                  }
-              },
-              {
                   "name": "Delete Report",
                   "request": {
                       "method": "DELETE",
@@ -3825,7 +3787,7 @@
                   }
               }
           ],
-          "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
+          "description": "Admin Reports Management API - Generate, schedule, download reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
       },
       {
           "name": "12. Admin Settings (Mobile)",

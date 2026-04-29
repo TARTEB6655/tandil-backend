@@ -208,7 +208,6 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 207,13. Admin Dashboard – Reports Management,13. Admin Dashboard – Reports Management,GET,/api/admin/reports/1,Done
 208,13. Admin Dashboard – Reports Management,13. Admin Dashboard – Reports Management,GET,/api/admin/reports/1/download,Done
 209,13. Admin Dashboard – Reports Management,13. Admin Dashboard – Reports Management,DELETE,/api/admin/reports/1/cancel,Done
-210,13. Admin Dashboard – Reports Management,13. Admin Dashboard – Reports Management,POST,/api/admin/reports/1/share,Done
 211,13. Admin Dashboard – Reports Management,13. Admin Dashboard – Reports Management,DELETE,/api/admin/reports/1,Done
 212,14. Admin – Support Tickets,14. Admin – Support Tickets,GET,/api/admin/support-tickets,Done
 213,14. Admin – Support Tickets,14. Admin – Support Tickets,GET,/api/admin/support-tickets/{id},Done

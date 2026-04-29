@@ -1183,12 +1183,6 @@
   },
   {
     "folder": "12. Admin Dashboard – Reports Management",
-    "name": "Share Report",
-    "method": "POST",
-    "path": "/api/admin/reports/1/share"
-  },
-  {
-    "folder": "12. Admin Dashboard – Reports Management",
     "name": "Delete Report",
     "method": "DELETE",
     "path": "/api/admin/reports/1"

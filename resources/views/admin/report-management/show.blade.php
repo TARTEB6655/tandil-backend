@@ -18,14 +18,6 @@
                 {{ session('error') }}
             </div>
         @endif
-        @if(session('share_link'))
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p class="text-sm font-medium text-blue-800 mb-2">Share link (valid 7 days):</p>
-                <input type="text" readonly value="{{ session('share_link') }}" class="w-full text-sm rounded border border-blue-200 px-3 py-2 bg-white" id="share-link-input">
-                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('share-link-input').value); this.textContent='Copied!';" class="mt-2 text-sm text-blue-600 hover:underline">Copy link</button>
-            </div>
-        @endif
-
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
             <div>
                 <h2 class="text-lg font-medium text-gray-900 mb-2">{{ $report->title }}</h2>
@@ -80,7 +72,6 @@
             <div class="pt-4 flex flex-wrap gap-3 border-t border-gray-200">
                 @if($report->status === 'generated' && $report->file_path)
                     <a href="{{ route('admin.report-management.download', $report->id) }}" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm">Download</a>
-                    <a href="{{ route('admin.report-management.share.create', $report->id) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm">Share</a>
                 @endif
                 @if($report->status === 'scheduled')
                     <form action="{{ route('admin.report-management.cancel', $report->id) }}" method="POST" class="inline" onsubmit="return confirm('Cancel this scheduled report?');">

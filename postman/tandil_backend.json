@@ -10876,7 +10876,7 @@
                     }
                 }
             ],
-            "description": "Admin Reports Management API - Generate, schedule, download, share reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
+            "description": "Admin Reports Management API - Generate, schedule, download reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
         },
         {
             "name": "15. Admin \u2013 Support Tickets",

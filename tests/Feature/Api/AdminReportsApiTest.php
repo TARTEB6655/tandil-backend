@@ -91,7 +91,7 @@ class AdminReportsApiTest extends TestCase
         $this->assertDatabaseMissing('admin_reports', ['id' => $id]);
     }
 
-    public function test_admin_reports_download_share_and_statistics_smoke(): void
+    public function test_admin_reports_download_and_statistics_smoke(): void
     {
         $report = AdminReport::create([
             'title' => 'Generated PDF',
@@ -112,13 +112,6 @@ class AdminReportsApiTest extends TestCase
         $download = $this->actingAs($this->admin, 'sanctum')->get('/api/admin/reports/' . $report->id . '/download');
         $download->assertStatus(200);
         $download->assertHeader('content-type', 'application/pdf');
-
-        $share = $this->actingAs($this->admin, 'sanctum')->postJson('/api/admin/reports/' . $report->id . '/share', [
-            'method' => 'link',
-        ]);
-        $share->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['share_link']]);
 
         AdminReport::create([
             'title' => 'Pending Report',

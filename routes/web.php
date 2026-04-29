@@ -177,8 +177,6 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('report-management/schedule', [ReportManagementController::class, 'storeSchedule'])->name('report-management.schedule.store');
         Route::get('report-management/{id}', [ReportManagementController::class, 'show'])->name('report-management.show');
         Route::get('report-management/{id}/download', [ReportManagementController::class, 'download'])->name('report-management.download');
-        Route::get('report-management/{id}/share', [ReportManagementController::class, 'createShare'])->name('report-management.share.create');
-        Route::post('report-management/{id}/share', [ReportManagementController::class, 'storeShare'])->name('report-management.share.store');
         Route::post('report-management/{id}/cancel', [ReportManagementController::class, 'cancel'])->name('report-management.cancel');
         Route::delete('report-management/{id}', [ReportManagementController::class, 'destroy'])->name('report-management.destroy');
         

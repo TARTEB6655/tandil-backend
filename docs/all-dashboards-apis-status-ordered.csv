@@ -132,7 +132,6 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 131,Admin,"1. Reports Management",GET,/api/admin/reports/1,Done
 132,Admin,"1. Reports Management",GET,/api/admin/reports/1/download,Done
 133,Admin,"1. Reports Management",GET,/api/admin/reports/statistics,Done
-134,Admin,"1. Reports Management",POST,/api/admin/reports/1/share,Done
 135,Admin,"1. Reports Management",POST,/api/admin/reports/generate,Done
 136,Admin,"1. Reports Management",POST,/api/admin/reports/schedule,Done
 137,Admin,"1. Reports Management",DELETE,/api/admin/reports/1,Done

@@ -741,7 +741,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/reports')->grou
     Route::get('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'show']);
     Route::get('/{id}/download', [\App\Http\Controllers\Admin\AdminReportController::class, 'download'])->name('api.admin.reports.download');
     Route::delete('/{id}/cancel', [\App\Http\Controllers\Admin\AdminReportController::class, 'cancel']);
-    Route::post('/{id}/share', [\App\Http\Controllers\Admin\AdminReportController::class, 'share']);
     Route::delete('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'destroy']);
 });
 
