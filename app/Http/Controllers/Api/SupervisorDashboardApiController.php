@@ -685,9 +685,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
 
         $requests = TechnicianSignupRequest::query()
             ->where('status', 'pending')
-            ->where(function ($q) use ($areaIds) {
-                $q->whereIn('area_id', $areaIds)->orWhereNull('area_id');
-            })
+            ->whereIn('area_id', $areaIds)
             ->with('area:id,name')
             ->latest()
             ->get()
@@ -719,9 +717,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $signup = TechnicianSignupRequest::query()
             ->where('id', $id)
             ->where('status', 'pending')
-            ->where(function ($q) use ($areaIds) {
-                $q->whereIn('area_id', $areaIds)->orWhereNull('area_id');
-            })
+            ->whereIn('area_id', $areaIds)
             ->first();
         if (! $signup) {
             return response()->json(['success' => false, 'message' => 'Signup request not found.'], 404);
@@ -758,9 +754,6 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             );
 
             $assignAreaId = $signup->area_id;
-            if ($assignAreaId === null && $areaIds !== []) {
-                $assignAreaId = $areaIds[0];
-            }
             if ($assignAreaId !== null) {
                 DB::table('area_technician')->updateOrInsert(
                     ['area_id' => $assignAreaId, 'user_id' => $user->id],
@@ -801,9 +794,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $signup = TechnicianSignupRequest::query()
             ->where('id', $id)
             ->where('status', 'pending')
-            ->where(function ($q) use ($areaIds) {
-                $q->whereIn('area_id', $areaIds)->orWhereNull('area_id');
-            })
+            ->whereIn('area_id', $areaIds)
             ->first();
         if (! $signup) {
             return response()->json(['success' => false, 'message' => 'Signup request not found.'], 404);

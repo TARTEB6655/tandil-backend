@@ -156,7 +156,7 @@ class SupervisorDashboardApiTest extends TestCase
         $cancel->assertStatus(200)->assertJsonPath('success', true)->assertJsonPath('data.status', 'cancelled');
     }
 
-    public function test_supervisor_sees_and_confirms_signup_with_null_area_id(): void
+    public function test_supervisor_does_not_see_or_confirm_signup_with_null_area_id(): void
     {
         $pending = TechnicianSignupRequest::create([
             'name' => 'Remote Loc Tech',
@@ -170,15 +170,11 @@ class SupervisorDashboardApiTest extends TestCase
 
         $list = $this->getJson('/api/supervisor/technician-signup-requests', $this->authHeaders());
         $list->assertStatus(200);
-        $this->assertContains($pending->id, collect($list->json('data'))->pluck('id')->all());
+        $this->assertNotContains($pending->id, collect($list->json('data'))->pluck('id')->all());
 
         $confirm = $this->postJson('/api/supervisor/technician-signup-requests/' . $pending->id . '/confirm', [], $this->authHeaders());
-        $confirm->assertStatus(200)->assertJsonPath('success', true);
-
-        $this->assertDatabaseHas('users', ['email' => 'remote.loc@example.com', 'role' => 'technician']);
-        $this->assertTrue(
-            \DB::table('area_technician')->where('user_id', User::where('email', 'remote.loc@example.com')->value('id'))->where('area_id', $this->area->id)->exists()
-        );
+        $confirm->assertStatus(404)->assertJsonPath('success', false);
+        $this->assertDatabaseMissing('users', ['email' => 'remote.loc@example.com']);
     }
 
     public function test_supervisor_can_update_single_team_member_contact_fields(): void
