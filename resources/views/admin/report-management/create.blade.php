@@ -32,7 +32,7 @@
                         <label for="type" class="block text-sm font-medium text-gray-700">Report type <span class="text-red-500">*</span></label>
                         <select name="type" id="type" required class="mt-1 block w-full rounded-md border-gray-300">
                             @foreach(\App\Models\AdminReport::TYPES as $t)
-                                <option value="{{ $t }}" {{ old('type') == $t ? 'selected' : '' }}>{{ ucfirst($t) }}</option>
+                                <option value="{{ $t }}" {{ old('type') == $t ? 'selected' : '' }}>{{ ucwords(str_replace('_', ' ', $t)) }}</option>
                             @endforeach
                         </select>
                     </div>

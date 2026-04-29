@@ -66,7 +66,7 @@
                 <select name="type" class="rounded-md border-gray-300">
                     <option value="">All types</option>
                     @foreach(\App\Models\AdminReport::TYPES as $t)
-                        <option value="{{ $t }}" {{ request('type') == $t ? 'selected' : '' }}>{{ ucfirst($t) }}</option>
+                        <option value="{{ $t }}" {{ request('type') == $t ? 'selected' : '' }}>{{ ucwords(str_replace('_', ' ', $t)) }}</option>
                     @endforeach
                 </select>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Filter</button>
