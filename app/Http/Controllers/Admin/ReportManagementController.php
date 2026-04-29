@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class ReportManagementController extends Controller
 {
@@ -165,8 +166,34 @@ class ReportManagementController extends Controller
 
         $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: $report->format;
         $filename = 'report-' . $report->id . '.' . $ext;
+        $mime = match (strtolower((string) $ext)) {
+            'csv' => 'text/csv',
+            'xlsx', 'xls' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            default => 'application/pdf',
+        };
+        $disk = Storage::disk('local');
+        $fullPath = $disk->path($report->file_path);
 
-        return Storage::disk('local')->download($report->file_path, $filename);
+        return response()->streamDownload(
+            static function () use ($fullPath): void {
+                $fp = fopen($fullPath, 'rb');
+                if ($fp === false) {
+                    return;
+                }
+                while (! feof($fp)) {
+                    echo fread($fp, 8192);
+                }
+                fclose($fp);
+            },
+            $filename,
+            [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'Content-Disposition' => ResponseHeaderBag::DISPOSITION_ATTACHMENT . '; filename="' . $filename . '"',
+            ]
+        );
     }
 
     /**

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class AdminReportController extends Controller
 {
@@ -236,10 +237,28 @@ class AdminReportController extends Controller
         };
         $filename = 'report-' . $report->id . '.' . $ext;
 
-        return Storage::disk('local')->download(
-            $report->file_path,
+        $disk = Storage::disk('local');
+        $fullPath = $disk->path($report->file_path);
+
+        return response()->streamDownload(
+            static function () use ($fullPath): void {
+                $fp = fopen($fullPath, 'rb');
+                if ($fp === false) {
+                    return;
+                }
+                while (! feof($fp)) {
+                    echo fread($fp, 8192);
+                }
+                fclose($fp);
+            },
             $filename,
-            ['Content-Type' => $mime]
+            [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'Content-Disposition' => ResponseHeaderBag::DISPOSITION_ATTACHMENT . '; filename="' . $filename . '"',
+            ]
         );
     }
 
