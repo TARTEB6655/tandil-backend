@@ -105,15 +105,14 @@ class AuthController extends Controller
             $area = Area::query()->find((int) $validated['area_id']);
         }
         if (! $area && filled(trim((string) ($validated['service_area'] ?? '')))) {
-            $needle = strtolower(trim($validated['service_area']));
-            $area = Area::query()->whereRaw('LOWER(TRIM(name)) = ?', [$needle])->first();
+            $area = $this->resolveAreaFromServiceAreaInput($validated['service_area']);
         }
         if (! $area) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid service_area or area_id. Pick a zone from available_areas (exact name or id from GET /api/auth/technician-signup-areas).',
+                'message' => 'Invalid service_area or area_id. Pick a zone from available_areas, send area_id, or type a string that includes a zone name (e.g. map address containing "Dubai Marina").',
                 'errors' => [
-                    'service_area' => ['No matching zone. GPS or free text will not match — use the list endpoint.'],
+                    'service_area' => ['No matching zone. Use GET /api/auth/technician-signup-areas and send area_id, or ensure the address includes an exact zone name from that list.'],
                 ],
                 'data' => [
                     'available_areas' => $this->technicianSignupAreasList(),
@@ -267,5 +266,56 @@ class AuthController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Resolve a zone from free-text / map address: exact name, comma-separated parts, then substring
+     * (user string contains a supervised area name — longest name wins).
+     */
+    private function resolveAreaFromServiceAreaInput(string $raw): ?Area
+    {
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $candidates = Area::query()
+            ->whereHas('supervisors')
+            ->orderByRaw('LENGTH(name) DESC')
+            ->orderBy('name')
+            ->get();
+
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        $haystack = mb_strtolower($trimmed);
+
+        foreach ($candidates as $a) {
+            if (mb_strtolower(trim($a->name)) === $haystack) {
+                return $a;
+            }
+        }
+
+        foreach (preg_split('/[,;]/', $trimmed) ?: [] as $part) {
+            $p = mb_strtolower(trim((string) $part));
+            if ($p === '') {
+                continue;
+            }
+            foreach ($candidates as $a) {
+                if (mb_strtolower(trim($a->name)) === $p) {
+                    return $a;
+                }
+            }
+        }
+
+        foreach ($candidates as $a) {
+            $nameLc = mb_strtolower(trim($a->name));
+            if ($nameLc !== '' && str_contains($haystack, $nameLc)) {
+                return $a;
+            }
+        }
+
+        return null;
     }
 }

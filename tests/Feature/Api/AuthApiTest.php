@@ -134,6 +134,22 @@ class AuthApiTest extends TestCase
         $this->assertNotEmpty($response->json('data.available_areas'));
     }
 
+    public function test_register_technician_resolves_zone_name_inside_map_style_address(): void
+    {
+        $response = $this->postJson('/api/auth/register-technician', [
+            'name' => 'Map Style',
+            'email' => 'map.style@example.com',
+            'phone' => '+971500006666',
+            'service_area' => 'Plot 12, Dubai Marina, United Arab Emirates',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.service_area', 'Dubai Marina');
+    }
+
     public function test_register_technician_rejects_duplicate_email_or_phone(): void
     {
         User::factory()->create([
