@@ -684,8 +684,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         }
 
         $requests = TechnicianSignupRequest::query()
-            ->whereIn('area_id', $areaIds)
             ->where('status', 'pending')
+            ->where(function ($q) use ($areaIds) {
+                $q->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+            })
             ->with('area:id,name')
             ->latest()
             ->get()
@@ -717,7 +719,9 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $signup = TechnicianSignupRequest::query()
             ->where('id', $id)
             ->where('status', 'pending')
-            ->whereIn('area_id', $areaIds)
+            ->where(function ($q) use ($areaIds) {
+                $q->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+            })
             ->first();
         if (! $signup) {
             return response()->json(['success' => false, 'message' => 'Signup request not found.'], 404);
@@ -753,10 +757,16 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
                 ]
             );
 
-            DB::table('area_technician')->updateOrInsert(
-                ['area_id' => $signup->area_id, 'user_id' => $user->id],
-                ['updated_at' => now(), 'created_at' => now()]
-            );
+            $assignAreaId = $signup->area_id;
+            if ($assignAreaId === null && $areaIds !== []) {
+                $assignAreaId = $areaIds[0];
+            }
+            if ($assignAreaId !== null) {
+                DB::table('area_technician')->updateOrInsert(
+                    ['area_id' => $assignAreaId, 'user_id' => $user->id],
+                    ['updated_at' => now(), 'created_at' => now()]
+                );
+            }
 
             $signup->status = 'approved';
             $signup->reviewed_by = $request->user()->id;
@@ -791,7 +801,9 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $signup = TechnicianSignupRequest::query()
             ->where('id', $id)
             ->where('status', 'pending')
-            ->whereIn('area_id', $areaIds)
+            ->where(function ($q) use ($areaIds) {
+                $q->whereIn('area_id', $areaIds)->orWhereNull('area_id');
+            })
             ->first();
         if (! $signup) {
             return response()->json(['success' => false, 'message' => 'Signup request not found.'], 404);

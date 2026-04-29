@@ -77,16 +77,16 @@ class AuthController extends Controller
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|max:20|unique:users,phone',
-            'service_area' => 'nullable|string|max:255',
+            'service_area' => 'nullable|string|max:5000',
             'area_id' => 'nullable|integer|exists:areas,id',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
         $validator->after(function ($validator) use ($request): void {
             $hasAreaId = $request->filled('area_id');
-            $hasName = filled(trim((string) $request->input('service_area', '')));
-            if (! $hasAreaId && ! $hasName) {
-                $validator->errors()->add('service_area', 'Select a zone from the list (use area_id from GET /api/auth/technician-signup-areas) or send an exact service_area name.');
+            $hasLocationText = filled(trim((string) $request->input('service_area', '')));
+            if (! $hasAreaId && ! $hasLocationText) {
+                $validator->errors()->add('service_area', 'Enter your location (e.g. current address) or pick a zone with area_id from GET /api/auth/technician-signup-areas.');
             }
         });
 
@@ -100,30 +100,31 @@ class AuthController extends Controller
 
         $validated = $validator->validated();
 
+        $rawLocation = trim((string) ($validated['service_area'] ?? ''));
+
         $area = null;
         if (! empty($validated['area_id'])) {
             $area = Area::query()->find((int) $validated['area_id']);
+            if ($area && ! $area->supervisors()->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No supervisor is assigned to this area yet. Please contact admin.',
+                ], 422);
+            }
         }
-        if (! $area && filled(trim((string) ($validated['service_area'] ?? '')))) {
-            $area = $this->resolveAreaFromServiceAreaInput($validated['service_area']);
-        }
-        if (! $area) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid service_area or area_id. Pick a zone from available_areas, send area_id, or type a string that includes a zone name (e.g. map address containing "Dubai Marina").',
-                'errors' => [
-                    'service_area' => ['No matching zone. Use GET /api/auth/technician-signup-areas and send area_id, or ensure the address includes an exact zone name from that list.'],
-                ],
-                'data' => [
-                    'available_areas' => $this->technicianSignupAreasList(),
-                ],
-            ], 422);
+        if (! $area && $rawLocation !== '') {
+            $area = $this->resolveAreaFromServiceAreaInput($rawLocation);
+            if ($area && ! $area->supervisors()->exists()) {
+                $area = null;
+            }
         }
 
-        if (! $area->supervisors()->exists()) {
+        $serviceAreaStored = $rawLocation !== '' ? $rawLocation : ($area?->name ?? '');
+        if ($serviceAreaStored === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'No supervisor is assigned to this area yet. Please contact admin.',
+                'message' => 'Validation failed.',
+                'errors' => ['service_area' => ['Location text or area_id is required.']],
             ], 422);
         }
 
@@ -145,8 +146,8 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
-            'area_id' => $area->id,
-            'service_area' => $area->name,
+            'area_id' => $area?->id,
+            'service_area' => $serviceAreaStored,
             'password' => Hash::make($validated['password']),
             'status' => 'pending',
         ]);
@@ -158,6 +159,7 @@ class AuthController extends Controller
                 'request_id' => $signupRequest->id,
                 'status' => $signupRequest->status,
                 'service_area' => $signupRequest->service_area,
+                'area_id' => $signupRequest->area_id,
             ],
         ], 201);
     }

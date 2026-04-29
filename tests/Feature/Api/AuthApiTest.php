@@ -121,21 +121,26 @@ class AuthApiTest extends TestCase
         ]);
     }
 
-    public function test_register_technician_invalid_service_area_returns_available_areas(): void
+    public function test_register_technician_accepts_any_free_text_location_without_zone_match(): void
     {
         $response = $this->postJson('/api/auth/register-technician', [
-            'name' => 'Bad Area',
-            'email' => 'bad.area@example.com',
+            'name' => 'World Tech',
+            'email' => 'world.tech@example.com',
             'phone' => '+971500007777',
-            'service_area' => 'Current Location GPS String',
+            'service_area' => 'San Francisco, CA, United States',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonStructure(['data' => ['available_areas']]);
-        $this->assertNotEmpty($response->json('data.available_areas'));
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.service_area', 'San Francisco, CA, United States')
+            ->assertJsonPath('data.area_id', null);
+
+        $this->assertDatabaseHas('technician_signup_requests', [
+            'email' => 'world.tech@example.com',
+            'area_id' => null,
+        ]);
     }
 
     public function test_register_technician_resolves_zone_name_inside_map_style_address(): void
@@ -151,7 +156,8 @@ class AuthApiTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.service_area', 'Dubai Marina');
+            ->assertJsonPath('data.area_id', $this->area->id)
+            ->assertJsonPath('data.service_area', 'Plot 12, Dubai Marina, United Arab Emirates');
     }
 
     public function test_register_technician_rejects_duplicate_email_or_phone(): void
