@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician \u2192 Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) \u00b7 CLIENT \u00b7 TECHNICIAN (folder 9) \u00b7 SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10\u201314). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token \u2013 see Module 15 'Support Tickets \u2013 All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list \u2192 detail \u2192 members \u2192 member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\nOrganized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.2.9"
+        "version": "3.3.0"
     },
     "item": [
         {
@@ -30,7 +30,7 @@
                                 "health"
                             ]
                         },
-                        "description": "\u2705 STEP 1: ALWAYS TEST THIS FIRST - Verify API server is running before testing any other endpoints"
+                        "description": "✅ STEP 1: ALWAYS TEST THIS FIRST - Verify API server is running before testing any other endpoints"
                     }
                 },
                 {
@@ -111,7 +111,7 @@
                                 "register"
                             ]
                         },
-                        "description": "\u2705 STEP 2: Register a new user account"
+                        "description": "✅ STEP 2: Register a new user account"
                     }
                 },
                 {
@@ -162,7 +162,7 @@
                                 "login"
                             ]
                         },
-                        "description": "\u2705 STEP 2 (Alternative): Login with existing account"
+                        "description": "✅ STEP 2 (Alternative): Login with existing account"
                     }
                 },
                 {
@@ -225,7 +225,7 @@
             "description": "Authentication endpoints - Register and Login"
         },
         {
-            "name": "3. Client Dashboard \u2013 Profile",
+            "name": "3. Client Dashboard – Profile",
             "item": [
                 {
                     "name": "Get Profile",
@@ -252,7 +252,7 @@
                                 "profile"
                             ]
                         },
-                        "description": "\u2705 STEP 3: Get authenticated user profile"
+                        "description": "✅ STEP 3: Get authenticated user profile"
                     }
                 },
                 {
@@ -378,12 +378,170 @@
                         },
                         "description": "Reset password with verified OTP - Placeholder endpoint"
                     }
+                },
+                {
+                    "name": "Notifications (Dedicated API)",
+                    "description": "Dedicated notifications APIs under /api/client/notifications.",
+                    "item": [
+                        {
+                            "name": "Notifications - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "Optional, 1-100"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/client/notifications. Returns notifications with unread_count."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Mark as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/client/notifications/{id}/mark-read. Marks one notification as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Mark All as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/client/notifications/mark-all-read. Marks all notifications as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Delete",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/client/notifications/{id}. Deletes one notification."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Clear All",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/client/notifications/clear-all. Clears all notifications for authenticated user."
+                            }
+                        }
+                    ]
                 }
             ],
             "description": "Authentication endpoints - Register, Login, Logout, Password Reset"
         },
         {
-            "name": "3a. Client Dashboard \u2013 Settings",
+            "name": "3a. Client Dashboard – Settings",
             "item": [
                 {
                     "name": "Dashboard settings (GET)",
@@ -411,7 +569,7 @@
                                 "dashboard"
                             ]
                         },
-                        "description": "GET /api/client/settings/dashboard \u2013 Client dashboard settings (title, subtitle, show_banners, show_metrics, show_charts, show_recent_*). Configured by admin; client app reads to render dashboard. Auth: client role."
+                        "description": "GET /api/client/settings/dashboard – Client dashboard settings (title, subtitle, show_banners, show_metrics, show_charts, show_recent_*). Configured by admin; client app reads to render dashboard. Auth: client role."
                     }
                 },
                 {
@@ -439,14 +597,14 @@
                                 "memberships"
                             ]
                         },
-                        "description": "GET /api/client/memberships \u2013 Same data as GET /api/subscriptions: client's subscriptions (plan, start_date, end_date, amount, payment_status, total_visits, completed_visits, visits). For client Profile \u2192 Memberships screen. Auth: client role. Response: success, message, data (array), total."
+                        "description": "GET /api/client/memberships – Same data as GET /api/subscriptions: client's subscriptions (plan, start_date, end_date, amount, payment_status, total_visits, completed_visits, visits). For client Profile → Memberships screen. Auth: client role. Response: success, message, data (array), total."
                     }
                 }
             ],
-            "description": "Client dashboard settings \u2013 title, subtitle, section toggles (set by admin, read by client app). Memberships = same as subscription data (client's subscriptions)."
+            "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = same as subscription data (client's subscriptions)."
         },
         {
-            "name": "3b. Client Profile \u2013 All Settings (One Place) [12 requests]",
+            "name": "3b. Client Profile – All Settings (One Place) [12 requests]",
             "item": [
                 {
                     "name": "1. Memberships (GET)",
@@ -473,11 +631,11 @@
                                 "memberships"
                             ]
                         },
-                        "description": "Profile \u2013 Memberships. Same data as GET /api/subscriptions: client's subscriptions (plan, dates, amount, visits). Response: data (array), total."
+                        "description": "Profile – Memberships. Same data as GET /api/subscriptions: client's subscriptions (plan, dates, amount, visits). Response: data (array), total."
                     }
                 },
                 {
-                    "name": "2. Personal Information \u2013 Get (GET)",
+                    "name": "2. Personal Information – Get (GET)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -501,11 +659,11 @@
                                 "profile"
                             ]
                         },
-                        "description": "Profile \u2013 Personal Information. Response: id, name, email, phone, profile_picture, profile_picture_url (full URL for image load), role."
+                        "description": "Profile – Personal Information. Response: id, name, email, phone, profile_picture, profile_picture_url (full URL for image load), role."
                     }
                 },
                 {
-                    "name": "3. Personal Information \u2013 Update (PUT/POST)",
+                    "name": "3. Personal Information – Update (PUT/POST)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -558,11 +716,11 @@
                                 "profile"
                             ]
                         },
-                        "description": "Profile \u2013 Personal Information. Update name, email, phone and/or profile picture. Body: form-data. For photo: set profile_picture key to File. PUT or POST both work; PUT + multipart parses file from body. Response includes profile_picture_url (full URL for image load). Image is compressed on upload. Same pattern as Technician and Supervisor profile update."
+                        "description": "Profile – Personal Information. Update name, email, phone and/or profile picture. Body: form-data. For photo: set profile_picture key to File. PUT or POST both work; PUT + multipart parses file from body. Response includes profile_picture_url (full URL for image load). Image is compressed on upload. Same pattern as Technician and Supervisor profile update."
                     }
                 },
                 {
-                    "name": "4. Addresses \u2013 List (GET)",
+                    "name": "4. Addresses – List (GET)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -586,11 +744,11 @@
                                 "addresses"
                             ]
                         },
-                        "description": "Profile \u2013 Addresses. Response includes type (home|office|other) per address."
+                        "description": "Profile – Addresses. Response includes type (home|office|other) per address."
                     }
                 },
                 {
-                    "name": "5. Addresses \u2013 Create (POST)",
+                    "name": "5. Addresses – Create (POST)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -667,11 +825,11 @@
                                 "addresses"
                             ]
                         },
-                        "description": "Profile \u2013 Addresses. Add new address. type optional: home|office|other (local label). Send as form (x-www-form-urlencoded)."
+                        "description": "Profile – Addresses. Add new address. type optional: home|office|other (local label). Send as form (x-www-form-urlencoded)."
                     }
                 },
                 {
-                    "name": "6. Addresses \u2013 Update (PUT)",
+                    "name": "6. Addresses – Update (PUT)",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -747,11 +905,11 @@
                                 "{{address_id}}"
                             ]
                         },
-                        "description": "Profile \u2013 Addresses. Update address. PUT or PATCH. Set address_id in environment (from Addresses List or Create response); otherwise URL is .../addresses/ and returns 404. type optional: home|office|other. Send as form (x-www-form-urlencoded)."
+                        "description": "Profile – Addresses. Update address. PUT or PATCH. Set address_id in environment (from Addresses List or Create response); otherwise URL is .../addresses/ and returns 404. type optional: home|office|other. Send as form (x-www-form-urlencoded)."
                     }
                 },
                 {
-                    "name": "7. Addresses \u2013 Delete (DELETE)",
+                    "name": "7. Addresses – Delete (DELETE)",
                     "request": {
                         "method": "DELETE",
                         "header": [
@@ -776,7 +934,7 @@
                                 "{{address_id}}"
                             ]
                         },
-                        "description": "Profile \u2013 Addresses. Delete address. Set address_id."
+                        "description": "Profile – Addresses. Delete address. Set address_id."
                     }
                 },
                 {
@@ -804,7 +962,7 @@
                                 "payment-methods"
                             ]
                         },
-                        "description": "Profile \u2013 Payment Methods."
+                        "description": "Profile – Payment Methods."
                     }
                 },
                 {
@@ -832,11 +990,11 @@
                                 "notifications"
                             ]
                         },
-                        "description": "Profile \u2013 Notifications. Tips created by admin."
+                        "description": "Profile – Notifications. Tips created by admin."
                     }
                 },
                 {
-                    "name": "9b. Notifications \u2013 Clear All (POST)",
+                    "name": "9b. Notifications – Clear All (POST)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -861,11 +1019,11 @@
                                 "clear-all"
                             ]
                         },
-                        "description": "Profile \u2013 Notifications. Clear all (marks all as read). Call when user taps \"Clear All\" in the app."
+                        "description": "Profile – Notifications. Clear all (marks all as read). Call when user taps \"Clear All\" in the app."
                     }
                 },
                 {
-                    "name": "10. Help and Support \u2013 Help Center (GET)",
+                    "name": "10. Help and Support – Help Center (GET)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -889,11 +1047,11 @@
                                 "help-center"
                             ]
                         },
-                        "description": "Profile \u2013 Help and Support. Full Help Center payload: heading, tagline, get_support (Call, Email, Live Chat, Submit Ticket), contact_info (phone, email, address, support_hours), submit_ticket (endpoint, method, fields), social_links (facebook, twitter, instagram, linkedin, youtube), faqs."
+                        "description": "Profile – Help and Support. Full Help Center payload: heading, tagline, get_support (Call, Email, Live Chat, Submit Ticket), contact_info (phone, email, address, support_hours), submit_ticket (endpoint, method, fields), social_links (facebook, twitter, instagram, linkedin, youtube), faqs."
                     }
                 },
                 {
-                    "name": "11. Help and Support \u2013 Submit ticket (POST)",
+                    "name": "11. Help and Support – Submit ticket (POST)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -929,7 +1087,7 @@
                     }
                 },
                 {
-                    "name": "12. Help and Support \u2013 List my tickets (GET)",
+                    "name": "12. Help and Support – List my tickets (GET)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -968,7 +1126,7 @@
                     }
                 },
                 {
-                    "name": "13. Help and Support \u2013 Get ticket by ID (GET)",
+                    "name": "13. Help and Support – Get ticket by ID (GET)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -997,7 +1155,7 @@
                     }
                 },
                 {
-                    "name": "14. Help and Support \u2013 Reply to my ticket (POST)",
+                    "name": "14. Help and Support – Reply to my ticket (POST)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1038,7 +1196,7 @@
             "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9-9b) Notifications List + Clear All, (10-14) Help and Support (help center, submit ticket, list my tickets, get ticket, reply). Auth: Bearer token (client)."
         },
         {
-            "name": "4. Client Dashboard \u2013 Subscriptions",
+            "name": "4. Client Dashboard – Subscriptions",
             "item": [
                 {
                     "name": "Get Plans (Public)",
@@ -1061,7 +1219,7 @@
                                 "plans"
                             ]
                         },
-                        "description": "\u2705 STEP 4: Get available subscription plans (Public - no auth needed)"
+                        "description": "✅ STEP 4: Get available subscription plans (Public - no auth needed)"
                     }
                 },
                 {
@@ -1113,7 +1271,7 @@
                                 "subscriptions"
                             ]
                         },
-                        "description": "\u2705 STEP 5: Create a new subscription (visits will be auto-generated)\n\n**Required Fields:**\n- `plan` (string): Subscription plan - one of: `1_month`, `3_month`, `6_month`, `12_month`\n\n**Optional Fields:**\n- `start_date` (date): Start date of subscription (defaults to today)\n- `end_date` (date): End date of subscription (auto-calculated if not provided)\n- `amount` (decimal): Subscription amount in AED (auto-calculated from plan if not provided)\n- `payment_status` (string): Payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled` (defaults to `pending`)\n- `payment_reference` (string): Payment reference number (optional)\n- `client_id` (integer): Client user ID (only admins can set this, defaults to authenticated user)\n- `total_visits` (integer): Total number of visits (defaults to plan months)\n- `completed_visits` (integer): Number of completed visits (defaults to 0)\n\n**Note:** If `payment_status` is `paid` and `paid_at` is not provided, it will be automatically set to current timestamp."
+                        "description": "✅ STEP 5: Create a new subscription (visits will be auto-generated)\n\n**Required Fields:**\n- `plan` (string): Subscription plan - one of: `1_month`, `3_month`, `6_month`, `12_month`\n\n**Optional Fields:**\n- `start_date` (date): Start date of subscription (defaults to today)\n- `end_date` (date): End date of subscription (auto-calculated if not provided)\n- `amount` (decimal): Subscription amount in AED (auto-calculated from plan if not provided)\n- `payment_status` (string): Payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled` (defaults to `pending`)\n- `payment_reference` (string): Payment reference number (optional)\n- `client_id` (integer): Client user ID (only admins can set this, defaults to authenticated user)\n- `total_visits` (integer): Total number of visits (defaults to plan months)\n- `completed_visits` (integer): Number of completed visits (defaults to 0)\n\n**Note:** If `payment_status` is `paid` and `paid_at` is not provided, it will be automatically set to current timestamp."
                     }
                 },
                 {
@@ -1156,7 +1314,7 @@
                                 "subscriptions"
                             ]
                         },
-                        "description": "\u2705 STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n- Includes subscription details and client info\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
+                        "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n- Includes subscription details and client info\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
                     }
                 },
                 {
@@ -1184,7 +1342,7 @@
                                 "{{subscription_id}}"
                             ]
                         },
-                        "description": "\u2705 STEP 7: Get subscription details with visits\n\n**Returns:**\n- Full subscription information\n- Associated visits with status\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Check visit schedule\n- Review payment status"
+                        "description": "✅ STEP 7: Get subscription details with visits\n\n**Returns:**\n- Full subscription information\n- Associated visits with status\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Check visit schedule\n- Review payment status"
                     }
                 },
                 {
@@ -1284,7 +1442,7 @@
             "description": "Subscription management - Get plans, create, view, update subscriptions"
         },
         {
-            "name": "5. Client Dashboard \u2013 Banners (Public)",
+            "name": "5. Client Dashboard – Banners (Public)",
             "item": [
                 {
                     "name": "Get Active Banners",
@@ -1313,7 +1471,7 @@
             "description": "Banner management - Get active banners for customer home screen (Public - no auth required)"
         },
         {
-            "name": "5b. Admin Dashboard \u2013 Banners",
+            "name": "5b. Admin Dashboard – Banners",
             "item": [
                 {
                     "name": "List All Banners (Admin)",
@@ -1615,7 +1773,7 @@
             "description": "Admin only. Create Banner: one request; leave image empty to create without image, or attach 1 file. Update Banner: add or change image anytime. Customer: GET /api/banners."
         },
         {
-            "name": "5c. Client Dashboard \u2013 Packages (Customer Home)",
+            "name": "5c. Client Dashboard – Packages (Customer Home)",
             "item": [
                 {
                     "name": "List Packages",
@@ -1644,7 +1802,7 @@
             "description": "Customer home page packages. Public endpoint."
         },
         {
-            "name": "5d. Admin Dashboard \u2013 Packages",
+            "name": "5d. Admin Dashboard – Packages",
             "item": [
                 {
                     "name": "List Packages (Admin)",
@@ -1751,7 +1909,7 @@
             "description": "Admin: set/update package price and image; view orders count per package."
         },
         {
-            "name": "5e. Admin Dashboard \u2013 Orders Export",
+            "name": "5e. Admin Dashboard – Orders Export",
             "item": [
                 {
                     "name": "Export Orders (CSV)",
@@ -1833,7 +1991,7 @@
             "description": "Admin: export orders to Excel (CSV); send export by email to supplier (manual or use cron for automatic)."
         },
         {
-            "name": "6. Client Dashboard \u2013 Visits",
+            "name": "6. Client Dashboard – Visits",
             "item": [
                 {
                     "name": "List Visits",
@@ -1876,7 +2034,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "\u2705 STEP 8: List all visits (role-based: client sees own, technician sees assigned)"
+                        "description": "✅ STEP 8: List all visits (role-based: client sees own, technician sees assigned)"
                     }
                 },
                 {
@@ -1911,7 +2069,7 @@
                                 }
                             ]
                         },
-                        "description": "List areas so client (or admin) can pick **area_id** when creating a visit. Add **?with=supervisors** to see which supervisor(s) oversee each area \u2013 client does not need to set supervisor_id; the job goes to the supervisor for that area automatically."
+                        "description": "List areas so client (or admin) can pick **area_id** when creating a visit. Add **?with=supervisors** to see which supervisor(s) oversee each area – client does not need to set supervisor_id; the job goes to the supervisor for that area automatically."
                     }
                 },
                 {
@@ -1939,7 +2097,7 @@
                                 "{{visit_id}}"
                             ]
                         },
-                        "description": "\u2705 STEP 9: Get visit details with photos and related data"
+                        "description": "✅ STEP 9: Get visit details with photos and related data"
                     }
                 },
                 {
@@ -1981,7 +2139,7 @@
                                     "key": "area_id",
                                     "value": "",
                                     "type": "text",
-                                    "description": "Recommended. Area ID \u2013 required for the job to appear for the supervisor who supervises that area."
+                                    "description": "Recommended. Area ID – required for the job to appear for the supervisor who supervises that area."
                                 },
                                 {
                                     "key": "scheduled_date",
@@ -2019,7 +2177,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**How the client knows which area (and who the supervisor is):** Call **GET /api/visits/areas** (or **GET /api/visits/areas?with=supervisors**) to list areas. Use the area **id** as **area_id** when creating the visit. Optionally use **?with=supervisors** to see which supervisor(s) oversee each area \u2013 the client doesn't need to set supervisor_id; the job goes to the supervisor for that area automatically.\n\n**How the job reaches the supervisor:** Set **area_id** when creating the visit. The supervisor who supervises that area will then see this visit in **GET /api/supervisor/assignments** and can assign a technician via **POST /api/supervisor/assignments/{id}** with body **technician_id** (id = task/visit id from the list). If area_id is null, no supervisor will see the job.\n\n**Price:** Set the **price** field (e.g. 289.99) and/or include in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
+                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**How the client knows which area (and who the supervisor is):** Call **GET /api/visits/areas** (or **GET /api/visits/areas?with=supervisors**) to list areas. Use the area **id** as **area_id** when creating the visit. Optionally use **?with=supervisors** to see which supervisor(s) oversee each area – the client doesn't need to set supervisor_id; the job goes to the supervisor for that area automatically.\n\n**How the job reaches the supervisor:** Set **area_id** when creating the visit. The supervisor who supervises that area will then see this visit in **GET /api/supervisor/assignments** and can assign a technician via **POST /api/supervisor/assignments/{id}** with body **technician_id** (id = task/visit id from the list). If area_id is null, no supervisor will see the job.\n\n**Price:** Set the **price** field (e.g. 289.99) and/or include in **notes** using the format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5` for technician display."
                     }
                 },
                 {
@@ -2174,10 +2332,10 @@
                     }
                 }
             ],
-            "description": "Visit management \u2013 list, create, show, update. Upload photo: POST/PUT /api/visits/{id}/upload-photo (Admin, Technician assigned, Client own). Delete photo: DELETE /api/visits/{id}/photos/{photoId} (Admin, Technician assigned, Client own). Set visit_id, photo_id."
+            "description": "Visit management – list, create, show, update. Upload photo: POST/PUT /api/visits/{id}/upload-photo (Admin, Technician assigned, Client own). Delete photo: DELETE /api/visits/{id}/photos/{photoId} (Admin, Technician assigned, Client own). Set visit_id, photo_id."
         },
         {
-            "name": "7. Client Dashboard \u2013 Reports",
+            "name": "7. Client Dashboard – Reports",
             "item": [
                 {
                     "name": "List Reports",
@@ -2219,7 +2377,7 @@
                                 "reports"
                             ]
                         },
-                        "description": "\u2705 STEP 10: List all reports (role-based access)"
+                        "description": "✅ STEP 10: List all reports (role-based access)"
                     }
                 },
                 {
@@ -2247,7 +2405,7 @@
                                 "{{report_id}}"
                             ]
                         },
-                        "description": "\u2705 STEP 11: Get report details with recommendations"
+                        "description": "✅ STEP 11: Get report details with recommendations"
                     }
                 },
                 {
@@ -2289,7 +2447,7 @@
             "description": "Report management - Supervisor reports with recommendations"
         },
         {
-            "name": "8. Client Dashboard \u2013 Shop & Orders",
+            "name": "8. Client Dashboard – Shop & Orders",
             "item": [
                 {
                     "name": "Shop settings (GET)",
@@ -2312,7 +2470,7 @@
                                 "settings"
                             ]
                         },
-                        "description": "GET /api/shop/settings \u2013 Shop settings for client (shipping_amount, tax_percent, currency). No auth. Use in cart/checkout UI."
+                        "description": "GET /api/shop/settings – Shop settings for client (shipping_amount, tax_percent, currency). No auth. Use in cart/checkout UI."
                     }
                 },
                 {
@@ -2348,7 +2506,7 @@
                                 "settings"
                             ]
                         },
-                        "description": "PUT /api/shop/settings \u2013 Client can update shop settings (shipping_amount, tax_percent). Auth: Bearer token with client role. Same as admin PUT."
+                        "description": "PUT /api/shop/settings – Client can update shop settings (shipping_amount, tax_percent). Auth: Bearer token with client role. Same as admin PUT."
                     }
                 },
                 {
@@ -2376,7 +2534,7 @@
                                 "order-summary"
                             ]
                         },
-                        "description": "GET /api/shop/order-summary \u2013 Order summary for checkout (Address/Payment/Review). Auth: Bearer token (client).\n\n**Tax-exclusive:** Subtotal = sum of cart item prices (no tax). Total = Subtotal \u2212 discount + shipping + (Subtotal \u00d7 tax_percent/100). Response returns tax_percent only (no tax amount).\n\n**Response (data):**\n- subtotal (number) \u2013 Sum of items before tax\n- discount (number) \u2013 Currently 0\n- shipping (number) \u2013 From settings (0 = free)\n- shipping_label (string) \u2013 \"Free\" or amount for display\n- tax_percent (number) \u2013 e.g. 5 for 5%\n- total (number) \u2013 Grand total\n- currency (string) \u2013 e.g. \"AED\""
+                        "description": "GET /api/shop/order-summary – Order summary for checkout (Address/Payment/Review). Auth: Bearer token (client).\n\n**Tax-exclusive:** Subtotal = sum of cart item prices (no tax). Total = Subtotal − discount + shipping + (Subtotal × tax_percent/100). Response returns tax_percent only (no tax amount).\n\n**Response (data):**\n- subtotal (number) – Sum of items before tax\n- discount (number) – Currently 0\n- shipping (number) – From settings (0 = free)\n- shipping_label (string) – \"Free\" or amount for display\n- tax_percent (number) – e.g. 5 for 5%\n- total (number) – Grand total\n- currency (string) – e.g. \"AED\""
                     }
                 },
                 {
@@ -2413,7 +2571,7 @@
                                 "summary"
                             ]
                         },
-                        "description": "POST /api/shop/buy-now/summary \u2013 Buy Now order summary without adding to cart. Send product_id + quantity (or qty). Auth: Bearer token."
+                        "description": "POST /api/shop/buy-now/summary – Buy Now order summary without adding to cart. Send product_id + quantity (or qty). Auth: Bearer token."
                     }
                 },
                 {
@@ -2466,7 +2624,7 @@
                                 "add"
                             ]
                         },
-                        "description": "\u2705 STEP 14: Add product to cart"
+                        "description": "✅ STEP 14: Add product to cart"
                     }
                 },
                 {
@@ -2494,7 +2652,7 @@
                                 "cart"
                             ]
                         },
-                        "description": "GET /api/shop/cart \u2013 Shopping Cart screen. Response: items (id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total, currency), order_summary (subtotal, discount, shipping, shipping_label [Free or amount], tax_percent, tax, total, currency). Admin can set shipping and tax via PUT /api/admin/settings/shop."
+                        "description": "GET /api/shop/cart – Shopping Cart screen. Response: items (id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total, currency), order_summary (subtotal, discount, shipping, shipping_label [Free or amount], tax_percent, tax, total, currency). Admin can set shipping and tax via PUT /api/admin/settings/shop."
                     }
                 },
                 {
@@ -2531,7 +2689,7 @@
                                 "{{cart_item_id}}"
                             ]
                         },
-                        "description": "PUT /api/shop/cart/:id \u2013 Update quantity (Shopping Cart +/-). Body: { \"quantity\": number }. Set cart_item_id. Response: updated item (same shape as cart view)."
+                        "description": "PUT /api/shop/cart/:id – Update quantity (Shopping Cart +/-). Body: { \"quantity\": number }. Set cart_item_id. Response: updated item (same shape as cart view)."
                     }
                 },
                 {
@@ -2560,7 +2718,7 @@
                                 "{{cart_item_id}}"
                             ]
                         },
-                        "description": "DELETE /api/shop/cart/:id \u2013 Remove item (trash icon). Set cart_item_id."
+                        "description": "DELETE /api/shop/cart/:id – Remove item (trash icon). Set cart_item_id."
                     }
                 },
                 {
@@ -2589,7 +2747,7 @@
                                 "payment-methods"
                             ]
                         },
-                        "description": "GET /api/shop/checkout/payment-methods \u2013 Checkout Payment step. Response: array of { id, type, label } for card, apple_pay, samsung_pay, tabby, tamara (all via Checkout.com). Use POST /create-payment-session next."
+                        "description": "GET /api/shop/checkout/payment-methods – Checkout Payment step. Response: array of { id, type, label } for card, apple_pay, samsung_pay, tabby, tamara (all via Checkout.com). Use POST /create-payment-session next."
                     }
                 },
                 {
@@ -2641,7 +2799,7 @@
                                 "create-payment-session"
                             ]
                         },
-                        "description": "POST /api/shop/create-payment-session \u2013 Backend creates order (pending) and Checkout.com session. Body: address_id (or full_name, phone_number, street_address, city, country), optional items (omit to use cart), success_url (required), failure_url (required). Returns: session_id, order_id, order_number, public_key, amount, currency. Frontend opens Checkout.com UI with session_id; webhook updates order to paid."
+                        "description": "POST /api/shop/create-payment-session – Backend creates order (pending) and Checkout.com session. Body: address_id (or full_name, phone_number, street_address, city, country), optional items (omit to use cart), success_url (required), failure_url (required). Returns: session_id, order_id, order_number, public_key, amount, currency. Frontend opens Checkout.com UI with session_id; webhook updates order to paid."
                     }
                 },
                 {
@@ -2702,7 +2860,7 @@
                                 "review"
                             ]
                         },
-                        "description": "GET /api/shop/checkout/review \u2013 Checkout Review step. Response: items (cart), order_summary, addresses, payment_methods (card, apple_pay, samsung_pay, tabby, tamara). Then call POST /create-payment-session with success_url and failure_url."
+                        "description": "GET /api/shop/checkout/review – Checkout Review step. Response: items (cart), order_summary, addresses, payment_methods (card, apple_pay, samsung_pay, tabby, tamara). Then call POST /create-payment-session with success_url and failure_url."
                     }
                 },
                 {
@@ -2764,7 +2922,7 @@
                                 "checkout-com"
                             ]
                         },
-                        "description": "POST /api/shop/webhooks/checkout-com \u2013 Called by Checkout.com (no auth). Verify Cko-Signature header; on payment_captured update order to paid. Configure this URL in Checkout.com dashboard."
+                        "description": "POST /api/shop/webhooks/checkout-com – Called by Checkout.com (no auth). Verify Cko-Signature header; on payment_captured update order to paid. Configure this URL in Checkout.com dashboard."
                     }
                 },
                 {
@@ -2863,7 +3021,7 @@
                                 "orders"
                             ]
                         },
-                        "description": "\u2705 STEP 17: List all orders for authenticated user"
+                        "description": "✅ STEP 17: List all orders for authenticated user"
                     }
                 },
                 {
@@ -3024,7 +3182,7 @@
                                 "track"
                             ]
                         },
-                        "description": "GET /api/orders/{id}/track \u2013 Order tracking for timeline UI. Response: order_id, order_number (e.g. order_001), order, current_status (Pending|In Progress|Delivered etc.), tracking.timeline (steps: pending, confirmed, assigned, in_progress, completed, delivered \u2013 each with label, description, completed, timestamp), tracking.status, tracking.payment_status, maintenance_photos (array, for visit photos when linked), can_cancel. Set order_id."
+                        "description": "GET /api/orders/{id}/track – Order tracking for timeline UI. Response: order_id, order_number (e.g. order_001), order, current_status (Pending|In Progress|Delivered etc.), tracking.timeline (steps: pending, confirmed, assigned, in_progress, completed, delivered – each with label, description, completed, timestamp), tracking.status, tracking.payment_status, maintenance_photos (array, for visit photos when linked), can_cancel. Set order_id."
                     }
                 },
                 {
@@ -3367,10 +3525,10 @@
                     }
                 }
             ],
-            "description": "Shop and e-commerce \u2013 Cart, Checkout.com (create-payment-session + webhook), orders, payments. PayPal and COD removed."
+            "description": "Shop and e-commerce – Cart, Checkout.com (create-payment-session + webhook), orders, payments. PayPal and COD removed."
         },
         {
-            "name": "8b. Client Dashboard \u2013 Maintenance Photos",
+            "name": "8b. Client Dashboard – Maintenance Photos",
             "item": [
                 {
                     "name": "List Maintenance Photos",
@@ -3515,17 +3673,17 @@
                     }
                 }
             ],
-            "description": "Client app Home \u2013 Maintenance Photos. List, get by visit, upload, delete. Upload: POST/PUT /api/visits/{id}/upload-photo (form-data: photo, type). Who can upload/delete: Admin, Technician (assigned visit), Client (own visit). Set visit_id, photo_id. Auth: Bearer."
+            "description": "Client app Home – Maintenance Photos. List, get by visit, upload, delete. Upload: POST/PUT /api/visits/{id}/upload-photo (form-data: photo, type). Who can upload/delete: Admin, Technician (assigned visit), Client (own visit). Set visit_id, photo_id. Auth: Bearer."
         },
         {
-            "name": "9. Technician Dashboard \u2013 All APIs",
+            "name": "9. Technician Dashboard – All APIs",
             "description": "Technician APIs. Auth: Bearer {{token}} (role technician). Same folder structure as HR / Area Manager: A. Dashboard, B. Profile, C. Visits & Tasks, D. Reports & Field Notes, E. Leave Requests, F. Alerts, G. Service Areas & Specializations, H. Availability & Schedule, I. Payout & Bank, J. Notifications, K. Support. Base: /api/technician/*.",
             "item": [
                 {
                     "name": "A. Dashboard",
                     "item": [
                         {
-                            "name": "GET Technician \u2013 Dashboard",
+                            "name": "GET Technician – Dashboard",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3558,7 +3716,7 @@
                     "name": "B. Profile",
                     "item": [
                         {
-                            "name": "GET Technician \u2013 Profile",
+                            "name": "GET Technician – Profile",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3586,7 +3744,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician \u2013 Profile update",
+                            "name": "PUT Technician – Profile update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -3634,7 +3792,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Profile update",
+                            "name": "POST Technician – Profile update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -3828,7 +3986,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Tasks list",
+                            "name": "GET Technician – Tasks list",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3863,11 +4021,11 @@
                                         }
                                     ]
                                 },
-                                "description": "**Assigned work (tasks).** Filter: today | upcoming | all | completed | accepted | rejected. **filter=all** = all open jobs. **filter=completed** = completed only. For **history** (closed jobs in a period) use the request **Jobs \u2013 History** below (GET /api/technician/jobs)."
+                                "description": "**Assigned work (tasks).** Filter: today | upcoming | all | completed | accepted | rejected. **filter=all** = all open jobs. **filter=completed** = completed only. For **history** (closed jobs in a period) use the request **Jobs – History** below (GET /api/technician/jobs)."
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Task by ID",
+                            "name": "GET Technician – Task by ID",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3896,7 +4054,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Task details",
+                            "name": "GET Technician – Task details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3926,7 +4084,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician \u2013 Task status",
+                            "name": "PUT Technician – Task status",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -3971,7 +4129,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Task accept",
+                            "name": "POST Technician – Task accept",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4001,7 +4159,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Task reject",
+                            "name": "POST Technician – Task reject",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4041,7 +4199,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Jobs history",
+                            "name": "GET Technician – Jobs history",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4080,7 +4238,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Jobs (accepted)",
+                            "name": "GET Technician – Jobs (accepted)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4120,7 +4278,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Jobs (rejected)",
+                            "name": "GET Technician – Jobs (rejected)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4160,7 +4318,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Jobs status counts",
+                            "name": "GET Technician – Jobs status counts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4196,7 +4354,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Upload job photo",
+                            "name": "POST Technician – Upload job photo",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4325,7 +4483,7 @@
                                         "{{visit_id}}"
                                     ]
                                 },
-                                "description": "**Technician sends report to supervisor** (this API).\n\n**Endpoint:** POST {{base_url}}/api/technician/report/{{visit_id}}\n**Auth:** Bearer token (technician).\n**Form-data only:** technician_notes (optional), before_photo (file), after_photo (file). visit_id is in the URL. Backend uses that visit\u2019s.\n\nSet {{visit_id}} to the job id. Supervisor sees reports: GET /api/supervisor/reports."
+                                "description": "**Technician sends report to supervisor** (this API).\n\n**Endpoint:** POST {{base_url}}/api/technician/report/{{visit_id}}\n**Auth:** Bearer token (technician).\n**Form-data only:** technician_notes (optional), before_photo (file), after_photo (file). visit_id is in the URL. Backend uses that visit’s.\n\nSet {{visit_id}} to the job id. Supervisor sees reports: GET /api/supervisor/reports."
                             }
                         },
                         {
@@ -4566,7 +4724,7 @@
                     "name": "G. Service Areas & Specializations",
                     "item": [
                         {
-                            "name": "GET Technician \u2013 Service areas",
+                            "name": "GET Technician – Service areas",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4594,7 +4752,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician \u2013 Service areas",
+                            "name": "PUT Technician – Service areas",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -4639,7 +4797,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Specializations",
+                            "name": "GET Technician – Specializations",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4667,7 +4825,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Specializations (form-data)",
+                            "name": "POST Technician – Specializations (form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4711,7 +4869,7 @@
                     "name": "H. Availability & Schedule",
                     "item": [
                         {
-                            "name": "GET Technician \u2013 Leave types",
+                            "name": "GET Technician – Leave types",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4739,7 +4897,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Availability",
+                            "name": "GET Technician – Availability",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4779,7 +4937,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician \u2013 Availability update",
+                            "name": "PUT Technician – Availability update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -4860,7 +5018,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Schedule",
+                            "name": "GET Technician – Schedule",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4903,7 +5061,7 @@
                     "name": "I. Payout & Bank",
                     "item": [
                         {
-                            "name": "GET Technician \u2013 Payout summary",
+                            "name": "GET Technician – Payout summary",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4931,7 +5089,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Payout history",
+                            "name": "GET Technician – Payout history",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4959,7 +5117,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Payout settings",
+                            "name": "GET Technician – Payout settings",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4988,7 +5146,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician \u2013 Payout settings",
+                            "name": "PUT Technician – Payout settings",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -5032,7 +5190,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Bank accounts",
+                            "name": "GET Technician – Bank accounts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5060,7 +5218,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Bank account add",
+                            "name": "POST Technician – Bank account add",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5118,7 +5276,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician \u2013 Bank account update",
+                            "name": "PUT Technician – Bank account update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -5162,7 +5320,7 @@
                             }
                         },
                         {
-                            "name": "DELETE Technician \u2013 Bank account delete",
+                            "name": "DELETE Technician – Bank account delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -5194,9 +5352,10 @@
                 },
                 {
                     "name": "J. Notifications",
+                    "description": "Dedicated notifications APIs under /api/technician/notifications.",
                     "item": [
                         {
-                            "name": "GET Technician \u2013 Notifications",
+                            "name": "Notifications - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5222,15 +5381,133 @@
                                     "query": [
                                         {
                                             "key": "per_page",
-                                            "value": "20"
+                                            "value": "20",
+                                            "description": "Optional, 1-100"
                                         }
                                     ]
                                 },
-                                "description": "List notifications sent by admin (title, message). Paginated. Response includes unread_count."
+                                "description": "GET /api/technician/notifications. Returns notifications with unread_count."
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Notification mark read",
+                            "name": "Notifications - Mark as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/technician/notifications/{id}/mark-read. Marks one notification as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Mark All as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/technician/notifications/mark-all-read. Marks all notifications as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Delete",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/technician/notifications/{id}. Deletes one notification."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Clear All",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/technician/notifications/clear-all. Clears all notifications for authenticated user."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Legacy Mark Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5256,11 +5533,11 @@
                                         "read"
                                     ]
                                 },
-                                "description": "Mark one notification as read. Set notification_id (UUID from list)."
+                                "description": "Legacy alias for mark-read. POST /api/technician/notifications/{id}/read."
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Notifications read all",
+                            "name": "Notifications - Legacy Mark All Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5285,36 +5562,7 @@
                                         "read-all"
                                     ]
                                 },
-                                "description": "Mark all notifications as read."
-                            }
-                        },
-                        {
-                            "name": "POST Technician \u2013 Notifications clear all",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/technician/notifications/clear-all",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "technician",
-                                        "notifications",
-                                        "clear-all"
-                                    ]
-                                },
-                                "description": "Clear all notifications (for Clear All button). Same as user dashboard. Returns success so app can refresh list."
+                                "description": "Legacy alias for mark-all-read. POST /api/technician/notifications/read-all."
                             }
                         }
                     ]
@@ -5323,7 +5571,7 @@
                     "name": "K. Support",
                     "item": [
                         {
-                            "name": "GET Technician \u2013 Support help center",
+                            "name": "GET Technician – Support help center",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5352,7 +5600,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Support FAQs",
+                            "name": "GET Technician – Support FAQs",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5381,7 +5629,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Support submit ticket",
+                            "name": "POST Technician – Support submit ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5419,7 +5667,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Support list my tickets",
+                            "name": "GET Technician – Support list my tickets",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5454,11 +5702,11 @@
                                         }
                                     ]
                                 },
-                                "description": "Technician \u2013 List my support tickets (chat with admin). Same as client. Use technician Bearer token. Query: status, per_page."
+                                "description": "Technician – List my support tickets (chat with admin). Same as client. Use technician Bearer token. Query: status, per_page."
                             }
                         },
                         {
-                            "name": "GET Technician \u2013 Support get ticket by ID (chat thread)",
+                            "name": "GET Technician – Support get ticket by ID (chat thread)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5483,11 +5731,11 @@
                                         "{{ticket_id}}"
                                     ]
                                 },
-                                "description": "Technician \u2013 Get one ticket with full reply thread (chat). Set ticket_id. Use technician Bearer token."
+                                "description": "Technician – Get one ticket with full reply thread (chat). Set ticket_id. Use technician Bearer token."
                             }
                         },
                         {
-                            "name": "POST Technician \u2013 Support reply to ticket",
+                            "name": "POST Technician – Support reply to ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5526,7 +5774,7 @@
                                         "reply"
                                     ]
                                 },
-                                "description": "Technician \u2013 Reply in ticket chat. Body: message (required). Not allowed when status is resolved or closed. Use technician Bearer token."
+                                "description": "Technician – Reply in ticket chat. Body: message (required). Not allowed when status is resolved or closed. Use technician Bearer token."
                             }
                         }
                     ]
@@ -5534,7 +5782,7 @@
             ]
         },
         {
-            "name": "10. Supervisor Dashboard \u2013 All APIs",
+            "name": "10. Supervisor Dashboard – All APIs",
             "item": [
                 {
                     "name": "A. Dashboard",
@@ -5741,7 +5989,7 @@
                                         "{{member_id}}"
                                     ]
                                 },
-                                "description": "Member detail when supervisor clicks a member from Team Stats. GET /api/supervisor/team/{{member_id}}. Set **member_id** = id from Team Stats response (previous request) \u2192 data.members[].id. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone, and **jobs** { in_progress: [...], completed: [...] } with visit_id, status, location, service, scheduled_date, completed_at, duration_minutes. Member must be in supervisor's zones."
+                                "description": "Member detail when supervisor clicks a member from Team Stats. GET /api/supervisor/team/{{member_id}}. Set **member_id** = id from Team Stats response (previous request) → data.members[].id. Response: id, name, employee_id, profile_picture_url, status, current_activity, tasks_completed, tasks_total, tasks_display, email, phone, and **jobs** { in_progress: [...], completed: [...] } with visit_id, status, location, service, scheduled_date, completed_at, duration_minutes. Member must be in supervisor's zones."
                             }
                         },
                         {
@@ -6124,7 +6372,7 @@
                                         "{{visit_id}}"
                                     ]
                                 },
-                                "description": "Assign a task to a technician. **URL:** POST /api/supervisor/assignments/{{visit_id}} \u2013 the task/visit id is in the URL (from GET assignments list). **Form-data (no visit_id):** technician_id (required), scheduled_date (optional)."
+                                "description": "Assign a task to a technician. **URL:** POST /api/supervisor/assignments/{{visit_id}} – the task/visit id is in the URL (from GET assignments list). **Form-data (no visit_id):** technician_id (required), scheduled_date (optional)."
                             }
                         },
                         {
@@ -6279,7 +6527,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Dashboard: Pending Field Reports \u2013 reports from technicians awaiting supervisor review. Same as Reports - List with ?status=pending."
+                                "description": "Dashboard: Pending Field Reports – reports from technicians awaiting supervisor review. Same as Reports - List with ?status=pending."
                             }
                         },
                         {
@@ -6561,7 +6809,7 @@
                                         "finalize"
                                     ]
                                 },
-                                "description": "**Module:** 10. Supervisor Dashboard \u2013 D. Reports / Visits.\n\n**Share report to client:** POST /api/supervisor/visits/{visit_id}/finalize. Set status=sent_to_client to submit the report to the client (client is notified and sees it in GET /api/reports).\n\n**Body (JSON or form-data):** status (required for share: sent_to_client), supervisor_notes, notes, recommendations[], recommended_products[]. Other status: pending, finalized, rejected.\n\n**Requirement:** Technician must have submitted a field report (POST /api/technician/reports) for this visit first; otherwise 422.\n\n**Response 200:** status: true, message: \"Report submitted to client successfully.\", data: report object (id, visit_id, status=sent_to_client, supervisor_notes, visit, supervisor).\n**Response 422:** Technician must submit field report first.\n**Response 403:** Visit not in your zones.\n**Response 404:** Visit not found."
+                                "description": "**Module:** 10. Supervisor Dashboard – D. Reports / Visits.\n\n**Share report to client:** POST /api/supervisor/visits/{visit_id}/finalize. Set status=sent_to_client to submit the report to the client (client is notified and sees it in GET /api/reports).\n\n**Body (JSON or form-data):** status (required for share: sent_to_client), supervisor_notes, notes, recommendations[], recommended_products[]. Other status: pending, finalized, rejected.\n\n**Requirement:** Technician must have submitted a field report (POST /api/technician/reports) for this visit first; otherwise 422.\n\n**Response 200:** status: true, message: \"Report submitted to client successfully.\", data: report object (id, visit_id, status=sent_to_client, supervisor_notes, visit, supervisor).\n**Response 422:** Technician must submit field report first.\n**Response 403:** Visit not in your zones.\n**Response 404:** Visit not found."
                             }
                         }
                     ]
@@ -6574,13 +6822,25 @@
                             "request": {
                                 "method": "GET",
                                 "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
                                 ],
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/leave-request-types",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "leave-request-types"]
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "leave-request-types"
+                                    ]
                                 },
                                 "description": "Leave types for HR leave request form. GET /api/supervisor/leave-request-types."
                             }
@@ -6590,16 +6850,35 @@
                             "request": {
                                 "method": "GET",
                                 "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
                                 ],
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/leave-requests?status=pending&per_page=20",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "leave-requests"],
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "leave-requests"
+                                    ],
                                     "query": [
-                                        { "key": "status", "value": "pending", "description": "pending | approved | rejected (optional)" },
-                                        { "key": "per_page", "value": "20" }
+                                        {
+                                            "key": "status",
+                                            "value": "pending",
+                                            "description": "pending | approved | rejected (optional)"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
                                     ]
                                 },
                                 "description": "My leave requests. GET /api/supervisor/leave-requests."
@@ -6610,8 +6889,14 @@
                             "request": {
                                 "method": "POST",
                                 "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
                                 ],
                                 "body": {
                                     "mode": "formdata",
@@ -6650,8 +6935,14 @@
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/leave-requests",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "leave-requests"]
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "leave-requests"
+                                    ]
                                 },
                                 "description": "Submit leave request to HR. POST /api/supervisor/leave-requests. Use form-data. Required: leave_type, start_date, end_date. Optional: reason, working_days (supervisor only, e.g. mon,tue,wed,thu,fri,sat). Do not set Content-Type; Postman sets multipart/form-data."
                             }
@@ -6661,13 +6952,26 @@
                             "request": {
                                 "method": "GET",
                                 "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
                                 ],
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/leave-requests/{{leave_request_id}}",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "leave-requests", "{{leave_request_id}}"]
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "leave-requests",
+                                        "{{leave_request_id}}"
+                                    ]
                                 },
                                 "description": "Get one of my leave requests. GET /api/supervisor/leave-requests/{id}."
                             }
@@ -6682,14 +6986,31 @@
                             "request": {
                                 "method": "GET",
                                 "header": [
-                                    { "key": "Authorization", "value": "Bearer {{token}}" },
-                                    { "key": "Accept", "value": "application/json" }
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
                                 ],
                                 "url": {
                                     "raw": "{{base_url}}/api/supervisor/alerts?per_page=20",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "supervisor", "alerts"],
-                                    "query": [{ "key": "per_page", "value": "20" }]
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "alerts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
                                 },
                                 "description": "In-app alerts (e.g. leave approved/rejected). GET /api/supervisor/alerts."
                             }
@@ -6814,10 +7135,10 @@
                 },
                 {
                     "name": "H. Support Tickets (Chat)",
-                    "description": "Supervisor \u2013 Support ticket chat with admin. Same APIs as client/technician. Use /api/support/* with supervisor Bearer token.",
+                    "description": "Supervisor – Support ticket chat with admin. Same APIs as client/technician. Use /api/support/* with supervisor Bearer token.",
                     "item": [
                         {
-                            "name": "Support \u2013 Help Center",
+                            "name": "Support – Help Center",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6841,11 +7162,11 @@
                                         "help-center"
                                     ]
                                 },
-                                "description": "Supervisor \u2013 Help center payload (contact, FAQs, submit_ticket info)."
+                                "description": "Supervisor – Help center payload (contact, FAQs, submit_ticket info)."
                             }
                         },
                         {
-                            "name": "Support \u2013 FAQs",
+                            "name": "Support – FAQs",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6869,11 +7190,11 @@
                                         "faqs"
                                     ]
                                 },
-                                "description": "Supervisor \u2013 FAQ list."
+                                "description": "Supervisor – FAQ list."
                             }
                         },
                         {
-                            "name": "Support \u2013 Submit ticket",
+                            "name": "Support – Submit ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -6910,11 +7231,11 @@
                                         "tickets"
                                     ]
                                 },
-                                "description": "Supervisor \u2013 Create support ticket. Body: subject, email, description (required)."
+                                "description": "Supervisor – Create support ticket. Body: subject, email, description (required)."
                             }
                         },
                         {
-                            "name": "Support \u2013 List my tickets",
+                            "name": "Support – List my tickets",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6944,11 +7265,11 @@
                                         }
                                     ]
                                 },
-                                "description": "Supervisor \u2013 List my support tickets."
+                                "description": "Supervisor – List my support tickets."
                             }
                         },
                         {
-                            "name": "Support \u2013 Get ticket by ID (chat thread)",
+                            "name": "Support – Get ticket by ID (chat thread)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6973,11 +7294,11 @@
                                         "{{ticket_id}}"
                                     ]
                                 },
-                                "description": "Supervisor \u2013 Get one ticket with full chat (replies). Set ticket_id."
+                                "description": "Supervisor – Get one ticket with full chat (replies). Set ticket_id."
                             }
                         },
                         {
-                            "name": "Support \u2013 Reply to ticket",
+                            "name": "Support – Reply to ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7016,7 +7337,165 @@
                                         "reply"
                                     ]
                                 },
-                                "description": "Supervisor \u2013 Reply in ticket chat. Body: message (required)."
+                                "description": "Supervisor – Reply in ticket chat. Body: message (required)."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "I. Notifications",
+                    "description": "Dedicated notifications APIs under /api/supervisor/notifications.",
+                    "item": [
+                        {
+                            "name": "Notifications - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "Optional, 1-100"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/supervisor/notifications. Returns notifications with unread_count."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Mark as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/supervisor/notifications/{id}/mark-read. Marks one notification as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Mark All as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/supervisor/notifications/mark-all-read. Marks all notifications as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Delete",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/supervisor/notifications/{id}. Deletes one notification."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Clear All",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/supervisor/notifications/clear-all. Clears all notifications for authenticated user."
                             }
                         }
                     ]
@@ -7090,7 +7569,7 @@
                                         }
                                     ]
                                 },
-                                "description": "GET /api/shop/products/featured \u2013 Featured products for home screen. Returns active products where is_featured=true. Query: limit (1-50, default 10). No auth. Response: success, data (array of products with id, name, price, image_url, is_featured, category, etc.)."
+                                "description": "GET /api/shop/products/featured – Featured products for home screen. Returns active products where is_featured=true. Query: limit (1-50, default 10). No auth. Response: success, data (array of products with id, name, price, image_url, is_featured, category, etc.)."
                             }
                         },
                         {
@@ -7204,7 +7683,7 @@
                             }
                         }
                     ],
-                    "description": "Public product APIs \u2013 no Authorization header. Use for customer/storefront app."
+                    "description": "Public product APIs – no Authorization header. Use for customer/storefront app."
                 },
                 {
                     "name": "Admin (Bearer token)",
@@ -7273,7 +7752,7 @@
                             }
                         },
                         {
-                            "name": "Add Product (JSON \u2013 URL-only images)",
+                            "name": "Add Product (JSON – URL-only images)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7309,7 +7788,7 @@
                             }
                         },
                         {
-                            "name": "Add Product (Multipart \u2013 with image files)",
+                            "name": "Add Product (Multipart – with image files)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7447,7 +7926,7 @@
                             }
                         },
                         {
-                            "name": "Update Product (Multipart \u2013 same as Add Product)",
+                            "name": "Update Product (Multipart – same as Add Product)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -7727,13 +8206,13 @@
                             }
                         }
                     ],
-                    "description": "Admin product APIs \u2013 Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
+                    "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
                 }
             ],
             "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
-            "name": "11. Area Manager Dashboard \u2013 All APIs",
+            "name": "11. Area Manager Dashboard – All APIs",
             "description": "Area Manager APIs. Auth: Bearer {{token}} (role area_manager). Same folder structure as Supervisor: A. Dashboard, B. Teams, C. Analytics, D. Reports, E. Profile, F. Notifications, G. Help & Support. Base: /api/area-manager/*.",
             "item": [
                 {
@@ -8182,7 +8661,7 @@
                                         "download"
                                     ]
                                 },
-                                "description": "Download report file (attachment). GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from list (e.g. 40). Works with: (1) ID + Bearer {{token}} (area_manager who created the report) \u2013 use Send and Download in Postman; (2) or open the signed download_url from the list in browser (no auth). Do not set Accept: application/json for this request."
+                                "description": "Download report file (attachment). GET /api/area-manager/generated-reports/{id}/download. Set {{generated_report_id}} from list (e.g. 40). Works with: (1) ID + Bearer {{token}} (area_manager who created the report) – use Send and Download in Postman; (2) or open the signed download_url from the list in browser (no auth). Do not set Accept: application/json for this request."
                             }
                         },
                         {
@@ -8674,7 +9153,7 @@
                     ]
                 },
                 {
-                    "name": "Legacy \u2013 Team Leaders",
+                    "name": "Legacy – Team Leaders",
                     "description": "Same as B. Teams; prefer /teams and /teams/{id}/jobs.",
                     "item": [
                         {
@@ -8779,8 +9258,8 @@
             ]
         },
         {
-            "name": "12. HR Manager Dashboard \u2013 All APIs",
-            "description": "HR Manager APIs. Auth: Bearer {{token}} (role hr or admin). Same folder structure as Area Manager: A. Dashboard, B. Employees, C. Leave Requests, D. Profile, E. Help & Support, F. Visit assignments & Monthly reports, G. Notifications. Base: /api/hr/*. **All create and update APIs use form-data (multipart/form-data) only \u2013 no raw JSON.**",
+            "name": "12. HR Manager Dashboard – All APIs",
+            "description": "HR Manager APIs. Auth: Bearer {{token}} (role hr or admin). Same folder structure as Area Manager: A. Dashboard, B. Employees, C. Leave Requests, D. Profile, E. Help & Support, F. Visit assignments & Monthly reports, G. Notifications. Base: /api/hr/*. **All create and update APIs use form-data (multipart/form-data) only – no raw JSON.**",
             "item": [
                 {
                     "name": "A. Dashboard",
@@ -8994,7 +9473,7 @@
                                         "employees"
                                     ]
                                 },
-                                "description": "**Create Employee API** \u2013 POST /api/hr/employees. Use **form-data** (multipart/form-data), not raw JSON. Required: name, email, employee_id (unique). Optional: phone, region, designation (e.g. Field Worker, Team Leader, Area Manager, HR Staff), joining_date (Y-m-d), profile_picture (file). Do not set Content-Type header; Postman sets it automatically for form-data."
+                                "description": "**Create Employee API** – POST /api/hr/employees. Use **form-data** (multipart/form-data), not raw JSON. Required: name, email, employee_id (unique). Optional: phone, region, designation (e.g. Field Worker, Team Leader, Area Manager, HR Staff), joining_date (Y-m-d), profile_picture (file). Do not set Content-Type header; Postman sets it automatically for form-data."
                             }
                         },
                         {
@@ -9105,7 +9584,7 @@
                                         "{{employee_id}}"
                                     ]
                                 },
-                                "description": "**Update Employee API** \u2013 PUT /api/hr/employees/{id}. Use **form-data** only. Optional: name, email, employee_id, phone, region, designation, joining_date (Y-m-d), profile_picture (file). Send only fields to update. Do not set Content-Type; Postman sets multipart/form-data for form-data."
+                                "description": "**Update Employee API** – PUT /api/hr/employees/{id}. Use **form-data** only. Optional: name, email, employee_id, phone, region, designation, joining_date (Y-m-d), profile_picture (file). Send only fields to update. Do not set Content-Type; Postman sets multipart/form-data for form-data."
                             }
                         },
                         {
@@ -9202,7 +9681,7 @@
                                         "leave-requests"
                                     ]
                                 },
-                                "description": "**Create Leave Request API** \u2013 POST /api/hr/leave-requests. Use **form-data** only. Required: user_id, leave_type, start_date, end_date. Optional: reason. Do not set Content-Type; Postman sets multipart/form-data for form-data."
+                                "description": "**Create Leave Request API** – POST /api/hr/leave-requests. Use **form-data** only. Required: user_id, leave_type, start_date, end_date. Optional: reason. Do not set Content-Type; Postman sets multipart/form-data for form-data."
                             }
                         },
                         {
@@ -10192,7 +10671,7 @@
             ]
         },
         {
-            "name": "13. Admin Dashboard \u2013 Stats, Users & HR",
+            "name": "13. Admin Dashboard – Stats, Users & HR",
             "item": [
                 {
                     "name": "Admin Dashboard Statistics",
@@ -10220,7 +10699,7 @@
                                 "statistics"
                             ]
                         },
-                        "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for total users, active subscriptions, monthly revenue, customers, technicians, and employees\n- Includes counts/amounts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods with automatic + and - signs\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `total_users`: All users regardless of role (total, daily, weekly, monthly, yearly + growth)\n- `active_subscriptions`: Paid subscriptions that haven't expired (total, daily, weekly, monthly, yearly + growth)\n- `monthly_revenue`: Total revenue from orders + subscriptions (total, daily, weekly, monthly, yearly + growth)\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"+8\", \"+15\", \"-5\")\n- Positive growth: Always includes '+' sign (e.g., \"+12\", \"+8\", \"+15\")\n- Negative growth: Always includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"+0\" or \"0\"\n- Represents percentage change vs previous period\n- No need to add + or - sign in frontend, it's already included\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards (Total Users, Active Subscriptions, Monthly Revenue, Total Employees)\n- Show growth trends with visual indicators (green for +, red for -)\n- Analytics overview\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_users\": {\n      \"total\": 1245,\n      \"daily\": 5,\n      \"weekly\": 25,\n      \"monthly\": 120,\n      \"yearly\": 1245,\n      \"growth\": {\n        \"daily\": \"+2\",\n        \"weekly\": \"+15\",\n        \"monthly\": \"+12\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"active_subscriptions\": {\n      \"total\": 892,\n      \"daily\": 3,\n      \"weekly\": 15,\n      \"monthly\": 60,\n      \"yearly\": 892,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+8\",\n        \"monthly\": \"+8\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"monthly_revenue\": {\n      \"total\": 245000,\n      \"daily\": 5000,\n      \"weekly\": 25000,\n      \"monthly\": 245000,\n      \"yearly\": 2450000,\n      \"growth\": {\n        \"daily\": \"+5\",\n        \"weekly\": \"+12\",\n        \"monthly\": \"+15\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"customers\": {\n      \"total\": 850,\n      \"daily\": 3,\n      \"weekly\": 18,\n      \"monthly\": 85,\n      \"yearly\": 850,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+10\",\n        \"monthly\": \"+40\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"technicians\": {\n      \"total\": 506,\n      \"daily\": 2,\n      \"weekly\": 10,\n      \"monthly\": 45,\n      \"yearly\": 506,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+5\",\n        \"monthly\": \"+20\",\n        \"yearly\": \"+180\"\n      }\n    },\n    \"employees\": {\n      \"total\": 48,\n      \"daily\": 1,\n      \"weekly\": 5,\n      \"monthly\": 20,\n      \"yearly\": 48,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+3\",\n        \"monthly\": \"+3\",\n        \"yearly\": \"+10\"\n      }\n    }\n  }\n}\n```\n\n**Mobile App Usage:**\n- `data.total_users.growth.monthly` \u2192 \"+12\" (display directly, no need to add + sign)\n- `data.active_subscriptions.growth.monthly` \u2192 \"+8\" (display directly)\n- `data.monthly_revenue.growth.monthly` \u2192 \"+15\" (display directly)\n- `data.employees.growth.monthly` \u2192 \"+3\" (display directly)\n- Use green color for positive growth (+), red for negative growth (-)"
+                        "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for total users, active subscriptions, monthly revenue, customers, technicians, and employees\n- Includes counts/amounts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods with automatic + and - signs\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `total_users`: All users regardless of role (total, daily, weekly, monthly, yearly + growth)\n- `active_subscriptions`: Paid subscriptions that haven't expired (total, daily, weekly, monthly, yearly + growth)\n- `monthly_revenue`: Total revenue from orders + subscriptions (total, daily, weekly, monthly, yearly + growth)\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"+8\", \"+15\", \"-5\")\n- Positive growth: Always includes '+' sign (e.g., \"+12\", \"+8\", \"+15\")\n- Negative growth: Always includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"+0\" or \"0\"\n- Represents percentage change vs previous period\n- No need to add + or - sign in frontend, it's already included\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards (Total Users, Active Subscriptions, Monthly Revenue, Total Employees)\n- Show growth trends with visual indicators (green for +, red for -)\n- Analytics overview\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_users\": {\n      \"total\": 1245,\n      \"daily\": 5,\n      \"weekly\": 25,\n      \"monthly\": 120,\n      \"yearly\": 1245,\n      \"growth\": {\n        \"daily\": \"+2\",\n        \"weekly\": \"+15\",\n        \"monthly\": \"+12\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"active_subscriptions\": {\n      \"total\": 892,\n      \"daily\": 3,\n      \"weekly\": 15,\n      \"monthly\": 60,\n      \"yearly\": 892,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+8\",\n        \"monthly\": \"+8\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"monthly_revenue\": {\n      \"total\": 245000,\n      \"daily\": 5000,\n      \"weekly\": 25000,\n      \"monthly\": 245000,\n      \"yearly\": 2450000,\n      \"growth\": {\n        \"daily\": \"+5\",\n        \"weekly\": \"+12\",\n        \"monthly\": \"+15\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"customers\": {\n      \"total\": 850,\n      \"daily\": 3,\n      \"weekly\": 18,\n      \"monthly\": 85,\n      \"yearly\": 850,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+10\",\n        \"monthly\": \"+40\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"technicians\": {\n      \"total\": 506,\n      \"daily\": 2,\n      \"weekly\": 10,\n      \"monthly\": 45,\n      \"yearly\": 506,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+5\",\n        \"monthly\": \"+20\",\n        \"yearly\": \"+180\"\n      }\n    },\n    \"employees\": {\n      \"total\": 48,\n      \"daily\": 1,\n      \"weekly\": 5,\n      \"monthly\": 20,\n      \"yearly\": 48,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+3\",\n        \"monthly\": \"+3\",\n        \"yearly\": \"+10\"\n      }\n    }\n  }\n}\n```\n\n**Mobile App Usage:**\n- `data.total_users.growth.monthly` → \"+12\" (display directly, no need to add + sign)\n- `data.active_subscriptions.growth.monthly` → \"+8\" (display directly)\n- `data.monthly_revenue.growth.monthly` → \"+15\" (display directly)\n- `data.employees.growth.monthly` → \"+3\" (display directly)\n- Use green color for positive growth (+), red for negative growth (-)"
                     }
                 },
                 {
@@ -10412,7 +10891,7 @@
                                 }
                             ]
                         },
-                        "description": "Top selling products for admin dashboard. Paid orders only (payment_status=paid). When none, returns fallback list of products with 0 sales if include_unsold=1. Auth: Bearer + admin.\n\n**Query:** limit (default 10, max 50), include_unsold (default 1).\n\n**Response:** success, data[], total.\n\n**Each item in data:**\n- product_id (int)\n- product_name (string)\n- product_image_url (string|null)\n- category_name (string|null)\n- price (float|null)\n- sales (int)\n- sales_display (string) \u2013 e.g. \"245 sales\"\n- revenue (float)\n- revenue_formatted (string) \u2013 e.g. \"22,000 AED\"\n- revenue_display (string) \u2013 e.g. \"22K\" (show as \"AED 22K\")"
+                        "description": "Top selling products for admin dashboard. Paid orders only (payment_status=paid). When none, returns fallback list of products with 0 sales if include_unsold=1. Auth: Bearer + admin.\n\n**Query:** limit (default 10, max 50), include_unsold (default 1).\n\n**Response:** success, data[], total.\n\n**Each item in data:**\n- product_id (int)\n- product_name (string)\n- product_image_url (string|null)\n- category_name (string|null)\n- price (float|null)\n- sales (int)\n- sales_display (string) – e.g. \"245 sales\"\n- revenue (float)\n- revenue_formatted (string) – e.g. \"22,000 AED\"\n- revenue_display (string) – e.g. \"22K\" (show as \"AED 22K\")"
                     }
                 },
                 {
@@ -10917,12 +11396,170 @@
                         },
                         "description": "Delete employee (admin only)"
                     }
+                },
+                {
+                    "name": "Admin Notifications (Dedicated API)",
+                    "description": "Dedicated notifications APIs under /api/admin/notifications.",
+                    "item": [
+                        {
+                            "name": "Notifications - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "Optional, 1-100"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/admin/notifications. Returns notifications with unread_count."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Mark as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/admin/notifications/{id}/mark-read. Marks one notification as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Mark All as Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/admin/notifications/mark-all-read. Marks all notifications as read."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Delete",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/admin/notifications/{id}. Deletes one notification."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Clear All",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/admin/notifications/clear-all. Clears all notifications for authenticated user."
+                            }
+                        }
+                    ]
                 }
             ],
             "description": "Admin and HR endpoints - User management, roles, employee management"
         },
         {
-            "name": "14. Admin Dashboard \u2013 Reports Management",
+            "name": "14. Admin Dashboard – Reports Management",
             "item": [
                 {
                     "name": "Get All Reports",
@@ -11195,7 +11832,7 @@
             "description": "Admin Reports Management API - Generate, schedule, download reports. Base URL: /api/admin/reports. Auth: Bearer token + admin role."
         },
         {
-            "name": "15. Admin \u2013 Support Tickets",
+            "name": "15. Admin – Support Tickets",
             "description": "Tickets submitted by clients/technicians via POST /api/support/tickets. Admin can list, view, reply, and update status. Quick Overview count uses open + in_progress.",
             "item": [
                 {
@@ -11350,7 +11987,7 @@
             ]
         },
         {
-            "name": "16. Admin Dashboard \u2013 Settings (Mobile)",
+            "name": "16. Admin Dashboard – Settings (Mobile)",
             "item": [
                 {
                     "name": "Get All Settings",
@@ -11826,7 +12463,7 @@
             "name": "17. Other Modules",
             "item": [
                 {
-                    "name": "Support Tickets \u2013 All roles (Client, Technician, Supervisor, Area Manager, HR)",
+                    "name": "Support Tickets – All roles (Client, Technician, Supervisor, Area Manager, HR)",
                     "description": "Same /api/support/* APIs for all these roles. Use Bearer token of the logged-in role (client, technician, supervisor, area_manager, or hr). For role-specific folders see: Module 3 (Client), Module 9 (Technician), Module 10 (Supervisor). Admin uses Module 13.",
                     "item": [
                         {
@@ -11961,7 +12598,7 @@
                             }
                         },
                         {
-                            "name": "Get ticket by ID \u2013 chat thread (GET)",
+                            "name": "Get ticket by ID – chat thread (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -12036,7 +12673,7 @@
                 },
                 {
                     "name": "Exclusive Offers",
-                    "description": "Exclusive offers for home screen. Public: List, Get by ID (no auth) \u2013 response shape same as admin (data array with image, image_url, is_active). Admin: List, Create, Get, Update, Delete (Bearer + admin). image_url = full URL for display; image = storage path.",
+                    "description": "Exclusive offers for home screen. Public: List, Get by ID (no auth) – response shape same as admin (data array with image, image_url, is_active). Admin: List, Create, Get, Update, Delete (Bearer + admin). image_url = full URL for display; image = storage path.",
                     "item": [
                         {
                             "name": "List (Public)",
@@ -12058,7 +12695,7 @@
                                         "exclusive-offers"
                                     ]
                                 },
-                                "description": "List active exclusive offers (no auth). Response: same shape as admin \u2013 data is a direct array (no pagination). Each item: id, title, description, image (path), image_url (full URL for display), discount_type, discount_value, applies_to, start_date, end_date, is_active, sort_order, product_ids, created_at, updated_at."
+                                "description": "List active exclusive offers (no auth). Response: same shape as admin – data is a direct array (no pagination). Each item: id, title, description, image (path), image_url (full URL for display), discount_type, discount_value, applies_to, start_date, end_date, is_active, sort_order, product_ids, created_at, updated_at."
                             }
                         },
                         {
@@ -12372,7 +13009,7 @@
                 },
                 {
                     "name": "Complaints",
-                    "description": "Complaints API \u2013 List, Create, Get, Update, Delete. Auth: Bearer token.",
+                    "description": "Complaints API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
                         {
                             "name": "List",
@@ -12569,7 +13206,7 @@
                 },
                 {
                     "name": "Tips",
-                    "description": "Tips API \u2013 List, Create, Get, Update, Delete. Auth: Bearer token.",
+                    "description": "Tips API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
                         {
                             "name": "List",
@@ -12761,7 +13398,7 @@
                 },
                 {
                     "name": "Notifications",
-                    "description": "App notifications \u2013 List, Mark as Read, Mark All as Read. Auth: Bearer token.",
+                    "description": "App notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
                     "item": [
                         {
                             "name": "List",
@@ -13156,7 +13793,7 @@
                                         "toggle-status"
                                     ]
                                 },
-                                "description": "POST /api/admin/categories/{id}/toggle-status \u2013 Enable/disable category. Response: success, message, data (id, is_active). Same pattern as banners. Set category_id."
+                                "description": "POST /api/admin/categories/{id}/toggle-status – Enable/disable category. Response: success, message, data (id, is_active). Same pattern as banners. Set category_id."
                             }
                         },
                         {
@@ -13185,14 +13822,14 @@
                                         "{{category_id}}"
                                     ]
                                 },
-                                "description": "Delete category (admin). Removes category and its image from storage. Cannot delete if category has products \u2013 reassign or delete products first. Auth: Bearer token, admin role."
+                                "description": "Delete category (admin). Removes category and its image from storage. Cannot delete if category has products – reassign or delete products first. Auth: Bearer token, admin role."
                             }
                         }
                     ]
                 },
                 {
                     "name": "Admin - Services",
-                    "description": "Services API \u2013 full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
+                    "description": "Services API – full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
                     "item": [
                         {
                             "name": "Services - List",
@@ -13448,7 +14085,7 @@
                                         "toggle-status"
                                     ]
                                 },
-                                "description": "POST /api/admin/services/{id}/toggle-status \u2013 Enable/disable service. Response: success, message, data (id, is_active). Same pattern as banners. Set service_id."
+                                "description": "POST /api/admin/services/{id}/toggle-status – Enable/disable service. Response: success, message, data (id, is_active). Same pattern as banners. Set service_id."
                             }
                         },
                         {
@@ -13562,7 +14199,7 @@
                                         }
                                     ]
                                 },
-                                "description": "All technicians for admin dashboard (e.g. \"All Technicians\" screen). GET /api/admin/technicians. Query: per_page (1\u2013100), search (optional). Response: id, name, email, employee_id, service_areas[], specializations[], zone { id, name } or null, supervisor { id, name } or null, pagination, search (echo when provided)."
+                                "description": "All technicians for admin dashboard (e.g. \"All Technicians\" screen). GET /api/admin/technicians. Query: per_page (1–100), search (optional). Response: id, name, email, employee_id, service_areas[], specializations[], zone { id, name } or null, supervisor { id, name } or null, pagination, search (echo when provided)."
                             }
                         },
                         {
@@ -14428,14 +15065,14 @@
                                         "checkout-com"
                                     ]
                                 },
-                                "description": "Checkout.com calls this. Configure URL in dashboard. Verify Cko-Signature. Main flow: 8. Shop & Orders \u2192 Create Payment Session."
+                                "description": "Checkout.com calls this. Configure URL in dashboard. Verify Cko-Signature. Main flow: 8. Shop & Orders → Create Payment Session."
                             }
                         }
                     ]
                 },
                 {
                     "name": "Services (Public)",
-                    "description": "Public Services API \u2013 categories (filters) and products (services). No auth. Flow: GET /api/services or /api/services/categories \u2192 then GET /api/services/category/:id for products in a category. Env: base_url, service_id (category id for single service), category_id (for Get by Category).",
+                    "description": "Public Services API – categories (filters) and products (services). No auth. Flow: GET /api/services or /api/services/categories → then GET /api/services/category/:id for products in a category. Env: base_url, service_id (category id for single service), category_id (for Get by Category).",
                     "item": [
                         {
                             "name": "List (paginated)",
@@ -14476,7 +15113,7 @@
                                         }
                                     ]
                                 },
-                                "description": "GET /api/services \u2013 Paginated list of active service categories. Response: data.data (array), data.pagination (current_page, last_page, per_page, total). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample), created_at, updated_at."
+                                "description": "GET /api/services – Paginated list of active service categories. Response: data.data (array), data.pagination (current_page, last_page, per_page, total). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample), created_at, updated_at."
                             }
                         },
                         {
@@ -14500,7 +15137,7 @@
                                         "{{service_id}}"
                                     ]
                                 },
-                                "description": "GET /api/services/:id \u2013 One active category (service). Use service_id or category id. Response: data with id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names. 404 if inactive."
+                                "description": "GET /api/services/:id – One active category (service). Use service_id or category id. Response: data with id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names. 404 if inactive."
                             }
                         },
                         {
@@ -14549,7 +15186,7 @@
                                         }
                                     ]
                                 },
-                                "description": "GET /api/services/products \u2013 All products linked to any service (Services screen). Query: service_id, category_id, search, per_page. Response: data (id, name, slug, description, price, currency AED, image_url, category, service_names, rating), total, pagination. No auth."
+                                "description": "GET /api/services/products – All products linked to any service (Services screen). Query: service_id, category_id, search, per_page. Response: data (id, name, slug, description, price, currency AED, image_url, category, service_names, rating), total, pagination. No auth."
                             }
                         },
                         {
@@ -14574,7 +15211,7 @@
                                         "products"
                                     ]
                                 },
-                                "description": "GET /api/services/:id/products \u2013 Service ke hisab se products. Returns service_id, service_name, products (array). Each product: id, name, slug, description, price, image, image_url, status. No auth. Set service_id in env."
+                                "description": "GET /api/services/:id/products – Service ke hisab se products. Returns service_id, service_name, products (array). Each product: id, name, slug, description, price, image, image_url, status. No auth. Set service_id in env."
                             }
                         },
                         {
@@ -14598,7 +15235,7 @@
                                         "categories"
                                     ]
                                 },
-                                "description": "GET /api/services/categories \u2013 All active categories (no pagination). Response: data (array). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample). Use for filter chips in app."
+                                "description": "GET /api/services/categories – All active categories (no pagination). Response: data (array). Each item: id, name, slug, description, image, image_url, is_active, coming_soon, products_count, product_names (sample). Use for filter chips in app."
                             }
                         },
                         {
@@ -14623,14 +15260,14 @@
                                         "{{category_id}}"
                                     ]
                                 },
-                                "description": "GET /api/services/category/:id \u2013 One category with full products list. Response: data (category fields + products array). Each product: id, name, slug, description, price, image, image_url, status. Use after user selects a category filter."
+                                "description": "GET /api/services/category/:id – One category with full products list. Response: data (category fields + products array). Each product: id, name, slug, description, price, image, image_url, status. Use after user selects a category filter."
                             }
                         }
                     ]
                 },
                 {
                     "name": "User Profile",
-                    "description": "User profile \u2013 Get, Update. Auth: Bearer token.",
+                    "description": "User profile – Get, Update. Auth: Bearer token.",
                     "item": [
                         {
                             "name": "Get",
@@ -14727,7 +15364,7 @@
                                         "addresses"
                                     ]
                                 },
-                                "description": "GET /api/user/addresses \u2013 Checkout Address step. Response: array of { id, type, full_name, phone_number, street_address, city, state, zip_code, country, is_default }. type = home|office|other."
+                                "description": "GET /api/user/addresses – Checkout Address step. Response: array of { id, type, full_name, phone_number, street_address, city, state, zip_code, country, is_default }. type = home|office|other."
                             }
                         },
                         {
@@ -14830,7 +15467,7 @@
                                         "addresses"
                                     ]
                                 },
-                                "description": "Create address (multipart form-data). Checkout \u2013 Shipping Address. type optional: home|office|other. Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default (1/0)."
+                                "description": "Create address (multipart form-data). Checkout – Shipping Address. type optional: home|office|other. Required: full_name, phone_number, street_address, city, country. Optional: state, zip_code, is_default (1/0)."
                             }
                         },
                         {
@@ -14973,14 +15610,14 @@
                                         "payment-methods"
                                     ]
                                 },
-                                "description": "GET /api/user/payment-methods \u2013 List saved payment methods. Currently returns empty array; for client Profile \u2192 Payment Methods. Auth: Bearer token."
+                                "description": "GET /api/user/payment-methods – List saved payment methods. Currently returns empty array; for client Profile → Payment Methods. Auth: Bearer token."
                             }
                         }
                     ]
                 },
                 {
                     "name": "User Notifications",
-                    "description": "User notifications \u2013 List, Mark as Read, Mark All as Read, Clear All. Auth: Bearer token.",
+                    "description": "User notifications – List, Mark as Read, Mark All as Read, Clear All. Auth: Bearer token.",
                     "item": [
                         {
                             "name": "List",
