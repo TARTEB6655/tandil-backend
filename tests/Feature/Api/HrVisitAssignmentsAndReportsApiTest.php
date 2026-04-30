@@ -352,6 +352,17 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
 
         DatabaseNotification::create([
             'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => 'App\\Notifications\\TipsNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->adminHr->id,
+            'data' => [
+                'message' => 'Water your plants early in the morning.',
+            ],
+            'read_at' => null,
+        ]);
+
+        DatabaseNotification::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
             'type' => 'App\\Notifications\\AdminNotification',
             'notifiable_type' => User::class,
             'notifiable_id' => $this->adminHr->id,

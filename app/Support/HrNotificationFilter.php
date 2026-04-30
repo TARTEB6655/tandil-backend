@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Notifications\TipPublishedNotification;
-use App\Notifications\TipsNotification;
 class HrNotificationFilter
 {
     public static function apply($query)
@@ -14,7 +13,6 @@ class HrNotificationFilter
             $outer
                 ->whereIn('type', [
                     TipPublishedNotification::class,
-                    TipsNotification::class,
                 ])
                 ->orWhere(function ($admin) {
                     $admin->where('type', AdminNotification::class)
