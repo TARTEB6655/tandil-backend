@@ -15,6 +15,8 @@ use App\Models\TechnicianVacation;
 use App\Models\Visit;
 use App\Models\Report;
 use App\Models\VisitPhoto;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use App\Services\VisitOfferService;
 use App\Models\Tip;
 use App\Helpers\ApiResponse;
@@ -1315,6 +1317,7 @@ class TechnicianDashboardController extends Controller
         $visit->completed_at = now();
         $visit->completed_date = Carbon::today();
         $visit->save();
+        $this->notifyHrOnVisitCompleted($visit, $user);
 
         foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
             if (! $request->hasFile($key)) {
@@ -1399,6 +1402,7 @@ class TechnicianDashboardController extends Controller
         $visit->completed_at = now();
         $visit->completed_date = Carbon::today();
         $visit->save();
+        $this->notifyHrOnVisitCompleted($visit, $user);
 
         foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
             if (! $request->hasFile($key)) {
@@ -1429,6 +1433,35 @@ class TechnicianDashboardController extends Controller
                 'visit' => $report->visit,
             ],
         ], 201);
+    }
+
+    private function notifyHrOnVisitCompleted(Visit $visit, User $technician): void
+    {
+        $hrUsers = User::whereRaw('LOWER(role) = ?', ['hr'])
+            ->orWhereHas('roles', fn ($q) => $q->whereRaw('LOWER(name) = ?', ['hr']))
+            ->get();
+
+        if ($hrUsers->isEmpty()) {
+            return;
+        }
+
+        $title = 'Visit completed';
+        $message = sprintf(
+            'Visit #%d was completed by %s.',
+            $visit->id,
+            $technician->name ?? 'Technician'
+        );
+        $meta = [
+            'type' => 'hr_visit_completed',
+            'visit_id' => $visit->id,
+            'technician_id' => $technician->id,
+            'technician_name' => $technician->name ?? null,
+            'completed_at' => now()->toIso8601String(),
+        ];
+
+        foreach ($hrUsers as $hr) {
+            $hr->notify(new AdminNotification($title, $message, $meta));
+        }
     }
 
     private function formatJobDetails(Visit $visit): array

@@ -357,6 +357,11 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')
     Route::get('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Api\AreaManagerApiController::class, 'updateProfile']);
+    Route::get('/notifications', [\App\Http\Controllers\Api\AreaManagerNotificationsApiController::class, 'index']);
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\AreaManagerNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\AreaManagerNotificationsApiController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\AreaManagerNotificationsApiController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\AreaManagerNotificationsApiController::class, 'clearAll']);
 });
 
 /*

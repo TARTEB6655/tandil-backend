@@ -286,4 +286,42 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
         $clearAll->assertStatus(200)
             ->assertJsonPath('success', true);
     }
+
+    public function test_hr_gets_notification_when_technician_completes_visit(): void
+    {
+        $hr = User::factory()->create(['role' => 'hr', 'name' => 'HR Notified']);
+        $this->assignRoleIfAvailable($hr, 'hr');
+
+        $tech = User::factory()->create(['role' => 'technician', 'status' => 'active']);
+        $this->assignRoleIfAvailable($tech, 'technician');
+
+        $supervisor = User::factory()->create(['role' => 'supervisor', 'status' => 'active']);
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+
+        $visit = Visit::factory()->create([
+            'technician_id' => $tech->id,
+            'supervisor_id' => $supervisor->id,
+            'status' => 'in_progress',
+            'scheduled_date' => Carbon::today()->toDateString(),
+        ]);
+
+        $submit = $this->actingAs($tech, 'sanctum')
+            ->postJson('/api/technician/report/' . $visit->id, [
+                'technician_notes' => 'Work completed successfully.',
+            ]);
+
+        $submit->assertStatus(201)->assertJsonPath('success', true);
+
+        $hrList = $this->actingAs($hr, 'sanctum')
+            ->getJson('/api/hr/notifications?per_page=20');
+
+        $hrList->assertStatus(200)->assertJsonPath('success', true);
+        $items = (array) $hrList->json('data.notifications.data');
+        $visitComplete = collect($items)->first(function (array $n) use ($visit, $tech) {
+            return (string) ($n['data']['meta']['type'] ?? '') === 'hr_visit_completed'
+                && (int) ($n['data']['meta']['visit_id'] ?? 0) === $visit->id
+                && (int) ($n['data']['meta']['technician_id'] ?? 0) === $tech->id;
+        });
+        $this->assertNotNull($visitComplete, 'HR must receive visit completion notification when technician submits report.');
+    }
 }

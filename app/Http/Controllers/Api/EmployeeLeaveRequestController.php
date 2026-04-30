@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\AdminNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -137,6 +138,15 @@ class EmployeeLeaveRequestController extends Controller
             $hr->notify(new AdminNotification($title, $message, $meta));
         }
 
+        // Notify area managers responsible for the applicant's team/areas.
+        $areaManagers = $this->resolveAreaManagerRecipientsForApplicant($applicant);
+        if ($areaManagers->isNotEmpty()) {
+            $amMeta = array_merge($meta, ['type' => 'area_manager_team_leave_request']);
+            foreach ($areaManagers as $areaManager) {
+                $areaManager->notify(new AdminNotification($title, $message, $amMeta));
+            }
+        }
+
         $data = [
             'id' => $lr->id,
             'leave_type' => $lr->leave_type,
@@ -201,5 +211,33 @@ class EmployeeLeaveRequestController extends Controller
         ];
 
         return response()->json(['success' => true, 'data' => $types]);
+    }
+
+    private function resolveAreaManagerRecipientsForApplicant(User $applicant)
+    {
+        $areaIds = $applicant->hasRole('supervisor')
+            ? DB::table('area_supervisor')->where('user_id', $applicant->id)->pluck('area_id')->all()
+            : DB::table('area_technician')->where('user_id', $applicant->id)->pluck('area_id')->all();
+
+        if (empty($areaIds)) {
+            return collect();
+        }
+
+        $managerIds = DB::table('area_supervisor')
+            ->whereIn('area_id', $areaIds)
+            ->distinct()
+            ->pluck('user_id')
+            ->all();
+
+        if (empty($managerIds)) {
+            return collect();
+        }
+
+        return User::whereIn('id', $managerIds)
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role) = ?', ['area_manager'])
+                    ->orWhereHas('roles', fn ($r) => $r->whereRaw('LOWER(name) = ?', ['area_manager']));
+            })
+            ->get();
     }
 }
