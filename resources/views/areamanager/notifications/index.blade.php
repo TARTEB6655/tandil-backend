@@ -83,7 +83,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
-                                <div class="flex-1">
+                                <a href="{{ route('areamanager.notifications.show', $notification->id) }}" class="flex-1 block">
                                     <p class="text-xs sm:text-sm mb-1 {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                         {{ $data['message'] ?? class_basename($type) }}
                                     </p>
@@ -91,7 +91,7 @@
                                         <p class="text-xs text-gray-500">Visit ID: #{{ $data['visit_id'] }}</p>
                                     @endif
                                     <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
-                                </div>
+                                </a>
                                 <div class="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                                     <a href="{{ route('areamanager.notifications.show', $notification->id) }}" class="p-1 text-gray-500 hover:text-indigo-600" title="View"
                                         data-title="{{ e($data['title'] ?? class_basename($type)) }}"
@@ -99,9 +99,7 @@
                                         data-time="{{ e($notification->created_at->diffForHumans()) }}">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" /></svg>
                                     </a>
-                                    <form action="{{ route('areamanager.notifications.destroy', $notification->id) }}" method="POST" class="inline">@csrf @method('DELETE')
-                                        <button type="submit" class="p-1 text-gray-500 hover:text-red-600" title="Delete"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" /></svg></button>
-                                    </form>
+                                    <button type="button" class="p-1 text-gray-500 hover:text-red-600 js-delete-notification" data-delete-form="delete-{{ $notification->id }}" title="Delete"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" /></svg></button>
                                 </div>
                             </div>
                         </div>
@@ -112,6 +110,10 @@
                         @endif
                     </div>
                 </div>
+                <form id="delete-{{ $notification->id }}" action="{{ route('areamanager.notifications.destroy', $notification->id) }}" method="POST" class="hidden">
+                    @csrf
+                    @method('DELETE')
+                </form>
             @empty
                 <div class="p-8 sm:p-12 text-center">
                     <svg class="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,6 +140,14 @@
             row.addEventListener('click', function (e) {
                 if (e.target.closest('input, a, form, button, label')) return;
                 window.location.href = row.getAttribute('data-open-url');
+            });
+        });
+        document.querySelectorAll('.js-delete-notification').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const form = document.getElementById(btn.getAttribute('data-delete-form'));
+                if (form && confirm('Delete this notification?')) form.submit();
             });
         });
     </script>
