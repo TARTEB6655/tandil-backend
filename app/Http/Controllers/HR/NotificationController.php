@@ -45,6 +45,19 @@ class NotificationController extends Controller
         return back()->with('success', 'Notification marked as read.');
     }
 
+    public function show(string $id): View|RedirectResponse
+    {
+        $user = Auth::user();
+        $notification = HrNotificationFilter::forUser($user)->find($id);
+        if (! $notification) {
+            return redirect()->route('hr.notifications.index')->with('error', 'Notification not found.');
+        }
+        if ($notification->read_at === null) {
+            $notification->markAsRead();
+        }
+        return view('hr.notifications.show', ['notification' => $notification]);
+    }
+
     public function markAllAsRead(): RedirectResponse
     {
         $user = Auth::user();

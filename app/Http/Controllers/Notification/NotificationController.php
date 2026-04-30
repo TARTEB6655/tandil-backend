@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Notification;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Support\GlobalNotificationFilter;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -15,11 +16,11 @@ class NotificationController extends Controller
     {
         $user = $request->user();
         
-        $notifications = $user->notifications()
+        $notifications = GlobalNotificationFilter::forUser($user)
             ->latest()
             ->paginate(20);
 
-        $unreadCount = $user->unreadNotifications()->count();
+        $unreadCount = GlobalNotificationFilter::unreadForUser($user)->count();
 
         return ApiResponse::success('Notifications retrieved successfully.', [
             'notifications' => $notifications,
@@ -33,7 +34,7 @@ class NotificationController extends Controller
     public function markAsRead(Request $request, $id)
     {
         $user = $request->user();
-        $notification = $user->notifications()->find($id);
+        $notification = GlobalNotificationFilter::forUser($user)->find($id);
 
         if (!$notification) {
             return ApiResponse::error('Notification not found. Make sure you are using the correct notification UUID from GET /api/notifications response.', 404);
@@ -50,7 +51,7 @@ class NotificationController extends Controller
     public function markAllAsRead(Request $request)
     {
         $user = $request->user();
-        $user->unreadNotifications->markAsRead();
+        GlobalNotificationFilter::unreadForUser($user)->update(['read_at' => now()]);
 
         return ApiResponse::success('All notifications marked as read.');
     }
@@ -61,7 +62,7 @@ class NotificationController extends Controller
     public function destroy(Request $request, $id)
     {
         $user = $request->user();
-        $notification = $user->notifications()->find($id);
+        $notification = GlobalNotificationFilter::forUser($user)->find($id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found. Make sure you are using the correct notification UUID from GET /api/notifications response.', 404);
@@ -78,8 +79,9 @@ class NotificationController extends Controller
     public function clearAll(Request $request)
     {
         $user = $request->user();
-        $deleted = $user->notifications()->count();
-        $user->notifications()->delete();
+        $query = GlobalNotificationFilter::forUser($user);
+        $deleted = $query->count();
+        $query->delete();
 
         return ApiResponse::success('All notifications cleared successfully.', [
             'deleted_count' => $deleted,

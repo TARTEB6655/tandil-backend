@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\GlobalNotificationFilter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,7 +22,7 @@ class NotificationController extends Controller
         $user = Auth::user();
         
         // Get all notifications
-        $query = $user->notifications();
+        $query = GlobalNotificationFilter::forUser($user);
         
         // Filter by read/unread
         if ($request->has('filter')) {
@@ -39,8 +40,8 @@ class NotificationController extends Controller
         $notifications = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         
         // Get counts
-        $unreadCount = $user->unreadNotifications()->count();
-        $totalCount = $user->notifications()->count();
+        $unreadCount = GlobalNotificationFilter::unreadForUser($user)->count();
+        $totalCount = GlobalNotificationFilter::forUser($user)->count();
         
         return view('admin.notifications.index', compact('notifications', 'unreadCount', 'totalCount'));
     }
@@ -51,7 +52,7 @@ class NotificationController extends Controller
     public function markAsRead($id)
     {
         $user = Auth::user();
-        $notification = $user->notifications()->find($id);
+        $notification = GlobalNotificationFilter::forUser($user)->find($id);
         
         if ($notification) {
             $notification->markAsRead();
@@ -61,6 +62,19 @@ class NotificationController extends Controller
         return response()->json(['success' => false, 'message' => 'Notification not found'], 404);
     }
 
+    public function show(string $id)
+    {
+        $user = Auth::user();
+        $notification = GlobalNotificationFilter::forUser($user)->find($id);
+        if (! $notification) {
+            return redirect()->route('admin.notifications.index')->with('error', 'Notification not found.');
+        }
+        if ($notification->read_at === null) {
+            $notification->markAsRead();
+        }
+        return view('admin.notifications.show', ['notification' => $notification]);
+    }
+
     /**
      * Mark notification as read and redirect to its target URL (e.g. support ticket or notifications list).
      * Used when user clicks a notification so it is marked read automatically and they are taken to the right page.
@@ -68,7 +82,7 @@ class NotificationController extends Controller
     public function readAndRedirect($id)
     {
         $user = Auth::user();
-        $notification = $user->notifications()->find($id);
+        $notification = GlobalNotificationFilter::forUser($user)->find($id);
         if (! $notification) {
             return redirect()->route('admin.notifications.index')->with('error', 'Notification not found.');
         }
@@ -88,7 +102,7 @@ class NotificationController extends Controller
     public function markAllAsRead()
     {
         $user = Auth::user();
-        $user->unreadNotifications->markAsRead();
+        GlobalNotificationFilter::unreadForUser($user)->update(['read_at' => now()]);
         
         return redirect()->back()->with('success', 'All notifications marked as read');
     }
@@ -99,7 +113,7 @@ class NotificationController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $notification = $user->notifications()->find($id);
+        $notification = GlobalNotificationFilter::forUser($user)->find($id);
         
         if ($notification) {
             $notification->delete();
@@ -116,7 +130,7 @@ class NotificationController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'ids.*' => 'uuid']);
         $user = Auth::user();
-        $deleted = $user->notifications()->whereIn('id', $request->ids)->delete();
+        $deleted = GlobalNotificationFilter::forUser($user)->whereIn('id', $request->ids)->delete();
         return redirect()->back()->with('success', $deleted . ' notification(s) deleted.');
     }
 
@@ -126,8 +140,9 @@ class NotificationController extends Controller
     public function destroyAll()
     {
         $user = Auth::user();
-        $count = $user->notifications()->count();
-        $user->notifications()->delete();
+        $query = GlobalNotificationFilter::forUser($user);
+        $count = $query->count();
+        $query->delete();
         return redirect()->back()->with('success', $count . ' notification(s) deleted.');
     }
 
@@ -137,7 +152,7 @@ class NotificationController extends Controller
     public function getUnreadCount()
     {
         $user = Auth::user();
-        $count = $user->unreadNotifications()->count();
+        $count = GlobalNotificationFilter::unreadForUser($user)->count();
         
         return response()->json(['count' => $count]);
     }

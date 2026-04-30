@@ -1,9 +1,9 @@
 @php
     $user = auth()->user();
     $searchValue = request()->get('search', '');
-    $unreadCount = $user->unreadNotifications()->count();
+    $unreadCount = \App\Support\GlobalNotificationFilter::unreadForUser($user)->count();
     // Recent notifications (read + unread): unread stand out with bold; clicking one marks it read and goes to target
-    $recentNotifications = $user->notifications()->latest()->take(8)->get();
+    $recentNotifications = \App\Support\GlobalNotificationFilter::forUser($user)->latest()->take(8)->get();
     $headerProfilePic = $user->profile_picture_url ?? null;
     $headerInitial = $user->name ? mb_substr(trim($user->name), 0, 1) : 'A';
 @endphp

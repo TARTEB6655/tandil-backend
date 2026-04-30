@@ -65,10 +65,8 @@
                     $message = $data['message'] ?? class_basename($notification->type ?? '');
                     $isRead = !is_null($notification->read_at);
                 @endphp
-                <div class="notification-row group p-3 sm:p-4 hover:bg-gray-50 transition-colors {{ !$isRead ? 'bg-blue-50/50 cursor-pointer' : '' }}"
-                     @if(!$isRead)
-                         data-mark-read-form="mark-read-{{ $notification->id }}"
-                     @endif>
+                <div class="notification-row group p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer {{ !$isRead ? 'bg-blue-50/50' : '' }}"
+                     data-open-url="{{ route('client.notifications.show', $notification->id) }}">
                     <div class="flex items-start gap-3 sm:gap-4">
                         <div class="flex-shrink-0 pt-0.5">
                             <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
@@ -80,29 +78,21 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="flex-1 min-w-0">
+                        <a href="{{ route('client.notifications.show', $notification->id) }}" class="flex-1 min-w-0 block">
                             @if($title)<p class="text-xs sm:text-sm mb-0.5 {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">{{ $title }}</p>@endif
                             <p class="text-xs sm:text-sm {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">{{ \Illuminate\Support\Str::limit($message, 200) }}</p>
                             <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
-                        </div>
+                        </a>
                         <div class="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                            <button type="button" class="p-1 text-gray-500 hover:text-indigo-600 js-view-notification" title="View"
-                                data-title="{{ e($title) }}"
-                                data-message="{{ e($message) }}"
-                                data-time="{{ e($notification->created_at->diffForHumans()) }}">
+                            <a href="{{ route('client.notifications.show', $notification->id) }}" class="p-1 text-gray-500 hover:text-indigo-600" title="View">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" /></svg>
-                            </button>
+                            </a>
                             <form action="{{ route('client.notifications.destroy', $notification->id) }}" method="POST" class="inline">@csrf @method('DELETE')
                                 <button type="submit" class="p-1 text-gray-500 hover:text-red-600" title="Delete"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" /></svg></button>
                             </form>
                         </div>
                     </div>
                 </div>
-                @if(!$isRead)
-                    <form id="mark-read-{{ $notification->id }}" action="{{ route('client.notifications.mark-read', $notification->id) }}" method="POST" class="hidden">
-                        @csrf
-                    </form>
-                @endif
             @empty
                 <div class="p-8 sm:p-12 text-center">
                     <p class="text-sm text-gray-500">No notifications yet. Tips and messages from admin will appear here.</p>
@@ -114,37 +104,14 @@
         @endif
     </div>
     </form>
-    <div id="notification-detail" class="mt-4 hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div class="mb-1 text-sm font-semibold text-gray-900" id="notification-detail-title">Notification</div>
-        <div class="mb-2 text-xs text-gray-500" id="notification-detail-time"></div>
-        <div class="text-sm text-gray-700" id="notification-detail-message"></div>
-    </div>
     <script>
         document.getElementById('select-all-notifications')?.addEventListener('change', function() {
             document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
         });
-        document.querySelectorAll('.notification-row[data-mark-read-form]').forEach(function(row) {
+        document.querySelectorAll('.notification-row[data-open-url]').forEach(function(row) {
             row.addEventListener('click', function (e) {
-                if (e.target.closest('input, a, form, label')) return;
-                const viewBtn = e.target.closest('.js-view-notification');
-                if (viewBtn) {
-                    document.getElementById('notification-detail-title').textContent = viewBtn.dataset.title || 'Notification';
-                    document.getElementById('notification-detail-message').textContent = viewBtn.dataset.message || '';
-                    document.getElementById('notification-detail-time').textContent = viewBtn.dataset.time || '';
-                    document.getElementById('notification-detail').classList.remove('hidden');
-                }
-                const formId = row.getAttribute('data-mark-read-form');
-                const form = formId ? document.getElementById(formId) : null;
-                if (form) fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => {});
-            });
-        });
-        document.querySelectorAll('.js-view-notification').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault(); e.stopPropagation();
-                document.getElementById('notification-detail-title').textContent = btn.dataset.title || 'Notification';
-                document.getElementById('notification-detail-message').textContent = btn.dataset.message || '';
-                document.getElementById('notification-detail-time').textContent = btn.dataset.time || '';
-                document.getElementById('notification-detail').classList.remove('hidden');
+                if (e.target.closest('input, button, form, label, a')) return;
+                window.location.href = row.getAttribute('data-open-url');
             });
         });
     </script>

@@ -67,7 +67,7 @@
                                 </svg>
                                 <span>{{ __('admin.notifications') }}</span>
                                 @php
-                                    $unreadCount = auth()->user()->unreadNotifications()->count();
+                                    $unreadCount = \App\Support\GlobalNotificationFilter::unreadForUser(auth()->user())->count();
                                 @endphp
                                 @if($unreadCount > 0)
                                     <span class="ml-auto px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">{{ $unreadCount }}</span>

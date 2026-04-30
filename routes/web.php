@@ -251,6 +251,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
         Route::post('notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
+        Route::get('notifications/{id}', [NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
         Route::get('notifications/{id}/read-and-redirect', [NotificationController::class, 'readAndRedirect'])->name('notifications.read-and-redirect');
         Route::post('notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
@@ -324,6 +325,7 @@ Route::middleware(['auth', 'role:supervisor'])
         
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Supervisor\NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/{id}', [\App\Http\Controllers\Supervisor\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Supervisor\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('/notifications/{id}', [\App\Http\Controllers\Supervisor\NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -369,6 +371,7 @@ Route::middleware(['auth', 'role:technician'])
         
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Technician\NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/{id}', [\App\Http\Controllers\Technician\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Technician\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('/notifications/{id}', [\App\Http\Controllers\Technician\NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -436,6 +439,7 @@ Route::middleware(['auth', 'role:client'])
 
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/{id}', [\App\Http\Controllers\Client\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Client\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('/notifications/{id}', [\App\Http\Controllers\Client\NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -528,6 +532,7 @@ Route::middleware(['auth', 'role:hr'])
         
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\HR\NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/{id}', [\App\Http\Controllers\HR\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
         Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
         Route::post('/notifications/mark-all-read', [\App\Http\Controllers\HR\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('/notifications/{id}', [\App\Http\Controllers\HR\NotificationController::class, 'destroy'])->name('notifications.destroy');

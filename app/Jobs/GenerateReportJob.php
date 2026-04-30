@@ -8,7 +8,6 @@ use App\Models\Report as VisitReport;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Visit;
-use App\Notifications\ReportGeneratedNotification;
 use App\Services\HrTechnicianMonthlyReportService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -78,9 +77,7 @@ class GenerateReportJob implements ShouldQueue
                 'failure_reason' => null,
             ]);
 
-            if ($report->creator) {
-            $report->creator->notify(new ReportGeneratedNotification($report));
-            }
+        // Report generation notifications are intentionally disabled for dashboard feeds.
         } catch (\Throwable $e) {
             Log::error('Report generation failed: ' . $e->getMessage(), [
                 'report_id' => $report->id,
