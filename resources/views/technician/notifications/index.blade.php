@@ -1,4 +1,7 @@
 <x-technician-layout>
+    @php
+        $activeFilter = request('filter', 'all');
+    @endphp
     <!-- Page Header -->
     <div class="mb-4 sm:mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -28,6 +31,18 @@
         </div>
     @endif
 
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+            <a href="{{ route('technician.notifications.index', ['filter' => 'all', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">All</a>
+            <a href="{{ route('technician.notifications.index', ['filter' => 'unread', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'unread' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">Unread</a>
+            <a href="{{ route('technician.notifications.index', ['filter' => 'read', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'read' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">Read</a>
+        </div>
+        <form method="GET" action="{{ route('technician.notifications.index') }}" class="flex items-center gap-2">
+            <input type="hidden" name="filter" value="{{ $activeFilter }}" />
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="Search notifications" class="w-56 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none" />
+            <button type="submit" class="rounded-lg bg-gray-900 px-3 py-1.5 text-xs text-white">Search</button>
+        </form>
+    </div>
     <div class="flex flex-wrap items-center gap-2 mb-4">
         <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
             <input type="checkbox" id="select-all-notifications" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
@@ -50,7 +65,7 @@
                     $type = $notification->type ?? '';
                     $isRead = !is_null($notification->read_at);
                 @endphp
-                <div class="notification-row p-3 sm:p-4 hover:bg-gray-50 transition-colors {{ !$isRead ? 'bg-blue-50 cursor-pointer' : '' }}"
+                <div class="notification-row group p-3 sm:p-4 hover:bg-gray-50 transition-colors {{ !$isRead ? 'bg-blue-50 cursor-pointer' : '' }}"
                      @if(!$isRead)
                          data-mark-read-form="mark-read-{{ $notification->id }}"
                      @endif>
@@ -76,14 +91,17 @@
                                     @endif
                                     <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                                 </div>
-                                @if(!$isRead)
-                                    <form action="{{ route('technician.notifications.mark-read', $notification->id) }}" method="POST" class="inline js-mark-read-action">
-                                        @csrf
-                                        <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-900 whitespace-nowrap">
-                                            Mark as read
-                                        </button>
+                                <div class="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                                    <button type="button" class="p-1 text-gray-500 hover:text-indigo-600 js-view-notification" title="View"
+                                        data-title="{{ e($data['title'] ?? class_basename($type)) }}"
+                                        data-message="{{ e($data['message'] ?? class_basename($type)) }}"
+                                        data-time="{{ e($notification->created_at->diffForHumans()) }}">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" /></svg>
+                                    </button>
+                                    <form action="{{ route('technician.notifications.destroy', $notification->id) }}" method="POST" class="inline">@csrf @method('DELETE')
+                                        <button type="submit" class="p-1 text-gray-500 hover:text-red-600" title="Delete"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" /></svg></button>
                                     </form>
-                                @endif
+                                </div>
                             </div>
                         </div>
                         @if(!$isRead)
@@ -116,16 +134,37 @@
         @endif
     </div>
     </form>
+    <div id="notification-detail" class="mt-4 hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div class="mb-1 text-sm font-semibold text-gray-900" id="notification-detail-title">Notification</div>
+        <div class="mb-2 text-xs text-gray-500" id="notification-detail-time"></div>
+        <div class="text-sm text-gray-700" id="notification-detail-message"></div>
+    </div>
     <script>
         document.getElementById('select-all-notifications')?.addEventListener('change', function() {
             document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
         });
         document.querySelectorAll('.notification-row[data-mark-read-form]').forEach(function(row) {
             row.addEventListener('click', function (e) {
-                if (e.target.closest('input, button, a, form, label')) return;
+                if (e.target.closest('input, a, form, label')) return;
+                const viewBtn = e.target.closest('.js-view-notification');
+                if (viewBtn) {
+                    document.getElementById('notification-detail-title').textContent = viewBtn.dataset.title || 'Notification';
+                    document.getElementById('notification-detail-message').textContent = viewBtn.dataset.message || '';
+                    document.getElementById('notification-detail-time').textContent = viewBtn.dataset.time || '';
+                    document.getElementById('notification-detail').classList.remove('hidden');
+                }
                 const formId = row.getAttribute('data-mark-read-form');
                 const form = formId ? document.getElementById(formId) : null;
-                if (form) form.submit();
+                if (form) fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => {});
+            });
+        });
+        document.querySelectorAll('.js-view-notification').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault(); e.stopPropagation();
+                document.getElementById('notification-detail-title').textContent = btn.dataset.title || 'Notification';
+                document.getElementById('notification-detail-message').textContent = btn.dataset.message || '';
+                document.getElementById('notification-detail-time').textContent = btn.dataset.time || '';
+                document.getElementById('notification-detail').classList.remove('hidden');
             });
         });
     </script>

@@ -32,7 +32,11 @@ class NotificationController extends Controller
             }
         }
         
-        $notifications = $query->orderBy('created_at', 'desc')->paginate(20);
+        if ($request->filled('q')) {
+            $query->where('data', 'like', '%' . $request->get('q') . '%');
+        }
+
+        $notifications = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         
         // Get counts
         $unreadCount = $user->unreadNotifications()->count();

@@ -15,12 +15,22 @@ class NotificationController extends Controller
         $this->middleware(['auth', 'role:technician']);
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
-        $notifications = $user->notifications()
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $query = $user->notifications();
+
+        if ($request->get('filter') === 'unread') {
+            $query->whereNull('read_at');
+        } elseif ($request->get('filter') === 'read') {
+            $query->whereNotNull('read_at');
+        }
+
+        if ($request->filled('q')) {
+            $query->where('data', 'like', '%' . $request->get('q') . '%');
+        }
+
+        $notifications = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         $unreadCount = $user->unreadNotifications()->count();
 
         return view('technician.notifications.index', compact('notifications', 'unreadCount'));

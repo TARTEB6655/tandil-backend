@@ -16,10 +16,22 @@ class NotificationController extends Controller
         $this->middleware(['auth', 'role:hr']);
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
-        $notifications = HrNotificationFilter::forUser($user)->orderBy('created_at', 'desc')->paginate(20);
+        $query = HrNotificationFilter::forUser($user);
+
+        if ($request->get('filter') === 'unread') {
+            $query->whereNull('read_at');
+        } elseif ($request->get('filter') === 'read') {
+            $query->whereNotNull('read_at');
+        }
+
+        if ($request->filled('q')) {
+            $query->where('data', 'like', '%' . $request->get('q') . '%');
+        }
+
+        $notifications = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         $unreadCount = HrNotificationFilter::unreadForUser($user)->count();
 
         return view('hr.notifications.index', compact('notifications', 'unreadCount'));

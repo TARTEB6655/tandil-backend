@@ -90,5 +90,34 @@ class AreaManagerNotificationsApiTest extends TestCase
         $clearAll->assertStatus(200)
             ->assertJsonPath('success', true);
     }
+
+    public function test_area_manager_notifications_excludes_report_generated_type(): void
+    {
+        DatabaseNotification::create([
+            'id' => (string) Str::uuid(),
+            'type' => 'App\\Notifications\\ReportGeneratedNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->areaManager->id,
+            'data' => ['type' => 'report_generated', 'title' => 'Generated report'],
+            'read_at' => null,
+        ]);
+
+        DatabaseNotification::create([
+            'id' => (string) Str::uuid(),
+            'type' => 'App\\Notifications\\AdminNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->areaManager->id,
+            'data' => ['type' => 'admin_notification', 'message' => 'Team leave submitted.'],
+            'read_at' => null,
+        ]);
+
+        $list = $this->actingAs($this->areaManager, 'sanctum')
+            ->getJson('/api/area-manager/notifications?per_page=20');
+
+        $list->assertStatus(200)->assertJsonPath('success', true);
+        $items = (array) $list->json('data.notifications.data');
+        $this->assertCount(1, $items);
+        $this->assertSame('App\\Notifications\\AdminNotification', (string) ($items[0]['type'] ?? ''));
+    }
 }
 

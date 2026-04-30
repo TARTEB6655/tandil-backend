@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Support\AreaManagerNotificationFilter;
 use Illuminate\Http\Request;
 
 class AreaManagerNotificationsApiController extends Controller
@@ -14,11 +15,11 @@ class AreaManagerNotificationsApiController extends Controller
         $perPage = (int) $request->get('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
 
-        $notifications = $user->notifications()
+        $notifications = AreaManagerNotificationFilter::forUser($user)
             ->latest()
             ->paginate($perPage);
 
-        $unreadCount = $user->unreadNotifications()->count();
+        $unreadCount = AreaManagerNotificationFilter::unreadForUser($user)->count();
 
         return ApiResponse::success('Area manager notifications retrieved successfully.', [
             'notifications' => $notifications,
@@ -29,7 +30,7 @@ class AreaManagerNotificationsApiController extends Controller
     public function markAsRead(Request $request, string $id)
     {
         $user = $request->user();
-        $notification = $user->notifications()->find($id);
+        $notification = AreaManagerNotificationFilter::forUser($user)->find($id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -43,7 +44,7 @@ class AreaManagerNotificationsApiController extends Controller
     public function markAllAsRead(Request $request)
     {
         $user = $request->user();
-        $user->unreadNotifications->markAsRead();
+        AreaManagerNotificationFilter::unreadForUser($user)->update(['read_at' => now()]);
 
         return ApiResponse::success('All notifications marked as read.');
     }
@@ -51,7 +52,7 @@ class AreaManagerNotificationsApiController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
-        $notification = $user->notifications()->find($id);
+        $notification = AreaManagerNotificationFilter::forUser($user)->find($id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -65,8 +66,9 @@ class AreaManagerNotificationsApiController extends Controller
     public function clearAll(Request $request)
     {
         $user = $request->user();
-        $deleted = $user->notifications()->count();
-        $user->notifications()->delete();
+        $query = AreaManagerNotificationFilter::forUser($user);
+        $deleted = $query->count();
+        $query->delete();
 
         return ApiResponse::success('All notifications cleared successfully.', [
             'deleted_count' => $deleted,
