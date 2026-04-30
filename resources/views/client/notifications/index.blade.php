@@ -49,7 +49,10 @@
                     $message = $data['message'] ?? class_basename($notification->type ?? '');
                     $isRead = !is_null($notification->read_at);
                 @endphp
-                <div class="p-3 sm:p-4 hover:bg-gray-50 transition-colors {{ !$isRead ? 'bg-blue-50/50' : '' }}">
+                <div class="notification-row p-3 sm:p-4 hover:bg-gray-50 transition-colors {{ !$isRead ? 'bg-blue-50/50 cursor-pointer' : '' }}"
+                     @if(!$isRead)
+                         data-mark-read-form="mark-read-{{ $notification->id }}"
+                     @endif>
                     <div class="flex items-start gap-3 sm:gap-4">
                         <div class="flex-shrink-0 pt-0.5">
                             <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
@@ -62,8 +65,8 @@
                             </div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            @if($title)<p class="text-xs sm:text-sm font-medium text-gray-900 mb-0.5">{{ $title }}</p>@endif
-                            <p class="text-xs sm:text-sm text-gray-700">{{ \Illuminate\Support\Str::limit($message, 200) }}</p>
+                            @if($title)<p class="text-xs sm:text-sm mb-0.5 {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">{{ $title }}</p>@endif
+                            <p class="text-xs sm:text-sm {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">{{ \Illuminate\Support\Str::limit($message, 200) }}</p>
                             <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                         </div>
                         @if(!$isRead)
@@ -74,6 +77,11 @@
                         @endif
                     </div>
                 </div>
+                @if(!$isRead)
+                    <form id="mark-read-{{ $notification->id }}" action="{{ route('client.notifications.mark-read', $notification->id) }}" method="POST" class="hidden">
+                        @csrf
+                    </form>
+                @endif
             @empty
                 <div class="p-8 sm:p-12 text-center">
                     <p class="text-sm text-gray-500">No notifications yet. Tips and messages from admin will appear here.</p>
@@ -85,5 +93,17 @@
         @endif
     </div>
     </form>
-    <script>document.getElementById('select-all-notifications')?.addEventListener('change', function() { document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this); });</script>
+    <script>
+        document.getElementById('select-all-notifications')?.addEventListener('change', function() {
+            document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+        });
+        document.querySelectorAll('.notification-row[data-mark-read-form]').forEach(function(row) {
+            row.addEventListener('click', function (e) {
+                if (e.target.closest('input, button, a, form, label')) return;
+                const formId = row.getAttribute('data-mark-read-form');
+                const form = formId ? document.getElementById(formId) : null;
+                if (form) form.submit();
+            });
+        });
+    </script>
 </x-client-layout>

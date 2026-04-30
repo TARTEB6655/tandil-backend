@@ -116,7 +116,10 @@
                 @php
                     $isUnread = is_null($notification->read_at);
                 @endphp
-                <div class="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150 {{ $isUnread ? 'bg-blue-50/30' : '' }}">
+                <div class="notification-row border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150 {{ $isUnread ? 'bg-blue-50/30 cursor-pointer' : '' }}"
+                     @if($isUnread)
+                         data-read-url="{{ route('admin.notifications.read-and-redirect', $notification->id) }}"
+                     @endif>
                     <div class="px-5 py-4">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0 pt-1">
@@ -179,7 +182,7 @@
                             <!-- Notification Content: click opens target and marks as read -->
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-start justify-between gap-3">
-                                    <a href="{{ route('admin.notifications.read-and-redirect', $notification->id) }}" class="flex-1 min-w-0 group block">
+                                    <a href="{{ route('admin.notifications.read-and-redirect', $notification->id) }}" class="flex-1 min-w-0 group block js-open-notification">
                                         <p class="text-sm mb-1 {{ $isUnread ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                             {{ $data['message'] ?? class_basename($type) }}
                                         </p>
@@ -227,6 +230,15 @@
         <script>
             document.getElementById('select-all-notifications')?.addEventListener('change', function() {
                 document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+            });
+            document.querySelectorAll('.notification-row[data-read-url]').forEach(function(row) {
+                row.addEventListener('click', function (e) {
+                    if (e.target.closest('input, button, form, label')) return;
+                    const link = row.querySelector('.js-open-notification');
+                    if (link) {
+                        window.location.href = link.getAttribute('href');
+                    }
+                });
             });
         </script>
 
