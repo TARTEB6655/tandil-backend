@@ -248,10 +248,15 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
     {
         $notification = DatabaseNotification::create([
             'id' => (string) \Illuminate\Support\Str::uuid(),
-            'type' => 'App\\Notifications\\SystemNotification',
+            'type' => 'App\\Notifications\\AdminNotification',
             'notifiable_type' => User::class,
             'notifiable_id' => $this->adminHr->id,
-            'data' => ['title' => 'HR Alert', 'message' => 'New leave request pending.'],
+            'data' => [
+                'title' => 'HR Alert',
+                'message' => 'New leave request pending.',
+                'type' => 'admin_notification',
+                'meta' => ['type' => 'hr_leave_request'],
+            ],
             'read_at' => null,
         ]);
 
@@ -270,10 +275,15 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
 
         DatabaseNotification::create([
             'id' => (string) \Illuminate\Support\Str::uuid(),
-            'type' => 'App\\Notifications\\SystemNotification',
+            'type' => 'App\\Notifications\\AdminNotification',
             'notifiable_type' => User::class,
             'notifiable_id' => $this->adminHr->id,
-            'data' => ['title' => 'HR Alert 2', 'message' => 'Another notification.'],
+            'data' => [
+                'title' => 'HR Alert 2',
+                'message' => 'Another notification.',
+                'type' => 'admin_notification',
+                'meta' => ['type' => 'hr_visit_completed'],
+            ],
             'read_at' => null,
         ]);
 
@@ -323,5 +333,43 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
                 && (int) ($n['data']['meta']['technician_id'] ?? 0) === $tech->id;
         });
         $this->assertNotNull($visitComplete, 'HR must receive visit completion notification when technician submits report.');
+    }
+
+    public function test_hr_notifications_api_excludes_non_hr_notification_types(): void
+    {
+        DatabaseNotification::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => 'App\\Notifications\\ReportGeneratedNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->adminHr->id,
+            'data' => [
+                'type' => 'report_generated',
+                'title' => 'Generated report',
+                'report_id' => 1,
+            ],
+            'read_at' => null,
+        ]);
+
+        DatabaseNotification::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => 'App\\Notifications\\AdminNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->adminHr->id,
+            'data' => [
+                'title' => 'Visit completed',
+                'message' => 'Visit #99 completed.',
+                'type' => 'admin_notification',
+                'meta' => ['type' => 'hr_visit_completed', 'visit_id' => 99],
+            ],
+            'read_at' => null,
+        ]);
+
+        $res = $this->actingAs($this->adminHr, 'sanctum')
+            ->getJson('/api/hr/notifications?per_page=20');
+
+        $res->assertStatus(200)->assertJsonPath('success', true);
+        $items = (array) $res->json('data.notifications.data');
+        $this->assertCount(1, $items);
+        $this->assertSame('hr_visit_completed', (string) ($items[0]['data']['meta']['type'] ?? ''));
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Support\HrNotificationFilter;
 use Illuminate\Http\Request;
 
 class HrNotificationsApiController extends Controller
@@ -14,11 +15,11 @@ class HrNotificationsApiController extends Controller
         $perPage = (int) $request->get('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
 
-        $notifications = $user->notifications()
+        $notifications = HrNotificationFilter::forUser($user)
             ->latest()
             ->paginate($perPage);
 
-        $unreadCount = $user->unreadNotifications()->count();
+        $unreadCount = HrNotificationFilter::unreadForUser($user)->count();
 
         return ApiResponse::success('HR notifications retrieved successfully.', [
             'notifications' => $notifications,
@@ -29,7 +30,7 @@ class HrNotificationsApiController extends Controller
     public function markAsRead(Request $request, string $id)
     {
         $user = $request->user();
-        $notification = $user->notifications()->find($id);
+        $notification = HrNotificationFilter::forUser($user)->find($id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -43,7 +44,7 @@ class HrNotificationsApiController extends Controller
     public function markAllAsRead(Request $request)
     {
         $user = $request->user();
-        $user->unreadNotifications->markAsRead();
+        HrNotificationFilter::unreadForUser($user)->update(['read_at' => now()]);
 
         return ApiResponse::success('All notifications marked as read.');
     }
@@ -51,7 +52,7 @@ class HrNotificationsApiController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
-        $notification = $user->notifications()->find($id);
+        $notification = HrNotificationFilter::forUser($user)->find($id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -65,8 +66,9 @@ class HrNotificationsApiController extends Controller
     public function clearAll(Request $request)
     {
         $user = $request->user();
-        $deleted = $user->notifications()->count();
-        $user->notifications()->delete();
+        $query = HrNotificationFilter::forUser($user);
+        $deleted = $query->count();
+        $query->delete();
 
         return ApiResponse::success('All notifications cleared successfully.', [
             'deleted_count' => $deleted,

@@ -1,5 +1,5 @@
 @php
-    $unreadCount = auth()->user()->unreadNotifications()->count();
+    $unreadCount = \App\Support\HrNotificationFilter::unreadForUser(auth()->user())->count();
 @endphp
 <x-hr-layout>
     <!-- Page Header -->

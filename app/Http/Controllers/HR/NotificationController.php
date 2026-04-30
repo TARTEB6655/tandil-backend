@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
+use App\Support\HrNotificationFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,8 +19,8 @@ class NotificationController extends Controller
     public function index(): View
     {
         $user = Auth::user();
-        $notifications = $user->notifications()->orderBy('created_at', 'desc')->paginate(20);
-        $unreadCount = $user->unreadNotifications()->count();
+        $notifications = HrNotificationFilter::forUser($user)->orderBy('created_at', 'desc')->paginate(20);
+        $unreadCount = HrNotificationFilter::unreadForUser($user)->count();
 
         return view('hr.notifications.index', compact('notifications', 'unreadCount'));
     }
@@ -27,7 +28,7 @@ class NotificationController extends Controller
     public function markAsRead($id): RedirectResponse
     {
         $user = Auth::user();
-        $notification = $user->notifications()->findOrFail($id);
+        $notification = HrNotificationFilter::forUser($user)->findOrFail($id);
         $notification->markAsRead();
         return back()->with('success', 'Notification marked as read.');
     }
@@ -35,14 +36,14 @@ class NotificationController extends Controller
     public function markAllAsRead(): RedirectResponse
     {
         $user = Auth::user();
-        $user->unreadNotifications->markAsRead();
+        HrNotificationFilter::unreadForUser($user)->update(['read_at' => now()]);
         return back()->with('success', 'All notifications marked as read.');
     }
 
     public function destroy($id): RedirectResponse
     {
         $user = Auth::user();
-        $notification = $user->notifications()->find($id);
+        $notification = HrNotificationFilter::forUser($user)->find($id);
         if ($notification) {
             $notification->delete();
             return back()->with('success', 'Notification deleted.');
@@ -54,15 +55,16 @@ class NotificationController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'ids.*' => 'uuid']);
         $user = Auth::user();
-        $deleted = $user->notifications()->whereIn('id', $request->ids)->delete();
+        $deleted = HrNotificationFilter::forUser($user)->whereIn('id', $request->ids)->delete();
         return back()->with('success', $deleted . ' notification(s) deleted.');
     }
 
     public function destroyAll(): RedirectResponse
     {
         $user = Auth::user();
-        $count = $user->notifications()->count();
-        $user->notifications()->delete();
+        $query = HrNotificationFilter::forUser($user);
+        $count = $query->count();
+        $query->delete();
         return back()->with('success', $count . ' notification(s) deleted.');
     }
 }

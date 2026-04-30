@@ -1,8 +1,8 @@
 @php
     $user = auth()->user();
     $searchValue = request()->get('search', '');
-    $unreadNotifications = $user->unreadNotifications()->latest()->take(5)->get();
-    $unreadCount = $user->unreadNotifications()->count();
+    $unreadNotifications = \App\Support\HrNotificationFilter::unreadForUser($user)->latest()->take(5)->get();
+    $unreadCount = \App\Support\HrNotificationFilter::unreadForUser($user)->count();
     $headerProfilePic = $user->profile_picture_url ?? null;
     $headerInitial = $user->name ? mb_substr(trim($user->name), 0, 1) : 'H';
 @endphp
