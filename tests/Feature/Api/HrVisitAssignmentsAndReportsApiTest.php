@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Visit;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
@@ -241,5 +242,48 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
 
         $res->assertStatus(200)->assertJsonPath('success', true);
         $this->assertDatabaseMissing('admin_reports', ['id' => $report->id]);
+    }
+
+    public function test_hr_notifications_dedicated_routes_smoke(): void
+    {
+        $notification = DatabaseNotification::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => 'App\\Notifications\\SystemNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->adminHr->id,
+            'data' => ['title' => 'HR Alert', 'message' => 'New leave request pending.'],
+            'read_at' => null,
+        ]);
+
+        $list = $this->actingAs($this->adminHr, 'sanctum')
+            ->getJson('/api/hr/notifications?per_page=20');
+        $list->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.unread_count', 1);
+
+        $markOne = $this->actingAs($this->adminHr, 'sanctum')
+            ->postJson('/api/hr/notifications/' . $notification->id . '/mark-read');
+        $markOne->assertStatus(200)->assertJsonPath('success', true);
+
+        $notification->refresh();
+        $this->assertNotNull($notification->read_at);
+
+        DatabaseNotification::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => 'App\\Notifications\\SystemNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->adminHr->id,
+            'data' => ['title' => 'HR Alert 2', 'message' => 'Another notification.'],
+            'read_at' => null,
+        ]);
+
+        $markAll = $this->actingAs($this->adminHr, 'sanctum')
+            ->postJson('/api/hr/notifications/mark-all-read');
+        $markAll->assertStatus(200)->assertJsonPath('success', true);
+
+        $clearAll = $this->actingAs($this->adminHr, 'sanctum')
+            ->postJson('/api/hr/notifications/clear-all');
+        $clearAll->assertStatus(200)
+            ->assertJsonPath('success', true);
     }
 }

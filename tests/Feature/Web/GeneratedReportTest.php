@@ -49,8 +49,8 @@ class GeneratedReportTest extends TestCase
     {
         $response = $this->actingAs($this->areaManager)->get(route('areamanager.generated-reports.index'));
         $response->assertStatus(200);
-        $response->assertSee('Generate PDF Reports', false);
-        $response->assertSee('Generated reports', false);
+        $response->assertSee('Generate Reports');
+        $response->assertSee('Generated reports');
     }
 
     public function test_store_creates_report_and_generates_file_sync(): void

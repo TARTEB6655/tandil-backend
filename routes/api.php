@@ -476,6 +476,11 @@ Route::middleware(['auth:sanctum', 'role:hr|admin'])->prefix('hr')->group(functi
     Route::post('/support/tickets', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
     Route::get('/support/tickets/{id}', [\App\Http\Controllers\Api\SupportController::class, 'showMyTicket']);
     Route::post('/support/tickets/{id}/reply', [\App\Http\Controllers\Api\SupportController::class, 'replyToMyTicket']);
+    Route::get('/notifications', [\App\Http\Controllers\Api\HrNotificationsApiController::class, 'index']);
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\HrNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\HrNotificationsApiController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\HrNotificationsApiController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\HrNotificationsApiController::class, 'clearAll']);
     Route::get('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'updateProfile']);
     Route::post('/profile', [\App\Http\Controllers\Api\HrApiController::class, 'updateProfile']);
