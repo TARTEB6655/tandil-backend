@@ -212,11 +212,15 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'availability']);
     Route::put('/availability', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'updateAvailability']);
     Route::get('/schedule', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'schedule']);
-    // Notifications (sent by admin – title, message)
-    Route::get('/notifications', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'getNotifications']);
-    Route::post('/notifications/{id}/read', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markNotificationRead']);
-    Route::post('/notifications/read-all', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'markAllNotificationsRead']);
-    Route::post('/notifications/clear-all', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'clearAllNotifications']);
+    // Dedicated notifications API (technician)
+    Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
+    // Legacy aliases kept for backward compatibility
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
     // Field notes: GET list (by supervisor_id); POST submit report
     Route::get('/field-notes', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'fieldNotesIndex']);
     Route::post('/reports', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'submitReport']);
@@ -297,6 +301,11 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::post('/visits/{id}/recommend', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'recommendProducts']);
     Route::post('/visits/{id}/finalize', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'finalizeReport']);
     Route::post('/visits/{id}/status', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'updateVisitStatus']);
+    Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
     Route::get('/areas', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listAreas']);
     Route::get('/complaints', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'listComplaints']);
     Route::post('/complaints/{id}/escalate', [\App\Http\Controllers\Supervisor\SupervisorController::class, 'escalateComplaint']);
@@ -430,6 +439,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/support/tickets/{id}', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'show']);
     Route::post('/support/tickets/{id}/reply', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'reply']);
     Route::put('/support/tickets/{id}/status', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'updateStatus']);
+    Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
 });
 
 /*
@@ -631,6 +645,11 @@ Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(func
     Route::get('/settings/dashboard', [\App\Http\Controllers\Api\ClientSettingsController::class, 'dashboard']);
     Route::get('/settings/sections', [\App\Http\Controllers\Api\ClientSettingsController::class, 'sections']);
     Route::get('/memberships', [\App\Http\Controllers\Api\ClientSettingsController::class, 'memberships']);
+    Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
 });
 
 /*
