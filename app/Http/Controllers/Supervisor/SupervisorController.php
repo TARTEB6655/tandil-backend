@@ -222,7 +222,10 @@ class SupervisorController extends Controller
                 }
                 try {
                     $client = $visit->subscription?->client;
-                    if ($client) {
+                    if ($client && ! $client->notifications()
+                        ->where('type', \App\Notifications\ReportFinalized::class)
+                        ->where('data->report_id', $report->id)
+                        ->exists()) {
                         $client->notify(new \App\Notifications\ReportFinalized($report));
                     }
                 } catch (\Throwable $e) {
