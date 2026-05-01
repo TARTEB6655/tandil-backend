@@ -218,9 +218,6 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
     Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
-    // Legacy aliases kept for backward compatibility
-    Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
-    Route::post('/notifications/read-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
     // Field notes: GET list (by supervisor_id); POST submit report
     Route::get('/field-notes', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'fieldNotesIndex']);
     Route::post('/reports', [\App\Http\Controllers\Technician\TechnicianDashboardController::class, 'submitReport']);
