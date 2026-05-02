@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Report;
+use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -34,10 +35,10 @@ class ReportFinalized extends Notification
 
     public function toArray($notifiable)
     {
-        return [
+        return NotificationAudiencePayload::merge($notifiable, [
             'report_id' => $this->report->id,
             'visit_id' => $this->report->visit_id,
             'message' => 'Report finalized',
-        ];
+        ]);
     }
 }

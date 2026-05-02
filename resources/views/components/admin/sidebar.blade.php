@@ -73,6 +73,11 @@
                                     <span class="ml-auto px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">{{ $unreadCount }}</span>
                                 @endif
                             </a>
+                            <a href="{{ route('admin.notifications.broadcasts.index') }}"
+                               class="mt-1 flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors {{ request()->routeIs('admin.notifications.broadcasts.*') ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : '' }}">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                Broadcast log
+                            </a>
                         </div>
 
                         <!-- USER MANAGEMENT -->

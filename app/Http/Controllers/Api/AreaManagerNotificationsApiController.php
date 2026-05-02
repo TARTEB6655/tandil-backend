@@ -15,11 +15,13 @@ class AreaManagerNotificationsApiController extends Controller
         $perPage = (int) $request->get('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
 
-        $notifications = AreaManagerNotificationFilter::forUser($user)
+        $audienceRole = $request->query('audience_role');
+
+        $notifications = AreaManagerNotificationFilter::forUser($user, $audienceRole)
             ->latest()
             ->paginate($perPage);
 
-        $unreadCount = AreaManagerNotificationFilter::unreadForUser($user)->count();
+        $unreadCount = AreaManagerNotificationFilter::unreadForUser($user, $audienceRole)->count();
 
         return ApiResponse::success('Area manager notifications retrieved successfully.', [
             'notifications' => $notifications,

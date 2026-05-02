@@ -15,11 +15,13 @@ class RoleNotificationsApiController extends Controller
         $perPage = (int) $request->get('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
 
-        $notifications = GlobalNotificationFilter::forUser($user)
+        $audienceRole = $request->query('audience_role');
+
+        $notifications = GlobalNotificationFilter::forUser($user, $audienceRole)
             ->latest()
             ->paginate($perPage);
 
-        $unreadCount = GlobalNotificationFilter::unreadForUser($user)->count();
+        $unreadCount = GlobalNotificationFilter::unreadForUser($user, $audienceRole)->count();
 
         return ApiResponse::success('Notifications retrieved successfully.', [
             'notifications' => $notifications,

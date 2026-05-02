@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\LeaveRequest;
+use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -32,7 +33,7 @@ class LeaveRequestStatusNotification extends Notification
             ? "Your leave ({$this->leaveRequest->leave_type}, {$dates}) has been approved by HR."
             : "Your leave request ({$this->leaveRequest->leave_type}, {$dates}) was not approved. Contact HR if you have questions.";
 
-        return [
+        return NotificationAudiencePayload::merge($notifiable, [
             'title' => $title,
             'message' => $message,
             'type' => 'leave_request_status',
@@ -43,6 +44,6 @@ class LeaveRequestStatusNotification extends Notification
                 'start_date' => $this->leaveRequest->start_date->format('Y-m-d'),
                 'end_date' => $this->leaveRequest->end_date->format('Y-m-d'),
             ],
-        ];
+        ]);
     }
 }

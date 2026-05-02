@@ -1,10 +1,4 @@
-@php
-    $unreadCount = \App\Support\AreaManagerNotificationFilter::unreadForUser(auth()->user())->count();
-@endphp
 <x-areamanager-layout>
-    @php
-        $activeFilter = request('filter', 'all');
-    @endphp
     <!-- Page Header -->
     <div class="mb-4 sm:mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -34,18 +28,7 @@
         </div>
     @endif
 
-    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1">
-            <a href="{{ route('areamanager.notifications.index', ['filter' => 'all', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">All</a>
-            <a href="{{ route('areamanager.notifications.index', ['filter' => 'unread', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'unread' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">Unread</a>
-            <a href="{{ route('areamanager.notifications.index', ['filter' => 'read', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'read' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">Read</a>
-        </div>
-        <form method="GET" action="{{ route('areamanager.notifications.index') }}" class="flex items-center gap-2">
-            <input type="hidden" name="filter" value="{{ $activeFilter }}" />
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="Search notifications" class="w-56 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none" />
-            <button type="submit" class="rounded-lg bg-gray-900 px-3 py-1.5 text-xs text-white">Search</button>
-        </form>
-    </div>
+    <x-notification-inbox-toolbar route-name="areamanager.notifications.index" :show-audience-filter="false" />
     <div class="flex flex-wrap items-center gap-2 mb-4">
         <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
             <input type="checkbox" id="select-all-notifications" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
@@ -67,6 +50,8 @@
                     $data = $notification->data ?? [];
                     $type = $notification->type ?? '';
                     $isRead = !is_null($notification->read_at);
+                    $kindBadge = \App\Support\NotificationWebPresenter::kindBadge($type, is_array($data) ? $data : []);
+                    $audLabel = \App\Support\NotificationWebPresenter::audienceLabel(is_array($data) ? $data : []);
                 @endphp
                 <div class="notification-row group p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer {{ !$isRead ? 'bg-blue-50' : '' }}"
                      data-open-url="{{ route('areamanager.notifications.show', $notification->id) }}">
@@ -87,6 +72,10 @@
                                     <p class="text-xs sm:text-sm mb-1 {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                         {{ $data['message'] ?? class_basename($type) }}
                                     </p>
+                                    <div class="flex flex-wrap gap-1 mb-0.5">
+                                        <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 text-gray-700">{{ $kindBadge }}</span>
+                                        @if($audLabel)<span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800">{{ $audLabel }}</span>@endif
+                                    </div>
                                     @if(isset($data['visit_id']))
                                         <p class="text-xs text-gray-500">Visit ID: #{{ $data['visit_id'] }}</p>
                                     @endif

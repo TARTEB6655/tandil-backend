@@ -2,6 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
+use App\Support\NotificationAudiencePayload;
+use App\Support\UserNotificationAudience;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -38,11 +41,16 @@ class AdminNotification extends Notification
 
     public function toArray($notifiable)
     {
-        return [
+        $meta = is_array($this->meta) ? $this->meta : [];
+        if ($notifiable instanceof User) {
+            $meta['audience_role'] = UserNotificationAudience::resolve($notifiable);
+        }
+
+        return NotificationAudiencePayload::merge($notifiable, [
             'title' => $this->title,
             'message' => $this->message,
             'type' => 'admin_notification',
-            'meta' => $this->meta,
-        ];
+            'meta' => $meta,
+        ]);
     }
 }

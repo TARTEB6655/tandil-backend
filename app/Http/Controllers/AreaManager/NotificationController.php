@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\AreaManager;
 
+use App\Http\Controllers\Concerns\WebNotificationInbox;
 use App\Http\Controllers\Controller;
 use App\Support\AreaManagerNotificationFilter;
 use Illuminate\Http\RedirectResponse;
@@ -11,28 +12,21 @@ use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
+    use WebNotificationInbox;
+
     public function __construct()
     {
         $this->middleware(['auth', 'role:area_manager']);
     }
 
+    protected function notificationFilterClass(): string
+    {
+        return AreaManagerNotificationFilter::class;
+    }
+
     public function index(Request $request): View
     {
-        $user = Auth::user();
-        $query = AreaManagerNotificationFilter::forUser($user);
-
-        if ($request->get('filter') === 'unread') {
-            $query->whereNull('read_at');
-        } elseif ($request->get('filter') === 'read') {
-            $query->whereNotNull('read_at');
-        }
-
-        if ($request->filled('q')) {
-            $query->where('data', 'like', '%' . $request->get('q') . '%');
-        }
-
-        $notifications = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        $unreadCount = AreaManagerNotificationFilter::unreadForUser($user)->count();
+        [$notifications, $unreadCount] = $this->paginatedInbox($request);
 
         return view('areamanager.notifications.index', compact('notifications', 'unreadCount'));
     }

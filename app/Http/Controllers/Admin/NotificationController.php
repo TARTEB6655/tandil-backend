@@ -2,16 +2,27 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\WebNotificationInbox;
 use App\Http\Controllers\Controller;
+use App\Models\AdminNotificationBroadcast;
+use App\Services\NotificationBroadcastService;
 use App\Support\GlobalNotificationFilter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
+    use WebNotificationInbox;
+
     public function __construct()
     {
         $this->middleware('role:admin');
+    }
+
+    protected function notificationFilterClass(): string
+    {
+        return GlobalNotificationFilter::class;
     }
 
     /**
@@ -19,31 +30,30 @@ class NotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $user = Auth::user();
-        
-        // Get all notifications
-        $query = GlobalNotificationFilter::forUser($user);
-        
-        // Filter by read/unread
-        if ($request->has('filter')) {
-            if ($request->filter === 'unread') {
-                $query->whereNull('read_at');
-            } elseif ($request->filter === 'read') {
-                $query->whereNotNull('read_at');
-            }
-        }
-        
-        if ($request->filled('q')) {
-            $query->where('data', 'like', '%' . $request->get('q') . '%');
-        }
+        [$notifications, $unreadCount] = $this->paginatedInbox($request);
+        $totalCount = $this->inboxFilteredTotal($request);
 
-        $notifications = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-        
-        // Get counts
-        $unreadCount = GlobalNotificationFilter::unreadForUser($user)->count();
-        $totalCount = GlobalNotificationFilter::forUser($user)->count();
-        
         return view('admin.notifications.index', compact('notifications', 'unreadCount', 'totalCount'));
+    }
+
+    /**
+     * Broadcast delivery log (per-role recipient counts).
+     */
+    public function broadcastsIndex(Request $request): View
+    {
+        $items = AdminNotificationBroadcast::with('sentBy:id,name,email')
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.notifications.broadcasts.index', compact('items'));
+    }
+
+    public function broadcastsShow(AdminNotificationBroadcast $broadcast): View
+    {
+        $broadcast->load('sentBy:id,name,email');
+
+        return view('admin.notifications.broadcasts.show', compact('broadcast'));
     }
 
     /**
@@ -171,31 +181,12 @@ class NotificationController extends Controller
      */
     public function send(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'message' => 'required|string|max:1000',
-            'type' => 'required|in:all,role,users',
-            'role' => 'required_if:type,role|exists:roles,name',
-            'user_ids' => 'required_if:type,users|array',
-            'user_ids.*' => 'exists:users,id',
-        ]);
+        $validated = $request->validate(NotificationBroadcastService::validationRules());
 
-        $users = collect();
-
-        if ($request->type === 'all') {
-            $users = \App\Models\User::all();
-        } elseif ($request->type === 'role') {
-            $users = \App\Models\User::role($request->role)->get();
-        } elseif ($request->type === 'users') {
-            $users = \App\Models\User::whereIn('id', $request->user_ids)->get();
-        }
-
-        // Send notification to all selected users
-        foreach ($users as $user) {
-            $user->notify(new \App\Notifications\AdminNotification($request->title, $request->message));
-        }
+        $broadcast = NotificationBroadcastService::send(Auth::user(), $validated);
+        $counts = $broadcast->recipientCountsForApi();
 
         return redirect()->route('admin.notifications.index')
-            ->with('success', "Notification sent to {$users->count()} user(s) successfully.");
+            ->with('success', "Notification sent to {$broadcast->total_recipients} user(s). By role — customers: {$counts['customers']}, technicians: {$counts['technicians']}, supervisors: {$counts['supervisors']}, area managers: {$counts['area_managers']}, HR: {$counts['hr']}, admins: {$counts['admins']}, other: {$counts['other']}.");
     }
 }

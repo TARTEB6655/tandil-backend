@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -38,13 +39,13 @@ class SubscriptionPaid extends Notification
 
     public function toArray($notifiable)
     {
-        return [
+        return NotificationAudiencePayload::merge($notifiable, [
             'subscription_id' => $this->subscription->id,
             'plan' => $this->subscription->plan,
             'amount' => $this->subscription->amount,
             'payment_status' => $this->subscription->payment_status,
             'message' => 'Your subscription payment has been confirmed.',
-        ];
+        ]);
     }
 }
 

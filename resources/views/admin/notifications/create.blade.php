@@ -95,6 +95,43 @@
                     @enderror
                 </div>
 
+                @php
+                    $audienceRoles = [
+                        'client' => 'Customers (client role)',
+                        'technician' => 'Technicians',
+                        'supervisor' => 'Supervisors',
+                        'area_manager' => 'Area managers',
+                        'hr' => 'HR',
+                        'admin' => 'Admins',
+                    ];
+                @endphp
+                <details class="border border-gray-200 rounded-xl bg-gray-50/80 p-4">
+                    <summary class="text-sm font-medium text-gray-800 cursor-pointer">Optional: different title & message per role</summary>
+                    <p class="text-xs text-gray-600 mt-2 mb-4">Leave blank to use the main title and message above for everyone. If you fill a role’s title or message, that role gets your custom text (others keep the default).</p>
+                    <div class="space-y-6">
+                        @foreach($audienceRoles as $roleKey => $label)
+                            <div class="border border-gray-200 rounded-lg p-4 bg-white">
+                                <h3 class="text-sm font-semibold text-gray-900 mb-3">{{ $label }}</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Title override</label>
+                                        <input type="text" name="messages_by_role[{{ $roleKey }}][title]"
+                                               value="{{ old('messages_by_role.'.$roleKey.'.title') }}"
+                                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                               placeholder="Optional">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Message override</label>
+                                        <textarea name="messages_by_role[{{ $roleKey }}][message]" rows="3"
+                                                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                                  placeholder="Optional">{{ old('messages_by_role.'.$roleKey.'.message') }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </details>
+
                 <!-- Submit Button -->
                 <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
                     <a href="{{ route('admin.notifications.index') }}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">

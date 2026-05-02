@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -25,6 +26,6 @@ class TipsNotification extends Notification
 
     public function toArray($notifiable)
     {
-        return ['message' => 'Weekly home-care tip'];
+        return NotificationAudiencePayload::merge($notifiable, ['message' => 'Weekly home-care tip']);
     }
 }

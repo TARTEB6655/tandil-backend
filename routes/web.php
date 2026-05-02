@@ -254,8 +254,10 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::resource('tips', TipController::class);
         Route::post('tips/{id}/toggle-status', [TipController::class, 'toggleStatus'])->name('tips.toggle-status');
 
-        // Notifications routes
+        // Notifications routes (static paths before {id})
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('notifications/broadcasts', [NotificationController::class, 'broadcastsIndex'])->name('notifications.broadcasts.index');
+        Route::get('notifications/broadcasts/{broadcast}', [NotificationController::class, 'broadcastsShow'])->name('notifications.broadcasts.show');
         Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
         Route::post('notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
         Route::get('notifications/{id}', [NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');

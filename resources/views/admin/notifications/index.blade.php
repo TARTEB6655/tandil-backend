@@ -7,7 +7,14 @@
                     <h1 class="text-xl font-medium text-gray-900">Notifications</h1>
                     <p class="mt-1 text-sm md:text-base text-gray-600">View and manage all your notifications</p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <a href="{{ route('admin.notifications.broadcasts.index') }}"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Broadcast log
+                    </a>
                     <a href="{{ route('admin.notifications.create') }}" 
                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors duration-200 shadow-sm hover:shadow-md">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -26,6 +33,8 @@
                 </div>
             </div>
         </div>
+
+        <x-notification-inbox-toolbar route-name="admin.notifications.index" :show-audience-filter="true" />
 
         <!-- Bulk actions: Select all, Delete selected, Delete all -->
         <div class="flex flex-wrap items-center gap-2 mb-4">
@@ -69,7 +78,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Notifications</p>
-                        <p class="text-lg font-medium text-gray-900">{{ $notifications->total() }}</p>
+                        <p class="text-lg font-medium text-gray-900">{{ $totalCount }}</p>
                     </div>
                     <div class="h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -97,7 +106,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Read</p>
-                        <p class="text-lg font-medium text-gray-600">{{ $notifications->total() - $unreadCount }}</p>
+                        <p class="text-lg font-medium text-gray-600">{{ max(0, $totalCount - $unreadCount) }}</p>
                     </div>
                     <div class="h-12 w-12 rounded-xl bg-green-50 flex items-center justify-center">
                         <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -184,6 +193,16 @@
                                         <p class="text-sm mb-1 {{ $isUnread ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                             {{ $data['message'] ?? class_basename($type) }}
                                         </p>
+                                        @php
+                                            $kindBadge = \App\Support\NotificationWebPresenter::kindBadge($type, is_array($data) ? $data : []);
+                                            $audLabel = \App\Support\NotificationWebPresenter::audienceLabel(is_array($data) ? $data : []);
+                                        @endphp
+                                        <div class="flex flex-wrap items-center gap-1.5 mt-1 mb-1">
+                                            <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">{{ $kindBadge }}</span>
+                                            @if($audLabel)
+                                                <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">{{ $audLabel }}</span>
+                                            @endif
+                                        </div>
                                         @if(isset($data['visit_id']))
                                             <p class="text-xs text-gray-600 mb-1">Visit ID: #{{ $data['visit_id'] }}</p>
                                         @endif

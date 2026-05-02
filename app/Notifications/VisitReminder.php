@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Visit;
+use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -36,11 +37,11 @@ class VisitReminder extends Notification
 
     public function toArray($notifiable)
     {
-        return [
+        return NotificationAudiencePayload::merge($notifiable, [
             'visit_id' => $this->visit->id,
             'subscription_id' => $this->visit->subscription_id,
             'scheduled_date' => $this->visit->scheduled_date,
             'message' => 'Upcoming visit reminder',
-        ];
+        ]);
     }
 }

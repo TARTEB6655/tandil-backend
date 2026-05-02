@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -26,13 +27,13 @@ class TipPublishedNotification extends Notification
 
     public function toArray($notifiable): array
     {
-        return [
+        return NotificationAudiencePayload::merge($notifiable, [
             'title' => $this->title,
             'message' => $this->content,
             'type' => 'tip_published',
             'meta' => [
                 'tip_id' => $this->tipId,
             ],
-        ];
+        ]);
     }
 }

@@ -12,14 +12,32 @@ class GlobalNotificationFilter
         return $query->where('type', '!=', ReportGeneratedNotification::class);
     }
 
-    public static function forUser(User $user)
+    public static function applyAudienceRoleFilter($query, ?string $audienceRole)
     {
-        return self::apply($user->notifications());
+        if ($audienceRole === null || $audienceRole === '') {
+            return $query;
+        }
+        $allowed = array_merge(UserNotificationAudience::PRIORITY_ROLES, ['other', 'unknown']);
+        if (! in_array($audienceRole, $allowed, true)) {
+            return $query;
+        }
+        $safe = str_replace(['%', '_'], ['\\%', '\\_'], $audienceRole);
+
+        return $query->where('data', 'like', '%"audience_role":"' . $safe . '"%');
     }
 
-    public static function unreadForUser(User $user)
+    public static function forUser(User $user, ?string $audienceRole = null)
     {
-        return self::apply($user->unreadNotifications());
+        $q = self::apply($user->notifications());
+
+        return self::applyAudienceRoleFilter($q, $audienceRole);
+    }
+
+    public static function unreadForUser(User $user, ?string $audienceRole = null)
+    {
+        $q = self::apply($user->unreadNotifications());
+
+        return self::applyAudienceRoleFilter($q, $audienceRole);
     }
 }
 

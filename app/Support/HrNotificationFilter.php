@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Notifications\TipPublishedNotification;
+
 class HrNotificationFilter
 {
     public static function apply($query)
@@ -32,14 +33,18 @@ class HrNotificationFilter
         });
     }
 
-    public static function forUser(User $user)
+    public static function forUser(User $user, ?string $audienceRole = null)
     {
-        return self::apply($user->notifications());
+        $q = self::apply($user->notifications());
+
+        return GlobalNotificationFilter::applyAudienceRoleFilter($q, $audienceRole);
     }
 
-    public static function unreadForUser(User $user)
+    public static function unreadForUser(User $user, ?string $audienceRole = null)
     {
-        return self::apply($user->unreadNotifications());
+        $q = self::apply($user->unreadNotifications());
+
+        return GlobalNotificationFilter::applyAudienceRoleFilter($q, $audienceRole);
     }
 }
 

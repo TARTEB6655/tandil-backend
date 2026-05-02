@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -38,11 +39,11 @@ class SubscriptionCreated extends Notification
 
     public function toArray($notifiable)
     {
-        return [
+        return NotificationAudiencePayload::merge($notifiable, [
             'subscription_id' => $this->subscription->id,
             'plan' => $this->subscription->plan,
             'start_date' => $this->subscription->start_date,
             'end_date' => $this->subscription->end_date,
-        ];
+        ]);
     }
 }

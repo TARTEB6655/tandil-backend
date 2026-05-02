@@ -1,7 +1,4 @@
 <x-supervisor-layout>
-    @php
-        $activeFilter = request('filter', 'all');
-    @endphp
     <!-- Page Header -->
     <div class="mb-4 sm:mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
@@ -65,6 +62,8 @@
                     $data = $notification->data ?? [];
                     $type = $notification->type ?? '';
                     $isRead = !is_null($notification->read_at);
+                    $kindBadge = \App\Support\NotificationWebPresenter::kindBadge($type, is_array($data) ? $data : []);
+                    $audLabel = \App\Support\NotificationWebPresenter::audienceLabel(is_array($data) ? $data : []);
                 @endphp
                 <div class="notification-row group p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer {{ !$isRead ? 'bg-blue-50' : '' }}"
                      data-open-url="{{ route('supervisor.notifications.show', $notification->id) }}">
@@ -85,6 +84,10 @@
                                     <p class="text-xs sm:text-sm mb-1 {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                         {{ $data['message'] ?? class_basename($type) }}
                                     </p>
+                                    <div class="flex flex-wrap gap-1 mb-0.5">
+                                        <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 text-gray-700">{{ $kindBadge }}</span>
+                                        @if($audLabel)<span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800">{{ $audLabel }}</span>@endif
+                                    </div>
                                     @if(isset($data['visit_id']))
                                         <p class="text-xs text-gray-500">Visit ID: #{{ $data['visit_id'] }}</p>
                                     @endif

@@ -12,14 +12,18 @@ class AreaManagerNotificationFilter
         return $query->where('type', '!=', ReportGeneratedNotification::class);
     }
 
-    public static function forUser(User $user)
+    public static function forUser(User $user, ?string $audienceRole = null)
     {
-        return self::apply($user->notifications());
+        $q = self::apply($user->notifications());
+
+        return GlobalNotificationFilter::applyAudienceRoleFilter($q, $audienceRole);
     }
 
-    public static function unreadForUser(User $user)
+    public static function unreadForUser(User $user, ?string $audienceRole = null)
     {
-        return self::apply($user->unreadNotifications());
+        $q = self::apply($user->unreadNotifications());
+
+        return GlobalNotificationFilter::applyAudienceRoleFilter($q, $audienceRole);
     }
 }
 

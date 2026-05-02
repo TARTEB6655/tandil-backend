@@ -438,6 +438,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/support/tickets/{id}', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'show']);
     Route::post('/support/tickets/{id}/reply', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'reply']);
     Route::put('/support/tickets/{id}/status', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'updateStatus']);
+    // Admin broadcast + delivery statistics (register before /notifications to avoid route clash)
+    Route::post('/notifications/broadcast', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'store']);
+    Route::get('/notifications/broadcasts', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'index']);
+    Route::get('/notifications/broadcasts/{id}', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'show'])->whereNumber('id');
     Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);

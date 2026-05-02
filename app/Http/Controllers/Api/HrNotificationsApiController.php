@@ -15,11 +15,13 @@ class HrNotificationsApiController extends Controller
         $perPage = (int) $request->get('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
 
-        $notifications = HrNotificationFilter::forUser($user)
+        $audienceRole = $request->query('audience_role');
+
+        $notifications = HrNotificationFilter::forUser($user, $audienceRole)
             ->latest()
             ->paginate($perPage);
 
-        $unreadCount = HrNotificationFilter::unreadForUser($user)->count();
+        $unreadCount = HrNotificationFilter::unreadForUser($user, $audienceRole)->count();
 
         return ApiResponse::success('HR notifications retrieved successfully.', [
             'notifications' => $notifications,

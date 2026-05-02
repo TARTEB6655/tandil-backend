@@ -1,7 +1,4 @@
 <x-client-layout>
-    @php
-        $activeFilter = request('filter', 'all');
-    @endphp
     <div class="mb-4 sm:mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -28,18 +25,7 @@
         </div>
     @endif
 
-    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1">
-            <a href="{{ route('client.notifications.index', ['filter' => 'all', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">All</a>
-            <a href="{{ route('client.notifications.index', ['filter' => 'unread', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'unread' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">Unread</a>
-            <a href="{{ route('client.notifications.index', ['filter' => 'read', 'q' => request('q')]) }}" class="px-3 py-1.5 text-xs sm:text-sm rounded-md {{ $activeFilter === 'read' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100' }}">Read</a>
-        </div>
-        <form method="GET" action="{{ route('client.notifications.index') }}" class="flex items-center gap-2">
-            <input type="hidden" name="filter" value="{{ $activeFilter }}" />
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="Search notifications" class="w-56 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none" />
-            <button type="submit" class="rounded-lg bg-gray-900 px-3 py-1.5 text-xs text-white">Search</button>
-        </form>
-    </div>
+    <x-notification-inbox-toolbar route-name="client.notifications.index" :show-audience-filter="false" />
 
     <!-- Bulk actions -->
     <div class="flex flex-wrap items-center gap-2 mb-4">
@@ -64,6 +50,8 @@
                     $title = $data['title'] ?? '';
                     $message = $data['message'] ?? class_basename($notification->type ?? '');
                     $isRead = !is_null($notification->read_at);
+                    $kindBadge = \App\Support\NotificationWebPresenter::kindBadge($notification->type ?? '', is_array($data) ? $data : []);
+                    $audLabel = \App\Support\NotificationWebPresenter::audienceLabel(is_array($data) ? $data : []);
                 @endphp
                 <div class="notification-row group p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer {{ !$isRead ? 'bg-blue-50/50' : '' }}"
                      data-open-url="{{ route('client.notifications.show', $notification->id) }}">
@@ -80,6 +68,10 @@
                         </div>
                         <a href="{{ route('client.notifications.show', $notification->id) }}" class="flex-1 min-w-0 block">
                             @if($title)<p class="text-xs sm:text-sm mb-0.5 {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">{{ $title }}</p>@endif
+                            <div class="flex flex-wrap gap-1 mb-0.5">
+                                <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 text-gray-700">{{ $kindBadge }}</span>
+                                @if($audLabel)<span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800">{{ $audLabel }}</span>@endif
+                            </div>
                             <p class="text-xs sm:text-sm {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">{{ \Illuminate\Support\Str::limit($message, 200) }}</p>
                             <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                         </a>
