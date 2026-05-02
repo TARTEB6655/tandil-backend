@@ -31,11 +31,15 @@ class ShopStripeMobileCheckoutController extends Controller
 
     public function confirm(Request $request)
     {
+        if (! $request->filled('payment_intent_id') && $request->filled('paymentIntentId')) {
+            $request->merge(['payment_intent_id' => $request->input('paymentIntentId')]);
+        }
+
         $request->validate([
             'payment_intent_id' => 'required|string|max:255',
         ]);
 
-        $result = $this->mobileCheckout->confirmOrder($request->user(), $request->input('payment_intent_id'));
+        $result = $this->mobileCheckout->confirmOrder($request->user(), (string) $request->input('payment_intent_id'));
         if (! ($result['ok'] ?? false)) {
             return ApiResponse::error($result['message'], $result['status'] ?? 400);
         }
