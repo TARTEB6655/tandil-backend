@@ -1,115 +1,119 @@
 <x-admin-layout>
-    <div class="space-y-4 sm:space-y-6">
+    <div class="space-y-5 sm:space-y-6">
         <!-- Page Header -->
-        <div class="mb-6 md:mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-medium text-gray-900">Notifications</h1>
-                    <p class="mt-1 text-sm md:text-base text-gray-600">View and manage all your notifications</p>
-                </div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <a href="{{ route('admin.notifications.broadcasts.index') }}"
-                       class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        Broadcast log
-                    </a>
-                    <a href="{{ route('admin.notifications.create') }}" 
-                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors duration-200 shadow-sm hover:shadow-md">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Send Notification
-                    </a>
-                    @if($unreadCount > 0)
-                        <form method="POST" action="{{ route('admin.notifications.mark-all-read') }}" class="flex-shrink-0 inline">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200 shadow-sm hover:shadow-md">
-                                Mark All as Read
-                            </button>
-                        </form>
-                    @endif
-                </div>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight border-l-4 border-indigo-500 pl-3">Notifications</h1>
+                <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">View, filter, and manage notifications across roles. Use audience filters to review what each role receives.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+                <a href="{{ route('admin.notifications.broadcasts.index') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Broadcast log
+                </a>
+                <a href="{{ route('admin.notifications.create') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm hover:shadow">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Send notification
+                </a>
+                @if($unreadCount > 0)
+                    <form method="POST" action="{{ route('admin.notifications.mark-all-read') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                            Mark all as read
+                        </button>
+                    </form>
+                @endif
             </div>
         </div>
 
         <x-notification-inbox-toolbar route-name="admin.notifications.index" :show-audience-filter="true" />
 
-        <!-- Bulk actions: Select all, Delete selected, Delete all -->
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input type="checkbox" id="select-all-notifications" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                Select all on page
+        <!-- Bulk actions -->
+        <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/40 px-4 py-3 sm:px-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:mr-1">Bulk actions</p>
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                <input type="checkbox" id="select-all-notifications" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800" />
+                Select all on this page
             </label>
-            <button type="submit" form="form-notifications-bulk" id="btn-delete-selected" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200" onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
-                Delete selected
-            </button>
-            <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL your notifications?');">
-                @csrf
-                <button type="submit" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200">
-                    Delete all
+            <span class="hidden sm:inline h-4 w-px bg-slate-200 dark:bg-slate-600" aria-hidden="true"></span>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="submit" form="form-notifications-bulk" id="btn-delete-selected"
+                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-200 dark:border-red-900/60 bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                        onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
+                    Delete selected
                 </button>
-            </form>
+                <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL your notifications?');">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-300 dark:border-red-800 bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm">
+                        Delete all
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- Success/Error Messages -->
         @if(session('success'))
-            <div class="bg-gray-50 border border-gray-200 text-gray-800 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <div class="rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/90 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 px-4 py-3 flex items-center gap-3">
+                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span class="text-sm">{{ session('success') }}</span>
+                <span class="text-sm font-medium">{{ session('success') }}</span>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <div class="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/90 dark:bg-red-950/30 text-red-900 dark:text-red-100 px-4 py-3 flex items-center gap-3">
+                <svg class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span class="text-sm">{{ session('error') }}</span>
+                <span class="text-sm font-medium">{{ session('error') }}</span>
             </div>
         @endif
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6">
-            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <div class="flex items-center justify-between">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5">
+                <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Notifications</p>
-                        <p class="text-lg font-medium text-gray-900">{{ $totalCount }}</p>
+                        <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total</p>
+                        <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums">{{ $totalCount }}</p>
                     </div>
-                    <div class="h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <div class="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <div class="flex items-center justify-between">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5">
+                <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Unread</p>
-                        <p class="text-lg font-medium text-red-600">{{ $unreadCount }}</p>
+                        <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Unread</p>
+                        <p class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums">{{ $unreadCount }}</p>
                     </div>
-                    <div class="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <div class="h-12 w-12 rounded-xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <div class="flex items-center justify-between">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5">
+                <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Read</p>
-                        <p class="text-lg font-medium text-gray-600">{{ max(0, $totalCount - $unreadCount) }}</p>
+                        <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Read</p>
+                        <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{{ max(0, $totalCount - $unreadCount) }}</p>
                     </div>
-                    <div class="h-12 w-12 rounded-xl bg-green-50 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <div class="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -120,17 +124,17 @@
         <!-- Notifications List with checkboxes for bulk delete -->
         <form method="POST" action="{{ route('admin.notifications.destroy-bulk') }}" id="form-notifications-bulk">
             @csrf
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden ring-1 ring-slate-900/5 dark:ring-white/5">
             @forelse($notifications as $notification)
                 @php
                     $isUnread = is_null($notification->read_at);
                 @endphp
-                <div class="notification-row border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150 cursor-pointer {{ $isUnread ? 'bg-blue-50/30' : '' }}"
+                <div class="notification-row border-b border-slate-100 dark:border-slate-700/80 last:border-b-0 hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors duration-150 cursor-pointer {{ $isUnread ? 'bg-indigo-50/40 dark:bg-indigo-950/25' : '' }}"
                      data-open-url="{{ route('admin.notifications.show', $notification->id) }}">
                     <div class="px-5 py-4">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0 pt-1">
-                                <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-gray-800" />
                             </div>
                             <!-- Notification Icon -->
                             <div class="flex-shrink-0 mt-0.5">
@@ -212,7 +216,7 @@
                                         @if(isset($data['order_id']))
                                             <p class="text-xs text-gray-600 mb-1">Order ID: #{{ $data['order_id'] }}</p>
                                         @endif
-                                        <p class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ $notification->created_at->diffForHumans() }}</p>
                                     </a>
                                     <div class="flex items-center gap-2 flex-shrink-0">
                                         <form method="POST" action="{{ route('admin.notifications.destroy', $notification->id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this notification?');">
@@ -262,7 +266,7 @@
         <!-- Pagination -->
         @if($notifications->hasPages())
             <div class="flex justify-center">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3">
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm px-4 py-3">
                     {{ $notifications->links() }}
                 </div>
             </div>
