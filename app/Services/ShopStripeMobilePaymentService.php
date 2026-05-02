@@ -103,14 +103,40 @@ class ShopStripeMobilePaymentService
         $checkoutRef = (string) Str::ulid();
         $secret = StripeCredentials::secretKey();
 
+        $fullName = trim((string) $ship['full_name']);
+        $phone = trim((string) $ship['phone']);
+        $countryCode = self::stripeCountryCode((string) ($ship['country'] ?? ''));
+
         $form = [
             'amount' => $amountMinor,
             'currency' => $currency,
             'automatic_payment_methods[enabled]' => 'true',
-            'description' => 'Shop order (mobile)',
+            'description' => 'Shop — '.Str::limit($fullName, 200),
             'metadata[checkout_ref]' => $checkoutRef,
             'metadata[user_id]' => (string) $user->id,
+            'metadata[customer_name]' => Str::limit($fullName, 450),
+            'metadata[customer_phone]' => Str::limit($phone, 40),
         ];
+
+        $userEmail = trim((string) ($user->email ?? ''));
+        if ($userEmail !== '' && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+            $form['metadata[customer_email]'] = Str::limit($userEmail, 450);
+            $form['receipt_email'] = $userEmail;
+        }
+
+        // Shown on Stripe PaymentIntent / receipt; country must be ISO-3166-1 alpha-2
+        $form['shipping[name]'] = Str::limit($fullName, 500);
+        $form['shipping[phone]'] = Str::limit($phone, 20);
+        $form['shipping[address][line1]'] = Str::limit((string) $ship['street'], 500);
+        $form['shipping[address][city]'] = Str::limit((string) $ship['city'], 100);
+        if (! empty($ship['state'])) {
+            $form['shipping[address][state]'] = Str::limit((string) $ship['state'], 100);
+        }
+        $zip = trim((string) ($ship['zip_code'] ?? ''));
+        if ($zip !== '') {
+            $form['shipping[address][postal_code]'] = Str::limit($zip, 20);
+        }
+        $form['shipping[address][country]'] = $countryCode;
 
         $resp = Http::withToken($secret)
             ->withHeaders(['Idempotency-Key' => 'smc_'.$checkoutRef])
@@ -389,6 +415,32 @@ class ShopStripeMobilePaymentService
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Stripe expects two-letter ISO country (e.g. AE, US). Checkout UI may send "UAE".
+     */
+    protected static function stripeCountryCode(string $input): string
+    {
+        $t = trim($input);
+        if (strlen($t) === 2 && ctype_alpha($t)) {
+            return strtoupper($t);
+        }
+
+        $map = [
+            'uae' => 'AE',
+            'united arab emirates' => 'AE',
+            'united states' => 'US',
+            'usa' => 'US',
+            'india' => 'IN',
+            'pakistan' => 'PK',
+            'saudi arabia' => 'SA',
+            'ksa' => 'SA',
+            'united kingdom' => 'GB',
+            'uk' => 'GB',
+        ];
+
+        return $map[strtolower($t)] ?? 'AE';
     }
 
     /**
