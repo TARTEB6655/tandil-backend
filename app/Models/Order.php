@@ -36,6 +36,8 @@ class Order extends Model
         'refund_amount',
         'refund_reason',
         'special_instructions',
+        'estimated_arrival',
+        'job_duration',
     ];
 
     protected $casts = [

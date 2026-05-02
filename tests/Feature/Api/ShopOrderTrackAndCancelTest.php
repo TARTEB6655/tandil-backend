@@ -57,7 +57,10 @@ class ShopOrderTrackAndCancelTest extends TestCase
                         ['key', 'label', 'description', 'completed', 'timestamp'],
                     ],
                 ],
-                'order_summary' => ['placed_at', 'delivery_address', 'payment_method', 'total', 'currency', 'special_instructions'],
+                'order_summary' => [
+                    'placed_at', 'delivery_address', 'payment_method', 'total', 'currency', 'special_instructions',
+                    'estimated_arrival', 'job_duration',
+                ],
             ],
         ]);
     }

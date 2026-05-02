@@ -115,13 +115,19 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
-        $validated = $request->validate([
+        $rules = [
             'order_status' => 'nullable|in:pending,processing,shipped,delivered,cancelled',
             'payment_status' => 'nullable|in:pending,paid,failed,refunded',
             'shipping_address' => 'nullable|string',
             'notes' => 'nullable|string',
             'special_instructions' => 'nullable|string|max:2000',
-        ]);
+        ];
+        if ($user->hasRole('admin') || $user->hasRole('supervisor') || $user->hasRole('area_manager')) {
+            $rules['estimated_arrival'] = 'nullable|string|max:255';
+            $rules['job_duration'] = 'nullable|string|max:255';
+        }
+
+        $validated = $request->validate($rules);
 
         $order->update($validated);
 
@@ -428,6 +434,8 @@ class OrderController extends Controller
             'total' => (float) $order->total_amount,
             'currency' => $currency,
             'special_instructions' => $order->special_instructions,
+            'estimated_arrival' => $order->estimated_arrival,
+            'job_duration' => $order->job_duration,
         ];
     }
 

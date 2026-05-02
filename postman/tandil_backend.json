@@ -2946,7 +2946,7 @@
                                         "track"
                                     ]
                                 },
-                                "description": "GET /api/orders/{id}/track – Same payload as one order screen: timeline + order_summary (placed_at, delivery_address, payment_method, total, currency, special_instructions) + order_number_short (e.g. 0001 for UI label Order #0001). order_number stays e.g. order_0001 for guest APIs. can_cancel when not delivered/cancelled."
+                                "description": "GET /api/orders/{id}/track – Timeline + order_summary: placed_at, delivery_address, payment_method, total, currency, special_instructions, **estimated_arrival** (e.g. \"15–20 minutes\" for arrival), **job_duration** (e.g. \"Approx. 1 hour\" for on-site work) — both nullable until staff sets them. Also order_number_short, order_number, can_cancel."
                             }
                         },
                         {
@@ -3006,7 +3006,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"order_status\": \"processing\",\n  \"payment_status\": \"paid\"\n}"
+                                    "raw": "{\n  \"order_status\": \"processing\",\n  \"payment_status\": \"paid\",\n  \"estimated_arrival\": \"15-20 minutes\",\n  \"job_duration\": \"Approx. 1 hour\"\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/orders/{{order_id}}",
@@ -3019,7 +3019,7 @@
                                         "{{order_id}}"
                                     ]
                                 },
-                                "description": "Update order status (Alternative route /api/orders/{id})"
+                                "description": "PUT /api/orders/{id}. Client: order_status, payment_status, special_instructions, etc. **Admin / supervisor / area_manager** may also set **estimated_arrival** and **job_duration** (free text for app UI). Use staff token."
                             }
                         },
                         {
