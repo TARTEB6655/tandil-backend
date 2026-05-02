@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Shop payments:** folder **8a. Shop – Payments** (hosted Checkout + PayPal + **React Native:** PaymentIntent + confirm). Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→H** (settings & totals · cart · checkout preview · `/api/shop/orders` · `/api/orders` track/cancel · guest · public categories · payments). **Shop payments:** folder **8a. Shop – Payments** (hosted Checkout + PayPal + **React Native:** PaymentIntent + confirm). Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.2"
+        "version": "3.3.3"
     },
     "item": [
         {
@@ -2450,941 +2450,932 @@
             "name": "8. Client Dashboard – Shop & Orders",
             "item": [
                 {
-                    "name": "Shop settings (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/settings",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "settings"
-                            ]
-                        },
-                        "description": "GET /api/shop/settings – Shop settings for client (shipping_amount, tax_percent, currency). No auth. Use in cart/checkout UI."
-                    }
-                },
-                {
-                    "name": "Shop settings (PUT)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/settings",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "settings"
-                            ]
-                        },
-                        "description": "PUT /api/shop/settings – Client can update shop settings (shipping_amount, tax_percent). Auth: Bearer token with client role. Same as admin PUT."
-                    }
-                },
-                {
-                    "name": "Order summary (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/order-summary",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "order-summary"
-                            ]
-                        },
-                        "description": "GET /api/shop/order-summary – Order summary for checkout (Address/Payment/Review). Auth: Bearer token (client). Optional query: `product_id` + `quantity` or `qty` for Buy Now preview without cart.\n\n**Tax-exclusive:** Total = Subtotal − discount + shipping + tax. **Response (data)** includes **tax** (amount) and **tax_percent**.\n\n**Response (data):**\n- subtotal, discount, shipping, shipping_label, tax_percent, **tax**, total, currency (e.g. AED)"
-                    }
-                },
-                {
-                    "name": "Buy now summary (POST)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 10\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/buy-now/summary",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "buy-now",
-                                "summary"
-                            ]
-                        },
-                        "description": "POST /api/shop/buy-now/summary – Buy Now order summary without adding to cart. Send product_id + quantity (or qty). Auth: Bearer token."
-                    }
-                },
-                {
-                    "name": "Cart - Add Item",
-                    "event": [
+                    "name": "A. Shop settings & order totals",
+                    "description": "GET/PUT shop tax & shipping defaults; order-summary and buy-now totals for checkout UI. **Payment capture** is in folder **8a**.",
+                    "item": [
                         {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 201) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    if (jsonData.data && jsonData.data.id && !pm.environment.get('cart_item_id')) {",
-                                    "        pm.environment.set('cart_item_id', jsonData.data.id);",
-                                    "    }",
-                                    "}"
+                            "name": "Shop settings (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
                                 ],
-                                "type": "text/javascript"
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/settings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "settings"
+                                    ]
+                                },
+                                "description": "GET /api/shop/settings – Shop settings for client (shipping_amount, tax_percent, currency). No auth. Use in cart/checkout UI."
+                            }
+                        },
+                        {
+                            "name": "Shop settings (PUT)",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/settings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "settings"
+                                    ]
+                                },
+                                "description": "PUT /api/shop/settings – Client can update shop settings (shipping_amount, tax_percent). Auth: Bearer token with client role. Same as admin PUT."
+                            }
+                        },
+                        {
+                            "name": "Order summary (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/order-summary",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "order-summary"
+                                    ]
+                                },
+                                "description": "GET /api/shop/order-summary – Order summary for checkout (Address/Payment/Review). Auth: Bearer token (client). Optional query: `product_id` + `quantity` or `qty` for Buy Now preview without cart.\n\n**Tax-exclusive:** Total = Subtotal − discount + shipping + tax. **Response (data)** includes **tax** (amount) and **tax_percent**.\n\n**Response (data):**\n- subtotal, discount, shipping, shipping_label, tax_percent, **tax**, total, currency (e.g. AED)"
+                            }
+                        },
+                        {
+                            "name": "Buy now summary (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 10\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/buy-now/summary",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "buy-now",
+                                        "summary"
+                                    ]
+                                },
+                                "description": "POST /api/shop/buy-now/summary – Buy Now order summary without adding to cart. Send product_id + quantity (or qty). Auth: Bearer token."
                             }
                         }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 2\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/cart/add",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "cart",
-                                "add"
-                            ]
-                        },
-                        "description": "✅ STEP 14: Add product to cart"
-                    }
+                    ]
                 },
                 {
-                    "name": "Cart - View",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/cart",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "cart"
-                            ]
-                        },
-                        "description": "GET /api/shop/cart – Shopping Cart screen. Response: items (id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total, currency), order_summary (subtotal, discount, shipping, shipping_label [Free or amount], tax_percent, tax, total, currency). Admin can set shipping and tax via PUT /api/admin/settings/shop."
-                    }
-                },
-                {
-                    "name": "Cart - Update Quantity",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"quantity\": 2\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/cart/{{cart_item_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "cart",
-                                "{{cart_item_id}}"
-                            ]
-                        },
-                        "description": "PUT /api/shop/cart/:id – Update quantity (Shopping Cart +/-). Body: { \"quantity\": number }. Set cart_item_id. Response: updated item (same shape as cart view)."
-                    }
-                },
-                {
-                    "name": "Cart - Remove Item",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/cart/{{cart_item_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "cart",
-                                "{{cart_item_id}}"
-                            ]
-                        },
-                        "description": "DELETE /api/shop/cart/:id – Remove item (trash icon). Set cart_item_id."
-                    }
-                },
-                {
-                    "name": "Checkout - Review",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/checkout/review",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "checkout",
-                                "review"
-                            ]
-                        },
-                        "description": "GET /api/shop/checkout/review – Cart + addresses + payment_methods preview. **Web / redirect:** folder **8a** → POST checkout/start. **React Native Payment Sheet:** 8a → POST checkout/stripe/payment-intent then POST checkout/confirm."
-                    }
-                },
-                {
-                    "name": "Orders - Guest Lookup",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/orders/guest?order_number=order_001&email=guest@example.com",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "orders",
-                                "guest"
-                            ],
-                            "query": [
+                    "name": "B. Shopping cart",
+                    "description": "Bearer {{token}} (client). Base path: `/api/shop/cart`.",
+                    "item": [
+                        {
+                            "name": "Cart - Add Item",
+                            "event": [
                                 {
-                                    "key": "order_number",
-                                    "value": "order_001"
-                                },
-                                {
-                                    "key": "email",
-                                    "value": "guest@example.com"
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.data && jsonData.data.id && !pm.environment.get('cart_item_id')) {",
+                                            "        pm.environment.set('cart_item_id', jsonData.data.id);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
                                 }
-                            ]
-                        },
-                        "description": "Get guest order details. No auth. Query: order_number (e.g. order_001), email (must match guest_email)."
-                    }
-                },
-                {
-                    "name": "Orders - Guest Track",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/orders/guest/track?order_number=order_001&email=guest@example.com",
-                            "host": [
-                                "{{base_url}}"
                             ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "orders",
-                                "guest",
-                                "track"
-                            ],
-                            "query": [
-                                {
-                                    "key": "order_number",
-                                    "value": "order_001"
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 2\n}"
                                 },
-                                {
-                                    "key": "email",
-                                    "value": "guest@example.com"
-                                }
-                            ]
-                        },
-                        "description": "Get guest order tracking (timeline, status). No auth. Query: order_number, email."
-                    }
-                },
-                {
-                    "name": "Orders - Guest Cancel",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"order_number\": \"order_0001\",\n  \"email\": \"guest@example.com\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/orders/guest/cancel",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "orders",
-                                "guest",
-                                "cancel"
-                            ]
-                        },
-                        "description": "Cancel guest order. No auth. Body: order_number, email (must match guest_email). Same rules as authenticated cancel (not if delivered/cancelled)."
-                    }
-                },
-                {
-                    "name": "Orders - List",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/orders",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "orders"
-                            ]
-                        },
-                        "description": "✅ STEP 17: List all orders for authenticated user"
-                    }
-                },
-                {
-                    "name": "Orders - Get Details",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/orders/{{order_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "orders",
-                                "{{order_id}}"
-                            ]
-                        },
-                        "description": "Get order details"
-                    }
-                },
-                {
-                    "name": "Orders - Mark Paid",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/orders/{{order_id}}/mark-paid",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "orders",
-                                "{{order_id}}",
-                                "mark-paid"
-                            ]
-                        },
-                        "description": "Mark order as paid"
-                    }
-                },
-                {
-                    "name": "Orders - Update",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"order_status\": \"processing\",\n  \"payment_status\": \"paid\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/orders/{{order_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders",
-                                "{{order_id}}"
-                            ]
-                        },
-                        "description": "Update order status (Alternative route /api/orders/{id})"
-                    }
-                },
-                {
-                    "name": "Orders - Cancel",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"reason\": \"Customer request\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/orders/{{order_id}}/cancel",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders",
-                                "{{order_id}}",
-                                "cancel"
-                            ]
-                        },
-                        "description": "Cancel an order (Alternative route /api/orders/{id}/cancel)"
-                    }
-                },
-                {
-                    "name": "Orders - Track",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/orders/{{order_id}}/track",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders",
-                                "{{order_id}}",
-                                "track"
-                            ]
-                        },
-                        "description": "GET /api/orders/{id}/track – Same payload as one order screen: timeline + order_summary (placed_at, delivery_address, payment_method, total, currency, special_instructions) + order_number_short (e.g. 0001 for UI label Order #0001). order_number stays e.g. order_0001 for guest APIs. can_cancel when not delivered/cancelled."
-                    }
-                },
-                {
-                    "name": "Orders - Rate",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"rating\": 5,\n  \"review\": \"Great product!\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/orders/{{order_id}}/rate",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders",
-                                "{{order_id}}",
-                                "rate"
-                            ]
-                        },
-                        "description": "Rate and review an order (Alternative route /api/orders/{id}/rate)"
-                    }
-                },
-                {
-                    "name": "Orders - List (Alternative Route)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/orders",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders"
-                            ]
-                        },
-                        "description": "List orders (Alternative route /api/orders)"
-                    }
-                },
-                {
-                    "name": "Orders - Get Details (Alternative Route)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/orders/{{order_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders",
-                                "{{order_id}}"
-                            ]
-                        },
-                        "description": "Get order details (Alternative route /api/orders/{id})"
-                    }
-                },
-                {
-                    "name": "Categories - List (Public)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/categories",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "categories"
-                            ]
-                        },
-                        "description": "List all categories with product counts and image_url (Public - no auth needed)"
-                    }
-                },
-                {
-                    "name": "Categories - Get Details (Public)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/categories/{{category_id}}?per_page=12",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "categories",
-                                "{{category_id}}"
-                            ],
-                            "query": [
-                                {
-                                    "key": "per_page",
-                                    "value": "12",
-                                    "disabled": true
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/cart/add",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "cart",
+                                        "add"
+                                    ]
                                 },
-                                {
-                                    "key": "sort_by",
-                                    "value": "name",
-                                    "disabled": true
+                                "description": "✅ STEP 14: Add product to cart"
+                            }
+                        },
+                        {
+                            "name": "Cart - View",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/cart",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "cart"
+                                    ]
                                 },
-                                {
-                                    "key": "sort_dir",
-                                    "value": "asc",
-                                    "disabled": true
+                                "description": "GET /api/shop/cart – Shopping Cart screen. Response: items (id, product_id, name, image_url, category, brand, current_price, original_price, quantity, line_total, currency), order_summary (subtotal, discount, shipping, shipping_label [Free or amount], tax_percent, tax, total, currency). Admin can set shipping and tax via PUT /api/admin/settings/shop."
+                            }
+                        },
+                        {
+                            "name": "Cart - Update Quantity",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"quantity\": 2\n}"
                                 },
-                                {
-                                    "key": "min_price",
-                                    "value": "",
-                                    "disabled": true
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/cart/{{cart_item_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "cart",
+                                        "{{cart_item_id}}"
+                                    ]
                                 },
-                                {
-                                    "key": "max_price",
-                                    "value": "",
-                                    "disabled": true
-                                }
-                            ]
+                                "description": "PUT /api/shop/cart/:id – Update quantity (Shopping Cart +/-). Body: { \"quantity\": number }. Set cart_item_id. Response: updated item (same shape as cart view)."
+                            }
                         },
-                        "description": "Get category details with products; includes image_url (Public - no auth needed)"
-                    }
+                        {
+                            "name": "Cart - Remove Item",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/cart/{{cart_item_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "cart",
+                                        "{{cart_item_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/shop/cart/:id – Remove item (trash icon). Set cart_item_id."
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Payments - List",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "C. Checkout preview",
+                    "description": "GET checkout/review — cart + addresses preview only. **To pay:** open **8a. Shop – Payments** (Stripe URL, PayPal, or mobile PaymentIntent + confirm).",
+                    "item": [
+                        {
+                            "name": "Checkout - Review",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/checkout/review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "checkout",
+                                        "review"
+                                    ]
+                                },
+                                "description": "GET /api/shop/checkout/review – Cart + addresses + payment_methods preview. **Web / redirect:** folder **8a** → POST checkout/start. **React Native Payment Sheet:** 8a → POST checkout/stripe/payment-intent then POST checkout/confirm."
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/payments",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "payments"
-                            ]
-                        },
-                        "description": "List all payment transactions for authenticated user"
-                    }
+                        }
+                    ]
                 },
                 {
-                    "name": "Payments - Get Details",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "D. My orders (shop prefix)",
+                    "description": "Bearer token. Routes: `/api/shop/orders` … Use {{order_id}} from checkout or list.",
+                    "item": [
+                        {
+                            "name": "Orders - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/orders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "orders"
+                                    ]
+                                },
+                                "description": "✅ STEP 17: List all orders for authenticated user"
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/payments/{{payment_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "payments",
-                                "{{payment_id}}"
-                            ]
                         },
-                        "description": "Get payment transaction details"
-                    }
+                        {
+                            "name": "Orders - Get Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/orders/{{order_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "orders",
+                                        "{{order_id}}"
+                                    ]
+                                },
+                                "description": "Get order details"
+                            }
+                        },
+                        {
+                            "name": "Orders - Mark Paid",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/orders/{{order_id}}/mark-paid",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "mark-paid"
+                                    ]
+                                },
+                                "description": "Mark order as paid"
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Transactions - List (Alias)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "E. My orders (app routes — track / cancel)",
+                    "description": "Same orders, shorter URLs for the app: `/api/orders`. **Track** = timeline + `order_summary` + `order_number_short`. **Cancel** = POST cancel.",
+                    "item": [
+                        {
+                            "name": "Orders - List (Alternative Route)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders"
+                                    ]
+                                },
+                                "description": "List orders (Alternative route /api/orders)"
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/transactions",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "transactions"
-                            ]
                         },
-                        "description": "List transactions (Alias for /api/shop/payments)"
-                    }
+                        {
+                            "name": "Orders - Get Details (Alternative Route)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/{{order_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "{{order_id}}"
+                                    ]
+                                },
+                                "description": "Get order details (Alternative route /api/orders/{id})"
+                            }
+                        },
+                        {
+                            "name": "Orders - Track",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/{{order_id}}/track",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "track"
+                                    ]
+                                },
+                                "description": "GET /api/orders/{id}/track – Same payload as one order screen: timeline + order_summary (placed_at, delivery_address, payment_method, total, currency, special_instructions) + order_number_short (e.g. 0001 for UI label Order #0001). order_number stays e.g. order_0001 for guest APIs. can_cancel when not delivered/cancelled."
+                            }
+                        },
+                        {
+                            "name": "Orders - Cancel",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"Customer request\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/{{order_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Cancel an order (Alternative route /api/orders/{id}/cancel)"
+                            }
+                        },
+                        {
+                            "name": "Orders - Update",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"order_status\": \"processing\",\n  \"payment_status\": \"paid\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/{{order_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "{{order_id}}"
+                                    ]
+                                },
+                                "description": "Update order status (Alternative route /api/orders/{id})"
+                            }
+                        },
+                        {
+                            "name": "Orders - Rate",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"rating\": 5,\n  \"review\": \"Great product!\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/{{order_id}}/rate",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "rate"
+                                    ]
+                                },
+                                "description": "Rate and review an order (Alternative route /api/orders/{id}/rate)"
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Transactions - Get Details (Alias)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "F. Guest orders (no token)",
+                    "description": "After guest checkout: `order_number` (e.g. order_0001) + `email` must match `guest_email`. No Authorization header.",
+                    "item": [
+                        {
+                            "name": "Orders - Guest Lookup",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/orders/guest?order_number=order_001&email=guest@example.com",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "orders",
+                                        "guest"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "order_number",
+                                            "value": "order_001"
+                                        },
+                                        {
+                                            "key": "email",
+                                            "value": "guest@example.com"
+                                        }
+                                    ]
+                                },
+                                "description": "Get guest order details. No auth. Query: order_number (e.g. order_001), email (must match guest_email)."
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/transactions/{{payment_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "transactions",
-                                "{{payment_id}}"
-                            ]
                         },
-                        "description": "Get transaction details (Alias for /api/shop/payments/{id})"
-                    }
+                        {
+                            "name": "Orders - Guest Track",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/orders/guest/track?order_number=order_001&email=guest@example.com",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "orders",
+                                        "guest",
+                                        "track"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "order_number",
+                                            "value": "order_001"
+                                        },
+                                        {
+                                            "key": "email",
+                                            "value": "guest@example.com"
+                                        }
+                                    ]
+                                },
+                                "description": "Get guest order tracking (timeline, status). No auth. Query: order_number, email."
+                            }
+                        },
+                        {
+                            "name": "Orders - Guest Cancel",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"order_number\": \"order_0001\",\n  \"email\": \"guest@example.com\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/orders/guest/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "orders",
+                                        "guest",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Cancel guest order. No auth. Body: order_number, email (must match guest_email). Same rules as authenticated cancel (not if delivered/cancelled)."
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Transactions - List (Alias)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "G. Shop catalog (public)",
+                    "description": "No auth. Categories for browse / PLP.",
+                    "item": [
+                        {
+                            "name": "Categories - List (Public)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/categories",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "categories"
+                                    ]
+                                },
+                                "description": "List all categories with product counts and image_url (Public - no auth needed)"
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/transactions",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "transactions"
-                            ]
                         },
-                        "description": "List transactions (alias for /api/shop/payments)"
-                    }
+                        {
+                            "name": "Categories - Get Details (Public)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/categories/{{category_id}}?per_page=12",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "categories",
+                                        "{{category_id}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "12",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "sort_by",
+                                            "value": "name",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "sort_dir",
+                                            "value": "asc",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "min_price",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "max_price",
+                                            "value": "",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "Get category details with products; includes image_url (Public - no auth needed)"
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "Transactions - Get Details (Alias)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "H. My payments & transactions",
+                    "description": "Client payment history. `/api/shop/transactions` is an alias of `/api/shop/payments`.",
+                    "item": [
+                        {
+                            "name": "Payments - List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/payments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "payments"
+                                    ]
+                                },
+                                "description": "List all payment transactions for authenticated user"
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/transactions/{{payment_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "transactions",
-                                "{{payment_id}}"
-                            ]
                         },
-                        "description": "Get transaction details (alias for /api/shop/payments/{id})"
-                    }
+                        {
+                            "name": "Payments - Get Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/payments/{{payment_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "payments",
+                                        "{{payment_id}}"
+                                    ]
+                                },
+                                "description": "Get payment transaction details"
+                            }
+                        },
+                        {
+                            "name": "Transactions - List (Alias)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/transactions",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "transactions"
+                                    ]
+                                },
+                                "description": "List transactions (Alias for /api/shop/payments)"
+                            }
+                        },
+                        {
+                            "name": "Transactions - Get Details (Alias)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/transactions/{{payment_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "transactions",
+                                        "{{payment_id}}"
+                                    ]
+                                },
+                                "description": "Get transaction details (Alias for /api/shop/payments/{id})"
+                            }
+                        }
+                    ]
                 }
             ],
-            "description": "Shop: settings, cart, buy-now summary, checkout review, orders, payments list. **Payment start / capture / webhook** → **8a. Shop – Payments (Stripe & PayPal only)**."
+            "description": "**How to use:** open a **letter folder** (A→H). A=settings & totals · B=cart · C=checkout preview · D=`/api/shop/orders` · E=`/api/orders` (track/cancel here) · F=guest · G=public categories · H=payments. **Charge card / PayPal / RN:** folder **8a. Shop – Payments**."
         },
         {
             "name": "8a. Shop – Payments (Stripe & PayPal only)",
