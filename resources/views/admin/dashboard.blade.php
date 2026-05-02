@@ -13,22 +13,26 @@
         <p class="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl">{{ __('admin.dashboard_welcome') }}</p>
     </div>
 
+    @php
+        $jumpNavCatalog = 'inline-flex min-h-[2.75rem] items-center justify-center whitespace-nowrap rounded-xl border px-5 py-3 text-sm font-semibold leading-snug tracking-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/90 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/55 hover:border-indigo-300 dark:hover:border-indigo-500';
+        $jumpNavSection = 'inline-flex min-h-[2.75rem] items-center justify-center whitespace-nowrap rounded-xl border px-5 py-3 text-sm font-semibold leading-snug tracking-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-white dark:bg-gray-800/80 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-indigo-50/90 dark:hover:bg-indigo-950/35 hover:text-indigo-900 dark:hover:text-indigo-100';
+    @endphp
     <!-- Jump to Section - Sticky quick navigation (grouped) -->
     <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-4 py-4 md:-mx-4 md:px-5 lg:-mx-6 lg:px-6 mb-5 md:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg ring-1 ring-gray-200/50 dark:ring-gray-700/50">
         <p class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider mb-3">{{ __('admin.quick_navigation') }}</p>
-        <div class="flex flex-wrap gap-2.5 sm:gap-3">
-            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">{{ __('admin.catalog') }}</span>
-            <a href="{{ route('admin.products.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">{{ __('admin.products') }}</a>
-            <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">{{ __('admin.categories') }}</a>
-            <a href="{{ route('admin.services.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">{{ __('admin.services') }}</a>
-            <span class="w-px h-6 bg-gray-300 dark:bg-gray-600 self-center" aria-hidden="true"></span>
-            <a href="#key-metrics" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">{{ __('admin.key_metrics') }}</a>
-            <a href="#ecommerce" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">{{ __('admin.ecommerce_section') }}</a>
-            <a href="#manage-services" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors">{{ __('admin.manage_services') }}</a>
-            <a href="#orders-export-supplier" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.orders_export') }}</a>
-            <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.orders') }}</a>
-            <a href="{{ route('admin.banners.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.banners') }}</a>
-            <a href="{{ route('admin.packages.index') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">{{ __('admin.packages') }}</a>
+        <div class="flex flex-wrap items-center gap-3 sm:gap-3.5">
+            <span class="inline-flex min-h-[2.75rem] items-center rounded-lg bg-slate-100 dark:bg-slate-900/50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('admin.catalog') }}</span>
+            <a href="{{ route('admin.products.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.products') }}</a>
+            <a href="{{ route('admin.categories.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.categories') }}</a>
+            <a href="{{ route('admin.services.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.services') }}</a>
+            <span class="hidden h-9 w-px bg-slate-200 dark:bg-slate-600 sm:inline-block self-center" aria-hidden="true"></span>
+            <a href="#key-metrics" class="{{ $jumpNavSection }}">{{ __('admin.key_metrics') }}</a>
+            <a href="#ecommerce" class="{{ $jumpNavSection }}">{{ __('admin.ecommerce_section') }}</a>
+            <a href="#manage-services" class="{{ $jumpNavSection }}">{{ __('admin.manage_services') }}</a>
+            <a href="#orders-export-supplier" class="{{ $jumpNavSection }}">{{ __('admin.orders_export') }}</a>
+            <a href="{{ route('admin.orders.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.orders') }}</a>
+            <a href="{{ route('admin.banners.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.banners') }}</a>
+            <a href="{{ route('admin.packages.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.packages') }}</a>
         </div>
     </div>
 
@@ -36,17 +40,17 @@
     <div id="catalog-overview" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 class="text-lg font-bold text-gray-900 dark:text-gray-50 border-l-4 border-indigo-500 pl-3">{{ __('admin.catalog') }}</h2>
-        <div class="flex flex-wrap gap-2">
-                <a href="{{ route('admin.products.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        <div class="flex flex-wrap gap-2.5">
+                <a href="{{ route('admin.products.create') }}" class="inline-flex min-h-[2.5rem] items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold shadow-sm transition-colors bg-indigo-600 hover:bg-indigo-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                     {{ __('admin.new_product') }}
                 </a>
-                <a href="{{ route('admin.categories.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <a href="{{ route('admin.categories.create') }}" class="inline-flex min-h-[2.5rem] items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-700 px-4 py-2.5 text-xs font-semibold shadow-sm transition-colors bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                     {{ __('admin.new_category') }}
                 </a>
-                <a href="{{ route('admin.services.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/60 transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <a href="{{ route('admin.services.create') }}" class="inline-flex min-h-[2.5rem] items-center gap-2 rounded-xl border border-teal-200 dark:border-teal-800 px-4 py-2.5 text-xs font-semibold shadow-sm transition-colors bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 hover:bg-teal-100 dark:hover:bg-teal-900/45 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                     {{ __('admin.new_service') }}
                 </a>
             </div>
