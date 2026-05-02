@@ -540,6 +540,8 @@ Route::prefix('shop')->group(function () {
     Route::get('/payment-gateways', [\App\Http\Controllers\Shop\CheckoutController::class, 'publicPaymentGateways']);
     Route::middleware('optional.sanctum')->post('/checkout/start', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'startCheckout']);
     Route::post('/webhooks/stripe', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'stripeWebhook']);
+    // Alias for Stripe Dashboard "endpoint URL" (mobile contract): same handler as /webhooks/stripe
+    Route::post('/stripe/webhook', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'stripeWebhook']);
     Route::middleware('optional.sanctum')->post('/paypal/capture', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'capturePayPal']);
 
     // Guest order lookup (no auth): order_number + email
@@ -557,6 +559,8 @@ Route::prefix('shop')->group(function () {
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);
 
         Route::get('/checkout/payment-methods', [\App\Http\Controllers\Shop\CheckoutController::class, 'paymentMethods']);
+        Route::post('/checkout/stripe/payment-intent', [\App\Http\Controllers\Shop\ShopStripeMobileCheckoutController::class, 'paymentIntent']);
+        Route::post('/checkout/confirm', [\App\Http\Controllers\Shop\ShopStripeMobileCheckoutController::class, 'confirm']);
         Route::get('/checkout/review', [\App\Http\Controllers\Shop\CheckoutController::class, 'review']);
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);

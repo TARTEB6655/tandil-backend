@@ -194,8 +194,8 @@ class CartController extends Controller
         $orderSummary['discount'] = (float) $orderSummary['discount'];
         $orderSummary['shipping'] = (float) $orderSummary['shipping'];
         $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
+        $orderSummary['tax'] = (float) $orderSummary['tax'];
         $orderSummary['total'] = (float) $orderSummary['total'];
-        unset($orderSummary['tax']);
 
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
     }
@@ -221,8 +221,8 @@ class CartController extends Controller
         $orderSummary['discount'] = (float) $orderSummary['discount'];
         $orderSummary['shipping'] = (float) $orderSummary['shipping'];
         $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
+        $orderSummary['tax'] = (float) $orderSummary['tax'];
         $orderSummary['total'] = (float) $orderSummary['total'];
-        unset($orderSummary['tax']);
 
         return ApiResponse::success('Buy now summary retrieved.', [
             'item' => $item,

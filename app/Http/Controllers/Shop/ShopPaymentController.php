@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use App\Services\ShopCheckoutOrderService;
+use App\Services\ShopStripeMobilePaymentService;
 use App\Services\StripeCheckoutSessionService;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
@@ -192,6 +193,13 @@ class ShopPaymentController extends Controller
                     $order->save();
                     $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'Stripe');
                 }
+            }
+        }
+
+        if (($event['type'] ?? '') === 'payment_intent.succeeded') {
+            $pi = $event['data']['object'] ?? [];
+            if (is_array($pi)) {
+                app(ShopStripeMobilePaymentService::class)->fulfillFromWebhookPaymentIntent($pi);
             }
         }
 

@@ -63,7 +63,7 @@ class CheckoutController extends Controller
     }
 
     /**
-     * @return list<array{id: string, type: string, label: string, enabled: bool}>
+     * @return list<array{id: string, type: string, label: string, name: string, enabled: bool}>
      */
     protected function stripePayPalMethods(): array
     {
@@ -72,12 +72,14 @@ class CheckoutController extends Controller
                 'id' => 'stripe',
                 'type' => 'stripe',
                 'label' => 'Stripe',
+                'name' => 'Stripe',
                 'enabled' => StripeCredentials::isStripeUsableForCheckout(),
             ],
             [
                 'id' => 'paypal',
                 'type' => 'paypal',
                 'label' => 'PayPal',
+                'name' => 'PayPal',
                 'enabled' => $this->settingEnabled('paypal_enabled'),
             ],
         ];
