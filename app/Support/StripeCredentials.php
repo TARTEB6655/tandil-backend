@@ -41,8 +41,10 @@ final class StripeCredentials
     }
 
     /**
-     * Shop/API may use Stripe if a secret is configured and either admin enabled it
-     * or the app runs in local/testing (so .env sandbox keys work without toggling admin).
+     * Shop/API may use Stripe when a secret key is configured (DB admin keys or .env).
+     * If the `stripe_enabled` setting row exists in the database and is explicitly off,
+     * checkout stays disabled even when keys are present (admin kill-switch).
+     * When that row does not exist, keys in .env alone are enough (e.g. production).
      */
     public static function isStripeUsableForCheckout(): bool
     {
@@ -50,10 +52,11 @@ final class StripeCredentials
             return false;
         }
 
-        if (self::adminStripeEnabled()) {
-            return true;
+        $row = Setting::query()->where('key', 'stripe_enabled')->first();
+        if ($row !== null) {
+            return self::adminStripeEnabled();
         }
 
-        return app()->environment('local', 'testing');
+        return true;
     }
 }
