@@ -32,6 +32,8 @@ class ShopStripeMobilePaymentService
             return $this->err('Stripe is not enabled or not configured.', 422);
         }
 
+        $this->mergeNormalizedShipping($request);
+
         $request->validate([
             'is_buy_now' => 'sometimes|boolean',
             'product_id' => 'required_if:is_buy_now,true|nullable|exists:products,id',
@@ -39,12 +41,15 @@ class ShopStripeMobilePaymentService
             'qty' => 'sometimes|integer|min:1',
             'shipping' => 'required|array',
             'shipping.full_name' => 'required|string|max:255',
-            'shipping.phone' => 'required|string|max:30',
+            'shipping.phone' => 'required|string|max:40',
             'shipping.street' => 'required|string|max:500',
+            'shipping.line2' => 'nullable|string|max:500',
             'shipping.city' => 'required|string|max:100',
             'shipping.state' => 'nullable|string|max:100',
             'shipping.zip_code' => 'nullable|string|max:20',
             'shipping.country' => 'required|string|max:100',
+            'shipping.company' => 'nullable|string|max:255',
+            'shipping.email' => 'nullable|email|max:255',
         ]);
 
         $isBuyNow = $request->boolean('is_buy_now');
@@ -94,10 +99,13 @@ class ShopStripeMobilePaymentService
             'full_name' => $ship['full_name'],
             'phone_number' => $ship['phone'],
             'street_address' => $ship['street'],
+            'line2' => $ship['line2'] ?? '',
             'city' => $ship['city'],
             'state' => $ship['state'] ?? '',
             'zip_code' => $ship['zip_code'] ?? '',
             'country' => $ship['country'],
+            'company' => $ship['company'] ?? '',
+            'email' => $ship['email'] ?? '',
         ];
 
         $checkoutRef = (string) Str::ulid();
@@ -105,38 +113,103 @@ class ShopStripeMobilePaymentService
 
         $fullName = trim((string) $ship['full_name']);
         $phone = trim((string) $ship['phone']);
-        $countryCode = self::stripeCountryCode((string) ($ship['country'] ?? ''));
+        $street = trim((string) $ship['street']);
+        $line2 = trim((string) ($ship['line2'] ?? ''));
+        $city = trim((string) $ship['city']);
+        $state = trim((string) ($ship['state'] ?? ''));
+        $zip = trim((string) ($ship['zip_code'] ?? ''));
+        $countryRaw = trim((string) ($ship['country'] ?? ''));
+        $company = trim((string) ($ship['company'] ?? ''));
+        $shipEmail = trim((string) ($ship['email'] ?? ''));
+        $countryCode = self::stripeCountryCode($countryRaw);
+
+        $cartPreview = $this->cartPreviewLabel($preview['items']);
+        $accountName = trim((string) ($user->name ?? ''));
+        $accountPhone = trim((string) ($user->phone ?? ''));
+        $userEmail = trim((string) ($user->email ?? ''));
+
+        $receiptEmail = '';
+        if ($userEmail !== '' && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+            $receiptEmail = $userEmail;
+        } elseif ($shipEmail !== '' && filter_var($shipEmail, FILTER_VALIDATE_EMAIL)) {
+            $receiptEmail = $shipEmail;
+        }
+
+        $descParts = array_filter([
+            'Shop',
+            $fullName !== '' ? $fullName : null,
+            $city !== '' ? $city : null,
+            $countryRaw !== '' ? $countryRaw : null,
+            $phone !== '' ? $phone : null,
+        ]);
+        $description = Str::limit(implode(' · ', $descParts), 999);
 
         $form = [
             'amount' => $amountMinor,
             'currency' => $currency,
             'automatic_payment_methods[enabled]' => 'true',
-            'description' => 'Shop — '.Str::limit($fullName, 200),
+            'description' => $description,
             'metadata[checkout_ref]' => $checkoutRef,
             'metadata[user_id]' => (string) $user->id,
-            'metadata[customer_name]' => Str::limit($fullName, 450),
-            'metadata[customer_phone]' => Str::limit($phone, 40),
+            'metadata[ship_full_name]' => Str::limit($fullName, 500),
+            'metadata[ship_phone]' => Str::limit($phone, 500),
+            'metadata[ship_street]' => Str::limit($street, 500),
+            'metadata[ship_line2]' => Str::limit($line2, 500),
+            'metadata[ship_city]' => Str::limit($city, 500),
+            'metadata[ship_state]' => Str::limit($state, 500),
+            'metadata[ship_zip]' => Str::limit($zip, 500),
+            'metadata[ship_country_raw]' => Str::limit($countryRaw, 500),
+            'metadata[ship_country_iso]' => $countryCode,
+            'metadata[ship_company]' => Str::limit($company, 500),
+            'metadata[ship_email]' => Str::limit($shipEmail, 500),
+            'metadata[account_name]' => Str::limit($accountName, 500),
+            'metadata[account_phone]' => Str::limit($accountPhone, 500),
+            'metadata[account_email]' => Str::limit($userEmail, 500),
+            'metadata[cart_preview]' => Str::limit($cartPreview, 500),
+            'metadata[order_total]' => (string) $total,
+            'metadata[currency]' => strtoupper($currency),
         ];
 
-        $userEmail = trim((string) ($user->email ?? ''));
-        if ($userEmail !== '' && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-            $form['metadata[customer_email]'] = Str::limit($userEmail, 450);
-            $form['receipt_email'] = $userEmail;
+        if ($receiptEmail !== '') {
+            $form['receipt_email'] = $receiptEmail;
         }
 
         // Shown on Stripe PaymentIntent / receipt; country must be ISO-3166-1 alpha-2
         $form['shipping[name]'] = Str::limit($fullName, 500);
         $form['shipping[phone]'] = Str::limit($phone, 20);
-        $form['shipping[address][line1]'] = Str::limit((string) $ship['street'], 500);
-        $form['shipping[address][city]'] = Str::limit((string) $ship['city'], 100);
-        if (! empty($ship['state'])) {
-            $form['shipping[address][state]'] = Str::limit((string) $ship['state'], 100);
+        $form['shipping[address][line1]'] = Str::limit($street, 500);
+        if ($line2 !== '') {
+            $form['shipping[address][line2]'] = Str::limit($line2, 500);
         }
-        $zip = trim((string) ($ship['zip_code'] ?? ''));
+        $form['shipping[address][city]'] = Str::limit($city, 100);
+        if ($state !== '') {
+            $form['shipping[address][state]'] = Str::limit($state, 100);
+        }
         if ($zip !== '') {
             $form['shipping[address][postal_code]'] = Str::limit($zip, 20);
         }
         $form['shipping[address][country]'] = $countryCode;
+
+        foreach ($form as $k => $v) {
+            if (str_starts_with((string) $k, 'metadata[') && ($v === '' || $v === null)) {
+                unset($form[$k]);
+            }
+        }
+
+        $customerId = $this->findOrCreateStripeCustomer($secret, $user, [
+            'full_name' => $fullName,
+            'phone' => $phone,
+            'street' => $street,
+            'line2' => $line2,
+            'city' => $city,
+            'state' => $state,
+            'zip' => $zip,
+            'country' => $countryCode,
+            'email' => $receiptEmail !== '' ? $receiptEmail : ($shipEmail !== '' ? $shipEmail : null),
+        ]);
+        if ($customerId !== null) {
+            $form['customer'] = $customerId;
+        }
 
         $resp = Http::withToken($secret)
             ->withHeaders(['Idempotency-Key' => 'smc_'.$checkoutRef])
@@ -340,12 +413,16 @@ class ShopStripeMobilePaymentService
     protected function buildPaidOrder(User $user, ShopMobileCheckout $row, string $paymentIntentId): Order
     {
         $ship = $row->shipping_json;
+        $street = trim((string) ($ship['street_address'] ?? ''));
+        $line2 = trim((string) ($ship['line2'] ?? ''));
+        $streetCombined = $street.($line2 !== '' ? "\n".$line2 : '');
+
         $address = UserAddress::create([
             'user_id' => $user->id,
             'type' => 'home',
             'full_name' => $ship['full_name'],
             'phone_number' => $ship['phone_number'],
-            'street_address' => $ship['street_address'],
+            'street_address' => $streetCombined !== '' ? $streetCombined : $street,
             'city' => $ship['city'],
             'state' => $ship['state'] ?: null,
             'zip_code' => $ship['zip_code'] ?: null,
@@ -415,6 +492,126 @@ class ShopStripeMobilePaymentService
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Merge camelCase / alternate keys from the mobile app into canonical `shipping.*` keys before validation.
+     */
+    protected function mergeNormalizedShipping(Request $request): void
+    {
+        $s = $request->input('shipping');
+        if (! is_array($s)) {
+            return;
+        }
+
+        $canonical = [
+            'full_name' => self::pickShippingString($s, ['full_name', 'fullName']),
+            'phone' => self::pickShippingString($s, ['phone', 'phone_number', 'phoneNumber', 'mobile', 'mobile_number']),
+            'street' => self::pickShippingString($s, ['street', 'street_address', 'address', 'line1', 'addressLine1']),
+            'line2' => self::pickShippingString($s, ['line2', 'address_line_2', 'addressLine2', 'apartment', 'suite', 'unit']),
+            'city' => self::pickShippingString($s, ['city']),
+            'state' => self::pickShippingString($s, ['state', 'province', 'region']),
+            'zip_code' => self::pickShippingString($s, ['zip_code', 'zipCode', 'postal_code', 'postalCode']),
+            'country' => self::pickShippingString($s, ['country', 'country_code', 'countryCode']),
+            'company' => self::pickShippingString($s, ['company', 'organization', 'business_name']),
+            'email' => self::pickShippingString($s, ['email', 'contact_email']),
+        ];
+
+        $request->merge(['shipping' => array_merge($s, array_filter($canonical, fn ($v) => $v !== ''))]);
+    }
+
+    /**
+     * @param  array<int, string>  $keys
+     */
+    protected static function pickShippingString(array $shipping, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $shipping)) {
+                continue;
+            }
+            $v = $shipping[$key];
+            if ($v === null) {
+                continue;
+            }
+            $t = is_string($v) ? trim($v) : (is_numeric($v) ? trim((string) $v) : '');
+            if ($t !== '') {
+                return $t;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Cart>|\Illuminate\Database\Eloquent\Collection  $items
+     */
+    protected function cartPreviewLabel($items): string
+    {
+        $parts = [];
+        foreach ($items as $cart) {
+            if ($cart->product === null) {
+                continue;
+            }
+            $parts[] = $cart->product->name.' ×'.(int) $cart->quantity;
+        }
+
+        return Str::limit(implode(', ', $parts), 500);
+    }
+
+    /**
+     * Stable Stripe Customer per app user (idempotent create) + latest name/phone/address update.
+     *
+     * @param  array{full_name: string, phone: string, street: string, line2: string, city: string, state: string, zip: string, country: string, email: ?string}  $addr
+     */
+    protected function findOrCreateStripeCustomer(string $secret, User $user, array $addr): ?string
+    {
+        $idemp = 'tandil_cst_uid_'.$user->id;
+
+        $createBody = ['metadata[app_user_id]' => (string) $user->id];
+        $email = $addr['email'] ?? null;
+        if (is_string($email) && $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $createBody['email'] = $email;
+        }
+
+        $create = Http::withToken($secret)
+            ->withHeaders(['Idempotency-Key' => $idemp])
+            ->asForm()
+            ->post('https://api.stripe.com/v1/customers', $createBody);
+
+        if (! $create->successful()) {
+            Log::warning('Stripe customer create failed', ['body' => $create->body()]);
+
+            return null;
+        }
+
+        $id = $create->json('id');
+        if (! is_string($id) || $id === '') {
+            return null;
+        }
+
+        $update = [
+            'name' => Str::limit($addr['full_name'], 256),
+            'phone' => Str::limit($addr['phone'], 20),
+            'address[line1]' => Str::limit($addr['street'], 500),
+            'address[city]' => Str::limit($addr['city'], 100),
+            'address[country]' => $addr['country'],
+        ];
+        if ($addr['line2'] !== '') {
+            $update['address[line2]'] = Str::limit($addr['line2'], 500);
+        }
+        if ($addr['state'] !== '') {
+            $update['address[state]'] = Str::limit($addr['state'], 100);
+        }
+        if ($addr['zip'] !== '') {
+            $update['address[postal_code]'] = Str::limit($addr['zip'], 20);
+        }
+
+        $patch = Http::withToken($secret)->asForm()->post('https://api.stripe.com/v1/customers/'.$id, $update);
+        if (! $patch->successful()) {
+            Log::warning('Stripe customer update failed', ['customer' => $id, 'body' => $patch->body()]);
+        }
+
+        return $id;
     }
 
     /**

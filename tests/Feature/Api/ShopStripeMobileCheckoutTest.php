@@ -83,6 +83,12 @@ class ShopStripeMobileCheckoutTest extends TestCase
                     'amount' => $amountMinor,
                 ], 200);
             }
+            if ($request->method() === 'POST' && preg_match('#/v1/customers/cus_[a-zA-Z0-9_]+$#', $url)) {
+                return Http::response(['id' => 'cus_test_pi'], 200);
+            }
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_test_pi'], 200);
+            }
             if (str_contains($url, 'payment_intents') && $request->method() === 'POST') {
                 return Http::response([
                     'id' => 'pi_test_abc123',
@@ -139,6 +145,12 @@ class ShopStripeMobileCheckoutTest extends TestCase
                     'status' => 'succeeded',
                     'amount' => $amountMinor,
                 ], 200);
+            }
+            if ($request->method() === 'POST' && preg_match('#/v1/customers/cus_[a-zA-Z0-9_]+$#', $url)) {
+                return Http::response(['id' => 'cus_test_dup'], 200);
+            }
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_test_dup'], 200);
             }
             if (str_contains($url, 'payment_intents') && $request->method() === 'POST') {
                 return Http::response([
