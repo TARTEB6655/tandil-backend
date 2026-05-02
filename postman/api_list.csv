@@ -63,10 +63,10 @@
 62,8. Client Dashboard – Shop & Orders,PUT,/api/shop/cart/{id},Done
 63,8. Client Dashboard – Shop & Orders,DELETE,/api/shop/cart/{id},Done
 64,8. Client Dashboard – Shop & Orders,GET,/api/shop/checkout/payment-methods,Done
-65,8. Client Dashboard – Shop & Orders,POST,/api/shop/create-payment-session,Done
+65,8. Client Dashboard – Shop & Orders,POST,/api/shop/checkout/start,Done
 66,8. Client Dashboard – Shop & Orders,GET,/api/shop/checkout/review,Done
 67,8. Client Dashboard – Shop & Orders,POST,/api/shop/checkout,Done
-68,8. Client Dashboard – Shop & Orders,POST,/api/shop/webhooks/checkout-com,Done
+68,8. Client Dashboard – Shop & Orders,POST,/api/shop/webhooks/stripe,Done
 69,8. Client Dashboard – Shop & Orders,GET,/api/shop/orders/guest,Done
 70,8. Client Dashboard – Shop & Orders,GET,/api/shop/orders/guest/track,Done
 71,8. Client Dashboard – Shop & Orders,GET,/api/shop/orders,Done

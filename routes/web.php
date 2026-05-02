@@ -1,38 +1,36 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
-use App\Http\Controllers\ProfileController;
-
-// Dashboard Controllers for roles
 use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\RoleController;
-use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\CategoryController;
-use App\Http\Controllers\Admin\TipController;
-use App\Http\Controllers\Admin\SubscriptionController;
-use App\Http\Controllers\Admin\SubscriptionPlanController;
-use App\Http\Controllers\Admin\VisitController;
-use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\ReportManagementController;
 use App\Http\Controllers\Admin\AreaController;
-use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\AuditLogController;
+// Dashboard Controllers for roles
+use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ComplaintController;
 use App\Http\Controllers\Admin\HrController;
-use App\Http\Controllers\Admin\SettingController;
-use App\Http\Controllers\Admin\AuditLogController;
-use App\Http\Controllers\Admin\BannerController;
-use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PackageController;
+use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ReportManagementController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\SubscriptionController;
+use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SupportTicketWebController;
-
+use App\Http\Controllers\Admin\TipController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VisitController;
+use App\Http\Controllers\AreaManager\AreaManagerDashboardController;
+use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\HR\HrDashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
 use App\Http\Controllers\Technician\TechnicianDashboardController;
-use App\Http\Controllers\Client\ClientDashboardController;
-use App\Http\Controllers\AreaManager\AreaManagerDashboardController;
-use App\Http\Controllers\HR\HrDashboardController;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,6 +54,7 @@ Route::get('/media/{path}', function (string $path) {
     }
     $fullPath = Storage::disk('public')->path($path);
     $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
+
     return response()->file($fullPath, ['Content-Type' => $mime]);
 })->where('path', '.*')->name('storage.serve');
 
@@ -65,12 +64,14 @@ Route::get('/', function () {
         if (auth()->check()) {
             return redirect()->route('dashboard.redirect');
         }
+
         return redirect()->route('login');
     } catch (\Throwable $e) {
         \Illuminate\Support\Facades\Log::error('Root route error', [
             'message' => $e->getMessage(),
             'trace' => $e->getTraceAsString(),
         ]);
+
         return redirect('/login');
     }
 });
@@ -103,6 +104,7 @@ Route::middleware('auth')->get('/dashboard-redirect', function () {
                 return redirect()->route('hr.dashboard');
             default:
                 auth()->logout();
+
                 return redirect()->route('login');
         }
     } catch (\Throwable $e) {
@@ -110,6 +112,7 @@ Route::middleware('auth')->get('/dashboard-redirect', function () {
             'message' => $e->getMessage(),
             'trace' => $e->getTraceAsString(),
         ]);
+
         return redirect('/login');
     }
 })->name('dashboard.redirect');
@@ -129,6 +132,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('/locale', function (\Illuminate\Http\Request $request) {
             $locale = $request->validate(['locale' => 'required|string|in:en,ar,ur'])['locale'];
             session(['admin_locale' => $locale]);
+
             return redirect()->back();
         })->name('locale');
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
@@ -138,7 +142,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::resource('users', UserController::class);
         Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
         Route::post('users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
-        
+
         Route::resource('roles', RoleController::class);
         Route::resource('products', ProductController::class);
         Route::get('products/import', [ProductController::class, 'showImport'])->name('products.import');
@@ -148,7 +152,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('products/bulk-update-status', [ProductController::class, 'bulkUpdateStatus'])->name('products.bulk-update-status');
         Route::post('products/bulk-update-stock', [ProductController::class, 'bulkUpdateStock'])->name('products.bulk-update-stock');
         Route::post('products/{id}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle-status');
-        
+
         Route::resource('categories', CategoryController::class);
         Route::get('services', [\App\Http\Controllers\Admin\ServicesController::class, 'index'])->name('services.index');
         Route::get('services/create', [\App\Http\Controllers\Admin\ServicesController::class, 'create'])->name('services.create');
@@ -158,13 +162,13 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('subscriptions/{id}/extend', [SubscriptionController::class, 'extend'])->name('subscriptions.extend');
         Route::post('subscriptions/{id}/activate', [SubscriptionController::class, 'activate'])->name('subscriptions.activate');
         Route::post('subscriptions/{id}/deactivate', [SubscriptionController::class, 'deactivate'])->name('subscriptions.deactivate');
-        
+
         Route::resource('subscription-plans', SubscriptionPlanController::class)->except(['create', 'store', 'destroy']);
-        
+
         Route::resource('visits', VisitController::class);
         Route::post('visits/{id}/assign-technician', [VisitController::class, 'assignTechnician'])->name('visits.assign-technician');
         Route::post('visits/{id}/assign-supervisor', [VisitController::class, 'assignSupervisor'])->name('visits.assign-supervisor');
-        
+
         Route::resource('reports', ReportController::class);
         Route::post('reports/{id}/approve', [ReportController::class, 'approve'])->name('reports.approve');
         Route::post('reports/{id}/send-to-client', [ReportController::class, 'sendToClient'])->name('reports.send-to-client');
@@ -179,7 +183,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('report-management/{id}/download', [ReportManagementController::class, 'download'])->name('report-management.download');
         Route::post('report-management/{id}/cancel', [ReportManagementController::class, 'cancel'])->name('report-management.cancel');
         Route::delete('report-management/{id}', [ReportManagementController::class, 'destroy'])->name('report-management.destroy');
-        
+
         Route::get('zone-assignment', [AreaController::class, 'zoneAssignment'])->name('zone-assignment.index');
         Route::resource('areas', AreaController::class);
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
@@ -189,15 +193,15 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('orders/{id}/mark-paid', [OrderController::class, 'markPaid'])->name('orders.mark-paid');
         Route::post('orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
         Route::post('orders/{id}/refund', [OrderController::class, 'refund'])->name('orders.refund');
-        
+
         Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('payments/gateway/{gateway}', [PaymentController::class, 'updateGateway'])->name('payments.update-gateway');
         Route::get('payments/transaction/{id}', [PaymentController::class, 'showTransaction'])->name('payments.transaction');
-        
+
         Route::resource('complaints', ComplaintController::class)->only(['index', 'show']);
         Route::post('complaints/{id}/update-status', [ComplaintController::class, 'updateStatus'])->name('complaints.update-status');
         Route::post('complaints/{id}/assign-supervisor', [ComplaintController::class, 'assignSupervisor'])->name('complaints.assign-supervisor');
-        
+
         Route::resource('hr', HrController::class);
         Route::resource('settings', SettingController::class)->only(['index']);
         Route::get('settings/all', [SettingController::class, 'all'])->name('settings.all');
@@ -234,9 +238,9 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('settings/integrations', [SettingController::class, 'updateIntegrationsSettings'])->name('settings.integrations');
         Route::get('settings/client-dashboard', [SettingController::class, 'clientDashboardDesign'])->name('settings.client-dashboard');
         Route::post('settings/client-dashboard', [SettingController::class, 'updateClientDashboardDesign'])->name('settings.client-dashboard.store');
-        
+
         Route::resource('audit-logs', AuditLogController::class)->only(['index', 'show']);
-        
+
         // Banner routes - define specific routes before resource to avoid conflicts
         Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
@@ -246,7 +250,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::put('packages/{id}', [PackageController::class, 'update'])->name('packages.update');
         Route::resource('tips', TipController::class);
         Route::post('tips/{id}/toggle-status', [TipController::class, 'toggleStatus'])->name('tips.toggle-status');
-        
+
         // Notifications routes
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
@@ -267,7 +271,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('support-tickets/{id}/reply', [SupportTicketWebController::class, 'reply'])->name('support-tickets.reply');
         Route::put('support-tickets/{id}/status', [SupportTicketWebController::class, 'updateStatus'])->name('support-tickets.update-status');
         Route::delete('support-tickets/{id}', [SupportTicketWebController::class, 'destroy'])->name('support-tickets.destroy');
-        
+
         // Analytics API routes
         Route::prefix('analytics')->name('analytics.')->group(function () {
             Route::get('revenue', [\App\Http\Controllers\Admin\AnalyticsController::class, 'revenue'])->name('revenue');
@@ -293,24 +297,24 @@ Route::middleware(['auth', 'role:supervisor'])
         Route::get('/team/{id}', [\App\Http\Controllers\Supervisor\TeamController::class, 'show'])->name('team.show');
         Route::get('/assign-jobs', [\App\Http\Controllers\Supervisor\TeamController::class, 'assignJobs'])->name('assign-jobs.index');
         Route::post('/assign-jobs', [\App\Http\Controllers\Supervisor\TeamController::class, 'assignJobStore'])->name('assign-jobs.store');
-        
+
         // Visits
         Route::get('/visits', [\App\Http\Controllers\Supervisor\VisitController::class, 'index'])->name('visits.index');
         Route::get('/visits/{id}', [\App\Http\Controllers\Supervisor\VisitController::class, 'show'])->name('visits.show');
         Route::post('/visits/{id}/approve', [\App\Http\Controllers\Supervisor\VisitController::class, 'approve'])->name('visits.approve');
         Route::post('/visits/{id}/reject', [\App\Http\Controllers\Supervisor\VisitController::class, 'reject'])->name('visits.reject');
-        
+
         // Reports
         Route::get('/reports', [\App\Http\Controllers\Supervisor\ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{id}', [\App\Http\Controllers\Supervisor\ReportController::class, 'show'])->name('reports.show');
         Route::get('/reports/{id}/review', [\App\Http\Controllers\Supervisor\ReportController::class, 'review'])->name('reports.review');
         Route::post('/reports/{id}/finalize', [\App\Http\Controllers\Supervisor\ReportController::class, 'finalize'])->name('reports.finalize');
-        
+
         // Complaints
         Route::get('/complaints', [\App\Http\Controllers\Supervisor\ComplaintController::class, 'index'])->name('complaints.index');
         Route::get('/complaints/{id}', [\App\Http\Controllers\Supervisor\ComplaintController::class, 'show'])->name('complaints.show');
         Route::post('/complaints/{id}/update', [\App\Http\Controllers\Supervisor\ComplaintController::class, 'update'])->name('complaints.update');
-        
+
         // Areas
         Route::get('/areas', [\App\Http\Controllers\Supervisor\AreaController::class, 'index'])->name('areas.index');
 
@@ -322,7 +326,7 @@ Route::middleware(['auth', 'role:supervisor'])
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
         Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
-        
+
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Supervisor\NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{id}', [\App\Http\Controllers\Supervisor\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
@@ -345,7 +349,7 @@ Route::middleware(['auth', 'role:technician'])
     ->name('technician.')
     ->group(function () {
         Route::get('/dashboard', [TechnicianDashboardController::class, 'index'])->name('dashboard');
-        
+
         // Visits
         Route::get('/visits', [\App\Http\Controllers\Technician\VisitController::class, 'index'])->name('visits.index');
         Route::get('/visits/{id}', [\App\Http\Controllers\Technician\VisitController::class, 'show'])->name('visits.show');
@@ -354,21 +358,21 @@ Route::middleware(['auth', 'role:technician'])
         Route::post('/visits/{id}/complete', [\App\Http\Controllers\Technician\VisitController::class, 'complete'])->name('visits.complete');
         Route::post('/visits/{id}/update-notes', [\App\Http\Controllers\Technician\VisitController::class, 'updateNotes'])->name('visits.update-notes');
         Route::post('/visits/{id}/photos', [\App\Http\Controllers\Technician\VisitController::class, 'uploadPhoto'])->name('visits.upload-photo');
-        
+
         // Reports
         Route::get('/reports', [\App\Http\Controllers\Technician\ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/create', [\App\Http\Controllers\Technician\ReportController::class, 'create'])->name('reports.create');
         Route::post('/reports', [\App\Http\Controllers\Technician\ReportController::class, 'store'])->name('reports.store');
         Route::get('/reports/{id}', [\App\Http\Controllers\Technician\ReportController::class, 'show'])->name('reports.show');
-        
+
         // Complaints
         Route::get('/complaints', [\App\Http\Controllers\Technician\ComplaintController::class, 'index'])->name('complaints.index');
         Route::get('/complaints/{id}', [\App\Http\Controllers\Technician\ComplaintController::class, 'show'])->name('complaints.show');
-        
+
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
         Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
-        
+
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Technician\NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{id}', [\App\Http\Controllers\Technician\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
@@ -391,33 +395,45 @@ Route::middleware(['auth', 'role:client'])
     ->name('client.')
     ->group(function () {
         Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
-        
+
         // Subscriptions
         Route::get('/subscriptions', [\App\Http\Controllers\Client\SubscriptionController::class, 'index'])->name('subscriptions.index');
         Route::get('/subscriptions/{id}', [\App\Http\Controllers\Client\SubscriptionController::class, 'show'])->name('subscriptions.show');
-        
+
         // Visits
         Route::get('/visits', [\App\Http\Controllers\Client\VisitController::class, 'index'])->name('visits.index');
         Route::get('/visits/{id}', [\App\Http\Controllers\Client\VisitController::class, 'show'])->name('visits.show');
-        
+
         // Reports
         Route::get('/reports', [\App\Http\Controllers\Client\ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{id}', [\App\Http\Controllers\Client\ReportController::class, 'show'])->name('reports.show');
-        
+
         // Orders
         Route::get('/orders', [\App\Http\Controllers\Client\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{id}', [\App\Http\Controllers\Client\OrderController::class, 'show'])->name('orders.show');
 
+        // Shop (cart & checkout – Stripe / PayPal only)
+        Route::get('/shop', [\App\Http\Controllers\Client\ShopController::class, 'index'])->name('shop.index');
+        Route::get('/cart', [\App\Http\Controllers\Client\CartController::class, 'index'])->name('cart.index');
+        Route::post('/cart/add', [\App\Http\Controllers\Client\CartController::class, 'add'])->name('cart.add');
+        Route::put('/cart/{id}', [\App\Http\Controllers\Client\CartController::class, 'update'])->name('cart.update');
+        Route::delete('/cart/{id}', [\App\Http\Controllers\Client\CartController::class, 'remove'])->name('cart.remove');
+        Route::post('/cart/clear', [\App\Http\Controllers\Client\CartController::class, 'clear'])->name('cart.clear');
+        Route::get('/checkout', [\App\Http\Controllers\Client\CheckoutController::class, 'index'])->name('checkout.index');
+        Route::post('/checkout/process', [\App\Http\Controllers\Client\CheckoutController::class, 'process'])->name('checkout.process');
+        Route::get('/checkout/success/{order_id}', [\App\Http\Controllers\Client\CheckoutController::class, 'success'])->name('checkout.success');
+        Route::get('/checkout/cancel/{order_id}', [\App\Http\Controllers\Client\CheckoutController::class, 'cancel'])->name('checkout.cancel');
+
         // Services (place service orders – categories with products)
         Route::get('/services', [\App\Http\Controllers\Client\ServiceController::class, 'index'])->name('services.index');
         Route::get('/services/category/{id}', [\App\Http\Controllers\Client\ServiceController::class, 'showCategory'])->name('services.category');
-        
+
         // Complaints
         Route::get('/complaints', [\App\Http\Controllers\Client\ComplaintController::class, 'index'])->name('complaints.index');
         Route::get('/complaints/create', [\App\Http\Controllers\Client\ComplaintController::class, 'create'])->name('complaints.create');
         Route::post('/complaints', [\App\Http\Controllers\Client\ComplaintController::class, 'store'])->name('complaints.store');
         Route::get('/complaints/{id}', [\App\Http\Controllers\Client\ComplaintController::class, 'show'])->name('complaints.show');
-        
+
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
         Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
@@ -453,15 +469,15 @@ Route::middleware(['auth', 'role:area_manager'])
     ->name('areamanager.')
     ->group(function () {
         Route::get('/dashboard', [AreaManagerDashboardController::class, 'index'])->name('dashboard');
-        
+
         // Areas
         Route::get('/areas', [\App\Http\Controllers\AreaManager\AreaController::class, 'index'])->name('areas.index');
         Route::get('/areas/{id}', [\App\Http\Controllers\AreaManager\AreaController::class, 'show'])->name('areas.show');
-        
+
         // Visits
         Route::get('/visits', [\App\Http\Controllers\AreaManager\VisitController::class, 'index'])->name('visits.index');
         Route::get('/visits/{id}', [\App\Http\Controllers\AreaManager\VisitController::class, 'show'])->name('visits.show');
-        
+
         // Reports
         Route::get('/reports', [\App\Http\Controllers\AreaManager\ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{id}', [\App\Http\Controllers\AreaManager\ReportController::class, 'show'])->name('reports.show');
@@ -476,7 +492,7 @@ Route::middleware(['auth', 'role:area_manager'])
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
         Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
-        
+
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\AreaManager\NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{id}', [\App\Http\Controllers\AreaManager\NotificationController::class, 'show'])->name('notifications.show');
@@ -525,11 +541,11 @@ Route::middleware(['auth', 'role:hr'])
         Route::get('/leave-requests/{id}', [\App\Http\Controllers\HR\LeaveRequestController::class, 'show'])->name('leave-requests.show');
         Route::post('/leave-requests/{id}/approve', [\App\Http\Controllers\HR\LeaveRequestController::class, 'approve'])->name('leave-requests.approve');
         Route::post('/leave-requests/{id}/reject', [\App\Http\Controllers\HR\LeaveRequestController::class, 'reject'])->name('leave-requests.reject');
-        
+
         // Tips
         Route::get('/tips', [\App\Http\Controllers\Tips\TipWebController::class, 'index'])->name('tips.index');
         Route::get('/tips/{id}', [\App\Http\Controllers\Tips\TipWebController::class, 'show'])->name('tips.show');
-        
+
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\HR\NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{id}', [\App\Http\Controllers\HR\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');

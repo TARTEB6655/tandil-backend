@@ -85,45 +85,29 @@
                     <h2 class="text-lg font-semibold text-gray-900 mb-4">Payment Method</h2>
                     
                     <div class="space-y-3">
-                        <!-- PayPal -->
                         <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-indigo-500 transition-colors">
-                            <input type="radio" name="payment_method" value="paypal" required class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                            <input type="radio" name="payment_method" value="stripe" checked class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                            <div class="ml-3 flex-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-base font-medium text-gray-900">Stripe</span>
+                                    <svg class="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                    </svg>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1">Pay with card (secure checkout)</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-indigo-500 transition-colors">
+                            <input type="radio" name="payment_method" value="paypal" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
                             <div class="ml-3 flex-1">
                                 <div class="flex items-center justify-between">
                                     <span class="text-base font-medium text-gray-900">PayPal</span>
                                     <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg" alt="PayPal" class="h-8">
                                 </div>
-                                <p class="text-sm text-gray-500 mt-1">Pay securely with your PayPal account</p>
+                                <p class="text-sm text-gray-500 mt-1">Pay with your PayPal account</p>
                             </div>
                         </label>
-
-                        <!-- Cash on Delivery -->
-                        <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-indigo-500 transition-colors">
-                            <input type="radio" name="payment_method" value="cash_on_delivery" required class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
-                            <div class="ml-3 flex-1">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-base font-medium text-gray-900">Cash on Delivery</span>
-                                    <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                </div>
-                                <p class="text-sm text-gray-500 mt-1">Pay when you receive your order</p>
-                            </div>
-                        </label>
-
-                        <!-- Stripe (Coming Soon) -->
-                        <div class="flex items-center p-4 border-2 border-gray-200 rounded-lg opacity-50 cursor-not-allowed">
-                            <input type="radio" disabled class="w-4 h-4 text-gray-400">
-                            <div class="ml-3 flex-1">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-base font-medium text-gray-500">Credit/Debit Card (Coming Soon)</span>
-                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                    </svg>
-                                </div>
-                                <p class="text-sm text-gray-400 mt-1">Pay with your credit or debit card</p>
-                            </div>
-                        </div>
                     </div>
                     
                     @error('payment_method')

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Transaction;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -34,7 +34,7 @@ class PaymentController extends Controller
 
         if ($request->has('search') && $request->search) {
             $query->where('transaction_id', 'LIKE', "%{$request->search}%")
-                  ->orWhere('gateway_transaction_id', 'LIKE', "%{$request->search}%");
+                ->orWhere('gateway_transaction_id', 'LIKE', "%{$request->search}%");
         }
 
         $transactions = $query->paginate(20);
@@ -53,11 +53,6 @@ class PaymentController extends Controller
                 'client_secret' => Setting::get('paypal_client_secret', ''),
                 'mode' => Setting::get('paypal_mode', 'sandbox'),
             ],
-            'razorpay' => [
-                'enabled' => Setting::get('razorpay_enabled', false),
-                'key_id' => Setting::get('razorpay_key_id', ''),
-                'key_secret' => Setting::get('razorpay_key_secret', ''),
-            ],
         ];
 
         return view('admin.payments.index', compact('transactions', 'gateways'));
@@ -68,7 +63,9 @@ class PaymentController extends Controller
      */
     public function updateGateway(Request $request, $gateway)
     {
-        $validated = $request->validate([
+        abort_unless(in_array($gateway, ['stripe', 'paypal'], true), 404);
+
+        $request->validate([
             'enabled' => 'boolean',
         ]);
 
@@ -92,16 +89,9 @@ class PaymentController extends Controller
             Setting::set('paypal_client_id', $request->client_id ?? '', 'text', 'payment');
             Setting::set('paypal_client_secret', $request->client_secret ?? '', 'text', 'payment');
             Setting::set('paypal_mode', $request->mode ?? 'sandbox', 'text', 'payment');
-        } elseif ($gateway === 'razorpay') {
-            $request->validate([
-                'key_id' => 'nullable|string',
-                'key_secret' => 'nullable|string',
-            ]);
-            Setting::set('razorpay_key_id', $request->key_id ?? '', 'text', 'payment');
-            Setting::set('razorpay_key_secret', $request->key_secret ?? '', 'text', 'payment');
         }
 
-        return redirect()->back()->with('success', ucfirst($gateway) . ' settings updated successfully.');
+        return redirect()->back()->with('success', ucfirst($gateway).' settings updated successfully.');
     }
 
     /**
@@ -112,13 +102,13 @@ class PaymentController extends Controller
         $order = Order::findOrFail($orderId);
 
         $validated = $request->validate([
-            'refund_amount' => 'required|numeric|min:0.01|max:' . $order->total_amount,
+            'refund_amount' => 'required|numeric|min:0.01|max:'.$order->total_amount,
             'refund_reason' => 'nullable|string|max:500',
         ]);
 
         // Create refund transaction
         $transaction = Transaction::create([
-            'transaction_id' => 'REF-' . Str::upper(Str::random(12)),
+            'transaction_id' => 'REF-'.Str::upper(Str::random(12)),
             'transactionable_type' => Order::class,
             'transactionable_id' => $order->id,
             'type' => 'refund',
@@ -138,7 +128,7 @@ class PaymentController extends Controller
             'refund_reason' => $validated['refund_reason'] ?? null,
         ]);
 
-        return redirect()->back()->with('success', 'Refund processed successfully. Transaction ID: ' . $transaction->transaction_id);
+        return redirect()->back()->with('success', 'Refund processed successfully. Transaction ID: '.$transaction->transaction_id);
     }
 
     /**
@@ -147,6 +137,7 @@ class PaymentController extends Controller
     public function showTransaction($id)
     {
         $transaction = Transaction::with('transactionable')->findOrFail($id);
+
         return view('admin.payments.transaction', compact('transaction'));
     }
 }

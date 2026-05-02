@@ -2,32 +2,54 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
 class PayPalService
 {
     protected string $clientId;
+
     protected string $secret;
+
     protected bool $sandbox;
+
     protected $sdkClient = null;
 
     public function __construct()
     {
         $cfg = config('payments.paypal', []);
-        $this->clientId = $cfg['client_id'] ?? '';
-        $this->secret = $cfg['secret'] ?? '';
-        $this->sandbox = $cfg['sandbox'] ?? true;
+        $fromDbId = trim((string) Setting::get('paypal_client_id', ''));
+        $fromDbSecret = trim((string) Setting::get('paypal_client_secret', ''));
+        $this->clientId = $fromDbId !== '' ? $fromDbId : ($cfg['client_id'] ?? '');
+        $this->secret = $fromDbSecret !== '' ? $fromDbSecret : ($cfg['secret'] ?? '');
+        $mode = Setting::get('paypal_mode', '');
+        if ($mode === 'live') {
+            $this->sandbox = false;
+        } elseif ($mode === 'sandbox') {
+            $this->sandbox = true;
+        } else {
+            $this->sandbox = (bool) ($cfg['sandbox'] ?? true);
+        }
 
-        // initialize SDK client when available
-        if (class_exists('\\PayPalCheckoutSdk\\Core\\PayPalHttpClient') && class_exists('\\PayPalCheckoutSdk\\Core\\SandboxEnvironment')) {
-            try {
-                $envClass = $this->sandbox ? '\\PayPalCheckoutSdk\\Core\\SandboxEnvironment' : '\\PayPalCheckoutSdk\\Core\\LiveEnvironment';
-                $environment = new $envClass($this->clientId, $this->secret);
-                $clientClass = '\\PayPalCheckoutSdk\\Core\\PayPalHttpClient';
-                $this->sdkClient = new $clientClass($environment);
-            } catch (\Throwable $e) {
-                $this->sdkClient = null;
-            }
+        $this->initSdkClient();
+    }
+
+    protected function initSdkClient(): void
+    {
+        $this->sdkClient = null;
+        if ($this->clientId === '' || $this->secret === '') {
+            return;
+        }
+        if (! class_exists('\\PayPalCheckoutSdk\\Core\\PayPalHttpClient') || ! class_exists('\\PayPalCheckoutSdk\\Core\\SandboxEnvironment')) {
+            return;
+        }
+        try {
+            $envClass = $this->sandbox ? '\\PayPalCheckoutSdk\\Core\\SandboxEnvironment' : '\\PayPalCheckoutSdk\\Core\\LiveEnvironment';
+            $environment = new $envClass($this->clientId, $this->secret);
+            $clientClass = '\\PayPalCheckoutSdk\\Core\\PayPalHttpClient';
+            $this->sdkClient = new $clientClass($environment);
+        } catch (\Throwable $e) {
+            $this->sdkClient = null;
         }
     }
 
@@ -44,7 +66,7 @@ class PayPalService
 
         $resp = Http::withBasicAuth($this->clientId, $this->secret)
             ->asForm()
-            ->post($this->baseUrl() . '/v1/oauth2/token', ['grant_type' => 'client_credentials']);
+            ->post($this->baseUrl().'/v1/oauth2/token', ['grant_type' => 'client_credentials']);
 
         if ($resp->ok()) {
             return $resp->json('access_token');
@@ -57,25 +79,30 @@ class PayPalService
      * Create an order (returns approval URL and order id). If no credentials provided, returns a placeholder.
      * Supports any currency: if PayPal doesn't support it (e.g. AED), we convert to USD and call PayPal with USD.
      */
-    public function createOrder(float $amount, string $currency = 'USD', string $returnUrl = '', string $cancelUrl = ''): array
+    public function createOrder(float $amount, string $currency = 'USD', string $returnUrl = '', string $cancelUrl = '', ?string $customId = null): array
     {
         $currency = strtoupper($currency);
         [$paypalCurrency, $paypalAmount] = $this->normalizeCurrencyForPayPal($amount, $currency);
+
+        $purchaseUnit = [
+            'amount' => [
+                'currency_code' => $paypalCurrency,
+                'value' => number_format($paypalAmount, 2, '.', ''),
+            ],
+        ];
+        if ($customId !== null && $customId !== '') {
+            $purchaseUnit['custom_id'] = (string) $customId;
+        }
 
         // Use SDK when available
         if ($this->sdkClient) {
             try {
                 $requestClass = '\\PayPalCheckoutSdk\\Orders\\OrdersCreateRequest';
-                $request = new $requestClass();
+                $request = new $requestClass;
                 $request->prefer('return=representation');
                 $request->body = [
                     'intent' => 'CAPTURE',
-                    'purchase_units' => [[
-                        'amount' => [
-                            'currency_code' => $paypalCurrency,
-                            'value' => number_format($paypalAmount, 2, '.', ''),
-                        ],
-                    ]],
+                    'purchase_units' => [$purchaseUnit],
                     'application_context' => [
                         'return_url' => $returnUrl,
                         'cancel_url' => $cancelUrl,
@@ -107,7 +134,8 @@ class PayPalService
 
         if (! $token) {
             // Placeholder behavior for environments without API keys.
-            $fakeId = 'PP_FAKE_' . time();
+            $fakeId = 'PP_FAKE_'.time();
+
             return [
                 'id' => $fakeId,
                 'status' => 'CREATED',
@@ -118,12 +146,7 @@ class PayPalService
 
         $body = [
             'intent' => 'CAPTURE',
-            'purchase_units' => [[
-                'amount' => [
-                    'currency_code' => $paypalCurrency,
-                    'value' => number_format($paypalAmount, 2, '.', ''),
-                ],
-            ]],
+            'purchase_units' => [$purchaseUnit],
             'application_context' => [
                 'return_url' => $returnUrl,
                 'cancel_url' => $cancelUrl,
@@ -131,7 +154,7 @@ class PayPalService
         ];
 
         $resp = Http::withToken($token)
-            ->post($this->baseUrl() . '/v2/checkout/orders', $body);
+            ->post($this->baseUrl().'/v2/checkout/orders', $body);
 
         $data = $resp->json();
         $approval = null;
@@ -186,6 +209,7 @@ class PayPalService
                 $req = new $reqClass($orderId);
                 $resp = $this->sdkClient->execute($req);
                 $result = $resp->result ?? null;
+
                 return json_decode(json_encode($result), true);
             } catch (\Throwable $e) {
                 // fall back to HTTP capture
@@ -198,7 +222,7 @@ class PayPalService
         }
 
         $resp = Http::withToken($token)
-            ->post($this->baseUrl() . "/v2/checkout/orders/{$orderId}/capture");
+            ->post($this->baseUrl()."/v2/checkout/orders/{$orderId}/capture");
 
         if (! $resp->ok()) {
             return ['error' => $resp->body(), 'status' => $resp->status()];
@@ -209,9 +233,6 @@ class PayPalService
 
     /**
      * Verify webhook signature using PayPal API. Returns true when verified or when credentials are not configured (placeholder).
-     * @param array $headers
-     * @param string $body
-     * @return bool
      */
     public function verifyWebhook(array $headers, string $body): bool
     {
@@ -240,13 +261,14 @@ class PayPalService
         ];
 
         $resp = Http::withToken($token)
-            ->post($this->baseUrl() . '/v1/notifications/verify-webhook-signature', $payload);
+            ->post($this->baseUrl().'/v1/notifications/verify-webhook-signature', $payload);
 
         if (! $resp->ok()) {
             return false;
         }
 
         $data = $resp->json();
+
         return isset($data['verification_status']) && $data['verification_status'] === 'SUCCESS';
     }
 }

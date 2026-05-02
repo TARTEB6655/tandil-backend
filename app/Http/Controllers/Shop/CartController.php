@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Shop;
 
-use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\Setting;
@@ -19,6 +19,7 @@ class CartController extends Controller
     public static function getEffectiveShippingAmount(): float
     {
         $v = Setting::get('shop_shipping_amount');
+
         return (float) ($v !== null && $v !== '' ? $v : config('shop.shipping_amount', 0));
     }
 
@@ -28,6 +29,7 @@ class CartController extends Controller
     public static function getEffectiveTaxPercent(): float
     {
         $v = Setting::get('shop_tax_percent');
+
         return (float) ($v !== null && $v !== '' ? $v : config('shop.tax_percent', 5));
     }
 
@@ -134,7 +136,7 @@ class CartController extends Controller
 
     /**
      * Cart lines + subtotal for checkout preview. Default = DB cart.
-     * Optional query product_id + quantity = Buy Now without persisting cart (same idea as POST create-payment-session with items).
+     * Optional query product_id + quantity = Buy Now without persisting cart (same idea as POST /api/shop/checkout/start with items).
      *
      * @return array{items: \Illuminate\Support\Collection<int, Cart>, subtotal: float}
      */
@@ -194,6 +196,7 @@ class CartController extends Controller
         $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
         $orderSummary['total'] = (float) $orderSummary['total'];
         unset($orderSummary['tax']);
+
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
     }
 

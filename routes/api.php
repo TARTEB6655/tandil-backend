@@ -19,55 +19,57 @@ Route::get('/technician-signup-areas', [\App\Http\Controllers\Auth\AuthControlle
 Route::get('/debug/performance', function () {
     $start = microtime(true);
     $results = [];
-    
+
     // 1. Basic PHP speed
     $phpStart = microtime(true);
-    for ($i = 0; $i < 10000; $i++) { $x = $i * $i; }
-    $results['php_loop_10k'] = round((microtime(true) - $phpStart) * 1000, 2) . 'ms';
-    
+    for ($i = 0; $i < 10000; $i++) {
+        $x = $i * $i;
+    }
+    $results['php_loop_10k'] = round((microtime(true) - $phpStart) * 1000, 2).'ms';
+
     // 2. Database connection
     $dbStart = microtime(true);
     try {
         \DB::select('SELECT 1');
-        $results['db_connection'] = round((microtime(true) - $dbStart) * 1000, 2) . 'ms';
+        $results['db_connection'] = round((microtime(true) - $dbStart) * 1000, 2).'ms';
     } catch (\Exception $e) {
-        $results['db_connection'] = 'FAILED: ' . $e->getMessage();
+        $results['db_connection'] = 'FAILED: '.$e->getMessage();
     }
-    
+
     // 3. Simple query
     $queryStart = microtime(true);
     try {
         $count = \App\Models\Product::count();
-        $results['product_count_query'] = round((microtime(true) - $queryStart) * 1000, 2) . 'ms (' . $count . ' products)';
+        $results['product_count_query'] = round((microtime(true) - $queryStart) * 1000, 2).'ms ('.$count.' products)';
     } catch (\Exception $e) {
-        $results['product_count_query'] = 'FAILED: ' . $e->getMessage();
+        $results['product_count_query'] = 'FAILED: '.$e->getMessage();
     }
-    
+
     // 4. Eager loading test
     $eagerStart = microtime(true);
     try {
         $products = \App\Models\Product::with(['category', 'images', 'primaryImage'])->limit(10)->get();
-        $results['eager_load_10_products'] = round((microtime(true) - $eagerStart) * 1000, 2) . 'ms';
+        $results['eager_load_10_products'] = round((microtime(true) - $eagerStart) * 1000, 2).'ms';
     } catch (\Exception $e) {
-        $results['eager_load_10_products'] = 'FAILED: ' . $e->getMessage();
+        $results['eager_load_10_products'] = 'FAILED: '.$e->getMessage();
     }
-    
+
     // 5. OPcache status
     $results['opcache_enabled'] = function_exists('opcache_get_status') && opcache_get_status() ? 'YES' : 'NO';
-    
+
     // 6. PHP version
     $results['php_version'] = PHP_VERSION;
-    
+
     // 7. Total time
-    $results['total_time'] = round((microtime(true) - $start) * 1000, 2) . 'ms';
-    
+    $results['total_time'] = round((microtime(true) - $start) * 1000, 2).'ms';
+
     return response()->json([
         'success' => true,
         'message' => 'Performance diagnostics',
         'data' => $results,
-        'recommendation' => $results['opcache_enabled'] === 'NO' 
-            ? 'Enable OPcache on your server for 3-10x faster PHP performance' 
-            : 'OPcache is enabled - good!'
+        'recommendation' => $results['opcache_enabled'] === 'NO'
+            ? 'Enable OPcache on your server for 3-10x faster PHP performance'
+            : 'OPcache is enabled - good!',
     ]);
 });
 
@@ -534,17 +536,11 @@ Route::prefix('shop')->group(function () {
     Route::get('/categories', [\App\Http\Controllers\Shop\CategoryController::class, 'index']);
     Route::get('/categories/{id}', [\App\Http\Controllers\Shop\CategoryController::class, 'show']);
 
-    // Checkout.com: create payment session (optional auth = guest or logged-in). Webhook = no auth.
-    Route::middleware('optional.sanctum')->post('/create-payment-session', [\App\Http\Controllers\Shop\CheckoutComController::class, 'createPaymentSession']);
-    Route::post('/webhooks/checkout-com', [\App\Http\Controllers\Shop\CheckoutComController::class, 'webhook']);
-
-    // Legacy: use POST /create-payment-session instead
-    Route::middleware('optional.sanctum')->post('/checkout', function () {
-        return response()->json([
-            'success' => false,
-            'message' => 'Use POST /api/shop/create-payment-session for payment. PayPal and COD are removed.',
-        ], 400);
-    });
+    // Shop checkout: Stripe Checkout or PayPal (optional auth = guest or logged-in). Webhooks = no auth.
+    Route::get('/payment-gateways', [\App\Http\Controllers\Shop\CheckoutController::class, 'publicPaymentGateways']);
+    Route::middleware('optional.sanctum')->post('/checkout/start', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'startCheckout']);
+    Route::post('/webhooks/stripe', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'stripeWebhook']);
+    Route::middleware('optional.sanctum')->post('/paypal/capture', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'capturePayPal']);
 
     // Guest order lookup (no auth): order_number + email
     Route::get('/orders/guest', [\App\Http\Controllers\Shop\OrderController::class, 'guestShow']);
@@ -565,7 +561,7 @@ Route::prefix('shop')->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
         Route::post('/orders/{id}/mark-paid', [\App\Http\Controllers\Shop\OrderController::class, 'markPaid']);
-        
+
         // Payment/Transaction routes
         Route::get('/payments', [\App\Http\Controllers\Shop\PaymentController::class, 'index']);
         Route::get('/payments/{id}', [\App\Http\Controllers\Shop\PaymentController::class, 'show']);

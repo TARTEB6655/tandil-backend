@@ -2722,6 +2722,30 @@
                     }
                 },
                 {
+                    "name": "Payment gateways (GET, public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/payment-gateways",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "shop",
+                                "payment-gateways"
+                            ]
+                        },
+                        "description": "GET /api/shop/payment-gateways – Public. Returns only Stripe and PayPal: { id, type, label, enabled } per entry. Enable gateways in Admin → Payments (stripe_enabled, paypal_enabled)."
+                    }
+                },
+                {
                     "name": "Checkout - Payment Methods",
                     "request": {
                         "method": "GET",
@@ -2747,11 +2771,11 @@
                                 "payment-methods"
                             ]
                         },
-                        "description": "GET /api/shop/checkout/payment-methods – Checkout Payment step. Response: array of { id, type, label } for card, apple_pay, samsung_pay, tabby, tamara (all via Checkout.com). Use POST /create-payment-session next."
+                        "description": "GET /api/shop/checkout/payment-methods – Auth (client). Same as public payment-gateways shape: stripe and paypal only, each with enabled. Next: POST /api/shop/checkout/start with payment_method stripe or paypal."
                     }
                 },
                 {
-                    "name": "Create Payment Session (Logged-in)",
+                    "name": "Checkout - Start (logged-in, Stripe)",
                     "event": [
                         {
                             "listen": "test",
@@ -2786,24 +2810,44 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"address_id\": 1,\n  \"success_url\": \"https://yourapp.com/payment/success\",\n  \"failure_url\": \"https://yourapp.com/payment/failure\"\n}"
+                            "raw": "{\n  \"payment_method\": \"stripe\",\n  \"address_id\": 1,\n  \"success_url\": \"https://yourapp.com/payment/success\",\n  \"cancel_url\": \"https://yourapp.com/payment/cancel\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/shop/create-payment-session",
+                            "raw": "{{base_url}}/api/shop/checkout/start",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "api",
                                 "shop",
-                                "create-payment-session"
+                                "checkout",
+                                "start"
                             ]
                         },
-                        "description": "POST /api/shop/create-payment-session – Backend creates order (pending) and Checkout.com session. Body: address_id (or full_name, phone_number, street_address, city, country), optional items (omit to use cart), success_url (required), failure_url (required). Returns: session_id, order_id, order_number, public_key, amount, currency. Frontend opens Checkout.com UI with session_id; webhook updates order to paid."
+                        "description": "POST /api/shop/checkout/start – Creates pending order and Stripe Checkout Session. Body: payment_method \"stripe\", address_id (or inline address fields), optional items (omit to use cart), success_url, cancel_url (failure_url accepted as alias for cancel_url). Returns checkout_url, session_id, publishable_key, order_id, order_number, amount, currency. Open checkout_url; Stripe webhook checkout.session.completed marks order paid."
                     }
                 },
                 {
-                    "name": "Create Payment Session (Guest)",
+                    "name": "Checkout - Start (guest, PayPal)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.order_id) {",
+                                    "        pm.environment.set('order_id', jsonData.data.order_id);",
+                                    "    }",
+                                    "    if (jsonData.data && jsonData.data.paypal_order_id) {",
+                                    "        pm.environment.set('paypal_order_id', jsonData.data.paypal_order_id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -2818,20 +2862,54 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"guest@example.com\",\n  \"full_name\": \"Guest User\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"Sheikh Zayed Road\",\n  \"city\": \"Dubai\",\n  \"country\": \"UAE\",\n  \"items\": [{\"product_id\": 1, \"qty\": 2}],\n  \"success_url\": \"https://yourapp.com/payment/success\",\n  \"failure_url\": \"https://yourapp.com/payment/failure\"\n}"
+                            "raw": "{\n  \"payment_method\": \"paypal\",\n  \"email\": \"guest@example.com\",\n  \"full_name\": \"Guest User\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"Sheikh Zayed Road\",\n  \"city\": \"Dubai\",\n  \"country\": \"UAE\",\n  \"items\": [{\"product_id\": 1, \"qty\": 2}],\n  \"success_url\": \"https://yourapp.com/payment/success\",\n  \"cancel_url\": \"https://yourapp.com/payment/cancel\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/shop/create-payment-session",
+                            "raw": "{{base_url}}/api/shop/checkout/start",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "api",
                                 "shop",
-                                "create-payment-session"
+                                "checkout",
+                                "start"
                             ]
                         },
-                        "description": "Guest: no Authorization. Required: email, full_name, phone_number, street_address, city, country, items (array of {product_id, qty}), success_url, failure_url. Returns session_id, order_id, order_number, public_key. Use order_number + email for guest lookup/track."
+                        "description": "Guest checkout with PayPal: no Authorization. Required: payment_method \"paypal\", email, full_name, phone_number, street_address, city, country, items, success_url, cancel_url. Returns approval_url, paypal_order_id, order_id. After PayPal approval, call POST /api/shop/paypal/capture."
+                    }
+                },
+                {
+                    "name": "PayPal - Capture order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"paypal_order_id\": \"{{paypal_order_id}}\",\n  \"order_id\": {{order_id}}\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/paypal/capture",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "shop",
+                                "paypal",
+                                "capture"
+                            ]
+                        },
+                        "description": "POST /api/shop/paypal/capture – After user completes PayPal approval. Body: paypal_order_id (from checkout/start), order_id (recommended, must match stored reference). Marks order paid. Optional Sanctum auth."
                     }
                 },
                 {
@@ -2860,39 +2938,11 @@
                                 "review"
                             ]
                         },
-                        "description": "GET /api/shop/checkout/review – Checkout Review step. Response: items (cart), order_summary, addresses, payment_methods (card, apple_pay, samsung_pay, tabby, tamara). Then call POST /create-payment-session with success_url and failure_url."
+                        "description": "GET /api/shop/checkout/review – Checkout Review step. Response: items (cart), order_summary, addresses, payment_methods (stripe and paypal only with enabled). Then POST /api/shop/checkout/start with payment_method, success_url, cancel_url."
                     }
                 },
                 {
-                    "name": "Legacy - POST /checkout (returns 400)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/checkout",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "checkout"
-                            ]
-                        },
-                        "description": "Legacy endpoint. Returns 400: use POST /api/shop/create-payment-session for payment. PayPal and COD removed."
-                    }
-                },
-                {
-                    "name": "Webhook - Checkout.com (for reference)",
+                    "name": "Webhook - Stripe (for reference)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -2901,17 +2951,17 @@
                                 "value": "application/json"
                             },
                             {
-                                "key": "Cko-Signature",
-                                "value": "{{checkout_webhook_signature}}",
-                                "description": "HMAC of body; set by Checkout.com"
+                                "key": "Stripe-Signature",
+                                "value": "{{stripe_webhook_signature}}",
+                                "description": "Stripe-Signature header from webhook delivery (use Stripe CLI or dashboard signing secret)"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"type\": \"payment_captured\",\n  \"data\": {\n    \"id\": \"pay_xxx\",\n    \"reference\": \"123\"\n  }\n}"
+                            "raw": "{\n  \"id\": \"evt_xxx\",\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"cs_xxx\",\n      \"client_reference_id\": \"123\",\n      \"metadata\": { \"order_id\": \"123\" }\n    }\n  }\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/shop/webhooks/checkout-com",
+                            "raw": "{{base_url}}/api/shop/webhooks/stripe",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2919,10 +2969,10 @@
                                 "api",
                                 "shop",
                                 "webhooks",
-                                "checkout-com"
+                                "stripe"
                             ]
                         },
-                        "description": "POST /api/shop/webhooks/checkout-com – Called by Checkout.com (no auth). Verify Cko-Signature header; on payment_captured update order to paid. Configure this URL in Checkout.com dashboard."
+                        "description": "POST /api/shop/webhooks/stripe – Called by Stripe (no auth). Set stripe_webhook_secret in Admin → Payments; configure endpoint in Stripe Dashboard. On checkout.session.completed, order is marked paid."
                     }
                 },
                 {
@@ -3525,7 +3575,7 @@
                     }
                 }
             ],
-            "description": "Shop and e-commerce – Cart, Checkout.com (create-payment-session + webhook), orders, payments. PayPal and COD removed."
+            "description": "Shop and e-commerce – Cart, Stripe + PayPal checkout (POST /api/shop/checkout/start, webhooks/stripe, paypal/capture), public payment-gateways, orders, payments."
         },
         {
             "name": "8b. Client Dashboard – Maintenance Photos",
@@ -14972,11 +15022,11 @@
                     "description": "Alternative supervisor routes under /api/auth/supervisor (duplicate of /api/supervisor routes)"
                 },
                 {
-                    "name": "Payment (Checkout.com)",
-                    "description": "Checkout.com webhook only. Create payment session is in 8. Shop & Orders: POST /api/shop/create-payment-session.",
+                    "name": "Payment (Shop: Stripe & PayPal)",
+                    "description": "Shop payments use Stripe Checkout and PayPal only. Start checkout: 8. Client Dashboard – Shop & Orders → Checkout - Start. Stripe: configure POST /api/shop/webhooks/stripe in Stripe Dashboard. PayPal: capture via POST /api/shop/paypal/capture after approval.",
                     "item": [
                         {
-                            "name": "Webhook (reference)",
+                            "name": "Stripe webhook (reference)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14985,17 +15035,17 @@
                                         "value": "application/json"
                                     },
                                     {
-                                        "key": "Cko-Signature",
+                                        "key": "Stripe-Signature",
                                         "value": "",
-                                        "description": "Set by Checkout.com"
+                                        "description": "Set by Stripe (Stripe CLI forwards this)"
                                     }
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"type\": \"payment_captured\",\n  \"data\": {\n    \"id\": \"pay_xxx\",\n    \"reference\": \"123\"\n  }\n}"
+                                    "raw": "{\n  \"id\": \"evt_xxx\",\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"cs_xxx\",\n      \"client_reference_id\": \"123\",\n      \"metadata\": { \"order_id\": \"123\" }\n    }\n  }\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}/api/shop/webhooks/checkout-com",
+                                    "raw": "{{base_url}}/api/shop/webhooks/stripe",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -15003,10 +15053,43 @@
                                         "api",
                                         "shop",
                                         "webhooks",
-                                        "checkout-com"
+                                        "stripe"
                                     ]
                                 },
-                                "description": "Checkout.com calls this. Configure URL in dashboard. Verify Cko-Signature. Main flow: 8. Shop & Orders → Create Payment Session."
+                                "description": "POST /api/shop/webhooks/stripe – Stripe calls this. Requires valid Stripe-Signature and stripe_webhook_secret in admin settings."
+                            }
+                        },
+                        {
+                            "name": "PayPal capture (reference)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"paypal_order_id\": \"{{paypal_order_id}}\",\n  \"order_id\": {{order_id}}\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/paypal/capture",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "paypal",
+                                        "capture"
+                                    ]
+                                },
+                                "description": "POST /api/shop/paypal/capture – Same as Shop & Orders folder. Use after PayPal redirect."
                             }
                         }
                     ]
@@ -15679,7 +15762,7 @@
                     ]
                 }
             ],
-            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (Checkout.com webhook), Services (Public), User Profile, User Addresses, User Notifications."
+            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (Shop Stripe webhook + PayPal capture), Services (Public), User Profile, User Addresses, User Notifications."
         }
     ],
     "variable": [
@@ -15789,6 +15872,18 @@
             "key": "address_id",
             "value": "1",
             "type": "string"
+        },
+        {
+            "key": "paypal_order_id",
+            "value": "",
+            "type": "string",
+            "description": "Set by test script after POST /api/shop/checkout/start (PayPal), or paste from approval flow."
+        },
+        {
+            "key": "stripe_webhook_signature",
+            "value": "",
+            "type": "string",
+            "description": "Stripe-Signature header value when manually testing POST /api/shop/webhooks/stripe; use Stripe CLI for real signatures."
         }
     ]
 }

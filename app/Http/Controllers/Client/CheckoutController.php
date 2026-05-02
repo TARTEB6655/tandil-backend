@@ -4,23 +4,27 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Shop\CartController as ShopCartController;
-use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
+use App\Models\Setting;
+use App\Models\User;
+use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
+use App\Services\StripeCheckoutSessionService;
+use App\Support\StripeCredentials;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
 {
-    protected $paypal;
-
-    public function __construct(PayPalService $paypal)
-    {
+    public function __construct(
+        protected PayPalService $paypal,
+        protected StripeCheckoutSessionService $stripeCheckout
+    ) {
         $this->middleware(['auth', 'role:client']);
-        $this->paypal = $paypal;
     }
 
     public function index()
@@ -38,7 +42,6 @@ class CheckoutController extends Controller
             return $item->product ? $item->quantity * (float) $item->product->price : 0;
         }), 2);
 
-        // Use same order summary as API (admin settings: tax %, shipping)
         $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
         $tax = $orderSummary['tax'];
         $shipping = $orderSummary['shipping'];
@@ -52,13 +55,21 @@ class CheckoutController extends Controller
     public function process(Request $request)
     {
         $request->validate([
-            'payment_method' => 'required|in:paypal,stripe,cash_on_delivery',
+            'payment_method' => 'required|in:paypal,stripe',
             'shipping_address' => 'required|string|max:500',
             'shipping_city' => 'required|string|max:100',
             'shipping_postal_code' => 'nullable|string|max:20',
             'shipping_country' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
         ]);
+
+        $method = $request->input('payment_method');
+        if ($method === 'stripe' && ! $this->adminGatewayEnabled('stripe')) {
+            return back()->with('error', 'Stripe is not enabled.');
+        }
+        if ($method === 'paypal' && ! $this->adminGatewayEnabled('paypal')) {
+            return back()->with('error', 'PayPal is not enabled.');
+        }
 
         $user = Auth::user();
         $cartItems = Cart::where('user_id', $user->id)
@@ -69,7 +80,6 @@ class CheckoutController extends Controller
             return back()->with('error', 'Your cart is empty.');
         }
 
-        // Calculate totals – same as API (admin settings: tax %, shipping). Tax-exclusive: subtotal + tax + shipping = total.
         $subtotal = round($cartItems->sum(function ($item) {
             return $item->quantity * (float) $item->product->price;
         }), 2);
@@ -79,16 +89,16 @@ class CheckoutController extends Controller
         $total = $orderSummary['total'];
         $taxPercent = $orderSummary['tax_percent'];
 
-        // Check stock availability
         foreach ($cartItems as $cartItem) {
             if ($cartItem->product->stock < $cartItem->quantity) {
                 return back()->with('error', "Insufficient stock for {$cartItem->product->name}.");
             }
         }
 
+        $currency = config('shop.currency', ShopCartController::CURRENCY);
+
         DB::beginTransaction();
         try {
-            // Create order (save subtotal, tax, shipping for reporting)
             $order = Order::create([
                 'user_id' => $user->id,
                 'total_amount' => $total,
@@ -96,12 +106,11 @@ class CheckoutController extends Controller
                 'tax_amount' => $tax,
                 'tax_percent' => $taxPercent,
                 'shipping_amount' => $shipping,
-                'payment_status' => $request->payment_method === 'cash_on_delivery' ? 'pending' : 'pending',
-                'payment_method' => $request->payment_method,
+                'payment_status' => 'pending',
+                'payment_method' => $method,
                 'order_status' => 'pending',
             ]);
 
-            // Create order items and update stock
             foreach ($cartItems as $cartItem) {
                 OrderItem::create([
                     'order_id' => $order->id,
@@ -111,38 +120,51 @@ class CheckoutController extends Controller
                     'subtotal' => $cartItem->quantity * $cartItem->product->price,
                 ]);
 
-                // Update product stock
                 $cartItem->product->decrement('stock', $cartItem->quantity);
             }
 
-            // Handle payment based on method
-            if ($request->payment_method === 'paypal') {
+            if ($method === 'paypal') {
                 $paypalResponse = $this->paypal->createOrder(
-                    $total,
-                    'USD',
+                    (float) $total,
+                    $currency,
                     route('client.checkout.success', ['order_id' => $order->id]),
-                    route('client.checkout.cancel', ['order_id' => $order->id])
+                    route('client.checkout.cancel', ['order_id' => $order->id]),
+                    (string) $order->id
                 );
 
-                if ($paypalResponse && isset($paypalResponse['id'])) {
-                    $order->update(['payment_reference' => $paypalResponse['id']]);
+                $approvalUrl = $paypalResponse['approval_url'] ?? null;
+                $paypalId = $paypalResponse['id'] ?? null;
+
+                if ($paypalId && $approvalUrl) {
+                    $order->update(['payment_reference' => $paypalId]);
                     DB::commit();
-                    return redirect($paypalResponse['links'][1]['href']); // Approval URL
-                } else {
-                    throw new \Exception('PayPal order creation failed');
+
+                    return redirect()->away($approvalUrl);
                 }
-            } elseif ($request->payment_method === 'cash_on_delivery') {
-                DB::commit();
-                Cart::where('user_id', $user->id)->delete();
-                return redirect()->route('client.orders.index')->with('success', 'Order placed successfully! Payment will be collected on delivery.');
-            } else {
-                // Stripe or other payment methods can be added here
-                DB::rollBack();
-                return back()->with('error', 'Payment method not yet implemented.');
+
+                throw new \Exception('PayPal order creation failed');
             }
+
+            $successUrl = route('client.checkout.success', ['order_id' => $order->id]).'?session_id={CHECKOUT_SESSION_ID}';
+            $cancelUrl = route('client.checkout.cancel', ['order_id' => $order->id]);
+
+            $stripe = $this->stripeCheckout->createForOrder($order, $successUrl, $cancelUrl, $currency);
+            if (isset($stripe['error'])) {
+                throw new \Exception($stripe['error']);
+            }
+            $checkoutUrl = $stripe['url'] ?? null;
+            if (! $checkoutUrl) {
+                throw new \Exception('Stripe did not return a checkout URL.');
+            }
+            $order->update(['payment_reference' => $stripe['session_id'] ?? null]);
+            DB::commit();
+
+            return redirect()->away($checkoutUrl);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Order processing failed: ' . $e->getMessage());
+            Log::warning('Client checkout failed', ['message' => $e->getMessage()]);
+
+            return back()->with('error', 'Order processing failed: '.$e->getMessage());
         }
     }
 
@@ -155,17 +177,40 @@ class CheckoutController extends Controller
             abort(403);
         }
 
-        // Verify PayPal payment
         if ($request->has('token') && $request->has('PayerID')) {
-            // Complete PayPal payment
-            $order->update([
-                'payment_status' => 'paid',
-                'paid_at' => now(),
-            ]);
+            $capture = $this->paypal->captureOrder($request->input('token'));
+            if (isset($capture['error'])) {
+                return redirect()->route('client.orders.index')
+                    ->with('error', 'PayPal capture failed. Contact support if you were charged.');
+            }
+            $status = $capture['status'] ?? '';
+            if ($status === 'COMPLETED' || ! empty($capture['placeholder'])) {
+                if ($order->payment_status !== 'paid') {
+                    $order->update([
+                        'payment_status' => 'paid',
+                        'paid_at' => now(),
+                    ]);
+                    $this->notifyAdminsShopOrder($order, 'PayPal (web)');
+                }
+                Cart::where('user_id', $user->id)->delete();
 
-            Cart::where('user_id', $user->id)->delete();
+                return redirect()->route('client.orders.index')->with('success', 'Payment successful! Your order has been placed.');
+            }
 
-            return redirect()->route('client.orders.index')->with('success', 'Payment successful! Your order has been placed.');
+            return redirect()->route('client.orders.index')
+                ->with('error', 'PayPal payment was not completed. You can try again from your orders or contact support.');
+        }
+
+        if ($request->filled('session_id')) {
+            $order->refresh();
+            if ($order->payment_status === 'paid') {
+                Cart::where('user_id', $user->id)->delete();
+
+                return redirect()->route('client.orders.index')->with('success', 'Payment successful! Your order has been placed.');
+            }
+
+            return redirect()->route('client.orders.index')
+                ->with('info', 'Thank you. Your payment is being confirmed; refresh orders in a moment if status is still pending.');
         }
 
         return redirect()->route('client.orders.index');
@@ -180,7 +225,6 @@ class CheckoutController extends Controller
             abort(403);
         }
 
-        // Restore stock
         foreach ($order->items as $item) {
             $item->product->increment('stock', $item->quantity);
         }
@@ -189,5 +233,34 @@ class CheckoutController extends Controller
 
         return redirect()->route('client.cart.index')->with('error', 'Payment was cancelled. Your order has been cancelled.');
     }
-}
 
+    protected function adminGatewayEnabled(string $gateway): bool
+    {
+        if ($gateway === 'stripe') {
+            return StripeCredentials::isStripeUsableForCheckout();
+        }
+
+        $v = Setting::get("{$gateway}_enabled", false);
+
+        return filter_var($v, FILTER_VALIDATE_BOOLEAN)
+            || $v === '1'
+            || $v === 1
+            || $v === true;
+    }
+
+    protected function notifyAdminsShopOrder(Order $order, string $via): void
+    {
+        try {
+            $admins = User::role('admin')->get();
+            $total = (float) $order->total_amount;
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification(
+                    'New Order Received',
+                    "A new order #{$order->id} has been placed via {$via} for AED {$total}."
+                ));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send order notification: '.$e->getMessage());
+        }
+    }
+}

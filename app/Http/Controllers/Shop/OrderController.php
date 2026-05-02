@@ -3,51 +3,34 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cart;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Package;
-use App\Models\Product;
 use App\Models\User;
-use App\Models\UserAddress;
 use App\Notifications\AdminNotification;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    /**
-     * Legacy checkout. Payment is now via Checkout.com only.
-     * Use POST /api/shop/create-payment-session with order data instead.
-     */
-    public function checkout(Request $request)
-    {
-        return response()->json([
-            'success' => false,
-            'message' => 'Use POST /api/shop/create-payment-session for payment. PayPal and COD are removed.',
-        ], 400);
-    }
-
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         $query = Order::where('user_id', $user->id)
             ->with(['items.product', 'user'])
             ->latest();
-        
+
         // Filter by status
         if ($request->has('status')) {
             $query->where('order_status', $request->status);
         }
-        
+
         // Filter by payment status
         if ($request->has('payment_status')) {
             $query->where('payment_status', $request->payment_status);
         }
-        
+
         $perPage = $request->get('per_page', 15);
         $orders = $query->paginate($perPage);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Orders retrieved successfully',
@@ -59,7 +42,7 @@ class OrderController extends Controller
                 'total' => $orders->total(),
                 'from' => $orders->firstItem(),
                 'to' => $orders->lastItem(),
-            ]
+            ],
         ], 200);
     }
 
@@ -67,28 +50,30 @@ class OrderController extends Controller
     {
         $user = $request->user();
         $order = Order::with(['items.product.category', 'user', 'transactions'])->find($id);
-        
-        if (!$order) {
+
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
-        
+
         // Check if user owns the order or is admin
-        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+        if ($order->user_id !== $user->id && ! $user->hasRole('admin')) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Order retrieved successfully',
-            'data' => $order
+            'data' => $order,
         ], 200);
     }
 
     public function markPaid(Request $request, $id)
     {
         $order = Order::with('user')->find($id);
-        if (! $order) return response()->json(['success'=>false,'message'=>'Not found'],404);
-        
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Not found'], 404);
+        }
+
         $oldPaymentStatus = $order->payment_status;
         $order->payment_status = 'paid';
         $order->order_status = 'paid';
@@ -104,10 +89,10 @@ class OrderController extends Controller
                 ));
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send payment confirmation notification: ' . $e->getMessage());
+            \Log::error('Failed to send payment confirmation notification: '.$e->getMessage());
         }
 
-        return response()->json(['status'=>true,'data'=>$order],200);
+        return response()->json(['status' => true, 'data' => $order], 200);
     }
 
     /**
@@ -117,13 +102,13 @@ class OrderController extends Controller
     {
         $user = $request->user();
         $order = Order::find($id);
-        
-        if (!$order) {
+
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
-        
+
         // Check if user owns the order or is admin
-        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+        if ($order->user_id !== $user->id && ! $user->hasRole('admin')) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -139,7 +124,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order updated successfully',
-            'data' => $order->load(['items.product', 'user'])
+            'data' => $order->load(['items.product', 'user']),
         ], 200);
     }
 
@@ -150,13 +135,13 @@ class OrderController extends Controller
     {
         $user = $request->user();
         $order = Order::find($id);
-        
-        if (!$order) {
+
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
-        
+
         // Check if user owns the order or is admin
-        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+        if ($order->user_id !== $user->id && ! $user->hasRole('admin')) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -164,7 +149,7 @@ class OrderController extends Controller
         if (in_array($order->order_status, ['delivered', 'cancelled'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot cancel order with status: ' . $order->order_status
+                'message' => 'Cannot cancel order with status: '.$order->order_status,
             ], 400);
         }
 
@@ -192,13 +177,13 @@ class OrderController extends Controller
                 ));
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send order cancellation notification: ' . $e->getMessage());
+            \Log::error('Failed to send order cancellation notification: '.$e->getMessage());
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Order cancelled successfully',
-            'data' => $order->load(['items.product', 'user'])
+            'data' => $order->load(['items.product', 'user']),
         ], 200);
     }
 
@@ -230,7 +215,7 @@ class OrderController extends Controller
             'message' => 'Order tracking information retrieved successfully',
             'data' => [
                 'order_id' => $order->id,
-                'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
+                'order_number' => 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
                 'order' => $orderArray,
                 'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
@@ -263,7 +248,8 @@ class OrderController extends Controller
         $order->load(['items.product', 'items.product.primaryImage']);
         $data = $order->toArray();
         $data['shipping_address'] = $order->getShippingAddressForApi();
-        $data['order_number'] = 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
+        $data['order_number'] = 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
+
         return response()->json(['success' => true, 'message' => 'Order retrieved.', 'data' => $data], 200);
     }
 
@@ -285,12 +271,13 @@ class OrderController extends Controller
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
         $orderArray = $order->toArray();
         $orderArray['shipping_address'] = $order->getShippingAddressForApi();
+
         return response()->json([
             'success' => true,
             'message' => 'Order tracking information retrieved successfully',
             'data' => [
                 'order_id' => $order->id,
-                'order_number' => 'order_' . str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
+                'order_number' => 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
                 'order' => $orderArray,
                 'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
@@ -321,6 +308,7 @@ class OrderController extends Controller
         if ($id === null) {
             return null;
         }
+
         return Order::whereNull('user_id')
             ->where('id', $id)
             ->where('guest_email', $email)
@@ -359,6 +347,7 @@ class OrderController extends Controller
             'delivered' => 'Delivered',
             'cancelled' => 'Cancelled',
         ];
+
         return $map[$status ?? ''] ?? ucfirst($status ?? 'Pending');
     }
 
@@ -368,6 +357,7 @@ class OrderController extends Controller
     private function getOrderMaintenancePhotos(Order $order): array
     {
         $photos = [];
+
         // TODO: when orders are linked to visits, load VisitPhoto or MaintenancePhoto and return image_url
         return $photos;
     }
@@ -379,11 +369,11 @@ class OrderController extends Controller
     {
         $user = $request->user();
         $order = Order::find($id);
-        
-        if (!$order) {
+
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
-        
+
         // Check if user owns the order
         if ($order->user_id !== $user->id) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
@@ -398,10 +388,10 @@ class OrderController extends Controller
         // This is a workaround until proper rating columns are added
         $notes = $order->notes ?? '';
         $ratingNote = "Rating: {$validated['rating']}/5";
-        if (!empty($validated['review'])) {
+        if (! empty($validated['review'])) {
             $ratingNote .= "\nReview: {$validated['review']}";
         }
-        
+
         // Try to update rating if column exists, otherwise store in notes
         $updateData = [];
         if (in_array('rating', $order->getFillable()) || \Schema::hasColumn('orders', 'rating')) {
@@ -411,10 +401,10 @@ class OrderController extends Controller
             $updateData['review'] = $validated['review'] ?? null;
         }
         if (in_array('notes', $order->getFillable()) || \Schema::hasColumn('orders', 'notes')) {
-            $updateData['notes'] = $notes . ($notes ? "\n\n" : '') . $ratingNote;
+            $updateData['notes'] = $notes.($notes ? "\n\n" : '').$ratingNote;
         }
 
-        if (!empty($updateData)) {
+        if (! empty($updateData)) {
             $order->update($updateData);
         }
 
@@ -425,7 +415,7 @@ class OrderController extends Controller
                 'order' => $order->load(['items.product', 'user']),
                 'rating' => $validated['rating'],
                 'review' => $validated['review'] ?? null,
-            ]
+            ],
         ], 200);
     }
 }
