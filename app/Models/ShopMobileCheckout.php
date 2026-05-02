@@ -9,6 +9,7 @@ class ShopMobileCheckout extends Model
 {
     protected $fillable = [
         'user_id',
+        'fingerprint',
         'checkout_ref',
         'stripe_payment_intent_id',
         'source',

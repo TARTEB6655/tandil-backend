@@ -108,8 +108,21 @@ class ShopStripeMobilePaymentService
             'email' => $ship['email'] ?? '',
         ];
 
-        $checkoutRef = (string) Str::ulid();
         $secret = StripeCredentials::secretKey();
+        $this->cancelLongAbandonedMobileCheckouts($user, $secret, 15);
+
+        $fingerprint = hash('sha256', json_encode([
+            'lines' => $lines,
+            'amount_minor' => $amountMinor,
+            'ship' => $shippingJson,
+        ], JSON_THROW_ON_ERROR));
+
+        $reuse = $this->maybeReuseRecentPaymentIntent($user, $secret, $fingerprint, $amountMinor);
+        if ($reuse !== null) {
+            return $reuse;
+        }
+
+        $checkoutRef = (string) Str::ulid();
 
         $fullName = trim((string) $ship['full_name']);
         $phone = trim((string) $ship['phone']);
@@ -232,6 +245,7 @@ class ShopStripeMobilePaymentService
 
         ShopMobileCheckout::create([
             'user_id' => $user->id,
+            'fingerprint' => $fingerprint,
             'checkout_ref' => $checkoutRef,
             'stripe_payment_intent_id' => $piId,
             'source' => $isBuyNow ? 'buy_now' : 'cart',
@@ -492,6 +506,81 @@ class ShopStripeMobilePaymentService
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Cancel Stripe PIs left open for a long time (abandoned checkouts / repeated testing) so the dashboard stays clean.
+     */
+    protected function cancelLongAbandonedMobileCheckouts(User $user, string $secret, int $olderThanMinutes): void
+    {
+        $rows = ShopMobileCheckout::query()
+            ->where('user_id', $user->id)
+            ->whereNull('consumed_at')
+            ->where('created_at', '<', now()->subMinutes($olderThanMinutes))
+            ->orderBy('id')
+            ->limit(50)
+            ->get();
+
+        foreach ($rows as $row) {
+            $piId = $row->stripe_payment_intent_id;
+            if (is_string($piId) && str_starts_with($piId, 'pi_')) {
+                Http::withToken($secret)->asForm()->post(
+                    'https://api.stripe.com/v1/payment_intents/'.$piId.'/cancel',
+                    []
+                );
+            }
+            $row->delete();
+        }
+    }
+
+    /**
+     * If the app calls payment-intent again with the same cart + shipping within a short window, return the same client_secret instead of creating another Stripe object.
+     *
+     * @return array{ok: true, message: string, data: array{client_secret: string}}|null
+     */
+    protected function maybeReuseRecentPaymentIntent(User $user, string $secret, string $fingerprint, int $amountMinor): ?array
+    {
+        $row = ShopMobileCheckout::query()
+            ->where('user_id', $user->id)
+            ->where('fingerprint', $fingerprint)
+            ->whereNull('consumed_at')
+            ->where('created_at', '>=', now()->subMinutes(10))
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $row || ! is_string($row->stripe_payment_intent_id) || $row->stripe_payment_intent_id === '') {
+            return null;
+        }
+
+        if ((int) $row->amount_minor !== $amountMinor) {
+            return null;
+        }
+
+        $resp = Http::withToken($secret)->get('https://api.stripe.com/v1/payment_intents/'.$row->stripe_payment_intent_id);
+        if (! $resp->successful()) {
+            return null;
+        }
+
+        $pi = $resp->json();
+        $status = $pi['status'] ?? '';
+        if (! in_array($status, ['requires_payment_method', 'requires_confirmation', 'requires_action'], true)) {
+            return null;
+        }
+
+        if ((int) ($pi['amount'] ?? 0) !== $amountMinor) {
+            return null;
+        }
+
+        $clientSecret = $pi['client_secret'] ?? null;
+        if (! is_string($clientSecret) || $clientSecret === '') {
+            return null;
+        }
+
+        return [
+            'ok' => true,
+            'message' => 'Payment intent reused (same cart within 10 minutes — avoids duplicate Incomplete rows in Stripe).',
+            'data' => ['client_secret' => $clientSecret],
+        ];
     }
 
     /**
