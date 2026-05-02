@@ -47,6 +47,14 @@ class ShopCheckoutOrderService
         $taxAmount = $summary['tax'];
         $taxPercent = $summary['tax_percent'];
 
+        $special = $request->input('special_instructions');
+        if (is_string($special)) {
+            $special = mb_substr(trim($special), 0, 2000);
+            $special = $special === '' ? null : $special;
+        } else {
+            $special = null;
+        }
+
         $order = Order::create([
             'user_id' => null,
             'guest_email' => $request->input('email'),
@@ -66,6 +74,7 @@ class ShopCheckoutOrderService
             'order_status' => 'pending',
             'payment_status' => 'pending',
             'payment_method' => $paymentMethod,
+            'special_instructions' => $special,
         ]);
 
         foreach ($items as $item) {
@@ -136,6 +145,14 @@ class ShopCheckoutOrderService
         $taxAmount = $summary['tax'];
         $taxPercent = $summary['tax_percent'];
 
+        $special = $request->input('special_instructions');
+        if (is_string($special)) {
+            $special = mb_substr(trim($special), 0, 2000);
+            $special = $special === '' ? null : $special;
+        } else {
+            $special = null;
+        }
+
         $order = Order::create([
             'user_id' => $user->id,
             'shipping_address_id' => $address->id,
@@ -147,6 +164,7 @@ class ShopCheckoutOrderService
             'order_status' => 'pending',
             'payment_status' => 'pending',
             'payment_method' => $paymentMethod,
+            'special_instructions' => $special,
         ]);
 
         foreach ($items as $item) {

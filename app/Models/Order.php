@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
         'user_id',
         'guest_email',
@@ -35,6 +35,7 @@ class Order extends Model
         'refunded_at',
         'refund_amount',
         'refund_reason',
+        'special_instructions',
     ];
 
     protected $casts = [
@@ -107,11 +108,120 @@ class Order extends Model
                 'country' => $this->guest_country,
             ];
         }
+
         return null;
     }
 
     public function isGuestOrder(): bool
     {
         return $this->user_id === null;
+    }
+
+    /**
+     * Zero-padded numeric segment (min 4 chars) for display and API order_number suffix.
+     */
+    public function publicOrderNumberDigits(): string
+    {
+        $width = max(4, strlen((string) $this->id));
+
+        return str_pad((string) $this->id, $width, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Stable public reference (e.g. order_0006). Unique per order; guest lookup parses digits after "order_".
+     */
+    public function publicOrderNumber(): string
+    {
+        return 'order_'.$this->publicOrderNumberDigits();
+    }
+
+    public function isShopOrder(): bool
+    {
+        return $this->package_id === null;
+    }
+
+    public function payerDisplayName(): string
+    {
+        if ($this->isGuestOrder()) {
+            return (string) ($this->guest_full_name ?? 'Guest');
+        }
+        if ($this->shippingAddress && $this->shippingAddress->full_name) {
+            return (string) $this->shippingAddress->full_name;
+        }
+
+        return (string) ($this->user?->name ?? 'Customer');
+    }
+
+    public function payerEmail(): ?string
+    {
+        if ($this->isGuestOrder()) {
+            return $this->guest_email;
+        }
+
+        return $this->user?->email;
+    }
+
+    public function payerPhone(): ?string
+    {
+        if ($this->isGuestOrder()) {
+            return $this->guest_phone;
+        }
+
+        return $this->shippingAddress?->phone_number ?: $this->user?->phone;
+    }
+
+    public function payerAddressForDisplay(): string
+    {
+        if ($this->isGuestOrder()) {
+            $lines = array_filter([
+                $this->guest_street_address,
+                trim(implode(' ', array_filter([$this->guest_city, $this->guest_state, $this->guest_zip_code]))),
+                $this->guest_country,
+            ]);
+
+            return implode("\n", $lines);
+        }
+        if ($this->shippingAddress) {
+            $a = $this->shippingAddress;
+            $lines = array_filter([
+                $a->street_address,
+                trim(implode(' ', array_filter([$a->city, $a->state, $a->zip_code]))),
+                $a->country,
+            ]);
+
+            return implode("\n", $lines);
+        }
+
+        return '';
+    }
+
+    /**
+     * Short line for tables (Stripe-style description).
+     */
+    public function paymentActivityDescription(): string
+    {
+        $name = $this->payerDisplayName();
+        if ($this->isGuestOrder()) {
+            $city = (string) ($this->guest_city ?? '');
+            $country = (string) ($this->guest_country ?? '');
+            $zip = (string) ($this->guest_zip_code ?? '');
+        } else {
+            $city = (string) ($this->shippingAddress?->city ?? '');
+            $country = (string) ($this->shippingAddress?->country ?? '');
+            $zip = (string) ($this->shippingAddress?->zip_code ?? '');
+        }
+
+        return implode(' - ', array_filter(['Shop', $name, $city, $country, $zip], fn ($p) => $p !== ''));
+    }
+
+    public function paymentMethodLabel(): string
+    {
+        $m = strtolower((string) ($this->payment_method ?? ''));
+
+        return match ($m) {
+            'stripe' => 'Stripe',
+            'paypal' => 'PayPal',
+            default => $m !== '' ? ucfirst($m) : '—',
+        };
     }
 }

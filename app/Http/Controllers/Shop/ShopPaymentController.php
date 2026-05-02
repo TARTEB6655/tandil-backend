@@ -69,6 +69,7 @@ class ShopPaymentController extends Controller
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.qty' => 'required|integer|min:1',
+                'special_instructions' => 'nullable|string|max:2000',
             ], ['items.*.product_id.exists' => 'One or more product_id values are invalid.']);
             $order = $this->orders->createGuestOrder($request, $method);
         } else {
@@ -82,6 +83,7 @@ class ShopPaymentController extends Controller
                 'items' => 'nullable|array',
                 'items.*.product_id' => 'required_with:items|exists:products,id',
                 'items.*.qty' => 'required_with:items|integer|min:1',
+                'special_instructions' => 'nullable|string|max:2000',
             ], ['items.*.product_id.exists' => 'One or more product_id values are invalid.']);
             $order = $this->orders->createLoggedInOrder($request, $method);
         }
@@ -316,7 +318,7 @@ class ShopPaymentController extends Controller
 
     protected function orderNumber(Order $order): string
     {
-        return 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
+        return $order->publicOrderNumber();
     }
 
     protected function notifyAdminsNewOrder(Order $order, float $total, string $placedBy): void

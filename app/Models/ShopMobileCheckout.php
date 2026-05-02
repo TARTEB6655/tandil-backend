@@ -22,6 +22,7 @@ class ShopMobileCheckout extends Model
         'tax_percent',
         'shipping_amount',
         'total_amount',
+        'special_instructions',
         'consumed_at',
     ];
 

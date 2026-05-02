@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Models\ShopMobileCheckout;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
@@ -17,45 +17,149 @@ class PaymentController extends Controller
     }
 
     /**
-     * Display payment gateway settings and transaction logs.
+     * Stripe-style payment activity (orders + open mobile checkouts).
      */
-    public function index(Request $request)
+    public function transactions(Request $request)
     {
-        $query = Transaction::with('transactionable')->orderBy('created_at', 'desc');
+        $type = $request->input('type', 'shop');
+        if (! in_array($type, ['shop', 'all'], true)) {
+            $type = 'shop';
+        }
+        $shopOnly = $type !== 'all';
 
-        // Filters
-        if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
+        $baseForCounts = Order::query();
+        if ($shopOnly) {
+            $baseForCounts->whereNull('package_id');
+        }
+        if ($request->filled('date_from')) {
+            $baseForCounts->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $baseForCounts->whereDate('created_at', '<=', $request->date_to);
+        }
+        if ($request->filled('gateway')) {
+            $baseForCounts->where('payment_method', $request->gateway);
+        }
+        if ($request->filled('q')) {
+            $q = trim((string) $request->input('q'));
+            $baseForCounts->where(function ($sub) use ($q) {
+                $sub->where('guest_email', 'like', "%{$q}%")
+                    ->orWhere('guest_full_name', 'like', "%{$q}%")
+                    ->orWhere('payment_reference', 'like', "%{$q}%")
+                    ->orWhere('id', $q)
+                    ->orWhereHas('user', function ($u) use ($q) {
+                        $u->where('email', 'like', "%{$q}%")
+                            ->orWhere('name', 'like', "%{$q}%");
+                    });
+            });
         }
 
-        if ($request->has('gateway') && $request->gateway) {
-            $query->where('gateway', $request->gateway);
-        }
-
-        if ($request->has('search') && $request->search) {
-            $query->where('transaction_id', 'LIKE', "%{$request->search}%")
-                ->orWhere('gateway_transaction_id', 'LIKE', "%{$request->search}%");
-        }
-
-        $transactions = $query->paginate(20);
-
-        // Get payment gateway settings
-        $gateways = [
-            'stripe' => [
-                'enabled' => Setting::get('stripe_enabled', false),
-                'public_key' => Setting::get('stripe_public_key', ''),
-                'secret_key' => Setting::get('stripe_secret_key', ''),
-                'webhook_secret' => Setting::get('stripe_webhook_secret', ''),
-            ],
-            'paypal' => [
-                'enabled' => Setting::get('paypal_enabled', false),
-                'client_id' => Setting::get('paypal_client_id', ''),
-                'client_secret' => Setting::get('paypal_client_secret', ''),
-                'mode' => Setting::get('paypal_mode', 'sandbox'),
-            ],
+        $statusCounts = [
+            'all' => (clone $baseForCounts)->count(),
+            'paid' => (clone $baseForCounts)->where('payment_status', 'paid')->count(),
+            'pending' => (clone $baseForCounts)->where('payment_status', 'pending')->count(),
+            'failed' => (clone $baseForCounts)->where('payment_status', 'failed')->count(),
+            'refunded' => (clone $baseForCounts)->where('payment_status', 'refunded')->count(),
         ];
 
-        return view('admin.payments.index', compact('transactions', 'gateways'));
+        $query = Order::query()
+            ->with(['user', 'shippingAddress'])
+            ->orderByDesc('created_at');
+
+        if ($shopOnly) {
+            $query->whereNull('package_id');
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $tab = $request->input('tab', 'all');
+        if ($tab !== 'all' && ! in_array($tab, ['paid', 'pending', 'failed', 'refunded'], true)) {
+            $tab = 'all';
+        }
+        if ($tab !== 'all') {
+            $query->where('payment_status', $tab);
+        }
+
+        if ($request->filled('gateway')) {
+            $query->where('payment_method', $request->gateway);
+        }
+
+        if ($request->filled('q')) {
+            $q = trim((string) $request->input('q'));
+            $query->where(function ($sub) use ($q) {
+                $sub->where('guest_email', 'like', "%{$q}%")
+                    ->orWhere('guest_full_name', 'like', "%{$q}%")
+                    ->orWhere('payment_reference', 'like', "%{$q}%")
+                    ->orWhere('id', $q)
+                    ->orWhereHas('user', function ($u) use ($q) {
+                        $u->where('email', 'like', "%{$q}%")
+                            ->orWhere('name', 'like', "%{$q}%");
+                    });
+            });
+        }
+
+        $orders = $query->paginate(20)->withQueryString();
+
+        $openMobileCheckouts = ShopMobileCheckout::query()
+            ->with('user')
+            ->whereNull('consumed_at')
+            ->orderByDesc('updated_at')
+            ->limit(30)
+            ->get();
+
+        $currency = strtoupper((string) config('shop.currency', 'AED'));
+
+        return view('admin.payments.transactions', compact(
+            'orders',
+            'statusCounts',
+            'openMobileCheckouts',
+            'type',
+            'tab',
+            'currency'
+        ));
+    }
+
+    /**
+     * Gateway configuration only.
+     */
+    public function settings()
+    {
+        return view('admin.payments.settings', ['gateways' => $this->gatewaySettings()]);
+    }
+
+    /**
+     * Full payment / customer context for one order.
+     */
+    public function showOrderPayment(Order $order)
+    {
+        $order->load(['user', 'shippingAddress', 'items.product', 'package', 'transactions']);
+
+        return view('admin.payments.order-payment', compact('order'));
+    }
+
+    /**
+     * Incomplete Stripe mobile checkout (no order yet).
+     */
+    public function showMobileCheckout(ShopMobileCheckout $checkout)
+    {
+        $checkout->load('user');
+
+        return view('admin.payments.mobile-checkout', compact('checkout'));
+    }
+
+    /**
+     * Legacy row from transactions table (e.g. admin refund log).
+     */
+    public function showTransaction($id)
+    {
+        $transaction = Transaction::with('transactionable')->findOrFail($id);
+
+        return view('admin.payments.transaction', compact('transaction'));
     }
 
     /**
@@ -91,53 +195,24 @@ class PaymentController extends Controller
             Setting::set('paypal_mode', $request->mode ?? 'sandbox', 'text', 'payment');
         }
 
-        return redirect()->back()->with('success', ucfirst($gateway).' settings updated successfully.');
+        return redirect()->route('admin.payments.settings')->with('success', ucfirst($gateway).' settings updated successfully.');
     }
 
-    /**
-     * Process refund for an order.
-     */
-    public function refund(Request $request, $orderId)
+    private function gatewaySettings(): array
     {
-        $order = Order::findOrFail($orderId);
-
-        $validated = $request->validate([
-            'refund_amount' => 'required|numeric|min:0.01|max:'.$order->total_amount,
-            'refund_reason' => 'nullable|string|max:500',
-        ]);
-
-        // Create refund transaction
-        $transaction = Transaction::create([
-            'transaction_id' => 'REF-'.Str::upper(Str::random(12)),
-            'transactionable_type' => Order::class,
-            'transactionable_id' => $order->id,
-            'type' => 'refund',
-            'gateway' => $order->payment_method ?? 'manual',
-            'amount' => $validated['refund_amount'],
-            'currency' => 'AED',
-            'status' => 'completed',
-            'notes' => $validated['refund_reason'] ?? 'Admin refund',
-            'processed_at' => now(),
-        ]);
-
-        // Update order
-        $order->update([
-            'payment_status' => 'refunded',
-            'refunded_at' => now(),
-            'refund_amount' => $validated['refund_amount'],
-            'refund_reason' => $validated['refund_reason'] ?? null,
-        ]);
-
-        return redirect()->back()->with('success', 'Refund processed successfully. Transaction ID: '.$transaction->transaction_id);
-    }
-
-    /**
-     * View transaction details.
-     */
-    public function showTransaction($id)
-    {
-        $transaction = Transaction::with('transactionable')->findOrFail($id);
-
-        return view('admin.payments.transaction', compact('transaction'));
+        return [
+            'stripe' => [
+                'enabled' => Setting::get('stripe_enabled', false),
+                'public_key' => Setting::get('stripe_public_key', ''),
+                'secret_key' => Setting::get('stripe_secret_key', ''),
+                'webhook_secret' => Setting::get('stripe_webhook_secret', ''),
+            ],
+            'paypal' => [
+                'enabled' => Setting::get('paypal_enabled', false),
+                'client_id' => Setting::get('paypal_client_id', ''),
+                'client_secret' => Setting::get('paypal_client_secret', ''),
+                'mode' => Setting::get('paypal_mode', 'sandbox'),
+            ],
+        ];
     }
 }

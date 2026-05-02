@@ -4,7 +4,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h1 class="text-xl font-medium text-gray-900">Order Details</h1>
-                <p class="text-sm text-gray-500 mt-1">Order #{{ $order->id }}</p>
+                <p class="text-sm text-gray-500 mt-1">Order #{{ $order->publicOrderNumberDigits() }}</p>
             </div>
             <a href="{{ route('admin.orders.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
                 ← {{ __('admin.back_to_orders') }}
@@ -173,7 +173,7 @@
                     <div class="space-y-3">
                         <div>
                             <p class="text-xs text-gray-500">Order ID</p>
-                            <p class="text-sm font-medium text-gray-900">#{{ $order->id }}</p>
+                            <p class="text-sm font-medium text-gray-900">#{{ $order->publicOrderNumberDigits() }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Order Date</p>

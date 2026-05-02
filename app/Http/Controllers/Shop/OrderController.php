@@ -49,7 +49,7 @@ class OrderController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $order = Order::with(['items.product.category', 'user', 'transactions'])->find($id);
+        $order = Order::with(['items.product.category', 'user', 'transactions', 'shippingAddress'])->find($id);
 
         if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
@@ -64,6 +64,9 @@ class OrderController extends Controller
             'success' => true,
             'message' => 'Order retrieved successfully',
             'data' => $order,
+            'order_number' => $order->publicOrderNumber(),
+            'order_number_short' => $order->publicOrderNumberDigits(),
+            'order_summary' => $this->orderSummaryForApi($order),
         ], 200);
     }
 
@@ -117,6 +120,7 @@ class OrderController extends Controller
             'payment_status' => 'nullable|in:pending,paid,failed,refunded',
             'shipping_address' => 'nullable|string',
             'notes' => 'nullable|string',
+            'special_instructions' => 'nullable|string|max:2000',
         ]);
 
         $order->update($validated);
@@ -215,8 +219,10 @@ class OrderController extends Controller
             'message' => 'Order tracking information retrieved successfully',
             'data' => [
                 'order_id' => $order->id,
-                'order_number' => 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
+                'order_number' => $order->publicOrderNumber(),
+                'order_number_short' => $order->publicOrderNumberDigits(),
                 'order' => $orderArray,
+                'order_summary' => $this->orderSummaryForApi($order),
                 'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
                     'status' => $order->order_status,
@@ -248,9 +254,16 @@ class OrderController extends Controller
         $order->load(['items.product', 'items.product.primaryImage']);
         $data = $order->toArray();
         $data['shipping_address'] = $order->getShippingAddressForApi();
-        $data['order_number'] = 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT);
+        $data['order_number'] = $order->publicOrderNumber();
 
-        return response()->json(['success' => true, 'message' => 'Order retrieved.', 'data' => $data], 200);
+        return response()->json([
+            'success' => true,
+            'message' => 'Order retrieved.',
+            'data' => $data,
+            'order_number' => $order->publicOrderNumber(),
+            'order_number_short' => $order->publicOrderNumberDigits(),
+            'order_summary' => $this->orderSummaryForApi($order),
+        ], 200);
     }
 
     /**
@@ -277,8 +290,10 @@ class OrderController extends Controller
             'message' => 'Order tracking information retrieved successfully',
             'data' => [
                 'order_id' => $order->id,
-                'order_number' => 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
+                'order_number' => $order->publicOrderNumber(),
+                'order_number_short' => $order->publicOrderNumberDigits(),
                 'order' => $orderArray,
+                'order_summary' => $this->orderSummaryForApi($order),
                 'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
                     'status' => $order->order_status,
@@ -289,13 +304,66 @@ class OrderController extends Controller
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
                 'maintenance_photos' => $maintenancePhotos,
-                'can_cancel' => false,
+                'can_cancel' => ! in_array($order->order_status, ['delivered', 'cancelled']),
             ],
         ], 200);
     }
 
     /**
-     * Resolve guest order by order_number (e.g. order_001) and guest_email.
+     * Guest: cancel order by order_number + email (same verification as track).
+     */
+    public function guestCancel(Request $request)
+    {
+        $request->validate([
+            'order_number' => 'required|string|max:50',
+            'email' => 'required|email',
+        ]);
+
+        $order = $this->findGuestOrder($request->input('order_number'), $request->input('email'));
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found or email does not match.'], 404);
+        }
+
+        if (in_array($order->order_status, ['delivered', 'cancelled'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot cancel order with status: '.$order->order_status,
+            ], 400);
+        }
+
+        $order->update([
+            'order_status' => 'cancelled',
+            'payment_status' => $order->payment_status === 'paid' ? 'refunded' : 'pending',
+        ]);
+
+        try {
+            $admins = User::role('admin')->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification(
+                    'Order Cancelled',
+                    'Guest order #'.$order->id.' ('.$order->guest_email.') was cancelled.'
+                ));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send order cancellation notification: '.$e->getMessage());
+        }
+
+        $order->load(['items.product', 'shippingAddress']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order cancelled successfully',
+            'data' => [
+                'order' => $order,
+                'order_number' => $order->publicOrderNumber(),
+                'order_number_short' => $order->publicOrderNumberDigits(),
+                'order_summary' => $this->orderSummaryForApi($order),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Resolve guest order by order_number (e.g. order_0001) and guest_email.
      */
     private function findGuestOrder(string $orderNumber, string $email): ?Order
     {
@@ -335,6 +403,32 @@ class OrderController extends Controller
         ];
 
         return $steps;
+    }
+
+    /**
+     * One-screen order summary (date, address, payment, total, special instructions).
+     */
+    private function orderSummaryForApi(Order $order): array
+    {
+        $currency = strtoupper((string) config('shop.currency', 'AED'));
+        $addr = $order->payerAddressForDisplay();
+        $deliveryLine = $addr !== '' ? preg_replace("/\s*\n\s*/", ', ', trim($addr)) : null;
+
+        $paymentLabel = match (strtolower((string) ($order->payment_method ?? ''))) {
+            'stripe' => 'Credit card',
+            'paypal' => 'PayPal',
+            default => $order->paymentMethodLabel(),
+        };
+
+        return [
+            'placed_at' => $order->created_at?->format('c'),
+            'delivery_address' => $deliveryLine,
+            'payment_method' => $paymentLabel,
+            'payment_method_code' => $order->payment_method,
+            'total' => (float) $order->total_amount,
+            'currency' => $currency,
+            'special_instructions' => $order->special_instructions,
+        ];
     }
 
     private function mapOrderStatusToLabel(?string $status): string

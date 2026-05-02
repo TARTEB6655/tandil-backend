@@ -2822,6 +2822,40 @@
                     }
                 },
                 {
+                    "name": "Orders - Guest Cancel",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"order_number\": \"order_0001\",\n  \"email\": \"guest@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/shop/orders/guest/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "shop",
+                                "orders",
+                                "guest",
+                                "cancel"
+                            ]
+                        },
+                        "description": "Cancel guest order. No auth. Body: order_number, email (must match guest_email). Same rules as authenticated cancel (not if delivered/cancelled)."
+                    }
+                },
+                {
                     "name": "Orders - List",
                     "request": {
                         "method": "GET",
@@ -3007,7 +3041,7 @@
                                 "track"
                             ]
                         },
-                        "description": "GET /api/orders/{id}/track – Order tracking for timeline UI. Response: order_id, order_number (e.g. order_001), order, current_status (Pending|In Progress|Delivered etc.), tracking.timeline (steps: pending, confirmed, assigned, in_progress, completed, delivered – each with label, description, completed, timestamp), tracking.status, tracking.payment_status, maintenance_photos (array, for visit photos when linked), can_cancel. Set order_id."
+                        "description": "GET /api/orders/{id}/track – Same payload as one order screen: timeline + order_summary (placed_at, delivery_address, payment_method, total, currency, special_instructions) + order_number_short (e.g. 0001 for UI label Order #0001). order_number stays e.g. order_0001 for guest APIs. can_cancel when not delivered/cancelled."
                     }
                 },
                 {

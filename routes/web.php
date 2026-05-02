@@ -194,9 +194,12 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
         Route::post('orders/{id}/refund', [OrderController::class, 'refund'])->name('orders.refund');
 
-        Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
-        Route::post('payments/gateway/{gateway}', [PaymentController::class, 'updateGateway'])->name('payments.update-gateway');
+        Route::get('payments/settings', [PaymentController::class, 'settings'])->name('payments.settings');
+        Route::get('payments/order/{order}', [PaymentController::class, 'showOrderPayment'])->name('payments.order');
+        Route::get('payments/mobile-checkout/{checkout}', [PaymentController::class, 'showMobileCheckout'])->name('payments.mobile-checkout');
         Route::get('payments/transaction/{id}', [PaymentController::class, 'showTransaction'])->name('payments.transaction');
+        Route::post('payments/gateway/{gateway}', [PaymentController::class, 'updateGateway'])->name('payments.update-gateway');
+        Route::get('payments', [PaymentController::class, 'transactions'])->name('payments.index');
 
         Route::resource('complaints', ComplaintController::class)->only(['index', 'show']);
         Route::post('complaints/{id}/update-status', [ComplaintController::class, 'updateStatus'])->name('complaints.update-status');

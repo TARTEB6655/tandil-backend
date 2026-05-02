@@ -1,0 +1,175 @@
+<?php
+
+namespace Tests\Feature\Api;
+
+use App\Models\Order;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ShopOrderTrackAndCancelTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function bearer(User $user): array
+    {
+        return [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$user->createToken('t')->plainTextToken,
+        ];
+    }
+
+    public function test_get_orders_track_requires_authentication(): void
+    {
+        $order = Order::factory()->create(['order_status' => 'pending', 'payment_status' => 'pending']);
+
+        $this->getJson('/api/orders/'.$order->id.'/track')->assertStatus(401);
+    }
+
+    public function test_get_orders_track_returns_timeline_order_summary_and_short_number(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'package_id' => null,
+            'order_status' => 'processing',
+            'payment_status' => 'paid',
+            'payment_method' => 'stripe',
+            'special_instructions' => 'Please be careful with stitching',
+            'total_amount' => 45.00,
+        ]);
+
+        $response = $this->getJson('/api/orders/'.$order->id.'/track', $this->bearer($user));
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.order_id', $order->id);
+        $response->assertJsonPath('data.order_number', $order->publicOrderNumber());
+        $response->assertJsonPath('data.order_number_short', $order->publicOrderNumberDigits());
+        $response->assertJsonPath('data.order_summary.special_instructions', 'Please be careful with stitching');
+        $this->assertSame(45.0, (float) $response->json('data.order_summary.total'));
+        $response->assertJsonPath('data.order_summary.payment_method', 'Credit card');
+        $response->assertJsonPath('data.can_cancel', true);
+        $response->assertJsonStructure([
+            'data' => [
+                'tracking' => [
+                    'timeline' => [
+                        ['key', 'label', 'description', 'completed', 'timestamp'],
+                    ],
+                ],
+                'order_summary' => ['placed_at', 'delivery_address', 'payment_method', 'total', 'currency', 'special_instructions'],
+            ],
+        ]);
+    }
+
+    public function test_get_orders_track_forbidden_for_other_user_order(): void
+    {
+        $owner = User::factory()->create(['role' => 'client']);
+        $other = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $owner->id,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        $this->getJson('/api/orders/'.$order->id.'/track', $this->bearer($other))
+            ->assertStatus(403);
+    }
+
+    public function test_post_orders_cancel_succeeds_for_pending_order(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        $response = $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user));
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $order->refresh();
+        $this->assertSame('cancelled', $order->order_status);
+        $this->assertSame('pending', $order->payment_status);
+    }
+
+    public function test_post_orders_cancel_fails_when_already_delivered(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'delivered',
+            'payment_status' => 'paid',
+        ]);
+
+        $response = $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user));
+
+        $response->assertStatus(400);
+        $response->assertJsonPath('success', false);
+        $order->refresh();
+        $this->assertSame('delivered', $order->order_status);
+    }
+
+    public function test_guest_track_returns_same_shape_and_order_summary(): void
+    {
+        $order = Order::factory()->create([
+            'user_id' => null,
+            'guest_email' => 'guest-track@example.com',
+            'guest_full_name' => 'Guest User',
+            'guest_phone' => '+971500000001',
+            'guest_street_address' => 'Sheikh Zayed Road',
+            'guest_city' => 'Dubai',
+            'guest_state' => 'DXB',
+            'guest_zip_code' => '12345',
+            'guest_country' => 'UAE',
+            'package_id' => null,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+            'payment_method' => 'paypal',
+            'special_instructions' => 'Leave at reception',
+            'total_amount' => 99.50,
+        ]);
+
+        $q = http_build_query([
+            'order_number' => $order->publicOrderNumber(),
+            'email' => 'guest-track@example.com',
+        ]);
+
+        $response = $this->getJson('/api/shop/orders/guest/track?'.$q);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.order_id', $order->id);
+        $response->assertJsonPath('data.order_summary.special_instructions', 'Leave at reception');
+        $response->assertJsonPath('data.can_cancel', true);
+    }
+
+    public function test_guest_cancel_succeeds(): void
+    {
+        $order = Order::factory()->create([
+            'user_id' => null,
+            'guest_email' => 'guest-cancel@example.com',
+            'guest_full_name' => 'Guest Cancel',
+            'guest_phone' => '+971500000002',
+            'guest_street_address' => 'Road 1',
+            'guest_city' => 'Dubai',
+            'guest_state' => null,
+            'guest_zip_code' => null,
+            'guest_country' => 'UAE',
+            'package_id' => null,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        $response = $this->postJson('/api/shop/orders/guest/cancel', [
+            'order_number' => $order->publicOrderNumber(),
+            'email' => 'guest-cancel@example.com',
+        ], ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $order->refresh();
+        $this->assertSame('cancelled', $order->order_status);
+    }
+}

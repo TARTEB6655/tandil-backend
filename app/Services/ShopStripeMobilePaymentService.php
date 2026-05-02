@@ -50,6 +50,7 @@ class ShopStripeMobilePaymentService
             'shipping.country' => 'required|string|max:100',
             'shipping.company' => 'nullable|string|max:255',
             'shipping.email' => 'nullable|email|max:255',
+            'special_instructions' => 'nullable|string|max:2000',
         ]);
 
         $isBuyNow = $request->boolean('is_buy_now');
@@ -108,6 +109,13 @@ class ShopStripeMobilePaymentService
             'email' => $ship['email'] ?? '',
         ];
 
+        $specialRaw = $request->input('special_instructions');
+        $specialInstructions = null;
+        if (is_string($specialRaw)) {
+            $t = trim($specialRaw);
+            $specialInstructions = $t === '' ? null : mb_substr($t, 0, 2000);
+        }
+
         $secret = StripeCredentials::secretKey();
         $this->cancelLongAbandonedMobileCheckouts($user, $secret, 15);
 
@@ -115,6 +123,7 @@ class ShopStripeMobilePaymentService
             'lines' => $lines,
             'amount_minor' => $amountMinor,
             'ship' => $shippingJson,
+            'special_instructions' => $specialInstructions,
         ], JSON_THROW_ON_ERROR));
 
         $reuse = $this->maybeReuseRecentPaymentIntent($user, $secret, $fingerprint, $amountMinor);
@@ -258,6 +267,7 @@ class ShopStripeMobilePaymentService
             'tax_percent' => $summary['tax_percent'],
             'shipping_amount' => $summary['shipping'],
             'total_amount' => $total,
+            'special_instructions' => $specialInstructions,
         ]);
 
         $data = [
@@ -458,6 +468,7 @@ class ShopStripeMobilePaymentService
             'payment_reference' => $paymentIntentId,
             'transaction_id' => $paymentIntentId,
             'paid_at' => now(),
+            'special_instructions' => $row->special_instructions,
         ]);
 
         foreach ($row->lines_json as $line) {
@@ -487,7 +498,7 @@ class ShopStripeMobilePaymentService
     {
         return [
             'order_id' => $order->id,
-            'order_number' => 'order_'.str_pad((string) $order->id, 3, '0', STR_PAD_LEFT),
+            'order_number' => $order->publicOrderNumber(),
             'payment_status' => $order->payment_status,
             'total_amount' => (float) $order->total_amount,
         ];

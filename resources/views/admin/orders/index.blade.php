@@ -187,7 +187,7 @@
                                            onchange="updateBulkActions()">
                                 </td>
                                 <td class="px-3 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">#{{ $order->id }}</div>
+                                    <div class="text-sm font-medium text-gray-900">#{{ $order->publicOrderNumberDigits() }}</div>
                                 </td>
                                 <td class="px-3 py-4 whitespace-nowrap">
                                     <div class="text-sm text-gray-900">{{ $order->created_at->format('D') }} at {{ $order->created_at->format('g:i a') }}</div>
