@@ -15,35 +15,63 @@
     }
     $activeAudience = (string) (request('audience_role', '') ?? '');
     $formId = 'notification-inbox-filters-' . str_replace(['.', '\\'], '-', $routeName);
-    $selectClass = 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-9 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-gray-900 dark:text-slate-100';
-    $labelClass = 'block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400';
+    $controlH = 'h-11 min-h-[2.75rem]';
+    $fieldBase = "{$controlH} w-full rounded-xl border border-slate-200/90 bg-white text-sm font-medium text-slate-800 shadow-sm transition-colors placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800/95 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-500";
+    $selectBase = "{$fieldBase} appearance-none cursor-pointer bg-[length:1rem_1rem] bg-[right_0.65rem_center] bg-no-repeat pr-10";
+    $selectChevron = "url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%2364748b%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E')";
 @endphp
-<div class="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800 dark:shadow-none">
-    <form id="{{ $formId }}" method="GET" action="{{ route($routeName) }}" class="px-4 py-4 sm:px-5 sm:py-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 border-b border-slate-100 pb-3 dark:border-slate-700/80">
-            <div>
-                <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Filters</h2>
-                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Set options below, then apply. URL updates so you can bookmark or share.</p>
-            </div>
-            <a href="{{ route($routeName) }}"
-               class="inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800">
-                Reset all
-            </a>
-        </div>
+<div class="mb-6">
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-2 px-0.5">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Filters</h2>
+        <a href="{{ route($routeName) }}"
+           class="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-indigo-600 hover:underline dark:text-slate-400 dark:hover:text-indigo-400">
+            Reset all
+        </a>
+    </div>
 
-        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
-            <div class="sm:col-span-1 lg:col-span-2">
-                <label for="{{ $formId }}-status" class="{{ $labelClass }}">Status</label>
-                <select id="{{ $formId }}-status" name="filter" class="{{ $selectClass }}">
+    {{-- Frosted single-row bar (reference-style layout) --}}
+    <div class="rounded-2xl border border-slate-200/80 bg-white/55 p-2 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md ring-1 ring-slate-900/[0.04] dark:border-slate-600/60 dark:bg-slate-900/45 dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)] dark:ring-white/[0.06] sm:p-2.5">
+        <form id="{{ $formId }}" method="GET" action="{{ route($routeName) }}" class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch lg:flex-nowrap lg:gap-2.5">
+            {{-- Search (widest) --}}
+            <div class="relative min-w-0 flex-1 lg:min-w-[14rem]">
+                <label for="{{ $formId }}-q" class="sr-only">Search notifications</label>
+                <span class="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </span>
+                <input id="{{ $formId }}-q" type="search" name="q" value="{{ request('q') }}" placeholder="Search…" autocomplete="off"
+                       class="{{ $fieldBase }} w-full pl-10 pr-3" />
+            </div>
+
+            {{-- Status --}}
+            <div class="relative min-w-0 shrink-0 sm:w-[10.5rem] lg:w-[11rem]">
+                <span class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                    </svg>
+                </span>
+                <label for="{{ $formId }}-status" class="sr-only">Read status</label>
+                <select id="{{ $formId }}-status" name="filter" title="Read status"
+                        class="{{ $selectBase }} pl-9"
+                        style="background-image: {!! $selectChevron !!};">
                     <option value="all" @selected($activeFilter === 'all')>All</option>
-                    <option value="unread" @selected($activeFilter === 'unread')>Unread only</option>
-                    <option value="read" @selected($activeFilter === 'read')>Read only</option>
+                    <option value="unread" @selected($activeFilter === 'unread')>Unread</option>
+                    <option value="read" @selected($activeFilter === 'read')>Read</option>
                 </select>
             </div>
 
-            <div class="sm:col-span-1 lg:col-span-2">
-                <label for="{{ $formId }}-kind" class="{{ $labelClass }}">Type</label>
-                <select id="{{ $formId }}-kind" name="kind" class="{{ $selectClass }}">
+            {{-- Type --}}
+            <div class="relative min-w-0 shrink-0 sm:w-[11.5rem] lg:w-[12rem]">
+                <span class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                </span>
+                <label for="{{ $formId }}-kind" class="sr-only">Notification type</label>
+                <select id="{{ $formId }}-kind" name="kind" title="Notification type"
+                        class="{{ $selectBase }} pl-9"
+                        style="background-image: {!! $selectChevron !!};">
                     @foreach(NotificationInboxWebFilters::kindOptions() as $kindKey => $label)
                         <option value="{{ $kindKey === NotificationInboxWebFilters::KIND_ALL ? '' : $kindKey }}" @selected($activeKind === $kindKey)>{{ $label }}</option>
                     @endforeach
@@ -51,9 +79,16 @@
             </div>
 
             @if($showAudienceFilter)
-                <div class="sm:col-span-2 lg:col-span-3">
-                    <label for="{{ $formId }}-audience" class="{{ $labelClass }}">Audience <span class="font-normal normal-case text-slate-400">(admin review)</span></label>
-                    <select id="{{ $formId }}-audience" name="audience_role" class="{{ $selectClass }}">
+                <div class="relative min-w-0 shrink-0 sm:w-[12rem] lg:w-[13rem]">
+                    <span class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </span>
+                    <label for="{{ $formId }}-audience" class="sr-only">Audience role</label>
+                    <select id="{{ $formId }}-audience" name="audience_role" title="Audience (admin)"
+                            class="{{ $selectBase }} pl-9"
+                            style="background-image: {!! $selectChevron !!};">
                         <option value="" @selected($activeAudience === '')>All roles</option>
                         @foreach(UserNotificationAudience::PRIORITY_ROLES as $roleKey)
                             @php $lbl = UserNotificationAudience::labels()[$roleKey] ?? $roleKey; @endphp
@@ -63,18 +98,10 @@
                 </div>
             @endif
 
-            <div class="sm:col-span-2 {{ $showAudienceFilter ? 'lg:col-span-3' : 'lg:col-span-6' }}">
-                <label for="{{ $formId }}-q" class="{{ $labelClass }}">Search in message</label>
-                <input id="{{ $formId }}-q" type="search" name="q" value="{{ request('q') }}" placeholder="Keywords…" autocomplete="off"
-                       class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-gray-900 dark:text-slate-100 dark:placeholder:text-slate-500" />
-            </div>
-
-            <div class="flex flex-col gap-2 sm:col-span-2 lg:col-span-2 lg:flex-row lg:items-end">
-                <button type="submit"
-                        class="inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 lg:flex-1">
-                    Apply filters
-                </button>
-            </div>
-        </div>
-    </form>
+            <button type="submit"
+                    class="{{ $controlH }} inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-800 px-5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-indigo-400 dark:focus:ring-offset-slate-900 sm:min-w-[9.5rem]">
+                Apply filters
+            </button>
+        </form>
+    </div>
 </div>
