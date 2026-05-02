@@ -240,6 +240,28 @@
                         </div>
                     </div>
 
+                    <!-- Service timing (optional — e.g. for service tasks; leave blank for retail-only products) -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Service timing <span class="text-sm font-normal text-gray-500">(optional)</span></h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Used when this product maps to a visit or order task. Shown on shop product API and copied to new orders when set.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="estimated_arrival" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estimated arrival</label>
+                                <input type="text" id="estimated_arrival" name="estimated_arrival" value="{{ old('estimated_arrival') }}"
+                                       maxlength="255" placeholder="e.g. Within 2 hours, Same day"
+                                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+                                @error('estimated_arrival') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="job_duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Job duration</label>
+                                <input type="text" id="job_duration" name="job_duration" value="{{ old('job_duration') }}"
+                                       maxlength="255" placeholder="e.g. 45 minutes, 1–2 hours"
+                                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+                                @error('job_duration') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Shipping -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 mb-4">{{ __('admin.shipping') }}</h2>

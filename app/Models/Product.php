@@ -14,6 +14,7 @@ class Product extends Model
         'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured',
         'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
         'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
+        'estimated_arrival', 'job_duration',
     ];
 
     protected $casts = [

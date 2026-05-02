@@ -76,6 +76,10 @@
                         <dd class="text-gray-900 dark:text-gray-100">{{ $product->status ?? '—' }}</dd>
                         <dt class="text-gray-500 dark:text-gray-400">Stock</dt>
                         <dd class="text-gray-900 dark:text-gray-100">{{ $product->stock ?? '—' }}</dd>
+                        <dt class="text-gray-500 dark:text-gray-400">Estimated arrival</dt>
+                        <dd class="text-gray-900 dark:text-gray-100">{{ $product->estimated_arrival ?? '—' }}</dd>
+                        <dt class="text-gray-500 dark:text-gray-400">Job duration</dt>
+                        <dd class="text-gray-900 dark:text-gray-100">{{ $product->job_duration ?? '—' }}</dd>
                     </dl>
                 </div>
             </div>

@@ -55,6 +55,8 @@ class ShopCheckoutOrderService
             $special = null;
         }
 
+        $timing = $this->defaultTimingFromOrderItems($items);
+
         $order = Order::create([
             'user_id' => null,
             'guest_email' => $request->input('email'),
@@ -75,6 +77,8 @@ class ShopCheckoutOrderService
             'payment_status' => 'pending',
             'payment_method' => $paymentMethod,
             'special_instructions' => $special,
+            'estimated_arrival' => $timing['estimated_arrival'],
+            'job_duration' => $timing['job_duration'],
         ]);
 
         foreach ($items as $item) {
@@ -153,6 +157,8 @@ class ShopCheckoutOrderService
             $special = null;
         }
 
+        $timing = $this->defaultTimingFromOrderItems($items);
+
         $order = Order::create([
             'user_id' => $user->id,
             'shipping_address_id' => $address->id,
@@ -165,6 +171,8 @@ class ShopCheckoutOrderService
             'payment_status' => 'pending',
             'payment_method' => $paymentMethod,
             'special_instructions' => $special,
+            'estimated_arrival' => $timing['estimated_arrival'],
+            'job_duration' => $timing['job_duration'],
         ]);
 
         foreach ($items as $item) {
@@ -185,5 +193,37 @@ class ShopCheckoutOrderService
         }
 
         return $order;
+    }
+
+    /**
+     * First line item whose product has timing set wins (for single-service orders; optional on product).
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array{estimated_arrival: ?string, job_duration: ?string}
+     */
+    private function defaultTimingFromOrderItems(array $items): array
+    {
+        $estimated = null;
+        $duration = null;
+        foreach ($items as $item) {
+            $product = \App\Models\Product::find($item['product_id'] ?? null);
+            if (! $product) {
+                continue;
+            }
+            if ($estimated === null && $product->estimated_arrival) {
+                $estimated = $product->estimated_arrival;
+            }
+            if ($duration === null && $product->job_duration) {
+                $duration = $product->job_duration;
+            }
+            if ($estimated !== null && $duration !== null) {
+                break;
+            }
+        }
+
+        return [
+            'estimated_arrival' => $estimated,
+            'job_duration' => $duration,
+        ];
     }
 }

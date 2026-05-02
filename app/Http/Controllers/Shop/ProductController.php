@@ -169,6 +169,8 @@ class ProductController extends Controller
             'weight_unit' => $product->weight_unit,
             'sku' => $product->sku,
             'handle' => $product->handle,
+            'estimated_arrival' => $product->estimated_arrival,
+            'job_duration' => $product->job_duration,
             'image' => $product->image,
             'image_url' => ProductImage::buildFullUrl($rootImagePath),
             'main_image' => $mainImage,

@@ -17,14 +17,16 @@ use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
-    /** Product API allowed fields only (name, description, price, stock, status, is_featured, category_id, weight_unit, sku, handle). No extra fields. */
+    /** Product API allowed fields for create/update payload (plus images handled separately). */
     private const PRODUCT_API_FIELDS = [
         'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle',
+        'estimated_arrival', 'job_duration',
     ];
 
     /** Response keys for product API (allowed fields + id, image, image_url, main_image, gallery_images, category, timestamps). */
     private const PRODUCT_API_RESPONSE_KEYS = [
         'id', 'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle',
+        'estimated_arrival', 'job_duration',
         'image', 'image_url', 'main_image', 'gallery_images', 'category', 'created_at', 'updated_at',
     ];
 
@@ -82,6 +84,8 @@ class ProductController extends Controller
             'weight_unit' => $product->weight_unit,
             'sku' => $product->sku,
             'handle' => $product->handle,
+            'estimated_arrival' => $product->estimated_arrival,
+            'job_duration' => $product->job_duration,
             'image' => $product->image,
             'image_url' => ProductImage::buildFullUrl($rootImagePath),
             'main_image' => $mainImage,
@@ -421,6 +425,8 @@ class ProductController extends Controller
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'service_id'    => 'nullable|integer|exists:services,id',
+            'estimated_arrival' => 'nullable|string|max:255',
+            'job_duration' => 'nullable|string|max:255',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
@@ -721,6 +727,8 @@ class ProductController extends Controller
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'service_id'    => 'nullable|integer|exists:services,id',
+            'estimated_arrival' => 'nullable|string|max:255',
+            'job_duration' => 'nullable|string|max:255',
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
@@ -740,6 +748,12 @@ class ProductController extends Controller
                 continue;
             }
             $updateData[$key] = $value;
+        }
+
+        foreach (['estimated_arrival', 'job_duration'] as $timingKey) {
+            if (array_key_exists($timingKey, $updateData) && $updateData[$timingKey] === '') {
+                $updateData[$timingKey] = null;
+            }
         }
 
         // category_id: normalize (form-data sends string; empty = null)

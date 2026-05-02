@@ -168,6 +168,25 @@ class AdminCatalogApiTest extends TestCase
         $show->assertJsonPath('data.name', 'Test Product');
     }
 
+    public function test_admin_products_create_with_estimated_arrival_and_job_duration(): void
+    {
+        $response = $this->postJson('/api/admin/products', [
+            'name' => 'Service SKU',
+            'price' => 99,
+            'estimated_arrival' => 'Within 2 hours',
+            'job_duration' => '45 minutes',
+        ], $this->authJson());
+        $response->assertStatus(201);
+        $response->assertJsonPath('data.estimated_arrival', 'Within 2 hours');
+        $response->assertJsonPath('data.job_duration', '45 minutes');
+        $id = $response->json('data.id');
+        $this->assertDatabaseHas('products', [
+            'id' => $id,
+            'estimated_arrival' => 'Within 2 hours',
+            'job_duration' => '45 minutes',
+        ]);
+    }
+
     public function test_admin_products_update_and_delete(): void
     {
         $category = Category::factory()->create();
