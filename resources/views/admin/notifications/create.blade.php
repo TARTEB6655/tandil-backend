@@ -54,7 +54,7 @@
                                         <input type="checkbox" id="role-users-check-all" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                                         <span>Select all users in this role</span>
                                     </label>
-                                    <div id="role-users-list" class="mt-2 max-h-44 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 space-y-2"></div>
+                                    <div id="role-users-list" class="mt-2 max-h-44 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 space-y-2 hidden"></div>
                                     <p id="role-users-empty" class="mt-2 text-xs text-gray-500 hidden">No users found for selected role.</p>
                                 </div>
                             </div>
@@ -133,6 +133,7 @@
 
                 roleUsersList.innerHTML = '';
                 roleUsersCheckAll.checked = false;
+                roleUsersList.classList.add('hidden');
 
                 if (!selectedRole || roleUsers.length === 0) {
                     roleUsersEmpty.classList.remove('hidden');
@@ -140,6 +141,7 @@
                 }
 
                 roleUsersEmpty.classList.add('hidden');
+                roleUsersList.classList.remove('hidden');
                 roleUsers.forEach(user => {
                     const row = document.createElement('label');
                     row.className = 'flex items-center gap-2 text-sm text-gray-700';
