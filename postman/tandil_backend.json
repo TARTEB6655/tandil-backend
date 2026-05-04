@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→I** (A–H as before, plus **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→I** (A–H as before, plus **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.4"
+        "version": "3.3.7"
     },
     "item": [
         {
@@ -59,6 +59,1436 @@
                 }
             ],
             "description": "Health Check - Always test this first to verify API server is running"
+        },
+        {
+            "name": "Notifications – All roles (hub)",
+            "description": "Single place for all notification APIs. Subfolders = role or route family. Auth: Bearer {{token}} with matching role. Optional query audience_role on list/mark-all/clear where supported.",
+            "item": [
+                {
+                    "name": "Shared – /api/notifications",
+                    "description": "Middleware: client | technician | supervisor | area_manager | hr | admin. Same inbox helpers as role dashboards; path has no role prefix.",
+                    "item": [
+                        {
+                            "name": "List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/notifications"
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/notifications/{uuid}/mark-read"
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        },
+                        {
+                            "name": "Delete one",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/notifications/clear-all"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "User profile – /api/user/notifications",
+                    "description": "auth:sanctum any user. Database inbox; same rows as role inbox for that user. Use UUID from list (not numeric tip id).",
+                    "item": [
+                        {
+                            "name": "List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/user/notifications"
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/notifications/{{notification_id}}/read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "read"
+                                    ]
+                                },
+                                "description": "POST /api/user/notifications/{uuid}/read"
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/notifications/read-all?audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "notifications",
+                                        "read-all"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "POST /api/user/notifications/read-all"
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/notifications/clear-all?audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "notifications",
+                                        "clear-all"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "POST /api/user/notifications/clear-all. Response: deleted_count."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Client – /api/client/notifications",
+                    "description": "role:client",
+                    "item": [
+                        {
+                            "name": "List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/client/notifications. Response: data.notifications, data.unread_count."
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/client/notifications/{uuid}/mark-read"
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/client/notifications/mark-all-read"
+                            }
+                        },
+                        {
+                            "name": "Delete one",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/client/notifications/{uuid}"
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/client/notifications/clear-all. Response: deleted_count."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Technician – /api/technician/notifications",
+                    "description": "role:technician",
+                    "item": [
+                        {
+                            "name": "List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/technician/notifications. Response: data.notifications, data.unread_count."
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/technician/notifications/{uuid}/mark-read"
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/technician/notifications/mark-all-read"
+                            }
+                        },
+                        {
+                            "name": "Delete one",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/technician/notifications/{uuid}"
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/technician/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "technician",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/technician/notifications/clear-all. Response: deleted_count."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Supervisor – /api/supervisor/notifications",
+                    "description": "role:supervisor",
+                    "item": [
+                        {
+                            "name": "List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/supervisor/notifications. Response: data.notifications, data.unread_count."
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/supervisor/notifications/{uuid}/mark-read"
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/supervisor/notifications/mark-all-read"
+                            }
+                        },
+                        {
+                            "name": "Delete one",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/supervisor/notifications/{uuid}"
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/supervisor/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "supervisor",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/supervisor/notifications/clear-all. Response: deleted_count."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Area Manager – /api/area-manager/notifications",
+                    "description": "role:area_manager. Uses AreaManagerNotificationsApiController.",
+                    "item": [
+                        {
+                            "name": "List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/area-manager/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "area-manager",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/area-manager/notifications. Response: data.notifications, data.unread_count."
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/area-manager/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "area-manager",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/area-manager/notifications/{uuid}/mark-read"
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/area-manager/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "area-manager",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/area-manager/notifications/mark-all-read"
+                            }
+                        },
+                        {
+                            "name": "Delete one",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/area-manager/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "area-manager",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/area-manager/notifications/{uuid}"
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/area-manager/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "area-manager",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/area-manager/notifications/clear-all. Response: deleted_count."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "HR – /api/hr/notifications",
+                    "description": "role:hr|admin on /api/hr/*. Uses HrNotificationFilter (subset of types).",
+                    "item": [
+                        {
+                            "name": "List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/hr/notifications. Response: data.notifications, data.unread_count."
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": "POST /api/hr/notifications/{uuid}/mark-read"
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": "POST /api/hr/notifications/mark-all-read"
+                            }
+                        },
+                        {
+                            "name": "Delete one",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": "DELETE /api/hr/notifications/{uuid}"
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/hr/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "hr",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": "POST /api/hr/notifications/clear-all. Response: deleted_count."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin – /api/admin/notifications",
+                    "description": "role:admin. Inbox + broadcast + delivery analytics. Register specific paths before generic list.",
+                    "item": [
+                        {
+                            "name": "Delivery stats",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/delivery-stats?since=&until=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "delivery-stats"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "since",
+                                            "value": "",
+                                            "description": "Y-m-d optional"
+                                        },
+                                        {
+                                            "key": "until",
+                                            "value": "",
+                                            "description": "Y-m-d optional"
+                                        }
+                                    ]
+                                },
+                                "description": "GET …/delivery-stats → grand_total, by_audience, by_audience_labeled, by_notification_type"
+                            }
+                        },
+                        {
+                            "name": "Broadcast send",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"title\": \"System update\",\n  \"message\": \"Please read.\",\n  \"type\": \"all\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/broadcast",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "broadcast"
+                                    ]
+                                },
+                                "description": "POST …/broadcast → broadcast_id, recipient_counts"
+                            }
+                        },
+                        {
+                            "name": "Broadcasts list",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/broadcasts?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "broadcasts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        },
+                        {
+                            "name": "Broadcast detail",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/broadcasts/{{broadcast_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "broadcasts",
+                                        "{{broadcast_id}}"
+                                    ]
+                                },
+                                "description": "GET …/broadcasts/{id}"
+                            }
+                        },
+                        {
+                            "name": "Inbox list",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20&audience_role=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        },
+                        {
+                            "name": "Mark as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/{{notification_id}}/mark-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "mark-read"
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        },
+                        {
+                            "name": "Mark all as read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/mark-all-read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "mark-all-read"
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        },
+                        {
+                            "name": "Delete one",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/{{notification_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "{{notification_id}}"
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        },
+                        {
+                            "name": "Clear all",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/clear-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "clear-all"
+                                    ]
+                                },
+                                "description": ""
+                            }
+                        }
+                    ]
+                }
+            ]
         },
         {
             "name": "2. Authentication",
@@ -381,7 +1811,7 @@
                 },
                 {
                     "name": "Notifications (Dedicated API)",
-                    "description": "Dedicated notifications APIs under /api/client/notifications.",
+                    "description": "Database notification inbox under /api/client/notifications. Optional query: per_page (1-100), audience_role (admin-style JSON filter; usually omit for client). Response includes notifications (paginated) and unread_count.",
                     "item": [
                         {
                             "name": "Notifications - List",
@@ -398,7 +1828,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/client/notifications?per_page=20",
+                                    "raw": "{{base_url}}/api/client/notifications?per_page=20&audience_role=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -412,10 +1842,15 @@
                                             "key": "per_page",
                                             "value": "20",
                                             "description": "Optional, 1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional; filter by audience_role in payload (e.g. admin tools). Clients normally omit."
                                         }
                                     ]
                                 },
-                                "description": "GET /api/client/notifications. Returns notifications with unread_count."
+                                "description": "GET /api/client/notifications. Response: data.notifications (paginated Laravel format), data.unread_count. Uses role-aware inbox (same as /api/user/notifications for multi-role users)."
                             }
                         },
                         {
@@ -980,7 +2415,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/user/notifications",
+                            "raw": "{{base_url}}/api/user/notifications?per_page=20&audience_role=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -988,9 +2423,21 @@
                                 "api",
                                 "user",
                                 "notifications"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "Optional, 1-100"
+                                },
+                                {
+                                    "key": "audience_role",
+                                    "value": "",
+                                    "description": "Optional filter (e.g. client, technician). Usually omit."
+                                }
                             ]
                         },
-                        "description": "Profile – Notifications. Tips created by admin."
+                        "description": "Profile – Notifications. Database inbox: data.notifications (paginated), data.unread_count. Same rows as /api/client/notifications for client role. Role-aware (HR/area_manager subsets when applicable)."
                     }
                 },
                 {
@@ -1008,7 +2455,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/user/notifications/clear-all",
+                            "raw": "{{base_url}}/api/user/notifications/clear-all?audience_role=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1017,9 +2464,16 @@
                                 "user",
                                 "notifications",
                                 "clear-all"
+                            ],
+                            "query": [
+                                {
+                                    "key": "audience_role",
+                                    "value": "",
+                                    "description": "Optional; same as list endpoint"
+                                }
                             ]
                         },
-                        "description": "Profile – Notifications. Clear all (marks all as read). Call when user taps \"Clear All\" in the app."
+                        "description": "Profile – Notifications. Deletes all notifications in the user inbox (same scope as GET). Response includes deleted_count. Optional query audience_role to match filtered list."
                     }
                 },
                 {
@@ -11548,8 +13002,152 @@
                 },
                 {
                     "name": "Admin Notifications (Dedicated API)",
-                    "description": "Dedicated notifications APIs under /api/admin/notifications.",
+                    "description": "Admin notifications under /api/admin/notifications: inbox CRUD, broadcast send/history, GET delivery-stats (aggregate counts by notification type and audience / customers, technicians, …). Register specific paths before generic /notifications.",
                     "item": [
+                        {
+                            "name": "Notifications - Delivery stats (by role)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/delivery-stats?since=&until=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "delivery-stats"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "since",
+                                            "value": "",
+                                            "description": "Optional Y-m-d"
+                                        },
+                                        {
+                                            "key": "until",
+                                            "value": "",
+                                            "description": "Optional Y-m-d"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/admin/notifications/delivery-stats. Query: since, until (optional Y-m-d, filter created_at). Response: grand_total; by_audience (technical keys: client, technician, …); by_audience_labeled (customers, technicians, supervisors, area_managers, hr, admins, other, unknown, untracked); by_notification_type[] (per Laravel notification class: total_deliveries, by_audience). Admin only."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Broadcast send",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"title\": \"System update\",\n  \"message\": \"Please read.\",\n  \"type\": \"all\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/broadcast",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "broadcast"
+                                    ]
+                                },
+                                "description": "POST /api/admin/notifications/broadcast. Body: title, message, type (all|role|users), optional role, user_ids, messages_by_role. Response: broadcast_id, total_recipients, recipient_counts (customers, technicians, …). Admin only."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Broadcasts list",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/broadcasts?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "broadcasts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "1-100"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/admin/notifications/broadcasts. Paginated broadcast history with recipient_counts per row. Admin only."
+                            }
+                        },
+                        {
+                            "name": "Notifications - Broadcast detail",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/notifications/broadcasts/{{broadcast_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "notifications",
+                                        "broadcasts",
+                                        "{{broadcast_id}}"
+                                    ]
+                                },
+                                "description": "GET /api/admin/notifications/broadcasts/{id}. One broadcast with messages_by_role and recipient_counts. Admin only."
+                            }
+                        },
                         {
                             "name": "Notifications - List",
                             "request": {
@@ -11565,7 +13163,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20",
+                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20&audience_role=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -11579,10 +13177,15 @@
                                             "key": "per_page",
                                             "value": "20",
                                             "description": "Optional, 1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional JSON payload filter"
                                         }
                                     ]
                                 },
-                                "description": "GET /api/admin/notifications. Returns notifications with unread_count."
+                                "description": "GET /api/admin/notifications. Returns data.notifications + unread_count. Optional audience_role. Role-aware inbox."
                             }
                         },
                         {
@@ -15726,7 +17329,7 @@
                 },
                 {
                     "name": "User Notifications",
-                    "description": "User notifications – List, Mark as Read, Mark All as Read, Clear All. Auth: Bearer token.",
+                    "description": "GET/POST /api/user/notifications – database inbox (UUID ids). Response shape matches /api/client/notifications: data.notifications + data.unread_count. Clear-all deletes rows (returns deleted_count). Auth: Bearer.",
                     "item": [
                         {
                             "name": "List",
@@ -15743,7 +17346,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/user/notifications",
+                                    "raw": "{{base_url}}/api/user/notifications?per_page=20&audience_role=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -15751,9 +17354,21 @@
                                         "api",
                                         "user",
                                         "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "description": "1-100"
+                                        },
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
                                     ]
                                 },
-                                "description": "Get user notifications (Alternative route /api/user/notifications). Returns paginated list of notifications for the authenticated user."
+                                "description": "GET /api/user/notifications. Database notification inbox (same as role dashboards). Response: data.notifications (paginated), data.unread_count. Query: per_page, audience_role (optional). Role-aware inbox."
                             }
                         },
                         {
@@ -15801,7 +17416,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/user/notifications/read-all",
+                                    "raw": "{{base_url}}/api/user/notifications/read-all?audience_role=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -15810,9 +17425,16 @@
                                         "user",
                                         "notifications",
                                         "read-all"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional; same scope as list"
+                                        }
                                     ]
                                 },
-                                "description": "Mark all notifications as read"
+                                "description": "POST /api/user/notifications/read-all. Marks all inbox notifications as read. Optional audience_role query (same as GET list)."
                             }
                         },
                         {
@@ -15830,7 +17452,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/user/notifications/clear-all",
+                                    "raw": "{{base_url}}/api/user/notifications/clear-all?audience_role=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -15839,9 +17461,16 @@
                                         "user",
                                         "notifications",
                                         "clear-all"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "audience_role",
+                                            "value": "",
+                                            "description": "Optional"
+                                        }
                                     ]
                                 },
-                                "description": "Clear all notifications. Use when user taps \"Clear All\" in the app. Returns success; app can then clear or refresh the list."
+                                "description": "POST /api/user/notifications/clear-all. Deletes all notifications in inbox. Response: deleted_count. Optional audience_role."
                             }
                         }
                     ]
@@ -15931,7 +17560,14 @@
         {
             "key": "notification_id",
             "value": "1",
-            "type": "string"
+            "type": "string",
+            "description": "Database notification UUID from GET …/notifications (not numeric tip id)."
+        },
+        {
+            "key": "broadcast_id",
+            "value": "1",
+            "type": "string",
+            "description": "Admin broadcast row id from POST /api/admin/notifications/broadcast or GET …/broadcasts."
         },
         {
             "key": "area_id",

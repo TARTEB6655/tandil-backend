@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
-use App\Models\Tip;
 use App\Models\UserAddress;
+use App\Support\UserNotificationInbox;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use Illuminate\Http\Request;
@@ -204,70 +204,69 @@ class UserController extends Controller
     }
 
     /**
-     * Get user notifications: only tips created by admin (published tips).
-     * Shown in Profile → Notifications. Each item has id, title, message, created_at, type.
+     * Database notification inbox (same rows as role-specific /api/client/notifications, etc.), with role-aware filters.
+     * Query: per_page (1–100), optional audience_role (admin-style JSON filter when applicable).
      */
     public function getNotifications(Request $request)
     {
+        $user = $request->user();
         $perPage = (int) $request->get('per_page', 20);
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
+        $audienceRole = $request->query('audience_role');
 
-        $tips = Tip::where('status', 'published')
-            ->orderByDesc('created_at')
+        $notifications = UserNotificationInbox::forUser($user, $audienceRole)
+            ->latest()
             ->paginate($perPage);
 
-        $data = $tips->through(fn (Tip $tip) => [
-            'id' => $tip->id,
-            'type' => 'tip',
-            'title' => $tip->title,
-            'message' => $tip->content,
-            'created_at' => $tip->created_at?->toIso8601String(),
-        ]);
+        $unreadCount = UserNotificationInbox::unreadForUser($user, $audienceRole)->count();
 
-        return ApiResponse::success('Notifications retrieved successfully.', $data);
+        return ApiResponse::success('Notifications retrieved successfully.', [
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount,
+        ]);
     }
 
     /**
-     * Mark notification as read. Notifications are tips; accepting tip id returns success (read state not stored).
+     * Mark one database notification as read (UUID from GET /api/user/notifications).
      */
     public function markNotificationAsRead(Request $request, $id)
     {
         $user = $request->user();
-        // If id is numeric, treat as tip id (notifications = tips); no read state stored, just acknowledge.
-        if (is_numeric($id)) {
-            $exists = Tip::where('status', 'published')->where('id', (int) $id)->exists();
-            if ($exists) {
-                return ApiResponse::success('Notification marked as read.');
-            }
-            return ApiResponse::error('Notification not found', 404);
-        }
-        $notification = $user->notifications()->where('id', $id)->first();
+        $notification = UserNotificationInbox::forUser($user)->where('id', $id)->first();
         if (! $notification) {
-            return ApiResponse::error('Notification not found', 404);
+            return ApiResponse::error('Notification not found.', 404);
         }
         $notification->markAsRead();
+
         return ApiResponse::success('Notification marked as read.');
     }
 
     /**
-     * Mark all notifications as read.
+     * Mark all inbox notifications as read (respects the same role-aware filter as the list endpoint).
      */
     public function markAllNotificationsAsRead(Request $request)
     {
         $user = $request->user();
-        $user->unreadNotifications->each(fn ($n) => $n->markAsRead());
+        $audienceRole = $request->query('audience_role');
+        UserNotificationInbox::unreadForUser($user, $audienceRole)->update(['read_at' => now()]);
+
         return ApiResponse::success('All notifications marked as read.');
     }
 
     /**
-     * Clear all notifications (for client "Clear All" button).
-     * Marks all as read; returns success so the app can clear or refresh the list.
+     * Delete all notifications visible in the user's inbox (same scope as GET /api/user/notifications).
      */
     public function clearAllNotifications(Request $request)
     {
         $user = $request->user();
-        $user->unreadNotifications->each(fn ($n) => $n->markAsRead());
-        return ApiResponse::success('All notifications cleared.');
+        $audienceRole = $request->query('audience_role');
+        $query = UserNotificationInbox::forUser($user, $audienceRole);
+        $deleted = $query->count();
+        $query->delete();
+
+        return ApiResponse::success('All notifications cleared successfully.', [
+            'deleted_count' => $deleted,
+        ]);
     }
 }
 

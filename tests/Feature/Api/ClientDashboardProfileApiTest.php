@@ -4,8 +4,8 @@ namespace Tests\Feature\Api;
 
 use App\Models\Package;
 use App\Models\Subscription;
-use App\Models\Tip;
 use App\Models\User;
+use App\Notifications\AdminNotification;
 use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -245,27 +245,31 @@ class ClientDashboardProfileApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function test_user_notifications_returns_paginated(): void
+    public function test_user_notifications_returns_paginated_inbox(): void
     {
         $response = $this->getJson('/api/user/notifications', $this->authHeaders());
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
-        $response->assertJsonStructure(['data' => ['current_page', 'data', 'per_page', 'total']]);
+        $response->assertJsonStructure([
+            'data' => [
+                'unread_count',
+                'notifications' => ['current_page', 'data', 'per_page', 'total'],
+            ],
+        ]);
     }
 
-    public function test_user_notifications_returns_only_published_tips(): void
+    public function test_user_notifications_returns_database_notifications(): void
     {
-        Tip::factory()->create(['status' => 'published', 'title' => 'Water your plants', 'content' => 'Tip content here.']);
-        Tip::factory()->create(['status' => 'draft', 'title' => 'Draft tip']);
+        $this->client->notify(new AdminNotification('Order update', 'Your order is on the way.'));
 
         $response = $this->getJson('/api/user/notifications', $this->authHeaders());
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
-        $data = $response->json('data.data');
+        $response->assertJsonPath('data.unread_count', 1);
+        $data = $response->json('data.notifications.data');
         $this->assertCount(1, $data);
-        $this->assertSame('tip', $data[0]['type']);
-        $this->assertSame('Water your plants', $data[0]['title']);
-        $this->assertSame('Tip content here.', $data[0]['message']);
+        $this->assertSame(AdminNotification::class, $data[0]['type']);
+        $this->assertSame('Order update', $data[0]['data']['title']);
     }
 
     // ---- Help & Support: Help Center (GET /api/support/help-center) ----

@@ -442,6 +442,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/notifications/broadcast', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'store']);
     Route::get('/notifications/broadcasts', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'index']);
     Route::get('/notifications/broadcasts/{id}', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'show'])->whereNumber('id');
+    Route::get('/notifications/delivery-stats', [\App\Http\Controllers\Api\Admin\NotificationDeliveryStatsController::class, 'index']);
     Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Support\GlobalNotificationFilter;
+use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 
 class RoleNotificationsApiController extends Controller
@@ -17,11 +17,11 @@ class RoleNotificationsApiController extends Controller
 
         $audienceRole = $request->query('audience_role');
 
-        $notifications = GlobalNotificationFilter::forUser($user, $audienceRole)
+        $notifications = UserNotificationInbox::forUser($user, $audienceRole)
             ->latest()
             ->paginate($perPage);
 
-        $unreadCount = GlobalNotificationFilter::unreadForUser($user, $audienceRole)->count();
+        $unreadCount = UserNotificationInbox::unreadForUser($user, $audienceRole)->count();
 
         return ApiResponse::success('Notifications retrieved successfully.', [
             'notifications' => $notifications,
@@ -32,7 +32,7 @@ class RoleNotificationsApiController extends Controller
     public function markAsRead(Request $request, string $id)
     {
         $user = $request->user();
-        $notification = GlobalNotificationFilter::forUser($user)->find($id);
+        $notification = UserNotificationInbox::forUser($user)->find($id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -46,7 +46,7 @@ class RoleNotificationsApiController extends Controller
     public function markAllAsRead(Request $request)
     {
         $user = $request->user();
-        GlobalNotificationFilter::unreadForUser($user)->update(['read_at' => now()]);
+        UserNotificationInbox::unreadForUser($user)->update(['read_at' => now()]);
 
         return ApiResponse::success('All notifications marked as read.');
     }
@@ -54,7 +54,7 @@ class RoleNotificationsApiController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
-        $notification = GlobalNotificationFilter::forUser($user)->find($id);
+        $notification = UserNotificationInbox::forUser($user)->find($id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -68,7 +68,7 @@ class RoleNotificationsApiController extends Controller
     public function clearAll(Request $request)
     {
         $user = $request->user();
-        $query = GlobalNotificationFilter::forUser($user);
+        $query = UserNotificationInbox::forUser($user);
         $deleted = $query->count();
         $query->delete();
 
