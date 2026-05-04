@@ -33,7 +33,8 @@
             <input type="checkbox" id="select-all-notifications" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
             Select all on page
         </label>
-        <button type="submit" form="form-notifications-bulk" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200" onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected?');">Delete selected</button>
+        <span id="selected-count" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">0 selected</span>
+        <button type="submit" form="form-notifications-bulk" id="btn-delete-selected" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected?');">Delete selected</button>
         <form method="POST" action="{{ route('client.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL notifications?');">
             @csrf
             <button type="submit" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200">Delete all</button>
@@ -53,7 +54,7 @@
                     $kindBadge = \App\Support\NotificationWebPresenter::kindBadge($notification->type ?? '', is_array($data) ? $data : []);
                     $audLabel = \App\Support\NotificationWebPresenter::audienceLabel(is_array($data) ? $data : []);
                 @endphp
-                <div class="notification-row group p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer {{ !$isRead ? 'bg-blue-50/50' : '' }}"
+                <div class="notification-row group p-2.5 sm:p-3 hover:bg-gray-50 transition-colors cursor-pointer {{ !$isRead ? 'bg-blue-50/50' : '' }}"
                      data-open-url="{{ route('client.notifications.show', $notification->id) }}">
                     <div class="flex items-start gap-3 sm:gap-4">
                         <div class="flex-shrink-0 pt-0.5">
@@ -73,11 +74,14 @@
                                 @if($audLabel)<span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800">{{ $audLabel }}</span>@endif
                             </div>
                             <p class="text-xs sm:text-sm {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">{{ \Illuminate\Support\Str::limit($message, 200) }}</p>
-                            <p class="text-xs text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                         </a>
-                        <div class="flex items-center gap-2 flex-shrink-0">
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <div class="text-right">
+                                <p class="text-[11px] font-medium text-gray-500 leading-4">{{ $notification->created_at->format('d M Y') }}</p>
+                                <p class="text-[11px] text-gray-400 leading-4">{{ $notification->created_at->format('h:i A') }}</p>
+                            </div>
                             <form action="{{ route('client.notifications.destroy', $notification->id) }}" method="POST" class="inline">@csrf @method('DELETE')
-                                <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 transition-colors" title="Delete"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" /></svg></button>
+                                <button type="submit" class="p-1.5 text-red-500 hover:text-red-700 transition-colors" title="Delete"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" /></svg></button>
                             </form>
                         </div>
                     </div>
@@ -94,9 +98,22 @@
     </div>
     </form>
     <script>
-        document.getElementById('select-all-notifications')?.addEventListener('change', function() {
-            document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+        const selectAll = document.getElementById('select-all-notifications');
+        const selectedCount = document.getElementById('selected-count');
+        const deleteSelected = document.getElementById('btn-delete-selected');
+        const checkboxes = Array.from(document.querySelectorAll('.notification-cb'));
+        function syncBulkUi() {
+            const checked = checkboxes.filter(cb => cb.checked).length;
+            if (selectedCount) selectedCount.textContent = `${checked} selected`;
+            if (deleteSelected) deleteSelected.disabled = checked === 0;
+            if (selectAll) selectAll.checked = checked > 0 && checked === checkboxes.length;
+        }
+        selectAll?.addEventListener('change', function() {
+            checkboxes.forEach(cb => { cb.checked = this.checked; });
+            syncBulkUi();
         });
+        checkboxes.forEach(cb => cb.addEventListener('change', syncBulkUi));
+        syncBulkUi();
         document.querySelectorAll('.notification-row[data-open-url]').forEach(function(row) {
             row.addEventListener('click', function (e) {
                 if (e.target.closest('input, button, form, label, a')) return;

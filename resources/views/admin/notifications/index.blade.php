@@ -89,10 +89,12 @@
                 <input type="checkbox" id="select-all-notifications" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800" />
                 Select all on this page
             </label>
+            <span id="selected-count" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">0 selected</span>
             <span class="hidden sm:inline h-4 w-px bg-slate-200 dark:bg-slate-600" aria-hidden="true"></span>
             <div class="flex flex-wrap items-center gap-2">
                 <button type="submit" form="form-notifications-bulk" id="btn-delete-selected"
-                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-200 dark:border-red-900/60 bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-200 dark:border-red-900/60 bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
                         onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
                     Delete selected
                 </button>
@@ -187,7 +189,7 @@
                 @endphp
                 <div class="notification-row border-b border-slate-100 dark:border-slate-700/80 last:border-b-0 hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors duration-150 cursor-pointer {{ $isUnread ? 'bg-indigo-50/40 dark:bg-indigo-950/25' : '' }}"
                      data-open-url="{{ route('admin.notifications.show', $notification->id) }}">
-                    <div class="px-5 py-4">
+                    <div class="px-4 py-2.5">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0 pt-1">
                                 <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-gray-800" />
@@ -225,21 +227,21 @@
                                         default => 'text-blue-600'
                                     };
                                 @endphp
-                                <div class="h-10 w-10 rounded-full {{ $iconBg }} {{ $iconBorder }} border flex items-center justify-center">
+                                <div class="h-8 w-8 rounded-full {{ $iconBg }} {{ $iconBorder }} border flex items-center justify-center">
                                     @if(str_contains($type, 'Order'))
-                                        <svg class="w-5 h-5 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <svg class="w-4 h-4 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                         </svg>
                                     @elseif(str_contains($type, 'Visit'))
-                                        <svg class="w-5 h-5 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <svg class="w-4 h-4 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     @elseif(str_contains($type, 'Complaint'))
-                                        <svg class="w-5 h-5 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <svg class="w-4 h-4 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                     @else
-                                        <svg class="w-5 h-5 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <svg class="w-4 h-4 {{ $iconColorClass }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     @endif
@@ -274,12 +276,16 @@
                                         @endif
                                         <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ $notification->created_at->diffForHumans() }}</p>
                                     </a>
-                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                    <div class="flex items-center gap-3 flex-shrink-0">
+                                        <div class="text-right">
+                                            <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 leading-4">{{ $notification->created_at->format('d M Y') }}</p>
+                                            <p class="text-[11px] text-gray-400 dark:text-gray-500 leading-4">{{ $notification->created_at->format('h:i A') }}</p>
+                                        </div>
                                         <form method="POST" action="{{ route('admin.notifications.destroy', $notification->id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this notification?');">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" 
-                                                    class="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                                                    class="p-1.5 text-red-500 hover:text-red-700 transition-colors"
                                                     title="Delete">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -305,9 +311,22 @@
         </form>
 
         <script>
-            document.getElementById('select-all-notifications')?.addEventListener('change', function() {
-                document.querySelectorAll('.notification-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+            const selectAll = document.getElementById('select-all-notifications');
+            const selectedCount = document.getElementById('selected-count');
+            const deleteSelected = document.getElementById('btn-delete-selected');
+            const checkboxes = Array.from(document.querySelectorAll('.notification-cb'));
+            function syncBulkUi() {
+                const checked = checkboxes.filter(cb => cb.checked).length;
+                if (selectedCount) selectedCount.textContent = `${checked} selected`;
+                if (deleteSelected) deleteSelected.disabled = checked === 0;
+                if (selectAll) selectAll.checked = checked > 0 && checked === checkboxes.length;
+            }
+            selectAll?.addEventListener('change', function() {
+                checkboxes.forEach(cb => { cb.checked = this.checked; });
+                syncBulkUi();
             });
+            checkboxes.forEach(cb => cb.addEventListener('change', syncBulkUi));
+            syncBulkUi();
             document.querySelectorAll('.notification-row[data-open-url]').forEach(function(row) {
                 row.addEventListener('click', function (e) {
                     if (e.target.closest('input, button, form, label')) return;
