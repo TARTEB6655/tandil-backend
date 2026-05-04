@@ -261,9 +261,6 @@
                                         @endphp
                                         <div class="flex flex-wrap items-center gap-1.5 mt-1 mb-1">
                                             <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">{{ $kindBadge }}</span>
-                                            @if($audLabel)
-                                                <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">{{ $audLabel }}</span>
-                                            @endif
                                         </div>
                                         @if(isset($data['visit_id']))
                                             <p class="text-xs text-gray-600 mb-1">Visit ID: #{{ $data['visit_id'] }}</p>
@@ -274,24 +271,24 @@
                                         @if(isset($data['order_id']))
                                             <p class="text-xs text-gray-600 mb-1">Order ID: #{{ $data['order_id'] }}</p>
                                         @endif
-                                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ $notification->created_at->diffForHumans() }}</p>
                                     </a>
                                     <div class="flex items-center gap-3 flex-shrink-0">
                                         <div class="text-right">
-                                            <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 leading-4">{{ $notification->created_at->format('d M Y') }}</p>
-                                            <p class="text-[11px] text-gray-400 dark:text-gray-500 leading-4">{{ $notification->created_at->format('h:i A') }}</p>
+                                            @if($audLabel)
+                                                <p class="mb-1">
+                                                    <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">{{ $audLabel }}</span>
+                                                </p>
+                                            @endif
+                                            <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-4">{{ $notification->created_at->diffForHumans() }}</p>
                                         </div>
-                                        <form method="POST" action="{{ route('admin.notifications.destroy', $notification->id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this notification?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" 
-                                                    class="p-1.5 text-red-500 hover:text-red-700 transition-colors"
-                                                    title="Delete">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                                class="p-1.5 text-red-500 hover:text-red-700 transition-colors js-delete-notification"
+                                                title="Delete"
+                                                data-delete-url="{{ route('admin.notifications.destroy', $notification->id) }}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -334,6 +331,32 @@
                     if (link) {
                         window.location.href = link.getAttribute('href');
                     }
+                });
+            });
+            document.querySelectorAll('.js-delete-notification').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const action = this.getAttribute('data-delete-url');
+                    if (!action) return;
+                    if (!confirm('Are you sure you want to delete this notification?')) return;
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = action;
+
+                    const token = document.createElement('input');
+                    token.type = 'hidden';
+                    token.name = '_token';
+                    token.value = @json(csrf_token());
+                    form.appendChild(token);
+
+                    const method = document.createElement('input');
+                    method.type = 'hidden';
+                    method.name = '_method';
+                    method.value = 'DELETE';
+                    form.appendChild(method);
+
+                    document.body.appendChild(form);
+                    form.submit();
                 });
             });
         </script>
