@@ -42,9 +42,14 @@ final class NotificationDeliveryAnalytics
             ->when($since !== null && $since !== '', fn ($q) => $q->whereDate('created_at', '>=', $since))
             ->when($until !== null && $until !== '', fn ($q) => $q->whereDate('created_at', '<=', $until));
 
-        $rows = (clone $base)
-            ->selectRaw("type, {$audExpr} as audience_role, COUNT(*) as cnt")
-            ->groupByRaw("type, {$audExpr}")
+        // Subquery first materializes type + audience_role per row. Grouping JSON expressions directly hits MySQL
+        // ONLY_FULL_GROUP_BY (1055: underlying `data` not in GROUP BY). Outer GROUP BY uses plain columns only.
+        $perRow = (clone $base)->selectRaw("type, {$audExpr} as audience_role");
+
+        $rows = DB::query()
+            ->fromSub($perRow, 'n')
+            ->selectRaw('n.type, n.audience_role, COUNT(*) as cnt')
+            ->groupBy('n.type', 'n.audience_role')
             ->get();
 
         $byType = [];

@@ -17,16 +17,19 @@ class RoleNotificationsApiController extends Controller
 
         $audienceRole = $request->query('audience_role');
 
-        $notifications = UserNotificationInbox::forUser($user, $audienceRole)
+        $paginator = UserNotificationInbox::forUser($user, $audienceRole)
             ->latest()
             ->paginate($perPage);
 
         $unreadCount = UserNotificationInbox::unreadForUser($user, $audienceRole)->count();
 
-        return ApiResponse::success('Notifications retrieved successfully.', [
-            'notifications' => $notifications,
+        // Same dual shape as GET /api/user/notifications: legacy flat paginator keys + notifications + unread_count.
+        $payload = array_merge($paginator->toArray(), [
             'unread_count' => $unreadCount,
+            'notifications' => $paginator,
         ]);
+
+        return ApiResponse::success('Notifications retrieved successfully.', $payload);
     }
 
     public function markAsRead(Request $request, string $id)

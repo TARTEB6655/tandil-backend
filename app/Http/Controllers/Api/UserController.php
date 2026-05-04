@@ -206,6 +206,9 @@ class UserController extends Controller
     /**
      * Database notification inbox (same rows as role-specific /api/client/notifications, etc.), with role-aware filters.
      * Query: per_page (1–100), optional audience_role (admin-style JSON filter when applicable).
+     *
+     * Response `data` includes: (1) paginator fields at the root (current_page, data, total, …) for legacy mobile apps
+     * that expect the old tips list shape; (2) `notifications` (same paginator) and `unread_count` for newer clients.
      */
     public function getNotifications(Request $request)
     {
@@ -214,16 +217,18 @@ class UserController extends Controller
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
         $audienceRole = $request->query('audience_role');
 
-        $notifications = UserNotificationInbox::forUser($user, $audienceRole)
+        $paginator = UserNotificationInbox::forUser($user, $audienceRole)
             ->latest()
             ->paginate($perPage);
 
         $unreadCount = UserNotificationInbox::unreadForUser($user, $audienceRole)->count();
 
-        return ApiResponse::success('Notifications retrieved successfully.', [
-            'notifications' => $notifications,
+        $payload = array_merge($paginator->toArray(), [
             'unread_count' => $unreadCount,
+            'notifications' => $paginator,
         ]);
+
+        return ApiResponse::success('Notifications retrieved successfully.', $payload);
     }
 
     /**

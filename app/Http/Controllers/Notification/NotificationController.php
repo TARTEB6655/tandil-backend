@@ -20,16 +20,18 @@ class NotificationController extends Controller
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
         $audienceRole = $request->query('audience_role');
 
-        $notifications = UserNotificationInbox::forUser($user, $audienceRole)
+        $paginator = UserNotificationInbox::forUser($user, $audienceRole)
             ->latest()
             ->paginate($perPage);
 
         $unreadCount = UserNotificationInbox::unreadForUser($user, $audienceRole)->count();
 
-        return ApiResponse::success('Notifications retrieved successfully.', [
-            'notifications' => $notifications,
-            'unread_count' => $unreadCount
+        $payload = array_merge($paginator->toArray(), [
+            'unread_count' => $unreadCount,
+            'notifications' => $paginator,
         ]);
+
+        return ApiResponse::success('Notifications retrieved successfully.', $payload);
     }
 
     /**

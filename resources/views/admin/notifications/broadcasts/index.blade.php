@@ -12,7 +12,8 @@
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Notification broadcasts</h1>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Delivery history and how many users received each broadcast by role.</p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.notifications.delivery-stats') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Delivery analytics</a>
                 <a href="{{ route('admin.notifications.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Send notification</a>
                 <a href="{{ route('admin.notifications.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Inbox</a>
             </div>

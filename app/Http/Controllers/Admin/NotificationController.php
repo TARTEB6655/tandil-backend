@@ -6,7 +6,8 @@ use App\Http\Controllers\Concerns\WebNotificationInbox;
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotificationBroadcast;
 use App\Services\NotificationBroadcastService;
-use App\Support\GlobalNotificationFilter;
+use App\Support\NotificationDeliveryAnalytics;
+use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -18,11 +19,6 @@ class NotificationController extends Controller
     public function __construct()
     {
         $this->middleware('role:admin');
-    }
-
-    protected function notificationFilterClass(): string
-    {
-        return GlobalNotificationFilter::class;
     }
 
     /**
@@ -62,7 +58,7 @@ class NotificationController extends Controller
     public function markAsRead($id)
     {
         $user = Auth::user();
-        $notification = GlobalNotificationFilter::forUser($user)->find($id);
+        $notification = UserNotificationInbox::forUser($user)->find($id);
         
         if ($notification) {
             $notification->markAsRead();
@@ -75,7 +71,7 @@ class NotificationController extends Controller
     public function show(string $id)
     {
         $user = Auth::user();
-        $notification = GlobalNotificationFilter::forUser($user)->find($id);
+        $notification = UserNotificationInbox::forUser($user)->find($id);
         if (! $notification) {
             return redirect()->route('admin.notifications.index')->with('error', 'Notification not found.');
         }
@@ -92,7 +88,7 @@ class NotificationController extends Controller
     public function readAndRedirect($id)
     {
         $user = Auth::user();
-        $notification = GlobalNotificationFilter::forUser($user)->find($id);
+        $notification = UserNotificationInbox::forUser($user)->find($id);
         if (! $notification) {
             return redirect()->route('admin.notifications.index')->with('error', 'Notification not found.');
         }
@@ -112,7 +108,7 @@ class NotificationController extends Controller
     public function markAllAsRead()
     {
         $user = Auth::user();
-        GlobalNotificationFilter::unreadForUser($user)->update(['read_at' => now()]);
+        UserNotificationInbox::unreadForUser($user)->update(['read_at' => now()]);
         
         return redirect()->back()->with('success', 'All notifications marked as read');
     }
@@ -123,7 +119,7 @@ class NotificationController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $notification = GlobalNotificationFilter::forUser($user)->find($id);
+        $notification = UserNotificationInbox::forUser($user)->find($id);
         
         if ($notification) {
             $notification->delete();
@@ -140,7 +136,7 @@ class NotificationController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'ids.*' => 'uuid']);
         $user = Auth::user();
-        $deleted = GlobalNotificationFilter::forUser($user)->whereIn('id', $request->ids)->delete();
+        $deleted = UserNotificationInbox::forUser($user)->whereIn('id', $request->ids)->delete();
         return redirect()->back()->with('success', $deleted . ' notification(s) deleted.');
     }
 
@@ -150,7 +146,7 @@ class NotificationController extends Controller
     public function destroyAll()
     {
         $user = Auth::user();
-        $query = GlobalNotificationFilter::forUser($user);
+        $query = UserNotificationInbox::forUser($user);
         $count = $query->count();
         $query->delete();
         return redirect()->back()->with('success', $count . ' notification(s) deleted.');
@@ -162,9 +158,26 @@ class NotificationController extends Controller
     public function getUnreadCount()
     {
         $user = Auth::user();
-        $count = GlobalNotificationFilter::unreadForUser($user)->count();
-        
+        $count = UserNotificationInbox::unreadForUser($user)->count();
+
         return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Aggregate delivery counts by notification type and audience (same data as GET /api/admin/notifications/delivery-stats).
+     */
+    public function deliveryStats(Request $request): View
+    {
+        $request->validate([
+            'since' => 'nullable|date_format:Y-m-d',
+            'until' => 'nullable|date_format:Y-m-d',
+        ]);
+        $stats = NotificationDeliveryAnalytics::aggregate(
+            $request->query('since'),
+            $request->query('until')
+        );
+
+        return view('admin.notifications.delivery-stats', ['stats' => $stats]);
     }
 
     /**

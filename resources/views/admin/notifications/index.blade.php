@@ -7,6 +7,13 @@
                 <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">View, filter, and manage notifications across roles. Use audience filters to review what each role receives.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+                <a href="{{ route('admin.notifications.delivery-stats') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Delivery analytics
+                </a>
                 <a href="{{ route('admin.notifications.broadcasts.index') }}"
                    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">

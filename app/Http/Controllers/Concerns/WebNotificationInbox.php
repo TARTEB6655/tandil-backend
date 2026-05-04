@@ -3,26 +3,20 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Support\NotificationInboxWebFilters;
+use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 trait WebNotificationInbox
 {
-    /** @return class-string */
-    abstract protected function notificationFilterClass(): string;
-
     protected function baseNotificationQuery(?string $audienceRole): mixed
     {
-        $class = $this->notificationFilterClass();
-
-        return $class::forUser(Auth::user(), $audienceRole);
+        return UserNotificationInbox::forUser(Auth::user(), $audienceRole);
     }
 
     protected function baseUnreadQuery(?string $audienceRole): mixed
     {
-        $class = $this->notificationFilterClass();
-
-        return $class::unreadForUser(Auth::user(), $audienceRole);
+        return UserNotificationInbox::unreadForUser(Auth::user(), $audienceRole);
     }
 
     protected function inboxUnreadCount(Request $request): int
