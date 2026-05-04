@@ -5,9 +5,34 @@ namespace App\Support;
 use App\Models\User;
 use App\Notifications\ReportGeneratedNotification;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\DB;
 
 class GlobalNotificationFilter
 {
+    /**
+     * Resolved audience role from stored JSON: top-level audience_role, then meta.audience_role, else untracked.
+     */
+    public static function resolvedAudienceRoleSqlExpression(): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "coalesce(
+                nullif((data::json->>'audience_role'), ''),
+                nullif((data::json->'meta'->>'audience_role'), ''),
+                'untracked'
+            )",
+            'sqlite' => "coalesce(
+                nullif(json_extract(data, '$.audience_role'), ''),
+                nullif(json_extract(data, '$.meta.audience_role'), ''),
+                'untracked'
+            )",
+            default => "coalesce(
+                nullif(json_unquote(json_extract(data, '$.audience_role')), ''),
+                nullif(json_unquote(json_extract(data, '$.meta.audience_role')), ''),
+                'untracked'
+            )",
+        };
+    }
+
     public static function apply($query)
     {
         return $query->where('type', '!=', ReportGeneratedNotification::class);
@@ -63,9 +88,11 @@ class GlobalNotificationFilter
         if (! in_array($audienceRole, $allowed, true)) {
             return $query;
         }
-        $safe = str_replace(['%', '_'], ['\\%', '\\_'], $audienceRole);
 
-        return $query->where('data', 'like', '%"audience_role":"' . $safe . '"%');
+        // Avoid LIKE on JSON text — MySQL JSON type / escaping / meta-only payloads miss matches.
+        $expr = self::resolvedAudienceRoleSqlExpression();
+
+        return $query->whereRaw("({$expr}) = ?", [$audienceRole]);
     }
 
     public static function forUser(User $user, ?string $audienceRole = null)

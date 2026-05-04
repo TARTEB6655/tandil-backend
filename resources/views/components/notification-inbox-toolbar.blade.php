@@ -53,7 +53,8 @@
                 <label for="{{ $formId }}-status" class="sr-only">Read status</label>
                 <select id="{{ $formId }}-status" name="filter" title="Read status"
                         class="{{ $selectBase }} pl-10"
-                        style="background-image: {!! $selectChevron !!};">
+                        style="background-image: {!! $selectChevron !!};"
+                        onchange="this.form.submit()">
                     <option value="all" @selected($activeFilter === 'all')>All</option>
                     <option value="unread" @selected($activeFilter === 'unread')>Unread</option>
                     <option value="read" @selected($activeFilter === 'read')>Read</option>
@@ -70,7 +71,8 @@
                 <label for="{{ $formId }}-kind" class="sr-only">Notification type</label>
                 <select id="{{ $formId }}-kind" name="kind" title="Notification type"
                         class="{{ $selectBase }} pl-10"
-                        style="background-image: {!! $selectChevron !!};">
+                        style="background-image: {!! $selectChevron !!};"
+                        onchange="this.form.submit()">
                     @foreach(NotificationInboxWebFilters::kindOptions() as $kindKey => $label)
                         <option value="{{ $kindKey === NotificationInboxWebFilters::KIND_ALL ? '' : $kindKey }}" @selected($activeKind === $kindKey)>{{ $label }}</option>
                     @endforeach
@@ -87,7 +89,8 @@
                     <label for="{{ $formId }}-audience" class="sr-only">Audience role</label>
                     <select id="{{ $formId }}-audience" name="audience_role" title="Audience (admin)"
                             class="{{ $selectBase }} pl-10"
-                            style="background-image: {!! $selectChevron !!};">
+                            style="background-image: {!! $selectChevron !!};"
+                            onchange="this.form.submit()">
                         <option value="" @selected($activeAudience === '')>All roles</option>
                         @foreach(UserNotificationAudience::PRIORITY_ROLES as $roleKey)
                             @php $lbl = UserNotificationAudience::labels()[$roleKey] ?? $roleKey; @endphp

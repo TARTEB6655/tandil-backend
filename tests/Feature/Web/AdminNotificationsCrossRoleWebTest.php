@@ -5,6 +5,8 @@ namespace Tests\Feature\Web;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -56,5 +58,67 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
         $response->assertSee('MSG_UNIQUE_TECH_882', false);
         // Main list only: header dropdown also shows the admin’s own recent notification, so do not use assertDontSee on that text.
         $this->assertSame(1, substr_count($response->getContent(), 'class="notification-row border-b'));
+    }
+
+    /**
+     * Legacy / odd payloads may only store audience on meta; SQL must match (not plain LIKE on full JSON).
+     */
+    public function test_audience_filter_matches_meta_only_audience_role(): void
+    {
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'supervisor', 'guard_name' => 'web']);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $supervisor->assignRole('supervisor');
+
+        DB::table('notifications')->insert([
+            'id' => (string) Str::uuid(),
+            'type' => AdminNotification::class,
+            'notifiable_type' => User::class,
+            'notifiable_id' => $supervisor->id,
+            'data' => json_encode([
+                'message' => 'META_ONLY_AUDIENCE_MSG',
+                'meta' => ['audience_role' => 'supervisor'],
+            ]),
+            'read_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.notifications.index', [
+                'audience_role' => 'supervisor',
+                'filter' => 'all',
+                'kind' => '',
+            ]))
+            ->assertOk()
+            ->assertSee('META_ONLY_AUDIENCE_MSG', false);
+    }
+
+    /** Narrow type filter + audience: no rows when nothing matches both (regression guard). */
+    public function test_kind_tip_with_non_tip_notification_returns_empty_list(): void
+    {
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'hr', 'guard_name' => 'web']);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+
+        $hr = User::factory()->create(['role' => 'hr']);
+        $hr->assignRole('hr');
+
+        $hr->notify(new AdminNotification('Hr title', 'Hr only body', []));
+
+        $this->actingAs($admin)
+            ->get(route('admin.notifications.index', [
+                'audience_role' => 'hr',
+                'kind' => 'tip',
+                'filter' => 'all',
+            ]))
+            ->assertOk()
+            ->assertSee('No notifications', false);
     }
 }
