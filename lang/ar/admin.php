@@ -9,6 +9,7 @@ return [
     'notifications_personal_description' => 'إشعارات حساب المسؤول فقط (نفس قائمة جرس الرأس).',
     'notification_statistics_description' => 'عرض إشعارات جميع المستخدمين والأدوار. استخدم المرشحات حسب الجمهور.',
     'my_notifications' => 'إشعاراتي',
+    'broadcast_log' => 'سجل البث',
     'delete_all_notifications_confirm_global' => 'حذف جميع الإشعارات المطابقة للمرشحات الحالية (جميع المستخدمين)؟',
     'delete_all_notifications_confirm_personal' => 'حذف جميع الإشعارات المطابقة للمرشحات في صندوق الوارد الخاص بك؟',
     'user_management' => 'إدارة المستخدمين',

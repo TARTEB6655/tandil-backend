@@ -10,6 +10,7 @@ return [
     'notifications_personal_description' => 'Only notifications for your admin account (same as the header bell).',
     'notification_statistics_description' => 'Review notifications for all users and roles. Use audience filters to narrow by recipient type.',
     'my_notifications' => 'My notifications',
+    'broadcast_log' => 'Broadcast log',
     'delete_all_notifications_confirm_global' => 'Delete ALL notifications matching the current filters (all users)?',
     'delete_all_notifications_confirm_personal' => 'Delete ALL notifications matching the current filters in your inbox?',
     'user_management' => 'User management',

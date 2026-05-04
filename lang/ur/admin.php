@@ -9,6 +9,7 @@ return [
     'notifications_personal_description' => 'صرف آپ کے ایڈمن اکاؤنٹ کی نوٹیفکیشنز (ہیڈر بیل جیسی)۔',
     'notification_statistics_description' => 'تمام صارفین اور کرداروں کی نوٹیفکیشنز دیکھیں؛ سامعین کے فلٹر استعمال کریں۔',
     'my_notifications' => 'میری نوٹیفکیشنز',
+    'broadcast_log' => 'براڈکاسٹ لاگ',
     'delete_all_notifications_confirm_global' => 'موجودہ فلٹرز پر پوری فہرست (تمام صارفین) حذف کریں؟',
     'delete_all_notifications_confirm_personal' => 'اپنے ان باکس میں فلٹرز سے مماثل تمام نوٹیفکیشنز حذف کریں؟',
     'user_management' => 'صارفین کا انتظام',
