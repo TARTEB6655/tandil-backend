@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\WebNotificationInbox;
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotificationBroadcast;
 use App\Services\NotificationBroadcastService;
+use App\Support\GlobalNotificationFilter;
 use App\Support\NotificationDeliveryAnalytics;
 use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
@@ -15,6 +16,11 @@ use Illuminate\View\View;
 class NotificationController extends Controller
 {
     use WebNotificationInbox;
+
+    protected function inboxSpansAllUsers(): bool
+    {
+        return true;
+    }
 
     public function __construct()
     {
@@ -57,21 +63,19 @@ class NotificationController extends Controller
      */
     public function markAsRead($id)
     {
-        $user = Auth::user();
-        $notification = UserNotificationInbox::forUser($user)->find($id);
-        
+        $notification = GlobalNotificationFilter::findForAdminReview($id);
+
         if ($notification) {
             $notification->markAsRead();
             return response()->json(['success' => true, 'message' => 'Notification marked as read']);
         }
-        
+
         return response()->json(['success' => false, 'message' => 'Notification not found'], 404);
     }
 
     public function show(string $id)
     {
-        $user = Auth::user();
-        $notification = UserNotificationInbox::forUser($user)->find($id);
+        $notification = GlobalNotificationFilter::findForAdminReview($id);
         if (! $notification) {
             return redirect()->route('admin.notifications.index')->with('error', 'Notification not found.');
         }
@@ -87,8 +91,7 @@ class NotificationController extends Controller
      */
     public function readAndRedirect($id)
     {
-        $user = Auth::user();
-        $notification = UserNotificationInbox::forUser($user)->find($id);
+        $notification = GlobalNotificationFilter::findForAdminReview($id);
         if (! $notification) {
             return redirect()->route('admin.notifications.index')->with('error', 'Notification not found.');
         }
@@ -104,12 +107,16 @@ class NotificationController extends Controller
 
     /**
      * Mark all notifications as read.
+     * Header dropdown marks only the admin's personal inbox; notifications index can opt into cross-role scope.
      */
-    public function markAllAsRead()
+    public function markAllAsRead(Request $request)
     {
-        $user = Auth::user();
-        UserNotificationInbox::unreadForUser($user)->update(['read_at' => now()]);
-        
+        if ($request->boolean('admin_notifications_index')) {
+            $this->scopedInboxQuery($request)->whereNull('read_at')->update(['read_at' => now()]);
+        } else {
+            UserNotificationInbox::unreadForUser(Auth::user())->update(['read_at' => now()]);
+        }
+
         return redirect()->back()->with('success', 'All notifications marked as read');
     }
 
@@ -118,14 +125,13 @@ class NotificationController extends Controller
      */
     public function destroy($id)
     {
-        $user = Auth::user();
-        $notification = UserNotificationInbox::forUser($user)->find($id);
-        
+        $notification = GlobalNotificationFilter::findForAdminReview($id);
+
         if ($notification) {
             $notification->delete();
             return redirect()->back()->with('success', 'Notification deleted');
         }
-        
+
         return redirect()->back()->with('error', 'Notification not found');
     }
 
@@ -135,20 +141,28 @@ class NotificationController extends Controller
     public function destroyBulk(Request $request)
     {
         $request->validate(['ids' => 'required|array', 'ids.*' => 'uuid']);
-        $user = Auth::user();
-        $deleted = UserNotificationInbox::forUser($user)->whereIn('id', $request->ids)->delete();
+        $deleted = GlobalNotificationFilter::allUsers()->whereIn('id', $request->ids)->delete();
+
         return redirect()->back()->with('success', $deleted . ' notification(s) deleted.');
     }
 
     /**
-     * Delete all notifications for the user.
+     * Delete notifications matching current inbox filters (cross-role index) or all of the admin's own notifications.
      */
-    public function destroyAll()
+    public function destroyAll(Request $request)
     {
-        $user = Auth::user();
-        $query = UserNotificationInbox::forUser($user);
+        if ($request->boolean('admin_notifications_index')) {
+            $query = $this->buildFilteredInboxQuery($request);
+            $count = $query->count();
+            $query->delete();
+
+            return redirect()->back()->with('success', $count . ' notification(s) deleted.');
+        }
+
+        $query = UserNotificationInbox::forUser(Auth::user());
         $count = $query->count();
         $query->delete();
+
         return redirect()->back()->with('success', $count . ' notification(s) deleted.');
     }
 

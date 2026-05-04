@@ -4,12 +4,54 @@ namespace App\Support;
 
 use App\Models\User;
 use App\Notifications\ReportGeneratedNotification;
+use Illuminate\Notifications\DatabaseNotification;
 
 class GlobalNotificationFilter
 {
     public static function apply($query)
     {
         return $query->where('type', '!=', ReportGeneratedNotification::class);
+    }
+
+    /**
+     * All stored User notifications in the system (admin cross-role inbox / delivery review).
+     * Not restricted to the current user as notifiable.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<DatabaseNotification>
+     */
+    public static function allUsers(?string $audienceRole = null)
+    {
+        $q = DatabaseNotification::query()->where('notifiable_type', User::class);
+        $q = self::apply($q);
+
+        return self::applyAudienceRoleFilter($q, $audienceRole);
+    }
+
+    /**
+     * Unread subset of {@see self::allUsers()}.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<DatabaseNotification>
+     */
+    public static function unreadAllUsers(?string $audienceRole = null)
+    {
+        $q = DatabaseNotification::query()
+            ->where('notifiable_type', User::class)
+            ->whereNull('read_at');
+        $q = self::apply($q);
+
+        return self::applyAudienceRoleFilter($q, $audienceRole);
+    }
+
+    /**
+     * Single notification row for admin moderation (any recipient user).
+     */
+    public static function findForAdminReview(string $id): ?DatabaseNotification
+    {
+        $q = DatabaseNotification::query()
+            ->where('notifiable_type', User::class)
+            ->whereKey($id);
+
+        return self::apply($q)->first();
     }
 
     public static function applyAudienceRoleFilter($query, ?string $audienceRole)

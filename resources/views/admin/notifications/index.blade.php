@@ -31,6 +31,12 @@
                 @if($unreadCount > 0)
                     <form method="POST" action="{{ route('admin.notifications.mark-all-read') }}" class="inline">
                         @csrf
+                        @foreach(request()->query() as $key => $value)
+                            @if(is_string($value))
+                                <input type="hidden" name="{{ $key }}" value="{{ $value }}" />
+                            @endif
+                        @endforeach
+                        <input type="hidden" name="admin_notifications_index" value="1" />
                         <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
                             Mark all as read
                         </button>
@@ -55,8 +61,14 @@
                         onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
                     Delete selected
                 </button>
-                <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL your notifications?');">
+                <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL notifications matching the current filters (all users)?');">
                     @csrf
+                    @foreach(request()->query() as $key => $value)
+                        @if(is_string($value))
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}" />
+                        @endif
+                    @endforeach
+                    <input type="hidden" name="admin_notifications_index" value="1" />
                     <button type="submit" class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-300 dark:border-red-800 bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm">
                         Delete all
                     </button>
