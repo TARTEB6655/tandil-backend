@@ -50,11 +50,7 @@
                                     @endforeach
                                 </select>
                                 <div id="role-users-panel" class="mt-3 hidden">
-                                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                        <input type="checkbox" id="role-users-check-all" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                        <span>Select all users in this role</span>
-                                    </label>
-                                    <div id="role-users-list" class="mt-2 max-h-44 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 space-y-2 hidden"></div>
+                                    <div id="role-users-list" class="max-h-44 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 space-y-2 hidden"></div>
                                     <p id="role-users-empty" class="mt-2 text-xs text-gray-500 hidden">No users found for selected role.</p>
                                 </div>
                             </div>
@@ -118,7 +114,6 @@
             const roleUsersPanel = document.getElementById('role-users-panel');
             const roleUsersList = document.getElementById('role-users-list');
             const roleUsersEmpty = document.getElementById('role-users-empty');
-            const roleUsersCheckAll = document.getElementById('role-users-check-all');
             const form = document.querySelector('form[action="{{ route('admin.notifications.send') }}"]');
             const usersData = @json($usersForJs ?? []);
 
@@ -132,7 +127,6 @@
                 const roleUsers = usersForRole(selectedRole);
 
                 roleUsersList.innerHTML = '';
-                roleUsersCheckAll.checked = false;
                 roleUsersList.classList.add('hidden');
 
                 if (!selectedRole || roleUsers.length === 0) {
@@ -173,11 +167,6 @@
             });
 
             roleSelect.addEventListener('change', renderRoleUsers);
-            roleUsersCheckAll.addEventListener('change', function () {
-                roleUsersList.querySelectorAll('.role-user-checkbox').forEach(cb => {
-                    cb.checked = this.checked;
-                });
-            });
 
             form?.addEventListener('submit', function () {
                 const selectedType = document.querySelector('input[name="type"]:checked')?.value;
