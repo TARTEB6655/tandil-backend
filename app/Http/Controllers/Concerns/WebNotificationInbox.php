@@ -79,7 +79,7 @@ trait WebNotificationInbox
     protected function paginatedInbox(Request $request): array
     {
         $query = $this->buildFilteredInboxQuery($request);
-        $notifications = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+        $notifications = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
         $unreadCount = $this->inboxUnreadCount($request);
 
         return [$notifications, $unreadCount];

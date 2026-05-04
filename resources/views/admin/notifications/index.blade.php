@@ -279,7 +279,7 @@
                                                     <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">{{ $audLabel }}</span>
                                                 </p>
                                             @endif
-                                            <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-4">{{ $notification->created_at->diffForHumans() }}</p>
+                                            <p class="text-[10px] text-gray-500 dark:text-gray-400 leading-4">{{ $notification->created_at->diffForHumans() }}</p>
                                         </div>
                                         <button type="button"
                                                 class="p-1.5 text-red-500 hover:text-red-700 transition-colors js-delete-notification"
