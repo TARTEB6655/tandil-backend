@@ -884,7 +884,7 @@
                     "description": "role:admin. Inbox + broadcast + delivery analytics. Register specific paths before generic list.",
                     "item": [
                         {
-                            "name": "Delivery stats",
+                            "name": "Delivery analytics",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -12756,7 +12756,7 @@
                     "description": "Admin notifications under /api/admin/notifications: inbox CRUD, broadcast send/history, GET delivery-stats (aggregate counts by notification type and audience / customers, technicians, …). Register specific paths before generic /notifications.",
                     "item": [
                         {
-                            "name": "Notifications - Delivery stats (by role)",
+                            "name": "Notifications - Delivery analytics",
                             "request": {
                                 "method": "GET",
                                 "header": [
