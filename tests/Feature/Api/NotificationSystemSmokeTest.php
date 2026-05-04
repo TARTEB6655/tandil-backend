@@ -203,4 +203,26 @@ final class NotificationSystemSmokeTest extends TestCase
                 ],
             ]);
     }
+
+    public function test_admin_notifications_api_supports_statistics_style_filters(): void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        $technician = $this->makeUserWithRole('technician');
+
+        $admin->notify(new AdminNotification('Admin personal', 'MSG_ADMIN_ONLY'));
+        $technician->notify(new AdminNotification('Tech broadcast', 'MSG_TECH_ONLY'));
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/notifications?audience_role=technician&filter=unread&q=MSG_TECH_ONLY');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.scope', 'all_users')
+            ->assertJsonPath('data.total_count', 1)
+            ->assertJsonPath('data.unread_count', 1)
+            ->assertJsonPath('data.read_count', 0)
+            ->assertJsonPath('data.applied_filters.audience_role', 'technician')
+            ->assertJsonPath('data.applied_filters.filter', 'unread')
+            ->assertJsonPath('data.applied_filters.q', 'MSG_TECH_ONLY');
+    }
 }

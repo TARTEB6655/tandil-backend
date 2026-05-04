@@ -65,310 +65,6 @@
             "description": "Single place for all notification APIs. Subfolders = role or route family. Auth: Bearer {{token}} with matching role. Optional query audience_role on list/mark-all/clear where supported.",
             "item": [
                 {
-                    "name": "Shared – /api/notifications",
-                    "description": "Middleware: client | technician | supervisor | area_manager | hr | admin. Same inbox helpers as role dashboards; path has no role prefix.",
-                    "item": [
-                        {
-                            "name": "List",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications?per_page=20&audience_role=",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "per_page",
-                                            "value": "20"
-                                        },
-                                        {
-                                            "key": "audience_role",
-                                            "value": "",
-                                            "description": "Optional"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/notifications"
-                            }
-                        },
-                        {
-                            "name": "Mark as read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications/{{notification_id}}/mark-read",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications",
-                                        "{{notification_id}}",
-                                        "mark-read"
-                                    ]
-                                },
-                                "description": "POST /api/notifications/{uuid}/mark-read"
-                            }
-                        },
-                        {
-                            "name": "Mark all as read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications/mark-all-read",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications",
-                                        "mark-all-read"
-                                    ]
-                                },
-                                "description": ""
-                            }
-                        },
-                        {
-                            "name": "Delete one",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications/{{notification_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications",
-                                        "{{notification_id}}"
-                                    ]
-                                },
-                                "description": ""
-                            }
-                        },
-                        {
-                            "name": "Clear all",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/notifications/clear-all",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "notifications",
-                                        "clear-all"
-                                    ]
-                                },
-                                "description": "POST /api/notifications/clear-all"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "User profile – /api/user/notifications",
-                    "description": "auth:sanctum any user. Database inbox; same rows as role inbox for that user. Use UUID from list (not numeric tip id).",
-                    "item": [
-                        {
-                            "name": "List",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/notifications?per_page=20&audience_role=",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "notifications"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "per_page",
-                                            "value": "20"
-                                        },
-                                        {
-                                            "key": "audience_role",
-                                            "value": "",
-                                            "description": "Optional"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/user/notifications"
-                            }
-                        },
-                        {
-                            "name": "Mark as read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/notifications/{{notification_id}}/read",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "notifications",
-                                        "{{notification_id}}",
-                                        "read"
-                                    ]
-                                },
-                                "description": "POST /api/user/notifications/{uuid}/read"
-                            }
-                        },
-                        {
-                            "name": "Mark all as read",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/notifications/read-all?audience_role=",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "notifications",
-                                        "read-all"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "audience_role",
-                                            "value": "",
-                                            "description": "Optional"
-                                        }
-                                    ]
-                                },
-                                "description": "POST /api/user/notifications/read-all"
-                            }
-                        },
-                        {
-                            "name": "Clear all",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/user/notifications/clear-all?audience_role=",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "user",
-                                        "notifications",
-                                        "clear-all"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "audience_role",
-                                            "value": "",
-                                            "description": "Optional"
-                                        }
-                                    ]
-                                },
-                                "description": "POST /api/user/notifications/clear-all. Response: deleted_count."
-                            }
-                        }
-                    ]
-                },
-                {
                     "name": "Client – /api/client/notifications",
                     "description": "role:client",
                     "item": [
@@ -1240,15 +936,55 @@
                                     {
                                         "key": "Accept",
                                         "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
                                     }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"title\": \"System update\",\n  \"message\": \"Please read.\",\n  \"type\": \"all\"\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "title",
+                                            "value": "System update",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "message",
+                                            "value": "Please read.",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "role",
+                                            "type": "text",
+                                            "description": "all | role | users"
+                                        },
+                                        {
+                                            "key": "role",
+                                            "value": "technician",
+                                            "type": "text",
+                                            "description": "Required when type=role"
+                                        },
+                                        {
+                                            "key": "user_ids[]",
+                                            "value": "2",
+                                            "type": "text",
+                                            "disabled": true,
+                                            "description": "Use when type=users. Add multiple user_ids[] rows for multi-select."
+                                        },
+                                        {
+                                            "key": "messages_by_role[technician][title]",
+                                            "value": "Technician update",
+                                            "type": "text",
+                                            "disabled": true,
+                                            "description": "Optional per-role title override"
+                                        },
+                                        {
+                                            "key": "messages_by_role[technician][message]",
+                                            "value": "Technician specific message.",
+                                            "type": "text",
+                                            "disabled": true,
+                                            "description": "Optional per-role message override"
+                                        }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/notifications/broadcast",
@@ -1262,7 +998,7 @@
                                         "broadcast"
                                     ]
                                 },
-                                "description": "POST …/broadcast → broadcast_id, recipient_counts"
+                                "description": "POST …/broadcast (form-data). Default sample sends to selected role. For single/multiple users set type=users and fill user_ids[]. Optional messages_by_role[role][title/message] overrides frontend advanced fields."
                             }
                         },
                         {
@@ -1331,7 +1067,7 @@
                             }
                         },
                         {
-                            "name": "Inbox list",
+                            "name": "Statics list (with filters)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -1345,7 +1081,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20&audience_role=",
+                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20&q=&filter=all&kind=&audience_role=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -1360,13 +1096,28 @@
                                             "value": "20"
                                         },
                                         {
+                                            "key": "q",
+                                            "value": "",
+                                            "description": "Search text (optional)"
+                                        },
+                                        {
+                                            "key": "filter",
+                                            "value": "all",
+                                            "description": "all | unread | read"
+                                        },
+                                        {
+                                            "key": "kind",
+                                            "value": "",
+                                            "description": "all | announcement | tip | leave | other"
+                                        },
+                                        {
                                             "key": "audience_role",
                                             "value": "",
-                                            "description": "Optional"
+                                            "description": "client | technician | supervisor | area_manager | hr | admin | other | unknown"
                                         }
                                     ]
                                 },
-                                "description": ""
+                                "description": "GET /api/admin/notifications with Statics-page filters."
                             }
                         },
                         {
@@ -1814,7 +1565,7 @@
                     "description": "Database notification inbox under /api/client/notifications. Optional query: per_page (1-100), audience_role (admin-style JSON filter; usually omit for client). Response includes notifications (paginated) and unread_count.",
                     "item": [
                         {
-                            "name": "Notifications - List",
+                            "name": "Notifications - Statics list (with filters)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -13057,15 +12808,55 @@
                                     {
                                         "key": "Accept",
                                         "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
                                     }
                                 ],
                                 "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"title\": \"System update\",\n  \"message\": \"Please read.\",\n  \"type\": \"all\"\n}"
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "title",
+                                            "value": "System update",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "message",
+                                            "value": "Please read.",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "role",
+                                            "type": "text",
+                                            "description": "all | role | users"
+                                        },
+                                        {
+                                            "key": "role",
+                                            "value": "technician",
+                                            "type": "text",
+                                            "description": "Required when type=role"
+                                        },
+                                        {
+                                            "key": "user_ids[]",
+                                            "value": "2",
+                                            "type": "text",
+                                            "disabled": true,
+                                            "description": "Use when type=users. Add multiple user_ids[] rows for multi-select."
+                                        },
+                                        {
+                                            "key": "messages_by_role[technician][title]",
+                                            "value": "Technician update",
+                                            "type": "text",
+                                            "disabled": true,
+                                            "description": "Optional per-role title override"
+                                        },
+                                        {
+                                            "key": "messages_by_role[technician][message]",
+                                            "value": "Technician specific message.",
+                                            "type": "text",
+                                            "disabled": true,
+                                            "description": "Optional per-role message override"
+                                        }
+                                    ]
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/notifications/broadcast",
@@ -13079,7 +12870,7 @@
                                         "broadcast"
                                     ]
                                 },
-                                "description": "POST /api/admin/notifications/broadcast. Body: title, message, type (all|role|users), optional role, user_ids, messages_by_role. Response: broadcast_id, total_recipients, recipient_counts (customers, technicians, …). Admin only."
+                                "description": "POST /api/admin/notifications/broadcast (form-data). Frontend-equivalent fields: title, message, type (all|role|users), role, user_ids[], optional messages_by_role[role][title/message]. Response: broadcast_id, total_recipients, recipient_counts. Admin only."
                             }
                         },
                         {
@@ -13163,7 +12954,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20&audience_role=",
+                                    "raw": "{{base_url}}/api/admin/notifications?per_page=20&q=&filter=all&kind=&audience_role=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -13179,13 +12970,28 @@
                                             "description": "Optional, 1-100"
                                         },
                                         {
+                                            "key": "q",
+                                            "value": "",
+                                            "description": "Search text (optional)"
+                                        },
+                                        {
+                                            "key": "filter",
+                                            "value": "all",
+                                            "description": "all | unread | read"
+                                        },
+                                        {
+                                            "key": "kind",
+                                            "value": "",
+                                            "description": "all | announcement | tip | leave | other"
+                                        },
+                                        {
                                             "key": "audience_role",
                                             "value": "",
-                                            "description": "Optional JSON payload filter"
+                                            "description": "client | technician | supervisor | area_manager | hr | admin | other | unknown"
                                         }
                                     ]
                                 },
-                                "description": "GET /api/admin/notifications. Returns data.notifications + unread_count. Optional audience_role. Role-aware inbox."
+                                "description": "GET /api/admin/notifications with full Statics filters. Returns notifications + unread_count + total_count + read_count + applied_filters."
                             }
                         },
                         {

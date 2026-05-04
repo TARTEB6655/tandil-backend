@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\WebNotificationInbox;
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotificationBroadcast;
+use App\Models\User;
 use App\Services\NotificationBroadcastService;
 use App\Support\GlobalNotificationFilter;
 use App\Support\NotificationDeliveryAnalytics;
@@ -245,7 +246,13 @@ class NotificationController extends Controller
     public function create()
     {
         $roles = \Spatie\Permission\Models\Role::all();
-        return view('admin.notifications.create', compact('roles'));
+        $users = User::query()
+            ->select(['id', 'name', 'email', 'role'])
+            ->with('roles:id,name')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.notifications.create', compact('roles', 'users'));
     }
 
     /**

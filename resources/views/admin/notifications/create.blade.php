@@ -32,33 +32,41 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Send To</label>
                     <div class="space-y-3">
                         <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                            <input type="radio" name="type" value="all" class="text-indigo-600 focus:ring-indigo-500" checked>
+                            <input type="radio" name="type" value="all" class="text-indigo-600 focus:ring-indigo-500" @checked(old('type', 'all') === 'all')>
                             <div>
                                 <p class="text-sm font-medium text-gray-900">All Users</p>
                                 <p class="text-xs text-gray-500">Send to all registered users</p>
                             </div>
                         </label>
                         <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                            <input type="radio" name="type" value="role" class="text-indigo-600 focus:ring-indigo-500">
+                            <input type="radio" name="type" value="role" class="text-indigo-600 focus:ring-indigo-500" @checked(old('type') === 'role')>
                             <div class="flex-1">
                                 <p class="text-sm font-medium text-gray-900">Specific Role</p>
                                 <p class="text-xs text-gray-500 mb-2">Send to users with a specific role</p>
                                 <select name="role" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" disabled id="role-select">
                                     <option value="">Select Role</option>
                                     @foreach($roles as $role)
-                                        <option value="{{ $role->name }}">{{ ucfirst($role->name) }}</option>
+                                        <option value="{{ $role->name }}" @selected(old('role') === $role->name)>{{ ucfirst($role->name) }}</option>
                                     @endforeach
                                 </select>
+                                <div id="role-users-panel" class="mt-3 hidden">
+                                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                        <input type="checkbox" id="role-users-check-all" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span>Select all users in this role</span>
+                                    </label>
+                                    <div id="role-users-list" class="mt-2 max-h-44 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 space-y-2"></div>
+                                    <p id="role-users-empty" class="mt-2 text-xs text-gray-500 hidden">No users found for selected role.</p>
+                                </div>
                             </div>
                         </label>
                         <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                            <input type="radio" name="type" value="users" class="text-indigo-600 focus:ring-indigo-500">
+                            <input type="radio" name="type" value="users" class="text-indigo-600 focus:ring-indigo-500" @checked(old('type') === 'users')>
                             <div class="flex-1">
                                 <p class="text-sm font-medium text-gray-900">Specific Users</p>
                                 <p class="text-xs text-gray-500 mb-2">Send to selected users</p>
                                 <select name="user_ids[]" multiple class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" disabled id="users-select">
-                                    @foreach(\App\Models\User::all() as $user)
-                                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
+                                    @foreach($users as $user)
+                                        <option value="{{ $user->id }}" @selected(collect(old('user_ids', []))->contains($user->id))>{{ $user->name }} ({{ $user->email }})</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -150,27 +158,110 @@
             const typeInputs = document.querySelectorAll('input[name="type"]');
             const roleSelect = document.getElementById('role-select');
             const usersSelect = document.getElementById('users-select');
+            const roleUsersPanel = document.getElementById('role-users-panel');
+            const roleUsersList = document.getElementById('role-users-list');
+            const roleUsersEmpty = document.getElementById('role-users-empty');
+            const roleUsersCheckAll = document.getElementById('role-users-check-all');
+            const form = document.querySelector('form[action="{{ route('admin.notifications.send') }}"]');
+            const usersTypeInput = document.querySelector('input[name="type"][value="users"]');
+            const usersData = @json(
+                $users->map(fn ($user) => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'legacy_role' => $user->role,
+                    'roles' => $user->roles->pluck('name')->values(),
+                ])->values()
+            );
+
+            function usersForRole(role) {
+                if (!role) return [];
+                return usersData.filter(user => user.roles.includes(role) || user.legacy_role === role);
+            }
+
+            function renderRoleUsers() {
+                const selectedRole = roleSelect.value;
+                const roleUsers = usersForRole(selectedRole);
+
+                roleUsersList.innerHTML = '';
+                roleUsersCheckAll.checked = false;
+
+                if (!selectedRole || roleUsers.length === 0) {
+                    roleUsersEmpty.classList.remove('hidden');
+                    return;
+                }
+
+                roleUsersEmpty.classList.add('hidden');
+                roleUsers.forEach(user => {
+                    const row = document.createElement('label');
+                    row.className = 'flex items-center gap-2 text-sm text-gray-700';
+                    row.innerHTML = `
+                        <input type="checkbox" class="role-user-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" value="${user.id}">
+                        <span>${user.name} (${user.email})</span>
+                    `;
+                    roleUsersList.appendChild(row);
+                });
+            }
+
+            function setMode(type) {
+                if (type === 'role') {
+                    roleSelect.disabled = false;
+                    roleSelect.required = true;
+                    usersSelect.disabled = true;
+                    usersSelect.required = false;
+                    roleUsersPanel.classList.remove('hidden');
+                    renderRoleUsers();
+                } else if (type === 'users') {
+                    usersSelect.disabled = false;
+                    usersSelect.required = true;
+                    roleSelect.disabled = true;
+                    roleSelect.required = false;
+                    roleUsersPanel.classList.add('hidden');
+                } else {
+                    roleSelect.disabled = true;
+                    roleSelect.required = false;
+                    usersSelect.disabled = true;
+                    usersSelect.required = false;
+                    roleUsersPanel.classList.add('hidden');
+                }
+            }
 
             typeInputs.forEach(input => {
                 input.addEventListener('change', function() {
-                    if (this.value === 'role') {
-                        roleSelect.disabled = false;
-                        roleSelect.required = true;
-                        usersSelect.disabled = true;
-                        usersSelect.required = false;
-                    } else if (this.value === 'users') {
-                        usersSelect.disabled = false;
-                        usersSelect.required = true;
-                        roleSelect.disabled = true;
-                        roleSelect.required = false;
-                    } else {
-                        roleSelect.disabled = true;
-                        roleSelect.required = false;
-                        usersSelect.disabled = true;
-                        usersSelect.required = false;
-                    }
+                    setMode(this.value);
                 });
             });
+
+            roleSelect.addEventListener('change', renderRoleUsers);
+            roleUsersCheckAll.addEventListener('change', function () {
+                roleUsersList.querySelectorAll('.role-user-checkbox').forEach(cb => {
+                    cb.checked = this.checked;
+                });
+            });
+
+            form?.addEventListener('submit', function () {
+                const selectedType = document.querySelector('input[name="type"]:checked')?.value;
+                if (selectedType !== 'role') return;
+
+                const selectedIds = Array.from(roleUsersList.querySelectorAll('.role-user-checkbox:checked'))
+                    .map(cb => cb.value);
+
+                if (selectedIds.length === 0) {
+                    return; // keep type=role => send to all users in role
+                }
+
+                // Route role selection with specific users through existing users flow.
+                Array.from(usersSelect.options).forEach(opt => {
+                    opt.selected = selectedIds.includes(opt.value);
+                });
+                usersSelect.disabled = false;
+                usersSelect.required = true;
+                usersTypeInput.checked = true;
+                roleSelect.required = false;
+            });
+
+            const initialType = document.querySelector('input[name="type"]:checked')?.value || 'all';
+            setMode(initialType);
         });
     </script>
 </x-admin-layout>
