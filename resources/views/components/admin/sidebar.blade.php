@@ -83,7 +83,7 @@
                                     <a href="{{ route('admin.notifications.statistics') }}"
                                        class="flex items-center gap-2.5 rounded-md pl-7 pr-3 py-2 text-sm font-medium transition-colors {{ $notificationsStatsNavActive ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100' }}">
                                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                                        <span class="min-w-0 truncate">{{ __('admin.notification_statistics') }}</span>
+                                        <span class="min-w-0 truncate">Statics</span>
                                         @if($adminStatsUnread > 0)
                                             <span class="ml-auto shrink-0 px-2 py-0.5 text-xs font-medium text-white bg-slate-500 dark:bg-slate-600 rounded-full">{{ $adminStatsUnread }}</span>
                                         @endif
