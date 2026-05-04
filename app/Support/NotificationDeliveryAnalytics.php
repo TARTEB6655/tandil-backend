@@ -10,13 +10,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class NotificationDeliveryAnalytics
 {
+    /**
+     * Must match how {@see GlobalNotificationFilter} resolves audience (top-level + meta), or all rows count as untracked.
+     */
     private static function audienceRoleSqlExpression(): string
     {
-        return match (DB::connection()->getDriverName()) {
-            'pgsql' => "coalesce(nullif((data::json->>'audience_role'), ''), 'untracked')",
-            'sqlite' => "coalesce(json_extract(data, '$.audience_role'), 'untracked')",
-            default => "coalesce(json_unquote(json_extract(data, '$.audience_role')), 'untracked')",
-        };
+        return GlobalNotificationFilter::resolvedAudienceRoleSqlExpression();
     }
 
     /**
