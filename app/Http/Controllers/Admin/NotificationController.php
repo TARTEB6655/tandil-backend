@@ -13,8 +13,10 @@ use App\Support\UserNotificationAudience;
 use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class NotificationController extends Controller
 {
@@ -245,12 +247,32 @@ class NotificationController extends Controller
      */
     public function create()
     {
-        $roles = \Spatie\Permission\Models\Role::all();
-        $users = User::query()
+        $roles = collect();
+        if (Schema::hasTable('roles')) {
+            $roles = Role::query()->orderBy('name')->get();
+        }
+
+        // Fallback for deployments where Spatie role tables are unavailable or not populated.
+        if ($roles->isEmpty()) {
+            $roles = User::query()
+                ->select('role')
+                ->whereNotNull('role')
+                ->where('role', '!=', '')
+                ->distinct()
+                ->orderBy('role')
+                ->get()
+                ->map(fn ($row) => (object) ['name' => $row->role]);
+        }
+
+        $usersQuery = User::query()
             ->select(['id', 'name', 'email', 'role'])
-            ->with('roles:id,name')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        if (Schema::hasTable('roles') && Schema::hasTable('model_has_roles')) {
+            $usersQuery->with('roles:id,name');
+        }
+
+        $users = $usersQuery->get();
 
         return view('admin.notifications.create', compact('roles', 'users'));
     }
