@@ -220,17 +220,7 @@ class SupervisorController extends Controller
                 if ($status === 'sent_to_client') {
                     $report->status = 'sent_to_client';
                 }
-                try {
-                    $client = $visit->subscription?->client;
-                    if ($client && ! $client->notifications()
-                        ->where('type', \App\Notifications\ReportFinalized::class)
-                        ->where('data->report_id', $report->id)
-                        ->exists()) {
-                        $client->notify(new \App\Notifications\ReportFinalized($report));
-                    }
-                } catch (\Throwable $e) {
-                    // Log if needed
-                }
+                // ReportFinalized notification is disabled system-wide (see App\Notifications\ReportFinalized::via).
             }
         }
 

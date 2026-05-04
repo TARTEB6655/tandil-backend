@@ -19,9 +19,13 @@ class ReportFinalized extends Notification
         $this->report = $report;
     }
 
+    /**
+     * Disabled system-wide: no in-app or email delivery (product decision).
+     * Class kept so callers can stay type-safe; extend via() if this is re-enabled later.
+     */
     public function via($notifiable)
     {
-        return ['database', 'mail'];
+        return [];
     }
 
     public function toMail($notifiable)
