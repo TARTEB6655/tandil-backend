@@ -59,18 +59,6 @@
                                 </div>
                             </div>
                         </label>
-                        <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                            <input type="radio" name="type" value="users" class="text-indigo-600 focus:ring-indigo-500" @checked(old('type') === 'users')>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900">Specific Users</p>
-                                <p class="text-xs text-gray-500 mb-2">Send to selected users</p>
-                                <select name="user_ids[]" multiple class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" disabled id="users-select">
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}" @selected(collect(old('user_ids', []))->contains($user->id))>{{ $user->name }} ({{ $user->email }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </label>
                     </div>
                 </div>
 
@@ -103,42 +91,11 @@
                     @enderror
                 </div>
 
-                @php
-                    $audienceRoles = [
-                        'client' => 'Customers (client role)',
-                        'technician' => 'Technicians',
-                        'supervisor' => 'Supervisors',
-                        'area_manager' => 'Area managers',
-                        'hr' => 'HR',
-                        'admin' => 'Admins',
-                    ];
-                @endphp
-                <details class="border border-gray-200 rounded-xl bg-gray-50/80 p-4">
-                    <summary class="text-sm font-medium text-gray-800 cursor-pointer">Optional: different title & message per role</summary>
-                    <p class="text-xs text-gray-600 mt-2 mb-4">Leave blank to use the main title and message above for everyone. If you fill a role’s title or message, that role gets your custom text (others keep the default).</p>
-                    <div class="space-y-6">
-                        @foreach($audienceRoles as $roleKey => $label)
-                            <div class="border border-gray-200 rounded-lg p-4 bg-white">
-                                <h3 class="text-sm font-semibold text-gray-900 mb-3">{{ $label }}</h3>
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 mb-1">Title override</label>
-                                        <input type="text" name="messages_by_role[{{ $roleKey }}][title]"
-                                               value="{{ old('messages_by_role.'.$roleKey.'.title') }}"
-                                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                                               placeholder="Optional">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 mb-1">Message override</label>
-                                        <textarea name="messages_by_role[{{ $roleKey }}][message]" rows="3"
-                                                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                                                  placeholder="Optional">{{ old('messages_by_role.'.$roleKey.'.message') }}</textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </details>
+                <select name="user_ids[]" multiple class="hidden" id="users-select">
+                    @foreach($users as $user)
+                        <option value="{{ $user->id }}" @selected(collect(old('user_ids', []))->contains($user->id))>{{ $user->name }} ({{ $user->email }})</option>
+                    @endforeach
+                </select>
 
                 <!-- Submit Button -->
                 <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
@@ -163,7 +120,6 @@
             const roleUsersEmpty = document.getElementById('role-users-empty');
             const roleUsersCheckAll = document.getElementById('role-users-check-all');
             const form = document.querySelector('form[action="{{ route('admin.notifications.send') }}"]');
-            const usersTypeInput = document.querySelector('input[name="type"][value="users"]');
             const usersData = @json($usersForJs ?? []);
 
             function usersForRole(role) {
@@ -199,21 +155,11 @@
                 if (type === 'role') {
                     roleSelect.disabled = false;
                     roleSelect.required = true;
-                    usersSelect.disabled = true;
-                    usersSelect.required = false;
                     roleUsersPanel.classList.remove('hidden');
                     renderRoleUsers();
-                } else if (type === 'users') {
-                    usersSelect.disabled = false;
-                    usersSelect.required = true;
-                    roleSelect.disabled = true;
-                    roleSelect.required = false;
-                    roleUsersPanel.classList.add('hidden');
                 } else {
                     roleSelect.disabled = true;
                     roleSelect.required = false;
-                    usersSelect.disabled = true;
-                    usersSelect.required = false;
                     roleUsersPanel.classList.add('hidden');
                 }
             }
@@ -246,9 +192,15 @@
                 Array.from(usersSelect.options).forEach(opt => {
                     opt.selected = selectedIds.includes(opt.value);
                 });
-                usersSelect.disabled = false;
-                usersSelect.required = true;
-                usersTypeInput.checked = true;
+                const allTypeInput = document.querySelector('input[name="type"][value="all"]');
+                if (allTypeInput) allTypeInput.checked = false;
+                const roleTypeInput = document.querySelector('input[name="type"][value="role"]');
+                if (roleTypeInput) roleTypeInput.checked = false;
+                const hiddenType = document.createElement('input');
+                hiddenType.type = 'hidden';
+                hiddenType.name = 'type';
+                hiddenType.value = 'users';
+                form.appendChild(hiddenType);
                 roleSelect.required = false;
             });
 
