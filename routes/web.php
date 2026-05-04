@@ -199,6 +199,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('payments/mobile-checkout/{checkout}', [PaymentController::class, 'showMobileCheckout'])->name('payments.mobile-checkout');
         Route::get('payments/transaction/{id}', [PaymentController::class, 'showTransaction'])->name('payments.transaction');
         Route::post('payments/gateway/{gateway}', [PaymentController::class, 'updateGateway'])->name('payments.update-gateway');
+        Route::post('payments/refund-policy', [PaymentController::class, 'updateRefundPolicy'])->name('payments.update-refund-policy');
         Route::get('payments', [PaymentController::class, 'transactions'])->name('payments.index');
 
         Route::resource('complaints', ComplaintController::class)->only(['index', 'show']);

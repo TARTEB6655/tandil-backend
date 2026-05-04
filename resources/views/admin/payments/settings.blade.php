@@ -105,5 +105,44 @@
                 @endforeach
             </div>
         </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Refund and wallet policy</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Configure timeline-based refunds and wallet expiry without app updates.
+            </p>
+
+            <form method="POST" action="{{ route('admin.payments.update-refund-policy') }}" class="space-y-5">
+                @csrf
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grace window (minutes)</label>
+                        <input type="number" min="0" max="1440" name="refund_grace_minutes" value="{{ old('refund_grace_minutes', $refundPolicy['grace_minutes']) }}"
+                               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Within this window, full refund applies.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Partial refund (%) after assignment</label>
+                        <input type="number" min="0" max="100" step="0.01" name="refund_partial_percent" value="{{ old('refund_partial_percent', $refundPolicy['partial_refund_percent']) }}"
+                               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Service fee (%) after service start/completion</label>
+                        <input type="number" min="0" max="100" step="0.01" name="refund_service_fee_percent_after_start" value="{{ old('refund_service_fee_percent_after_start', $refundPolicy['service_fee_percent_after_start']) }}"
+                               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Refund % = 100 - service fee %.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Wallet validity (months)</label>
+                        <input type="number" min="1" max="24" name="refund_wallet_validity_months" value="{{ old('refund_wallet_validity_months', $refundPolicy['wallet_validity_months']) }}"
+                               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+                    Save refund policy
+                </button>
+            </form>
+        </div>
     </div>
 </x-admin-layout>

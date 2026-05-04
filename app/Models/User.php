@@ -22,6 +22,8 @@ class User extends Authenticatable
         'password',
         'role',    // optional: quick reference
         'status',  // active / inactive
+        'wallet_balance',
+        'wallet_forfeited_total',
     ];
 
     protected $appends = [
@@ -38,6 +40,8 @@ class User extends Authenticatable
         'password' => 'hashed',
         'extra_emails' => 'array',
         'extra_phones' => 'array',
+        'wallet_balance' => 'decimal:2',
+        'wallet_forfeited_total' => 'decimal:2',
     ];
 
     /**
@@ -112,6 +116,11 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function walletCredits()
+    {
+        return $this->hasMany(WalletCredit::class);
     }
 
     /*

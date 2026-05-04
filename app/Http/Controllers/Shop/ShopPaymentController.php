@@ -11,6 +11,7 @@ use App\Services\PayPalService;
 use App\Services\ShopCheckoutOrderService;
 use App\Services\ShopStripeMobilePaymentService;
 use App\Services\StripeCheckoutSessionService;
+use App\Support\RefundPolicy;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -45,6 +46,7 @@ class ShopPaymentController extends Controller
             'payment_method' => 'required|in:stripe,paypal',
             'success_url' => 'required|url',
             'cancel_url' => 'required|url',
+            'accepted_refund_policy' => 'sometimes|accepted',
         ]);
 
         $method = $request->input('payment_method');
@@ -125,6 +127,7 @@ class ShopPaymentController extends Controller
                     'order_number' => $this->orderNumber($order),
                     'amount' => $amount,
                     'currency' => $currency,
+                    'refund_policy' => RefundPolicy::policyForApi(),
                 ],
             ], 201);
         }
@@ -160,6 +163,7 @@ class ShopPaymentController extends Controller
                 'order_number' => $this->orderNumber($order),
                 'amount' => $amount,
                 'currency' => $currency,
+                'refund_policy' => RefundPolicy::policyForApi(),
             ],
         ], 201);
     }

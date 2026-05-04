@@ -114,6 +114,23 @@
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-3">Cancellation & Refund Policy</h2>
+                    <div class="space-y-2 text-sm text-gray-700">
+                        <p>- Full refund before assignment/processing or within {{ $refundPolicy['grace_minutes'] ?? 15 }} minutes.</p>
+                        <p>- Partial refund after assignment: {{ $refundPolicy['rules'][1]['refund_percent'] ?? 50 }}%.</p>
+                        <p>- After service starts/completes, service fee applies and refund may be limited.</p>
+                        <p>- Refunds are credited to wallet and expire after {{ $refundPolicy['wallet_terms']['expires_after_months'] ?? 6 }} months.</p>
+                    </div>
+                    <label class="mt-4 inline-flex items-start gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="accepted_refund_policy" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" {{ old('accepted_refund_policy') ? 'checked' : '' }}>
+                        <span>I understand and accept the cancellation and refund policy.</span>
+                    </label>
+                    @error('accepted_refund_policy')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
 
             <!-- Order Summary -->

@@ -6,6 +6,7 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\UserAddress;
+use App\Support\RefundPolicy;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 
@@ -34,6 +35,14 @@ class CheckoutController extends Controller
     }
 
     /**
+     * GET /api/shop/refund-policy
+     */
+    public function refundPolicy()
+    {
+        return ApiResponse::success('Refund policy retrieved.', RefundPolicy::policyForApi());
+    }
+
+    /**
      * GET /api/auth/shop/checkout/review
      * Review step: cart items + order summary + user addresses + payment methods in one response.
      * Frontend can pre-fill Review screen and let user select address/payment if not already chosen.
@@ -59,6 +68,7 @@ class CheckoutController extends Controller
             'order_summary' => $orderSummary,
             'addresses' => $addresses,
             'payment_methods' => $this->stripePayPalMethods(),
+            'refund_policy' => RefundPolicy::policyForApi(),
         ]);
     }
 

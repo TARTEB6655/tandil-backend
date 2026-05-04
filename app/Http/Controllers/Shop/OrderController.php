@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
+use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -163,10 +166,8 @@ class OrderController extends Controller
             ], 400);
         }
 
-        $order->update([
-            'order_status' => 'cancelled',
-            'payment_status' => $order->payment_status === 'paid' ? 'refunded' : 'pending',
-        ]);
+        $result = $this->cancelWithPolicy($order);
+        $order->refresh();
 
         // 🔔 Notify admin and client about cancellation
         try {
@@ -194,6 +195,7 @@ class OrderController extends Controller
             'success' => true,
             'message' => 'Order cancelled successfully',
             'data' => $order->load(['items.product', 'user']),
+            'refund' => $result,
         ], 200);
     }
 
@@ -240,6 +242,8 @@ class OrderController extends Controller
                 ],
                 'maintenance_photos' => $maintenancePhotos,
                 'can_cancel' => ! in_array($order->order_status, ['delivered', 'cancelled']),
+                'refund_policy' => RefundPolicy::policyForApi(),
+                'wallet' => $this->walletSnapshot($order),
             ],
         ], 200);
     }
@@ -311,6 +315,8 @@ class OrderController extends Controller
                 ],
                 'maintenance_photos' => $maintenancePhotos,
                 'can_cancel' => ! in_array($order->order_status, ['delivered', 'cancelled']),
+                'refund_policy' => RefundPolicy::policyForApi(),
+                'wallet' => $this->walletSnapshot($order),
             ],
         ], 200);
     }
@@ -337,10 +343,8 @@ class OrderController extends Controller
             ], 400);
         }
 
-        $order->update([
-            'order_status' => 'cancelled',
-            'payment_status' => $order->payment_status === 'paid' ? 'refunded' : 'pending',
-        ]);
+        $result = $this->cancelWithPolicy($order);
+        $order->refresh();
 
         try {
             $admins = User::role('admin')->get();
@@ -365,7 +369,97 @@ class OrderController extends Controller
                 'order_number_short' => $order->publicOrderNumberDigits(),
                 'order_summary' => $this->orderSummaryForApi($order),
             ],
+            'refund' => $result,
         ], 200);
+    }
+
+    /**
+     * Apply timeline-based cancellation + refund policy and wallet crediting.
+     *
+     * @return array{
+     *   stage:string,
+     *   refund_percent:float,
+     *   refund_amount:float,
+     *   service_fee_amount:float,
+     *   wallet_credited:float,
+     *   wallet_expires_at:?string
+     * }
+     */
+    private function cancelWithPolicy(Order $order): array
+    {
+        return DB::transaction(function () use ($order) {
+            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $decision = RefundPolicy::decisionForOrder($locked);
+            $isPaid = strtolower((string) $locked->payment_status) === 'paid';
+            $total = (float) $locked->total_amount;
+            $refundAmount = $isPaid ? round($total * ((float) $decision['percent'] / 100), 2) : 0.0;
+            $serviceFeeAmount = $isPaid ? round(max(0, $total - $refundAmount), 2) : 0.0;
+
+            $walletCredited = 0.0;
+            $expiresAt = null;
+            if ($refundAmount > 0 && $locked->user_id) {
+                $user = User::query()->whereKey($locked->user_id)->lockForUpdate()->first();
+                if ($user) {
+                    $months = RefundPolicy::walletValidityMonths();
+                    $expiresAt = now()->addMonths($months);
+                    $walletCredited = $refundAmount;
+                    $user->wallet_balance = round((float) ($user->wallet_balance ?? 0) + $walletCredited, 2);
+                    $user->save();
+
+                    WalletCredit::create([
+                        'user_id' => $user->id,
+                        'order_id' => $locked->id,
+                        'amount' => $walletCredited,
+                        'reason' => 'order_refund',
+                        'status' => 'active',
+                        'credited_at' => now(),
+                        'expires_at' => $expiresAt,
+                    ]);
+                }
+            }
+
+            $locked->order_status = 'cancelled';
+            $locked->payment_status = $isPaid ? 'refunded' : 'pending';
+            $locked->refund_amount = $refundAmount;
+            $locked->refund_reason = (string) ($decision['reason'] ?? 'Refund policy applied');
+            $locked->refunded_at = $refundAmount > 0 ? now() : null;
+            $locked->save();
+
+            return [
+                'stage' => (string) ($decision['stage'] ?? 'fallback'),
+                'refund_percent' => (float) ($decision['percent'] ?? 0),
+                'refund_amount' => $refundAmount,
+                'service_fee_amount' => $serviceFeeAmount,
+                'wallet_credited' => $walletCredited,
+                'wallet_expires_at' => $expiresAt?->toIso8601String(),
+            ];
+        });
+    }
+
+    private function walletSnapshot(Order $order): ?array
+    {
+        if (! $order->user_id || ! $order->relationLoaded('user') && ! $order->user) {
+            return null;
+        }
+        $user = $order->user;
+        if (! $user) {
+            return null;
+        }
+
+        $latestCredit = WalletCredit::query()
+            ->where('user_id', $user->id)
+            ->where('order_id', $order->id)
+            ->latest('id')
+            ->first();
+
+        return [
+            'balance' => (float) ($user->wallet_balance ?? 0),
+            'last_refund_credit' => $latestCredit ? [
+                'amount' => (float) $latestCredit->amount,
+                'status' => $latestCredit->status,
+                'expires_at' => $latestCredit->expires_at?->toIso8601String(),
+            ] : null,
+        ];
     }
 
     /**
@@ -433,6 +527,10 @@ class OrderController extends Controller
             'payment_method_code' => $order->payment_method,
             'total' => (float) $order->total_amount,
             'currency' => $currency,
+            'payment_status' => $order->payment_status,
+            'refund_amount' => (float) ($order->refund_amount ?? 0),
+            'refund_reason' => $order->refund_reason,
+            'refunded_at' => $order->refunded_at?->format('c'),
             'special_instructions' => $order->special_instructions,
             'estimated_arrival' => $order->estimated_arrival,
             'job_duration' => $order->job_duration,

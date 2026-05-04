@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Setting;
 use App\Models\ShopMobileCheckout;
 use App\Models\Transaction;
+use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -129,7 +130,15 @@ class PaymentController extends Controller
      */
     public function settings()
     {
-        return view('admin.payments.settings', ['gateways' => $this->gatewaySettings()]);
+        return view('admin.payments.settings', [
+            'gateways' => $this->gatewaySettings(),
+            'refundPolicy' => [
+                'grace_minutes' => RefundPolicy::graceMinutes(),
+                'partial_refund_percent' => RefundPolicy::partialRefundPercent(),
+                'service_fee_percent_after_start' => RefundPolicy::serviceFeePercentAfterStart(),
+                'wallet_validity_months' => RefundPolicy::walletValidityMonths(),
+            ],
+        ]);
     }
 
     /**
@@ -196,6 +205,23 @@ class PaymentController extends Controller
         }
 
         return redirect()->route('admin.payments.settings')->with('success', ucfirst($gateway).' settings updated successfully.');
+    }
+
+    public function updateRefundPolicy(Request $request)
+    {
+        $validated = $request->validate([
+            'refund_grace_minutes' => 'required|integer|min:0|max:1440',
+            'refund_partial_percent' => 'required|numeric|min:0|max:100',
+            'refund_service_fee_percent_after_start' => 'required|numeric|min:0|max:100',
+            'refund_wallet_validity_months' => 'required|integer|min:1|max:24',
+        ]);
+
+        Setting::set('refund_grace_minutes', (string) $validated['refund_grace_minutes'], 'number', 'payment');
+        Setting::set('refund_partial_percent', (string) $validated['refund_partial_percent'], 'number', 'payment');
+        Setting::set('refund_service_fee_percent_after_start', (string) $validated['refund_service_fee_percent_after_start'], 'number', 'payment');
+        Setting::set('refund_wallet_validity_months', (string) $validated['refund_wallet_validity_months'], 'number', 'payment');
+
+        return redirect()->route('admin.payments.settings')->with('success', 'Refund policy updated successfully.');
     }
 
     private function gatewaySettings(): array

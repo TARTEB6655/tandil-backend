@@ -44,6 +44,15 @@ class ShopPaymentApiSmokeTest extends TestCase
         ]);
     }
 
+    public function test_get_shop_refund_policy_returns_configured_policy(): void
+    {
+        Setting::set('refund_partial_percent', '40', 'number', 'payment');
+        $response = $this->getJson('/api/shop/refund-policy');
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.rules.1.refund_percent', 40);
+    }
+
     public function test_get_checkout_payment_methods_requires_authentication(): void
     {
         $response = $this->getJson('/api/shop/checkout/payment-methods');

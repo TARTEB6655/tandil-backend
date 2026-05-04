@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\UserAddress;
+use App\Models\WalletCredit;
 use App\Support\UserNotificationInbox;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
@@ -28,7 +29,25 @@ class UserController extends Controller
             'profile_picture' => $user->profile_picture ?? null,
             'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url ?? null,
             'role' => $user->role ?? null,
+            'wallet_balance' => (float) ($user->wallet_balance ?? 0),
+            'wallet_forfeited_total' => (float) ($user->wallet_forfeited_total ?? 0),
         ];
+    }
+
+    public function walletSummary(Request $request)
+    {
+        $user = $request->user();
+        $credits = WalletCredit::query()
+            ->where('user_id', $user->id)
+            ->latest('id')
+            ->limit(50)
+            ->get(['id', 'order_id', 'amount', 'status', 'reason', 'credited_at', 'expires_at', 'forfeited_at']);
+
+        return ApiResponse::success('Wallet summary retrieved successfully.', [
+            'balance' => (float) ($user->wallet_balance ?? 0),
+            'forfeited_total' => (float) ($user->wallet_forfeited_total ?? 0),
+            'credits' => $credits,
+        ]);
     }
 
     /**

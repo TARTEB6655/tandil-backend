@@ -543,6 +543,7 @@ Route::prefix('shop')->group(function () {
 
     // Shop checkout: Stripe Checkout or PayPal (optional auth = guest or logged-in). Webhooks = no auth.
     Route::get('/payment-gateways', [\App\Http\Controllers\Shop\CheckoutController::class, 'publicPaymentGateways']);
+    Route::get('/refund-policy', [\App\Http\Controllers\Shop\CheckoutController::class, 'refundPolicy']);
     Route::middleware('optional.sanctum')->post('/checkout/start', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'startCheckout']);
     Route::post('/webhooks/stripe', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'stripeWebhook']);
     // Alias for Stripe Dashboard "endpoint URL" (mobile contract): same handler as /webhooks/stripe
@@ -625,6 +626,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])
 */
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\UserController::class, 'getProfile']);
+    Route::get('/wallet', [\App\Http\Controllers\Api\UserController::class, 'walletSummary']);
     Route::match(['put', 'post', 'patch'], '/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
     Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);
     Route::post('/addresses', [\App\Http\Controllers\Api\UserController::class, 'createAddress']);

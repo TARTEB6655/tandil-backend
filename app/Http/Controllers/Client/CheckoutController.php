@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use App\Services\StripeCheckoutSessionService;
+use App\Support\RefundPolicy;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,7 +50,9 @@ class CheckoutController extends Controller
         $taxPercent = $orderSummary['tax_percent'];
         $shippingLabel = $orderSummary['shipping_label'];
 
-        return view('client.checkout.index', compact('cartItems', 'subtotal', 'tax', 'shipping', 'total', 'taxPercent', 'shippingLabel', 'user'));
+        $refundPolicy = RefundPolicy::policyForApi();
+
+        return view('client.checkout.index', compact('cartItems', 'subtotal', 'tax', 'shipping', 'total', 'taxPercent', 'shippingLabel', 'user', 'refundPolicy'));
     }
 
     public function process(Request $request)
@@ -61,6 +64,7 @@ class CheckoutController extends Controller
             'shipping_postal_code' => 'nullable|string|max:20',
             'shipping_country' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
+            'accepted_refund_policy' => 'required|accepted',
         ]);
 
         $method = $request->input('payment_method');

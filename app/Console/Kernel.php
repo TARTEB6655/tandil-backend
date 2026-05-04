@@ -17,6 +17,8 @@ class Kernel extends ConsoleKernel
         $schedule->job(new SendTips())->weeklyOn(1, '09:00');
         // Send orders export to supplier daily at 07:00 (last 7 days)
         $schedule->command('orders:send-to-supplier', ['--days' => 7])->dailyAt('07:00');
+        // Forfeit unused wallet refunds after expiry window (default 6 months).
+        $schedule->command('wallet:forfeit-expired')->dailyAt('01:15');
     }
 
     protected function commands()
