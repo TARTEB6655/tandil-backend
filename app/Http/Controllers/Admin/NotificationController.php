@@ -268,13 +268,31 @@ class NotificationController extends Controller
             ->select(['id', 'name', 'email', 'role'])
             ->orderBy('name');
 
-        if (Schema::hasTable('roles') && Schema::hasTable('model_has_roles')) {
+        $canUseSpatieRoles = Schema::hasTable('roles') && Schema::hasTable('model_has_roles');
+        if ($canUseSpatieRoles) {
             $usersQuery->with('roles:id,name');
         }
 
         $users = $usersQuery->get();
+        $usersForJs = $users->map(function (User $user) use ($canUseSpatieRoles): array {
+            $roleNames = [];
+            if ($canUseSpatieRoles && $user->relationLoaded('roles')) {
+                $roleNames = $user->roles->pluck('name')->filter()->values()->all();
+            }
+            if ($roleNames === [] && ! empty($user->role)) {
+                $roleNames = [(string) $user->role];
+            }
 
-        return view('admin.notifications.create', compact('roles', 'users'));
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'legacy_role' => $user->role,
+                'roles' => $roleNames,
+            ];
+        })->values();
+
+        return view('admin.notifications.create', compact('roles', 'users', 'usersForJs'));
     }
 
     /**

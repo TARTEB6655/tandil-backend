@@ -164,15 +164,7 @@
             const roleUsersCheckAll = document.getElementById('role-users-check-all');
             const form = document.querySelector('form[action="{{ route('admin.notifications.send') }}"]');
             const usersTypeInput = document.querySelector('input[name="type"][value="users"]');
-            const usersData = @json(
-                $users->map(fn ($user) => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'legacy_role' => $user->role,
-                    'roles' => $user->roles->pluck('name')->values(),
-                ])->values()
-            );
+            const usersData = @json($usersForJs ?? []);
 
             function usersForRole(role) {
                 if (!role) return [];
