@@ -119,4 +119,32 @@ class NotificationDeliveryStatsApiTest extends TestCase
         $this->assertSame(1, $byAudience['client'] ?? 0);
         $this->assertSame(0, $byAudience['technician'] ?? -1);
     }
+
+    public function test_delivery_stats_falls_back_to_recipient_role_for_untracked_rows(): void
+    {
+        DB::table('notifications')->insert([
+            'id' => (string) Str::uuid(),
+            'type' => AdminNotification::class,
+            'notifiable_type' => User::class,
+            'notifiable_id' => $this->client->id,
+            'data' => json_encode([
+                'message' => 'legacy without audience key',
+            ]),
+            'read_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/notifications/delivery-stats');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.grand_total', 1)
+            // tracking still reflects raw JSON metadata presence
+            ->assertJsonPath('data.tracking.untracked', 1);
+
+        $byAudience = $response->json('data.by_audience');
+        $this->assertSame(1, $byAudience['client'] ?? 0);
+        $this->assertSame(0, $byAudience['untracked'] ?? -1);
+    }
 }

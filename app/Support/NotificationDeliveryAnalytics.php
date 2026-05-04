@@ -10,6 +10,24 @@ use Illuminate\Support\Facades\DB;
  */
 final class NotificationDeliveryAnalytics
 {
+    private static function normalizeAudienceBucket(string $audienceRole, ?string $legacyRole): string
+    {
+        if ($audienceRole !== 'untracked') {
+            return $audienceRole;
+        }
+
+        $legacy = strtolower(trim((string) $legacyRole));
+        if (in_array($legacy, UserNotificationAudience::PRIORITY_ROLES, true)) {
+            return $legacy;
+        }
+
+        if ($legacy !== '') {
+            return 'other';
+        }
+
+        return 'untracked';
+    }
+
     /**
      * Must match how {@see GlobalNotificationFilter} resolves audience (top-level + meta), or all rows count as untracked.
      */
@@ -58,12 +76,14 @@ final class NotificationDeliveryAnalytics
         $audExpr = self::audienceRoleSqlExpression();
         $base = self::analyticsBase($since, $until, $audienceRole);
 
-        $perRow = (clone $base)->selectRaw("type, {$audExpr} as audience_role");
+        $perRow = (clone $base)
+            ->leftJoin('users as recipient_user', 'notifications.notifiable_id', '=', 'recipient_user.id')
+            ->selectRaw("notifications.type, {$audExpr} as audience_role, recipient_user.role as legacy_role");
 
         $rows = DB::query()
             ->fromSub($perRow->toBase(), 'n')
-            ->selectRaw('n.type, n.audience_role, COUNT(*) as cnt')
-            ->groupBy('n.type', 'n.audience_role')
+            ->selectRaw('n.type, n.audience_role, n.legacy_role, COUNT(*) as cnt')
+            ->groupBy('n.type', 'n.audience_role', 'n.legacy_role')
             ->get();
 
         $byType = [];
@@ -78,7 +98,7 @@ final class NotificationDeliveryAnalytics
 
         foreach ($rows as $row) {
             $type = (string) $row->type;
-            $aud = (string) $row->audience_role;
+            $aud = self::normalizeAudienceBucket((string) $row->audience_role, $row->legacy_role);
             $cnt = (int) $row->cnt;
 
             if (! isset($byType[$type])) {
