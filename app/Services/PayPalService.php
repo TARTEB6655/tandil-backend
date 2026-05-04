@@ -221,8 +221,12 @@ class PayPalService
             return ['id' => $orderId, 'status' => 'COMPLETED', 'placeholder' => true];
         }
 
+        // PayPal capture endpoint expects a JSON object body ("{}"), not an empty array/string.
+        // Sending an implicit empty payload can trigger MALFORMED_REQUEST_JSON.
         $resp = Http::withToken($token)
-            ->post($this->baseUrl()."/v2/checkout/orders/{$orderId}/capture");
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->withBody('{}', 'application/json')
+            ->send('POST', $this->baseUrl()."/v2/checkout/orders/{$orderId}/capture");
 
         if (! $resp->ok()) {
             return ['error' => $resp->body(), 'status' => $resp->status()];
