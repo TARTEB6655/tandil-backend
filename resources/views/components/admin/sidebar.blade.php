@@ -60,17 +60,30 @@
 
                         <!-- Notifications -->
                         <div class="mb-2">
+                            @php
+                                $adminPersonalUnread = \App\Support\GlobalNotificationFilter::unreadForUser(auth()->user())->count();
+                                $adminStatsUnread = \App\Support\GlobalNotificationFilter::unreadAllUsers()->count();
+                                $notificationsNavActive = request()->routeIs('admin.notifications.index')
+                                    || (request()->routeIs('admin.notifications.show') && request()->query('from') !== 'stats');
+                                $notificationsStatsNavActive = request()->routeIs('admin.notifications.statistics')
+                                    || (request()->routeIs('admin.notifications.show') && request()->query('from') === 'stats');
+                            @endphp
                             <a href="{{ route('admin.notifications.index') }}" 
-                               class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors {{ request()->routeIs('admin.notifications.*') ? 'bg-gray-100 dark:bg-gray-800 font-semibold' : '' }}">
+                               class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors {{ $notificationsNavActive ? 'bg-gray-100 dark:bg-gray-800 font-semibold' : '' }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                                 </svg>
                                 <span>{{ __('admin.notifications') }}</span>
-                                @php
-                                    $unreadCount = \App\Support\GlobalNotificationFilter::unreadForUser(auth()->user())->count();
-                                @endphp
-                                @if($unreadCount > 0)
-                                    <span class="ml-auto px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">{{ $unreadCount }}</span>
+                                @if($adminPersonalUnread > 0)
+                                    <span class="ml-auto px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">{{ $adminPersonalUnread }}</span>
+                                @endif
+                            </a>
+                            <a href="{{ route('admin.notifications.statistics') }}"
+                               class="mt-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors {{ $notificationsStatsNavActive ? 'bg-gray-100 dark:bg-gray-800 font-semibold' : '' }}">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                <span>{{ __('admin.notification_statistics') }}</span>
+                                @if($adminStatsUnread > 0)
+                                    <span class="ml-auto px-2 py-0.5 text-xs font-medium text-white bg-slate-500 dark:bg-slate-600 rounded-full">{{ $adminStatsUnread }}</span>
                                 @endif
                             </a>
                             <a href="{{ route('admin.notifications.broadcasts.index') }}"

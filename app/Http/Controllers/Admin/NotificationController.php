@@ -19,9 +19,12 @@ class NotificationController extends Controller
 {
     use WebNotificationInbox;
 
+    /** When true, inbox lists all users’ rows (statistics page); false = signed-in admin only. */
+    protected bool $adminInboxAllUsers = false;
+
     protected function inboxSpansAllUsers(): bool
     {
-        return true;
+        return $this->adminInboxAllUsers;
     }
 
     public function __construct()
@@ -30,14 +33,37 @@ class NotificationController extends Controller
     }
 
     /**
-     * Display all notifications for the admin.
+     * Admin’s personal notification inbox (notifiable = signed-in admin only).
      */
     public function index(Request $request)
     {
+        $this->adminInboxAllUsers = false;
         [$notifications, $unreadCount] = $this->paginatedInbox($request);
         $totalCount = $this->inboxFilteredTotal($request);
 
-        return view('admin.notifications.index', compact('notifications', 'unreadCount', 'totalCount'));
+        return view('admin.notifications.index', [
+            'notifications' => $notifications,
+            'unreadCount' => $unreadCount,
+            'totalCount' => $totalCount,
+            'isSystemWideInbox' => false,
+        ]);
+    }
+
+    /**
+     * System-wide notification statistics / review (all users’ database notifications).
+     */
+    public function statistics(Request $request)
+    {
+        $this->adminInboxAllUsers = true;
+        [$notifications, $unreadCount] = $this->paginatedInbox($request);
+        $totalCount = $this->inboxFilteredTotal($request);
+
+        return view('admin.notifications.index', [
+            'notifications' => $notifications,
+            'unreadCount' => $unreadCount,
+            'totalCount' => $totalCount,
+            'isSystemWideInbox' => true,
+        ]);
     }
 
     /**
@@ -84,7 +110,14 @@ class NotificationController extends Controller
         if ($notification->read_at === null) {
             $notification->markAsRead();
         }
-        return view('admin.notifications.show', ['notification' => $notification]);
+        $backUrl = request()->query('from') === 'stats'
+            ? route('admin.notifications.statistics')
+            : route('admin.notifications.index');
+
+        return view('admin.notifications.show', [
+            'notification' => $notification,
+            'backUrl' => $backUrl,
+        ]);
     }
 
     /**
@@ -225,7 +258,7 @@ class NotificationController extends Controller
         $broadcast = NotificationBroadcastService::send(Auth::user(), $validated);
         $counts = $broadcast->recipientCountsForApi();
 
-        return redirect()->route('admin.notifications.index')
+        return redirect()->route('admin.notifications.statistics')
             ->with('success', "Notification sent to {$broadcast->total_recipients} user(s). By role — customers: {$counts['customers']}, technicians: {$counts['technicians']}, supervisors: {$counts['supervisors']}, area managers: {$counts['area_managers']}, HR: {$counts['hr']}, admins: {$counts['admins']}, other: {$counts['other']}.");
     }
 }

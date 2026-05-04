@@ -28,11 +28,11 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
 
         $technician->notify(new AdminNotification('Tech broadcast title', 'Hello technician', []));
 
-        $filtered = $this->actingAs($admin)->get(route('admin.notifications.index', ['audience_role' => 'technician']));
+        $filtered = $this->actingAs($admin)->get(route('admin.notifications.statistics', ['audience_role' => 'technician']));
         $filtered->assertStatus(200);
         $filtered->assertSee('Hello technician', false);
 
-        $withoutFilter = $this->actingAs($admin)->get(route('admin.notifications.index'));
+        $withoutFilter = $this->actingAs($admin)->get(route('admin.notifications.statistics'));
         $withoutFilter->assertStatus(200);
         $withoutFilter->assertSee('Hello technician', false);
     }
@@ -52,7 +52,7 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
         $technician->notify(new AdminNotification('For tech', 'MSG_UNIQUE_TECH_882', []));
 
         $response = $this->actingAs($admin)
-            ->get(route('admin.notifications.index', ['audience_role' => 'technician']));
+            ->get(route('admin.notifications.statistics', ['audience_role' => 'technician']));
 
         $response->assertStatus(200);
         $response->assertSee('MSG_UNIQUE_TECH_882', false);
@@ -89,7 +89,7 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get(route('admin.notifications.index', [
+            ->get(route('admin.notifications.statistics', [
                 'audience_role' => 'supervisor',
                 'filter' => 'all',
                 'kind' => '',
@@ -123,7 +123,7 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
         ]);
 
         $this->actingAs($adminUser)
-            ->get(route('admin.notifications.index', ['audience_role' => 'client']))
+            ->get(route('admin.notifications.statistics', ['audience_role' => 'client']))
             ->assertOk()
             ->assertSee('LEGACY_UNTRACKED_CLIENT', false);
     }
@@ -142,12 +142,39 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
         $hr->notify(new AdminNotification('Hr title', 'Hr only body', []));
 
         $this->actingAs($admin)
-            ->get(route('admin.notifications.index', [
+            ->get(route('admin.notifications.statistics', [
                 'audience_role' => 'hr',
                 'kind' => 'tip',
                 'filter' => 'all',
             ]))
             ->assertOk()
             ->assertSee('No notifications', false);
+    }
+
+    public function test_personal_notifications_index_excludes_other_users_rows(): void
+    {
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+
+        $technician = User::factory()->create(['role' => 'technician']);
+        $technician->assignRole('technician');
+
+        $admin->notify(new AdminNotification('Admin inbox', 'MSG_PERSONAL_ADMIN_ONLY', []));
+        $technician->notify(new AdminNotification('Tech inbox', 'MSG_PERSONAL_TECH_ONLY', []));
+
+        $this->actingAs($admin)
+            ->get(route('admin.notifications.index'))
+            ->assertOk()
+            ->assertSee('MSG_PERSONAL_ADMIN_ONLY', false)
+            ->assertDontSee('MSG_PERSONAL_TECH_ONLY', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.notifications.statistics'))
+            ->assertOk()
+            ->assertSee('MSG_PERSONAL_ADMIN_ONLY', false)
+            ->assertSee('MSG_PERSONAL_TECH_ONLY', false);
     }
 }

@@ -11,15 +11,15 @@
                 <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
                     <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 dark:hover:text-gray-300">Dashboard</a>
                     <span>/</span>
-                    <a href="{{ route('admin.notifications.index') }}" class="hover:text-gray-700 dark:hover:text-gray-300">Notifications</a>
+                    <a href="{{ route('admin.notifications.statistics') }}" class="hover:text-gray-700 dark:hover:text-gray-300">{{ __('admin.notification_statistics') }}</a>
                     <span>/</span>
                     <span class="text-gray-900 dark:text-gray-100 font-medium">Delivery analytics</span>
                 </nav>
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Notification delivery analytics</h1>
-                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Counts use the same scope as the notifications inbox (optional audience filter + tracked/untracked payload split). API: <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">GET /api/admin/notifications/delivery-stats</code>.</p>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Counts use the same scope as notification statistics (optional audience filter + tracked/untracked payload split). API: <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">GET /api/admin/notifications/delivery-stats</code>.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('admin.notifications.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Inbox</a>
+                <a href="{{ route('admin.notifications.statistics') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">{{ __('admin.notification_statistics') }}</a>
                 <a href="{{ route('admin.notifications.broadcasts.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Broadcast log</a>
             </div>
         </div>

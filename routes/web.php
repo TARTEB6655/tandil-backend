@@ -256,6 +256,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
 
         // Notifications routes (static paths before {id})
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('notifications/statistics', [NotificationController::class, 'statistics'])->name('notifications.statistics');
         Route::get('notifications/broadcasts', [NotificationController::class, 'broadcastsIndex'])->name('notifications.broadcasts.index');
         Route::get('notifications/broadcasts/{broadcast}', [NotificationController::class, 'broadcastsShow'])->name('notifications.broadcasts.show');
         Route::get('notifications/delivery-stats', [NotificationController::class, 'deliveryStats'])->name('notifications.delivery-stats');

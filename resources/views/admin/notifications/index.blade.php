@@ -1,12 +1,45 @@
+@php
+    $isSystemWideInbox = $isSystemWideInbox ?? false;
+    $inboxListRoute = $isSystemWideInbox ? 'admin.notifications.statistics' : 'admin.notifications.index';
+@endphp
 <x-admin-layout>
     <div class="space-y-5 sm:space-y-6">
         <!-- Page Header -->
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight border-l-4 border-indigo-500 pl-3">Notifications</h1>
-                <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">View, filter, and manage notifications across roles. Use audience filters to review what each role receives.</p>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight border-l-4 border-indigo-500 pl-3">
+                    @if($isSystemWideInbox)
+                        {{ __('admin.notification_statistics') }}
+                    @else
+                        {{ __('admin.notifications') }}
+                    @endif
+                </h1>
+                <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">
+                    @if($isSystemWideInbox)
+                        {{ __('admin.notification_statistics_description') }}
+                    @else
+                        {{ __('admin.notifications_personal_description') }}
+                    @endif
+                </p>
             </div>
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+                @if($isSystemWideInbox)
+                    <a href="{{ route('admin.notifications.index') }}"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
+                        </svg>
+                        {{ __('admin.my_notifications') }}
+                    </a>
+                @else
+                    <a href="{{ route('admin.notifications.statistics') }}"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        {{ __('admin.notification_statistics') }}
+                    </a>
+                @endif
                 <a href="{{ route('admin.notifications.delivery-stats') }}"
                    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -36,7 +69,9 @@
                                 <input type="hidden" name="{{ $key }}" value="{{ $value }}" />
                             @endif
                         @endforeach
-                        <input type="hidden" name="admin_notifications_index" value="1" />
+                        @if($isSystemWideInbox)
+                            <input type="hidden" name="admin_notifications_index" value="1" />
+                        @endif
                         <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
                             Mark all as read
                         </button>
@@ -45,7 +80,7 @@
             </div>
         </div>
 
-        <x-notification-inbox-toolbar route-name="admin.notifications.index" :show-audience-filter="true" />
+        <x-notification-inbox-toolbar :route-name="$inboxListRoute" :show-audience-filter="$isSystemWideInbox" />
 
         <!-- Bulk actions -->
         <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/40 px-4 py-3 sm:px-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
@@ -61,14 +96,16 @@
                         onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
                     Delete selected
                 </button>
-                <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL notifications matching the current filters (all users)?');">
+                <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm({{ json_encode($isSystemWideInbox ? __('admin.delete_all_notifications_confirm_global') : __('admin.delete_all_notifications_confirm_personal')) }});">
                     @csrf
                     @foreach(request()->query() as $key => $value)
                         @if(is_string($value))
                             <input type="hidden" name="{{ $key }}" value="{{ $value }}" />
                         @endif
                     @endforeach
-                    <input type="hidden" name="admin_notifications_index" value="1" />
+                    @if($isSystemWideInbox)
+                        <input type="hidden" name="admin_notifications_index" value="1" />
+                    @endif
                     <button type="submit" class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-300 dark:border-red-800 bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm">
                         Delete all
                     </button>
@@ -212,7 +249,7 @@
                             <!-- Notification Content: click opens target and marks as read -->
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-start justify-between gap-3">
-                                    <a href="{{ route('admin.notifications.show', $notification->id) }}" class="flex-1 min-w-0 group block js-open-notification">
+                                    <a href="{{ route('admin.notifications.show', $notification->id) }}{{ $isSystemWideInbox ? '?from=stats' : '' }}" class="flex-1 min-w-0 group block js-open-notification">
                                         <p class="text-sm mb-1 {{ $isUnread ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
                                             {{ $data['message'] ?? class_basename($type) }}
                                         </p>

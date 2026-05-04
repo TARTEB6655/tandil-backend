@@ -5,7 +5,7 @@
                 <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
                     <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 dark:hover:text-gray-300">Dashboard</a>
                     <span>/</span>
-                    <a href="{{ route('admin.notifications.index') }}" class="hover:text-gray-700 dark:hover:text-gray-300">Notifications</a>
+                    <a href="{{ route('admin.notifications.statistics') }}" class="hover:text-gray-700 dark:hover:text-gray-300">{{ __('admin.notification_statistics') }}</a>
                     <span>/</span>
                     <span class="text-gray-900 dark:text-gray-100 font-medium">Broadcast log</span>
                 </nav>
@@ -15,7 +15,7 @@
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.notifications.delivery-stats') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Delivery analytics</a>
                 <a href="{{ route('admin.notifications.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Send notification</a>
-                <a href="{{ route('admin.notifications.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Inbox</a>
+                <a href="{{ route('admin.notifications.statistics') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">{{ __('admin.notification_statistics') }}</a>
             </div>
         </div>
 

@@ -6,7 +6,7 @@
     @endphp
 
     <div class="mb-4 flex items-center justify-between">
-        <a href="{{ route('admin.notifications.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800">&larr; Back to notifications</a>
+        <a href="{{ $backUrl ?? route('admin.notifications.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800">&larr; Back to notifications</a>
         <form action="{{ route('admin.notifications.destroy', $notification->id) }}" method="POST">
             @csrf
             @method('DELETE')
