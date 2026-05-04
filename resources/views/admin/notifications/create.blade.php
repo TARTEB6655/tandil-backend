@@ -114,6 +114,7 @@
             const roleUsersPanel = document.getElementById('role-users-panel');
             const roleUsersList = document.getElementById('role-users-list');
             const roleUsersEmpty = document.getElementById('role-users-empty');
+            const roleTypeInput = document.querySelector('input[name="type"][value="role"]');
             const form = document.querySelector('form[action="{{ route('admin.notifications.send') }}"]');
             const usersData = @json($usersForJs ?? []);
 
@@ -166,6 +167,12 @@
                 });
             });
 
+            roleSelect.addEventListener('mousedown', function () {
+                if (!this.disabled) return;
+                if (!roleTypeInput) return;
+                roleTypeInput.checked = true;
+                setMode('role');
+            });
             roleSelect.addEventListener('change', renderRoleUsers);
 
             form?.addEventListener('submit', function () {
@@ -185,7 +192,6 @@
                 });
                 const allTypeInput = document.querySelector('input[name="type"][value="all"]');
                 if (allTypeInput) allTypeInput.checked = false;
-                const roleTypeInput = document.querySelector('input[name="type"][value="role"]');
                 if (roleTypeInput) roleTypeInput.checked = false;
                 const hiddenType = document.createElement('input');
                 hiddenType.type = 'hidden';
