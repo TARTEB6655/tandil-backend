@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Support\UserNotificationAudience;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationBroadcastService
 {
@@ -82,7 +83,27 @@ class NotificationBroadcastService
             return User::all();
         }
         if ($data['type'] === 'role') {
-            return User::role($data['role'])->get();
+            $role = (string) ($data['role'] ?? '');
+            if ($role === '') {
+                return collect();
+            }
+
+            // Primary: Spatie role scope.
+            $spatie = collect();
+            try {
+                if (Schema::hasTable('roles') && Schema::hasTable('model_has_roles')) {
+                    $spatie = User::role($role)->get();
+                }
+            } catch (\Throwable $e) {
+                $spatie = collect();
+            }
+
+            // Fallback: legacy users.role column (for deployments not fully migrated to Spatie).
+            $legacy = Schema::hasColumn('users', 'role')
+                ? User::query()->where('role', $role)->get()
+                : collect();
+
+            return $spatie->concat($legacy)->unique('id')->values();
         }
 
         return User::whereIn('id', $data['user_ids'] ?? [])->get();
@@ -143,7 +164,8 @@ class NotificationBroadcastService
             'title' => 'required|string|max:255',
             'message' => 'required|string|max:1000',
             'type' => 'required|in:all,role,users',
-            'role' => 'required_if:type,role|exists:roles,name',
+            // Role options are validated in UI; keep backend tolerant for legacy role-column setups.
+            'role' => 'required_if:type,role|string|max:100',
             'user_ids' => 'required_if:type,users|array',
             'user_ids.*' => 'exists:users,id',
             'messages_by_role' => 'nullable|array',
