@@ -19,11 +19,32 @@ final class NotificationDeliveryAnalytics
     }
 
     /**
+     * Same row scope as admin inbox / delivery API (optionally filtered by recipient audience).
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<\Illuminate\Notifications\DatabaseNotification>
+     */
+    private static function analyticsBase(?string $since, ?string $until, ?string $audienceRole)
+    {
+        $q = GlobalNotificationFilter::allUsers($audienceRole);
+        if ($since !== null && $since !== '') {
+            $q->whereDate('notifications.created_at', '>=', $since);
+        }
+        if ($until !== null && $until !== '') {
+            $q->whereDate('notifications.created_at', '<=', $until);
+        }
+
+        return $q;
+    }
+
+    /**
      * @return array{
      *   since:?string,
      *   until:?string,
+     *   audience_role:?string,
      *   grand_total:int,
+     *   tracking: array{tracked:int, untracked:int},
      *   by_audience: array<string,int>,
+     *   by_audience_labeled: array<string,int>,
      *   by_notification_type: array<int, array{
      *     notification_type: string,
      *     notification_type_short: string,
@@ -32,21 +53,15 @@ final class NotificationDeliveryAnalytics
      *   }>
      * }
      */
-    public static function aggregate(?string $since, ?string $until): array
+    public static function aggregate(?string $since, ?string $until, ?string $audienceRole = null): array
     {
         $audExpr = self::audienceRoleSqlExpression();
+        $base = self::analyticsBase($since, $until, $audienceRole);
 
-        $base = DB::table('notifications')
-            ->where('notifiable_type', User::class)
-            ->when($since !== null && $since !== '', fn ($q) => $q->whereDate('created_at', '>=', $since))
-            ->when($until !== null && $until !== '', fn ($q) => $q->whereDate('created_at', '<=', $until));
-
-        // Subquery first materializes type + audience_role per row. Grouping JSON expressions directly hits MySQL
-        // ONLY_FULL_GROUP_BY (1055: underlying `data` not in GROUP BY). Outer GROUP BY uses plain columns only.
         $perRow = (clone $base)->selectRaw("type, {$audExpr} as audience_role");
 
         $rows = DB::query()
-            ->fromSub($perRow, 'n')
+            ->fromSub($perRow->toBase(), 'n')
             ->selectRaw('n.type, n.audience_role, COUNT(*) as cnt')
             ->groupBy('n.type', 'n.audience_role')
             ->get();
@@ -89,6 +104,9 @@ final class NotificationDeliveryAnalytics
 
         $grandTotal = (int) (clone $base)->count();
 
+        $tracked = (int) (clone $base)->whereRaw("({$audExpr}) != ?", ['untracked'])->count();
+        $untracked = (int) (clone $base)->whereRaw("({$audExpr}) = ?", ['untracked'])->count();
+
         $byAudienceLabeled = [
             'customers' => (int) ($summaryAudience['client'] ?? 0),
             'technicians' => (int) ($summaryAudience['technician'] ?? 0),
@@ -104,7 +122,12 @@ final class NotificationDeliveryAnalytics
         return [
             'since' => $since,
             'until' => $until,
+            'audience_role' => $audienceRole !== null && $audienceRole !== '' ? $audienceRole : null,
             'grand_total' => $grandTotal,
+            'tracking' => [
+                'tracked' => $tracked,
+                'untracked' => $untracked,
+            ],
             'by_audience' => $summaryAudience,
             'by_audience_labeled' => $byAudienceLabeled,
             'by_notification_type' => array_values($byType),

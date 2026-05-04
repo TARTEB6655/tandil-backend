@@ -8,9 +8,11 @@ use App\Models\AdminNotificationBroadcast;
 use App\Services\NotificationBroadcastService;
 use App\Support\GlobalNotificationFilter;
 use App\Support\NotificationDeliveryAnalytics;
+use App\Support\UserNotificationAudience;
 use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
@@ -182,13 +184,23 @@ class NotificationController extends Controller
      */
     public function deliveryStats(Request $request): View
     {
+        $allowedAudience = array_merge(UserNotificationAudience::PRIORITY_ROLES, ['other', 'unknown']);
+
         $request->validate([
             'since' => 'nullable|date_format:Y-m-d',
             'until' => 'nullable|date_format:Y-m-d',
+            'audience_role' => ['nullable', 'string', Rule::in($allowedAudience)],
         ]);
+
+        $audienceRole = $request->query('audience_role');
+        if ($audienceRole === '') {
+            $audienceRole = null;
+        }
+
         $stats = NotificationDeliveryAnalytics::aggregate(
             $request->query('since'),
-            $request->query('until')
+            $request->query('until'),
+            is_string($audienceRole) ? $audienceRole : null
         );
 
         return view('admin.notifications.delivery-stats', ['stats' => $stats]);

@@ -146,6 +146,8 @@ final class NotificationSystemSmokeTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'grand_total',
+                    'audience_role',
+                    'tracking',
                     'by_audience',
                     'by_audience_labeled',
                     'by_notification_type',

@@ -89,10 +89,32 @@ class GlobalNotificationFilter
             return $query;
         }
 
-        // Avoid LIKE on JSON text — MySQL JSON type / escaping / meta-only payloads miss matches.
         $expr = self::resolvedAudienceRoleSqlExpression();
 
-        return $query->whereRaw("({$expr}) = ?", [$audienceRole]);
+        // other / unknown must stay JSON-only (no Spatie bucket).
+        if (! in_array($audienceRole, UserNotificationAudience::PRIORITY_ROLES, true)) {
+            return $query->whereRaw("({$expr}) = ?", [$audienceRole]);
+        }
+
+        /*
+         * Primary: stored audience_role (top-level or meta) matches.
+         * Fallback: older rows resolve to "untracked" because payload never had audience merged — match recipient
+         * user's Spatie role (same keys as filter) so admin role filters are not empty for legacy data.
+         */
+        return $query->where(function ($group) use ($expr, $audienceRole) {
+            $group->whereRaw("({$expr}) = ?", [$audienceRole])
+                ->orWhere(function ($legacy) use ($expr, $audienceRole) {
+                    $legacy->whereRaw("({$expr}) = ?", ['untracked'])
+                        ->where('notifiable_type', User::class)
+                        ->whereHasMorph(
+                            'notifiable',
+                            [User::class],
+                            function ($userQuery) use ($audienceRole) {
+                                $userQuery->role($audienceRole);
+                            }
+                        );
+                });
+        });
     }
 
     public static function forUser(User $user, ?string $audienceRole = null)

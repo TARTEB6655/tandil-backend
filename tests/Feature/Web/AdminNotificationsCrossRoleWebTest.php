@@ -99,6 +99,35 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
     }
 
     /** Narrow type filter + audience: no rows when nothing matches both (regression guard). */
+    public function test_untracked_payload_matches_notifiable_spatie_role_for_filter(): void
+    {
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'client', 'guard_name' => 'web']);
+
+        $adminUser = User::factory()->create(['role' => 'admin']);
+        $adminUser->assignRole('admin');
+
+        $clientUser = User::factory()->create(['role' => 'client']);
+        $clientUser->assignRole('client');
+
+        // Legacy row: no audience in JSON (counts as untracked) but recipient is a client.
+        DB::table('notifications')->insert([
+            'id' => (string) Str::uuid(),
+            'type' => AdminNotification::class,
+            'notifiable_type' => User::class,
+            'notifiable_id' => $clientUser->id,
+            'data' => json_encode(['message' => 'LEGACY_UNTRACKED_CLIENT']),
+            'read_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($adminUser)
+            ->get(route('admin.notifications.index', ['audience_role' => 'client']))
+            ->assertOk()
+            ->assertSee('LEGACY_UNTRACKED_CLIENT', false);
+    }
+
     public function test_kind_tip_with_non_tip_notification_returns_empty_list(): void
     {
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);

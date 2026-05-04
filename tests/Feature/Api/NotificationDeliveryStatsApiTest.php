@@ -60,7 +60,10 @@ class NotificationDeliveryStatsApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.grand_total', 2);
+            ->assertJsonPath('data.grand_total', 2)
+            ->assertJsonPath('data.audience_role', null)
+            ->assertJsonPath('data.tracking.tracked', 2)
+            ->assertJsonPath('data.tracking.untracked', 0);
 
         $byAudience = $response->json('data.by_audience');
         $this->assertSame(1, $byAudience['client'] ?? 0);
@@ -96,5 +99,24 @@ class NotificationDeliveryStatsApiTest extends TestCase
         $byAudience = $response->json('data.by_audience');
         $this->assertSame(1, $byAudience['technician'] ?? 0);
         $this->assertSame(0, $byAudience['untracked'] ?? -1);
+    }
+
+    public function test_delivery_stats_audience_role_query_scopes_grand_total_and_tracking(): void
+    {
+        $this->client->notify(new AdminNotification('C', 'Client only'));
+        $this->technician->notify(new AdminNotification('T', 'Tech only'));
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/notifications/delivery-stats?audience_role=client');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.audience_role', 'client')
+            ->assertJsonPath('data.grand_total', 1)
+            ->assertJsonPath('data.tracking.tracked', 1)
+            ->assertJsonPath('data.tracking.untracked', 0);
+
+        $byAudience = $response->json('data.by_audience');
+        $this->assertSame(1, $byAudience['client'] ?? 0);
+        $this->assertSame(0, $byAudience['technician'] ?? -1);
     }
 }
