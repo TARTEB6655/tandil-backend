@@ -410,6 +410,8 @@ Route::middleware(['auth', 'role:client'])
 
         // Visits
         Route::get('/visits', [\App\Http\Controllers\Client\VisitController::class, 'index'])->name('visits.index');
+        Route::get('/visits/create', [\App\Http\Controllers\Client\VisitController::class, 'create'])->name('visits.create');
+        Route::post('/visits', [\App\Http\Controllers\Client\VisitController::class, 'store'])->name('visits.store');
         Route::get('/visits/{id}', [\App\Http\Controllers\Client\VisitController::class, 'show'])->name('visits.show');
 
         // Reports

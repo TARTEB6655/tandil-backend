@@ -1,9 +1,18 @@
 <x-client-layout>
     <!-- Page Header -->
-    <div class="mb-4 sm:mb-6">
-        <h1 class="text-lg sm:text-xl font-medium text-gray-900">My Visits</h1>
-        <p class="mt-1 text-xs sm:text-sm text-gray-500">Track all your scheduled and completed visits.</p>
+    <div class="mb-4 sm:mb-6 flex items-start sm:items-center justify-between gap-3">
+        <div>
+            <h1 class="text-lg sm:text-xl font-medium text-gray-900">My Visits</h1>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Track all your scheduled and completed visits.</p>
+        </div>
+        <a href="{{ route('client.visits.create') }}" class="px-3 py-2 text-sm rounded-md bg-indigo-600 text-white hover:bg-indigo-700">Create Job</a>
     </div>
+
+    @if(session('success'))
+        <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {{ session('success') }}
+        </div>
+    @endif
 
     <!-- Visits Table -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
