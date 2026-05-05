@@ -5,9 +5,9 @@
         </h1>
         <!-- Filters -->
         <div class="bg-white shadow rounded-lg p-4 mb-6">
-            <form method="GET" action="{{ route('admin.visits.index') }}" class="flex gap-4">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('admin.search_by_client') }}" class="flex-1 rounded-md border-gray-300">
-                <select name="status" class="rounded-md border-gray-300">
+            <form method="GET" action="{{ route('admin.visits.index') }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('admin.search_by_client') }}" class="w-full rounded-md border-gray-300 xl:col-span-2">
+                <select name="status" class="w-full rounded-md border-gray-300">
                     <option value="">{{ __('admin.all_statuses') }}</option>
                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>{{ __('admin.pending') }}</option>
                     <option value="accepted" {{ request('status') == 'accepted' ? 'selected' : '' }}>{{ __('admin.accepted') }}</option>
@@ -16,16 +16,18 @@
                     <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>{{ __('admin.cancelled') }}</option>
                     <option value="reviewed" {{ request('status') == 'reviewed' ? 'selected' : '' }}>{{ __('admin.reviewed') }}</option>
                 </select>
-                <select name="area_id" class="rounded-md border-gray-300">
+                <select name="area_id" class="w-full rounded-md border-gray-300">
                     <option value="">{{ __('admin.all_areas') }}</option>
                     @foreach($areas as $area)
                         <option value="{{ $area->id }}" {{ request('area_id') == $area->id ? 'selected' : '' }}>{{ $area->name }}</option>
                     @endforeach
                 </select>
-                <input type="date" name="date_from" value="{{ request('date_from') }}" class="rounded-md border-gray-300">
-                <input type="date" name="date_to" value="{{ request('date_to') }}" class="rounded-md border-gray-300">
-                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">{{ __('admin.apply_filters') }}</button>
-                <a href="{{ route('admin.visits.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">{{ __('admin.clear') }}</a>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full rounded-md border-gray-300">
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full rounded-md border-gray-300">
+                <div class="xl:col-span-6 flex flex-col sm:flex-row gap-2 sm:justify-end">
+                    <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">{{ __('admin.apply_filters') }}</button>
+                    <a href="{{ route('admin.visits.index') }}" class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-center">{{ __('admin.clear') }}</a>
+                </div>
             </form>
         </div>
 
