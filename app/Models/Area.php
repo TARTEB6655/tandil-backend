@@ -15,6 +15,19 @@ class Area extends Model
         'description',
         'location',
         'country',
+        'is_active',
+        'priority',
+        'latitude',
+        'longitude',
+        'service_radius_km',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'priority' => 'integer',
+        'latitude' => 'float',
+        'longitude' => 'float',
+        'service_radius_km' => 'float',
     ];
 
     /*

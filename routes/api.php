@@ -149,6 +149,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('subscriptions'
 Route::middleware(['auth:sanctum', 'role:technician|supervisor|area_manager|client|admin'])->prefix('visits')->group(function () {
     Route::get('/', [\App\Http\Controllers\Visit\VisitController::class, 'index']);
     Route::get('/areas', [\App\Http\Controllers\Visit\VisitController::class, 'areas']);
+    Route::post('/resolve-area', [\App\Http\Controllers\Visit\VisitController::class, 'resolveArea']);
     Route::post('/', [\App\Http\Controllers\Visit\VisitController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'update']);

@@ -180,6 +180,11 @@ class AreaController extends Controller
             'id' => (int) $area->id,
             'location' => $location,
             'supervisor_id' => $supervisorId,
+            'is_active' => (bool) ($area->is_active ?? true),
+            'priority' => (int) ($area->priority ?? 100),
+            'latitude' => $area->latitude !== null ? (float) $area->latitude : null,
+            'longitude' => $area->longitude !== null ? (float) $area->longitude : null,
+            'service_radius_km' => $area->service_radius_km !== null ? (float) $area->service_radius_km : null,
         ], $extra);
     }
 
@@ -233,6 +238,11 @@ class AreaController extends Controller
         $validator = Validator::make($request->all(), [
             'location' => 'required|string|max:255',
             'supervisor_id' => 'required|integer|exists:users,id',
+            'is_active' => 'nullable|boolean',
+            'priority' => 'nullable|integer|min:0|max:10000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'service_radius_km' => 'nullable|numeric|min:0.1|max:1000',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
@@ -258,6 +268,11 @@ class AreaController extends Controller
             'description' => null,
             'location' => $location,
             'country' => 'UAE',
+            'is_active' => $request->boolean('is_active', true),
+            'priority' => (int) $request->input('priority', 100),
+            'latitude' => $request->filled('latitude') ? (float) $request->input('latitude') : null,
+            'longitude' => $request->filled('longitude') ? (float) $request->input('longitude') : null,
+            'service_radius_km' => $request->filled('service_radius_km') ? (float) $request->input('service_radius_km') : 30,
         ]);
 
         $this->ensureSupervisorsAndSync($area, [$supervisorId]);
@@ -291,6 +306,11 @@ class AreaController extends Controller
         $validator = Validator::make($request->all(), [
             'location' => 'nullable|string|max:255',
             'supervisor_id' => 'nullable|integer|exists:users,id',
+            'is_active' => 'nullable|boolean',
+            'priority' => 'nullable|integer|min:0|max:10000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'service_radius_km' => 'nullable|numeric|min:0.1|max:1000',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
@@ -300,6 +320,21 @@ class AreaController extends Controller
         if ($request->filled('location')) {
             $area->location = $request->input('location');
             $area->name = $request->input('location');
+        }
+        if ($request->has('is_active')) {
+            $area->is_active = $request->boolean('is_active');
+        }
+        if ($request->filled('priority')) {
+            $area->priority = (int) $request->input('priority');
+        }
+        if ($request->has('latitude')) {
+            $area->latitude = $request->filled('latitude') ? (float) $request->input('latitude') : null;
+        }
+        if ($request->has('longitude')) {
+            $area->longitude = $request->filled('longitude') ? (float) $request->input('longitude') : null;
+        }
+        if ($request->has('service_radius_km')) {
+            $area->service_radius_km = $request->filled('service_radius_km') ? (float) $request->input('service_radius_km') : 30;
         }
         $area->save();
 

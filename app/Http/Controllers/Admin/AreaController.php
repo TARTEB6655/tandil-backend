@@ -53,6 +53,12 @@ class AreaController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'country' => 'nullable|string|max:100',
+            'location' => 'nullable|string|max:255',
+            'is_active' => 'nullable|boolean',
+            'priority' => 'nullable|integer|min:0|max:10000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'service_radius_km' => 'nullable|numeric|min:0.1|max:1000',
             'supervisors' => 'nullable|array',
             'supervisors.*' => 'exists:users,id',
             'technicians' => 'nullable|array',
@@ -62,7 +68,13 @@ class AreaController extends Controller
         $area = Area::create([
             'name' => $request->name,
             'description' => $request->description,
+            'location' => $request->input('location'),
             'country' => $request->input('country', 'UAE'),
+            'is_active' => $request->boolean('is_active', true),
+            'priority' => (int) $request->input('priority', 100),
+            'latitude' => $request->filled('latitude') ? (float) $request->input('latitude') : null,
+            'longitude' => $request->filled('longitude') ? (float) $request->input('longitude') : null,
+            'service_radius_km' => $request->filled('service_radius_km') ? (float) $request->input('service_radius_km') : 30,
         ]);
 
         if ($request->has('supervisors')) {
@@ -105,6 +117,12 @@ class AreaController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'country' => 'nullable|string|max:100',
+            'location' => 'nullable|string|max:255',
+            'is_active' => 'nullable|boolean',
+            'priority' => 'nullable|integer|min:0|max:10000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'service_radius_km' => 'nullable|numeric|min:0.1|max:1000',
             'supervisors' => 'nullable|array',
             'supervisors.*' => 'exists:users,id',
             'technicians' => 'nullable|array',
@@ -115,7 +133,13 @@ class AreaController extends Controller
         $area->update([
             'name' => $request->name,
             'description' => $request->description,
+            'location' => $request->input('location'),
             'country' => $request->input('country', 'UAE'),
+            'is_active' => $request->boolean('is_active', false),
+            'priority' => (int) $request->input('priority', 100),
+            'latitude' => $request->filled('latitude') ? (float) $request->input('latitude') : null,
+            'longitude' => $request->filled('longitude') ? (float) $request->input('longitude') : null,
+            'service_radius_km' => $request->filled('service_radius_km') ? (float) $request->input('service_radius_km') : 30,
         ]);
 
         if ($request->has('supervisors')) {

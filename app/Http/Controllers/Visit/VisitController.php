@@ -94,7 +94,10 @@ class VisitController extends Controller
     public function areas(Request $request)
     {
         $withSupervisors = $request->query('with') === 'supervisors';
-        $areas = Area::when($withSupervisors, fn ($q) => $q->with('supervisors'))
+        $includeInactive = $request->boolean('include_inactive', false) && $request->user()?->hasRole('admin');
+        $areas = Area::query()
+            ->when(! $includeInactive, fn ($q) => $q->where('is_active', true))
+            ->when($withSupervisors, fn ($q) => $q->with('supervisors'))
             ->orderBy('name')
             ->get();
 
@@ -103,6 +106,13 @@ class VisitController extends Controller
                 'id' => $area->id,
                 'name' => $area->name,
                 'description' => $area->description,
+                'country' => $area->country ?? 'UAE',
+                'location' => $area->location,
+                'is_active' => (bool) ($area->is_active ?? true),
+                'priority' => (int) ($area->priority ?? 100),
+                'latitude' => $area->latitude !== null ? (float) $area->latitude : null,
+                'longitude' => $area->longitude !== null ? (float) $area->longitude : null,
+                'service_radius_km' => $area->service_radius_km !== null ? (float) $area->service_radius_km : null,
             ];
             if ($withSupervisors && $area->relationLoaded('supervisors')) {
                 $item['supervisors'] = $area->supervisors->map(fn ($u) => [
@@ -122,6 +132,50 @@ class VisitController extends Controller
     }
 
     /**
+     * Resolve area + supervisor from city/address/GPS before creating a visit.
+     */
+    public function resolveArea(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'area_id' => 'nullable|exists:areas,id',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:100',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $resolved = $this->resolveAreaFromRequest($request);
+        if (! $resolved) {
+            return response()->json([
+                'status' => false,
+                'serviceable' => false,
+                'message' => 'Service is currently unavailable in this area. Please choose another location.',
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => true,
+            'serviceable' => true,
+            'message' => 'Area resolved successfully.',
+            'data' => [
+                'area_id' => (int) $resolved['area']->id,
+                'area_name' => $resolved['area']->name,
+                'supervisor_id' => (int) $resolved['supervisor_id'],
+                'distance_km' => $resolved['distance_km'],
+            ],
+        ], 200);
+    }
+
+    /**
      * Create a new visit
      */
     public function store(Request $request)
@@ -135,6 +189,11 @@ class VisitController extends Controller
                 'technician_id' => 'nullable|exists:users,id',
                 'supervisor_id' => 'nullable|exists:users,id',
                 'area_id' => 'nullable|exists:areas,id',
+                'city' => 'nullable|string|max:255',
+                'state' => 'nullable|string|max:255',
+                'country' => 'nullable|string|max:100',
+                'latitude' => 'nullable|numeric|between:-90,90',
+                'longitude' => 'nullable|numeric|between:-180,180',
                 'scheduled_date' => 'required|date',
                 'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
                 'notes' => 'nullable|string|max:5000',
@@ -161,12 +220,31 @@ class VisitController extends Controller
                 return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
             }
 
+            $resolved = $this->resolveAreaFromRequest($request);
+            if (! $resolved) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unable to resolve area from selected location. Send area_id or provide city/state or GPS coordinates.',
+                ], 422);
+            }
+            $area = $resolved['area'];
+
+            $resolvedSupervisorId = $request->filled('supervisor_id')
+                ? (int) $request->input('supervisor_id')
+                : (int) $resolved['supervisor_id'];
+            if (! $resolvedSupervisorId) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No supervisor assigned to selected area. Ask admin to map a supervisor for this area first.',
+                ], 422);
+            }
+
             // Create visit
             $visit = Visit::create([
                 'subscription_id' => $request->subscription_id,
                 'technician_id' => $request->technician_id,
-                'supervisor_id' => $request->supervisor_id,
-                'area_id' => $request->area_id,
+                'supervisor_id' => $resolvedSupervisorId,
+                'area_id' => (int) $area->id,
                 'scheduled_date' => $request->scheduled_date,
                 'status' => $request->status ?? 'pending',
                 'notes' => $request->input('notes'),
@@ -669,5 +747,100 @@ class VisitController extends Controller
         }
 
         return response()->json(['status' => true, 'message' => 'Status updated', 'data' => $visit], 200);
+    }
+
+    private function resolveAreaFromRequest(Request $request): ?array
+    {
+        if ($request->filled('area_id')) {
+            $area = Area::with('supervisors')
+                ->where('is_active', true)
+                ->find((int) $request->input('area_id'));
+            if ($area && $area->supervisors->isNotEmpty()) {
+                return [
+                    'area' => $area,
+                    'supervisor_id' => (int) $area->supervisors->first()->id,
+                    'distance_km' => null,
+                ];
+            }
+        }
+
+        $country = strtolower(trim((string) $request->input('country', 'UAE')));
+        $city = strtolower(trim((string) $request->input('city', '')));
+        $state = strtolower(trim((string) $request->input('state', '')));
+        $lat = $request->filled('latitude') ? (float) $request->input('latitude') : null;
+        $lng = $request->filled('longitude') ? (float) $request->input('longitude') : null;
+
+        $areas = Area::with('supervisors')
+            ->where('is_active', true)
+            ->when($country !== '', fn ($q) => $q->whereRaw('LOWER(country) = ?', [$country]))
+            ->get()
+            ->filter(fn (Area $a) => $a->supervisors->isNotEmpty())
+            ->values();
+
+        if ($areas->isEmpty()) {
+            return null;
+        }
+
+        $nameMatched = $areas->filter(function (Area $area) use ($city, $state) {
+            if ($city === '' && $state === '') {
+                return false;
+            }
+            $hay = strtolower(trim((string) ($area->name . ' ' . ($area->location ?? '') . ' ' . ($area->description ?? ''))));
+
+            return ($city !== '' && str_contains($hay, $city))
+                || ($state !== '' && str_contains($hay, $state));
+        })->sortBy('priority')->values();
+
+        if ($nameMatched->isNotEmpty()) {
+            $selected = $nameMatched->first();
+            return [
+                'area' => $selected,
+                'supervisor_id' => (int) $selected->supervisors->first()->id,
+                'distance_km' => null,
+            ];
+        }
+
+        if ($lat === null || $lng === null) {
+            return null;
+        }
+
+        $closest = null;
+        foreach ($areas as $area) {
+            if ($area->latitude === null || $area->longitude === null) {
+                continue;
+            }
+
+            $distance = $this->distanceKm($lat, $lng, (float) $area->latitude, (float) $area->longitude);
+            $radius = max(0.1, (float) ($area->service_radius_km ?? 30));
+            if ($distance > $radius) {
+                continue;
+            }
+
+            if ($closest === null
+                || $distance < $closest['distance_km']
+                || ($distance === $closest['distance_km'] && (int) $area->priority < (int) $closest['area']->priority)
+            ) {
+                $closest = [
+                    'area' => $area,
+                    'supervisor_id' => (int) $area->supervisors->first()->id,
+                    'distance_km' => round($distance, 2),
+                ];
+            }
+        }
+
+        return $closest;
+    }
+
+    private function distanceKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadiusKm = 6371;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) * sin($dLat / 2)
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2))
+            * sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadiusKm * $c;
     }
 }

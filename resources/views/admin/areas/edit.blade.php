@@ -26,6 +26,44 @@
                         @error('country') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Label</label>
+                        <input type="text" name="location" value="{{ old('location', $area->location) }}" placeholder="e.g. Abu Dhabi - Khalifa City" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('location') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority (lower = preferred)</label>
+                        <input type="number" name="priority" value="{{ old('priority', $area->priority ?? 100) }}" min="0" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('priority') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Center Latitude</label>
+                        <input type="text" name="latitude" value="{{ old('latitude', $area->latitude) }}" placeholder="24.453884" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('latitude') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Center Longitude</label>
+                        <input type="text" name="longitude" value="{{ old('longitude', $area->longitude) }}" placeholder="54.377344" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('longitude') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Service Radius (km)</label>
+                        <input type="number" step="0.1" min="0.1" name="service_radius_km" value="{{ old('service_radius_km', $area->service_radius_km ?? 30) }}" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('service_radius_km') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <input type="hidden" name="is_active" value="0">
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <input type="checkbox" name="is_active" value="1" {{ old('is_active', $area->is_active ?? true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                            <span>Area is active for job assignment</span>
+                        </label>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                         <textarea name="description" rows="3" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description', $area->description) }}</textarea>

@@ -14,6 +14,12 @@ class AreaFactory extends Factory
         return [
             'name' => $this->faker->city(),
             'description' => $this->faker->sentence(),
+            'country' => 'UAE',
+            'is_active' => true,
+            'priority' => 100,
+            'latitude' => null,
+            'longitude' => null,
+            'service_radius_km' => 30,
         ];
     }
 }
