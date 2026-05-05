@@ -1,8 +1,13 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <h1 class="text-xl font-medium text-gray-900 mb-6">
-            {{ __('admin.visits_management') }}
-        </h1>
+        <div class="flex items-center justify-between gap-3 mb-6">
+            <h1 class="text-xl font-medium text-gray-900">
+                {{ __('admin.visits_management') }}
+            </h1>
+            <a href="{{ route('admin.visits.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                Create Job
+            </a>
+        </div>
         <!-- Filters -->
         <div class="bg-white shadow rounded-lg p-4 mb-6">
             <form method="GET" action="{{ route('admin.visits.index') }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">

@@ -68,8 +68,11 @@ class VisitController extends Controller
             'notes' => 'nullable|string|max:5000',
             'price' => 'nullable|numeric|min:0',
             'area_id' => 'nullable|exists:areas,id',
+            'full_name' => 'nullable|string|max:255',
+            'street_address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
+            'zip_code' => 'nullable|string|max:30',
             'country' => 'nullable|string|max:100',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
@@ -88,13 +91,26 @@ class VisitController extends Controller
             return back()->withErrors(['city' => 'Unable to resolve area from selected location.'])->withInput();
         }
 
+        $notes = (string) ($validated['notes'] ?? '');
+        $addressLine = trim(collect([
+            $validated['full_name'] ?? null,
+            $validated['street_address'] ?? null,
+            $validated['city'] ?? null,
+            $validated['state'] ?? null,
+            $validated['zip_code'] ?? null,
+            $validated['country'] ?? null,
+        ])->filter(fn ($v) => filled($v))->implode(', '));
+        if ($addressLine !== '' && ! str_contains($notes, 'Address:')) {
+            $notes = trim($notes . ($notes !== '' ? "\n" : '') . 'Address: ' . $addressLine);
+        }
+
         $visit = Visit::create([
             'subscription_id' => $subscription->id,
             'area_id' => (int) $resolved['area']->id,
             'supervisor_id' => (int) $resolved['supervisor_id'],
             'scheduled_date' => $validated['scheduled_date'],
             'status' => $validated['status'] ?? 'pending',
-            'notes' => $validated['notes'] ?? null,
+            'notes' => $notes !== '' ? $notes : null,
             'price' => array_key_exists('price', $validated) && $validated['price'] !== null ? (float) $validated['price'] : null,
         ]);
 
@@ -131,6 +147,8 @@ class VisitController extends Controller
         $country = strtolower(trim((string) ($payload['country'] ?? 'UAE')));
         $city = strtolower(trim((string) ($payload['city'] ?? '')));
         $state = strtolower(trim((string) ($payload['state'] ?? '')));
+        $streetAddress = strtolower(trim((string) ($payload['street_address'] ?? '')));
+        $zipCode = strtolower(trim((string) ($payload['zip_code'] ?? '')));
         $lat = array_key_exists('latitude', $payload) && $payload['latitude'] !== null ? (float) $payload['latitude'] : null;
         $lng = array_key_exists('longitude', $payload) && $payload['longitude'] !== null ? (float) $payload['longitude'] : null;
 
@@ -141,13 +159,15 @@ class VisitController extends Controller
             ->filter(fn (Area $a) => $a->supervisors->isNotEmpty())
             ->values();
 
-        $matched = $areas->first(function (Area $a) use ($city, $state) {
-            if ($city === '' && $state === '') {
+        $matched = $areas->first(function (Area $a) use ($city, $state, $streetAddress, $zipCode) {
+            if ($city === '' && $state === '' && $streetAddress === '' && $zipCode === '') {
                 return false;
             }
             $hay = strtolower(trim((string) ($a->name . ' ' . ($a->location ?? '') . ' ' . ($a->description ?? ''))));
             return ($city !== '' && str_contains($hay, $city))
-                || ($state !== '' && str_contains($hay, $state));
+                || ($state !== '' && str_contains($hay, $state))
+                || ($streetAddress !== '' && str_contains($hay, $streetAddress))
+                || ($zipCode !== '' && str_contains($hay, $zipCode));
         });
         if ($matched) {
             return ['area' => $matched, 'supervisor_id' => (int) $matched->supervisors->first()->id];
