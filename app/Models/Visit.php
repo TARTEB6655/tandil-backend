@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\AdminNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -85,5 +86,74 @@ class Visit extends Model
     public function visitOffers()
     {
         return $this->hasMany(VisitOffer::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Visit $visit): void {
+            // Notify only zone jobs that already have a supervisor assigned.
+            if ($visit->area_id && $visit->supervisor_id) {
+                self::notifyNewJobAssignedToSupervisor($visit);
+            }
+        });
+
+        static::updated(function (Visit $visit): void {
+            // Notify when supervisor assignment happens later on an existing zone job.
+            if (! $visit->area_id || ! $visit->supervisor_id) {
+                return;
+            }
+            if ($visit->wasChanged('supervisor_id') || ($visit->wasChanged('area_id') && $visit->supervisor_id)) {
+                self::notifyNewJobAssignedToSupervisor($visit);
+            }
+        });
+    }
+
+    private static function notifyNewJobAssignedToSupervisor(Visit $visit): void
+    {
+        try {
+            $visit->loadMissing('supervisor');
+            /** @var User|null $supervisor */
+            $supervisor = $visit->supervisor;
+            if (! $supervisor) {
+                return;
+            }
+
+            $jobName = self::jobTitleFromNotes((string) ($visit->notes ?? ''), (int) $visit->id);
+            $supervisorName = $supervisor->name ?? ('Supervisor #' . $supervisor->id);
+            $message = "New job '{$jobName}' assigned to supervisor {$supervisorName}.";
+            $meta = [
+                'type' => 'supervisor_new_zone_job_assigned',
+                'visit_id' => $visit->id,
+                'job_name' => $jobName,
+                'supervisor_id' => $supervisor->id,
+                'supervisor_name' => $supervisorName,
+                'area_id' => $visit->area_id,
+            ];
+
+            // Supervisor notification
+            $supervisor->notify(new AdminNotification('New job assigned', $message, $meta));
+
+            // Admin notifications
+            $admins = User::query()
+                ->whereRaw('LOWER(role) = ?', ['admin'])
+                ->orWhereHas('roles', fn ($q) => $q->whereRaw('LOWER(name) = ?', ['admin']))
+                ->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AdminNotification('New job assigned', $message, $meta));
+            }
+        } catch (\Throwable $e) {
+            // Keep visit create/update non-blocking if notification channel fails.
+        }
+    }
+
+    private static function jobTitleFromNotes(string $notes, int $visitId): string
+    {
+        $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? $notes);
+        $parts = array_values(array_filter(array_map('trim', explode('|', $clean)), fn ($p) => $p !== ''));
+        if (isset($parts[0]) && $parts[0] !== '') {
+            return $parts[0];
+        }
+
+        return 'Task #' . $visitId;
     }
 }
