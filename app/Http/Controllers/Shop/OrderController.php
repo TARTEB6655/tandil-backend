@@ -10,6 +10,7 @@ use App\Notifications\AdminNotification;
 use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class OrderController extends Controller
 {
@@ -58,8 +59,7 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
-        // Check if user owns the order or is admin
-        if ($order->user_id !== $user->id && ! $user->hasRole('admin')) {
+        if (! $this->canViewOrder($user, $order)) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -114,7 +114,7 @@ class OrderController extends Controller
         }
 
         // Check if user owns the order or is admin
-        if ($order->user_id !== $user->id && ! $user->hasRole('admin')) {
+        if (! $this->canViewOrder($user, $order)) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -441,6 +441,13 @@ class OrderController extends Controller
         if (! $order->user_id || ! $order->relationLoaded('user') && ! $order->user) {
             return null;
         }
+        // Some deployments may be behind on wallet migrations; keep tracking API non-fatal.
+        if (! Schema::hasTable('wallet_credits')) {
+            return [
+                'balance' => (float) (($order->user?->wallet_balance) ?? 0),
+                'last_refund_credit' => null,
+            ];
+        }
         $user = $order->user;
         if (! $user) {
             return null;
@@ -560,6 +567,27 @@ class OrderController extends Controller
 
         // TODO: when orders are linked to visits, load VisitPhoto or MaintenancePhoto and return image_url
         return $photos;
+    }
+
+    /**
+     * View permission for order detail/track:
+     * - admin can view all
+     * - owner (order.user_id) can view
+     * - guest order can be viewed by authenticated user with same email
+     */
+    private function canViewOrder(User $user, Order $order): bool
+    {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+        if ($order->user_id !== null) {
+            return (int) $order->user_id === (int) $user->id;
+        }
+
+        $orderEmail = strtolower(trim((string) ($order->guest_email ?? '')));
+        $userEmail = strtolower(trim((string) ($user->email ?? '')));
+
+        return $orderEmail !== '' && $orderEmail === $userEmail;
     }
 
     /**

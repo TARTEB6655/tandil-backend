@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\UserPaymentMethod;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
@@ -69,7 +70,7 @@ class ShopPaymentApiSmokeTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('message', 'Payment methods retrieved.');
-        $response->assertJsonCount(2, 'data');
+        $response->assertJsonCount(2, 'data.methods');
     }
 
     public function test_post_checkout_start_validation_error_when_missing_fields(): void
@@ -182,6 +183,88 @@ class ShopPaymentApiSmokeTest extends TestCase
         $order = Order::find($orderId);
         $this->assertNotNull($order);
         $this->assertSame('paid', $order->payment_status);
+    }
+
+    public function test_logged_in_paypal_capture_saves_vaulted_payment_method(): void
+    {
+        Setting::set('paypal_enabled', '1');
+        Config::set('payments.paypal.client_id', '');
+        Config::set('payments.paypal.secret', '');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 7.00,
+            'status' => 'active',
+        ]);
+
+        $start = $this->postJson('/api/shop/checkout/start', [
+            'payment_method' => 'paypal',
+            'full_name' => 'Client A',
+            'phone_number' => '+971501111112',
+            'street_address' => 'S',
+            'city' => 'DXB',
+            'country' => 'UAE',
+            'items' => [['product_id' => $product->id, 'qty' => 1]],
+            'success_url' => 'https://example.com/ok',
+            'cancel_url' => 'https://example.com/cancel',
+        ], $this->clientAuthHeaders($user));
+
+        $start->assertStatus(201);
+        $capture = $this->postJson('/api/shop/paypal/capture', [
+            'paypal_order_id' => $start->json('data.paypal_order_id'),
+            'order_id' => $start->json('data.order_id'),
+        ], $this->clientAuthHeaders($user));
+        $capture->assertOk()->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('user_payment_methods', [
+            'user_id' => $user->id,
+            'gateway' => 'paypal',
+        ]);
+    }
+
+    public function test_logged_in_checkout_can_use_saved_paypal_method_without_approval_url(): void
+    {
+        Setting::set('paypal_enabled', '1');
+        Config::set('payments.paypal.client_id', '');
+        Config::set('payments.paypal.secret', '');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $saved = UserPaymentMethod::query()->create([
+            'user_id' => $user->id,
+            'gateway' => 'paypal',
+            'provider_method_id' => 'PMT_TEST_123',
+            'label' => 'PayPal test@example.com',
+            'is_default' => true,
+        ]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 11.00,
+            'status' => 'active',
+        ]);
+
+        $start = $this->postJson('/api/shop/checkout/start', [
+            'payment_method' => 'paypal',
+            'paypal_payment_method_id' => $saved->id,
+            'full_name' => 'Client B',
+            'phone_number' => '+971501111113',
+            'street_address' => 'S',
+            'city' => 'DXB',
+            'country' => 'UAE',
+            'items' => [['product_id' => $product->id, 'qty' => 1]],
+            'success_url' => 'https://example.com/ok',
+            'cancel_url' => 'https://example.com/cancel',
+        ], $this->clientAuthHeaders($user));
+
+        $start->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'PayPal payment captured using saved method.')
+            ->assertJsonPath('data.saved_payment_method_id', $saved->id)
+            ->assertJsonPath('data.status', 'paid');
+        $this->assertNull($start->json('data.approval_url'));
     }
 
     public function test_post_paypal_capture_returns_422_when_order_id_does_not_match_reference(): void

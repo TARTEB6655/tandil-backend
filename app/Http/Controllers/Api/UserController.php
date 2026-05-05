@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\UserAddress;
+use App\Models\UserPaymentMethod;
 use App\Models\WalletCredit;
 use App\Support\UserNotificationInbox;
 use App\Services\ImageCompressionService;
@@ -213,13 +214,82 @@ class UserController extends Controller
 
     /**
      * Get saved payment methods for the client (e.g. for Profile – Payment Methods).
-     * Placeholder: returns empty list until saved cards are implemented.
      */
     public function getPaymentMethods(Request $request)
     {
         $user = $request->user();
-        // No saved payment method model yet; return empty list so UI can call this API.
-        return ApiResponse::success('Payment methods retrieved successfully.', []);
+        $methods = UserPaymentMethod::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('is_default')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (UserPaymentMethod $pm) {
+                return [
+                    'id' => $pm->id,
+                    'gateway' => $pm->gateway,
+                    'label' => $pm->label ?: ucfirst($pm->gateway),
+                    'brand' => $pm->brand,
+                    'last4' => $pm->last4,
+                    'expiry_month' => $pm->expiry_month,
+                    'expiry_year' => $pm->expiry_year,
+                    'email' => $pm->email,
+                    'is_default' => (bool) $pm->is_default,
+                    'provider_method_id' => $pm->provider_method_id,
+                    'created_at' => $pm->created_at?->toIso8601String(),
+                    'updated_at' => $pm->updated_at?->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return ApiResponse::success('Payment methods retrieved successfully.', $methods);
+    }
+
+    /** Set one saved payment method as default for authenticated user. */
+    public function setDefaultPaymentMethod(Request $request, int $id)
+    {
+        $user = $request->user();
+        $method = UserPaymentMethod::query()->where('user_id', $user->id)->find($id);
+        if (! $method) {
+            return ApiResponse::error('Payment method not found.', 404);
+        }
+
+        UserPaymentMethod::query()
+            ->where('user_id', $user->id)
+            ->where('gateway', $method->gateway)
+            ->update(['is_default' => false]);
+
+        $method->is_default = true;
+        $method->save();
+
+        return ApiResponse::success('Default payment method updated successfully.');
+    }
+
+    /** Delete one saved payment method for authenticated user. */
+    public function deletePaymentMethod(Request $request, int $id)
+    {
+        $user = $request->user();
+        $method = UserPaymentMethod::query()->where('user_id', $user->id)->find($id);
+        if (! $method) {
+            return ApiResponse::error('Payment method not found.', 404);
+        }
+        $gateway = $method->gateway;
+        $wasDefault = (bool) $method->is_default;
+        $method->delete();
+
+        if ($wasDefault) {
+            $next = UserPaymentMethod::query()
+                ->where('user_id', $user->id)
+                ->where('gateway', $gateway)
+                ->latest('id')
+                ->first();
+            if ($next) {
+                $next->is_default = true;
+                $next->save();
+            }
+        }
+
+        return ApiResponse::success('Payment method deleted successfully.');
     }
 
     /**

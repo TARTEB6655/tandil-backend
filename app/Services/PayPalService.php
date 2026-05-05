@@ -79,10 +79,19 @@ class PayPalService
      * Create an order (returns approval URL and order id). If no credentials provided, returns a placeholder.
      * Supports any currency: if PayPal doesn't support it (e.g. AED), we convert to USD and call PayPal with USD.
      */
-    public function createOrder(float $amount, string $currency = 'USD', string $returnUrl = '', string $cancelUrl = '', ?string $customId = null): array
+    public function createOrder(
+        float $amount,
+        string $currency = 'USD',
+        string $returnUrl = '',
+        string $cancelUrl = '',
+        ?string $customId = null,
+        array $options = []
+    ): array
     {
         $currency = strtoupper($currency);
         [$paypalCurrency, $paypalAmount] = $this->normalizeCurrencyForPayPal($amount, $currency);
+        $paymentTokenId = trim((string) ($options['payment_token_id'] ?? ''));
+        $storeInVault = (bool) ($options['store_in_vault'] ?? false);
 
         $purchaseUnit = [
             'amount' => [
@@ -94,20 +103,42 @@ class PayPalService
             $purchaseUnit['custom_id'] = (string) $customId;
         }
 
+        $body = [
+            'intent' => 'CAPTURE',
+            'purchase_units' => [$purchaseUnit],
+            'application_context' => [
+                'return_url' => $returnUrl,
+                'cancel_url' => $cancelUrl,
+            ],
+        ];
+        if ($paymentTokenId !== '') {
+            $body['payment_source'] = [
+                'token' => [
+                    'id' => $paymentTokenId,
+                    'type' => 'PAYMENT_METHOD_TOKEN',
+                ],
+            ];
+        } elseif ($storeInVault) {
+            $body['payment_source'] = [
+                'paypal' => [
+                    'attributes' => [
+                        'vault' => [
+                            'store_in_vault' => 'ON_SUCCESS',
+                            'usage_type' => 'MERCHANT',
+                            'customer_type' => 'CONSUMER',
+                        ],
+                    ],
+                ],
+            ];
+        }
+
         // Use SDK when available
         if ($this->sdkClient) {
             try {
                 $requestClass = '\\PayPalCheckoutSdk\\Orders\\OrdersCreateRequest';
                 $request = new $requestClass;
                 $request->prefer('return=representation');
-                $request->body = [
-                    'intent' => 'CAPTURE',
-                    'purchase_units' => [$purchaseUnit],
-                    'application_context' => [
-                        'return_url' => $returnUrl,
-                        'cancel_url' => $cancelUrl,
-                    ],
-                ];
+                $request->body = $body;
 
                 $response = $this->sdkClient->execute($request);
                 $result = $response->result ?? null;
@@ -141,17 +172,10 @@ class PayPalService
                 'status' => 'CREATED',
                 'approval_url' => $returnUrl ?: url('/'),
                 'placeholder' => true,
+                'store_in_vault' => $storeInVault,
+                'payment_token_id' => $paymentTokenId !== '' ? $paymentTokenId : null,
             ];
         }
-
-        $body = [
-            'intent' => 'CAPTURE',
-            'purchase_units' => [$purchaseUnit],
-            'application_context' => [
-                'return_url' => $returnUrl,
-                'cancel_url' => $cancelUrl,
-            ],
-        ];
 
         $resp = Http::withToken($token)
             ->post($this->baseUrl().'/v2/checkout/orders', $body);
@@ -218,7 +242,22 @@ class PayPalService
 
         $token = $this->authToken();
         if (! $token) {
-            return ['id' => $orderId, 'status' => 'COMPLETED', 'placeholder' => true];
+            return [
+                'id' => $orderId,
+                'status' => 'COMPLETED',
+                'placeholder' => true,
+                'payment_source' => [
+                    'paypal' => [
+                        'email_address' => 'paypal-user@example.com',
+                        'attributes' => [
+                            'vault' => [
+                                'id' => 'PMT_PLACEHOLDER_'.substr(sha1($orderId), 0, 12),
+                                'status' => 'VAULTED',
+                            ],
+                        ],
+                    ],
+                ],
+            ];
         }
 
         // PayPal capture endpoint expects a JSON object body ("{}"), not an empty array/string.
@@ -233,6 +272,53 @@ class PayPalService
         }
 
         return $resp->json();
+    }
+
+    /**
+     * @return array{
+     *   provider_method_id?:string|null,
+     *   provider_customer_id?:string|null,
+     *   email?:string|null,
+     *   brand?:string|null,
+     *   last4?:string|null,
+     *   expiry_month?:int|null,
+     *   expiry_year?:int|null,
+     *   raw?:array<string,mixed>
+     * }|null
+     */
+    public function extractVaultedPaymentMethod(array $capture): ?array
+    {
+        $paypal = $capture['payment_source']['paypal'] ?? null;
+        if (! is_array($paypal)) {
+            return null;
+        }
+
+        $vaultId = $paypal['attributes']['vault']['id'] ?? null;
+        if (! is_string($vaultId) || $vaultId === '') {
+            return null;
+        }
+
+        $card = $paypal['card'] ?? null;
+        $expiryMonth = null;
+        $expiryYear = null;
+        if (is_array($card)) {
+            $expiry = (string) ($card['expiry'] ?? '');
+            if (preg_match('/^(\d{4})-(\d{2})$/', $expiry, $m)) {
+                $expiryYear = (int) $m[1];
+                $expiryMonth = (int) $m[2];
+            }
+        }
+
+        return [
+            'provider_method_id' => $vaultId,
+            'provider_customer_id' => isset($paypal['account_id']) ? (string) $paypal['account_id'] : null,
+            'email' => isset($paypal['email_address']) ? (string) $paypal['email_address'] : null,
+            'brand' => is_array($card) && isset($card['brand']) ? (string) $card['brand'] : null,
+            'last4' => is_array($card) && isset($card['last_digits']) ? (string) $card['last_digits'] : null,
+            'expiry_month' => $expiryMonth,
+            'expiry_year' => $expiryYear,
+            'raw' => $paypal,
+        ];
     }
 
     /**

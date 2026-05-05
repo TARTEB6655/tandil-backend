@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Shop;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\UserPaymentMethod;
 use App\Models\UserAddress;
 use App\Support\RefundPolicy;
 use App\Support\StripeCredentials;
@@ -31,7 +32,20 @@ class CheckoutController extends Controller
      */
     public function paymentMethods(Request $request)
     {
-        return ApiResponse::success('Payment methods retrieved.', $this->stripePayPalMethods());
+        $methods = $this->stripePayPalMethods();
+        $savedPayPal = UserPaymentMethod::query()
+            ->where('user_id', $request->user()->id)
+            ->where('gateway', 'paypal')
+            ->orderByDesc('is_default')
+            ->orderByDesc('id')
+            ->get(['id', 'label', 'email', 'is_default'])
+            ->values()
+            ->all();
+
+        return ApiResponse::success('Payment methods retrieved.', [
+            'methods' => $methods,
+            'saved_paypal_methods' => $savedPayPal,
+        ]);
     }
 
     /**
@@ -68,6 +82,14 @@ class CheckoutController extends Controller
             'order_summary' => $orderSummary,
             'addresses' => $addresses,
             'payment_methods' => $this->stripePayPalMethods(),
+            'saved_paypal_methods' => UserPaymentMethod::query()
+                ->where('user_id', $user->id)
+                ->where('gateway', 'paypal')
+                ->orderByDesc('is_default')
+                ->orderByDesc('id')
+                ->get(['id', 'label', 'email', 'is_default'])
+                ->values()
+                ->all(),
             'refund_policy' => RefundPolicy::policyForApi(),
         ]);
     }

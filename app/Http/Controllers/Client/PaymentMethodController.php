@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\UserPaymentMethod;
 
 class PaymentMethodController extends Controller
 {
@@ -13,11 +13,16 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * List saved payment methods – same as API GET /api/user/payment-methods (placeholder).
+     * List saved payment methods – same source as API GET /api/user/payment-methods.
      */
     public function index()
     {
-        $paymentMethods = []; // No saved cards yet
+        $paymentMethods = UserPaymentMethod::query()
+            ->where('user_id', auth()->id())
+            ->orderByDesc('is_default')
+            ->orderByDesc('id')
+            ->get();
+
         return view('client.payment-methods.index', compact('paymentMethods'));
     }
 }

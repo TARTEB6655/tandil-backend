@@ -147,6 +147,12 @@ class User extends Authenticatable
         return $this->belongsToMany(Area::class, 'area_technician', 'user_id', 'area_id');
     }
 
+    /** Saved reusable payment methods (PayPal vault token / card token, etc). */
+    public function paymentMethods()
+    {
+        return $this->hasMany(UserPaymentMethod::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

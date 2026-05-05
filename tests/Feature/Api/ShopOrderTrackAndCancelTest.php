@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\WalletCredit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class ShopOrderTrackAndCancelTest extends TestCase
@@ -190,6 +191,44 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $response->assertJsonPath('data.can_cancel', true);
     }
 
+    public function test_get_shop_order_detail_allows_client_when_guest_email_matches(): void
+    {
+        $client = User::factory()->create([
+            'role' => 'client',
+            'email' => 'same@example.com',
+        ]);
+        $order = Order::factory()->create([
+            'user_id' => null,
+            'guest_email' => 'same@example.com',
+            'package_id' => null,
+            'payment_status' => 'pending',
+            'order_status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/shop/orders/'.$order->id, $this->bearer($client));
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $order->id);
+    }
+
+    public function test_get_shop_order_detail_forbidden_when_guest_email_does_not_match(): void
+    {
+        $client = User::factory()->create([
+            'role' => 'client',
+            'email' => 'client-a@example.com',
+        ]);
+        $order = Order::factory()->create([
+            'user_id' => null,
+            'guest_email' => 'client-b@example.com',
+            'package_id' => null,
+            'payment_status' => 'pending',
+            'order_status' => 'pending',
+        ]);
+
+        $this->getJson('/api/shop/orders/'.$order->id, $this->bearer($client))
+            ->assertStatus(403);
+    }
+
     public function test_guest_cancel_succeeds(): void
     {
         $order = Order::factory()->create([
@@ -216,5 +255,25 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $response->assertJsonPath('success', true);
         $order->refresh();
         $this->assertSame('cancelled', $order->order_status);
+    }
+
+    public function test_get_orders_track_does_not_fail_when_wallet_credits_table_missing(): void
+    {
+        if (Schema::hasTable('wallet_credits')) {
+            Schema::drop('wallet_credits');
+        }
+
+        $user = User::factory()->create(['role' => 'client', 'wallet_balance' => 12.5]);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/orders/'.$order->id.'/track', $this->bearer($user));
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.wallet.balance', 12.5)
+            ->assertJsonPath('data.wallet.last_refund_credit', null);
     }
 }

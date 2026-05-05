@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\UserPaymentMethod;
 use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use App\Services\ShopCheckoutOrderService;
@@ -47,6 +48,7 @@ class ShopPaymentController extends Controller
             'success_url' => 'required|url',
             'cancel_url' => 'required|url',
             'accepted_refund_policy' => 'sometimes|accepted',
+            'paypal_payment_method_id' => 'nullable|integer',
         ]);
 
         $method = $request->input('payment_method');
@@ -132,12 +134,31 @@ class ShopPaymentController extends Controller
             ], 201);
         }
 
+        $savedPayPalMethod = null;
+        if ($method === 'paypal' && $user !== null && $request->filled('paypal_payment_method_id')) {
+            $savedPayPalMethod = UserPaymentMethod::query()
+                ->where('id', (int) $request->input('paypal_payment_method_id'))
+                ->where('user_id', $user->id)
+                ->where('gateway', 'paypal')
+                ->first();
+            if (! $savedPayPalMethod) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Saved PayPal payment method not found.',
+                ], 404);
+            }
+        }
+
         $paypalResult = $this->paypal->createOrder(
             $amount,
             $currency,
             $request->input('success_url'),
             $request->input('cancel_url'),
-            (string) $order->id
+            (string) $order->id,
+            [
+                'payment_token_id' => $savedPayPalMethod?->provider_method_id,
+                'store_in_vault' => $user !== null && $savedPayPalMethod === null,
+            ]
         );
 
         if (isset($paypalResult['error'])) {
@@ -152,6 +173,42 @@ class ShopPaymentController extends Controller
         $order->payment_reference = $paypalResult['id'] ?? null;
         $order->save();
 
+        if ($savedPayPalMethod !== null) {
+            $captured = $this->paypal->captureOrder((string) ($paypalResult['id'] ?? ''));
+            if (isset($captured['error'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'PayPal capture failed.',
+                    'details' => $captured,
+                ], 502);
+            }
+
+            if (($captured['status'] ?? '') === 'COMPLETED' || ! empty($captured['placeholder'])) {
+                if ($order->payment_status !== 'paid') {
+                    $order->payment_status = 'paid';
+                    $order->paid_at = now();
+                    $order->save();
+                    $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'PayPal');
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'PayPal payment captured using saved method.',
+                    'data' => [
+                        'gateway' => 'paypal',
+                        'saved_payment_method_id' => $savedPayPalMethod->id,
+                        'paypal_order_id' => $paypalResult['id'] ?? null,
+                        'order_id' => $order->id,
+                        'order_number' => $this->orderNumber($order),
+                        'amount' => $amount,
+                        'currency' => $currency,
+                        'status' => 'paid',
+                        'refund_policy' => RefundPolicy::policyForApi(),
+                    ],
+                ], 201);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'PayPal checkout created.',
@@ -159,6 +216,7 @@ class ShopPaymentController extends Controller
                 'gateway' => 'paypal',
                 'approval_url' => $paypalResult['approval_url'],
                 'paypal_order_id' => $paypalResult['id'],
+                'vaulting_attempted' => $user !== null && $savedPayPalMethod === null,
                 'order_id' => $order->id,
                 'order_number' => $this->orderNumber($order),
                 'amount' => $amount,
@@ -257,11 +315,23 @@ class ShopPaymentController extends Controller
                 $order->save();
                 $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'PayPal');
             }
+            $this->upsertVaultedPayPalMethod($request->user(), $order, $result);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Payment captured.',
-                'data' => ['order_id' => $order->id, 'paypal' => $result],
+                'data' => [
+                    'order_id' => $order->id,
+                    'paypal' => $result,
+                    'saved_payment_methods' => $order->user_id
+                        ? UserPaymentMethod::query()
+                            ->where('user_id', $order->user_id)
+                            ->where('gateway', 'paypal')
+                            ->orderByDesc('is_default')
+                            ->orderByDesc('id')
+                            ->get(['id', 'label', 'email', 'is_default'])
+                        : [],
+                ],
             ]);
         }
 
@@ -338,5 +408,44 @@ class ShopPaymentController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }
+    }
+
+    protected function upsertVaultedPayPalMethod(?User $actor, Order $order, array $capture): void
+    {
+        $userId = $order->user_id ?? $actor?->id;
+        if (! $userId) {
+            return;
+        }
+        $details = $this->paypal->extractVaultedPaymentMethod($capture);
+        if (! is_array($details) || empty($details['provider_method_id'])) {
+            return;
+        }
+
+        $providerId = (string) $details['provider_method_id'];
+        $pm = UserPaymentMethod::query()->firstOrNew([
+            'gateway' => 'paypal',
+            'provider_method_id' => $providerId,
+        ]);
+        $pm->user_id = $userId;
+        $pm->provider_customer_id = $details['provider_customer_id'] ?? null;
+        $pm->email = $details['email'] ?? null;
+        $pm->brand = $details['brand'] ?? 'paypal';
+        $pm->last4 = $details['last4'] ?? null;
+        $pm->expiry_month = $details['expiry_month'] ?? null;
+        $pm->expiry_year = $details['expiry_year'] ?? null;
+        $pm->label = $pm->email ? ('PayPal ' . $pm->email) : 'PayPal';
+        $pm->meta = is_array($details['raw'] ?? null) ? $details['raw'] : null;
+
+        // First PayPal method for this user becomes default.
+        if (! $pm->exists) {
+            $hasDefault = UserPaymentMethod::query()
+                ->where('user_id', $userId)
+                ->where('gateway', 'paypal')
+                ->where('is_default', true)
+                ->exists();
+            $pm->is_default = ! $hasDefault;
+        }
+
+        $pm->save();
     }
 }
