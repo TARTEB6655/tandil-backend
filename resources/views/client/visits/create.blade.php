@@ -66,13 +66,13 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
-                    <input type="text" name="city" value="{{ old('city') }}" class="w-full rounded-md border-gray-300" placeholder="Abu Dhabi">
+                    <input id="city" type="text" name="city" value="{{ old('city') }}" class="w-full rounded-md border-gray-300" placeholder="Abu Dhabi">
                     @error('city') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">State/Emirate</label>
-                    <input type="text" name="state" value="{{ old('state') }}" class="w-full rounded-md border-gray-300" placeholder="Abu Dhabi">
+                    <input id="state" type="text" name="state" value="{{ old('state') }}" class="w-full rounded-md border-gray-300" placeholder="Abu Dhabi">
                     @error('state') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
 
@@ -84,7 +84,7 @@
                         <span id="location-help" class="text-xs text-gray-500">You can also tap on the map to set location.</span>
                     </div>
                     <div class="rounded-lg border border-gray-200 p-2 bg-gray-50">
-                        <div id="location-map" class="w-full h-72 rounded-lg border border-gray-300 bg-white"></div>
+                        <div id="location-map" class="w-full rounded-lg border border-gray-300 bg-white" style="height: 320px;"></div>
                         <div id="location-map-fallback" class="hidden mt-2 rounded-lg overflow-hidden border border-gray-300">
                             <iframe
                                 title="Map fallback"
@@ -94,6 +94,10 @@
                                 src="https://www.openstreetmap.org/export/embed.html?bbox=51.3%2C22.5%2C56.7%2C26.8&layer=mapnik"
                             ></iframe>
                         </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Selected Address (auto)</label>
+                        <input id="selected-address" type="text" class="w-full rounded-md border-gray-300 bg-gray-50" placeholder="Pick from map or GPS to auto-fill address" readonly>
                     </div>
 
                     <details class="mt-3">
@@ -131,6 +135,11 @@
         (function () {
             const latInput = document.getElementById('latitude');
             const lngInput = document.getElementById('longitude');
+            const cityInput = document.getElementById('city');
+            const stateInput = document.getElementById('state');
+            const countryInput = document.querySelector('input[name="country"]');
+            const notesInput = document.querySelector('textarea[name="notes"]');
+            const selectedAddressInput = document.getElementById('selected-address');
             const statusEl = document.getElementById('location-help');
             const gpsBtn = document.getElementById('use-current-location');
             const fallbackMap = document.getElementById('location-map-fallback');
@@ -162,7 +171,64 @@
                 if (statusEl) {
                     statusEl.textContent = `Location set from ${from}.`;
                 }
+                reverseGeocode(lat, lng);
             }
+
+            async function reverseGeocode(lat, lng) {
+                try {
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=18&addressdetails=1`;
+                    const res = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (!res.ok) {
+                        return;
+                    }
+                    const data = await res.json();
+                    const addr = data.address || {};
+                    const city = addr.city || addr.town || addr.village || addr.county || '';
+                    const state = addr.state || addr.province || '';
+                    const country = addr.country || countryInput.value || 'UAE';
+
+                    if (city && cityInput && !cityInput.dataset.touched) {
+                        cityInput.value = city;
+                    }
+                    if (state && stateInput && !stateInput.dataset.touched) {
+                        stateInput.value = state;
+                    }
+                    if (country && countryInput && !countryInput.dataset.touched) {
+                        countryInput.value = country;
+                    }
+
+                    if (selectedAddressInput) {
+                        selectedAddressInput.value = data.display_name || '';
+                    }
+
+                    if (notesInput && data.display_name) {
+                        const txt = notesInput.value || '';
+                        const autoPrefix = 'Auto address: ';
+                        if (!txt.includes(autoPrefix)) {
+                            notesInput.value = (txt ? txt + '\n' : '') + autoPrefix + data.display_name;
+                        } else {
+                            notesInput.value = txt.replace(/Auto address: .*/g, autoPrefix + data.display_name);
+                        }
+                    }
+
+                    if (statusEl) {
+                        statusEl.textContent = 'Location selected and address auto-filled.';
+                    }
+                } catch (e) {
+                    // Non-fatal: map selection should still work with coordinates only.
+                }
+            }
+
+            [cityInput, stateInput, countryInput].forEach(function (el) {
+                if (!el) return;
+                el.addEventListener('input', function () {
+                    el.dataset.touched = '1';
+                });
+            });
 
             map.on('click', function (e) {
                 setLatLng(e.latlng.lat, e.latlng.lng, 'map');
@@ -186,6 +252,10 @@
                     statusEl.textContent = 'Unable to fetch GPS location. Allow location permission and try again.';
                 }, { enableHighAccuracy: true, timeout: 10000 });
             });
+
+            setTimeout(function () {
+                map.invalidateSize();
+            }, 250);
         })();
     </script>
 </x-client-layout>

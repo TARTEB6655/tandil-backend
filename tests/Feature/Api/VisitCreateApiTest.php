@@ -44,7 +44,7 @@ class VisitCreateApiTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('status', false)
-            ->assertJsonPath('message', 'Unable to resolve area from selected location. Send area_id or provide city/state or GPS coordinates.');
+            ->assertJsonPath('message', 'Unable to resolve area from selected location. Send area_id or provide app location fields (street_address/city/state/zip_code/country) or GPS coordinates.');
     }
 
     public function test_create_visit_auto_assigns_supervisor_from_area_when_not_provided(): void

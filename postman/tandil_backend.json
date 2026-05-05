@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→I** (A–H as before, plus **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.11"
+        "version": "3.3.12"
     },
     "item": [
         {
@@ -2514,6 +2514,18 @@
                                     "description": "Optional. Direct area selection if already known."
                                 },
                                 {
+                                    "key": "full_name",
+                                    "value": "Client Name",
+                                    "type": "text",
+                                    "description": "Optional. App form full name field."
+                                },
+                                {
+                                    "key": "street_address",
+                                    "value": "Union Square/Market Street",
+                                    "type": "text",
+                                    "description": "Optional. App form street address field."
+                                },
+                                {
                                     "key": "city",
                                     "value": "Abu Dhabi",
                                     "type": "text",
@@ -2524,6 +2536,12 @@
                                     "value": "",
                                     "type": "text",
                                     "description": "Optional. State/emirate."
+                                },
+                                {
+                                    "key": "zip_code",
+                                    "value": "00000",
+                                    "type": "text",
+                                    "description": "Optional. App form ZIP/postal code."
                                 },
                                 {
                                     "key": "country",
@@ -2556,7 +2574,7 @@
                                 "resolve-area"
                             ]
                         },
-                        "description": "Resolve service area and supervisor from app location inputs (area_id or city/state/country or GPS). Response includes `serviceable`, `area_id`, `area_name`, `supervisor_id`, and optional `distance_km`."
+                        "description": "Resolve service area and supervisor from app location inputs. Supports app form fields (`full_name`, `street_address`, `city`, `state`, `zip_code`, `country`) plus optional `area_id` or GPS (`latitude`, `longitude`). Response includes `serviceable`, `area_id`, `area_name`, `supervisor_id`, and optional `distance_km`."
                     }
                 },
                 {
@@ -2629,6 +2647,18 @@
                                     "description": "Optional. Area ID if app already resolved area. If omitted, backend tries city/state/GPS based auto-resolution."
                                 },
                                 {
+                                    "key": "full_name",
+                                    "value": "Client Name",
+                                    "type": "text",
+                                    "description": "Optional. App form full name field."
+                                },
+                                {
+                                    "key": "street_address",
+                                    "value": "Union Square/Market Street",
+                                    "type": "text",
+                                    "description": "Optional. App form street address field."
+                                },
+                                {
                                     "key": "city",
                                     "value": "Abu Dhabi",
                                     "type": "text",
@@ -2639,6 +2669,12 @@
                                     "value": "",
                                     "type": "text",
                                     "description": "Optional. State/emirate for matching."
+                                },
+                                {
+                                    "key": "zip_code",
+                                    "value": "00000",
+                                    "type": "text",
+                                    "description": "Optional. App form ZIP/postal code."
                                 },
                                 {
                                     "key": "country",
@@ -2694,7 +2730,7 @@
                                 "visits"
                             ]
                         },
-                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**Area/supervisor resolution flow:** You may pass **area_id** directly, or send location inputs (**city/state/country** or **latitude/longitude**) and backend auto-resolves the nearest active area and mapped supervisor. You can also pre-resolve using **POST /api/visits/resolve-area**.\n\n**How the job reaches supervisor dashboard:** Job must resolve to an active area with a mapped supervisor. Then supervisor sees it in **GET /api/supervisor/assignments** and can assign technician via **POST /api/supervisor/assignments/{id}** with **technician_id**.\n\n**Price:** Set **price** (e.g. 289.99) and/or include in **notes** using format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5`."
+                        "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**App form field compatibility:** Supports location form keys `full_name`, `street_address`, `city`, `state`, `zip_code`, `country`.\n\n**Area/supervisor resolution flow:** You may pass **area_id** directly, or send app location inputs (`street_address/city/state/zip_code/country`) and backend auto-resolves active area + mapped supervisor. GPS (`latitude/longitude`) is also supported. You can pre-resolve using **POST /api/visits/resolve-area**.\n\n**How the job reaches supervisor dashboard:** Job must resolve to an active area with a mapped supervisor. Then supervisor sees it in **GET /api/supervisor/assignments** and can assign technician via **POST /api/supervisor/assignments/{id}** with **technician_id**.\n\n**Price:** Set **price** (e.g. 289.99) and/or include in **notes** using format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5`."
                     }
                 },
                 {

@@ -138,8 +138,11 @@ class VisitController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'area_id' => 'nullable|exists:areas,id',
+            'full_name' => 'nullable|string|max:255',
+            'street_address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
+            'zip_code' => 'nullable|string|max:30',
             'country' => 'nullable|string|max:100',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
@@ -189,8 +192,11 @@ class VisitController extends Controller
                 'technician_id' => 'nullable|exists:users,id',
                 'supervisor_id' => 'nullable|exists:users,id',
                 'area_id' => 'nullable|exists:areas,id',
+                'full_name' => 'nullable|string|max:255',
+                'street_address' => 'nullable|string|max:500',
                 'city' => 'nullable|string|max:255',
                 'state' => 'nullable|string|max:255',
+                'zip_code' => 'nullable|string|max:30',
                 'country' => 'nullable|string|max:100',
                 'latitude' => 'nullable|numeric|between:-90,90',
                 'longitude' => 'nullable|numeric|between:-180,180',
@@ -224,7 +230,7 @@ class VisitController extends Controller
             if (! $resolved) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Unable to resolve area from selected location. Send area_id or provide city/state or GPS coordinates.',
+                    'message' => 'Unable to resolve area from selected location. Send area_id or provide app location fields (street_address/city/state/zip_code/country) or GPS coordinates.',
                 ], 422);
             }
             $area = $resolved['area'];
@@ -767,6 +773,8 @@ class VisitController extends Controller
         $country = strtolower(trim((string) $request->input('country', 'UAE')));
         $city = strtolower(trim((string) $request->input('city', '')));
         $state = strtolower(trim((string) $request->input('state', '')));
+        $streetAddress = strtolower(trim((string) $request->input('street_address', '')));
+        $zipCode = strtolower(trim((string) $request->input('zip_code', '')));
         $lat = $request->filled('latitude') ? (float) $request->input('latitude') : null;
         $lng = $request->filled('longitude') ? (float) $request->input('longitude') : null;
 
@@ -781,14 +789,16 @@ class VisitController extends Controller
             return null;
         }
 
-        $nameMatched = $areas->filter(function (Area $area) use ($city, $state) {
-            if ($city === '' && $state === '') {
+        $nameMatched = $areas->filter(function (Area $area) use ($city, $state, $streetAddress, $zipCode) {
+            if ($city === '' && $state === '' && $streetAddress === '' && $zipCode === '') {
                 return false;
             }
             $hay = strtolower(trim((string) ($area->name . ' ' . ($area->location ?? '') . ' ' . ($area->description ?? ''))));
 
             return ($city !== '' && str_contains($hay, $city))
-                || ($state !== '' && str_contains($hay, $state));
+                || ($state !== '' && str_contains($hay, $state))
+                || ($streetAddress !== '' && str_contains($hay, $streetAddress))
+                || ($zipCode !== '' && str_contains($hay, $zipCode));
         })->sortBy('priority')->values();
 
         if ($nameMatched->isNotEmpty()) {
