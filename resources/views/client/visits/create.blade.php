@@ -83,19 +83,34 @@
                         </button>
                         <span id="location-help" class="text-xs text-gray-500">You can also tap on the map to set location.</span>
                     </div>
-                    <div id="location-map" class="w-full h-72 rounded-lg border border-gray-300"></div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                            <input id="latitude" type="text" name="latitude" value="{{ old('latitude') }}" class="w-full rounded-md border-gray-300 bg-gray-50" placeholder="Auto-filled from GPS/map">
-                            @error('latitude') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                            <input id="longitude" type="text" name="longitude" value="{{ old('longitude') }}" class="w-full rounded-md border-gray-300 bg-gray-50" placeholder="Auto-filled from GPS/map">
-                            @error('longitude') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    <div class="rounded-lg border border-gray-200 p-2 bg-gray-50">
+                        <div id="location-map" class="w-full h-72 rounded-lg border border-gray-300 bg-white"></div>
+                        <div id="location-map-fallback" class="hidden mt-2 rounded-lg overflow-hidden border border-gray-300">
+                            <iframe
+                                title="Map fallback"
+                                class="w-full h-72"
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"
+                                src="https://www.openstreetmap.org/export/embed.html?bbox=51.3%2C22.5%2C56.7%2C26.8&layer=mapnik"
+                            ></iframe>
                         </div>
                     </div>
+
+                    <details class="mt-3">
+                        <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">Advanced: enter coordinates manually</summary>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                                <input id="latitude" type="text" name="latitude" value="{{ old('latitude') }}" class="w-full rounded-md border-gray-300 bg-gray-50" placeholder="Auto-filled from GPS/map">
+                                @error('latitude') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                                <input id="longitude" type="text" name="longitude" value="{{ old('longitude') }}" class="w-full rounded-md border-gray-300 bg-gray-50" placeholder="Auto-filled from GPS/map">
+                                @error('longitude') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                    </details>
                 </div>
 
                 <div class="md:col-span-2">
@@ -118,9 +133,18 @@
             const lngInput = document.getElementById('longitude');
             const statusEl = document.getElementById('location-help');
             const gpsBtn = document.getElementById('use-current-location');
+            const fallbackMap = document.getElementById('location-map-fallback');
+            const interactiveMap = document.getElementById('location-map');
 
             const defaultLat = parseFloat(latInput.value) || 24.4539;
             const defaultLng = parseFloat(lngInput.value) || 54.3773;
+
+            if (typeof L === 'undefined') {
+                statusEl.textContent = 'Interactive map blocked by browser policy. Fallback map shown; use GPS button or manual coordinates.';
+                interactiveMap.classList.add('hidden');
+                fallbackMap.classList.remove('hidden');
+                return;
+            }
 
             const map = L.map('location-map').setView([defaultLat, defaultLng], 10);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
