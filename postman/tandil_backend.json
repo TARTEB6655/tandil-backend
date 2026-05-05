@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→I** (A–H as before, plus **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.7"
+        "version": "3.3.8"
     },
     "item": [
         {
@@ -4173,9 +4173,130 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "J. Cancellation & Refunds",
+                    "description": "Central place for order cancel + refund-policy + wallet refund tracking APIs.",
+                    "item": [
+                        {
+                            "name": "1. POST Cancel order (logged-in)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/{{order_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Cancel order for authenticated user/admin scope. Response includes `refund` breakdown and updated order state."
+                            }
+                        },
+                        {
+                            "name": "2. POST Cancel order (guest)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"order_number\": \"order_0001\",\n  \"email\": \"guest@example.com\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/orders/guest/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "orders",
+                                        "guest",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Guest cancellation by order_number + email. Response includes `refund` breakdown."
+                            }
+                        },
+                        {
+                            "name": "3. GET Refund policy (public)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/refund-policy",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "refund-policy"
+                                    ]
+                                },
+                                "description": "Public policy config: timeline rules, percentages, wallet validity."
+                            }
+                        },
+                        {
+                            "name": "4. GET Wallet summary (client)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/wallet",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "wallet"
+                                    ]
+                                },
+                                "description": "Wallet balance + refund credits + expiry/forfeiture visibility."
+                            }
+                        }
+                    ]
                 }
             ],
-            "description": "**How to use:** open folder **8**, then a **letter subfolder A→I**. A=settings & totals · B=cart · C=checkout preview · D=`/api/shop/orders` · E=`/api/orders` (track/cancel) · F=guest · G=public categories · H=payment history (list) · **I=Stripe / PayPal / React Native PaymentIntent + confirm + webhooks**."
+            "description": "**How to use:** open folder **8**, then a **letter subfolder A→J**. A=settings & totals · B=cart · C=checkout preview · D=`/api/shop/orders` · E=`/api/orders` (track/cancel) · F=guest · G=public categories · H=payment history (list) · I=Stripe / PayPal / React Native PaymentIntent + confirm + webhooks · **J=Cancellation & Refunds (all cancel/refund APIs in one place)**."
         },
         {
             "name": "8b. Client Dashboard – Maintenance Photos",
@@ -6033,10 +6154,25 @@
                                             "key": "per_page",
                                             "value": "20",
                                             "description": "Optional, 1-100"
+                                        },
+                                        {
+                                            "key": "kind",
+                                            "value": "",
+                                            "description": "Optional: all | announcement | tip | leave | other. For technician/supervisor/client, kind=leave also includes admin broadcasts (compat). Admin GET /api/admin/notifications keeps strict leave-only."
+                                        },
+                                        {
+                                            "key": "filter",
+                                            "value": "",
+                                            "description": "Optional: all | unread | read"
+                                        },
+                                        {
+                                            "key": "q",
+                                            "value": "",
+                                            "description": "Search in notification JSON payload"
                                         }
                                     ]
                                 },
-                                "description": "GET /api/technician/notifications. Returns notifications with unread_count."
+                                "description": "GET /api/technician/notifications. Paginated database inbox + unread_count. Admin broadcasts (role/all/users) appear when kind is omitted, all, announcement, or leave (leave includes broadcasts for this role). GET /api/technician/alerts returns the same rows with a flatter item shape."
                             }
                         },
                         {

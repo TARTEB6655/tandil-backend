@@ -15,21 +15,7 @@ class HrNotificationFilter
                 ->whereIn('type', [
                     TipPublishedNotification::class,
                 ])
-                ->orWhere(function ($admin) {
-                    $admin->where('type', AdminNotification::class)
-                        ->where(function ($meta) {
-                            $meta
-                                ->whereIn('data->meta->type', [
-                                    'hr_leave_request',
-                                    'hr_visit_completed',
-                                ])
-                                ->orWhere(function ($supportReply) {
-                                    $supportReply
-                                        ->where('data->meta->entity', 'support_ticket')
-                                        ->where('data->meta->action', 'open_ticket_reply');
-                                });
-                        });
-                });
+                ->orWhere('type', AdminNotification::class);
         });
     }
 

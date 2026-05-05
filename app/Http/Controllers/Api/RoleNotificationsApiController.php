@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Notifications\AdminNotification;
+use App\Notifications\LeaveRequestStatusNotification;
 use App\Support\GlobalNotificationFilter;
 use App\Support\NotificationInboxWebFilters;
 use App\Support\UserNotificationInbox;
@@ -18,7 +20,11 @@ class RoleNotificationsApiController extends Controller
         $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
         $audienceRole = $request->query('audience_role');
         $filter = (string) $request->query('filter', 'all');
-        $kind = $request->query('kind');
+        $kindRaw = $request->query('kind');
+        $kind = is_string($kindRaw) ? trim($kindRaw) : null;
+        if ($kind === '') {
+            $kind = null;
+        }
         $search = trim((string) $request->query('q', ''));
 
         // Admin dedicated API behaves like "Statics" page: all users + full filter set.
@@ -27,7 +33,23 @@ class RoleNotificationsApiController extends Controller
             ? GlobalNotificationFilter::allUsers($audienceRole)
             : UserNotificationInbox::forUser($user, $audienceRole);
 
-        $scoped = NotificationInboxWebFilters::applyKind($base, is_string($kind) ? $kind : null);
+        /*
+         * Mobile clients sometimes send kind=leave for the main notifications screen ("Leave & HR").
+         * Include admin broadcasts in that filter for employee roles so role-targeted announcements appear
+         * without requiring app updates. Admin cross-user stats API keeps strict leave-only filtering.
+         */
+        $expandLeaveWithBroadcasts = ! $isAdminStatsApi
+            && $kind === NotificationInboxWebFilters::KIND_LEAVE
+            && $user->hasAnyRole(['technician', 'supervisor', 'client']);
+
+        if ($expandLeaveWithBroadcasts) {
+            $scoped = $base->where(function ($q) {
+                $q->where('type', LeaveRequestStatusNotification::class)
+                    ->orWhere('type', AdminNotification::class);
+            });
+        } else {
+            $scoped = NotificationInboxWebFilters::applyKind($base, is_string($kind) ? $kind : null);
+        }
         if ($search !== '') {
             $scoped->where('data', 'like', '%' . $search . '%');
         }
