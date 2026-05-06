@@ -21,6 +21,51 @@
             left: 7px;
             box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
         }
+        .ops-switch {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            width: 46px;
+            height: 26px;
+            border-radius: 9999px;
+            border: 1px solid #d1d5db;
+            background: #d1d5db;
+            transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
+            cursor: pointer;
+        }
+        .ops-switch:hover {
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
+        }
+        .ops-switch:active {
+            transform: scale(0.98);
+        }
+        .ops-switch:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.25);
+        }
+        .ops-switch[data-active="1"] {
+            background: #0ea5a3;
+            border-color: #0b8b89;
+        }
+        .ops-switch[data-loading="1"] {
+            opacity: 0.7;
+            cursor: wait;
+        }
+        .ops-switch-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background: #ffffff;
+            border: 1px solid rgba(203, 213, 225, 0.95);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
+            transition: left 180ms ease;
+        }
+        .ops-switch[data-active="1"] .ops-switch-knob {
+            left: 23px;
+        }
     </style>
 
     @php
@@ -133,13 +178,15 @@
                                     <p class="text-xs text-slate-500">{{ $area->country ?: 'UAE' }}{{ $area->location ? ' · '.$area->location : '' }}</p>
                                 </div>
                                 <button type="button"
-                                    class="js-area-toggle relative inline-flex h-8 w-[62px] items-center rounded-full transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400 {{ $area->is_active ? 'bg-emerald-500' : 'bg-slate-300' }}"
-                                    style="width:62px;"
+                                    class="js-area-toggle ops-switch"
                                     data-area-id="{{ $area->id }}"
                                     data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
                                     data-is-active="{{ $area->is_active ? '1' : '0' }}"
+                                    data-active="{{ $area->is_active ? '1' : '0' }}"
+                                    role="switch"
+                                    aria-checked="{{ $area->is_active ? 'true' : 'false' }}"
                                     title="{{ $area->is_active ? 'Disable area' : 'Enable area' }}">
-                                    <span class="js-area-toggle-knob inline-block h-7 w-7 transform rounded-full bg-white shadow-[0_2px_6px_rgba(15,23,42,0.35)] transition duration-200 ease-out {{ $area->is_active ? 'translate-x-8' : 'translate-x-[2px]' }}"></span>
+                                    <span class="js-area-toggle-knob ops-switch-knob"></span>
                                 </button>
                             </div>
                             <div class="mt-2 flex items-center justify-between">
@@ -210,13 +257,15 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <button type="button"
-                                        class="js-area-toggle relative inline-flex h-8 w-[62px] items-center rounded-full transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400 {{ $area->is_active ? 'bg-emerald-500' : 'bg-slate-300' }}"
-                                        style="width:62px;"
+                                        class="js-area-toggle ops-switch"
                                         data-area-id="{{ $area->id }}"
                                         data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
                                         data-is-active="{{ $area->is_active ? '1' : '0' }}"
+                                        data-active="{{ $area->is_active ? '1' : '0' }}"
+                                        role="switch"
+                                        aria-checked="{{ $area->is_active ? 'true' : 'false' }}"
                                         title="{{ $area->is_active ? 'Disable area' : 'Enable area' }}">
-                                        <span class="js-area-toggle-knob inline-block h-7 w-7 transform rounded-full bg-white shadow-[0_2px_6px_rgba(15,23,42,0.35)] transition duration-200 ease-out {{ $area->is_active ? 'translate-x-8' : 'translate-x-[2px]' }}"></span>
+                                        <span class="js-area-toggle-knob ops-switch-knob"></span>
                                     </button>
                                 </td>
                                 <td class="px-4 py-3 text-sm">
@@ -333,18 +382,11 @@
             const toggleButtons = Array.from(document.querySelectorAll('.js-area-toggle'));
 
             function setButtonState(button, isActive) {
-                const knob = button.querySelector('.js-area-toggle-knob');
                 const statusEl = button.closest('[class*="rounded-lg"]')?.querySelector('.js-area-toggle-status');
                 button.dataset.isActive = isActive ? '1' : '0';
-                button.classList.toggle('bg-emerald-500', isActive);
-                button.classList.toggle('bg-slate-300', !isActive);
-                if (knob) {
-                    knob.classList.toggle('translate-x-8', isActive);
-                    knob.classList.toggle('translate-x-[2px]', !isActive);
-                    knob.style.transform = isActive ? 'translateX(32px)' : 'translateX(2px)';
-                }
+                button.dataset.active = isActive ? '1' : '0';
+                button.setAttribute('aria-checked', isActive ? 'true' : 'false');
                 button.title = isActive ? 'Disable area' : 'Enable area';
-                button.style.backgroundColor = isActive ? '#10b981' : '#cbd5e1';
                 if (statusEl) {
                     statusEl.textContent = isActive ? 'Enabled' : 'Disabled';
                     statusEl.classList.toggle('bg-emerald-100', isActive);
@@ -359,7 +401,7 @@
                 button.addEventListener('click', async () => {
                     if (button.dataset.loading === '1') return;
                     button.dataset.loading = '1';
-                    button.classList.add('opacity-70');
+                    button.dataset.loading = '1';
                     button.disabled = true;
 
                     try {
@@ -389,7 +431,6 @@
                         alert(err.message || 'Unable to update area status.');
                     } finally {
                         button.dataset.loading = '0';
-                        button.classList.remove('opacity-70');
                         button.disabled = false;
                     }
                 });
