@@ -28,7 +28,9 @@ final class OrderToVisitDispatcher
             }
 
             $ship = $order->getShippingAddressForApi() ?? [];
-            $serviceTitle = self::serviceTitle($order);
+            $serviceMeta = self::serviceMeta($order);
+            $serviceTitle = $serviceMeta['title'];
+            $durationMinutes = $serviceMeta['duration_minutes'];
             $clientName = (string) ($ship['full_name'] ?? $order->payerDisplayName());
             $clientEmail = (string) ($ship['email'] ?? ($order->payerEmail() ?? ''));
             $clientPhone = (string) ($ship['phone_number'] ?? ($order->payerPhone() ?? ''));
@@ -44,7 +46,7 @@ final class OrderToVisitDispatcher
                 $serviceTitle,
                 'Order Service Visit',
                 $locationLabel,
-                '-- min',
+                $durationMinutes !== null ? ($durationMinutes . ' min') : '-- min',
                 'AED ' . number_format((float) $order->total_amount, 2),
                 'Client: ' . ($clientName !== '' ? $clientName : 'Customer'),
                 'Email: ' . ($clientEmail !== '' ? $clientEmail : '-'),
@@ -127,14 +129,43 @@ final class OrderToVisitDispatcher
         ];
     }
 
-    private static function serviceTitle(Order $order): string
+    /**
+     * @return array{title:string,duration_minutes:int|null}
+     */
+    private static function serviceMeta(Order $order): array
     {
-        $item = $order->items()->with('product:id,name')->first();
+        $item = $order->items()->with('product:id,name,job_duration')->first();
         if ($item && $item->product && ! empty($item->product->name)) {
-            return (string) $item->product->name;
+            return [
+                'title' => (string) $item->product->name,
+                'duration_minutes' => self::extractDurationMinutes((string) ($item->product->job_duration ?? '')),
+            ];
         }
 
-        return 'Order #' . $order->id;
+        return [
+            'title' => 'Order #' . $order->id,
+            'duration_minutes' => null,
+        ];
+    }
+
+    private static function extractDurationMinutes(string $raw): ?int
+    {
+        $value = strtolower(trim($raw));
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/(\d+)\s*(?:min|mins|minute|minutes|m)\b/', $value, $m)) {
+            return (int) $m[1];
+        }
+        if (preg_match('/(\d+)\s*(?:hour|hours|hr|hrs|h)\b/', $value, $m)) {
+            return (int) $m[1] * 60;
+        }
+        if (preg_match('/^\d+$/', $value)) {
+            return (int) $value;
+        }
+
+        return null;
     }
 
     private static function normalizeCountry(string $country): string

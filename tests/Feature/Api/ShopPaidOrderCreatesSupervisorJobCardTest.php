@@ -62,6 +62,7 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
             'category_id' => $category->id,
             'price' => 10.00,
             'status' => 'active',
+            'job_duration' => '55 minutes',
         ]);
 
         $start = $this->postJson('/api/shop/checkout/start', [
@@ -114,6 +115,7 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $response->assertOk()->assertJsonPath('success', true);
 
         $json = $response->json();
+        $this->assertSame(55, (int) ($json['data']['duration_minutes'] ?? 0));
         $customer = $json['data']['customer'] ?? null;
         $this->assertNotNull($customer);
         $this->assertSame($clientEmail, $customer['email'] ?? null);
