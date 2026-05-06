@@ -108,6 +108,9 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $this->assertNotNull($visit);
         $this->assertSame((int) $area->id, (int) $visit->area_id);
         $this->assertSame((int) $supervisor->id, (int) $visit->supervisor_id);
+        // Simulate older records where duration was persisted as "-- min" in notes.
+        $visit->notes = str_replace('55 min', '-- min', (string) $visit->notes);
+        $visit->save();
 
         // 3) Supervisor assignments endpoint should return the client details so card UI can show it.
         $response = $this->actingAs($supervisor, 'sanctum')
@@ -115,6 +118,7 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $response->assertOk()->assertJsonPath('success', true);
 
         $json = $response->json();
+        // Fallback should resolve duration from [SHOP-ORDER:id] -> order item product.job_duration.
         $this->assertSame(55, (int) ($json['data']['duration_minutes'] ?? 0));
         $customer = $json['data']['customer'] ?? null;
         $this->assertNotNull($customer);

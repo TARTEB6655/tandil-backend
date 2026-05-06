@@ -12,6 +12,7 @@ use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
 use App\Models\TechnicianBreak;
+use App\Models\Order;
 use App\Models\Area;
 use App\Models\Complaint;
 use App\Models\LeaveRequest;
@@ -1307,6 +1308,9 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         if (isset($parts[3]) && preg_match('/(\d+)\s*min/i', $parts[3], $m)) {
             $duration_minutes = (int) $m[1];
         }
+        if ($duration_minutes === null) {
+            $duration_minutes = $this->durationMinutesFromShopOrderMarker($clean);
+        }
         $price_display = isset($parts[4]) ? trim($parts[4]) : null;
         $client_name = null;
         $client_email = null;
@@ -1339,6 +1343,46 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             'client_phone' => $client_phone,
             'address' => $address,
         ];
+    }
+
+    private function durationMinutesFromShopOrderMarker(string $notes): ?int
+    {
+        if (! preg_match('/\[SHOP-ORDER:(\d+)\]/', $notes, $m)) {
+            return null;
+        }
+
+        $orderId = (int) ($m[1] ?? 0);
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        static $cache = [];
+        if (array_key_exists($orderId, $cache)) {
+            return $cache[$orderId];
+        }
+
+        $order = Order::query()->find($orderId);
+        if (! $order) {
+            return $cache[$orderId] = null;
+        }
+
+        $firstItem = $order->items()->with('product:id,job_duration')->orderBy('id')->first();
+        $raw = trim((string) ($firstItem?->product?->job_duration ?? ''));
+        if ($raw === '') {
+            return $cache[$orderId] = null;
+        }
+
+        if (preg_match('/(\d+)\s*(?:min|mins|minute|minutes|m)\b/i', $raw, $mm)) {
+            return $cache[$orderId] = (int) $mm[1];
+        }
+        if (preg_match('/(\d+)\s*(?:hour|hours|hr|hrs|h)\b/i', $raw, $hh)) {
+            return $cache[$orderId] = ((int) $hh[1]) * 60;
+        }
+        if (preg_match('/^\d+$/', $raw)) {
+            return $cache[$orderId] = (int) $raw;
+        }
+
+        return $cache[$orderId] = null;
     }
 
     /** Parse duration and rating from visit notes (e.g. seeded format with "120 min" and "4.6/5"). */
