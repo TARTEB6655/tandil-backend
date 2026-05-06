@@ -11,6 +11,8 @@ use App\Models\ShopMobileCheckout;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Notifications\AdminNotification;
+use App\Support\OrderToVisitDispatcher;
+use App\Support\OrderSupervisorNotifier;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -514,6 +516,9 @@ class ShopStripeMobilePaymentService
                     "A new order #{$order->id} has been placed by {$placedBy} for AED {$total}."
                 ));
             }
+
+            OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
+            OrderToVisitDispatcher::createVisitForPaidOrder($order);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }

@@ -12,7 +12,9 @@ use App\Services\PayPalService;
 use App\Services\ShopCheckoutOrderService;
 use App\Services\ShopStripeMobilePaymentService;
 use App\Services\StripeCheckoutSessionService;
+use App\Support\OrderToVisitDispatcher;
 use App\Support\RefundPolicy;
+use App\Support\OrderSupervisorNotifier;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -405,6 +407,9 @@ class ShopPaymentController extends Controller
                     "A new order #{$order->id} has been placed by {$placedBy} for AED {$total}."
                 ));
             }
+
+            OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
+            OrderToVisitDispatcher::createVisitForPaidOrder($order);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }

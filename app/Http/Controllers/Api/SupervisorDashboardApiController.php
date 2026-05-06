@@ -848,7 +848,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             $visit->duration_minutes = $meta['duration_minutes'] ?? null;
             $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
             $visit->supervisor_name = $visit->supervisor?->name ?? null;
-            $visit->address = $visit->location;
+            $visit->address = $meta['address'] ?? $visit->location;
+            $visit->client_name = $meta['client_name'] ?? null;
+            $visit->client_email = $meta['client_email'] ?? null;
+            $visit->client_phone = $meta['client_phone'] ?? null;
             $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
             $visit->makeHidden(['supervisor']);
             return $visit;
@@ -888,7 +891,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $visit->duration_minutes = $meta['duration_minutes'] ?? null;
         $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
         $visit->supervisor_name = $visit->supervisor?->name ?? null;
-        $visit->address = $visit->location;
+        $visit->address = $meta['address'] ?? $visit->location;
         $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
         $visit->makeHidden(['supervisor']);
         $visit->customer = $client ? [
@@ -897,7 +900,13 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             'email' => $client->email,
             'phone' => $client->phone ?? null,
             'profile_picture_url' => $client->profile_picture_url ?? null,
-        ] : null;
+        ] : [
+            'id' => null,
+            'name' => $meta['client_name'] ?? null,
+            'email' => $meta['client_email'] ?? null,
+            'phone' => $meta['client_phone'] ?? null,
+            'profile_picture_url' => null,
+        ];
         $visit->subscription = $sub ? [
             'id' => $sub->id,
             'plan' => $sub->plan,
@@ -946,7 +955,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
                 $visit->duration_minutes = $meta['duration_minutes'] ?? null;
                 $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
                 $visit->supervisor_name = $visit->supervisor?->name ?? null;
-                $visit->address = $visit->location;
+                $visit->address = $meta['address'] ?? $visit->location;
+                $visit->client_name = $meta['client_name'] ?? null;
+                $visit->client_email = $meta['client_email'] ?? null;
+                $visit->client_phone = $meta['client_phone'] ?? null;
                 $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
                 $visit->makeHidden(['supervisor']);
                 return $visit;
@@ -1294,12 +1306,36 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             $duration_minutes = (int) $m[1];
         }
         $price_display = isset($parts[4]) ? trim($parts[4]) : null;
+        $client_name = null;
+        $client_email = null;
+        $client_phone = null;
+        $address = null;
+        foreach ($parts as $part) {
+            if (! str_contains($part, ':')) {
+                continue;
+            }
+            [$k, $v] = array_map('trim', explode(':', $part, 2));
+            $key = strtolower($k);
+            if ($key === 'client' && $v !== '') {
+                $client_name = $v;
+            } elseif ($key === 'email' && $v !== '') {
+                $client_email = $v;
+            } elseif ($key === 'phone' && $v !== '') {
+                $client_phone = $v;
+            } elseif ($key === 'address' && $v !== '') {
+                $address = $v;
+            }
+        }
         return [
             'farm_name' => $farm ?: null,
             'service_name' => $service ?: null,
             'location' => $location ?: null,
             'duration_minutes' => $duration_minutes,
             'price_display' => $price_display ?: null,
+            'client_name' => $client_name,
+            'client_email' => $client_email,
+            'client_phone' => $client_phone,
+            'address' => $address,
         ];
     }
 
