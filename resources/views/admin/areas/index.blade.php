@@ -363,6 +363,16 @@
                 return Number.isFinite(parsed) ? parsed : Number.NaN;
             }
 
+            function jitterCoordinate(lat, lng, index, total) {
+                if (total <= 1) return { lat, lng };
+                const radius = 0.035; // ~3-4km visual spread
+                const angle = (2 * Math.PI * index) / total;
+                return {
+                    lat: lat + (Math.cos(angle) * radius),
+                    lng: lng + (Math.sin(angle) * radius),
+                };
+            }
+
             function addMarker(area) {
                 if (!area || !area.is_active) return;
                 let lat = toCoordinate(area.latitude);
@@ -401,6 +411,7 @@
             function renderPins(sourceAreas) {
                 clearMarkers();
                 const localBounds = [];
+                const plottedAreas = [];
                 sourceAreas.forEach((area) => {
                     if (!area) return;
                     const isActive = area.is_active === true || area.is_active === 1 || area.is_active === '1';
@@ -419,8 +430,23 @@
                         lng = 54.3773;
                     }
                     if (!uaeBounds.contains([lat, lng])) return;
-                    addMarker({ ...area, latitude: lat, longitude: lng });
-                    localBounds.push([lat, lng]);
+                    plottedAreas.push({ ...area, latitude: lat, longitude: lng });
+                });
+
+                const coordinateGroups = {};
+                plottedAreas.forEach((area) => {
+                    const key = `${area.latitude.toFixed(5)}:${area.longitude.toFixed(5)}`;
+                    if (!coordinateGroups[key]) coordinateGroups[key] = [];
+                    coordinateGroups[key].push(area);
+                });
+
+                Object.values(coordinateGroups).forEach((group) => {
+                    const total = group.length;
+                    group.forEach((area, index) => {
+                        const jittered = jitterCoordinate(area.latitude, area.longitude, index, total);
+                        addMarker({ ...area, latitude: jittered.lat, longitude: jittered.lng });
+                        localBounds.push([jittered.lat, jittered.lng]);
+                    });
                 });
 
                 if (localBounds.length > 0) {
