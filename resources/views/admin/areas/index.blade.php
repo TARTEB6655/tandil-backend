@@ -176,7 +176,6 @@
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Country</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Assigned Supervisors</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Priority</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Coordinates</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Operational Toggle</th>
                         </tr>
                     </thead>
@@ -200,13 +199,6 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-sm text-slate-700">{{ (int) ($area->priority ?? 0) }}</td>
-                                <td class="px-4 py-3 text-xs text-slate-600">
-                                    @if($area->latitude !== null && $area->longitude !== null)
-                                        {{ number_format((float) $area->latitude, 6) }}, {{ number_format((float) $area->longitude, 6) }}
-                                    @else
-                                        <span class="text-amber-700">Missing coordinates</span>
-                                    @endif
-                                </td>
                                 <td class="px-4 py-3">
                                     <button type="button"
                                         class="js-area-toggle ops-switch"
@@ -318,13 +310,44 @@
                 if (!hay) return null;
                 const cityCenters = [
                     ['abu dhabi', 24.4539, 54.3773],
+                    ['abu dhabi city', 24.4539, 54.3773],
+                    ['madinat zayed', 23.6548, 53.7052],
+                    ['ruwais', 24.1103, 52.7306],
+                    ['ghayathi', 23.8422, 52.7844],
+                    ['liwa', 23.1340, 53.7694],
+                    ['liwa oasis', 23.1340, 53.7694],
+                    ['al shahama', 24.5242, 54.7153],
+                    ['baniyas', 24.3098, 54.6294],
+                    ['mussafah', 24.3579, 54.5067],
                     ['dubai', 25.2048, 55.2708],
+                    ['dubai city', 25.2048, 55.2708],
+                    ['jebel ali', 24.9857, 55.0657],
+                    ['hatta', 24.8095, 56.1225],
                     ['sharjah', 25.3463, 55.4209],
+                    ['sharjah city', 25.3463, 55.4209],
+                    ['khor fakkan', 25.3397, 56.3576],
+                    ['kalba', 24.9982, 56.2721],
+                    ['dibba al-hisn', 25.6209, 56.2724],
+                    ['al dhaid', 25.2881, 55.8816],
                     ['ajman', 25.4052, 55.5136],
+                    ['ajman city', 25.4052, 55.5136],
+                    ['masfout', 24.8383, 56.0697],
+                    ['manama', 25.3257, 56.0026],
                     ['umm al quwain', 25.5647, 55.5552],
+                    ['umm al quwain city', 25.5647, 55.5552],
+                    ['falaj al mualla', 25.3860, 55.7741],
                     ['ras al khaimah', 25.7895, 55.9432],
+                    ['ras al khaimah city', 25.7895, 55.9432],
+                    ['al jazirah al hamra', 25.6913, 55.7807],
+                    ['digdaga', 25.7048, 55.9893],
+                    ['khatt', 25.8070, 56.0475],
                     ['fujairah', 25.1288, 56.3265],
+                    ['fujairah city', 25.1288, 56.3265],
+                    ['dibba al-fujairah', 25.5925, 56.2618],
+                    ['mirbah', 25.4780, 56.3587],
+                    ['qidfa', 25.3940, 56.3440],
                     ['al ain', 24.2075, 55.7447],
+                    ['dibba', 25.5925, 56.2618],
                 ];
                 for (const [city, lat, lng] of cityCenters) {
                     if (hay.includes(city)) return { lat, lng };
@@ -345,7 +368,10 @@
                         lng = fallback.lng;
                     }
                 }
-                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+                if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                    lat = 24.4539;
+                    lng = 54.3773;
+                }
                 if (!uaeBounds.contains([lat, lng])) return;
                 if (markers[area.id]) return;
                 markers[area.id] = L.marker([lat, lng], { icon: customPin }).addTo(map).bindPopup(pinPopup(area));
@@ -382,7 +408,10 @@
                             lng = fallback.lng;
                         }
                     }
-                    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+                    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                        lat = 24.4539;
+                        lng = 54.3773;
+                    }
                     if (!uaeBounds.contains([lat, lng])) return;
                     addMarker({ ...area, latitude: lat, longitude: lng });
                     localBounds.push([lat, lng]);
