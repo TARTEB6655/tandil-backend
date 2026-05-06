@@ -521,6 +521,8 @@ class ShopPaymentController extends Controller
 
         return response()->json([
             'success' => false,
+            'title' => 'Oops!',
+            'error_title' => 'Oops!',
             'message' => 'Currently this area is not operational. Please try sometime.',
         ], 422);
     }
