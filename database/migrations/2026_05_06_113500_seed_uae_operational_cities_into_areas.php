@@ -11,6 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (app()->runningUnitTests()) {
+            return;
+        }
         if (! Schema::hasTable('areas')) {
             return;
         }

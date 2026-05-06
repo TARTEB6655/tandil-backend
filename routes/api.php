@@ -415,6 +415,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'addTeamMember']);
     Route::delete('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'removeTeamMember']);
     Route::get('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'index']);
+    Route::get('/operational-areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'operationalAreas']);
+    Route::post('/operational-areas/{id}/toggle-active', [\App\Http\Controllers\Api\Admin\AreaController::class, 'toggleOperationalArea']);
     Route::post('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'store']);
     Route::get('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'show']);
     Route::put('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'update']);

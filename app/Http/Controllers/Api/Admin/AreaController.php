@@ -7,6 +7,7 @@ use App\Models\Area;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -16,6 +17,122 @@ use Illuminate\Support\Facades\Validator;
  */
 class AreaController extends Controller
 {
+    /**
+     * GET /api/admin/operational-areas
+     * App-ready payload for Operational Areas screen (summary + map pins + paginated list).
+     */
+    public function operationalAreas(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $country = trim((string) $request->query('country', 'UAE'));
+        $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
+
+        $hasName = Schema::hasColumn('areas', 'name');
+        $hasLocation = Schema::hasColumn('areas', 'location');
+        $hasCountry = Schema::hasColumn('areas', 'country');
+        $hasDescription = Schema::hasColumn('areas', 'description');
+        $hasIsActive = Schema::hasColumn('areas', 'is_active');
+        $hasPriority = Schema::hasColumn('areas', 'priority');
+        $hasLat = Schema::hasColumn('areas', 'latitude');
+        $hasLng = Schema::hasColumn('areas', 'longitude');
+
+        $base = Area::query()->with('supervisors');
+        if ($country !== '' && $hasCountry) {
+            $base->where('country', $country);
+        }
+        if ($search !== '') {
+            $base->where(function ($q) use ($search, $hasName, $hasLocation, $hasCountry, $hasDescription) {
+                if ($hasName) {
+                    $q->orWhere('name', 'like', '%' . $search . '%');
+                }
+                if ($hasLocation) {
+                    $q->orWhere('location', 'like', '%' . $search . '%');
+                }
+                if ($hasCountry) {
+                    $q->orWhere('country', 'like', '%' . $search . '%');
+                }
+                if ($hasDescription) {
+                    $q->orWhere('description', 'like', '%' . $search . '%');
+                }
+            });
+        }
+
+        $ordered = clone $base;
+        if ($hasPriority) {
+            $ordered->orderBy('priority');
+        }
+        if ($hasName) {
+            $ordered->orderBy('name');
+        } elseif ($hasLocation) {
+            $ordered->orderBy('location');
+        } else {
+            $ordered->orderBy('id');
+        }
+
+        $all = (clone $ordered)->get();
+        $summary = [
+            'total_zones' => $all->count(),
+            'operational_zones' => $hasIsActive ? $all->where('is_active', true)->count() : $all->count(),
+            'pinned_on_map' => $all->filter(function (Area $a) use ($hasIsActive, $hasLat, $hasLng) {
+                $activeOk = ! $hasIsActive || (bool) $a->is_active;
+                $coordsOk = $hasLat && $hasLng && $a->latitude !== null && $a->longitude !== null;
+                return $activeOk && $coordsOk;
+            })->count(),
+        ];
+
+        $paginator = $ordered->paginate($perPage);
+        $listData = $paginator->getCollection()->map(fn (Area $a) => $this->operationalAreaPayload($a))->values()->all();
+        $mapPins = $all->filter(function (Area $a) use ($hasIsActive, $hasLat, $hasLng) {
+            $activeOk = ! $hasIsActive || (bool) $a->is_active;
+            $coordsOk = $hasLat && $hasLng && $a->latitude !== null && $a->longitude !== null;
+            return $activeOk && $coordsOk;
+        })->map(fn (Area $a) => $this->operationalAreaPayload($a))->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Operational areas retrieved successfully.',
+            'data' => [
+                'summary' => $summary,
+                'map_pins' => $mapPins,
+                'areas' => $listData,
+            ],
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+            'filters' => [
+                'search' => $search !== '' ? $search : null,
+                'country' => $country !== '' ? $country : null,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/admin/operational-areas/{id}/toggle-active
+     * Toggle operational status for app switch control.
+     */
+    public function toggleOperationalArea(Request $request, int $id): JsonResponse
+    {
+        if (! Schema::hasColumn('areas', 'is_active')) {
+            return response()->json([
+                'success' => false,
+                'message' => "The 'is_active' column is missing in areas table. Please run migrations.",
+            ], 422);
+        }
+
+        $area = Area::with('supervisors')->findOrFail($id);
+        $area->is_active = ! (bool) $area->is_active;
+        $area->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $area->is_active ? 'Area enabled successfully.' : 'Area disabled successfully.',
+            'data' => $this->operationalAreaPayload($area),
+        ]);
+    }
+
     /**
      * GET /api/admin/technicians – All technicians for admin dashboard (e.g. "All Technicians" screen).
      * Returns: name, email, employee_id, service_areas, specializations; zone and supervisor the technician is linked with (empty if none).
@@ -382,5 +499,22 @@ class AreaController extends Controller
     {
         $valid = User::role('technician')->whereIn('id', $ids)->pluck('id')->toArray();
         $area->technicians()->sync($valid);
+    }
+
+    private function operationalAreaPayload(Area $area): array
+    {
+        return [
+            'id' => (int) $area->id,
+            'name' => (string) ($area->name ?? $area->location ?? ('Area #' . $area->id)),
+            'location' => $area->location,
+            'country' => $area->country ?? 'UAE',
+            'is_active' => (bool) ($area->is_active ?? true),
+            'priority' => (int) ($area->priority ?? 100),
+            'latitude' => $area->latitude !== null ? (float) $area->latitude : null,
+            'longitude' => $area->longitude !== null ? (float) $area->longitude : null,
+            'supervisors' => $area->relationLoaded('supervisors')
+                ? $area->supervisors->map(fn (User $u) => ['id' => (int) $u->id, 'name' => $u->name])->values()->all()
+                : [],
+        ];
     }
 }

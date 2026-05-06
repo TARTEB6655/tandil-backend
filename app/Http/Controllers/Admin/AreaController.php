@@ -60,9 +60,14 @@ class AreaController extends Controller
             $query->orderBy('location', 'asc');
         }
 
-        $areas = $query->get();
+        $areasForMap = (clone $query)->get();
+        $perPage = (int) $request->input('per_page', 10);
+        if ($perPage < 1) {
+            $perPage = 10;
+        }
+        $areas = $query->paginate($perPage)->withQueryString();
 
-        return view('admin.areas.index', compact('areas'));
+        return view('admin.areas.index', compact('areas', 'areasForMap'));
     }
 
     public function toggleActive(Request $request, int $id)

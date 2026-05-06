@@ -15230,6 +15230,76 @@
                             }
                         },
                         {
+                            "name": "Operational Areas - Dashboard (App UI)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/operational-areas?country=UAE&per_page=10&page=1&search=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "operational-areas"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "country",
+                                            "value": "UAE"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "10"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "search",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "App UI endpoint for operational areas dashboard. GET /api/admin/operational-areas. Query: country, per_page, page, search. Returns summary, map_pins, areas[], pagination."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Operational Areas - Toggle Active",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/operational-areas/{{area_id}}/toggle-active",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "operational-areas",
+                                        "{{area_id}}",
+                                        "toggle-active"
+                                    ]
+                                },
+                                "description": "Toggle area active state for app switch. POST /api/admin/operational-areas/:area_id/toggle-active. Set area_id."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "All Technicians (Admin)",
                             "request": {
                                 "method": "GET",

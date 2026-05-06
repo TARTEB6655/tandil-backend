@@ -94,14 +94,15 @@
             return null;
         };
 
-        $operationalCount = $areas->where('is_active', true)->count();
-        $areasWithCoordinates = $areas->filter(function ($a) use ($resolveUaeCenter) {
+        $areasForMap = isset($areasForMap) ? $areasForMap : collect($areas);
+        $operationalCount = $areasForMap->where('is_active', true)->count();
+        $areasWithCoordinates = $areasForMap->filter(function ($a) use ($resolveUaeCenter) {
             if ($a->latitude !== null && $a->longitude !== null) {
                 return true;
             }
             return $resolveUaeCenter($a->name, $a->location) !== null;
         });
-        $areasForMap = $areas->map(fn ($a) => [
+        $areasForMapData = $areasForMap->map(fn ($a) => [
             'id' => $a->id,
             'name' => $a->name,
             'location' => $a->location,
@@ -135,7 +136,7 @@
         <div class="flex items-stretch gap-3 overflow-x-auto" style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; gap:12px; align-items:stretch;">
             <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-slate-500">Total zones</p>
-                <p class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ $areas->count() }}</p>
+                <p class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ method_exists($areas, 'total') ? $areas->total() : $areas->count() }}</p>
             </div>
             <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-emerald-700">Operational</p>
@@ -167,7 +168,7 @@
             <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-sm font-semibold text-slate-800">Quick Operational Toggles</h3>
-                    <span class="text-xs text-slate-500">{{ $areas->count() }} zones</span>
+                    <span class="text-xs text-slate-500">{{ method_exists($areas, 'total') ? $areas->total() : $areas->count() }} zones</span>
                 </div>
                 <div class="space-y-3 max-h-[440px] overflow-y-auto pr-1">
                     @forelse($areas as $area)
@@ -201,6 +202,11 @@
                     @endforelse
                 </div>
             </div>
+            @if(method_exists($areas, 'links'))
+                <div class="mt-4">
+                    {{ $areas->links() }}
+                </div>
+            @endif
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white p-4">
@@ -308,7 +314,7 @@
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            const areas = @json($areasForMap);
+            const areas = @json($areasForMapData);
             const customPin = L.divIcon({
                 className: 'ops-map-pin-wrapper',
                 html: '<span class="ops-map-pin"></span>',

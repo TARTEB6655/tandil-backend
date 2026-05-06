@@ -88,6 +88,58 @@ class AdminAreasApiTest extends TestCase
         $this->assertStringContainsString('Abu', $data[0]['location']);
     }
 
+    public function test_operational_areas_endpoint_returns_summary_map_and_paginated_areas(): void
+    {
+        $active = Area::factory()->create([
+            'name' => 'Abu Dhabi City',
+            'location' => 'Abu Dhabi',
+            'country' => 'UAE',
+            'is_active' => true,
+            'latitude' => 24.4539,
+            'longitude' => 54.3773,
+        ]);
+        $inactive = Area::factory()->create([
+            'name' => 'Dubai City',
+            'location' => 'Dubai',
+            'country' => 'UAE',
+            'is_active' => false,
+            'latitude' => 25.2048,
+            'longitude' => 55.2708,
+        ]);
+        $active->supervisors()->attach($this->supervisor->id);
+
+        $response = $this->getJson('/api/admin/operational-areas?per_page=10&country=UAE', $this->authHeaders());
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.summary.total_zones', 2);
+        $response->assertJsonPath('data.summary.operational_zones', 1);
+        $response->assertJsonPath('data.summary.pinned_on_map', 1);
+        $response->assertJsonPath('pagination.total', 2);
+        $response->assertJsonStructure([
+            'data' => [
+                'summary' => ['total_zones', 'operational_zones', 'pinned_on_map'],
+                'map_pins' => [['id', 'name', 'is_active', 'latitude', 'longitude']],
+                'areas' => [['id', 'name', 'location', 'country', 'is_active', 'priority', 'supervisors']],
+            ],
+            'pagination' => ['current_page', 'last_page', 'per_page', 'total'],
+        ]);
+
+        $areaIds = collect($response->json('data.areas'))->pluck('id')->all();
+        $this->assertContains($active->id, $areaIds);
+        $this->assertContains($inactive->id, $areaIds);
+    }
+
+    public function test_operational_area_toggle_endpoint_switches_active_state(): void
+    {
+        $area = Area::factory()->create(['is_active' => false, 'country' => 'UAE']);
+
+        $response = $this->postJson('/api/admin/operational-areas/' . $area->id . '/toggle-active', [], $this->authHeaders());
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.id', $area->id);
+        $response->assertJsonPath('data.is_active', true);
+    }
+
     public function test_area_create_requires_location_and_supervisor_id(): void
     {
         $response = $this->post('/api/admin/areas', [], $this->authHeaders());
