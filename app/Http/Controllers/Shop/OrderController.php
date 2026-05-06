@@ -52,6 +52,19 @@ class OrderController extends Controller
 
         $perPage = $request->get('per_page', 15);
         $orders = $query->paginate($perPage);
+        $orders->setCollection(
+            $orders->getCollection()->map(function (Order $order) {
+                $firstProduct = $order->items->first()?->product;
+                if (($order->estimated_arrival === null || $order->estimated_arrival === '') && $firstProduct) {
+                    $order->estimated_arrival = $firstProduct->estimated_arrival;
+                }
+                if (($order->job_duration === null || $order->job_duration === '') && $firstProduct) {
+                    $order->job_duration = $firstProduct->job_duration;
+                }
+
+                return $order;
+            })
+        );
 
         return response()->json([
             'success' => true,

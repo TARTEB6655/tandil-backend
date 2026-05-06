@@ -2,6 +2,16 @@
     @php
         $operationalCount = $areas->where('is_active', true)->count();
         $areasWithCoordinates = $areas->filter(fn ($a) => $a->latitude !== null && $a->longitude !== null);
+        $areasForMap = $areas->map(fn ($a) => [
+            'id' => $a->id,
+            'name' => $a->name,
+            'location' => $a->location,
+            'country' => $a->country,
+            'is_active' => (bool) $a->is_active,
+            'latitude' => $a->latitude,
+            'longitude' => $a->longitude,
+            'supervisors' => $a->supervisors->pluck('name')->values(),
+        ])->values();
     @endphp
 
     <div class="space-y-6">
@@ -136,18 +146,7 @@
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            const areas = @json(
-                $areas->map(fn ($a) => [
-                    'id' => $a->id,
-                    'name' => $a->name,
-                    'location' => $a->location,
-                    'country' => $a->country,
-                    'is_active' => (bool) $a->is_active,
-                    'latitude' => $a->latitude,
-                    'longitude' => $a->longitude,
-                    'supervisors' => $a->supervisors->pluck('name')->values(),
-                ])->values()
-            );
+            const areas = @json($areasForMap);
 
             const bounds = [];
             const markers = {};

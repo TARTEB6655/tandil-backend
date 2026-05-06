@@ -165,6 +165,37 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $this->assertCount(3, $response->json('data'));
     }
 
+    public function test_get_orders_index_falls_back_timing_from_first_product(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'estimated_arrival' => 'within 2 hour',
+            'job_duration' => '55 minutes',
+        ]);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'estimated_arrival' => null,
+            'job_duration' => null,
+        ]);
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 10,
+            'subtotal' => 10,
+        ]);
+
+        $response = $this->getJson('/api/orders', $this->bearer($user));
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.id', $order->id);
+        $response->assertJsonPath('data.0.estimated_arrival', 'within 2 hour');
+        $response->assertJsonPath('data.0.job_duration', '55 minutes');
+    }
+
     public function test_post_orders_cancel_succeeds_for_pending_order(): void
     {
         $user = User::factory()->create(['role' => 'client']);
