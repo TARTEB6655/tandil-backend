@@ -136,85 +136,32 @@
         <div class="flex items-stretch gap-3 overflow-x-auto" style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; gap:12px; align-items:stretch;">
             <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-slate-500">Total zones</p>
-                <p class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ method_exists($areas, 'total') ? $areas->total() : $areas->count() }}</p>
+                <p id="ops-total-zones" class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ method_exists($areas, 'total') ? $areas->total() : $areas->count() }}</p>
             </div>
             <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-emerald-700">Operational</p>
-                <p class="mt-1 text-xl font-semibold text-emerald-800 leading-none">{{ $operationalCount }}</p>
+                <p id="ops-operational-zones" class="mt-1 text-xl font-semibold text-emerald-800 leading-none">{{ $operationalCount }}</p>
             </div>
             <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-slate-500">Pinned on map</p>
-                <p class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ $areasWithCoordinates->count() }}</p>
+                <p id="ops-pinned-zones" class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ $areasWithCoordinates->count() }}</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div class="xl:col-span-2 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-                <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-sm font-semibold text-slate-800">UAE Operational Map</h2>
-                        <p class="text-xs text-slate-500 mt-1">Only active zones with valid coordinates are pinned on map.</p>
-                    </div>
-                    <span class="inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-xs font-medium">
-                        Live Pins
-                    </span>
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-800">UAE Operational Map</h2>
+                    <p class="text-xs text-slate-500 mt-1">Only active zones with valid coordinates are pinned on map.</p>
                 </div>
-                <div id="uae-operational-map" class="w-full" style="height: 440px; min-height: 440px;"></div>
-                <div id="uae-map-empty-state" class="hidden border-t border-slate-200 px-5 py-3 text-xs text-amber-700 bg-amber-50">
-                    No active zones with coordinates found. Add latitude/longitude and enable an area to see map pins.
-                </div>
+                <span class="inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-xs font-medium">
+                    Live Pins
+                </span>
             </div>
-
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-semibold text-slate-800">Quick Operational Toggles</h3>
-                    <span class="text-xs text-slate-500">{{ method_exists($areas, 'total') ? $areas->total() : $areas->count() }} zones</span>
-                </div>
-                <div class="space-y-3 max-h-[440px] overflow-y-auto pr-1">
-                    @forelse($areas as $area)
-                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-900">{{ $area->name }}</p>
-                                    <p class="text-xs text-slate-500">{{ $area->country ?: 'UAE' }}{{ $area->location ? ' · '.$area->location : '' }}</p>
-                                </div>
-                                <button type="button"
-                                    class="js-area-toggle ops-switch"
-                                    data-area-id="{{ $area->id }}"
-                                    data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
-                                    data-is-active="{{ $area->is_active ? '1' : '0' }}"
-                                    data-active="{{ $area->is_active ? '1' : '0' }}"
-                                    role="switch"
-                                    aria-checked="{{ $area->is_active ? 'true' : 'false' }}"
-                                    title="{{ $area->is_active ? 'Disable area' : 'Enable area' }}">
-                                    <span class="js-area-toggle-knob ops-switch-knob"></span>
-                                </button>
-                            </div>
-                            <div class="mt-2 flex items-center justify-between">
-                                <span class="js-area-toggle-status inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {{ $area->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' }}">
-                                    {{ $area->is_active ? 'Enabled' : 'Disabled' }}
-                                </span>
-                                <a href="{{ route('admin.areas.edit', $area->id) }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Manage</a>
-                            </div>
-                        </div>
-                    @empty
-                        <p class="text-sm text-slate-500">{{ __('admin.no_areas_found') }}</p>
-                    @endforelse
-                </div>
+            <div id="uae-operational-map" class="w-full" style="height: 440px; min-height: 440px;"></div>
+            <div id="uae-map-empty-state" class="hidden border-t border-slate-200 px-5 py-3 text-xs text-amber-700 bg-amber-50">
+                No active zones with coordinates found. Add latitude/longitude and enable an area to see map pins.
             </div>
-            @if(method_exists($areas, 'links'))
-                <div class="mt-4">
-                    {{ $areas->links() }}
-                </div>
-            @endif
-        </div>
-
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-            <form method="GET" action="{{ route('admin.areas.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search city / zone / country..." class="md:col-span-3 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                <button type="submit" class="rounded-lg bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">Search</button>
-                <a href="{{ route('admin.areas.index') }}" class="rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-center hover:bg-slate-200">Clear</a>
-            </form>
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -231,7 +178,6 @@
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Priority</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Coordinates</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Operational Toggle</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -266,6 +212,9 @@
                                         class="js-area-toggle ops-switch"
                                         data-area-id="{{ $area->id }}"
                                         data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
+                                        data-area-name="{{ $area->name }}"
+                                        data-area-location="{{ $area->location }}"
+                                        data-area-country="{{ $area->country ?: 'UAE' }}"
                                         data-is-active="{{ $area->is_active ? '1' : '0' }}"
                                         data-active="{{ $area->is_active ? '1' : '0' }}"
                                         role="switch"
@@ -274,19 +223,37 @@
                                         <span class="js-area-toggle-knob ops-switch-knob"></span>
                                     </button>
                                 </td>
-                                <td class="px-4 py-3 text-sm">
-                                    <a href="{{ route('admin.areas.edit', $area->id) }}" class="text-indigo-600 hover:text-indigo-800 mr-3">Edit</a>
-                                    <a href="{{ route('admin.areas.show', $area->id) }}" class="text-slate-600 hover:text-slate-800">View</a>
-                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-sm text-slate-500">{{ __('admin.no_areas_found') }}</td>
+                                <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-500">{{ __('admin.no_areas_found') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+        </div>
+        @if(method_exists($areas, 'links'))
+            <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p class="text-xs text-slate-500">
+                    Showing {{ $areas->firstItem() ?? 0 }}-{{ $areas->lastItem() ?? 0 }} of {{ $areas->total() }} cities/zones
+                </p>
+                <div>
+                    {{ $areas->links() }}
+                </div>
+            </div>
+        @endif
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <form method="GET" action="{{ route('admin.areas.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search city / zone / country..." class="md:col-span-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                <select name="per_page" class="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    @foreach([10, 25, 50, 100] as $size)
+                        <option value="{{ $size }}" {{ (int) request('per_page', 25) === $size ? 'selected' : '' }}>{{ $size }} / page</option>
+                    @endforeach
+                </select>
+                <button type="submit" class="rounded-lg bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">Apply</button>
+                <a href="{{ route('admin.areas.index') }}" class="rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-center hover:bg-slate-200">Clear</a>
+            </form>
         </div>
     </div>
 
@@ -314,7 +281,10 @@
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            const areas = @json($areasForMapData);
+            let areas = @json($areasForMapData);
+            const totalEl = document.getElementById('ops-total-zones');
+            const operationalEl = document.getElementById('ops-operational-zones');
+            const pinnedEl = document.getElementById('ops-pinned-zones');
             const customPin = L.divIcon({
                 className: 'ops-map-pin-wrapper',
                 html: '<span class="ops-map-pin"></span>',
@@ -337,19 +307,45 @@
                 `;
             }
 
+            function resolveFallbackCenter(area) {
+                if (area && area.fallback_center && !Number.isNaN(Number(area.fallback_center.lat)) && !Number.isNaN(Number(area.fallback_center.lng))) {
+                    return {
+                        lat: Number(area.fallback_center.lat),
+                        lng: Number(area.fallback_center.lng),
+                    };
+                }
+                const hay = String(`${area?.name || ''} ${area?.location || ''}`).trim().toLowerCase();
+                if (!hay) return null;
+                const cityCenters = [
+                    ['abu dhabi', 24.4539, 54.3773],
+                    ['dubai', 25.2048, 55.2708],
+                    ['sharjah', 25.3463, 55.4209],
+                    ['ajman', 25.4052, 55.5136],
+                    ['umm al quwain', 25.5647, 55.5552],
+                    ['ras al khaimah', 25.7895, 55.9432],
+                    ['fujairah', 25.1288, 56.3265],
+                    ['al ain', 24.2075, 55.7447],
+                ];
+                for (const [city, lat, lng] of cityCenters) {
+                    if (hay.includes(city)) return { lat, lng };
+                }
+                return null;
+            }
+
             function addMarker(area) {
+                if (!area || !area.is_active) return;
                 const country = String(area.country || '').trim().toLowerCase();
                 if (country !== '' && country !== 'uae' && country !== 'united arab emirates') return;
                 let lat = Number(area.latitude);
                 let lng = Number(area.longitude);
-                if ((Number.isNaN(lat) || Number.isNaN(lng)) && area.fallback_center) {
-                    lat = Number(area.fallback_center.lat);
-                    lng = Number(area.fallback_center.lng);
-                }
                 if (Number.isNaN(lat) || Number.isNaN(lng)) {
-                    lat = 24.4539; // Abu Dhabi default center
-                    lng = 54.3773;
+                    const fallback = resolveFallbackCenter(area);
+                    if (fallback) {
+                        lat = fallback.lat;
+                        lng = fallback.lng;
+                    }
                 }
+                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
                 if (!uaeBounds.contains([lat, lng])) return;
                 if (markers[area.id]) return;
                 markers[area.id] = L.marker([lat, lng], { icon: customPin }).addTo(map).bindPopup(pinPopup(area));
@@ -361,31 +357,74 @@
                 delete markers[areaId];
             }
 
-            areas.forEach((area) => {
-                if (!area.is_active) return;
-                const country = String(area.country || '').trim().toLowerCase();
-                if (country !== '' && country !== 'uae' && country !== 'united arab emirates') return;
-                let lat = Number(area.latitude);
-                let lng = Number(area.longitude);
-                if ((Number.isNaN(lat) || Number.isNaN(lng)) && area.fallback_center) {
-                    lat = Number(area.fallback_center.lat);
-                    lng = Number(area.fallback_center.lng);
-                }
-                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-                if (!uaeBounds.contains([lat, lng])) return;
-
-                addMarker(area);
-                bounds.push([lat, lng]);
-            });
-
-            if (bounds.length > 0) {
-                map.fitBounds(L.latLngBounds(bounds).pad(0.08), { padding: [24, 24], maxZoom: 10 });
-            } else {
-                const emptyState = document.getElementById('uae-map-empty-state');
-                if (emptyState) emptyState.classList.remove('hidden');
-                map.fitBounds(uaeBounds, { padding: [16, 16] });
+            function clearMarkers() {
+                Object.keys(markers).forEach((k) => {
+                    if (markers[k]) {
+                        map.removeLayer(markers[k]);
+                    }
+                    delete markers[k];
+                });
             }
+
+            function renderPins(sourceAreas) {
+                clearMarkers();
+                const localBounds = [];
+                sourceAreas.forEach((area) => {
+                    if (!area || !area.is_active) return;
+                    const country = String(area.country || '').trim().toLowerCase();
+                    if (country !== '' && country !== 'uae' && country !== 'united arab emirates') return;
+                    let lat = Number(area.latitude);
+                    let lng = Number(area.longitude);
+                    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                        const fallback = resolveFallbackCenter(area);
+                        if (fallback) {
+                            lat = fallback.lat;
+                            lng = fallback.lng;
+                        }
+                    }
+                    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+                    if (!uaeBounds.contains([lat, lng])) return;
+                    addMarker({ ...area, latitude: lat, longitude: lng });
+                    localBounds.push([lat, lng]);
+                });
+
+                if (localBounds.length > 0) {
+                    map.fitBounds(L.latLngBounds(localBounds).pad(0.08), { padding: [24, 24], maxZoom: 10 });
+                    document.getElementById('uae-map-empty-state')?.classList.add('hidden');
+                } else {
+                    document.getElementById('uae-map-empty-state')?.classList.remove('hidden');
+                    map.fitBounds(uaeBounds, { padding: [16, 16] });
+                }
+            }
+
+            async function refreshOperationalMeta() {
+                try {
+                    const params = new URLSearchParams({
+                        country: 'UAE',
+                        per_page: '10',
+                        page: '1',
+                        search: '{{ request('search') }}'
+                    });
+                    const res = await fetch(`/api/admin/operational-areas?${params.toString()}`, {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    });
+                    if (!res.ok) return;
+                    const payload = await res.json();
+                    if (!payload?.success) return;
+                    const summary = payload?.data?.summary || {};
+                    if (totalEl) totalEl.textContent = String(summary.total_zones ?? totalEl.textContent);
+                    if (operationalEl) operationalEl.textContent = String(summary.operational_zones ?? operationalEl.textContent);
+                    if (pinnedEl) pinnedEl.textContent = String(summary.pinned_on_map ?? pinnedEl.textContent);
+
+                } catch (e) {
+                    // non-blocking metadata refresh
+                }
+            }
+
+            renderPins(areas);
             setTimeout(() => map.invalidateSize(), 120);
+            refreshOperationalMeta();
 
             const csrf = @json(csrf_token());
             const toggleButtons = Array.from(document.querySelectorAll('.js-area-toggle'));
@@ -435,11 +474,18 @@
                         setButtonState(button, isActive);
 
                         if (isActive) {
-                            addMarker(area);
+                            addMarker({
+                                ...area,
+                                name: area.name || button.dataset.areaName || '',
+                                location: area.location || button.dataset.areaLocation || '',
+                                country: area.country || button.dataset.areaCountry || 'UAE',
+                                is_active: true,
+                            });
                         } else {
                             removeMarker(String(area.id));
                             removeMarker(Number(area.id));
                         }
+                        refreshOperationalMeta();
                     } catch (err) {
                         // Revert optimistic state on failure.
                         setButtonState(button, prevState);

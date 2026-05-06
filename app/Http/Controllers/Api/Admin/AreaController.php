@@ -19,7 +19,7 @@ class AreaController extends Controller
 {
     /**
      * GET /api/admin/operational-areas
-     * App-ready payload for Operational Areas screen (summary + map pins + paginated list).
+     * App-ready payload for Operational Areas screen (summary + paginated list).
      */
     public function operationalAreas(Request $request): JsonResponse
     {
@@ -75,25 +75,19 @@ class AreaController extends Controller
             'operational_zones' => $hasIsActive ? $all->where('is_active', true)->count() : $all->count(),
             'pinned_on_map' => $all->filter(function (Area $a) use ($hasIsActive, $hasLat, $hasLng) {
                 $activeOk = ! $hasIsActive || (bool) $a->is_active;
-                $coordsOk = $hasLat && $hasLng && $a->latitude !== null && $a->longitude !== null;
+                $coordsOk = ($hasLat && $hasLng && $a->latitude !== null && $a->longitude !== null)
+                    || $this->resolveUaeFallbackCenter($a) !== null;
                 return $activeOk && $coordsOk;
             })->count(),
         ];
 
         $paginator = $ordered->paginate($perPage);
         $listData = $paginator->getCollection()->map(fn (Area $a) => $this->operationalAreaPayload($a))->values()->all();
-        $mapPins = $all->filter(function (Area $a) use ($hasIsActive, $hasLat, $hasLng) {
-            $activeOk = ! $hasIsActive || (bool) $a->is_active;
-            $coordsOk = $hasLat && $hasLng && $a->latitude !== null && $a->longitude !== null;
-            return $activeOk && $coordsOk;
-        })->map(fn (Area $a) => $this->operationalAreaPayload($a))->values()->all();
-
         return response()->json([
             'success' => true,
             'message' => 'Operational areas retrieved successfully.',
             'data' => [
                 'summary' => $summary,
-                'map_pins' => $mapPins,
                 'areas' => $listData,
             ],
             'pagination' => [
@@ -516,5 +510,35 @@ class AreaController extends Controller
                 ? $area->supervisors->map(fn (User $u) => ['id' => (int) $u->id, 'name' => $u->name])->values()->all()
                 : [],
         ];
+    }
+
+    private function resolveUaeFallbackCenter(Area $area): ?array
+    {
+        $cityCenters = [
+            'abu dhabi' => ['lat' => 24.4539, 'lng' => 54.3773],
+            'al ain' => ['lat' => 24.2075, 'lng' => 55.7447],
+            'dubai' => ['lat' => 25.2048, 'lng' => 55.2708],
+            'sharjah' => ['lat' => 25.3463, 'lng' => 55.4209],
+            'ajman' => ['lat' => 25.4052, 'lng' => 55.5136],
+            'umm al quwain' => ['lat' => 25.5647, 'lng' => 55.5552],
+            'ras al khaimah' => ['lat' => 25.7895, 'lng' => 55.9432],
+            'fujairah' => ['lat' => 25.1288, 'lng' => 56.3265],
+            'khor fakkan' => ['lat' => 25.3397, 'lng' => 56.3576],
+            'kalba' => ['lat' => 24.9982, 'lng' => 56.2721],
+            'dibba' => ['lat' => 25.5925, 'lng' => 56.2618],
+            'hatta' => ['lat' => 24.8095, 'lng' => 56.1225],
+        ];
+
+        $haystack = strtolower(trim((string) ($area->name ?? '') . ' ' . (string) ($area->location ?? '')));
+        if ($haystack === '') {
+            return null;
+        }
+        foreach ($cityCenters as $key => $coords) {
+            if (str_contains($haystack, $key)) {
+                return $coords;
+            }
+        }
+
+        return null;
     }
 }

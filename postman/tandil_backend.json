@@ -15268,7 +15268,17 @@
                                         }
                                     ]
                                 },
-                                "description": "App UI endpoint for operational areas dashboard. GET /api/admin/operational-areas. Query: country, per_page, page, search. Returns summary, map_pins, areas[], pagination."
+                                "description": "App UI endpoint for operational areas dashboard. GET /api/admin/operational-areas. Query: country, per_page, page, search. Returns summary, areas[], pagination (no map_pins). Auth: Admin required (Bearer token OR logged-in web admin session).",
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
                             },
                             "response": []
                         },
@@ -15295,7 +15305,17 @@
                                         "toggle-active"
                                     ]
                                 },
-                                "description": "Toggle area active state for app switch. POST /api/admin/operational-areas/:area_id/toggle-active. Set area_id."
+                                "description": "Toggle area active state for app switch. POST /api/admin/operational-areas/:area_id/toggle-active. Set area_id. Auth: Admin required (Bearer token OR logged-in web admin session).",
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
                             },
                             "response": []
                         },

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Models\Area;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\UserAddress;
 use App\Models\UserPaymentMethod;
 use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
@@ -18,6 +20,7 @@ use App\Support\OrderSupervisorNotifier;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Shop checkout: Stripe Checkout or PayPal only (no Checkout.com).
@@ -77,6 +80,9 @@ class ShopPaymentController extends Controller
                 'items.*.qty' => 'required|integer|min:1',
                 'special_instructions' => 'nullable|string|max:2000',
             ], ['items.*.product_id.exists' => 'One or more product_id values are invalid.']);
+            if ($blocked = $this->blockedByInactiveOperationalArea($request, null)) {
+                return $blocked;
+            }
             $order = $this->orders->createGuestOrder($request, $method);
         } else {
             $request->validate([
@@ -91,6 +97,9 @@ class ShopPaymentController extends Controller
                 'items.*.qty' => 'required_with:items|integer|min:1',
                 'special_instructions' => 'nullable|string|max:2000',
             ], ['items.*.product_id.exists' => 'One or more product_id values are invalid.']);
+            if ($blocked = $this->blockedByInactiveOperationalArea($request, $user)) {
+                return $blocked;
+            }
             $order = $this->orders->createLoggedInOrder($request, $method);
         }
 
@@ -452,5 +461,67 @@ class ShopPaymentController extends Controller
         }
 
         $pm->save();
+    }
+
+    /**
+     * Block checkout when the resolved area exists but is inactive.
+     */
+    private function blockedByInactiveOperationalArea(Request $request, ?User $user): ?\Illuminate\Http\JsonResponse
+    {
+        if (! Schema::hasTable('areas') || ! Schema::hasColumn('areas', 'is_active')) {
+            return null;
+        }
+
+        $city = null;
+        $country = null;
+        if ($user !== null && $request->filled('address_id')) {
+            $address = UserAddress::query()
+                ->where('user_id', $user->id)
+                ->find((int) $request->input('address_id'));
+            if ($address) {
+                $city = $address->city;
+                $country = $address->country;
+            }
+        }
+        if ($city === null || $city === '') {
+            $city = (string) $request->input('city', '');
+            $country = (string) $request->input('country', '');
+        }
+
+        $city = trim((string) $city);
+        $country = trim((string) $country);
+        if ($city === '') {
+            return null;
+        }
+
+        $query = Area::query();
+        if ($country !== '' && Schema::hasColumn('areas', 'country')) {
+            $query->whereRaw('LOWER(TRIM(country)) = ?', [mb_strtolower($country)]);
+        }
+        $query->where(function ($q) use ($city) {
+            $cityLc = mb_strtolower($city);
+            if (Schema::hasColumn('areas', 'name')) {
+                $q->orWhereRaw('LOWER(TRIM(name)) = ?', [$cityLc])
+                    ->orWhere('name', 'like', '%' . $city . '%');
+            }
+            if (Schema::hasColumn('areas', 'location')) {
+                $q->orWhereRaw('LOWER(TRIM(location)) = ?', [$cityLc])
+                    ->orWhere('location', 'like', '%' . $city . '%');
+            }
+        });
+
+        $matches = $query->get();
+        if ($matches->isEmpty()) {
+            return null;
+        }
+
+        if ($matches->contains(fn ($a) => (bool) ($a->is_active ?? true))) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Currently this area is not operational. Please try sometime.',
+        ], 422);
     }
 }

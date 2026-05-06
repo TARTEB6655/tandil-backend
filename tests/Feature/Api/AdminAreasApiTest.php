@@ -88,7 +88,7 @@ class AdminAreasApiTest extends TestCase
         $this->assertStringContainsString('Abu', $data[0]['location']);
     }
 
-    public function test_operational_areas_endpoint_returns_summary_map_and_paginated_areas(): void
+    public function test_operational_areas_endpoint_returns_summary_and_paginated_areas_without_map_pins(): void
     {
         $active = Area::factory()->create([
             'name' => 'Abu Dhabi City',
@@ -118,11 +118,11 @@ class AdminAreasApiTest extends TestCase
         $response->assertJsonStructure([
             'data' => [
                 'summary' => ['total_zones', 'operational_zones', 'pinned_on_map'],
-                'map_pins' => [['id', 'name', 'is_active', 'latitude', 'longitude']],
                 'areas' => [['id', 'name', 'location', 'country', 'is_active', 'priority', 'supervisors']],
             ],
             'pagination' => ['current_page', 'last_page', 'per_page', 'total'],
         ]);
+        $this->assertArrayNotHasKey('map_pins', $response->json('data'));
 
         $areaIds = collect($response->json('data.areas'))->pluck('id')->all();
         $this->assertContains($active->id, $areaIds);

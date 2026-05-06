@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Category;
+use App\Models\Area;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Setting;
@@ -139,6 +140,44 @@ class ShopPaymentApiSmokeTest extends TestCase
         $response->assertJsonPath('data.order_id', Order::query()->latest('id')->first()->id);
         $this->assertNotEmpty($response->json('data.paypal_order_id'));
         $this->assertNotEmpty($response->json('data.approval_url'));
+    }
+
+    public function test_post_checkout_start_blocks_when_resolved_area_is_inactive(): void
+    {
+        Setting::set('paypal_enabled', '1');
+        Config::set('payments.paypal.client_id', '');
+        Config::set('payments.paypal.secret', '');
+
+        Area::factory()->create([
+            'name' => 'Dubai City',
+            'location' => 'Dubai',
+            'country' => 'UAE',
+            'is_active' => false,
+        ]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 10.00,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/checkout/start', [
+            'payment_method' => 'paypal',
+            'email' => 'guest@example.com',
+            'full_name' => 'Guest',
+            'phone_number' => '+971501234567',
+            'street_address' => 'Road 1',
+            'city' => 'Dubai',
+            'country' => 'UAE',
+            'items' => [['product_id' => $product->id, 'qty' => 1]],
+            'success_url' => 'https://example.com/ok',
+            'cancel_url' => 'https://example.com/cancel',
+        ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonPath('message', 'Currently this area is not operational. Please try sometime.');
     }
 
     public function test_post_paypal_capture_marks_order_paid_with_placeholder_capture(): void

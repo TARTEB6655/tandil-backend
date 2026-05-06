@@ -61,9 +61,12 @@ class AreaController extends Controller
         }
 
         $areasForMap = (clone $query)->get();
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = (int) $request->input('per_page', 25);
         if ($perPage < 1) {
-            $perPage = 10;
+            $perPage = 25;
+        }
+        if ($perPage > 100) {
+            $perPage = 100;
         }
         $areas = $query->paginate($perPage)->withQueryString();
 
