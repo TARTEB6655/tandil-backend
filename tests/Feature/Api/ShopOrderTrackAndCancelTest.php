@@ -124,6 +124,47 @@ class ShopOrderTrackAndCancelTest extends TestCase
             ->assertStatus(403);
     }
 
+    public function test_get_orders_index_includes_guest_orders_for_same_email_client(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'client',
+            'email' => 'client1@test.com',
+        ]);
+
+        $owned = Order::factory()->create([
+            'user_id' => $user->id,
+            'guest_email' => null,
+        ]);
+        $guestSameEmail = Order::factory()->create([
+            'user_id' => null,
+            'guest_email' => 'client1@test.com',
+        ]);
+        Order::factory()->create([
+            'user_id' => null,
+            'guest_email' => 'other@test.com',
+        ]);
+
+        $response = $this->getJson('/api/orders', $this->bearer($user));
+
+        $response->assertOk();
+        $response->assertJsonPath('pagination.total', 2);
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertContains($owned->id, $ids);
+        $this->assertContains($guestSameEmail->id, $ids);
+    }
+
+    public function test_get_orders_index_returns_all_orders_for_admin(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Order::factory()->count(3)->create();
+
+        $response = $this->getJson('/api/orders', $this->bearer($admin));
+
+        $response->assertOk();
+        $response->assertJsonPath('pagination.total', 3);
+        $this->assertCount(3, $response->json('data'));
+    }
+
     public function test_post_orders_cancel_succeeds_for_pending_order(): void
     {
         $user = User::factory()->create(['role' => 'client']);

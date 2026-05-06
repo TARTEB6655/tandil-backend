@@ -18,9 +18,27 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $query = Order::where('user_id', $user->id)
+        $query = Order::query()
             ->with(['items.product', 'user'])
             ->latest();
+
+        $roleValue = strtolower(trim((string) ($user->role ?? '')));
+        $isAdminLike = in_array($roleValue, ['admin', 'supervisor', 'area_manager'], true)
+            || $user->hasRole('admin')
+            || $user->hasRole('supervisor')
+            || $user->hasRole('area_manager');
+        if (! $isAdminLike) {
+            $userEmail = strtolower(trim((string) ($user->email ?? '')));
+            $query->where(function ($q) use ($user, $userEmail) {
+                $q->where('user_id', $user->id);
+                if ($userEmail !== '') {
+                    $q->orWhere(function ($guest) use ($userEmail) {
+                        $guest->whereNull('user_id')
+                            ->whereRaw('LOWER(TRIM(guest_email)) = ?', [$userEmail]);
+                    });
+                }
+            });
+        }
 
         // Filter by status
         if ($request->has('status')) {

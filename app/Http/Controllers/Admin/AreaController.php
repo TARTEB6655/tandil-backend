@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class AreaController extends Controller
 {
@@ -28,26 +29,53 @@ class AreaController extends Controller
     public function index(Request $request)
     {
         $query = Area::with(['supervisors', 'technicians', 'visits']);
+        $hasName = Schema::hasColumn('areas', 'name');
+        $hasLocation = Schema::hasColumn('areas', 'location');
+        $hasPriority = Schema::hasColumn('areas', 'priority');
 
         if ($request->has('search') && $request->search) {
             $search = trim((string) $request->search);
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                    ->orWhere('location', 'LIKE', "%{$search}%")
-                    ->orWhere('country', 'LIKE', "%{$search}%")
-                    ->orWhere('description', 'LIKE', "%{$search}%");
+                if (Schema::hasColumn('areas', 'name')) {
+                    $q->orWhere('name', 'LIKE', "%{$search}%");
+                }
+                if (Schema::hasColumn('areas', 'location')) {
+                    $q->orWhere('location', 'LIKE', "%{$search}%");
+                }
+                if (Schema::hasColumn('areas', 'country')) {
+                    $q->orWhere('country', 'LIKE', "%{$search}%");
+                }
+                if (Schema::hasColumn('areas', 'description')) {
+                    $q->orWhere('description', 'LIKE', "%{$search}%");
+                }
             });
         }
 
-        $areas = $query->orderBy('priority', 'asc')
-            ->orderBy('name', 'asc')
-            ->get();
+        if ($hasPriority) {
+            $query->orderBy('priority', 'asc');
+        }
+        if ($hasName) {
+            $query->orderBy('name', 'asc');
+        } elseif ($hasLocation) {
+            $query->orderBy('location', 'asc');
+        }
+
+        $areas = $query->get();
 
         return view('admin.areas.index', compact('areas'));
     }
 
     public function toggleActive(Request $request, int $id)
     {
+        if (! Schema::hasColumn('areas', 'is_active')) {
+            $message = "The 'is_active' column is missing in areas table. Please run migrations.";
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->with('error', $message);
+        }
+
         $area = Area::with('supervisors')->findOrFail($id);
         $area->is_active = ! (bool) $area->is_active;
         $area->save();
