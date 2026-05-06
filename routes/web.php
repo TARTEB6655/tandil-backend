@@ -185,6 +185,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::delete('report-management/{id}', [ReportManagementController::class, 'destroy'])->name('report-management.destroy');
 
         Route::get('zone-assignment', [AreaController::class, 'zoneAssignment'])->name('zone-assignment.index');
+        Route::post('areas/{id}/toggle-active', [AreaController::class, 'toggleActive'])->name('areas.toggle-active');
         Route::resource('areas', AreaController::class);
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
         Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');

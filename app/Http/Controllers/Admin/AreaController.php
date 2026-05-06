@@ -30,13 +30,50 @@ class AreaController extends Controller
         $query = Area::with(['supervisors', 'technicians', 'visits']);
 
         if ($request->has('search') && $request->search) {
-            $query->where('name', 'LIKE', "%{$request->search}%")
-                  ->orWhere('description', 'LIKE', "%{$request->search}%");
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('location', 'LIKE', "%{$search}%")
+                    ->orWhere('country', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
+            });
         }
 
-        $areas = $query->orderBy('name', 'asc')->paginate(15);
-        
+        $areas = $query->orderBy('priority', 'asc')
+            ->orderBy('name', 'asc')
+            ->get();
+
         return view('admin.areas.index', compact('areas'));
+    }
+
+    public function toggleActive(Request $request, int $id)
+    {
+        $area = Area::with('supervisors')->findOrFail($id);
+        $area->is_active = ! (bool) $area->is_active;
+        $area->save();
+
+        $message = $area->is_active
+            ? "Area '{$area->name}' is now enabled."
+            : "Area '{$area->name}' is now disabled.";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'id' => $area->id,
+                    'is_active' => (bool) $area->is_active,
+                    'name' => $area->name,
+                    'latitude' => $area->latitude,
+                    'longitude' => $area->longitude,
+                    'location' => $area->location,
+                    'country' => $area->country,
+                    'supervisors' => $area->supervisors->pluck('name')->values(),
+                ],
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function create()
