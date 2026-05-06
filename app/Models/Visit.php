@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Notifications\AdminNotification;
+use App\Support\VisitOrderTrackingSync;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -95,6 +96,7 @@ class Visit extends Model
             if ($visit->area_id && $visit->supervisor_id) {
                 self::notifyNewJobAssignedToSupervisor($visit);
             }
+            VisitOrderTrackingSync::syncFromVisit($visit);
         });
 
         static::updated(function (Visit $visit): void {
@@ -104,6 +106,14 @@ class Visit extends Model
             }
             if ($visit->wasChanged('supervisor_id') || ($visit->wasChanged('area_id') && $visit->supervisor_id)) {
                 self::notifyNewJobAssignedToSupervisor($visit);
+            }
+            if (
+                $visit->wasChanged('status')
+                || $visit->wasChanged('technician_id')
+                || $visit->wasChanged('supervisor_id')
+                || $visit->wasChanged('notes')
+            ) {
+                VisitOrderTrackingSync::syncFromVisit($visit);
             }
         });
     }

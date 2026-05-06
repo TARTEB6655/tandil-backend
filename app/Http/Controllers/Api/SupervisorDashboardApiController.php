@@ -13,6 +13,7 @@ use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
 use App\Models\TechnicianBreak;
 use App\Models\Order;
+use App\Support\VisitOrderTrackingSync;
 use App\Models\Area;
 use App\Models\Complaint;
 use App\Models\LeaveRequest;
@@ -1424,6 +1425,9 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $report->approved_by = $request->user()->id;
         $report->approved_at = now();
         $report->save();
+        if ($report->visit) {
+            VisitOrderTrackingSync::syncFromVisit($report->visit);
+        }
 
         return response()->json([
             'success' => true,

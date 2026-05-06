@@ -6,6 +6,7 @@ use App\Models\Area;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Report;
 use App\Models\User;
 use App\Models\Visit;
 use App\Models\Setting;
@@ -125,6 +126,40 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $this->assertSame($clientEmail, $customer['email'] ?? null);
         $this->assertSame($clientPhone, $customer['phone'] ?? null);
         $this->assertNotEmpty((string) ($customer['name'] ?? ''));
+
+        // 2b) Order tracking should auto-progress with visit lifecycle.
+        $order->refresh();
+        $this->assertSame('confirmed', (string) $order->order_status);
+
+        $technician = User::factory()->create(['role' => 'technician', 'email' => 'tech-smoke@example.com']);
+        $visit->technician_id = $technician->id;
+        $visit->status = 'pending_acceptance';
+        $visit->save();
+        $order->refresh();
+        $this->assertSame('assigned', (string) $order->order_status);
+
+        $visit->status = 'in_progress';
+        $visit->save();
+        $order->refresh();
+        $this->assertSame('in_progress', (string) $order->order_status);
+
+        $report = Report::factory()->create([
+            'visit_id' => $visit->id,
+            'supervisor_id' => $supervisor->id,
+            'status' => 'pending',
+        ]);
+        $visit->status = 'completed';
+        $visit->save();
+        $order->refresh();
+        // Completed requires supervisor report approval, so keep in_progress until report is approved.
+        $this->assertSame('in_progress', (string) $order->order_status);
+
+        $this->actingAs($supervisor, 'sanctum')
+            ->postJson('/api/supervisor/reports/' . $report->id . '/accept')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+        $order->refresh();
+        $this->assertSame('completed', (string) $order->order_status);
     }
 }
 
