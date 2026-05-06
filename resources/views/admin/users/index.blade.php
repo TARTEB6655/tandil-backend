@@ -103,6 +103,7 @@
                             <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">{{ __('admin.email') }}</th>
                             <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">{{ __('admin.phone') }}</th>
                             <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.role') }}</th>
+                            <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">Active Zone(s)</th>
                             <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.status') }}</th>
                             <th class="px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ __('admin.actions') }}</th>
                         </tr>
@@ -127,6 +128,33 @@
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
                                         {{ ucfirst(str_replace('_', ' ', $user->role)) }}
                                     </span>
+                                </td>
+                                <td class="px-4 sm:px-6 py-4 hidden lg:table-cell">
+                                    @php
+                                        $role = strtolower((string) $user->role);
+                                        $zones = collect();
+                                        if ($role === 'supervisor') {
+                                            $zones = $user->supervisedAreas ?? collect();
+                                        } elseif ($role === 'technician') {
+                                            $zones = $user->assignedAreas ?? collect();
+                                        }
+                                    @endphp
+                                    @if($zones->isNotEmpty())
+                                        <div class="flex flex-wrap gap-1.5">
+                                            @foreach($zones->take(3) as $zone)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-medium">
+                                                    {{ $zone->name }}
+                                                </span>
+                                            @endforeach
+                                            @if($zones->count() > 3)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-600 text-xs font-medium">
+                                                    +{{ $zones->count() - 3 }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-400">Not assigned</span>
+                                    @endif
                                 </td>
                                 <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium {{ $user->status == 'active' ? 'bg-gray-100 text-gray-700' : 'bg-gray-200 text-gray-600' }}">
@@ -156,7 +184,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-4 sm:px-6 py-12 text-center">
+                                <td colspan="7" class="px-4 sm:px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />

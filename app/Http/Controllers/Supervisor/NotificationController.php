@@ -22,8 +22,9 @@ class NotificationController extends Controller
     public function index(Request $request): View
     {
         [$notifications, $unreadCount] = $this->paginatedInbox($request);
+        $activeFilter = $request->query('filter', 'all');
 
-        return view('supervisor.notifications.index', compact('notifications', 'unreadCount'));
+        return view('supervisor.notifications.index', compact('notifications', 'unreadCount', 'activeFilter'));
     }
 
     public function markAsRead($id): RedirectResponse

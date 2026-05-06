@@ -19,7 +19,7 @@ class UserController extends Controller
     // List users with their roles
     public function index(Request $request)
     {
-        $query = User::with('roles');
+        $query = User::with(['roles', 'supervisedAreas:id,name', 'assignedAreas:id,name']);
 
         // Search
         if ($request->has('search') && $request->search) {

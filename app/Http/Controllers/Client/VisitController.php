@@ -154,10 +154,19 @@ class VisitController extends Controller
 
         $areas = Area::with('supervisors')
             ->where('is_active', true)
-            ->when($country !== '', fn ($q) => $q->whereRaw('LOWER(country) = ?', [$country]))
             ->get()
             ->filter(fn (Area $a) => $a->supervisors->isNotEmpty())
             ->values();
+
+        $normalizedCountry = $this->normalizeCountry($country);
+        if ($normalizedCountry !== '') {
+            $countryMatched = $areas->filter(function (Area $area) use ($normalizedCountry) {
+                return $this->normalizeCountry((string) ($area->country ?? '')) === $normalizedCountry;
+            })->values();
+            if ($countryMatched->isNotEmpty()) {
+                $areas = $countryMatched;
+            }
+        }
 
         $matched = $areas->first(function (Area $a) use ($city, $state, $streetAddress, $zipCode) {
             if ($city === '' && $state === '' && $streetAddress === '' && $zipCode === '') {
@@ -213,5 +222,14 @@ class VisitController extends Controller
             * sin($dLon / 2) * sin($dLon / 2);
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         return $earthRadiusKm * $c;
+    }
+
+    private function normalizeCountry(string $country): string
+    {
+        $raw = strtolower(trim($country));
+        return match ($raw) {
+            'uae', 'u.a.e', 'ae', 'united arab emirates' => 'uae',
+            default => $raw,
+        };
     }
 }
