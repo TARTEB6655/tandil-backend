@@ -277,12 +277,14 @@
             const totalEl = document.getElementById('ops-total-zones');
             const operationalEl = document.getElementById('ops-operational-zones');
             const pinnedEl = document.getElementById('ops-pinned-zones');
-            const customPin = L.divIcon({
-                className: 'ops-map-pin-wrapper',
-                html: '<span class="ops-map-pin"></span>',
-                iconSize: [24, 24],
-                iconAnchor: [12, 22],
-                popupAnchor: [0, -20],
+            const customPin = L.icon({
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
             });
 
             const bounds = [];
@@ -355,12 +357,16 @@
                 return null;
             }
 
+            function toCoordinate(value) {
+                if (value === null || value === undefined || value === '') return Number.NaN;
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : Number.NaN;
+            }
+
             function addMarker(area) {
                 if (!area || !area.is_active) return;
-                const country = String(area.country || '').trim().toLowerCase();
-                if (country !== '' && country !== 'uae' && country !== 'united arab emirates') return;
-                let lat = Number(area.latitude);
-                let lng = Number(area.longitude);
+                let lat = toCoordinate(area.latitude);
+                let lng = toCoordinate(area.longitude);
                 if (Number.isNaN(lat) || Number.isNaN(lng)) {
                     const fallback = resolveFallbackCenter(area);
                     if (fallback) {
@@ -396,11 +402,11 @@
                 clearMarkers();
                 const localBounds = [];
                 sourceAreas.forEach((area) => {
-                    if (!area || !area.is_active) return;
-                    const country = String(area.country || '').trim().toLowerCase();
-                    if (country !== '' && country !== 'uae' && country !== 'united arab emirates') return;
-                    let lat = Number(area.latitude);
-                    let lng = Number(area.longitude);
+                    if (!area) return;
+                    const isActive = area.is_active === true || area.is_active === 1 || area.is_active === '1';
+                    if (!isActive) return;
+                    let lat = toCoordinate(area.latitude);
+                    let lng = toCoordinate(area.longitude);
                     if (Number.isNaN(lat) || Number.isNaN(lng)) {
                         const fallback = resolveFallbackCenter(area);
                         if (fallback) {
