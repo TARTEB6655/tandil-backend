@@ -1,4 +1,8 @@
 <x-admin-layout>
+    @php
+        $selectedSupervisorIds = collect(old('supervisors', []))->map(fn ($id) => (int) $id)->all();
+        $selectedTechnicianIds = collect(old('technicians', []))->map(fn ($id) => (int) $id)->all();
+    @endphp
     <div class="space-y-6">
         <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100 mb-6">
             Create New Zone
@@ -69,25 +73,45 @@
                         @error('description') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
+                    <div class="relative js-multiselect" data-placeholder="Select supervisors">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supervisors (optional)</label>
-                        <select name="supervisors[]" multiple size="6" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            @foreach($supervisors as $s)
-                                <option value="{{ $s->id }}" {{ in_array($s->id, old('supervisors', [])) ? 'selected' : '' }}>{{ $s->name }} ({{ $s->email }})</option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+                        <button type="button" class="js-multiselect-trigger w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 bg-white px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-100 shadow-sm">
+                            <span class="js-multiselect-label">Select supervisors</span>
+                        </button>
+                        <div class="js-multiselect-panel hidden absolute z-20 mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl">
+                            <div class="p-2 border-b border-gray-100 dark:border-gray-700">
+                                <input type="text" class="js-multiselect-search w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm" placeholder="Search supervisor...">
+                            </div>
+                            <div class="max-h-56 overflow-auto p-2 space-y-1">
+                                @foreach($supervisors as $s)
+                                    <label class="js-multiselect-option flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200" data-label="{{ strtolower($s->name.' '.$s->email) }}">
+                                        <input type="checkbox" name="supervisors[]" value="{{ $s->id }}" {{ in_array((int) $s->id, $selectedSupervisorIds, true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span>{{ $s->name }} <span class="text-xs text-gray-500">({{ $s->email }})</span></span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
                         @error('supervisors.*') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
+                    <div class="relative js-multiselect" data-placeholder="Select technicians">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Technicians (optional)</label>
-                        <select name="technicians[]" multiple size="6" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            @foreach($technicians as $t)
-                                <option value="{{ $t->id }}" {{ in_array($t->id, old('technicians', [])) ? 'selected' : '' }}>{{ $t->name }}</option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+                        <button type="button" class="js-multiselect-trigger w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 bg-white px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-100 shadow-sm">
+                            <span class="js-multiselect-label">Select technicians</span>
+                        </button>
+                        <div class="js-multiselect-panel hidden absolute z-20 mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl">
+                            <div class="p-2 border-b border-gray-100 dark:border-gray-700">
+                                <input type="text" class="js-multiselect-search w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm" placeholder="Search technician...">
+                            </div>
+                            <div class="max-h-56 overflow-auto p-2 space-y-1">
+                                @foreach($technicians as $t)
+                                    <label class="js-multiselect-option flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200" data-label="{{ strtolower($t->name) }}">
+                                        <input type="checkbox" name="technicians[]" value="{{ $t->id }}" {{ in_array((int) $t->id, $selectedTechnicianIds, true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span>{{ $t->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
                         @error('technicians.*') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -99,4 +123,51 @@
             </form>
         </div>
     </div>
+    <script>
+        (function () {
+            const wrappers = Array.from(document.querySelectorAll('.js-multiselect'));
+            if (!wrappers.length) return;
+
+            function refreshLabel(wrapper) {
+                const checks = wrapper.querySelectorAll('input[type="checkbox"]:checked');
+                const label = wrapper.querySelector('.js-multiselect-label');
+                const placeholder = wrapper.dataset.placeholder || 'Select';
+                if (!label) return;
+                label.textContent = checks.length ? `${checks.length} selected` : placeholder;
+            }
+
+            wrappers.forEach((wrapper) => {
+                const trigger = wrapper.querySelector('.js-multiselect-trigger');
+                const panel = wrapper.querySelector('.js-multiselect-panel');
+                const search = wrapper.querySelector('.js-multiselect-search');
+                const options = Array.from(wrapper.querySelectorAll('.js-multiselect-option'));
+                const checks = Array.from(wrapper.querySelectorAll('input[type="checkbox"]'));
+
+                refreshLabel(wrapper);
+                checks.forEach((cb) => cb.addEventListener('change', () => refreshLabel(wrapper)));
+
+                trigger?.addEventListener('click', () => {
+                    wrappers.forEach((w) => w.querySelector('.js-multiselect-panel')?.classList.add('hidden'));
+                    panel?.classList.toggle('hidden');
+                    if (panel && !panel.classList.contains('hidden')) search?.focus();
+                });
+
+                search?.addEventListener('input', () => {
+                    const q = search.value.trim().toLowerCase();
+                    options.forEach((opt) => {
+                        const txt = opt.dataset.label || '';
+                        opt.classList.toggle('hidden', q !== '' && !txt.includes(q));
+                    });
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                wrappers.forEach((wrapper) => {
+                    if (!wrapper.contains(e.target)) {
+                        wrapper.querySelector('.js-multiselect-panel')?.classList.add('hidden');
+                    }
+                });
+            });
+        })();
+    </script>
 </x-admin-layout>
