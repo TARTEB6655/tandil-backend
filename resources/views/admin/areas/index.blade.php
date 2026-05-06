@@ -24,8 +24,38 @@
     </style>
 
     @php
+        $uaeCityCenters = [
+            'abu dhabi' => ['lat' => 24.4539, 'lng' => 54.3773],
+            'dubai' => ['lat' => 25.2048, 'lng' => 55.2708],
+            'sharjah' => ['lat' => 25.3463, 'lng' => 55.4209],
+            'ajman' => ['lat' => 25.4052, 'lng' => 55.5136],
+            'umm al quwain' => ['lat' => 25.5647, 'lng' => 55.5552],
+            'ras al khaimah' => ['lat' => 25.7895, 'lng' => 55.9432],
+            'fujairah' => ['lat' => 25.1288, 'lng' => 56.3265],
+            'al ain' => ['lat' => 24.2075, 'lng' => 55.7447],
+        ];
+
+        $resolveUaeCenter = function (?string $name, ?string $location) use ($uaeCityCenters): ?array {
+            $haystack = strtolower(trim(($name ?? '').' '.($location ?? '')));
+            if ($haystack === '') {
+                return null;
+            }
+            foreach ($uaeCityCenters as $city => $coords) {
+                if (str_contains($haystack, $city)) {
+                    return $coords;
+                }
+            }
+
+            return null;
+        };
+
         $operationalCount = $areas->where('is_active', true)->count();
-        $areasWithCoordinates = $areas->filter(fn ($a) => $a->latitude !== null && $a->longitude !== null);
+        $areasWithCoordinates = $areas->filter(function ($a) use ($resolveUaeCenter) {
+            if ($a->latitude !== null && $a->longitude !== null) {
+                return true;
+            }
+            return $resolveUaeCenter($a->name, $a->location) !== null;
+        });
         $areasForMap = $areas->map(fn ($a) => [
             'id' => $a->id,
             'name' => $a->name,
@@ -34,6 +64,7 @@
             'is_active' => (bool) $a->is_active,
             'latitude' => $a->latitude,
             'longitude' => $a->longitude,
+            'fallback_center' => $resolveUaeCenter($a->name, $a->location),
             'supervisors' => $a->supervisors->pluck('name')->values(),
         ])->values();
     @endphp
@@ -56,16 +87,16 @@
             </div>
         @endif
 
-        <div class="grid grid-cols-3 gap-3">
-            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+        <div class="flex items-stretch gap-3 overflow-x-auto" style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; gap:12px; align-items:stretch;">
+            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-slate-500">Total zones</p>
                 <p class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ $areas->count() }}</p>
             </div>
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 shadow-sm">
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-emerald-700">Operational</p>
                 <p class="mt-1 text-xl font-semibold text-emerald-800 leading-none">{{ $operationalCount }}</p>
             </div>
-            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm shrink-0" style="display:block; flex:1 1 0; min-width: 180px;">
                 <p class="text-[10px] uppercase tracking-wider text-slate-500">Pinned on map</p>
                 <p class="mt-1 text-xl font-semibold text-slate-900 leading-none">{{ $areasWithCoordinates->count() }}</p>
             </div>
@@ -103,6 +134,7 @@
                                 </div>
                                 <button type="button"
                                     class="js-area-toggle relative inline-flex h-8 w-[62px] items-center rounded-full transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400 {{ $area->is_active ? 'bg-emerald-500' : 'bg-slate-300' }}"
+                                    style="width:62px;"
                                     data-area-id="{{ $area->id }}"
                                     data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
                                     data-is-active="{{ $area->is_active ? '1' : '0' }}"
@@ -179,6 +211,7 @@
                                 <td class="px-4 py-3">
                                     <button type="button"
                                         class="js-area-toggle relative inline-flex h-8 w-[62px] items-center rounded-full transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400 {{ $area->is_active ? 'bg-emerald-500' : 'bg-slate-300' }}"
+                                        style="width:62px;"
                                         data-area-id="{{ $area->id }}"
                                         data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
                                         data-is-active="{{ $area->is_active ? '1' : '0' }}"
@@ -250,11 +283,14 @@
             }
 
             function addMarker(area) {
-                if (area.latitude === null || area.longitude === null) return;
                 const country = String(area.country || '').trim().toLowerCase();
                 if (country !== '' && country !== 'uae' && country !== 'united arab emirates') return;
-                const lat = Number(area.latitude);
-                const lng = Number(area.longitude);
+                let lat = Number(area.latitude);
+                let lng = Number(area.longitude);
+                if ((Number.isNaN(lat) || Number.isNaN(lng)) && area.fallback_center) {
+                    lat = Number(area.fallback_center.lat);
+                    lng = Number(area.fallback_center.lng);
+                }
                 if (Number.isNaN(lat) || Number.isNaN(lng)) return;
                 if (!uaeBounds.contains([lat, lng])) return;
                 if (markers[area.id]) return;
@@ -269,13 +305,15 @@
 
             areas.forEach((area) => {
                 if (!area.is_active) return;
-                if (area.latitude === null || area.longitude === null) return;
-
-                const lat = Number(area.latitude);
-                const lng = Number(area.longitude);
-                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
                 const country = String(area.country || '').trim().toLowerCase();
                 if (country !== '' && country !== 'uae' && country !== 'united arab emirates') return;
+                let lat = Number(area.latitude);
+                let lng = Number(area.longitude);
+                if ((Number.isNaN(lat) || Number.isNaN(lng)) && area.fallback_center) {
+                    lat = Number(area.fallback_center.lat);
+                    lng = Number(area.fallback_center.lng);
+                }
+                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
                 if (!uaeBounds.contains([lat, lng])) return;
 
                 addMarker(area);
@@ -303,8 +341,10 @@
                 if (knob) {
                     knob.classList.toggle('translate-x-8', isActive);
                     knob.classList.toggle('translate-x-[2px]', !isActive);
+                    knob.style.transform = isActive ? 'translateX(32px)' : 'translateX(2px)';
                 }
                 button.title = isActive ? 'Disable area' : 'Enable area';
+                button.style.backgroundColor = isActive ? '#10b981' : '#cbd5e1';
                 if (statusEl) {
                     statusEl.textContent = isActive ? 'Enabled' : 'Disabled';
                     statusEl.classList.toggle('bg-emerald-100', isActive);
@@ -315,6 +355,7 @@
             }
 
             toggleButtons.forEach((button) => {
+                setButtonState(button, button.dataset.isActive === '1');
                 button.addEventListener('click', async () => {
                     if (button.dataset.loading === '1') return;
                     button.dataset.loading = '1';
