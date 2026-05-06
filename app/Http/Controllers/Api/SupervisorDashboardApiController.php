@@ -836,8 +836,9 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $pending = $this->assignableVisitsQuery($request)
             ->with('supervisor')
             ->orderByRaw('escalated_at IS NOT NULL DESC')
-            ->orderBy('scheduled_date')
-            ->paginate((int) $request->get('per_page', 20));
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate((int) $request->get('per_page', 100));
 
         $pending->getCollection()->transform(function ($visit) {
             $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
@@ -944,8 +945,9 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $pending = $this->assignableVisitsQuery($request)
                 ->with('supervisor')
                 ->orderByRaw('escalated_at IS NOT NULL DESC')
-                ->orderBy('scheduled_date')
-                ->paginate((int) $request->get('per_page', 50));
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate((int) $request->get('per_page', 100));
             $pending->getCollection()->transform(function ($visit) {
                 $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
                 $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
