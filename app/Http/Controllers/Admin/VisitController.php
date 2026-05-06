@@ -19,7 +19,7 @@ class VisitController extends Controller
 
     public function index(Request $request)
     {
-        $query = Visit::with(['subscription.client', 'technician', 'area', 'report']);
+        $query = Visit::with(['subscription.client', 'technician', 'supervisor', 'area', 'report']);
 
         // Search
         if ($request->has('search') && $request->search) {
@@ -112,7 +112,22 @@ class VisitController extends Controller
 
         $resolved = $this->resolveAreaFromInput($validated);
         if (! $resolved) {
+            if (! empty($validated['area_id'])) {
+                return back()->withErrors(['area_id' => 'Selected area is not serviceable (disabled) or has no supervisor assigned.'])->withInput();
+            }
             return back()->withErrors(['city' => 'Unable to resolve area from selected location.'])->withInput();
+        }
+
+        // If admin explicitly picked a supervisor, ensure it's a supervisor and is assigned to the resolved area.
+        if (! empty($validated['supervisor_id'])) {
+            $pickedSupervisor = User::query()->find((int) $validated['supervisor_id']);
+            if (! $pickedSupervisor || ! $pickedSupervisor->hasRole('supervisor')) {
+                return back()->withErrors(['supervisor_id' => 'Selected user is not a supervisor.'])->withInput();
+            }
+            $areaHasSupervisor = $resolved['area']->supervisors->contains('id', (int) $pickedSupervisor->id);
+            if (! $areaHasSupervisor) {
+                return back()->withErrors(['supervisor_id' => 'Selected supervisor is not assigned to the chosen area.'])->withInput();
+            }
         }
 
         $notes = (string) ($validated['notes'] ?? '');
