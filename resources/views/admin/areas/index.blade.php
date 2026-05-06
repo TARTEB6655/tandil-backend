@@ -1,6 +1,7 @@
 <x-admin-layout>
     <style>
         .ops-map-pin {
+            display: block;
             width: 24px;
             height: 24px;
             background: radial-gradient(circle at 35% 30%, #ff8a8a 0%, #ef4444 45%, #dc2626 100%);
@@ -48,8 +49,7 @@
             border-color: #0b8b89;
         }
         .ops-switch[data-loading="1"] {
-            opacity: 0.7;
-            cursor: wait;
+            opacity: 0.92;
         }
         .ops-switch-knob {
             position: absolute;
@@ -340,7 +340,10 @@
                     lat = Number(area.fallback_center.lat);
                     lng = Number(area.fallback_center.lng);
                 }
-                if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+                if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                    lat = 24.4539; // Abu Dhabi default center
+                    lng = 54.3773;
+                }
                 if (!uaeBounds.contains([lat, lng])) return;
                 if (markers[area.id]) return;
                 markers[area.id] = L.marker([lat, lng], { icon: customPin }).addTo(map).bindPopup(pinPopup(area));
@@ -400,9 +403,13 @@
                 setButtonState(button, button.dataset.isActive === '1');
                 button.addEventListener('click', async () => {
                     if (button.dataset.loading === '1') return;
+                    const prevState = button.dataset.isActive === '1';
+                    const nextState = !prevState;
+
+                    // Optimistic UI: animate immediately, then sync with server.
+                    setButtonState(button, nextState);
                     button.dataset.loading = '1';
-                    button.dataset.loading = '1';
-                    button.disabled = true;
+                    button.style.pointerEvents = 'none';
 
                     try {
                         const res = await fetch(button.dataset.toggleUrl, {
@@ -428,10 +435,12 @@
                             removeMarker(Number(area.id));
                         }
                     } catch (err) {
+                        // Revert optimistic state on failure.
+                        setButtonState(button, prevState);
                         alert(err.message || 'Unable to update area status.');
                     } finally {
                         button.dataset.loading = '0';
-                        button.disabled = false;
+                        button.style.pointerEvents = '';
                     }
                 });
             });
