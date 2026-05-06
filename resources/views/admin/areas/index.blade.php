@@ -33,26 +33,71 @@
         @endif
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs uppercase tracking-wider text-slate-500">Total zones</p>
-                <p class="text-2xl font-semibold text-slate-900">{{ $areas->count() }}</p>
+                <p class="mt-2 text-3xl font-semibold text-slate-900">{{ $areas->count() }}</p>
             </div>
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
                 <p class="text-xs uppercase tracking-wider text-emerald-700">Operational</p>
-                <p class="text-2xl font-semibold text-emerald-800">{{ $operationalCount }}</p>
+                <p class="mt-2 text-3xl font-semibold text-emerald-800">{{ $operationalCount }}</p>
             </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs uppercase tracking-wider text-slate-500">Pinned on map</p>
-                <p class="text-2xl font-semibold text-slate-900">{{ $areasWithCoordinates->count() }}</p>
+                <p class="mt-2 text-3xl font-semibold text-slate-900">{{ $areasWithCoordinates->count() }}</p>
             </div>
         </div>
 
-        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-200">
-                <h2 class="text-sm font-semibold text-slate-800">UAE Map (Active operational pins)</h2>
-                <p class="text-xs text-slate-500 mt-1">Pins are visible only for enabled zones with latitude/longitude.</p>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="xl:col-span-2 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-800">UAE Operational Map</h2>
+                        <p class="text-xs text-slate-500 mt-1">Only active zones with valid coordinates are pinned on map.</p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-xs font-medium">
+                        Live Pins
+                    </span>
+                </div>
+                <div id="uae-operational-map" class="w-full" style="height: 440px; min-height: 440px;"></div>
+                <div id="uae-map-empty-state" class="hidden border-t border-slate-200 px-5 py-3 text-xs text-amber-700 bg-amber-50">
+                    No active zones with coordinates found. Add latitude/longitude and enable an area to see map pins.
+                </div>
             </div>
-            <div id="uae-operational-map" class="h-[420px] w-full"></div>
+
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-slate-800">Quick Operational Toggles</h3>
+                    <span class="text-xs text-slate-500">{{ $areas->count() }} zones</span>
+                </div>
+                <div class="space-y-3 max-h-[440px] overflow-y-auto pr-1">
+                    @forelse($areas as $area)
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-slate-900">{{ $area->name }}</p>
+                                    <p class="text-xs text-slate-500">{{ $area->country ?: 'UAE' }}{{ $area->location ? ' · '.$area->location : '' }}</p>
+                                </div>
+                                <button type="button"
+                                    class="js-area-toggle relative inline-flex h-7 w-14 items-center rounded-full border border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $area->is_active ? 'bg-emerald-500' : 'bg-slate-300' }}"
+                                    data-area-id="{{ $area->id }}"
+                                    data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
+                                    data-is-active="{{ $area->is_active ? '1' : '0' }}"
+                                    title="{{ $area->is_active ? 'Disable area' : 'Enable area' }}">
+                                    <span class="js-area-toggle-knob inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition {{ $area->is_active ? 'translate-x-7' : 'translate-x-1' }}"></span>
+                                </button>
+                            </div>
+                            <div class="mt-2 flex items-center justify-between">
+                                <span class="js-area-toggle-status inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {{ $area->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' }}">
+                                    {{ $area->is_active ? 'Enabled' : 'Disabled' }}
+                                </span>
+                                <a href="{{ route('admin.areas.edit', $area->id) }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Manage</a>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-sm text-slate-500">{{ __('admin.no_areas_found') }}</p>
+                    @endforelse
+                </div>
+            </div>
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white p-4">
@@ -109,12 +154,12 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <button type="button"
-                                        class="js-area-toggle relative inline-flex h-7 w-14 items-center rounded-full transition-colors {{ $area->is_active ? 'bg-emerald-500' : 'bg-slate-300' }}"
+                                        class="js-area-toggle relative inline-flex h-7 w-14 items-center rounded-full border border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $area->is_active ? 'bg-emerald-500' : 'bg-slate-300' }}"
                                         data-area-id="{{ $area->id }}"
                                         data-toggle-url="{{ route('admin.areas.toggle-active', $area->id) }}"
                                         data-is-active="{{ $area->is_active ? '1' : '0' }}"
                                         title="{{ $area->is_active ? 'Disable area' : 'Enable area' }}">
-                                        <span class="js-area-toggle-knob inline-block h-6 w-6 transform rounded-full bg-white transition {{ $area->is_active ? 'translate-x-7' : 'translate-x-1' }}"></span>
+                                        <span class="js-area-toggle-knob inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition {{ $area->is_active ? 'translate-x-7' : 'translate-x-1' }}"></span>
                                     </button>
                                 </td>
                                 <td class="px-4 py-3 text-sm">
@@ -191,13 +236,18 @@
 
             if (bounds.length > 0) {
                 map.fitBounds(bounds, { padding: [30, 30], maxZoom: 11 });
+            } else {
+                const emptyState = document.getElementById('uae-map-empty-state');
+                if (emptyState) emptyState.classList.remove('hidden');
             }
+            setTimeout(() => map.invalidateSize(), 120);
 
             const csrf = @json(csrf_token());
             const toggleButtons = Array.from(document.querySelectorAll('.js-area-toggle'));
 
             function setButtonState(button, isActive) {
                 const knob = button.querySelector('.js-area-toggle-knob');
+                const statusEl = button.closest('[class*="rounded-lg"]')?.querySelector('.js-area-toggle-status');
                 button.dataset.isActive = isActive ? '1' : '0';
                 button.classList.toggle('bg-emerald-500', isActive);
                 button.classList.toggle('bg-slate-300', !isActive);
@@ -206,6 +256,13 @@
                     knob.classList.toggle('translate-x-1', !isActive);
                 }
                 button.title = isActive ? 'Disable area' : 'Enable area';
+                if (statusEl) {
+                    statusEl.textContent = isActive ? 'Enabled' : 'Disabled';
+                    statusEl.classList.toggle('bg-emerald-100', isActive);
+                    statusEl.classList.toggle('text-emerald-700', isActive);
+                    statusEl.classList.toggle('bg-slate-200', !isActive);
+                    statusEl.classList.toggle('text-slate-600', !isActive);
+                }
             }
 
             toggleButtons.forEach((button) => {
