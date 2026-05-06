@@ -378,7 +378,7 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(function () {
     // User Management - Moved to dedicated admin/users group below to avoid route conflicts
     // Routes are now defined at lines 297-302 under 'admin/users' prefix
 
