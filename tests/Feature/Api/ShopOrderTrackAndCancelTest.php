@@ -3,6 +3,9 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\Category;
 use App\Models\User;
 use App\Models\WalletCredit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,6 +74,40 @@ class ShopOrderTrackAndCancelTest extends TestCase
                 ],
             ],
         ]);
+    }
+
+    public function test_track_falls_back_to_product_service_timing_when_order_fields_are_null(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'estimated_arrival' => 'within 2 hour',
+            'job_duration' => '55 minutes',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'package_id' => null,
+            'order_status' => 'pending',
+            'payment_status' => 'paid',
+            'estimated_arrival' => null,
+            'job_duration' => null,
+        ]);
+
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 10,
+            'subtotal' => 10,
+        ]);
+
+        $response = $this->getJson('/api/orders/'.$order->id.'/track', $this->bearer($user));
+        $response->assertOk();
+        $response->assertJsonPath('data.order_summary.estimated_arrival', 'within 2 hour');
+        $response->assertJsonPath('data.order_summary.job_duration', '55 minutes');
     }
 
     public function test_get_orders_track_forbidden_for_other_user_order(): void

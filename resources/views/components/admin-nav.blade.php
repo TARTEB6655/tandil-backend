@@ -33,7 +33,7 @@
                     </a>
                     <a href="{{ route('admin.areas.index') }}" 
                        class="px-4 py-3 text-sm font-medium {{ request()->routeIs('admin.areas.*') ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-gray-900' }} whitespace-nowrap">
-                        Areas/Regions
+                        Operational Areas
                     </a>
                     <a href="{{ route('admin.products.index') }}" 
                        class="px-4 py-3 text-sm font-medium {{ request()->routeIs('admin.products.*') ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-gray-900' }} whitespace-nowrap">

@@ -520,6 +520,18 @@ class OrderController extends Controller
         $currency = strtoupper((string) config('shop.currency', 'AED'));
         $addr = $order->payerAddressForDisplay();
         $deliveryLine = $addr !== '' ? preg_replace("/\s*\n\s*/", ', ', trim($addr)) : null;
+        $order->loadMissing('items.product');
+        $firstProduct = $order->items->first()?->product;
+
+        $estimatedArrival = $order->estimated_arrival;
+        if (($estimatedArrival === null || $estimatedArrival === '') && $firstProduct) {
+            $estimatedArrival = $firstProduct->estimated_arrival;
+        }
+
+        $jobDuration = $order->job_duration;
+        if (($jobDuration === null || $jobDuration === '') && $firstProduct) {
+            $jobDuration = $firstProduct->job_duration;
+        }
 
         $paymentLabel = match (strtolower((string) ($order->payment_method ?? ''))) {
             'stripe' => 'Credit card',
@@ -539,8 +551,8 @@ class OrderController extends Controller
             'refund_reason' => $order->refund_reason,
             'refunded_at' => $order->refunded_at?->format('c'),
             'special_instructions' => $order->special_instructions,
-            'estimated_arrival' => $order->estimated_arrival,
-            'job_duration' => $order->job_duration,
+            'estimated_arrival' => $estimatedArrival,
+            'job_duration' => $jobDuration,
         ];
     }
 

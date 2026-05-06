@@ -24,7 +24,7 @@ return [
     'reports' => 'Reports',
     'report_management' => 'Report Management',
     'zone_assignment' => 'Zone Assignment',
-    'areas_regions' => 'Areas/Regions',
+    'areas_regions' => 'Operational Areas',
     'recent_activities' => 'Recent Activities',
     'ecommerce' => 'E-commerce',
     'products' => 'Products',
@@ -238,7 +238,7 @@ return [
     'no_complaints_found' => 'No complaints found',
 
     // Areas
-    'areas_management' => 'Areas / Regions',
+    'areas_management' => 'Operational Areas',
     'location' => 'Location',
     'no_areas_found' => 'No areas found',
 
