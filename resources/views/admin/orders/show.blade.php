@@ -100,7 +100,7 @@
                 </div>
 
                 <!-- Tracking Timeline -->
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                     @php
                         $rawStatus = strtolower((string) ($order->order_status ?? 'pending'));
                         $isCancelled = $rawStatus === 'cancelled';
@@ -108,10 +108,10 @@
                         $timeFmt = fn ($dt) => $dt ? $dt->format('M d, Y h:i A') : null;
                     @endphp
 
-                    <div class="flex items-start justify-between gap-4 mb-4">
+                    <div class="flex items-start justify-between gap-4 mb-5">
                         <div>
-                            <h3 class="text-base font-semibold text-gray-900">Order Tracking Timeline</h3>
-                            <p class="text-xs text-gray-500 mt-1">Clear status steps for client + ops workflow.</p>
+                            <h3 class="text-lg font-semibold text-gray-900">Order Tracking Timeline</h3>
+                            <p class="text-sm text-gray-500 mt-1">Clear status steps for client + operations workflow.</p>
                         </div>
                         <div class="text-right">
                             <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Current</p>
@@ -179,11 +179,11 @@
                         @endif
                     @endif
 
-                    <div class="space-y-1">
+                    <div class="space-y-2">
                         @foreach($timeline as $i => $step)
                             <div class="relative flex gap-3 pb-4">
-                                <div class="relative flex w-6 justify-center pt-0.5">
-                                    <span class="z-10 mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold
+                                <div class="relative flex w-7 justify-center pt-0.5">
+                                    <span class="z-10 mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold shadow-sm
                                         {{ $step['done'] ? 'bg-green-700 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
                                         {{ $step['done'] ? '✓' : '' }}
                                     </span>
@@ -191,9 +191,11 @@
                                         <span class="absolute top-6 h-[calc(100%-0.5rem)] w-px {{ $step['done'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
                                     @endif
                                 </div>
-                                <div class="pt-0.5">
-                                    <p class="text-[1rem] font-semibold {{ $step['done'] ? 'text-gray-900' : 'text-gray-500' }}">{{ $step['label'] }}</p>
-                                    <p class="text-sm {{ $step['done'] ? 'text-gray-700' : 'text-gray-400' }}">{{ $step['desc'] }}</p>
+                                <div class="pt-0.5 flex-1">
+                                    <div class="rounded-xl border {{ $step['done'] ? 'border-gray-200 bg-gray-50/70' : 'border-gray-100 bg-gray-50/40' }} px-3 py-2">
+                                        <p class="text-[1rem] font-semibold {{ $step['done'] ? 'text-gray-900' : 'text-gray-500' }}">{{ $step['label'] }}</p>
+                                        <p class="text-sm {{ $step['done'] ? 'text-gray-700' : 'text-gray-400' }}">{{ $step['desc'] }}</p>
+                                    </div>
                                     @if(!empty($step['time']) && $step['done'])
                                         <p class="text-xs text-gray-500 mt-1">{{ $step['time'] }}</p>
                                     @endif
@@ -303,75 +305,85 @@
                 </div>
 
                 <!-- Customer Information -->
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                    <h3 class="text-base font-medium text-gray-900 mb-4">{{ __('admin.customer_information') }}</h3>
-                    <div class="space-y-3">
-                        <div>
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A11.955 11.955 0 0112 15.75c2.53 0 4.877.78 6.879 2.104M15 9a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </span>
+                        <h3 class="text-base font-semibold text-gray-900">{{ __('admin.customer_information') }}</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                             <p class="text-xs text-gray-500">Name</p>
-                            <p class="text-sm font-medium text-gray-900">{{ $order->user->name ?? 'N/A' }}</p>
+                            <p class="text-sm font-semibold text-gray-900">{{ $order->user->name ?? 'N/A' }}</p>
                         </div>
-                        <div>
+                        <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                             <p class="text-xs text-gray-500">{{ __('admin.email') }}</p>
-                            <p class="text-sm font-medium text-gray-900">{{ $order->user->email ?? 'N/A' }}</p>
+                            <p class="text-sm font-semibold text-gray-900 break-all">{{ $order->user->email ?? 'N/A' }}</p>
                         </div>
-                        <div>
+                        <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                             <p class="text-xs text-gray-500">{{ __('admin.phone') }}</p>
-                            <p class="text-sm font-medium text-gray-900">{{ $order->user->phone ?? 'N/A' }}</p>
+                            <p class="text-sm font-semibold text-gray-900">{{ $order->user->phone ?? 'N/A' }}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Order Information -->
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                    <h3 class="text-base font-medium text-gray-900 mb-4">Order Information</h3>
-                    <div class="space-y-3">
-                        <div>
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h8m0 0l-3-3m3 3l-3 3M5 7h11" /></svg>
+                        </span>
+                        <h3 class="text-base font-semibold text-gray-900">Order Information</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                             <p class="text-xs text-gray-500">Order ID</p>
-                            <p class="text-sm font-medium text-gray-900">#{{ $order->publicOrderNumberDigits() }}</p>
+                            <p class="text-sm font-semibold text-gray-900">#{{ $order->publicOrderNumberDigits() }}</p>
                         </div>
-                        <div>
+                        <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                             <p class="text-xs text-gray-500">Order Date</p>
-                            <p class="text-sm font-medium text-gray-900">{{ $order->created_at->format('M d, Y h:i A') }}</p>
+                            <p class="text-sm font-semibold text-gray-900">{{ $order->created_at->format('M d, Y h:i A') }}</p>
                         </div>
                         @if($order->paid_at)
-                            <div>
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                                 <p class="text-xs text-gray-500">Paid At</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $order->paid_at->format('M d, Y h:i A') }}</p>
+                                <p class="text-sm font-semibold text-gray-900">{{ $order->paid_at->format('M d, Y h:i A') }}</p>
                             </div>
                         @endif
                         @if($order->payment_reference)
-                            <div>
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                                 <p class="text-xs text-gray-500">Payment Reference</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $order->payment_reference }}</p>
+                                <p class="text-sm font-semibold text-gray-900 break-all">{{ $order->payment_reference }}</p>
                             </div>
                         @endif
                         @if($order->payment_method)
-                            <div>
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                                 <p class="text-xs text-gray-500">Payment Method</p>
-                                <p class="text-sm font-medium text-gray-900">{{ ucfirst($order->payment_method) }}</p>
+                                <p class="text-sm font-semibold text-gray-900">{{ ucfirst($order->payment_method) }}</p>
                             </div>
                         @endif
                         @if($order->transaction_id)
-                            <div>
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                                 <p class="text-xs text-gray-500">Transaction ID</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $order->transaction_id }}</p>
+                                <p class="text-sm font-semibold text-gray-900 break-all">{{ $order->transaction_id }}</p>
                             </div>
                         @endif
                         @if($order->refunded_at)
-                            <div>
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2.5">
                                 <p class="text-xs text-gray-500">Refunded At</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $order->refunded_at->format('M d, Y h:i A') }}</p>
+                                <p class="text-sm font-semibold text-gray-900">{{ $order->refunded_at->format('M d, Y h:i A') }}</p>
                             </div>
                             @if($order->refund_amount)
-                                <div>
+                                <div class="rounded-xl border border-red-200 bg-red-50/70 px-3 py-2.5">
                                     <p class="text-xs text-gray-500">Refund Amount</p>
-                                    <p class="text-sm font-medium text-red-600">AED {{ number_format($order->refund_amount, 2) }}</p>
+                                    <p class="text-sm font-semibold text-red-600">AED {{ number_format($order->refund_amount, 2) }}</p>
                                 </div>
                             @endif
                         @endif
-                        <div>
+                        <div class="rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2.5">
                             <p class="text-xs text-gray-500">Total Amount</p>
-                            <p class="text-lg font-medium text-gray-900">AED {{ number_format($order->total_amount, 2) }}</p>
+                            <p class="text-lg font-semibold text-indigo-700">AED {{ number_format($order->total_amount, 2) }}</p>
                         </div>
                     </div>
                 </div>
