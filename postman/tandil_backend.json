@@ -2404,6 +2404,74 @@
                         },
                         "description": "POST /api/admin/orders/send-to-supplier - Email CSV export to supplier. Body: email (optional), date_from, date_to."
                     }
+                },
+                {
+                    "name": "Cancel Order (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/orders/{{order_id}}/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{order_id}}",
+                                "cancel"
+                            ]
+                        },
+                        "description": "POST /api/admin/orders/{id}/cancel - Cancel order from admin panel API. Auth: Admin bearer token."
+                    }
+                },
+                {
+                    "name": "Refund Order (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refund_amount\": 50,\n  \"refund_reason\": \"Client request\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/orders/{{order_id}}/refund",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{order_id}}",
+                                "refund"
+                            ]
+                        },
+                        "description": "POST /api/admin/orders/{id}/refund - Process manual refund from admin API. Body: refund_amount, refund_reason(optional). Auth: Admin bearer token."
+                    }
                 }
             ],
             "description": "Admin: export orders to Excel (CSV); send export by email to supplier (manual or use cron for automatic)."
