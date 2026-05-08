@@ -54,6 +54,34 @@
             </div>
         @endif
 
+        <!-- Order Statistics Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-3">
+                <p class="text-[11px] font-semibold tracking-wide text-blue-700 uppercase">Total Orders</p>
+                <p class="mt-1 text-xl font-semibold text-blue-900">{{ number_format((int) ($stats['total'] ?? 0)) }}</p>
+            </div>
+            <div class="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-4 py-3">
+                <p class="text-[11px] font-semibold tracking-wide text-amber-700 uppercase">Pending</p>
+                <p class="mt-1 text-xl font-semibold text-amber-900">{{ number_format((int) ($stats['open'] ?? 0)) }}</p>
+            </div>
+            <div class="rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 px-4 py-3">
+                <p class="text-[11px] font-semibold tracking-wide text-cyan-700 uppercase">Unfulfilled</p>
+                <p class="mt-1 text-xl font-semibold text-cyan-900">{{ number_format((int) ($stats['unfulfilled'] ?? 0)) }}</p>
+            </div>
+            <div class="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 px-4 py-3">
+                <p class="text-[11px] font-semibold tracking-wide text-green-700 uppercase">Completed</p>
+                <p class="mt-1 text-xl font-semibold text-green-900">{{ number_format((int) ($stats['fulfilled'] ?? 0)) }}</p>
+            </div>
+            <div class="rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 px-4 py-3">
+                <p class="text-[11px] font-semibold tracking-wide text-rose-700 uppercase">Cancelled</p>
+                <p class="mt-1 text-xl font-semibold text-rose-900">{{ number_format((int) ($stats['archived'] ?? 0)) }}</p>
+            </div>
+            <div class="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 px-4 py-3">
+                <p class="text-[11px] font-semibold tracking-wide text-violet-700 uppercase">Revenue (AED)</p>
+                <p class="mt-1 text-xl font-semibold text-violet-900">{{ number_format((float) ($stats['total_revenue'] ?? 0), 2) }}</p>
+            </div>
+        </div>
+
         <!-- Send to supplier modal -->
         <div x-show="sendModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
             <div class="flex min-h-full items-center justify-center p-4">
