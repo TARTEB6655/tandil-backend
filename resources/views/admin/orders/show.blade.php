@@ -6,8 +6,12 @@
                 <h1 class="text-xl font-medium text-gray-900">Order Details</h1>
                 <p class="text-sm text-gray-500 mt-1">Order #{{ $order->publicOrderNumberDigits() }}</p>
             </div>
-            <a href="{{ route('admin.orders.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                ← {{ __('admin.back_to_orders') }}
+            <a href="{{ route('admin.orders.index') }}"
+               class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>{{ __('admin.back_to_orders') }}</span>
             </a>
         </div>
 
