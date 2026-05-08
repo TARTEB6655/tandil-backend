@@ -40,9 +40,13 @@
                                     <tr>
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-4">
-                                                @if($item->product->image)
-                                                    <img src="{{ asset('storage/' . $item->product->image) }}" 
-                                                         alt="{{ $item->product->name }}" 
+                                                @php
+                                                    $product = $item->product;
+                                                    $productImageUrl = $product?->image_url;
+                                                @endphp
+                                                @if($productImageUrl)
+                                                    <img src="{{ $productImageUrl }}" 
+                                                         alt="{{ $product?->name ?? 'Product image' }}" 
                                                          class="h-16 w-16 object-cover rounded-lg border border-gray-200">
                                                 @else
                                                     <div class="h-16 w-16 bg-gray-200 rounded-lg flex items-center justify-center">
@@ -52,8 +56,8 @@
                                                     </div>
                                                 @endif
                                                 <div>
-                                                    <div class="text-sm font-medium text-gray-900">{{ $item->product->name }}</div>
-                                                    <div class="text-xs text-gray-500">{{ $item->product->category->name ?? 'N/A' }}</div>
+                                                    <div class="text-sm font-medium text-gray-900">{{ $product?->name ?? 'Product unavailable' }}</div>
+                                                    <div class="text-xs text-gray-500">{{ $product?->category?->name ?? 'N/A' }}</div>
                                                 </div>
                                             </div>
                                         </td>

@@ -96,11 +96,11 @@ img.h-16.w-auto {
 
 /* Global typography consistency across all dashboards (Tailwind rem-based scaling). */
 html {
-    font-size: 14px;
+    font-size: 12px;
 }
 
 body {
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.35;
     font-family: 'Inter', sans-serif;
 }
