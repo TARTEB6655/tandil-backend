@@ -526,18 +526,19 @@ class OrderController extends Controller
      */
     private function buildOrderTimeline(Order $order): array
     {
-        $status = $order->order_status ?? 'pending';
+        $status = $this->normalizeOrderTrackingStatus((string) ($order->order_status ?? 'pending'));
+        $rank = $this->orderTrackingRank($status);
         $createdAt = $order->created_at;
         $updatedAt = $order->updated_at;
         $paidAt = $order->paid_at;
 
         $steps = [
             ['key' => 'pending', 'label' => 'Pending', 'description' => 'Order placed successfully', 'completed' => true, 'timestamp' => $createdAt?->format('g:i A') ?? null],
-            ['key' => 'confirmed', 'label' => 'Confirmed', 'description' => 'Order confirmed by our team', 'completed' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']), 'timestamp' => ($paidAt ?? $updatedAt)?->format('g:i A')],
-            ['key' => 'assigned', 'label' => 'Assigned', 'description' => 'Technician assigned to your order', 'completed' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']), 'timestamp' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']) ? $updatedAt?->format('g:i A') : null],
-            ['key' => 'in_progress', 'label' => 'In Progress', 'description' => 'Your order is being processed', 'completed' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']), 'timestamp' => in_array($status, ['processing', 'paid', 'shipped', 'delivered']) ? $updatedAt?->format('g:i A') : null],
-            ['key' => 'completed', 'label' => 'Completed', 'description' => 'Your order is ready!', 'completed' => in_array($status, ['shipped', 'delivered']), 'timestamp' => in_array($status, ['shipped', 'delivered']) ? $updatedAt?->format('g:i A') : null],
-            ['key' => 'delivered', 'label' => 'Delivered', 'description' => 'Delivered', 'completed' => $status === 'delivered', 'timestamp' => $status === 'delivered' ? $updatedAt?->format('g:i A') : null],
+            ['key' => 'confirmed', 'label' => 'Confirmed', 'description' => 'Order confirmed by our team', 'completed' => $rank >= $this->orderTrackingRank('confirmed'), 'timestamp' => $rank >= $this->orderTrackingRank('confirmed') ? ($paidAt ?? $updatedAt)?->format('g:i A') : null],
+            ['key' => 'assigned', 'label' => 'Assigned', 'description' => 'Technician assigned to your order', 'completed' => $rank >= $this->orderTrackingRank('assigned'), 'timestamp' => $rank >= $this->orderTrackingRank('assigned') ? $updatedAt?->format('g:i A') : null],
+            ['key' => 'in_progress', 'label' => 'In Progress', 'description' => 'Your order is being processed', 'completed' => $rank >= $this->orderTrackingRank('in_progress'), 'timestamp' => $rank >= $this->orderTrackingRank('in_progress') ? $updatedAt?->format('g:i A') : null],
+            ['key' => 'completed', 'label' => 'Completed', 'description' => 'Your order is ready!', 'completed' => $rank >= $this->orderTrackingRank('completed'), 'timestamp' => $rank >= $this->orderTrackingRank('completed') ? $updatedAt?->format('g:i A') : null],
+            ['key' => 'delivered', 'label' => 'Delivered', 'description' => 'Delivered', 'completed' => $rank >= $this->orderTrackingRank('delivered'), 'timestamp' => $rank >= $this->orderTrackingRank('delivered') ? $updatedAt?->format('g:i A') : null],
         ];
 
         return $steps;
@@ -589,16 +590,44 @@ class OrderController extends Controller
 
     private function mapOrderStatusToLabel(?string $status): string
     {
+        $status = $this->normalizeOrderTrackingStatus((string) ($status ?? 'pending'));
         $map = [
             'pending' => 'Pending',
-            'processing' => 'In Progress',
-            'paid' => 'Confirmed',
-            'shipped' => 'In Progress',
+            'confirmed' => 'Confirmed',
+            'assigned' => 'Assigned',
+            'in_progress' => 'In Progress',
+            'completed' => 'Completed',
             'delivered' => 'Delivered',
             'cancelled' => 'Cancelled',
         ];
 
         return $map[$status ?? ''] ?? ucfirst($status ?? 'Pending');
+    }
+
+    private function normalizeOrderTrackingStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return match ($status) {
+            'paid' => 'confirmed',
+            'processing' => 'in_progress',
+            'shipped' => 'completed',
+            'pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => $status,
+            default => $status !== '' ? $status : 'pending',
+        };
+    }
+
+    private function orderTrackingRank(string $status): int
+    {
+        return match ($status) {
+            'pending' => 0,
+            'confirmed' => 1,
+            'assigned' => 2,
+            'in_progress' => 3,
+            'completed' => 4,
+            'delivered' => 5,
+            default => 0,
+        };
     }
 
     /**
