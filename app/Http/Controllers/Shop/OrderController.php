@@ -290,10 +290,20 @@ class OrderController extends Controller
             ->latest();
 
         $roleValue = strtolower(trim((string) ($user->role ?? '')));
-        $isAdminLike = in_array($roleValue, ['admin', 'supervisor', 'area_manager'], true)
-            || $user->hasRole('admin')
-            || $user->hasRole('supervisor')
-            || $user->hasRole('area_manager');
+        $isAdminLike = in_array($roleValue, ['admin', 'supervisor', 'area_manager'], true);
+        if (! $isAdminLike && method_exists($user, 'getRoleNames')) {
+            try {
+                $roleNames = collect($user->getRoleNames())->map(fn ($r) => strtolower((string) $r));
+                $isAdminLike = $roleNames->intersect(['admin', 'supervisor', 'area_manager'])->isNotEmpty();
+            } catch (\Throwable $e) {
+                // keep fallback path non-fatal
+            }
+        }
+        if (! $isAdminLike && method_exists($user, 'hasRole')) {
+            $isAdminLike = $user->hasRole('admin')
+                || $user->hasRole('supervisor')
+                || $user->hasRole('area_manager');
+        }
 
         if (! $isAdminLike) {
             $userEmail = strtolower(trim((string) ($user->email ?? '')));

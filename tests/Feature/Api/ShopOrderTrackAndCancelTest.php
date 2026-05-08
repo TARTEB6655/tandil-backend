@@ -398,6 +398,27 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $this->assertSame('cancelled', $response->json('data.0.order_status'));
     }
 
+    public function test_get_cancelled_orders_list_returns_all_for_admin_user(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $a = Order::factory()->create([
+            'order_status' => 'cancelled',
+            'payment_status' => 'refunded',
+        ]);
+        $b = Order::factory()->create([
+            'order_status' => 'cancelled',
+            'payment_status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/orders/cancelled', $this->bearer($admin));
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertContains($a->id, $ids);
+        $this->assertContains($b->id, $ids);
+    }
+
     public function test_get_cancel_track_returns_cancelled_order_detail_and_tracking(): void
     {
         $user = User::factory()->create(['role' => 'client']);
