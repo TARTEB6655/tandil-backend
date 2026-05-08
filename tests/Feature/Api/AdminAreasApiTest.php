@@ -136,8 +136,11 @@ class AdminAreasApiTest extends TestCase
         $response = $this->postJson('/api/admin/operational-areas/' . $area->id . '/toggle-active', [], $this->authHeaders());
         $response->assertOk();
         $response->assertJsonPath('success', true);
+        $response->assertJsonPath('area_id', $area->id);
+        $response->assertJsonPath('is_active', true);
         $response->assertJsonPath('data.id', $area->id);
         $response->assertJsonPath('data.is_active', true);
+        $response->assertJsonPath('area.id', $area->id);
     }
 
     public function test_operational_area_toggle_endpoint_can_set_explicit_active_state(): void
@@ -152,6 +155,20 @@ class AdminAreasApiTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.id', $area->id);
         $response->assertJsonPath('data.is_active', false);
+    }
+
+    public function test_operational_area_toggle_endpoint_accepts_active_alias(): void
+    {
+        $area = Area::factory()->create(['is_active' => false, 'country' => 'UAE']);
+
+        $response = $this->postJson('/api/admin/operational-areas/' . $area->id . '/toggle-active', [
+            'active' => true,
+        ], $this->authHeaders());
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('is_active', true);
+        $response->assertJsonPath('data.is_active', true);
     }
 
     public function test_area_create_requires_location_and_supervisor_id(): void

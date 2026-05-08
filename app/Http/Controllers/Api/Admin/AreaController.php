@@ -118,6 +118,8 @@ class AreaController extends Controller
 
         $validator = Validator::make($request->all(), [
             'is_active' => 'nullable|boolean',
+            'active' => 'nullable|boolean',
+            'enabled' => 'nullable|boolean',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -138,15 +140,25 @@ class AreaController extends Controller
         $validated = $validator->validated();
         if (array_key_exists('is_active', $validated)) {
             $area->is_active = (bool) $validated['is_active'];
+        } elseif (array_key_exists('active', $validated)) {
+            $area->is_active = (bool) $validated['active'];
+        } elseif (array_key_exists('enabled', $validated)) {
+            $area->is_active = (bool) $validated['enabled'];
         } else {
             $area->is_active = ! (bool) $area->is_active;
         }
         $area->save();
 
+        $payload = $this->operationalAreaPayload($area);
+
         return response()->json([
             'success' => true,
             'message' => $area->is_active ? 'Area enabled successfully.' : 'Area disabled successfully.',
-            'data' => $this->operationalAreaPayload($area),
+            'area_id' => (int) $area->id,
+            'is_active' => (bool) $area->is_active,
+            'data' => $payload,
+            // Compatibility alias for app clients expecting `area` key.
+            'area' => $payload,
         ]);
     }
 
