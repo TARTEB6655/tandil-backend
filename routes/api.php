@@ -556,7 +556,6 @@ Route::prefix('shop')->group(function () {
     // Guest order lookup (no auth): order_number + email
     Route::get('/orders/guest', [\App\Http\Controllers\Shop\OrderController::class, 'guestShow']);
     Route::get('/orders/guest/track', [\App\Http\Controllers\Shop\OrderController::class, 'guestTrack']);
-    Route::post('/orders/guest/cancel', [\App\Http\Controllers\Shop\OrderController::class, 'guestCancel']);
 
     // Protected cart and order routes
     Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->group(function () {

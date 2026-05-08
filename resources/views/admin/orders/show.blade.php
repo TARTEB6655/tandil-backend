@@ -76,6 +76,63 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Tracking Timeline -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <h3 class="text-base font-medium text-gray-900 mb-4">Order Tracking Timeline</h3>
+                    @php
+                        $rawStatus = strtolower((string) ($order->order_status ?? 'pending'));
+                        $normalizedStatus = match ($rawStatus) {
+                            'paid' => 'confirmed',
+                            'processing' => 'in_progress',
+                            'shipped' => 'completed',
+                            default => $rawStatus,
+                        };
+                        $rank = match ($normalizedStatus) {
+                            'pending' => 0,
+                            'confirmed' => 1,
+                            'assigned' => 2,
+                            'in_progress' => 3,
+                            'completed' => 4,
+                            'delivered' => 5,
+                            default => 0,
+                        };
+                        $timeline = [
+                            ['label' => 'Pending', 'desc' => 'Order placed successfully', 'done' => true, 'time' => $order->created_at?->format('h:i A')],
+                            ['label' => 'Confirmed', 'desc' => 'Order confirmed by team', 'done' => $rank >= 1, 'time' => ($order->paid_at ?? $order->updated_at)?->format('h:i A')],
+                            ['label' => 'Assigned', 'desc' => 'Technician assignment done', 'done' => $rank >= 2, 'time' => $order->updated_at?->format('h:i A')],
+                            ['label' => 'In Progress', 'desc' => 'Work in progress', 'done' => $rank >= 3, 'time' => $order->updated_at?->format('h:i A')],
+                            ['label' => 'Completed', 'desc' => 'Work completed', 'done' => $rank >= 4, 'time' => $order->updated_at?->format('h:i A')],
+                            ['label' => 'Delivered', 'desc' => 'Order closed and delivered', 'done' => $rank >= 5, 'time' => $order->updated_at?->format('h:i A')],
+                        ];
+                    @endphp
+                    <div class="space-y-0">
+                        @foreach($timeline as $i => $step)
+                            <div class="flex gap-3">
+                                <div class="flex flex-col items-center">
+                                    <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold {{ $step['done'] ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
+                                        {{ $step['done'] ? '✓' : '' }}
+                                    </span>
+                                    @if($i !== count($timeline) - 1)
+                                        <span class="w-0.5 h-8 {{ $step['done'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
+                                    @endif
+                                </div>
+                                <div class="pb-4">
+                                    <p class="text-sm font-semibold {{ $step['done'] ? 'text-green-800' : 'text-gray-500' }}">{{ $step['label'] }}</p>
+                                    <p class="text-sm {{ $step['done'] ? 'text-gray-700' : 'text-gray-400' }}">{{ $step['desc'] }}</p>
+                                    @if(!empty($step['time']) && $step['done'])
+                                        <p class="text-xs text-gray-500 mt-1">{{ $step['time'] }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    @if(strtolower((string) $order->order_status) === 'cancelled')
+                        <div class="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                            Order cancelled. Refund status can be reviewed in payment section and transaction history.
+                        </div>
+                    @endif
+                </div>
             </div>
 
             <!-- Sidebar -->

@@ -352,58 +352,6 @@ class OrderController extends Controller
     }
 
     /**
-     * Guest: cancel order by order_number + email (same verification as track).
-     */
-    public function guestCancel(Request $request)
-    {
-        $request->validate([
-            'order_number' => 'required|string|max:50',
-            'email' => 'required|email',
-        ]);
-
-        $order = $this->findGuestOrder($request->input('order_number'), $request->input('email'));
-        if (! $order) {
-            return response()->json(['success' => false, 'message' => 'Order not found or email does not match.'], 404);
-        }
-
-        if ($this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending'))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order cannot be cancelled after technician assignment.',
-            ], 422);
-        }
-
-        $result = $this->cancelWithPolicy($order);
-        $order->refresh();
-
-        try {
-            $admins = User::role('admin')->get();
-            foreach ($admins as $admin) {
-                $admin->notify(new AdminNotification(
-                    'Order Cancelled',
-                    'Guest order #'.$order->id.' ('.$order->guest_email.') was cancelled.'
-                ));
-            }
-        } catch (\Exception $e) {
-            \Log::error('Failed to send order cancellation notification: '.$e->getMessage());
-        }
-
-        $order->load(['items.product', 'shippingAddress']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order cancelled successfully',
-            'data' => [
-                'order' => $order,
-                'order_number' => $order->publicOrderNumber(),
-                'order_number_short' => $order->publicOrderNumberDigits(),
-                'order_summary' => $this->orderSummaryForApi($order),
-            ],
-            'refund' => $result,
-        ], 200);
-    }
-
-    /**
      * Apply timeline-based cancellation + refund policy and wallet crediting.
      *
      * @return array{

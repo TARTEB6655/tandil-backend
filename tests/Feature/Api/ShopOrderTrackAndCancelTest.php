@@ -356,34 +356,6 @@ class ShopOrderTrackAndCancelTest extends TestCase
             ->assertStatus(403);
     }
 
-    public function test_guest_cancel_succeeds(): void
-    {
-        $order = Order::factory()->create([
-            'user_id' => null,
-            'guest_email' => 'guest-cancel@example.com',
-            'guest_full_name' => 'Guest Cancel',
-            'guest_phone' => '+971500000002',
-            'guest_street_address' => 'Road 1',
-            'guest_city' => 'Dubai',
-            'guest_state' => null,
-            'guest_zip_code' => null,
-            'guest_country' => 'UAE',
-            'package_id' => null,
-            'order_status' => 'pending',
-            'payment_status' => 'pending',
-        ]);
-
-        $response = $this->postJson('/api/shop/orders/guest/cancel', [
-            'order_number' => $order->publicOrderNumber(),
-            'email' => 'guest-cancel@example.com',
-        ], ['Accept' => 'application/json']);
-
-        $response->assertOk();
-        $response->assertJsonPath('success', true);
-        $order->refresh();
-        $this->assertSame('cancelled', $order->order_status);
-    }
-
     public function test_get_orders_track_does_not_fail_when_wallet_credits_table_missing(): void
     {
         if (Schema::hasTable('wallet_credits')) {

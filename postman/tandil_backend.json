@@ -3756,41 +3756,8 @@
                                 },
                                 "description": "Get guest order tracking (timeline, status). No auth. Query: order_number, email."
                             }
-                        },
-                        {
-                            "name": "Orders - Guest Cancel",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"order_number\": \"order_0001\",\n  \"email\": \"guest@example.com\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/orders/guest/cancel",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "orders",
-                                        "guest",
-                                        "cancel"
-                                    ]
-                                },
-                                "description": "Cancel guest order. No auth. Body: order_number, email (must match guest_email). Same rules as authenticated cancel (not if delivered/cancelled)."
-                            }
                         }
+                        
                     ]
                 },
                 {
@@ -4410,40 +4377,7 @@
                                 "description": "Cancel order for authenticated user/admin scope. Response includes `refund` breakdown and updated order state."
                             }
                         },
-                        {
-                            "name": "2. POST Cancel order (guest)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"order_number\": \"order_0001\",\n  \"email\": \"guest@example.com\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/orders/guest/cancel",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "orders",
-                                        "guest",
-                                        "cancel"
-                                    ]
-                                },
-                                "description": "Guest cancellation by order_number + email. Response includes `refund` breakdown."
-                            }
-                        },
+                        
                         {
                             "name": "3. GET Refund policy (public)",
                             "request": {

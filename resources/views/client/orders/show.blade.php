@@ -57,33 +57,59 @@
             <!-- Order Timeline -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
                 <h2 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Order Timeline</h2>
-                <div class="space-y-4">
-                    <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">Order Placed</p>
-                            <p class="text-xs text-gray-500">{{ $order->created_at->format('M d, Y h:i A') }}</p>
+                @php
+                    $rawStatus = strtolower((string) ($order->order_status ?? 'pending'));
+                    $normalizedStatus = match ($rawStatus) {
+                        'paid' => 'confirmed',
+                        'processing' => 'in_progress',
+                        'shipped' => 'completed',
+                        default => $rawStatus,
+                    };
+                    $rank = match ($normalizedStatus) {
+                        'pending' => 0,
+                        'confirmed' => 1,
+                        'assigned' => 2,
+                        'in_progress' => 3,
+                        'completed' => 4,
+                        'delivered' => 5,
+                        default => 0,
+                    };
+
+                    $timeline = [
+                        ['key' => 'pending', 'label' => 'Pending', 'description' => 'Order placed successfully', 'completed' => true, 'time' => $order->created_at?->format('h:i A')],
+                        ['key' => 'confirmed', 'label' => 'Confirmed', 'description' => 'Order confirmed by our team', 'completed' => $rank >= 1, 'time' => ($order->paid_at ?? $order->updated_at)?->format('h:i A')],
+                        ['key' => 'assigned', 'label' => 'Assigned', 'description' => 'Technician assigned to your order', 'completed' => $rank >= 2, 'time' => $order->updated_at?->format('h:i A')],
+                        ['key' => 'in_progress', 'label' => 'In Progress', 'description' => 'Your order is being processed', 'completed' => $rank >= 3, 'time' => $order->updated_at?->format('h:i A')],
+                        ['key' => 'completed', 'label' => 'Completed', 'description' => 'Your order is ready', 'completed' => $rank >= 4, 'time' => $order->updated_at?->format('h:i A')],
+                        ['key' => 'delivered', 'label' => 'Delivered', 'description' => 'Delivered', 'completed' => $rank >= 5, 'time' => $order->updated_at?->format('h:i A')],
+                    ];
+                @endphp
+                <div class="space-y-0">
+                    @foreach($timeline as $idx => $step)
+                        <div class="flex gap-3">
+                            <div class="flex flex-col items-center">
+                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold {{ $step['completed'] ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
+                                    {{ $step['completed'] ? '✓' : '' }}
+                                </span>
+                                @if($idx !== count($timeline) - 1)
+                                    <span class="w-0.5 h-8 {{ $step['completed'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
+                                @endif
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-semibold {{ $step['completed'] ? 'text-green-800' : 'text-gray-500' }}">{{ $step['label'] }}</p>
+                                <p class="text-sm {{ $step['completed'] ? 'text-blue-900/70' : 'text-gray-400' }}">{{ $step['description'] }}</p>
+                                @if(!empty($step['time']) && $step['completed'])
+                                    <p class="text-xs text-gray-500 mt-1">{{ $step['time'] }}</p>
+                                @endif
+                            </div>
                         </div>
-                    </div>
-                    @if($order->paid_at)
-                    <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">Payment Received</p>
-                            <p class="text-xs text-gray-500">{{ $order->paid_at->format('M d, Y h:i A') }}</p>
-                        </div>
-                    </div>
-                    @endif
-                    @if($order->order_status === 'delivered')
-                    <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">Delivered</p>
-                            <p class="text-xs text-gray-500">Order has been delivered</p>
-                        </div>
-                    </div>
-                    @endif
+                    @endforeach
                 </div>
+                @if(strtolower((string) $order->order_status) === 'cancelled')
+                    <div class="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        Order was cancelled. If eligible, refund is processed to your wallet as per policy.
+                    </div>
+                @endif
             </div>
         </div>
 
