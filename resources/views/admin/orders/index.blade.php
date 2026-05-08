@@ -295,7 +295,26 @@
                                     <span class="text-sm text-gray-900">{{ $order->items->count() }} {{ $order->items->count() == 1 ? 'item' : 'items' }}</span>
                                 </td>
                                 <td class="px-3 py-4 whitespace-nowrap">
-                                    <span class="text-sm text-gray-500">-</span>
+                                    @php
+                                        $deliveryStatus = strtolower((string) ($order->order_status ?? 'pending'));
+                                        $deliveryLabel = match ($deliveryStatus) {
+                                            'delivered' => 'Delivered',
+                                            'completed', 'shipped' => 'Out for delivery',
+                                            'in_progress', 'processing', 'assigned', 'confirmed' => 'In transit',
+                                            'cancelled' => 'Cancelled',
+                                            default => 'Pending dispatch',
+                                        };
+                                        $deliveryDot = match ($deliveryStatus) {
+                                            'delivered' => 'bg-green-500',
+                                            'completed', 'shipped', 'in_progress', 'processing', 'assigned', 'confirmed' => 'bg-blue-500',
+                                            'cancelled' => 'bg-gray-400',
+                                            default => 'bg-amber-500',
+                                        };
+                                    @endphp
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-2 h-2 rounded-full {{ $deliveryDot }} flex-shrink-0"></div>
+                                        <span class="text-sm text-gray-900">{{ $deliveryLabel }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

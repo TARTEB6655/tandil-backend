@@ -1071,6 +1071,80 @@ class AdminDashboardController extends Controller
     }
 
     /**
+     * Get bucketed order lists aligned with order statistics cards.
+     * GET /api/admin/dashboard/order-statistics/orders
+     */
+    public function orderStatisticsOrders(Request $request)
+    {
+        $limit = min(max((int) $request->query('limit', 20), 1), 100);
+
+        $toPayload = function ($query) use ($limit) {
+            $orders = $query
+                ->with(['user'])
+                ->latest()
+                ->limit($limit)
+                ->get();
+
+            return $orders->map(function (Order $order) {
+                return [
+                    'id' => $order->id,
+                    'order_number' => $order->publicOrderNumber(),
+                    'order_number_short' => $order->publicOrderNumberDigits(),
+                    'order_status' => $order->order_status,
+                    'payment_status' => $order->payment_status,
+                    'total_amount' => (float) $order->total_amount,
+                    'refund_amount' => (float) ($order->refund_amount ?? 0),
+                    'customer' => [
+                        'id' => $order->user?->id,
+                        'name' => $order->user?->name ?? 'Guest',
+                        'email' => $order->user?->email,
+                    ],
+                    'created_at' => $order->created_at?->format('c'),
+                    'updated_at' => $order->updated_at?->format('c'),
+                ];
+            })->values();
+        };
+
+        $buckets = [
+            'total_orders' => [
+                'count' => Order::count(),
+                'orders' => $toPayload(Order::query()),
+            ],
+            'pending_orders' => [
+                'count' => Order::where('order_status', 'pending')->count(),
+                'orders' => $toPayload(Order::where('order_status', 'pending')),
+            ],
+            'assigned_orders' => [
+                'count' => Order::where('order_status', 'assigned')->count(),
+                'orders' => $toPayload(Order::where('order_status', 'assigned')),
+            ],
+            'in_progress_orders' => [
+                'count' => Order::whereIn('order_status', ['processing', 'in_progress'])->count(),
+                'orders' => $toPayload(Order::whereIn('order_status', ['processing', 'in_progress'])),
+            ],
+            'completed_orders' => [
+                'count' => Order::whereIn('order_status', ['completed', 'delivered'])->count(),
+                'orders' => $toPayload(Order::whereIn('order_status', ['completed', 'delivered'])),
+            ],
+            'cancelled_orders' => [
+                'count' => Order::where('order_status', 'cancelled')->count(),
+                'orders' => $toPayload(Order::where('order_status', 'cancelled')),
+            ],
+            'refunded_orders' => [
+                'count' => Order::where('payment_status', 'refunded')->count(),
+                'orders' => $toPayload(Order::where('payment_status', 'refunded')),
+            ],
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin order statistics orders retrieved successfully',
+            'limit' => $limit,
+            'data' => $buckets,
+        ]);
+    }
+
+    /**
      * Get quick overview for React Native dashboard
      * Returns counts for new orders, support tickets, and other quick stats
      * with percentage changes vs previous period

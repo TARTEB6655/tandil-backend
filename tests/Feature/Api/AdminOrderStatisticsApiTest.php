@@ -111,4 +111,38 @@ class AdminOrderStatisticsApiTest extends TestCase
             ],
         ]);
     }
+
+    public function test_admin_order_statistics_orders_returns_bucketed_lists(): void
+    {
+        Order::factory()->create(['order_status' => 'pending', 'payment_status' => 'pending']);
+        Order::factory()->create(['order_status' => 'cancelled', 'payment_status' => 'refunded']);
+        Order::factory()->create(['order_status' => 'delivered', 'payment_status' => 'paid']);
+        Order::factory()->create(['order_status' => 'assigned', 'payment_status' => 'paid']);
+        Order::factory()->create(['order_status' => 'processing', 'payment_status' => 'paid']);
+
+        $response = $this->getJson('/api/admin/dashboard/order-statistics/orders?limit=10', $this->authHeaders());
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('message', 'Admin order statistics orders retrieved successfully');
+        $response->assertJsonPath('limit', 10);
+        $response->assertJsonPath('data.total_orders.count', 5);
+        $response->assertJsonPath('data.pending_orders.count', 1);
+        $response->assertJsonPath('data.cancelled_orders.count', 1);
+        $response->assertJsonPath('data.completed_orders.count', 1);
+        $response->assertJsonPath('data.assigned_orders.count', 1);
+        $response->assertJsonPath('data.in_progress_orders.count', 1);
+        $response->assertJsonPath('data.refunded_orders.count', 1);
+        $response->assertJsonStructure([
+            'data' => [
+                'total_orders' => ['count', 'orders'],
+                'pending_orders' => ['count', 'orders'],
+                'cancelled_orders' => ['count', 'orders'],
+                'completed_orders' => ['count', 'orders'],
+                'assigned_orders' => ['count', 'orders'],
+                'in_progress_orders' => ['count', 'orders'],
+                'refunded_orders' => ['count', 'orders'],
+            ],
+        ]);
+    }
 }

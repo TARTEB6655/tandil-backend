@@ -11710,6 +11710,43 @@
                     }
                 },
                 {
+                    "name": "Admin Dashboard Order Statistics - Orders Buckets",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/dashboard/order-statistics/orders?limit=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "dashboard",
+                                "order-statistics",
+                                "orders"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "20",
+                                    "description": "Max orders per bucket (1-100). Default 20."
+                                }
+                            ]
+                        },
+                        "description": "Get bucketed order lists aligned with admin order statistics cards. Returns count + orders[] for total_orders, pending_orders, assigned_orders, in_progress_orders, completed_orders, cancelled_orders, refunded_orders."
+                    }
+                },
+                {
                     "name": "Admin Dashboard Quick Overview",
                     "request": {
                         "method": "GET",
