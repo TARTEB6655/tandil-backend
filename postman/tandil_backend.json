@@ -2584,6 +2584,43 @@
                     }
                 },
                 {
+                    "name": "Bulk Delete Orders (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"ids\": [\n    {{order_id}}\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/orders/bulk-delete",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "bulk-delete"
+                            ]
+                        },
+                        "description": "POST /api/admin/orders/bulk-delete - Delete multiple orders by IDs. Body: ids[] (array of order IDs). Auth: Admin bearer token."
+                    }
+                },
+                {
                     "name": "Refund Order (Admin)",
                     "request": {
                         "method": "POST",

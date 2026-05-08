@@ -30,33 +30,43 @@
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            <form method="GET" action="{{ route('admin.wallet.index') }}" class="flex flex-col md:flex-row md:items-end gap-3">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search user</label>
-                    <input type="text" name="q" value="{{ $q }}" placeholder="Name or email"
-                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status</label>
-                    <select name="status" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
-                        <option value="">All</option>
-                        @foreach(['active', 'forfeited', 'used', 'expired'] as $st)
-                            <option value="{{ $st }}" {{ $status === $st ? 'selected' : '' }}>{{ ucfirst($st) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Per page</label>
-                    <select name="per_page" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
-                        @foreach([20, 50, 100] as $size)
-                            <option value="{{ $size }}" {{ (int) $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Apply</button>
-                    <a href="{{ route('admin.wallet.index') }}" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">Reset</a>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Filters</h2>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Refine wallet ledger by user and status.</p>
+            </div>
+            <form method="GET" action="{{ route('admin.wallet.index') }}" class="p-4">
+                <div class="flex flex-nowrap items-end gap-3 overflow-x-auto">
+                    <div class="min-w-[280px] flex-1">
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Search user</label>
+                        <input type="text" name="q" value="{{ $q }}" placeholder="Name or email"
+                               class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    </div>
+                    <div class="w-40 shrink-0">
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Status</label>
+                        <select name="status" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                            <option value="">All</option>
+                            @foreach(['active', 'forfeited', 'used', 'expired'] as $st)
+                                <option value="{{ $st }}" {{ $status === $st ? 'selected' : '' }}>{{ ucfirst($st) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="w-28 shrink-0">
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Per page</label>
+                        <select name="per_page" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                            @foreach([20, 50, 100] as $size)
+                                <option value="{{ $size }}" {{ (int) $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="submit" class="inline-flex h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
+                            Apply
+                        </button>
+                        <a href="{{ route('admin.wallet.index') }}" class="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                            Reset
+                        </a>
+                    </div>
                 </div>
             </form>
         </div>

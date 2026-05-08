@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class OrderActionsController extends Controller
@@ -65,6 +67,30 @@ class OrderActionsController extends Controller
             'success' => true,
             'message' => 'Refund processed successfully.',
             'data' => $this->payload($order->fresh()),
+        ]);
+    }
+
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:orders,id',
+        ]);
+
+        $ids = collect($validated['ids'])->map(fn ($id) => (int) $id)->unique()->values();
+
+        DB::transaction(function () use ($ids) {
+            OrderItem::query()->whereIn('order_id', $ids)->delete();
+            Order::query()->whereIn('id', $ids)->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Selected orders deleted successfully.',
+            'data' => [
+                'deleted_count' => $ids->count(),
+                'deleted_ids' => $ids->all(),
+            ],
         ]);
     }
 

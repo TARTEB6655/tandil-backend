@@ -742,6 +742,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/exclusive-offer
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/orders')->group(function () {
     Route::get('/export', [\App\Http\Controllers\Api\Admin\OrderExportController::class, 'export']);
     Route::post('/send-to-supplier', [\App\Http\Controllers\Api\Admin\OrderExportController::class, 'sendToSupplier']);
+    Route::post('/bulk-delete', [\App\Http\Controllers\Api\Admin\OrderActionsController::class, 'bulkDelete']);
     Route::post('/{id}/cancel', [\App\Http\Controllers\Api\Admin\OrderActionsController::class, 'cancel']);
     Route::post('/{id}/refund', [\App\Http\Controllers\Api\Admin\OrderActionsController::class, 'refund']);
 });

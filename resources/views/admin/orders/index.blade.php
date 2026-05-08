@@ -249,7 +249,7 @@
                                 <th class="px-3 py-3 text-left w-12">
                                     <input type="checkbox" 
                                            id="selectAll" 
-                                           class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                           class="h-4 w-4 rounded border-gray-300 bg-white text-indigo-600 checked:border-indigo-600 checked:bg-indigo-600 focus:ring-0 focus:outline-none"
                                            onchange="toggleSelectAll()">
                                 </th>
                                 <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Order</th>
@@ -270,7 +270,7 @@
                                 onclick="window.location='{{ route('admin.orders.show', $order->id) }}'">
                                 <td class="px-3 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                                     <input type="checkbox" 
-                                           class="order-checkbox h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                           class="order-checkbox h-4 w-4 rounded border-gray-300 bg-white text-indigo-600 checked:border-indigo-600 checked:bg-indigo-600 focus:ring-0 focus:outline-none"
                                            value="{{ $order->id }}"
                                            onchange="updateBulkActions()">
                                 </td>
