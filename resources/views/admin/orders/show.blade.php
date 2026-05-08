@@ -79,9 +79,30 @@
 
                 <!-- Tracking Timeline -->
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                    <h3 class="text-base font-medium text-gray-900 mb-4">Order Tracking Timeline</h3>
                     @php
                         $rawStatus = strtolower((string) ($order->order_status ?? 'pending'));
+                        $isCancelled = $rawStatus === 'cancelled';
+                        $timelineNow = ($order->updated_at ?? $order->created_at);
+                        $timeFmt = fn ($dt) => $dt ? $dt->format('M d, Y h:i A') : null;
+                    @endphp
+
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Order Tracking Timeline</h3>
+                            <p class="text-xs text-gray-500 mt-1">Clear status steps for client + ops workflow.</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Current</p>
+                            <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full
+                                {{ $rawStatus === 'delivered' ? 'bg-green-100 text-green-800' :
+                                   ($rawStatus === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                   ($rawStatus === 'processing' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800')) }}">
+                                {{ ucfirst($order->order_status ?? 'pending') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    @php
                         $normalizedStatus = match ($rawStatus) {
                             'paid' => 'confirmed',
                             'processing' => 'in_progress',
@@ -97,28 +118,59 @@
                             'delivered' => 5,
                             default => 0,
                         };
-                        $timeline = [
-                            ['label' => 'Pending', 'desc' => 'Order placed successfully', 'done' => true, 'time' => $order->created_at?->format('h:i A')],
-                            ['label' => 'Confirmed', 'desc' => 'Order confirmed by team', 'done' => $rank >= 1, 'time' => ($order->paid_at ?? $order->updated_at)?->format('h:i A')],
-                            ['label' => 'Assigned', 'desc' => 'Technician assignment done', 'done' => $rank >= 2, 'time' => $order->updated_at?->format('h:i A')],
-                            ['label' => 'In Progress', 'desc' => 'Work in progress', 'done' => $rank >= 3, 'time' => $order->updated_at?->format('h:i A')],
-                            ['label' => 'Completed', 'desc' => 'Work completed', 'done' => $rank >= 4, 'time' => $order->updated_at?->format('h:i A')],
-                            ['label' => 'Delivered', 'desc' => 'Order closed and delivered', 'done' => $rank >= 5, 'time' => $order->updated_at?->format('h:i A')],
-                        ];
+
+                        // For cancelled orders we show a dedicated cancel/refund flow.
+                        $timeline = $isCancelled
+                            ? [
+                                ['key' => 'pending', 'label' => 'Pending', 'desc' => 'Order placed successfully', 'done' => true, 'time' => $timeFmt($order->created_at)],
+                                ['key' => 'cancelled', 'label' => 'Cancelled', 'desc' => 'Cancelled by customer request', 'done' => true, 'time' => $timeFmt($order->updated_at)],
+                            ]
+                            : [
+                                ['key' => 'pending', 'label' => 'Pending', 'desc' => 'Order placed successfully', 'done' => true, 'time' => $timeFmt($order->created_at)],
+                                ['key' => 'confirmed', 'label' => 'Confirmed', 'desc' => 'Order confirmed by our team', 'done' => $rank >= 1, 'time' => $timeFmt($order->paid_at ?? $order->updated_at)],
+                                ['key' => 'assigned', 'label' => 'Assigned', 'desc' => 'Technician assignment done', 'done' => $rank >= 2, 'time' => $timeFmt($order->updated_at)],
+                                ['key' => 'in_progress', 'label' => 'In Progress', 'desc' => 'Work in progress', 'done' => $rank >= 3, 'time' => $timeFmt($order->updated_at)],
+                                ['key' => 'completed', 'label' => 'Completed', 'desc' => 'Work completed', 'done' => $rank >= 4, 'time' => $timeFmt($order->updated_at)],
+                                ['key' => 'delivered', 'label' => 'Delivered', 'desc' => 'Order closed and delivered', 'done' => $rank >= 5, 'time' => $timeFmt($order->updated_at)],
+                            ];
                     @endphp
+
+                    @if($isCancelled)
+                        @php
+                            $isRefunded = strtolower((string) ($order->payment_status ?? 'pending')) === 'refunded';
+                        @endphp
+                        @if($isRefunded)
+                            @php
+                                $timeline[] = ['key' => 'refund_processing', 'label' => 'Refund Processing', 'desc' => 'Refund request is being processed', 'done' => true, 'time' => $timeFmt($order->updated_at)];
+                                $timeline[] = [
+                                    'key' => 'refund_complete',
+                                    'label' => 'Refund Complete',
+                                    'desc' => 'Refund credited back / processed',
+                                    'done' => (bool) $order->refunded_at,
+                                    'time' => $timeFmt($order->refunded_at ?? $order->updated_at),
+                                ];
+                            @endphp
+                        @else
+                            @php
+                                $timeline[] = ['key' => 'refund_not_required', 'label' => 'Refund Not Required', 'desc' => 'Order was cancelled before payment/refund eligibility.', 'done' => true, 'time' => $timeFmt($order->updated_at)];
+                            @endphp
+                        @endif
+                    @endif
+
                     <div class="space-y-0">
                         @foreach($timeline as $i => $step)
                             <div class="flex gap-3">
                                 <div class="flex flex-col items-center">
-                                    <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold {{ $step['done'] ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
+                                    <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold
+                                        {{ $step['done'] ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
                                         {{ $step['done'] ? '✓' : '' }}
                                     </span>
                                     @if($i !== count($timeline) - 1)
-                                        <span class="w-0.5 h-8 {{ $step['done'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
+                                        <span class="w-0.5 h-9 {{ $step['done'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
                                     @endif
                                 </div>
                                 <div class="pb-4">
-                                    <p class="text-sm font-semibold {{ $step['done'] ? 'text-green-800' : 'text-gray-500' }}">{{ $step['label'] }}</p>
+                                    <p class="text-sm font-semibold {{ $step['done'] ? 'text-gray-900' : 'text-gray-500' }}">{{ $step['label'] }}</p>
                                     <p class="text-sm {{ $step['done'] ? 'text-gray-700' : 'text-gray-400' }}">{{ $step['desc'] }}</p>
                                     @if(!empty($step['time']) && $step['done'])
                                         <p class="text-xs text-gray-500 mt-1">{{ $step['time'] }}</p>
@@ -127,9 +179,13 @@
                             </div>
                         @endforeach
                     </div>
-                    @if(strtolower((string) $order->order_status) === 'cancelled')
-                        <div class="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
-                            Order cancelled. Refund status can be reviewed in payment section and transaction history.
+
+                    @if($rawStatus === 'cancelled')
+                        <div class="mt-4 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                            Cancellation processed.
+                            @if(!empty($order->refund_amount))
+                                Refund: AED {{ number_format($order->refund_amount, 2) }}
+                            @endif
                         </div>
                     @endif
                 </div>
@@ -179,8 +235,21 @@
                             </span>
                         </div>
                         
-                        <!-- {{ __('admin.cancel_order') }} -->
-                        @if(!in_array($order->order_status, ['cancelled', 'delivered']))
+                        <!-- Admin Cancel Order -->
+                        @php
+                            $rawOrderStatus = strtolower((string) ($order->order_status ?? 'pending'));
+                            $normalizedForCancel = match ($rawOrderStatus) {
+                                'paid' => 'confirmed',
+                                'processing' => 'in_progress',
+                                'shipped' => 'completed',
+                                default => $rawOrderStatus,
+                            };
+                            $cancelBlocked = match ($normalizedForCancel) {
+                                'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => true,
+                                default => false,
+                            };
+                        @endphp
+                        @if(!in_array($order->order_status, ['cancelled', 'delivered']) && !$cancelBlocked)
                             <div class="pt-4 border-t border-gray-200">
                                 <form method="POST" action="{{ route('admin.orders.cancel', $order->id) }}" 
                                       onsubmit="return confirm('Are you sure you want to cancel this order?');">
@@ -189,6 +258,12 @@
                                         {{ __('admin.cancel_order') }}
                                     </button>
                                 </form>
+                            </div>
+                        @elseif($cancelBlocked)
+                            <div class="pt-4 border-t border-gray-200">
+                                <div class="text-xs text-gray-500 leading-relaxed">
+                                    Cancellation disabled after technician assignment.
+                                </div>
                             </div>
                         @endif
                         
