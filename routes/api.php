@@ -750,6 +750,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/orders')->group
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/dashboard')->group(function () {
     Route::get('/statistics', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'statistics']);
+    Route::get('/order-statistics', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'orderStatistics']);
     Route::get('/recent-activities', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'recentActivities']);
     Route::get('/quick-overview', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'quickOverview']);
     Route::get('/profile', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'profile']);

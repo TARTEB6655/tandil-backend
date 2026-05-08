@@ -1002,6 +1002,75 @@ class AdminDashboardController extends Controller
     }
 
     /**
+     * Get admin order statistics for dashboard cards/charts.
+     * GET /api/admin/dashboard/order-statistics
+     */
+    public function orderStatistics(Request $request)
+    {
+        $now = Carbon::now();
+        $todayStart = $now->copy()->startOfDay();
+        $todayEnd = $now->copy()->endOfDay();
+        $weekStart = $now->copy()->startOfWeek();
+        $weekEnd = $now->copy()->endOfWeek();
+        $monthStart = $now->copy()->startOfMonth();
+        $monthEnd = $now->copy()->endOfMonth();
+
+        $totalOrders = Order::count();
+        $cancelledOrders = Order::where('order_status', 'cancelled')->count();
+        $completedOrders = Order::whereIn('order_status', ['completed', 'delivered'])->count();
+        $pendingOrders = Order::where('order_status', 'pending')->count();
+        $assignedOrders = Order::where('order_status', 'assigned')->count();
+        $inProgressOrders = Order::whereIn('order_status', ['processing', 'in_progress'])->count();
+        $refundedOrders = Order::where('payment_status', 'refunded')->count();
+
+        $grossRevenue = (float) Order::where('payment_status', 'paid')->sum('total_amount');
+        $refundedAmount = (float) Order::sum(DB::raw('COALESCE(refund_amount, 0)'));
+        $netRevenue = max(0, $grossRevenue - $refundedAmount);
+
+        $periodCounts = [
+            'today' => Order::whereBetween('created_at', [$todayStart, $todayEnd])->count(),
+            'this_week' => Order::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+            'this_month' => Order::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+        ];
+
+        $rate = function (int $part, int $whole): float {
+            if ($whole <= 0) {
+                return 0.0;
+            }
+
+            return round(($part / $whole) * 100, 2);
+        };
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin order statistics retrieved successfully',
+            'data' => [
+                'summary' => [
+                    'total_orders' => $totalOrders,
+                    'cancelled_orders' => $cancelledOrders,
+                    'completed_orders' => $completedOrders,
+                    'refunded_orders' => $refundedOrders,
+                    'pending_orders' => $pendingOrders,
+                    'assigned_orders' => $assignedOrders,
+                    'in_progress_orders' => $inProgressOrders,
+                ],
+                'financial' => [
+                    'currency' => strtoupper((string) config('shop.currency', 'AED')),
+                    'gross_revenue' => round($grossRevenue, 2),
+                    'refunded_amount' => round($refundedAmount, 2),
+                    'net_revenue' => round($netRevenue, 2),
+                ],
+                'period_counts' => $periodCounts,
+                'rates' => [
+                    'completion_rate' => $rate($completedOrders, $totalOrders),
+                    'cancellation_rate' => $rate($cancelledOrders, $totalOrders),
+                    'refund_rate' => $rate($refundedOrders, $totalOrders),
+                ],
+            ],
+        ]);
+    }
+
+    /**
      * Get quick overview for React Native dashboard
      * Returns counts for new orders, support tickets, and other quick stats
      * with percentage changes vs previous period
