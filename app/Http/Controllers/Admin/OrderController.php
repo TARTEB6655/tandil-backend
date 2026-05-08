@@ -21,6 +21,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
+        $isCancelledOnly = $request->boolean('cancelled_only');
         $query = Order::with(['user', 'items']);
 
         // Filter by status
@@ -43,6 +44,9 @@ class OrderController extends Controller
 
         // Apply filter tabs
         $filter = $request->get('filter', 'all');
+        if ($isCancelledOnly) {
+            $filter = 'archived';
+        }
         if ($filter === 'unfulfilled') {
             $query->where('order_status', '!=', 'delivered')->where('order_status', '!=', 'cancelled');
         } elseif ($filter === 'unpaid') {
@@ -68,8 +72,19 @@ class OrderController extends Controller
         ];
 
         $packages = Package::orderBy('sort_order')->get(['id', 'name']);
+        $pageTitle = $isCancelledOnly ? 'Cancelled Orders' : null;
 
-        return view('admin.orders.index', compact('orders', 'stats', 'filter', 'packages'));
+        return view('admin.orders.index', compact('orders', 'stats', 'filter', 'packages', 'pageTitle'));
+    }
+
+    public function cancelled(Request $request)
+    {
+        $request->merge([
+            'filter' => 'archived',
+            'cancelled_only' => true,
+        ]);
+
+        return $this->index($request);
     }
 
     /**

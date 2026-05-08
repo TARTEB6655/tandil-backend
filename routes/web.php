@@ -187,6 +187,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('zone-assignment', [AreaController::class, 'zoneAssignment'])->name('zone-assignment.index');
         Route::post('areas/{id}/toggle-active', [AreaController::class, 'toggleActive'])->name('areas.toggle-active');
         Route::resource('areas', AreaController::class);
+        Route::get('orders/cancelled', [OrderController::class, 'cancelled'])->name('orders.cancelled');
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
         Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
         Route::post('orders/send-to-supplier', [OrderController::class, 'sendToSupplier'])->name('orders.send-to-supplier');

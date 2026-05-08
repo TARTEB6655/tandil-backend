@@ -158,6 +158,13 @@
                             </svg>
                             <span class="text-sm">Orders</span>
                         </a>
+                        <a href="{{ route('admin.orders.cancelled') }}"
+                           class="flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.orders.cancelled') ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-1.414 1.414A9 9 0 106.343 16.657l1.414-1.414a7 7 0 119.9-9.9zM12 8v4l3 3" />
+                            </svg>
+                            <span class="text-sm">Cancelled Orders</span>
+                        </a>
                     </div>
 
                     <!-- Section: Communication -->

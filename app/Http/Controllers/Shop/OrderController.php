@@ -357,7 +357,7 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $timeline = $this->buildOrderTimeline($order);
+        $timeline = $this->buildCancelledOrderTimeline($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
         $orderArray = $order->toArray();
         $orderArray['shipping_address'] = $order->getShippingAddressForApi();
@@ -597,6 +597,57 @@ class OrderController extends Controller
             ['key' => 'completed', 'label' => 'Completed', 'description' => 'Your order is ready!', 'completed' => $rank >= $this->orderTrackingRank('completed'), 'timestamp' => $rank >= $this->orderTrackingRank('completed') ? $updatedAt?->format('g:i A') : null],
             ['key' => 'delivered', 'label' => 'Delivered', 'description' => 'Delivered', 'completed' => $rank >= $this->orderTrackingRank('delivered'), 'timestamp' => $rank >= $this->orderTrackingRank('delivered') ? $updatedAt?->format('g:i A') : null],
         ];
+
+        return $steps;
+    }
+
+    /**
+     * Build timeline for cancelled-order tracking.
+     */
+    private function buildCancelledOrderTimeline(Order $order): array
+    {
+        $createdAt = $order->created_at;
+        $cancelledAt = $order->updated_at;
+        $isRefunded = strtolower((string) ($order->payment_status ?? '')) === 'refunded';
+        $hasRefund = (float) ($order->refund_amount ?? 0) > 0;
+        $refundProcessing = $hasRefund && ! $isRefunded;
+
+        $steps = [
+            [
+                'key' => 'pending',
+                'label' => 'Pending',
+                'description' => 'Order placed successfully',
+                'completed' => true,
+                'timestamp' => $createdAt?->format('g:i A') ?? null,
+            ],
+            [
+                'key' => 'cancelled',
+                'label' => 'Cancelled',
+                'description' => 'Order cancelled',
+                'completed' => true,
+                'timestamp' => $cancelledAt?->format('g:i A') ?? null,
+            ],
+        ];
+
+        if ($refundProcessing || $isRefunded) {
+            $steps[] = [
+                'key' => 'refund_processing',
+                'label' => 'Refund Processing',
+                'description' => 'Refund is being processed to your wallet',
+                'completed' => $isRefunded,
+                'timestamp' => $isRefunded ? ($order->refunded_at?->format('g:i A') ?? $cancelledAt?->format('g:i A')) : null,
+            ];
+        }
+
+        if ($isRefunded) {
+            $steps[] = [
+                'key' => 'refund_complete',
+                'label' => 'Refund Complete',
+                'description' => 'Refund credited to in-app wallet',
+                'completed' => true,
+                'timestamp' => $order->refunded_at?->format('g:i A') ?? $cancelledAt?->format('g:i A'),
+            ];
+        }
 
         return $steps;
     }

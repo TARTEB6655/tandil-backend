@@ -436,6 +436,9 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $response->assertJsonPath('data.tracking.status', 'cancelled');
         $response->assertJsonPath('data.order_summary.refund_amount', 25);
         $response->assertJsonPath('data.can_cancel', false);
+        $response->assertJsonPath('data.tracking.timeline.0.key', 'pending');
+        $response->assertJsonPath('data.tracking.timeline.1.key', 'cancelled');
+        $response->assertJsonPath('data.tracking.timeline.3.key', 'refund_complete');
     }
 
     public function test_get_cancel_track_rejects_non_cancelled_order(): void
