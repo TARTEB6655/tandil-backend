@@ -59,7 +59,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex shrink-0 items-end gap-2">
+                    <div class="flex shrink-0 self-center items-center gap-2">
                         <button type="submit" class="inline-flex h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
                             Apply
                         </button>
