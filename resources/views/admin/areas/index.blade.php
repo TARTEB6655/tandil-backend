@@ -96,12 +96,7 @@
 
         $areasForMap = isset($areasForMap) ? $areasForMap : collect($areas);
         $operationalCount = $areasForMap->where('is_active', true)->count();
-        $areasWithCoordinates = $areasForMap->filter(function ($a) use ($resolveUaeCenter) {
-            if ($a->latitude !== null && $a->longitude !== null) {
-                return true;
-            }
-            return $resolveUaeCenter($a->name, $a->location) !== null;
-        });
+        $areasWithCoordinates = $areasForMap->where('is_active', true);
         $areasForMapData = $areasForMap->map(fn ($a) => [
             'id' => $a->id,
             'name' => $a->name,
@@ -121,7 +116,7 @@
                 <h1 class="text-2xl font-semibold text-gray-900">UAE Operational Areas</h1>
                 <p class="text-sm text-gray-600 mt-1">Enable/disable cities and zones from one screen, with live map pins for active operations.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex w-full flex-wrap items-center justify-start gap-2 lg:w-auto lg:justify-end lg:self-center">
                 <a href="{{ route('admin.zone-assignment.index') }}" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">{{ __('admin.zone_assignment') }}</a>
                 <a href="{{ route('admin.areas.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{{ __('admin.new_zone') }}</a>
             </div>
@@ -260,14 +255,12 @@
             const totalEl = document.getElementById('ops-total-zones');
             const operationalEl = document.getElementById('ops-operational-zones');
             const pinnedEl = document.getElementById('ops-pinned-zones');
-            const customPin = L.icon({
-                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41],
+            const customPin = L.divIcon({
+                className: '',
+                html: '<span class="ops-map-pin"></span>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24],
+                popupAnchor: [0, -24],
             });
 
             const bounds = [];
@@ -459,7 +452,8 @@
                     const summary = payload?.data?.summary || {};
                     if (totalEl) totalEl.textContent = String(summary.total_zones ?? totalEl.textContent);
                     if (operationalEl) operationalEl.textContent = String(summary.operational_zones ?? operationalEl.textContent);
-                    if (pinnedEl) pinnedEl.textContent = String(summary.pinned_on_map ?? pinnedEl.textContent);
+                    // Pinned count should always match operational areas only.
+                    if (pinnedEl) pinnedEl.textContent = String(summary.operational_zones ?? pinnedEl.textContent);
 
                 } catch (e) {
                     // non-blocking metadata refresh

@@ -29,7 +29,7 @@
         </a>
     </div>
 
-    <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm ring-1 ring-slate-900/5 dark:border-slate-600 dark:bg-slate-900 dark:ring-white/10 sm:p-4">
+    <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-600 dark:bg-slate-900 sm:p-4">
         <form id="{{ $formId }}" method="GET" action="{{ route($routeName) }}" class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             {{-- Search (widest) --}}
             <div class="relative min-w-0 flex-1 sm:min-w-[12rem] lg:min-w-[14rem]">

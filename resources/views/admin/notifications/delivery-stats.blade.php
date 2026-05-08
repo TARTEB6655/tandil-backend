@@ -48,8 +48,16 @@
                     <option value="unknown" @selected($activeAudience === 'unknown')>Unknown</option>
                 </select>
             </div>
-            <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Apply</button>
-            <a href="{{ route('admin.notifications.delivery-stats') }}" class="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">Reset</a>
+            <div class="flex items-center gap-2">
+                <button type="submit"
+                        class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:bg-indigo-500 dark:hover:bg-indigo-400">
+                    Apply
+                </button>
+                <a href="{{ route('admin.notifications.delivery-stats') }}"
+                   class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                    Reset
+                </a>
+            </div>
         </form>
 
         <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
