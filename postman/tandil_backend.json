@@ -3515,6 +3515,23 @@
                         },
                         {
                             "name": "Orders - Cancelled List",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.data && jsonData.data.length > 0) {",
+                                            "        pm.environment.set('order_id', jsonData.data[0].id);",
+                                            "        console.log('Saved cancelled order_id for next request:', jsonData.data[0].id);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3544,7 +3561,7 @@
                                         }
                                     ]
                                 },
-                                "description": "GET /api/orders/cancelled - Cancelled orders list for cancelled tab UI."
+                                "description": "GET /api/orders/cancelled - Cancelled orders list for cancelled tab UI. Run this first; it auto-saves first cancelled order id into {{order_id}}."
                             }
                         },
                         {
@@ -3630,7 +3647,7 @@
                                         "cancel-track"
                                     ]
                                 },
-                                "description": "GET /api/orders/{id}/cancel-track - Cancel detail tracking for cancelled-order click flow."
+                                "description": "GET /api/orders/{id}/cancel-track - Cancel detail tracking for cancelled-order click flow. Uses {{order_id}} (set by 'Orders - Cancelled List')."
                             }
                         },
                         {
