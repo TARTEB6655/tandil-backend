@@ -175,7 +175,6 @@
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">City / Zone</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Country</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Assigned Supervisors</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Priority</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Operational Toggle</th>
                         </tr>
                     </thead>
@@ -198,7 +197,6 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-sm text-slate-700">{{ (int) ($area->priority ?? 0) }}</td>
                                 <td class="px-4 py-3">
                                     <button type="button"
                                         class="js-area-toggle ops-switch"
@@ -218,7 +216,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-500">{{ __('admin.no_areas_found') }}</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500">{{ __('admin.no_areas_found') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -226,27 +224,12 @@
             </div>
         </div>
         @if(method_exists($areas, 'links'))
-            <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p class="text-xs text-slate-500">
-                    Showing {{ $areas->firstItem() ?? 0 }}-{{ $areas->lastItem() ?? 0 }} of {{ $areas->total() }} cities/zones
-                </p>
+            <div class="mt-4 flex justify-end">
                 <div>
                     {{ $areas->links() }}
                 </div>
             </div>
         @endif
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-            <form method="GET" action="{{ route('admin.areas.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search city / zone / country..." class="md:col-span-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                <select name="per_page" class="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                    @foreach([10, 25, 50, 100] as $size)
-                        <option value="{{ $size }}" {{ (int) request('per_page', 25) === $size ? 'selected' : '' }}>{{ $size }} / page</option>
-                    @endforeach
-                </select>
-                <button type="submit" class="rounded-lg bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">Apply</button>
-                <a href="{{ route('admin.areas.index') }}" class="rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-center hover:bg-slate-200">Clear</a>
-            </form>
-        </div>
     </div>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />

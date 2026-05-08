@@ -179,26 +179,40 @@
                         @endif
                     @endif
 
-                    <div class="space-y-2">
+                    <div class="space-y-3">
                         @foreach($timeline as $i => $step)
+                            @php
+                                $stepDone = (bool) ($step['done'] ?? false);
+                                $rowBorder = $stepDone ? 'border-emerald-200/80' : 'border-gray-200';
+                                $rowBg = $stepDone ? 'bg-gradient-to-r from-emerald-50/80 via-white to-white' : 'bg-gray-50/60';
+                                $titleColor = $stepDone ? 'text-gray-900' : 'text-gray-500';
+                                $descColor = $stepDone ? 'text-gray-600' : 'text-gray-400';
+                                $timeBadge = $stepDone ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500';
+                            @endphp
                             <div class="relative flex gap-3 pb-4">
                                 <div class="relative flex w-7 justify-center pt-0.5">
                                     <span class="z-10 mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold shadow-sm
-                                        {{ $step['done'] ? 'bg-green-700 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
-                                        {{ $step['done'] ? '✓' : '' }}
+                                        {{ $stepDone ? 'bg-emerald-600 text-white ring-2 ring-emerald-100' : 'bg-white border border-gray-300 text-gray-400' }}">
+                                        {{ $stepDone ? '✓' : '' }}
                                     </span>
                                     @if($i !== count($timeline) - 1)
-                                        <span class="absolute top-6 h-[calc(100%-0.5rem)] w-px {{ $step['done'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
+                                        <span class="absolute top-6 h-[calc(100%-0.5rem)] w-px {{ $stepDone ? 'bg-emerald-500/70' : 'bg-gray-200' }}"></span>
                                     @endif
                                 </div>
                                 <div class="pt-0.5 flex-1">
-                                    <div class="rounded-xl border {{ $step['done'] ? 'border-gray-200 bg-gray-50/70' : 'border-gray-100 bg-gray-50/40' }} px-3 py-2">
-                                        <p class="text-[1rem] font-semibold {{ $step['done'] ? 'text-gray-900' : 'text-gray-500' }}">{{ $step['label'] }}</p>
-                                        <p class="text-sm {{ $step['done'] ? 'text-gray-700' : 'text-gray-400' }}">{{ $step['desc'] }}</p>
+                                    <div class="rounded-xl border {{ $rowBorder }} {{ $rowBg }} px-3 py-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <p class="text-[1rem] font-semibold tracking-tight {{ $titleColor }}">{{ $step['label'] }}</p>
+                                                <p class="text-sm {{ $descColor }}">{{ $step['desc'] }}</p>
+                                            </div>
+                                            @if(!empty($step['time']) && $stepDone)
+                                                <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $timeBadge }}">
+                                                    {{ $step['time'] }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
-                                    @if(!empty($step['time']) && $step['done'])
-                                        <p class="text-xs text-gray-500 mt-1">{{ $step['time'] }}</p>
-                                    @endif
                                 </div>
                             </div>
                         @endforeach
