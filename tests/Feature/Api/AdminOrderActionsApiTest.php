@@ -65,6 +65,22 @@ class AdminOrderActionsApiTest extends TestCase
         $response->assertJsonPath('data.order_status', 'cancelled');
     }
 
+    public function test_admin_cancel_order_api_rejects_assigned_order(): void
+    {
+        $order = Order::factory()->create([
+            'order_status' => 'assigned',
+            'payment_status' => 'paid',
+        ]);
+
+        $response = $this->postJson('/api/admin/orders/' . $order->id . '/cancel', [], $this->authHeaders());
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonPath('message', 'Order cannot be cancelled after technician assignment.');
+        $order->refresh();
+        $this->assertSame('assigned', $order->order_status);
+    }
+
     public function test_admin_refund_order_api_marks_order_refunded(): void
     {
         $order = Order::factory()->create([

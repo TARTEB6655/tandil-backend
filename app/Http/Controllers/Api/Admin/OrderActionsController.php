@@ -14,12 +14,12 @@ class OrderActionsController extends Controller
     public function cancel(Request $request, int $id): JsonResponse
     {
         $order = Order::query()->findOrFail($id);
-        $status = strtolower((string) ($order->order_status ?? 'pending'));
+        $status = $this->normalizeOrderTrackingStatus((string) ($order->order_status ?? 'pending'));
 
-        if (in_array($status, ['cancelled', 'delivered'], true)) {
+        if ($this->isCancellationBlockedByAssignment($status)) {
             return response()->json([
                 'success' => false,
-                'message' => "Order cannot be cancelled from '{$status}' state.",
+                'message' => 'Order cannot be cancelled after technician assignment.',
             ], 422);
         }
 
@@ -79,6 +79,38 @@ class OrderActionsController extends Controller
             'refund_reason' => $order->refund_reason,
             'refunded_at' => $order->refunded_at?->toIso8601String(),
         ];
+    }
+
+    private function normalizeOrderTrackingStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return match ($status) {
+            'paid' => 'confirmed',
+            'processing' => 'in_progress',
+            'shipped' => 'completed',
+            'pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => $status,
+            default => $status !== '' ? $status : 'pending',
+        };
+    }
+
+    private function orderTrackingRank(string $status): int
+    {
+        return match ($status) {
+            'pending' => 0,
+            'confirmed' => 1,
+            'assigned' => 2,
+            'in_progress' => 3,
+            'completed' => 4,
+            'delivered' => 5,
+            default => 0,
+        };
+    }
+
+    private function isCancellationBlockedByAssignment(string $status): bool
+    {
+        return $this->orderTrackingRank($status) >= $this->orderTrackingRank('assigned')
+            || $status === 'cancelled';
     }
 }
 

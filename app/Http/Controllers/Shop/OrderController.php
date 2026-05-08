@@ -189,12 +189,11 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
-        // Only allow cancellation if order is not already delivered or cancelled
-        if (in_array($order->order_status, ['delivered', 'cancelled'])) {
+        if ($this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending'))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot cancel order with status: '.$order->order_status,
-            ], 400);
+                'message' => 'Order cannot be cancelled after technician assignment.',
+            ], 422);
         }
 
         $result = $this->cancelWithPolicy($order);
@@ -272,7 +271,7 @@ class OrderController extends Controller
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
                 'maintenance_photos' => $maintenancePhotos,
-                'can_cancel' => ! in_array($order->order_status, ['delivered', 'cancelled']),
+                'can_cancel' => ! $this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
                 'wallet' => $this->walletSnapshot($order),
             ],
@@ -345,7 +344,7 @@ class OrderController extends Controller
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
                 'maintenance_photos' => $maintenancePhotos,
-                'can_cancel' => ! in_array($order->order_status, ['delivered', 'cancelled']),
+                'can_cancel' => ! $this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
                 'wallet' => $this->walletSnapshot($order),
             ],
@@ -367,11 +366,11 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Order not found or email does not match.'], 404);
         }
 
-        if (in_array($order->order_status, ['delivered', 'cancelled'])) {
+        if ($this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending'))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot cancel order with status: '.$order->order_status,
-            ], 400);
+                'message' => 'Order cannot be cancelled after technician assignment.',
+            ], 422);
         }
 
         $result = $this->cancelWithPolicy($order);
@@ -628,6 +627,14 @@ class OrderController extends Controller
             'delivered' => 5,
             default => 0,
         };
+    }
+
+    private function isCancellationBlockedByAssignment(string $status): bool
+    {
+        $normalized = $this->normalizeOrderTrackingStatus($status);
+
+        return $this->orderTrackingRank($normalized) >= $this->orderTrackingRank('assigned')
+            || $normalized === 'cancelled';
     }
 
     /**
