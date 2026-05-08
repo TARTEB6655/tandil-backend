@@ -621,9 +621,9 @@ class OrderController extends Controller
                 'timestamp' => $createdAt?->format('g:i A') ?? null,
             ],
             [
-                'key' => 'cancelled',
-                'label' => 'Cancelled',
-                'description' => 'Order cancelled',
+                'key' => 'cancel_order',
+                'label' => 'Cancel order',
+                'description' => 'Order cancelled by customer request',
                 'completed' => true,
                 'timestamp' => $cancelledAt?->format('g:i A') ?? null,
             ],
@@ -633,7 +633,7 @@ class OrderController extends Controller
             $steps[] = [
                 'key' => 'refund_processing',
                 'label' => 'Refund Processing',
-                'description' => 'Refund is being processed to your wallet',
+                'description' => 'Refund request is being processed',
                 'completed' => $isRefunded,
                 'timestamp' => $isRefunded ? ($order->refunded_at?->format('g:i A') ?? $cancelledAt?->format('g:i A')) : null,
             ];
@@ -642,8 +642,8 @@ class OrderController extends Controller
         if ($isRefunded) {
             $steps[] = [
                 'key' => 'refund_complete',
-                'label' => 'Refund Complete',
-                'description' => 'Refund credited to in-app wallet',
+                'label' => 'Refund complete',
+                'description' => 'Refund amount credited back to original payment method',
                 'completed' => true,
                 'timestamp' => $order->refunded_at?->format('g:i A') ?? $cancelledAt?->format('g:i A'),
             ];
