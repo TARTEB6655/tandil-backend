@@ -55,7 +55,7 @@
                                     @endphp
                                     <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold {{ $badge }}">{{ ucfirst((string) $credit->status) }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-700">{{ $credit->reason ?: 'order_refund' }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">{{ ucwords(str_replace('_', ' ', (string) ($credit->reason ?: 'order_refund'))) }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ optional($credit->credited_at)->format('M d, Y h:i A') ?: '-' }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ optional($credit->expires_at)->format('M d, Y h:i A') ?: '-' }}</td>
                             </tr>

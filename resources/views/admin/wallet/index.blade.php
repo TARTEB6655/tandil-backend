@@ -38,12 +38,12 @@
             <form method="GET" action="{{ route('admin.wallet.index') }}" class="p-4">
                 <div class="flex flex-nowrap items-end gap-3 overflow-x-auto">
                     <div class="min-w-[280px] flex-1">
-                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Search user</label>
+                        <label class="mb-1 block h-4 text-xs font-medium leading-4 text-gray-500 dark:text-gray-400">Search user</label>
                         <input type="text" name="q" value="{{ $q }}" placeholder="Name or email"
                                class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                     </div>
                     <div class="w-40 shrink-0">
-                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Status</label>
+                        <label class="mb-1 block h-4 text-xs font-medium leading-4 text-gray-500 dark:text-gray-400">Status</label>
                         <select name="status" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                             <option value="">All</option>
                             @foreach(['active', 'forfeited', 'used', 'expired'] as $st)
@@ -52,14 +52,14 @@
                         </select>
                     </div>
                     <div class="w-28 shrink-0">
-                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Per page</label>
+                        <label class="mb-1 block h-4 text-xs font-medium leading-4 text-gray-500 dark:text-gray-400">Per page</label>
                         <select name="per_page" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                             @foreach([20, 50, 100] as $size)
                                 <option value="{{ $size }}" {{ (int) $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
+                    <div class="flex shrink-0 items-end gap-2">
                         <button type="submit" class="inline-flex h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
                             Apply
                         </button>

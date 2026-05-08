@@ -278,12 +278,13 @@
                                     <div class="text-sm font-medium text-gray-900">#{{ $order->publicOrderNumberDigits() }}</div>
                                 </td>
                                 <td class="px-3 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">{{ $order->created_at->format('D') }} at {{ $order->created_at->format('g:i a') }}</div>
-                                    <div class="text-xs text-gray-500">{{ $order->created_at->format('M d') }}</div>
+                                    <div class="text-sm text-gray-900">{{ $order->created_at->format('D, M d, g:i a') }}</div>
                                 </td>
                                 <td class="px-3 py-4">
-                                    <div class="text-sm font-medium text-gray-900 truncate max-w-[160px]">{{ $order->payerDisplayName() }}</div>
-                                    <div class="text-xs text-gray-500 truncate max-w-[160px]">{{ $order->payerEmail() ?? '-' }}</div>
+                                    <div class="text-sm text-gray-900 truncate max-w-[220px]" title="{{ $order->payerDisplayName() }} ({{ $order->payerEmail() ?? '-' }})">
+                                        <span class="font-medium">{{ $order->payerDisplayName() }}</span>
+                                        <span class="text-gray-500"> ({{ $order->payerEmail() ?? '-' }})</span>
+                                    </div>
                                 </td>
                                 <td class="px-3 py-4 whitespace-nowrap">
                                     <span class="text-sm text-gray-900">Online Store</span>

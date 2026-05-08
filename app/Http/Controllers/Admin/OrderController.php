@@ -63,7 +63,9 @@ class OrderController extends Controller
         $stats = [
             'total' => Order::count(),
             'total_items' => OrderItem::sum('quantity'),
-            'total_revenue' => Order::where('payment_status', 'paid')->sum('total_amount'),
+            'total_revenue' => Order::where('payment_status', 'paid')
+                ->where('order_status', 'delivered')
+                ->sum('total_amount'),
             'fulfilled' => Order::where('order_status', 'delivered')->count(),
             'unfulfilled' => Order::where('order_status', '!=', 'delivered')->where('order_status', '!=', 'cancelled')->count(),
             'unpaid' => Order::where('payment_status', '!=', 'paid')->count(),

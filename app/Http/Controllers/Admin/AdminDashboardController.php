@@ -1023,7 +1023,9 @@ class AdminDashboardController extends Controller
         $inProgressOrders = Order::whereIn('order_status', ['processing', 'in_progress'])->count();
         $refundedOrders = Order::where('payment_status', 'refunded')->count();
 
-        $grossRevenue = (float) Order::where('payment_status', 'paid')->sum('total_amount');
+        $grossRevenue = (float) Order::where('payment_status', 'paid')
+            ->whereIn('order_status', ['completed', 'delivered'])
+            ->sum('total_amount');
         $refundedAmount = (float) Order::sum(DB::raw('COALESCE(refund_amount, 0)'));
         $netRevenue = max(0, $grossRevenue - $refundedAmount);
 
