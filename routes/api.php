@@ -613,11 +613,13 @@ Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('maintenance-ph
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])->prefix('orders')->group(function () {
+    Route::get('/cancelled', [\App\Http\Controllers\Shop\OrderController::class, 'cancelledList']);
     Route::get('/', [\App\Http\Controllers\Shop\OrderController::class, 'index']);
     Route::get('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'update']);
     Route::post('/{id}/cancel', [\App\Http\Controllers\Shop\OrderController::class, 'cancel']);
     Route::get('/{id}/track', [\App\Http\Controllers\Shop\OrderController::class, 'track']);
+    Route::get('/{id}/cancel-track', [\App\Http\Controllers\Shop\OrderController::class, 'cancelTrack']);
     Route::post('/{id}/rate', [\App\Http\Controllers\Shop\OrderController::class, 'rate']);
 });
 

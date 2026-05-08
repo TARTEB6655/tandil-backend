@@ -375,4 +375,60 @@ class ShopOrderTrackAndCancelTest extends TestCase
             ->assertJsonPath('data.wallet.balance', 12.5)
             ->assertJsonPath('data.wallet.last_refund_credit', null);
     }
+
+    public function test_get_cancelled_orders_list_returns_only_cancelled_orders(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $cancelled = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'cancelled',
+            'payment_status' => 'refunded',
+        ]);
+        Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/orders/cancelled', $this->bearer($user));
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame($cancelled->id, $response->json('data.0.id'));
+        $this->assertSame('cancelled', $response->json('data.0.order_status'));
+    }
+
+    public function test_get_cancel_track_returns_cancelled_order_detail_and_tracking(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'cancelled',
+            'payment_status' => 'refunded',
+            'refund_amount' => 25,
+        ]);
+
+        $response = $this->getJson('/api/orders/' . $order->id . '/cancel-track', $this->bearer($user));
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.order_id', $order->id);
+        $response->assertJsonPath('data.tracking.status', 'cancelled');
+        $response->assertJsonPath('data.order_summary.refund_amount', 25);
+        $response->assertJsonPath('data.can_cancel', false);
+    }
+
+    public function test_get_cancel_track_rejects_non_cancelled_order(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/orders/' . $order->id . '/cancel-track', $this->bearer($user));
+        $response->assertStatus(422);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonPath('message', 'This order is not cancelled.');
+    }
 }

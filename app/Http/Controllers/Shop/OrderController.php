@@ -279,6 +279,106 @@ class OrderController extends Controller
     }
 
     /**
+     * Cancelled orders list for app cancelled tab.
+     */
+    public function cancelledList(Request $request)
+    {
+        $user = $request->user();
+        $query = Order::query()
+            ->with(['items.product', 'user'])
+            ->where('order_status', 'cancelled')
+            ->latest();
+
+        $roleValue = strtolower(trim((string) ($user->role ?? '')));
+        $isAdminLike = in_array($roleValue, ['admin', 'supervisor', 'area_manager'], true)
+            || $user->hasRole('admin')
+            || $user->hasRole('supervisor')
+            || $user->hasRole('area_manager');
+
+        if (! $isAdminLike) {
+            $userEmail = strtolower(trim((string) ($user->email ?? '')));
+            $query->where(function ($q) use ($user, $userEmail) {
+                $q->where('user_id', $user->id);
+                if ($userEmail !== '') {
+                    $q->orWhere(function ($guest) use ($userEmail) {
+                        $guest->whereNull('user_id')
+                            ->whereRaw('LOWER(TRIM(guest_email)) = ?', [$userEmail]);
+                    });
+                }
+            });
+        }
+
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        $orders = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cancelled orders retrieved successfully',
+            'data' => $orders->items(),
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Dedicated cancelled-order tracking detail (for cancelled card click flow).
+     */
+    public function cancelTrack(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::with(['items.product', 'items.product.primaryImage', 'user', 'shippingAddress'])->find($id);
+
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+        }
+
+        if (! $this->canViewOrder($user, $order)) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        if (strtolower((string) ($order->order_status ?? '')) !== 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This order is not cancelled.',
+            ], 422);
+        }
+
+        $timeline = $this->buildOrderTimeline($order);
+        $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
+        $orderArray = $order->toArray();
+        $orderArray['shipping_address'] = $order->getShippingAddressForApi();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cancelled order tracking retrieved successfully',
+            'data' => [
+                'order_id' => $order->id,
+                'order_number' => $order->publicOrderNumber(),
+                'order_number_short' => $order->publicOrderNumberDigits(),
+                'order' => $orderArray,
+                'order_summary' => $this->orderSummaryForApi($order),
+                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
+                'tracking' => [
+                    'status' => $order->order_status,
+                    'payment_status' => $order->payment_status,
+                    'timeline' => $timeline,
+                    'created_at' => $order->created_at?->format('c'),
+                    'updated_at' => $order->updated_at?->format('c'),
+                    'paid_at' => $order->paid_at?->format('c'),
+                ],
+                'maintenance_photos' => $maintenancePhotos,
+                'can_cancel' => false,
+                'refund_policy' => RefundPolicy::policyForApi(),
+                'wallet' => $this->walletSnapshot($order),
+            ],
+        ], 200);
+    }
+
+    /**
      * Guest: get order details by order_number + email (no auth). For guest checkout tracking.
      */
     public function guestShow(Request $request)

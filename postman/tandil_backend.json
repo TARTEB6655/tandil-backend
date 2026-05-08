@@ -3514,6 +3514,40 @@
                             }
                         },
                         {
+                            "name": "Orders - Cancelled List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/cancelled?per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "cancelled"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/orders/cancelled - Cancelled orders list for cancelled tab UI."
+                            }
+                        },
+                        {
                             "name": "Orders - Get Details (Alternative Route)",
                             "request": {
                                 "method": "GET",
@@ -3568,6 +3602,35 @@
                                     ]
                                 },
                                 "description": "GET /api/orders/{id}/track – Timeline + order_summary: placed_at, delivery_address, payment_method, total, currency, special_instructions, **estimated_arrival** (e.g. \"15–20 minutes\" for arrival), **job_duration** (e.g. \"Approx. 1 hour\" for on-site work) — both nullable until staff sets them. Also order_number_short, order_number, can_cancel."
+                            }
+                        },
+                        {
+                            "name": "Orders - Cancel Track",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/orders/{{order_id}}/cancel-track",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "cancel-track"
+                                    ]
+                                },
+                                "description": "GET /api/orders/{id}/cancel-track - Cancel detail tracking for cancelled-order click flow."
                             }
                         },
                         {
