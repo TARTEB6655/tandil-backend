@@ -56,6 +56,154 @@
                         },
                         "description": "Performance diagnostics: PHP loop, DB connection, product query, eager load, OPcache status, PHP version, total time. No auth."
                     }
+                },
+                {
+                    "name": "Wallet APIs",
+                    "item": [
+                        {
+                            "name": "User Wallet Summary",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/wallet",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "wallet"
+                                    ]
+                                },
+                                "description": "Get authenticated user's wallet summary including balance, forfeited total, and latest credits."
+                            }
+                        },
+                        {
+                            "name": "User Wallet Credits List",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/wallet/credits?status=&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "wallet",
+                                        "credits"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "",
+                                            "description": "Optional: active|forfeited|used|expired"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Get authenticated user's wallet credit ledger with pagination."
+                            }
+                        },
+                        {
+                            "name": "Admin Wallet Overview",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/wallet/overview",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "wallet",
+                                        "overview"
+                                    ]
+                                },
+                                "description": "Admin wallet metrics: liability, forfeited totals, credits count, expiring-soon amount."
+                            }
+                        },
+                        {
+                            "name": "Admin Wallet Credits Ledger",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/wallet/credits?status=&q=&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "wallet",
+                                        "credits"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "",
+                                            "description": "Optional: active|forfeited|used|expired"
+                                        },
+                                        {
+                                            "key": "q",
+                                            "value": "",
+                                            "description": "Optional user name/email search"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Admin wallet credits list with filters and pagination."
+                            }
+                        }
+                    ],
+                    "description": "Wallet system APIs for client and admin monitoring."
                 }
             ],
             "description": "Health Check - Always test this first to verify API server is running"

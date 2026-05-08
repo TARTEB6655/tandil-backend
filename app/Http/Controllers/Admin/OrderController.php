@@ -250,6 +250,21 @@ class OrderController extends Controller
 
         return redirect()->back()->with('success', 'Refund processed successfully. Transaction ID: ' . $transaction->transaction_id);
     }
+
+    /**
+     * Permanently delete an order and its items.
+     */
+    public function destroy($id)
+    {
+        $order = Order::with('items')->findOrFail($id);
+
+        \DB::transaction(function () use ($order) {
+            $order->items()->delete();
+            $order->delete();
+        });
+
+        return redirect()->route('admin.orders.index')->with('success', 'Order deleted successfully.');
+    }
 }
 
 

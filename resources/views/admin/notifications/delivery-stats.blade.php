@@ -24,18 +24,18 @@
             </div>
         </div>
 
-        <form method="GET" action="{{ route('admin.notifications.delivery-stats') }}" class="flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            <div>
+        <form method="GET" action="{{ route('admin.notifications.delivery-stats') }}" class="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex flex-col justify-center">
                 <label for="since" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Since</label>
                 <input type="date" name="since" id="since" value="{{ request('since') }}"
                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-sm" />
             </div>
-            <div>
+            <div class="flex flex-col justify-center">
                 <label for="until" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Until</label>
                 <input type="date" name="until" id="until" value="{{ request('until') }}"
                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-sm" />
             </div>
-            <div>
+            <div class="flex flex-col justify-center">
                 <label for="audience_role" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Audience</label>
                 <select name="audience_role" id="audience_role"
                         class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-sm min-w-[11rem]">
@@ -48,7 +48,7 @@
                     <option value="unknown" @selected($activeAudience === 'unknown')>Unknown</option>
                 </select>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="mt-[1.1rem] flex items-center gap-2">
                 <button type="submit"
                         class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:bg-indigo-500 dark:hover:bg-indigo-400">
                     Apply

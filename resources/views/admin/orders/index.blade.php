@@ -235,7 +235,7 @@
                                 <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Fulfillment status</th>
                                 <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Items</th>
                                 <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Delivery status</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12"></th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Action</th>
                             </tr>
                         </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -256,8 +256,8 @@
                                     <div class="text-xs text-gray-500">{{ $order->created_at->format('M d') }}</div>
                                 </td>
                                 <td class="px-3 py-4">
-                                    <div class="text-sm font-medium text-gray-900 truncate max-w-[160px]">{{ $order->user->name ?? 'Guest' }}</div>
-                                    <div class="text-xs text-gray-500 truncate max-w-[160px]">{{ $order->user->email ?? '' }}</div>
+                                    <div class="text-sm font-medium text-gray-900 truncate max-w-[160px]">{{ $order->payerDisplayName() }}</div>
+                                    <div class="text-xs text-gray-500 truncate max-w-[160px]">{{ $order->payerEmail() ?? '-' }}</div>
                                 </td>
                                 <td class="px-3 py-4 whitespace-nowrap">
                                     <span class="text-sm text-gray-900">Online Store</span>
@@ -318,10 +318,29 @@
                                         <span class="text-sm text-gray-900">{{ $deliveryLabel }}</span>
                                     </div>
                                 </td>
-                                <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                    </svg>
+                                <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <a href="{{ route('admin.orders.show', $order->id) }}"
+                                           class="inline-flex items-center justify-center rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                                           title="View order">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </a>
+                                        <form method="POST" action="{{ route('admin.orders.destroy', $order->id) }}"
+                                              onsubmit="return confirm('Delete this order permanently?');"
+                                              class="inline-flex">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="inline-flex items-center justify-center rounded-md p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700"
+                                                    title="Delete order">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

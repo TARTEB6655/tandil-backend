@@ -23,8 +23,10 @@ use App\Http\Controllers\Admin\SupportTicketWebController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VisitController;
+use App\Http\Controllers\Admin\WalletController as AdminWalletController;
 use App\Http\Controllers\AreaManager\AreaManagerDashboardController;
 use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\Client\WalletController as ClientWalletController;
 use App\Http\Controllers\HR\HrDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
@@ -189,6 +191,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::resource('areas', AreaController::class);
         Route::get('orders/cancelled', [OrderController::class, 'cancelled'])->name('orders.cancelled');
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
+        Route::delete('orders/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
         Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
         Route::post('orders/send-to-supplier', [OrderController::class, 'sendToSupplier'])->name('orders.send-to-supplier');
         Route::post('orders/{id}/update-status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
@@ -197,6 +200,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('orders/{id}/refund', [OrderController::class, 'refund'])->name('orders.refund');
 
         Route::get('payments/settings', [PaymentController::class, 'settings'])->name('payments.settings');
+        Route::get('wallet', [AdminWalletController::class, 'index'])->name('wallet.index');
         Route::get('payments/order/{order}', [PaymentController::class, 'showOrderPayment'])->name('payments.order');
         Route::get('payments/mobile-checkout/{checkout}', [PaymentController::class, 'showMobileCheckout'])->name('payments.mobile-checkout');
         Route::get('payments/transaction/{id}', [PaymentController::class, 'showTransaction'])->name('payments.transaction');
@@ -459,6 +463,7 @@ Route::middleware(['auth', 'role:client'])
         Route::put('/addresses/{id}', [\App\Http\Controllers\Client\AddressController::class, 'update'])->name('addresses.update');
         Route::delete('/addresses/{id}', [\App\Http\Controllers\Client\AddressController::class, 'destroy'])->name('addresses.destroy');
         Route::get('/payment-methods', [\App\Http\Controllers\Client\PaymentMethodController::class, 'index'])->name('payment-methods.index');
+        Route::get('/wallet', [ClientWalletController::class, 'index'])->name('wallet.index');
         Route::get('/loyalty', [\App\Http\Controllers\Client\LoyaltyController::class, 'index'])->name('loyalty.index');
         Route::get('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'index'])->name('help-support.index');
         Route::post('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'store'])->name('help-support.store');

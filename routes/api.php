@@ -451,6 +451,8 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
     Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
+    Route::get('/wallet/overview', [\App\Http\Controllers\Api\Admin\WalletController::class, 'overview']);
+    Route::get('/wallet/credits', [\App\Http\Controllers\Api\Admin\WalletController::class, 'credits']);
 });
 
 /*
@@ -631,6 +633,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\UserController::class, 'getProfile']);
     Route::get('/wallet', [\App\Http\Controllers\Api\UserController::class, 'walletSummary']);
+    Route::get('/wallet/credits', [\App\Http\Controllers\Api\UserController::class, 'walletCredits']);
     Route::match(['put', 'post', 'patch'], '/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
     Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);
     Route::post('/addresses', [\App\Http\Controllers\Api\UserController::class, 'createAddress']);

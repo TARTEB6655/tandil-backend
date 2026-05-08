@@ -51,6 +51,33 @@ class UserController extends Controller
         ]);
     }
 
+    public function walletCredits(Request $request)
+    {
+        $user = $request->user();
+        $status = (string) $request->query('status', '');
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
+
+        $query = WalletCredit::query()
+            ->where('user_id', $user->id)
+            ->latest('id');
+
+        if ($status !== '' && in_array($status, ['active', 'forfeited', 'used', 'expired'], true)) {
+            $query->where('status', $status);
+        }
+
+        $credits = $query->paginate($perPage);
+
+        return ApiResponse::success('Wallet credits retrieved successfully.', [
+            'data' => $credits->items(),
+            'pagination' => [
+                'current_page' => $credits->currentPage(),
+                'last_page' => $credits->lastPage(),
+                'per_page' => $credits->perPage(),
+                'total' => $credits->total(),
+            ],
+        ]);
+    }
+
     /**
      * Get user profile (includes profile_picture and profile_picture_url).
      */
