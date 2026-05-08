@@ -123,7 +123,7 @@
                         $timeline = $isCancelled
                             ? [
                                 ['key' => 'pending', 'label' => 'Pending', 'desc' => 'Order placed successfully', 'done' => true, 'time' => $timeFmt($order->created_at)],
-                                ['key' => 'cancelled', 'label' => 'Cancelled', 'desc' => 'Cancelled by customer request', 'done' => true, 'time' => $timeFmt($order->updated_at)],
+                                ['key' => 'cancel_order', 'label' => 'Cancel order', 'desc' => 'Order cancelled by customer request', 'done' => true, 'time' => $timeFmt($order->updated_at)],
                             ]
                             : [
                                 ['key' => 'pending', 'label' => 'Pending', 'desc' => 'Order placed successfully', 'done' => true, 'time' => $timeFmt($order->created_at)],
@@ -144,8 +144,8 @@
                                 $timeline[] = ['key' => 'refund_processing', 'label' => 'Refund Processing', 'desc' => 'Refund request is being processed', 'done' => true, 'time' => $timeFmt($order->updated_at)];
                                 $timeline[] = [
                                     'key' => 'refund_complete',
-                                    'label' => 'Refund Complete',
-                                    'desc' => 'Refund credited back / processed',
+                                    'label' => 'Refund complete',
+                                    'desc' => 'Refund amount credited back to original payment method',
                                     'done' => (bool) $order->refunded_at,
                                     'time' => $timeFmt($order->refunded_at ?? $order->updated_at),
                                 ];
@@ -157,20 +157,20 @@
                         @endif
                     @endif
 
-                    <div class="space-y-0">
+                    <div class="space-y-1">
                         @foreach($timeline as $i => $step)
-                            <div class="flex gap-3">
-                                <div class="flex flex-col items-center">
-                                    <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold
-                                        {{ $step['done'] ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
+                            <div class="relative flex gap-3 pb-4">
+                                <div class="relative flex w-6 justify-center pt-0.5">
+                                    <span class="z-10 mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold
+                                        {{ $step['done'] ? 'bg-green-700 text-white' : 'bg-white border border-gray-300 text-gray-400' }}">
                                         {{ $step['done'] ? '✓' : '' }}
                                     </span>
                                     @if($i !== count($timeline) - 1)
-                                        <span class="w-0.5 h-9 {{ $step['done'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
+                                        <span class="absolute top-6 h-[calc(100%-0.5rem)] w-px {{ $step['done'] ? 'bg-green-700' : 'bg-gray-200' }}"></span>
                                     @endif
                                 </div>
-                                <div class="pb-4">
-                                    <p class="text-sm font-semibold {{ $step['done'] ? 'text-gray-900' : 'text-gray-500' }}">{{ $step['label'] }}</p>
+                                <div class="pt-0.5">
+                                    <p class="text-[1rem] font-semibold {{ $step['done'] ? 'text-gray-900' : 'text-gray-500' }}">{{ $step['label'] }}</p>
                                     <p class="text-sm {{ $step['done'] ? 'text-gray-700' : 'text-gray-400' }}">{{ $step['desc'] }}</p>
                                     @if(!empty($step['time']) && $step['done'])
                                         <p class="text-xs text-gray-500 mt-1">{{ $step['time'] }}</p>
