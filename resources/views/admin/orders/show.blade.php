@@ -43,6 +43,20 @@
                                                 @php
                                                     $product = $item->product;
                                                     $productImageUrl = $product?->image_url;
+                                                    if (! $productImageUrl && ! empty($product?->image)) {
+                                                        $rawImage = (string) $product->image;
+                                                        if (str_starts_with($rawImage, 'http://') || str_starts_with($rawImage, 'https://')) {
+                                                            $productImageUrl = str_contains($rawImage, '/storage/products/')
+                                                                ? str_replace('/storage/products/', '/media/products/', $rawImage)
+                                                                : $rawImage;
+                                                        } else {
+                                                            $normalizedPath = ltrim(str_replace('\\', '/', $rawImage), '/');
+                                                            if (! str_starts_with($normalizedPath, 'products/')) {
+                                                                $normalizedPath = 'products/' . $normalizedPath;
+                                                            }
+                                                            $productImageUrl = asset('media/' . $normalizedPath);
+                                                        }
+                                                    }
                                                 @endphp
                                                 @if($productImageUrl)
                                                     <img src="{{ $productImageUrl }}" 

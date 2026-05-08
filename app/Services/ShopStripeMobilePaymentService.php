@@ -274,6 +274,9 @@ class ShopStripeMobilePaymentService
 
         $data = [
             'client_secret' => $clientSecret,
+            'payment_intent_id' => $piId,
+            'publishable_key' => StripeCredentials::publishableKey(),
+            'stripe_mode' => str_starts_with(StripeCredentials::secretKey(), 'sk_live_') ? 'live' : 'test',
         ];
 
         return [
@@ -314,6 +317,27 @@ class ShopStripeMobilePaymentService
         $secret = StripeCredentials::secretKey();
         $resp = Http::withToken($secret)->get('https://api.stripe.com/v1/payment_intents/'.$paymentIntentId);
         if (! $resp->successful()) {
+            $stripeError = $resp->json('error') ?? [];
+            $stripeCode = (string) ($stripeError['code'] ?? '');
+            $stripeType = (string) ($stripeError['type'] ?? '');
+            $stripeMessage = (string) ($stripeError['message'] ?? '');
+
+            if ($stripeCode === 'resource_missing' || str_contains(strtolower($stripeMessage), 'no such payment_intent')) {
+                $mode = str_starts_with($secret, 'sk_live_') ? 'live' : 'test';
+
+                return $this->err(
+                    "Payment intent not found on Stripe {$mode} mode. Create a fresh payment intent and make sure app publishable key mode matches backend secret key mode.",
+                    409
+                );
+            }
+
+            Log::warning('Stripe payment intent verify failed', [
+                'status' => $resp->status(),
+                'stripe_code' => $stripeCode,
+                'stripe_type' => $stripeType,
+                'stripe_message' => $stripeMessage,
+            ]);
+
             return $this->err('Could not verify payment with Stripe.', 502);
         }
 
