@@ -116,8 +116,31 @@ class AreaController extends Controller
             ], 422);
         }
 
-        $area = Area::with('supervisors')->findOrFail($id);
-        $area->is_active = ! (bool) $area->is_active;
+        $validator = Validator::make($request->all(), [
+            'is_active' => 'nullable|boolean',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $area = Area::with('supervisors')->find($id);
+        if (! $area) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Area not found.',
+            ], 404);
+        }
+
+        $validated = $validator->validated();
+        if (array_key_exists('is_active', $validated)) {
+            $area->is_active = (bool) $validated['is_active'];
+        } else {
+            $area->is_active = ! (bool) $area->is_active;
+        }
         $area->save();
 
         return response()->json([
