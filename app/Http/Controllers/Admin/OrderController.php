@@ -265,6 +265,26 @@ class OrderController extends Controller
 
         return redirect()->route('admin.orders.index')->with('success', 'Order deleted successfully.');
     }
+
+    /**
+     * Bulk delete selected orders.
+     */
+    public function bulkDelete(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:orders,id',
+        ]);
+
+        $ids = collect($validated['ids'])->map(fn ($id) => (int) $id)->unique()->values();
+
+        \DB::transaction(function () use ($ids) {
+            OrderItem::query()->whereIn('order_id', $ids)->delete();
+            Order::query()->whereIn('id', $ids)->delete();
+        });
+
+        return redirect()->route('admin.orders.index')->with('success', $ids->count().' order(s) deleted successfully.');
+    }
 }
 
 

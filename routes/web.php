@@ -192,6 +192,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('orders/cancelled', [OrderController::class, 'cancelled'])->name('orders.cancelled');
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
         Route::delete('orders/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
+        Route::post('orders/bulk-delete', [OrderController::class, 'bulkDelete'])->name('orders.bulk-delete');
         Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
         Route::post('orders/send-to-supplier', [OrderController::class, 'sendToSupplier'])->name('orders.send-to-supplier');
         Route::post('orders/{id}/update-status', [OrderController::class, 'updateStatus'])->name('orders.update-status');

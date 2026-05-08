@@ -214,6 +214,32 @@
                 </div>
             </div>
 
+            <div id="bulkActionsBar" class="hidden px-4 py-3 border-b border-gray-200 bg-indigo-50/70">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm text-indigo-900">
+                        <span id="selectedCountLabel" class="font-semibold">0</span> order(s) selected
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button type="button"
+                                id="clearSelectionBtn"
+                                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Clear selection
+                        </button>
+                        <form id="bulkDeleteForm" method="POST" action="{{ route('admin.orders.bulk-delete') }}" class="inline-flex">
+                            @csrf
+                            <button type="submit"
+                                    id="bulkDeleteBtn"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete selected
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Orders Table -->
             <div class="overflow-x-auto -mx-4 sm:mx-0">
                 <div class="inline-block min-w-full align-middle">
@@ -380,9 +406,64 @@
         }
         
         function updateBulkActions() {
-            const checkboxes = document.querySelectorAll('.order-checkbox:checked');
-            // Bulk actions logic here
+            const checked = Array.from(document.querySelectorAll('.order-checkbox:checked'));
+            const all = Array.from(document.querySelectorAll('.order-checkbox'));
+            const bulkBar = document.getElementById('bulkActionsBar');
+            const selectedCountLabel = document.getElementById('selectedCountLabel');
+            const selectAll = document.getElementById('selectAll');
+
+            if (selectedCountLabel) {
+                selectedCountLabel.textContent = String(checked.length);
+            }
+            if (bulkBar) {
+                bulkBar.classList.toggle('hidden', checked.length === 0);
+            }
+            if (selectAll) {
+                selectAll.checked = all.length > 0 && checked.length === all.length;
+                selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+            }
         }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.order-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            checkboxes.forEach(cb => cb.checked = false);
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+            updateBulkActions();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const clearBtn = document.getElementById('clearSelectionBtn');
+            const bulkDeleteForm = document.getElementById('bulkDeleteForm');
+
+            clearBtn?.addEventListener('click', clearSelection);
+
+            bulkDeleteForm?.addEventListener('submit', function (e) {
+                const checked = Array.from(document.querySelectorAll('.order-checkbox:checked'));
+                if (checked.length === 0) {
+                    e.preventDefault();
+                    return;
+                }
+                if (!confirm(`Delete ${checked.length} selected order(s)? This action cannot be undone.`)) {
+                    e.preventDefault();
+                    return;
+                }
+
+                bulkDeleteForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+                checked.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'ids[]';
+                    input.value = cb.value;
+                    bulkDeleteForm.appendChild(input);
+                });
+            });
+
+            updateBulkActions();
+        });
     </script>
     @endpush
 </x-admin-layout>
