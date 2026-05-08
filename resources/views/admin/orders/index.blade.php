@@ -55,31 +55,61 @@
         @endif
 
         <!-- Order Statistics Cards -->
-        <div class="overflow-x-auto pb-1">
-            <div class="flex flex-nowrap gap-3 min-w-max">
-                <div class="w-44 shrink-0 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold tracking-wide text-blue-700 uppercase">Total Orders</p>
-                    <p class="mt-1 text-lg font-semibold leading-none text-blue-900">{{ number_format((int) ($stats['total'] ?? 0)) }}</p>
+        <div class="overflow-x-auto pb-2">
+            <div class="mx-auto flex w-max min-w-full flex-nowrap justify-center gap-3">
+                <div class="w-52 shrink-0 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold tracking-wide text-blue-700 uppercase">Total Orders</p>
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-blue-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 10H4L5 9z" /></svg>
+                        </span>
+                    </div>
+                    <p class="mt-2 text-2xl font-semibold leading-none text-blue-900">{{ number_format((int) ($stats['total'] ?? 0)) }}</p>
                 </div>
-                <div class="w-44 shrink-0 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold tracking-wide text-amber-700 uppercase">Pending</p>
-                    <p class="mt-1 text-lg font-semibold leading-none text-amber-900">{{ number_format((int) ($stats['open'] ?? 0)) }}</p>
+                <div class="w-52 shrink-0 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold tracking-wide text-amber-700 uppercase">Pending</p>
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-amber-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </span>
+                    </div>
+                    <p class="mt-2 text-2xl font-semibold leading-none text-amber-900">{{ number_format((int) ($stats['open'] ?? 0)) }}</p>
                 </div>
-                <div class="w-44 shrink-0 rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold tracking-wide text-cyan-700 uppercase">Unfulfilled</p>
-                    <p class="mt-1 text-lg font-semibold leading-none text-cyan-900">{{ number_format((int) ($stats['unfulfilled'] ?? 0)) }}</p>
+                <div class="w-52 shrink-0 rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold tracking-wide text-cyan-700 uppercase">Unfulfilled</p>
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-cyan-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8m-8 5h8m-5 5h5M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" /></svg>
+                        </span>
+                    </div>
+                    <p class="mt-2 text-2xl font-semibold leading-none text-cyan-900">{{ number_format((int) ($stats['unfulfilled'] ?? 0)) }}</p>
                 </div>
-                <div class="w-44 shrink-0 rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold tracking-wide text-green-700 uppercase">Completed</p>
-                    <p class="mt-1 text-lg font-semibold leading-none text-green-900">{{ number_format((int) ($stats['fulfilled'] ?? 0)) }}</p>
+                <div class="w-52 shrink-0 rounded-2xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold tracking-wide text-green-700 uppercase">Completed</p>
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-green-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        </span>
+                    </div>
+                    <p class="mt-2 text-2xl font-semibold leading-none text-green-900">{{ number_format((int) ($stats['fulfilled'] ?? 0)) }}</p>
                 </div>
-                <div class="w-44 shrink-0 rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold tracking-wide text-rose-700 uppercase">Cancelled</p>
-                    <p class="mt-1 text-lg font-semibold leading-none text-rose-900">{{ number_format((int) ($stats['archived'] ?? 0)) }}</p>
+                <div class="w-52 shrink-0 rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold tracking-wide text-rose-700 uppercase">Cancelled</p>
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-rose-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18" /></svg>
+                        </span>
+                    </div>
+                    <p class="mt-2 text-2xl font-semibold leading-none text-rose-900">{{ number_format((int) ($stats['archived'] ?? 0)) }}</p>
                 </div>
-                <div class="w-44 shrink-0 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold tracking-wide text-violet-700 uppercase">Revenue (AED)</p>
-                    <p class="mt-1 text-lg font-semibold leading-none text-violet-900">{{ number_format((float) ($stats['total_revenue'] ?? 0), 2) }}</p>
+                <div class="w-52 shrink-0 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold tracking-wide text-violet-700 uppercase">Revenue (AED)</p>
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-violet-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 .895-4 2s1.79 2 4 2 4 .895 4 2-1.79 2-4 2m0-10V6m0 12v-2" /></svg>
+                        </span>
+                    </div>
+                    <p class="mt-2 text-2xl font-semibold leading-none text-violet-900">{{ number_format((float) ($stats['total_revenue'] ?? 0), 2) }}</p>
                 </div>
             </div>
         </div>
