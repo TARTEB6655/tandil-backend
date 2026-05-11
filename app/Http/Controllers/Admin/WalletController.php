@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\WalletCredit;
+use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class WalletController extends Controller
 {
@@ -70,6 +72,30 @@ class WalletController extends Controller
 
         $walletCreditRows = (int) WalletCredit::query()->where('user_id', $user->id)->count();
 
-        return view('admin.wallet.show', compact('user', 'orders', 'orderStats', 'walletCreditRows'));
+        $firstWalletCreditAt = null;
+        $nextActiveCreditExpiresAt = null;
+        if (Schema::hasTable('wallet_credits')) {
+            $firstWalletCreditAt = WalletCredit::query()
+                ->where('user_id', $user->id)
+                ->min('credited_at');
+            $nextActiveCreditExpiresAt = WalletCredit::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '>', now())
+                ->min('expires_at');
+        }
+
+        $walletValidityMonths = RefundPolicy::walletValidityMonths();
+
+        return view('admin.wallet.show', compact(
+            'user',
+            'orders',
+            'orderStats',
+            'walletCreditRows',
+            'firstWalletCreditAt',
+            'nextActiveCreditExpiresAt',
+            'walletValidityMonths'
+        ));
     }
 }

@@ -1,14 +1,54 @@
 <x-admin-layout>
     <div class="space-y-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <a href="{{ route('admin.wallet.index', request()->only(['q', 'per_page'])) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300">&larr; Back to wallet</a>
-                <h1 class="mt-2 text-xl font-semibold text-gray-900 dark:text-gray-100">Client wallet &amp; history</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $user->name }} — {{ $user->email }}</p>
+        <div class="space-y-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0 space-y-2">
+                    <a href="{{ route('admin.wallet.index', request()->only(['q', 'per_page'])) }}"
+                       class="inline-flex w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700">
+                        <svg class="h-4 w-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Back to wallet
+                    </a>
+                    <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Client wallet &amp; history</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $user->name }} — {{ $user->email }}</p>
+                </div>
             </div>
-            <div class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 dark:border-indigo-900/50 dark:bg-indigo-950/40">
-                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Wallet balance</p>
-                <p class="mt-1 text-2xl font-bold tabular-nums text-indigo-900 dark:text-indigo-100">AED {{ number_format((float) $user->wallet_balance, 2) }}</p>
+
+            <div class="w-full rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-900/40 dark:from-indigo-950/50 dark:to-gray-900 sm:p-6">
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+                    <div class="lg:col-span-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Wallet balance</p>
+                        <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight text-indigo-900 dark:text-indigo-100 sm:text-4xl">AED {{ number_format((float) $user->wallet_balance, 2) }}</p>
+                    </div>
+                    <div class="grid gap-6 border-t border-indigo-100 pt-6 sm:grid-cols-2 lg:col-span-8 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0 dark:border-indigo-900/40">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">First wallet credit</p>
+                            <p class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                                @if($firstWalletCreditAt)
+                                    {{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('M d, Y h:i A') }}
+                                @else
+                                    <span class="text-gray-500 dark:text-gray-400">—</span>
+                                @endif
+                            </p>
+                            <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">Earliest refund credit issued for this client (when wallet activity started).</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Next active expiry</p>
+                            <p class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                                @if($nextActiveCreditExpiresAt)
+                                    {{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('M d, Y h:i A') }}
+                                @else
+                                    <span class="text-gray-500 dark:text-gray-400">None scheduled</span>
+                                @endif
+                            </p>
+                            <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">Soonest expiry among <strong>active</strong> lines that have an expiry date. Credits can expire separately.</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-5 border-t border-indigo-100 pt-4 text-xs text-gray-600 dark:border-indigo-900/40 dark:text-gray-400">
+                    Refund policy default: each credit typically expires <strong>{{ (int) $walletValidityMonths }} months</strong> after its credit date unless spent sooner (see payment / refund settings).
+                </p>
             </div>
         </div>
 
