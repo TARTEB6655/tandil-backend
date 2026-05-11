@@ -126,19 +126,34 @@
                 $clientPartial = $clientRp['rules'][1]['refund_percent'] ?? 50;
                 $clientFee = $clientRp['rules'][2]['service_fee_percent'] ?? 100;
             @endphp
-            <div class="mb-4 sm:mb-6 md:mb-8 rounded-xl border border-indigo-200 bg-indigo-50/80 p-4 sm:p-5 shadow-sm">
-                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                    <div class="min-w-0">
-                        <h2 class="text-sm font-semibold text-indigo-900">Shop orders: cancellations &amp; wallet</h2>
-                        <p class="mt-1 text-xs text-indigo-900/85 leading-relaxed">If you cancel a paid order, the refund follows your order stage (grace window, before assignment, after assignment, or while in progress). Eligible amounts are added to your <a href="{{ route('client.wallet.index') }}" class="font-semibold underline decoration-indigo-400 hover:text-indigo-950">wallet</a> for future use. You cannot cancel after delivery.</p>
-                        <ul class="mt-2 text-xs text-indigo-900/90 list-disc pl-4 space-y-0.5">
-                            <li>Grace: full refund within {{ (int) $clientRp['grace_minutes'] }} minutes of placing the order.</li>
-                            <li>Before assignment: full refund.</li>
-                            <li>Assigned (not started): {{ rtrim(rtrim(number_format((float) $clientPartial, 2), '0'), '.') }}% refund by default.</li>
-                            <li>In progress / shipped / completed: refund after deducting the {{ rtrim(rtrim(number_format((float) $clientFee, 2), '0'), '.') }}% service-fee portion (configurable by the store).</li>
+            <div class="mb-4 sm:mb-6 md:mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-100">
+                <div class="border-b border-slate-100 bg-gradient-to-r from-indigo-50/90 to-white px-4 py-3 sm:px-5 sm:py-3.5">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-semibold text-slate-900 sm:text-base">Shop orders: cancellations &amp; wallet</h2>
+                            <p class="text-xs text-slate-500">Refunds for cancelled paid orders go to your in-app wallet (when eligible).</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="min-w-0 space-y-3 text-sm leading-relaxed text-slate-600">
+                        <p>If you cancel a paid order, the refund follows your order stage (grace window, before assignment, after assignment, or while in progress). Eligible amounts are added to your <a href="{{ url('/client/wallet') }}" title="Open My Wallet" class="font-semibold text-indigo-700 underline decoration-2 decoration-indigo-200 underline-offset-2 hover:text-indigo-900">wallet</a> for future use. You cannot cancel after delivery.</p>
+                        <ul class="list-disc space-y-1 pl-5 text-xs sm:text-sm text-slate-600">
+                            <li><span class="font-medium text-slate-800">Grace:</span> full refund within {{ (int) $clientRp['grace_minutes'] }} minutes of placing the order.</li>
+                            <li><span class="font-medium text-slate-800">Before assignment:</span> full refund.</li>
+                            <li><span class="font-medium text-slate-800">Assigned (not started):</span> {{ rtrim(rtrim(number_format((float) $clientPartial, 2), '0'), '.') }}% refund by default.</li>
+                            <li><span class="font-medium text-slate-800">In progress / shipped / completed:</span> refund after deducting the {{ rtrim(rtrim(number_format((float) $clientFee, 2), '0'), '.') }}% service-fee portion (store configurable).</li>
                         </ul>
                     </div>
-                    <a href="{{ route('client.orders.index') }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-900 hover:bg-indigo-100/80 transition-colors">View orders</a>
+                    <div class="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+                        <a href="{{ url('/client/wallet') }}" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700">My wallet</a>
+                        <a href="{{ route('client.orders.index') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">View orders</a>
+                    </div>
                 </div>
             </div>
             @endif

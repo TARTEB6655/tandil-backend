@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→I** (A–H as before, plus **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.15"
+        "version": "3.3.16"
     },
     "item": [
         {
@@ -1123,7 +1123,7 @@
             "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = same as subscription data (client's subscriptions)."
         },
         {
-            "name": "3b. Client Profile – All Settings (One Place) [12 requests]",
+            "name": "3b. Client Profile – All Settings (One Place) [13 requests]",
             "item": [
                 {
                     "name": "1. Memberships (GET)",
@@ -1509,7 +1509,48 @@
                                 "wallet"
                             ]
                         },
-                        "description": "GET /api/user/wallet — current wallet balance, forfeited total, and refund credit history."
+                        "description": "GET /api/user/wallet — current wallet balance, forfeited total, latest credits (embedded), and wallet_terms."
+                    }
+                },
+                {
+                    "name": "8c. Wallet credits list (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/wallet/credits?per_page=20&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "wallet",
+                                "credits"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "1–100, default 20"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Optional filter: active|forfeited|used|expired (omit for all)"
+                                }
+                            ]
+                        },
+                        "description": "GET /api/user/wallet/credits — **paginated** wallet credit rows (same DB as 8b, for Wallet → History / full list UI). Response: `data` + `pagination`."
                     }
                 },
                 {
