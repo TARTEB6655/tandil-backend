@@ -3,7 +3,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Wallet Monitoring</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Browse clients and open a user to see shop orders, cancellations, and wallet credits with timestamps.</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Browse clients and open a user to see shop orders, cancellations, and timestamps.</p>
             </div>
             <a href="{{ route('admin.payments.settings') }}"
                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -32,25 +32,26 @@
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Search clients by name or email.</p>
             </div>
             <form method="GET" action="{{ route('admin.wallet.index') }}" class="p-4">
-                <div class="flex flex-wrap items-end gap-3">
-                    <div class="min-w-0 w-full sm:flex-1 sm:min-w-[12rem]">
-                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400" for="wallet-q">Search user</label>
+                {{-- Single horizontal toolbar: label + control on one line; scroll on narrow viewports --}}
+                <div class="flex flex-nowrap items-center gap-3 overflow-x-auto pb-1 min-w-0">
+                    <div class="flex min-w-0 flex-[1_1_14rem] max-w-xl items-center gap-2 shrink-0">
+                        <label for="wallet-q" class="shrink-0 text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Search</label>
                         <input id="wallet-q" type="text" name="q" value="{{ $q }}" placeholder="Name or email"
-                               class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                               class="h-10 min-w-[10rem] flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                     </div>
-                    <div class="w-full sm:w-28 shrink-0">
-                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400" for="wallet-per-page">Per page</label>
-                        <select id="wallet-per-page" name="per_page" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <div class="flex shrink-0 items-center gap-2">
+                        <label for="wallet-per-page" class="shrink-0 text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Per page</label>
+                        <select id="wallet-per-page" name="per_page" class="h-10 w-[4.5rem] shrink-0 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                             @foreach([20, 50, 100] as $size)
                                 <option value="{{ $size }}" {{ (int) $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex w-full sm:w-auto shrink-0 flex-wrap items-center gap-2 sm:ml-auto">
-                        <button type="submit" class="inline-flex h-10 flex-1 sm:flex-initial min-w-[5.5rem] items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
+                    <div class="ml-auto flex shrink-0 items-center gap-2">
+                        <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 whitespace-nowrap">
                             Apply
                         </button>
-                        <a href="{{ route('admin.wallet.index') }}" class="inline-flex h-10 flex-1 sm:flex-initial min-w-[5.5rem] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                        <a href="{{ route('admin.wallet.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 whitespace-nowrap">
                             Reset
                         </a>
                     </div>

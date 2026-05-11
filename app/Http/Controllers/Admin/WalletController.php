@@ -37,28 +37,14 @@ class WalletController extends Controller
         return view('admin.wallet.index', compact('users', 'summary', 'q', 'perPage'));
     }
 
-    public function show(Request $request, User $user)
+    public function show(User $user)
     {
         abort_unless($user->role === 'client', 404);
-
-        $creditStatus = (string) $request->query('credit_status', '');
-        $creditsQuery = WalletCredit::query()
-            ->where('user_id', $user->id)
-            ->with('order')
-            ->latest('id');
-
-        if ($creditStatus !== '' && in_array($creditStatus, ['active', 'forfeited', 'used', 'expired'], true)) {
-            $creditsQuery->where('status', $creditStatus);
-        }
 
         $orders = Order::query()
             ->where('user_id', $user->id)
             ->orderByDesc('created_at')
             ->paginate(20, ['*'], 'orders_page')
-            ->withQueryString();
-
-        $credits = $creditsQuery
-            ->paginate(20, ['*'], 'credits_page')
             ->withQueryString();
 
         $paidQuery = Order::query()
@@ -84,6 +70,6 @@ class WalletController extends Controller
 
         $walletCreditRows = (int) WalletCredit::query()->where('user_id', $user->id)->count();
 
-        return view('admin.wallet.show', compact('user', 'orders', 'credits', 'orderStats', 'creditStatus', 'walletCreditRows'));
+        return view('admin.wallet.show', compact('user', 'orders', 'orderStats', 'walletCreditRows'));
     }
 }
