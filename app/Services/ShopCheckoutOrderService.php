@@ -17,7 +17,7 @@ class ShopCheckoutOrderService
     public function normalizeCheckoutRequest(Request $request): void
     {
         $all = $request->all();
-        $shipping = $all['shipping_address'] ?? null;
+        $shipping = $all['shipping_address'] ?? $all['shipping'] ?? null;
         if (is_array($shipping)) {
             $all['full_name'] = $shipping['fullName'] ?? $shipping['full_name'] ?? $all['full_name'] ?? null;
             $all['phone_number'] = $shipping['phone'] ?? $shipping['phone_number'] ?? $all['phone_number'] ?? null;

@@ -54,7 +54,8 @@ class ShopPaymentController extends Controller
             'payment_method' => 'required|in:stripe,paypal',
             'success_url' => 'required|url',
             'cancel_url' => 'required|url',
-            'accepted_refund_policy' => 'sometimes|accepted',
+            // Mobile often sends false before the user ticks; omit the field or send true — do not use strict "accepted" rule.
+            'accepted_refund_policy' => 'nullable|boolean',
             'paypal_payment_method_id' => 'nullable|integer',
             'wallet_amount' => 'nullable|numeric|min:0',
         ]);
@@ -107,7 +108,21 @@ class ShopPaymentController extends Controller
         }
 
         if (! $order) {
-            return response()->json(['success' => false, 'message' => 'Could not create order.'], 422);
+            if ($isGuest) {
+                $msg = 'Could not create order. Check product_id values and quantities in items.';
+            } else {
+                $hasItems = is_array($request->input('items')) && count($request->input('items')) > 0;
+                $cartCount = \App\Models\Cart::where('user_id', $user->id)->count();
+                if (! $hasItems && $cartCount === 0) {
+                    $msg = 'Your cart is empty. Add products to the cart or include an items array (product_id + qty) in this request.';
+                } elseif ($request->filled('address_id')) {
+                    $msg = 'Could not create order. address_id must belong to your account, or omit it and send full shipping fields (full_name, phone_number, street_address, city, country).';
+                } else {
+                    $msg = 'Could not create order. Check address fields, items, or cart contents.';
+                }
+            }
+
+            return response()->json(['success' => false, 'message' => $msg], 422);
         }
 
         $currency = config('shop.currency', CartController::CURRENCY);
@@ -191,11 +206,16 @@ class ShopPaymentController extends Controller
             );
             if (isset($stripe['error'])) {
                 Log::warning('Stripe checkout session failed', ['error' => $stripe['error']]);
+                $err = (string) $stripe['error'];
+                $isAmount = str_contains(strtolower($err), 'invalid amount') || str_contains(strtolower($err), 'amount');
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment session could not be created. Please try again.',
-                ], 502);
+                    'message' => $isAmount
+                        ? 'The amount to charge is too small for Stripe (minimum ~0.01 in your currency). Adjust wallet_amount or cart total.'
+                        : 'Payment session could not be created. Check Stripe keys in admin settings and try again.',
+                    'details' => config('app.debug') ? $err : null,
+                ], $isAmount ? 422 : 502);
             }
             $order->payment_reference = $stripe['session_id'] ?? null;
             $order->save();

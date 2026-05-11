@@ -4398,7 +4398,7 @@
                                         "start"
                                     ]
                                 },
-                                "description": "POST /api/shop/checkout/start — Stripe Checkout (logged-in). Body: payment_method stripe|paypal, success_url, cancel_url, address_id or inline address, optional items (else cart). Optional wallet_amount (AED) caps to wallet_balance and order total; reduces Stripe/PayPal charge. If wallet covers full total, returns gateway wallet and paid order (no redirect). Response includes order_total, wallet_amount_applied, amount."
+                                "description": "POST /api/shop/checkout/start — Stripe Checkout (logged-in). **Required:** `payment_method`, `success_url`, `cancel_url` (valid https URLs), and either `address_id` **or** inline address fields (`full_name`, `phone_number`, `street_address`, `city`, `country`). **Cart:** omit `items` to use DB cart, or send `items: [{product_id, qty}]`. Empty cart + no items → **422** with a clear message. **Mobile:** nested `shipping` or `shipping_address` (camelCase keys) is merged into those fields. **`accepted_refund_policy`:** optional boolean (was strict; `false` no longer blocks). **`wallet_amount`:** optional. Stripe must be enabled + secret configured or you get **422**."
                             }
                         },
                         {

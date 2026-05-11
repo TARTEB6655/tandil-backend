@@ -83,6 +83,32 @@ class ShopPaymentApiSmokeTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_post_checkout_start_logged_in_empty_cart_returns_clear_message(): void
+    {
+        Setting::set('paypal_enabled', '1');
+        Config::set('payments.paypal.client_id', '');
+        Config::set('payments.paypal.secret', '');
+
+        $user = User::factory()->create(['role' => 'client']);
+
+        $response = $this->postJson('/api/shop/checkout/start', [
+            'payment_method' => 'paypal',
+            'full_name' => 'Test',
+            'phone_number' => '+971501234567',
+            'street_address' => 'Road 1',
+            'city' => 'Dubai',
+            'country' => 'UAE',
+            'items' => [],
+            'success_url' => 'https://example.com/ok',
+            'cancel_url' => 'https://example.com/cancel',
+            'accepted_refund_policy' => false,
+        ], $this->clientAuthHeaders($user));
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonPath('message', 'Your cart is empty. Add products to the cart or include an items array (product_id + qty) in this request.');
+    }
+
     public function test_post_checkout_start_stripe_returns_422_when_stripe_not_usable(): void
     {
         Config::set('services.stripe.secret', '');
