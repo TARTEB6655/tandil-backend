@@ -15,13 +15,14 @@
                 </div>
             </div>
 
-            <div class="grid min-w-0 grid-cols-3 gap-2 sm:gap-3">
-                <div class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-indigo-200/90 bg-gradient-to-br from-indigo-100 via-white to-violet-50 p-3 shadow-sm ring-1 ring-indigo-100/80 dark:border-indigo-800/60 dark:from-indigo-950/80 dark:via-gray-900 dark:to-violet-950/50 dark:ring-indigo-900/40 sm:p-4">
+            {{-- flex-nowrap + equal flex children: always one row (no vertical stack) --}}
+            <div class="flex w-full min-w-0 flex-nowrap items-stretch gap-2 sm:gap-3">
+                <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-indigo-200/90 bg-gradient-to-br from-indigo-200/90 via-indigo-50 to-violet-100 p-3 shadow-md ring-1 ring-indigo-200/70 dark:border-indigo-700/70 dark:from-indigo-900/90 dark:via-gray-900 dark:to-violet-900/50 dark:ring-indigo-800/50 sm:min-h-0 sm:p-4">
                     <p class="text-[10px] font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 sm:text-xs">Balance</p>
                     <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-indigo-950 dark:text-indigo-50 sm:text-xl">AED {{ number_format((float) $user->wallet_balance, 2) }}</p>
                     <p class="mt-2 line-clamp-2 text-[10px] leading-snug text-indigo-900/75 dark:text-indigo-200/80 sm:text-xs">In-app total</p>
                 </div>
-                <div class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-emerald-200/90 bg-gradient-to-br from-emerald-100 via-white to-teal-50 p-3 shadow-sm ring-1 ring-emerald-100/80 dark:border-emerald-800/50 dark:from-emerald-950/70 dark:via-gray-900 dark:to-teal-950/40 dark:ring-emerald-900/40 sm:p-4">
+                <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-emerald-200/90 bg-gradient-to-br from-emerald-200/85 via-emerald-50 to-teal-100 p-3 shadow-md ring-1 ring-emerald-200/70 dark:border-emerald-800/50 dark:from-emerald-900/80 dark:via-gray-900 dark:to-teal-900/45 dark:ring-emerald-800/45 sm:min-h-0 sm:p-4">
                     <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300 sm:text-xs">First credit</p>
                     <p class="mt-1.5 text-xs font-bold tabular-nums leading-tight text-emerald-950 dark:text-emerald-50 sm:text-sm">
                         @if($firstWalletCreditAt)
@@ -33,7 +34,7 @@
                     </p>
                     <p class="mt-2 line-clamp-2 text-[10px] leading-snug text-emerald-900/80 dark:text-emerald-100/75 sm:text-xs">Activity start</p>
                 </div>
-                <div class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-100 via-white to-orange-50 p-3 shadow-sm ring-1 ring-amber-100/80 dark:border-amber-800/50 dark:from-amber-950/70 dark:via-gray-900 dark:to-orange-950/40 dark:ring-amber-900/40 sm:p-4">
+                <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-200/80 via-amber-50 to-orange-100 p-3 shadow-md ring-1 ring-amber-200/70 dark:border-amber-800/50 dark:from-amber-900/75 dark:via-gray-900 dark:to-orange-900/45 dark:ring-amber-800/45 sm:min-h-0 sm:p-4">
                     <p class="text-[10px] font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200 sm:text-xs">Next expiry</p>
                     <p class="mt-1.5 text-xs font-bold tabular-nums leading-tight text-amber-950 dark:text-amber-50 sm:text-sm">
                         @if($nextActiveCreditExpiresAt)
@@ -52,18 +53,18 @@
             </div>
         </div>
 
-        <div class="grid min-w-0 grid-cols-3 gap-2 sm:gap-3">
-            <div class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-sky-200/90 bg-gradient-to-br from-sky-50 via-white to-slate-50 p-3 shadow-sm ring-1 ring-sky-100/70 dark:border-sky-800/50 dark:from-sky-950/50 dark:via-gray-900 dark:to-slate-900/60 dark:ring-sky-900/30 sm:p-4">
+        <div class="flex w-full min-w-0 flex-nowrap items-stretch gap-2 sm:gap-3">
+            <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-sky-200/90 bg-gradient-to-br from-sky-200/75 via-sky-50 to-slate-100 p-3 shadow-md ring-1 ring-sky-200/70 dark:border-sky-800/50 dark:from-sky-900/70 dark:via-gray-900 dark:to-slate-900/60 dark:ring-sky-800/40 sm:min-h-0 sm:p-4">
                 <p class="text-[10px] font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300 sm:text-xs">Paid orders</p>
                 <p class="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 sm:text-xl">{{ $orderStats['paid_orders_count'] }}</p>
                 <p class="mt-1.5 truncate text-[10px] text-sky-900/80 dark:text-sky-200/75 sm:text-xs">AED {{ number_format($orderStats['paid_orders_total_aed'], 2) }}</p>
             </div>
-            <div class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-rose-200/90 bg-gradient-to-br from-rose-50 via-white to-orange-50/80 p-3 shadow-sm ring-1 ring-rose-100/70 dark:border-rose-900/45 dark:from-rose-950/45 dark:via-gray-900 dark:to-orange-950/30 dark:ring-rose-900/30 sm:p-4">
+            <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-rose-200/90 bg-gradient-to-br from-rose-200/70 via-rose-50 to-orange-100 p-3 shadow-md ring-1 ring-rose-200/70 dark:border-rose-900/45 dark:from-rose-900/65 dark:via-gray-900 dark:to-orange-900/40 dark:ring-rose-800/35 sm:min-h-0 sm:p-4">
                 <p class="text-[10px] font-bold uppercase tracking-wide text-rose-800 dark:text-rose-300 sm:text-xs">Cancelled</p>
                 <p class="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 sm:text-xl">{{ $orderStats['cancelled_orders_count'] }}</p>
                 <p class="mt-1.5 truncate text-[10px] text-rose-900/80 dark:text-rose-200/75 sm:text-xs">AED {{ number_format($orderStats['cancelled_orders_total_aed'], 2) }}</p>
             </div>
-            <div class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-violet-200/90 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50/70 p-3 shadow-sm ring-1 ring-violet-100/70 dark:border-violet-800/50 dark:from-violet-950/50 dark:via-gray-900 dark:to-fuchsia-950/35 dark:ring-violet-900/30 sm:p-4">
+            <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-violet-200/90 bg-gradient-to-br from-violet-200/75 via-violet-50 to-fuchsia-100 p-3 shadow-md ring-1 ring-violet-200/70 dark:border-violet-800/50 dark:from-violet-900/70 dark:via-gray-900 dark:to-fuchsia-900/40 dark:ring-violet-800/40 sm:min-h-0 sm:p-4">
                 <p class="text-[10px] font-bold uppercase tracking-wide text-violet-800 dark:text-violet-300 sm:text-xs">Credit rows</p>
                 <p class="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 sm:text-xl">{{ $walletCreditRows }}</p>
                 <p class="mt-1.5 line-clamp-2 text-[10px] text-violet-900/80 dark:text-violet-200/75 sm:text-xs">All-time lines</p>
