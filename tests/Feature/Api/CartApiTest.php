@@ -320,7 +320,7 @@ class CartApiTest extends TestCase
         $this->assertSame(150.0, (float) $response->json('data.subtotal'));
     }
 
-    public function test_buy_now_summary_endpoint_accepts_json_body(): void
+    public function test_buy_now_summary_uses_cart_and_returns_no_item_payload(): void
     {
         $category = Category::factory()->create();
         $product = Product::factory()->create([
@@ -328,20 +328,21 @@ class CartApiTest extends TestCase
             'price' => 65,
             'status' => 'active',
         ]);
-
-        $response = $this->postJson('/api/shop/buy-now/summary', [
+        Cart::create([
+            'user_id' => $this->user->id,
             'product_id' => $product->id,
             'quantity' => 10,
-        ], $this->authHeaders());
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [], $this->authHeaders());
 
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
-        $response->assertJsonPath('data.item.product_id', $product->id);
-        $response->assertJsonPath('data.item.quantity', 10);
+        $response->assertJsonMissingPath('data.item');
         $this->assertSame(650.0, (float) $response->json('data.order_summary.subtotal'));
     }
 
-    public function test_buy_now_summary_endpoint_accepts_qty_alias(): void
+    public function test_buy_now_summary_ignores_product_specific_payload_and_uses_cart(): void
     {
         $category = Category::factory()->create();
         $product = Product::factory()->create([
@@ -349,10 +350,37 @@ class CartApiTest extends TestCase
             'price' => 30,
             'status' => 'active',
         ]);
+        Cart::create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'quantity' => 10,
+        ]);
 
         $response = $this->postJson('/api/shop/buy-now/summary', [
-            'product_id' => $product->id,
             'qty' => 10,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $this->assertSame(300.0, (float) $response->json('data.order_summary.subtotal'));
+    }
+
+    public function test_buy_now_summary_accepts_only_wallet_fields(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 30,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'quantity' => 10,
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'use_wallet' => true,
+            'wallet_amount' => 10,
         ], $this->authHeaders());
 
         $response->assertStatus(200);
@@ -372,11 +400,13 @@ class CartApiTest extends TestCase
             'price' => 99,
             'status' => 'active',
         ]);
-
-        $response = $this->postJson('/api/shop/buy-now/summary', [
+        Cart::create([
+            'user_id' => $this->user->id,
             'product_id' => $product->id,
             'quantity' => 1,
-        ], $this->authHeaders());
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [], $this->authHeaders());
 
         $response->assertStatus(200);
         $response->assertJsonPath('data.order_summary.wallet_available', true);
@@ -401,10 +431,13 @@ class CartApiTest extends TestCase
             'price' => 99,
             'status' => 'active',
         ]);
-
-        $response = $this->postJson('/api/shop/buy-now/summary', [
+        Cart::create([
+            'user_id' => $this->user->id,
             'product_id' => $product->id,
             'quantity' => 1,
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
             'use_wallet' => true,
         ], $this->authHeaders());
 
@@ -429,10 +462,13 @@ class CartApiTest extends TestCase
             'price' => 100,
             'status' => 'active',
         ]);
-
-        $response = $this->postJson('/api/shop/buy-now/summary', [
+        Cart::create([
+            'user_id' => $this->user->id,
             'product_id' => $product->id,
             'quantity' => 1,
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
             'use_wallet' => true,
             'wallet_amount' => 30,
         ], $this->authHeaders());
@@ -457,10 +493,13 @@ class CartApiTest extends TestCase
             'price' => 99,
             'status' => 'active',
         ]);
-
-        $response = $this->postJson('/api/shop/buy-now/summary', [
+        Cart::create([
+            'user_id' => $this->user->id,
             'product_id' => $product->id,
             'quantity' => 1,
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
             'use_wallet' => true,
         ], $this->authHeaders());
 
@@ -484,10 +523,13 @@ class CartApiTest extends TestCase
             'price' => 99,
             'status' => 'active',
         ]);
-
-        $response = $this->postJson('/api/shop/buy-now/summary', [
+        Cart::create([
+            'user_id' => $this->user->id,
             'product_id' => $product->id,
             'quantity' => 1,
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
             'use_wallet' => true,
         ], $this->authHeaders());
 

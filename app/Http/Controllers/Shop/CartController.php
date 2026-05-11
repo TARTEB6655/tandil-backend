@@ -279,22 +279,17 @@ class CartController extends Controller
 
     /**
      * POST /api/shop/buy-now/summary
-     * Dedicated Buy Now summary endpoint for mobile apps using JSON body.
+     * Wallet-focused summary endpoint using current user's cart.
      */
     public function buyNowSummary(Request $request)
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity' => 'sometimes|integer|min:1',
-            'qty' => 'sometimes|integer|min:1',
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'sometimes|numeric|min:0',
         ]);
 
         $user = $request->user();
         $preview = self::checkoutPreview($request, $user->id);
-        $firstItem = $preview['items']->first();
-        $item = $firstItem ? self::cartItemToFrontend($firstItem) : null;
         $orderSummary = self::buildOrderSummary($preview['subtotal'], 0);
         $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
         $orderSummary['discount'] = (float) $orderSummary['discount'];
@@ -305,7 +300,6 @@ class CartController extends Controller
         $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
 
         return ApiResponse::success('Buy now summary retrieved.', [
-            'item' => $item,
             'order_summary' => $orderSummary,
         ]);
     }

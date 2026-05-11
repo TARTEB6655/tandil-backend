@@ -1,0 +1,408 @@
+﻿"Sr. No.",Name,Module,Methods,Endpoint,Status
+1,"Health Check","1. Health Check - START HERE",GET,/api/health,Active
+2,"Debug Performance","1. Health Check - START HERE",GET,/api/debug/performance,Active
+3,"User Wallet Summary","1. Health Check - START HERE > Wallet APIs",GET,/api/user/wallet,Active
+4,"User Wallet Credits List","1. Health Check - START HERE > Wallet APIs",GET,/api/user/wallet/credits,Active
+5,"Admin Wallet Overview","1. Health Check - START HERE > Wallet APIs",GET,/api/admin/wallet/overview,Active
+6,"Admin Wallet Credits Ledger","1. Health Check - START HERE > Wallet APIs",GET,/api/admin/wallet/credits,Active
+7,"Delivery analytics","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/delivery-stats,Active
+8,"Broadcast send","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/broadcast,Active
+9,"Broadcasts list","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/broadcasts,Active
+10,"Broadcast detail","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/broadcasts/{{broadcast_id}},Active
+11,"Statics list (with filters)","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications,Active
+12,"Mark as read","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/{{notification_id}}/mark-read,Active
+13,"Mark all as read","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/mark-all-read,Active
+14,"Delete one","Notifications – All roles (hub) > Admin – /api/admin/notifications",DELETE,/api/admin/notifications/{{notification_id}},Active
+15,"Clear all","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/clear-all,Active
+16,Register,"2. Authentication",POST,/api/auth/register,Active
+17,Login,"2. Authentication",POST,/api/auth/login,Active
+18,"Technician signup - List areas (GET)","2. Authentication",GET,/api/auth/technician-signup-areas,Active
+19,"Register Technician","2. Authentication",POST,/api/auth/register-technician,Active
+20,"Get Profile","3. Client Dashboard – Profile",GET,/api/auth/profile,Active
+21,Logout,"3. Client Dashboard – Profile",POST,/api/auth/logout,Active
+22,"Forgot Password","3. Client Dashboard – Profile",POST,/api/auth/forgot-password,Active
+23,"Verify OTP","3. Client Dashboard – Profile",POST,/api/auth/verify-otp,Active
+24,"Reset Password","3. Client Dashboard – Profile",POST,/api/auth/reset-password,Active
+25,"Notifications - Statics list (with filters)","3. Client Dashboard – Profile > Notifications (Dedicated API)",GET,/api/client/notifications,Active
+26,"Notifications - Mark as Read","3. Client Dashboard – Profile > Notifications (Dedicated API)",POST,/api/client/notifications/{{notification_id}}/mark-read,Active
+27,"Notifications - Mark All as Read","3. Client Dashboard – Profile > Notifications (Dedicated API)",POST,/api/client/notifications/mark-all-read,Active
+28,"Notifications - Delete","3. Client Dashboard – Profile > Notifications (Dedicated API)",DELETE,/api/client/notifications/{{notification_id}},Active
+29,"Notifications - Clear All","3. Client Dashboard – Profile > Notifications (Dedicated API)",POST,/api/client/notifications/clear-all,Active
+30,"Dashboard settings (GET)","3a. Client Dashboard – Settings",GET,/api/client/settings/dashboard,Active
+31,"Memberships (GET)","3a. Client Dashboard – Settings",GET,/api/client/memberships,Active
+32,"2. Personal Information – Get (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/profile,Active
+33,"3. Personal Information – Update (PUT/POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/user/profile,Active
+34,"4. Addresses – List (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/addresses,Active
+35,"5. Addresses – Create (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/user/addresses,Active
+36,"6. Addresses – Update (PUT)","3b. Client Profile – All Settings (One Place) [13 requests]",PUT,/api/user/addresses/{{address_id}},Active
+37,"7. Addresses – Delete (DELETE)","3b. Client Profile – All Settings (One Place) [13 requests]",DELETE,/api/user/addresses/{{address_id}},Active
+38,"8. Payment Methods (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/payment-methods,Active
+39,"9. Notifications (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/notifications,Active
+40,"9b. Notifications – Clear All (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/user/notifications/clear-all,Active
+41,"10. Help and Support – Help Center (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/support/help-center,Active
+42,"11. Help and Support – Submit ticket (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/support/tickets,Active
+43,"12. Help and Support – List my tickets (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/support/tickets,Active
+44,"13. Help and Support – Get ticket by ID (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/support/tickets/{{ticket_id}},Active
+45,"14. Help and Support – Reply to my ticket (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/support/tickets/{{ticket_id}}/reply,Active
+46,"Get Plans (Public)","4. Client Dashboard – Subscriptions",GET,/api/subscriptions/plans,Active
+47,"Create Subscription","4. Client Dashboard – Subscriptions",POST,/api/subscriptions,Active
+48,"List Subscriptions","4. Client Dashboard – Subscriptions",GET,/api/subscriptions,Active
+49,"Get Subscription Details","4. Client Dashboard – Subscriptions",GET,/api/subscriptions/{{subscription_id}},Active
+50,"Mark Subscription Paid","4. Client Dashboard – Subscriptions",POST,/api/subscriptions/{{subscription_id}}/mark-paid,Active
+51,"Update Subscription","4. Client Dashboard – Subscriptions",PUT,/api/subscriptions/{{subscription_id}},Active
+52,"Delete Subscription","4. Client Dashboard – Subscriptions",DELETE,/api/subscriptions/{{subscription_id}},Active
+53,"Get Active Banners","5. Client Dashboard – Banners (Public)",GET,/api/banners,Active
+54,"List All Banners (Admin)","5b. Admin Dashboard – Banners",GET,/api/admin/banners,Active
+55,"Create Banner","5b. Admin Dashboard – Banners",POST,/api/admin/banners,Active
+56,"Get Banner (Admin)","5b. Admin Dashboard – Banners",GET,/api/admin/banners/{{banner_id}},Active
+57,"Update Banner","5b. Admin Dashboard – Banners",POST,/api/admin/banners/{{banner_id}},Active
+58,"Update Banner Order","5b. Admin Dashboard – Banners",POST,/api/admin/banners/update-order,Active
+59,"Toggle Banner Status","5b. Admin Dashboard – Banners",POST,/api/admin/banners/{{banner_id}}/toggle-status,Active
+60,"Delete Banner","5b. Admin Dashboard – Banners",DELETE,/api/admin/banners/{{banner_id}},Active
+61,"List Packages","5c. Client Dashboard – Packages (Customer Home)",GET,/api/packages,Active
+62,"List Packages (Admin)","5d. Admin Dashboard – Packages",GET,/api/admin/packages,Active
+63,"Create Package","5d. Admin Dashboard – Packages",POST,/api/admin/packages,Active
+64,"Update Package","5d. Admin Dashboard – Packages",PUT,/api/admin/packages/1,Active
+65,"Export Orders (CSV)","5e. Admin Dashboard – Orders Export",GET,/api/admin/orders/export,Active
+66,"Send Orders to Supplier","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/send-to-supplier,Active
+67,"Cancel Order (Admin)","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/{{order_id}}/cancel,Active
+68,"Bulk Delete Orders (Admin)","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/bulk-delete,Active
+69,"Refund Order (Admin)","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/{{order_id}}/refund,Active
+70,"List Visits","6. Client Dashboard – Visits",GET,/api/visits,Active
+71,"List Areas (for visit creation)","6. Client Dashboard – Visits",GET,/api/visits/areas,Active
+72,"Resolve Area from Location","6. Client Dashboard – Visits",POST,/api/visits/resolve-area,Active
+73,"Get Visit Details","6. Client Dashboard – Visits",GET,/api/visits/{{visit_id}},Active
+74,"Create Visit","6. Client Dashboard – Visits",POST,/api/visits,Active
+75,"Update Visit","6. Client Dashboard – Visits",PUT,/api/visits/{{visit_id}},Active
+76,"Upload Visit Photo","6. Client Dashboard – Visits",POST,/api/visits/{{visit_id}}/upload-photo,Active
+77,"Delete Visit Photo (Maintenance Photo)","6. Client Dashboard – Visits",DELETE,/api/visits/{{visit_id}}/photos/{{photo_id}},Active
+78,"List Reports","7. Client Dashboard – Reports",GET,/api/reports,Active
+79,"Get Report Details","7. Client Dashboard – Reports",GET,/api/reports/{{report_id}},Active
+80,"Create Report","7. Client Dashboard – Reports",POST,/api/reports,Active
+81,"Shop settings (GET)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",GET,/api/shop/settings,Active
+82,"Shop settings (PUT)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",PUT,/api/shop/settings,Active
+83,"Order summary (GET)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",GET,/api/shop/order-summary,Active
+84,"Buy now summary (POST)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",POST,/api/shop/buy-now/summary,Active
+85,"Cart - Add Item","8. Client Dashboard – Shop & Orders > B. Shopping cart",POST,/api/shop/cart/add,Active
+86,"Cart - View","8. Client Dashboard – Shop & Orders > B. Shopping cart",GET,/api/shop/cart,Active
+87,"Cart - Update Quantity","8. Client Dashboard – Shop & Orders > B. Shopping cart",PUT,/api/shop/cart/{{cart_item_id}},Active
+88,"Cart - Remove Item","8. Client Dashboard – Shop & Orders > B. Shopping cart",DELETE,/api/shop/cart/{{cart_item_id}},Active
+89,"Checkout - Review","8. Client Dashboard – Shop & Orders > C. Checkout preview",GET,/api/shop/checkout/review,Active
+90,"Orders - List","8. Client Dashboard – Shop & Orders > D. My orders (shop prefix)",GET,/api/shop/orders,Active
+91,"Orders - Get Details","8. Client Dashboard – Shop & Orders > D. My orders (shop prefix)",GET,/api/shop/orders/{{order_id}},Active
+92,"Orders - Mark Paid","8. Client Dashboard – Shop & Orders > D. My orders (shop prefix)",POST,/api/shop/orders/{{order_id}}/mark-paid,Active
+93,"Orders - List (Alternative Route)","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders,Active
+94,"Orders - Cancelled List","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/cancelled,Active
+95,"Orders - Get Details (Alternative Route)","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/{{order_id}},Active
+96,"Orders - Track","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/{{order_id}}/track,Active
+97,"Orders - Cancel Track","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/{{order_id}}/cancel-track,Active
+98,"Orders - Cancel","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",POST,/api/orders/{{order_id}}/cancel,Active
+99,"Orders - Update","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",PUT,/api/orders/{{order_id}},Active
+100,"Orders - Rate","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",POST,/api/orders/{{order_id}}/rate,Active
+101,"Orders - Guest Lookup","8. Client Dashboard – Shop & Orders > F. Guest orders (no token)",GET,/api/shop/orders/guest,Active
+102,"Orders - Guest Track","8. Client Dashboard – Shop & Orders > F. Guest orders (no token)",GET,/api/shop/orders/guest/track,Active
+103,"Categories - List (Public)","8. Client Dashboard – Shop & Orders > G. Shop catalog (public)",GET,/api/shop/categories,Active
+104,"Categories - Get Details (Public)","8. Client Dashboard – Shop & Orders > G. Shop catalog (public)",GET,/api/shop/categories/{{category_id}},Active
+105,"Payments - List","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/payments,Active
+106,"Payments - Get Details","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/payments/{{payment_id}},Active
+107,"Transactions - List (Alias)","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/transactions,Active
+108,"Transactions - Get Details (Alias)","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/transactions/{{payment_id}},Active
+109,"1. GET Payment gateways (public — no token)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/payment-gateways,Active
+110,"2. GET Payment methods (client — Bearer token)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/checkout/payment-methods,Active
+111,"2b. GET Refund policy (public — no token)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/refund-policy,Active
+112,"3. POST Start checkout — Stripe (logged-in)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/start,Active
+113,"5. POST PayPal capture","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/paypal/capture,Active
+114,"6. POST Stripe webhook (reference only)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/webhooks/stripe,Active
+115,"7. POST Stripe PaymentIntent (mobile — Payment Sheet)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/stripe/payment-intent,Active
+116,"8. POST Checkout confirm (mobile — after Payment Sheet)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/confirm,Active
+117,"9. POST Stripe webhook (alias — /shop/stripe/webhook)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/stripe/webhook,Active
+118,"List Maintenance Photos","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos,Active
+119,"Get Maintenance Photos by Visit","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos/visit/{{visit_id}},Active
+120,"GET Technician – Dashboard","9. Technician Dashboard – All APIs > A. Dashboard",GET,/api/technician/dashboard,Active
+121,"GET Technician – Profile","9. Technician Dashboard – All APIs > B. Profile",GET,/api/technician/profile,Active
+122,"PUT Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",PUT,/api/technician/profile,Active
+123,"POST Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",POST,/api/technician/profile,Active
+124,"Technician - Get Assigned Visits","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/tech/visits,Active
+125,"Technician - Accept Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/accept,Active
+126,"Technician - Start Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/start,Active
+127,"Technician - Complete Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/complete,Active
+128,"GET Technician – Tasks list","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks,Active
+129,"GET Technician – Task by ID","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks/{{visit_id}},Active
+130,"GET Technician – Task details","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks/{{visit_id}}/detail,Active
+131,"PUT Technician – Task status","9. Technician Dashboard – All APIs > C. Visits & Tasks",PUT,/api/technician/tasks/{{visit_id}}/status,Active
+132,"POST Technician – Task accept","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/technician/tasks/{{visit_id}}/accept,Active
+133,"POST Technician – Task reject","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/technician/tasks/{{visit_id}}/reject,Active
+134,"GET Technician – Jobs history","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs,Active
+135,"GET Technician – Jobs (accepted)","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/accepted,Active
+136,"GET Technician – Jobs (rejected)","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/rejected,Active
+137,"GET Technician – Jobs status counts","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/status-counts,Active
+138,"POST Technician – Upload job photo","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/photos,Active
+139,"Technician - Submit Field Report to Supervisor","9. Technician Dashboard – All APIs > D. Reports & Field Notes",POST,/api/technician/report/{{visit_id}},Active
+140,"Technician - Field notes (list)","9. Technician Dashboard – All APIs > D. Reports & Field Notes",GET,/api/technician/field-notes,Active
+141,"Leave Request Types","9. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-request-types,Active
+142,"Leave Requests - List","9. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-requests,Active
+143,"Leave Request - Submit","9. Technician Dashboard – All APIs > E. Leave Requests",POST,/api/technician/leave-requests,Active
+144,"Leave Request - Show","9. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-requests/{{leave_request_id}},Active
+145,"Alerts - List","9. Technician Dashboard – All APIs > F. Alerts",GET,/api/technician/alerts,Active
+146,"GET Technician – Service areas","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",GET,/api/technician/service-areas,Active
+147,"PUT Technician – Service areas","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",PUT,/api/technician/service-areas,Active
+148,"GET Technician – Specializations","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",GET,/api/technician/specializations,Active
+149,"POST Technician – Specializations (form-data)","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",POST,/api/technician/specializations,Active
+150,"GET Technician – Leave types","9. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/leave-types,Active
+151,"GET Technician – Availability","9. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/availability,Active
+152,"PUT Technician – Availability update","9. Technician Dashboard – All APIs > H. Availability & Schedule",PUT,/api/technician/availability,Active
+153,"GET Technician – Schedule","9. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/schedule,Active
+154,"GET Technician – Payout summary","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/payout-summary,Active
+155,"GET Technician – Payout history","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/payouts,Active
+156,"GET Technician – Payout settings","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/settings/payout,Active
+157,"PUT Technician – Payout settings","9. Technician Dashboard – All APIs > I. Payout & Bank",PUT,/api/technician/settings/payout,Active
+158,"GET Technician – Bank accounts","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/bank-accounts,Active
+159,"POST Technician – Bank account add","9. Technician Dashboard – All APIs > I. Payout & Bank",POST,/api/technician/bank-accounts,Active
+160,"PUT Technician – Bank account update","9. Technician Dashboard – All APIs > I. Payout & Bank",PUT,/api/technician/bank-accounts/{{bank_account_id}},Active
+161,"DELETE Technician – Bank account delete","9. Technician Dashboard – All APIs > I. Payout & Bank",DELETE,/api/technician/bank-accounts/{{bank_account_id}},Active
+162,"Notifications - List","9. Technician Dashboard – All APIs > J. Notifications",GET,/api/technician/notifications,Active
+163,"Notifications - Mark as Read","9. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/{{notification_id}}/mark-read,Active
+164,"Notifications - Mark All as Read","9. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/mark-all-read,Active
+165,"Notifications - Delete","9. Technician Dashboard – All APIs > J. Notifications",DELETE,/api/technician/notifications/{{notification_id}},Active
+166,"Notifications - Clear All","9. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/clear-all,Active
+167,"GET Technician – Support help center","9. Technician Dashboard – All APIs > K. Support",GET,/api/technician/support/help-center,Active
+168,"GET Technician – Support FAQs","9. Technician Dashboard – All APIs > K. Support",GET,/api/technician/support/faqs,Active
+169,"POST Technician – Support submit ticket","9. Technician Dashboard – All APIs > K. Support",POST,/api/technician/support/tickets,Active
+170,"Dashboard - Summary","10. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/summary,Active
+171,"Dashboard - KPIs","10. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/kpis,Active
+172,"Dashboard - Alerts","10. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/alerts,Active
+173,"Areas - List (for service area)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/areas,Active
+174,"Team (My Team)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team,Active
+175,"Team Stats","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team-stats,Active
+176,"Team Member - Detail (by id)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team/{{member_id}},Active
+177,"Team Member - Update (POST form-data)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/team/{{member_id}},Active
+178,"Team Members - Bulk Update (POST form-data)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/team/update,Active
+179,"Technician Signup Requests (GET)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/technician-signup-requests,Active
+180,"Technician Signup Request - Confirm (POST)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/technician-signup-requests/{{request_id}}/confirm,Active
+181,"Technician Signup Request - Cancel (POST)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/technician-signup-requests/{{request_id}}/cancel,Active
+182,"Assignments - List","10. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assignments,Active
+183,"Assignments - One detail (GET)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assignments/{{visit_id}},Active
+184,"Assign tasks page (team + tasks)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assign-tasks,Active
+185,"Assignments - Assign task (POST form-data)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",POST,/api/supervisor/assignments/{{visit_id}},Active
+186,"Assignments - Reassign (POST form-data)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",POST,/api/supervisor/assignments/{{visit_id}}/reassign,Active
+187,"Reports - List","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports,Active
+188,"Reports - Accept (field report)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/{{report_id}}/accept,Active
+189,"Reports - Reject (field report)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/{{report_id}}/reject,Active
+190,"Reports - Generate (POST form-data)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/generate,Active
+191,"Reports - Show","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports/{{report_id}},Active
+192,"Reports - Download CSV","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports/{{report_id}}/download,Active
+193,"Visit Report - Review Visit","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/visits/{{visit_id}},Active
+194,"Visit Report - Recommend Products (POST form-data)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/visits/{{visit_id}}/recommend,Active
+195,"Visit Report - Finalize / Share to Client (POST)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/visits/{{visit_id}}/finalize,Active
+196,"Leave Request Types","10. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-request-types,Active
+197,"Leave Requests - List","10. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-requests,Active
+198,"Leave Request - Submit","10. Supervisor Dashboard – All APIs > E. Leave Requests",POST,/api/supervisor/leave-requests,Active
+199,"Leave Request - Show","10. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-requests/{{leave_request_id}},Active
+200,"Alerts - List","10. Supervisor Dashboard – All APIs > F. Alerts",GET,/api/supervisor/alerts,Active
+201,"Profile - Get","10. Supervisor Dashboard – All APIs > G. Profile",GET,/api/supervisor/profile,Active
+202,"Profile - Update (form-data)","10. Supervisor Dashboard – All APIs > G. Profile",PUT,/api/supervisor/profile,Active
+203,"Profile - Preferences","10. Supervisor Dashboard – All APIs > G. Profile",GET,/api/supervisor/profile/preferences,Active
+204,"Support – FAQs","10. Supervisor Dashboard – All APIs > H. Support Tickets (Chat)",GET,/api/support/faqs,Active
+205,"Notifications - List","10. Supervisor Dashboard – All APIs > I. Notifications",GET,/api/supervisor/notifications,Active
+206,"Notifications - Mark as Read","10. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/{{notification_id}}/mark-read,Active
+207,"Notifications - Mark All as Read","10. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/mark-all-read,Active
+208,"Notifications - Delete","10. Supervisor Dashboard – All APIs > I. Notifications",DELETE,/api/supervisor/notifications/{{notification_id}},Active
+209,"Notifications - Clear All","10. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/clear-all,Active
+210,"List Products","Products - All APIs > Public (no auth)",GET,/api/shop/products,Active
+211,"Featured Products","Products - All APIs > Public (no auth)",GET,/api/shop/products/featured,Active
+212,"Get Product Details","Products - All APIs > Public (no auth)",GET,/api/shop/products/{{product_id}},Active
+213,"Get Categories","Products - All APIs > Public (no auth)",GET,/api/shop/products/categories,Active
+214,"Get Products by Category","Products - All APIs > Public (no auth)",GET,/api/shop/products/category/{{category_id}},Active
+215,"List Products","Products - All APIs > Admin (Bearer token)",GET,/api/admin/products,Active
+216,"Add Product (JSON – URL-only images)","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products,Active
+217,"Get Product Details","Products - All APIs > Admin (Bearer token)",GET,/api/admin/products/{{product_id}},Active
+218,"Update Product (Multipart – same as Add Product)","Products - All APIs > Admin (Bearer token)",PUT,/api/admin/products/{{product_id}},Active
+219,"Delete Product","Products - All APIs > Admin (Bearer token)",DELETE,/api/admin/products/{{product_id}},Active
+220,"Toggle Status","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/{{product_id}}/toggle-status,Active
+221,"Bulk Delete","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-delete,Active
+222,"Bulk Update Status","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-update-status,Active
+223,"Bulk Update Stock","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-update-stock,Active
+224,"Dashboard - Summary","11. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/dashboard/summary,Active
+225,"Dashboard - Alerts","11. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/dashboard/alerts,Active
+226,"Region Map","11. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/region-map,Active
+227,"Teams - List","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams,Active
+228,"Teams - Detail","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}},Active
+229,"Teams - Jobs","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}}/jobs,Active
+230,"Teams - Members","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}}/members,Active
+231,"Teams - Member Jobs","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/members/{{member_id}}/jobs,Active
+232,Analytics,"11. Area Manager Dashboard – All APIs > C. Analytics",GET,/api/area-manager/analytics,Active
+233,"Reports - List","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/reports,Active
+234,"Reports - Generate","11. Area Manager Dashboard – All APIs > D. Reports",POST,/api/area-manager/reports/generate,Active
+235,"Generated Reports - List","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports,Active
+236,"Generated Reports - Download","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports/{{generated_report_id}}/download,Active
+237,"Generated Reports - View","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports/{{generated_report_id}}/view,Active
+238,"Profile - Get","11. Area Manager Dashboard – All APIs > E. Profile",GET,/api/area-manager/profile,Active
+239,"Profile - Update","11. Area Manager Dashboard – All APIs > E. Profile",PUT,/api/area-manager/profile,Active
+240,"Notifications - List","11. Area Manager Dashboard – All APIs > F. Notifications",GET,/api/area-manager/notifications,Active
+241,"Notifications - Mark as Read","11. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/{{notification_id}}/mark-read,Active
+242,"Notifications - Mark All as Read","11. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/mark-all-read,Active
+243,"Notifications - Delete","11. Area Manager Dashboard – All APIs > F. Notifications",DELETE,/api/area-manager/notifications/{{notification_id}},Active
+244,"Notifications - Clear All","11. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/clear-all,Active
+245,"Help Center (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/help-center,Active
+246,"FAQs (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/faqs,Active
+247,"Submit ticket (POST)","11. Area Manager Dashboard – All APIs > G. Help & Support",POST,/api/area-manager/support/tickets,Active
+248,"List my tickets (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/tickets,Active
+249,"Get ticket by ID (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/tickets/{{ticket_id}},Active
+250,"Reply to ticket (POST)","11. Area Manager Dashboard – All APIs > G. Help & Support",POST,/api/area-manager/support/tickets/{{ticket_id}}/reply,Active
+251,"Team Leaders - List (legacy)","11. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders,Active
+252,"Team Leader - Detail (legacy)","11. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders/{{team_leader_id}},Active
+253,"Team Leader - Jobs (legacy)","11. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders/{{team_leader_id}}/jobs,Active
+254,"Dashboard - Summary","12. HR Manager Dashboard – All APIs > A. Dashboard",GET,/api/hr/dashboard/summary,Active
+255,"Dashboard - Visit Assignments","12. HR Manager Dashboard – All APIs > A. Dashboard",GET,/api/hr/dashboard/visit-assignments,Active
+256,"Positions - List","12. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/positions,Active
+257,"Employees - List","12. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/employees,Active
+258,"Employees - Create","12. HR Manager Dashboard – All APIs > B. Employees",POST,/api/hr/employees,Active
+259,"Employees - Show","12. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/employees/{{employee_id}},Active
+260,"Employees - Update","12. HR Manager Dashboard – All APIs > B. Employees",PUT,/api/hr/employees/{{employee_id}},Active
+261,"Employees - Delete","12. HR Manager Dashboard – All APIs > B. Employees",DELETE,/api/hr/employees/{{employee_id}},Active
+262,"Leave Requests - Create","12. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests,Active
+263,"Leave Requests - List","12. HR Manager Dashboard – All APIs > C. Leave Requests",GET,/api/hr/leave-requests,Active
+264,"Leave Requests - Show","12. HR Manager Dashboard – All APIs > C. Leave Requests",GET,/api/hr/leave-requests/{{leave_request_id}},Active
+265,"Leave Requests - Approve","12. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests/{{leave_request_id}}/approve,Active
+266,"Leave Requests - Reject","12. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests/{{leave_request_id}}/reject,Active
+267,"Profile - Get","12. HR Manager Dashboard – All APIs > D. Profile",GET,/api/hr/profile,Active
+268,"Profile - Update","12. HR Manager Dashboard – All APIs > D. Profile",PUT,/api/hr/profile,Active
+269,"Help Center (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/help-center,Active
+270,"FAQs (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/faqs,Active
+271,"Submit ticket (POST)","12. HR Manager Dashboard – All APIs > E. Help & Support",POST,/api/hr/support/tickets,Active
+272,"List my tickets (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/tickets,Active
+273,"Get ticket by ID (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/tickets/{{ticket_id}},Active
+274,"Reply to ticket (POST)","12. HR Manager Dashboard – All APIs > E. Help & Support",POST,/api/hr/support/tickets/{{ticket_id}}/reply,Active
+275,"Notifications - List","12. HR Manager Dashboard – All APIs > G. Notifications",GET,/api/hr/notifications,Active
+276,"Notifications - Mark as Read","12. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/{{notification_id}}/mark-read,Active
+277,"Notifications - Mark All as Read","12. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/mark-all-read,Active
+278,"Notifications - Delete","12. HR Manager Dashboard – All APIs > G. Notifications",DELETE,/api/hr/notifications/{{notification_id}},Active
+279,"Notifications - Clear All","12. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/clear-all,Active
+280,"Visit assignments - List","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments,Active
+281,"Visit assignments - Summary","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments/summary,Active
+282,"Visit assignments - Assign screen","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments/assign-screen,Active
+283,"Visit assignments - Offer to technician (POST)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",POST,/api/hr/visit-assignments/{{visit_id}},Active
+284,"Reports - Technician monthly preview (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/technician-monthly,Active
+285,"Reports - List my generated (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports,Active
+286,"Reports - Generate PDF (POST)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",POST,/api/hr/reports/generate,Active
+287,"Reports - Download (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/{{hr_report_id}}/download,Active
+288,"Reports - Download Public URL (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/{{hr_report_id}}/download-public,Active
+289,"Reports - Delete (DELETE)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",DELETE,/api/hr/reports/{{hr_report_id}},Active
+290,"Admin Dashboard Statistics","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/statistics,Active
+291,"Admin Dashboard Recent Activities","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/recent-activities,Active
+292,"Admin Dashboard Order Statistics","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/order-statistics,Active
+293,"Admin Dashboard Order Statistics - Orders Buckets","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/order-statistics/orders,Active
+294,"Admin Dashboard Quick Overview","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/quick-overview,Active
+295,"Admin Dashboard Profile","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/profile,Active
+296,"PUT/POST Admin Dashboard Profile (Update)","13. Admin Dashboard – Stats, Users & HR",PUT,/api/admin/dashboard/profile,Active
+297,"Admin Dashboard Top Selling Products","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/top-selling-products,Active
+298,"Admin Users Statistics","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/users/statistics,Active
+299,"Admin Users List","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/users,Active
+300,"Users - Create","13. Admin Dashboard – Stats, Users & HR",POST,/api/admin/users,Active
+301,"Users - Get","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/users/{{user_id}},Active
+302,"Users - Update","13. Admin Dashboard – Stats, Users & HR",PUT,/api/admin/users/{{user_id}},Active
+303,"Users - Delete","13. Admin Dashboard – Stats, Users & HR",DELETE,/api/admin/users/{{user_id}},Active
+304,"Roles - List","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/roles,Active
+305,"Roles - Create","13. Admin Dashboard – Stats, Users & HR",POST,/api/admin/roles,Active
+306,"HR - Employees - List","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/hr/employees,Active
+307,"HR - Employees - Create","13. Admin Dashboard – Stats, Users & HR",POST,/api/admin/hr/employees,Active
+308,"HR - Employees - Get","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/hr/employees/{{employee_id}},Active
+309,"HR - Employees - Update","13. Admin Dashboard – Stats, Users & HR",PUT,/api/admin/hr/employees/{{employee_id}},Active
+310,"HR - Employees - Delete","13. Admin Dashboard – Stats, Users & HR",DELETE,/api/admin/hr/employees/{{employee_id}},Active
+311,"Get All Reports","14. Admin Dashboard – Reports Management",GET,/api/admin/reports,Active
+312,"Get Report Statistics","14. Admin Dashboard – Reports Management",GET,/api/admin/reports/statistics,Active
+313,"Generate Report","14. Admin Dashboard – Reports Management",POST,/api/admin/reports/generate,Active
+314,"Schedule Report","14. Admin Dashboard – Reports Management",POST,/api/admin/reports/schedule,Active
+315,"Get Single Report","14. Admin Dashboard – Reports Management",GET,/api/admin/reports/1,Active
+316,"Download Report","14. Admin Dashboard – Reports Management",GET,/api/admin/reports/1/download,Active
+317,"Cancel Scheduled Report","14. Admin Dashboard – Reports Management",DELETE,/api/admin/reports/1/cancel,Active
+318,"Delete Report","14. Admin Dashboard – Reports Management",DELETE,/api/admin/reports/1,Active
+319,"GET List Support Tickets","15. Admin – Support Tickets",GET,/api/admin/support-tickets,Active
+320,"GET Support Ticket by ID","15. Admin – Support Tickets",GET,/api/admin/support-tickets/{{ticket_id}},Active
+321,"POST Reply to Ticket","15. Admin – Support Tickets",POST,/api/admin/support-tickets/{{ticket_id}}/reply,Active
+322,"PUT Update Ticket Status","15. Admin – Support Tickets",PUT,/api/admin/support-tickets/{{ticket_id}}/status,Active
+323,"Get All Settings","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings,Active
+324,"Get System Settings","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/system,Active
+325,"Update System Settings","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/system,Active
+326,"Get Theme","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/theme,Active
+327,"Update Theme","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/theme,Active
+328,"Get Language","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/language,Active
+329,"Update Language","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/language,Active
+330,"Get Payment Settings","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/payment,Active
+331,"Update Payment Settings","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/payment,Active
+332,"Get Shop Settings (Shipping & Tax)","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/shop,Active
+333,"Update Shop Settings (Shipping & Tax)","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/shop,Active
+334,"Get Legal (Privacy or Terms)","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/legal,Active
+335,"Export Data","16. Admin Dashboard – Settings (Mobile)",POST,/api/admin/settings/export-data,Active
+336,"Debug Logs","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/debug-logs,Active
+337,"List (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers,Active
+338,"Get by ID (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers/{{offer_id}},Active
+339,"Admin - List","17. Other Modules > Exclusive Offers",GET,/api/admin/exclusive-offers,Active
+340,"Admin - Create","17. Other Modules > Exclusive Offers",POST,/api/admin/exclusive-offers,Active
+341,"Admin - Get","17. Other Modules > Exclusive Offers",GET,/api/admin/exclusive-offers/{{offer_id}},Active
+342,"Admin - Update","17. Other Modules > Exclusive Offers",POST,/api/admin/exclusive-offers/{{offer_id}},Active
+343,"Admin - Delete","17. Other Modules > Exclusive Offers",DELETE,/api/admin/exclusive-offers/{{offer_id}},Active
+344,List,"17. Other Modules > Complaints",GET,/api/auth/complaints,Active
+345,"Complaints - Create","17. Other Modules > Complaints",POST,/api/auth/complaints,Active
+346,"Complaints - Get","17. Other Modules > Complaints",GET,/api/auth/complaints/{{complaint_id}},Active
+347,"Complaints - Update","17. Other Modules > Complaints",PUT,/api/auth/complaints/{{complaint_id}},Active
+348,"Complaints - Delete","17. Other Modules > Complaints",DELETE,/api/auth/complaints/{{complaint_id}},Active
+349,List,"17. Other Modules > Tips",GET,/api/tips,Active
+350,"Tips - Create/Send","17. Other Modules > Tips",POST,/api/tips,Active
+351,"Tips - Get Details","17. Other Modules > Tips",GET,/api/tips/{{tip_id}},Active
+352,"Tips - Update","17. Other Modules > Tips",PUT,/api/tips/{{tip_id}},Active
+353,"Tips - Delete","17. Other Modules > Tips",DELETE,/api/tips/{{tip_id}},Active
+354,List,"17. Other Modules > Notifications",GET,/api/notifications,Active
+355,"Notifications - Mark as Read","17. Other Modules > Notifications",POST,/api/notifications/{{notification_id}}/mark-read,Active
+356,"Notifications - Mark All as Read","17. Other Modules > Notifications",POST,/api/notifications/mark-all-read,Active
+357,"Notifications - Delete","17. Other Modules > Notifications",DELETE,/api/notifications/{{notification_id}},Active
+358,"Notifications - Clear All","17. Other Modules > Notifications",POST,/api/notifications/clear-all,Active
+359,List,"17. Other Modules > Admin - Categories",GET,/api/admin/categories,Active
+360,"Categories - Create","17. Other Modules > Admin - Categories",POST,/api/admin/categories,Active
+361,"Categories - Get","17. Other Modules > Admin - Categories",GET,/api/admin/categories/{{category_id}},Active
+362,"Categories - Update","17. Other Modules > Admin - Categories",POST,/api/admin/categories/{{category_id}},Active
+363,"Categories - Toggle Status","17. Other Modules > Admin - Categories",POST,/api/admin/categories/{{category_id}}/toggle-status,Active
+364,"Categories - Delete","17. Other Modules > Admin - Categories",DELETE,/api/admin/categories/{{category_id}},Active
+365,"Services - List","17. Other Modules > Admin - Services",GET,/api/admin/services,Active
+366,"Services - Create","17. Other Modules > Admin - Services",POST,/api/admin/services,Active
+367,"Services - Get","17. Other Modules > Admin - Services",GET,/api/admin/services/{{service_id}},Active
+368,"Services - Update","17. Other Modules > Admin - Services",POST,/api/admin/services/{{service_id}},Active
+369,"Services - Toggle Status","17. Other Modules > Admin - Services",POST,/api/admin/services/{{service_id}}/toggle-status,Active
+370,"Services - Delete","17. Other Modules > Admin - Services",DELETE,/api/admin/services/{{service_id}},Active
+371,"Areas - Get All","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/areas,Active
+372,"Operational Areas - Dashboard (App UI)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/operational-areas,Active
+373,"Operational Areas - Toggle Active","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/operational-areas/{{area_id}}/toggle-active,Active
+374,"All Technicians (Admin)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/technicians,Active
+375,"Technicians for Zones (list)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/technicians-for-zones,Active
+376,"Supervisors for Zones (list)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/supervisors-for-zones,Active
+377,"All Supervisors (Admin)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/supervisors,Active
+378,"Supervisor Team (get)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/supervisors/{{supervisor_id}}/team,Active
+379,"Supervisor Team - Add member","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/supervisors/{{supervisor_id}}/team,Active
+380,"Supervisor Team - Remove member","17. Other Modules > Admin - Areas (Zones)",DELETE,/api/admin/supervisors/{{supervisor_id}}/team,Active
+381,"Areas - Create","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/areas,Active
+382,"Areas - Get","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/areas/{{area_id}},Active
+383,"Areas - Update","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/areas/{{area_id}},Active
+384,"Areas - Delete","17. Other Modules > Admin - Areas (Zones)",DELETE,/api/admin/areas/{{area_id}},Active
+385,"Tech - Get Assigned Visits (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",GET,/api/auth/tech/visits,Active
+386,"Tech - Accept Visit (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/accept,Active
+387,"Tech - Start Visit (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/start,Active
+388,"Tech - Complete Visit (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/complete,Active
+389,"Tech - Upload Photo (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/photos,Active
+390,"Supervisor - List Visits (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits,Active
+391,"Supervisor - Review Visit (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits/{{visit_id}},Active
+392,"Supervisor - Recommend Products (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/recommend,Active
+393,"Supervisor - Finalize Report (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/finalize,Active
+394,"Supervisor - Update Visit Status (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/status,Active
+395,"Supervisor - List Areas (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/areas,Active
+396,"Supervisor - List Complaints (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/complaints,Active
+397,"Supervisor - Escalate Complaint (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/complaints/{{complaint_id}}/escalate,Active
+398,"List (paginated)","17. Other Modules > Services (Public)",GET,/api/services,Active
+399,"Get single service (category)","17. Other Modules > Services (Public)",GET,/api/services/{{service_id}},Active
+400,"Get all products of services","17. Other Modules > Services (Public)",GET,/api/services/products,Active
+401,"Get products by service","17. Other Modules > Services (Public)",GET,/api/services/{{service_id}}/products,Active
+402,"Get Categories","17. Other Modules > Services (Public)",GET,/api/services/categories,Active
+403,"Get by Category (category + products)","17. Other Modules > Services (Public)",GET,/api/services/category/{{category_id}},Active
+404,"User Profile - Update","17. Other Modules > User Profile",PUT,/api/user/profile,Active
+405,Update,"17. Other Modules > User Addresses",POST,/api/user/addresses/{{address_id}},Active
+406,"Mark as Read","17. Other Modules > User Notifications",POST,/api/user/notifications/{{notification_id}}/read,Active
+407,"Mark All as Read","17. Other Modules > User Notifications",POST,/api/user/notifications/read-all,Active
