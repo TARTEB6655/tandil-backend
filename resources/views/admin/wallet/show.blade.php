@@ -4,11 +4,11 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0 space-y-2">
                     <a href="{{ route('admin.wallet.index', request()->only(['q', 'per_page'])) }}"
-                       class="inline-flex w-fit min-h-[2.75rem] items-center gap-2.5 rounded-lg border border-gray-300 bg-white pl-4 pr-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700">
+                       class="inline-flex shrink-0 items-center gap-3 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium leading-normal text-gray-800 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700">
                         <svg class="h-4 w-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
                         </svg>
-                        Back to wallet
+                        <span class="whitespace-nowrap">Back to wallet</span>
                     </a>
                     <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Client wallet &amp; history</h1>
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ $user->name }} — {{ $user->email }}</p>
