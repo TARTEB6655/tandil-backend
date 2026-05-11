@@ -6,7 +6,7 @@
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Browse clients and open a user to see shop orders, cancellations, and timestamps.</p>
             </div>
             <a href="{{ route('admin.payments.settings') }}"
-               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+               class="inline-flex min-h-[2.75rem] items-center whitespace-nowrap rounded-lg border border-gray-300 bg-white pl-4 pr-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
                 Refund policy settings
             </a>
         </div>
@@ -92,7 +92,7 @@
                             id="wallet-per-page"
                             x-model="perPage"
                             @change="go()"
-                            class="h-11 w-[4.5rem] shrink-0 rounded-lg border border-gray-300 bg-gray-50 text-sm text-gray-900 focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:bg-gray-800 dark:focus:ring-gray-600"
+                            class="h-11 min-w-[5.25rem] shrink-0 rounded-lg border border-gray-300 bg-gray-50 px-3 text-center text-sm text-gray-900 focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:bg-gray-800 dark:focus:ring-gray-600"
                         >
                             @foreach([20, 50, 100] as $size)
                                 <option value="{{ $size }}">{{ $size }}</option>
