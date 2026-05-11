@@ -3408,7 +3408,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"use_wallet\": true,\n  \"wallet_amount\": 0\n}"
+                                    "raw": "{\n  \"use_wallet\": true,\n  \"wallet_amount\": 0\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/shop/buy-now/summary",
@@ -3422,7 +3422,7 @@
                                         "summary"
                                     ]
                                 },
-                                "description": "POST /api/shop/buy-now/summary — Buy Now line + `order_summary` + optional wallet preview. Body: `product_id`, `quantity` or `qty`, optional `use_wallet`, optional `wallet_amount`. Auth: Bearer token.\n\n**`order_summary.wallet_available`:** **false** if user wallet ≤ 0 — then **omit** wallet row fields (`wallet_balance`, `use_wallet`, `wallet_amount_applied`, `amount_due`); app pays **`total`**. **true** if balance > 0 — then those fields are present; send **`wallet_amount_applied`** as **`wallet_amount`** on checkout/start when using wallet. **AED:** min card rule matches checkout.\n\n**Checkout wallet toggle (app UI):** no extra API — call this same endpoint again with `use_wallet: true` or `false` when the user toggles. **GET order-summary** supports the same via query `use_wallet` / `wallet_amount`."
+                                "description": "POST /api/shop/buy-now/summary — Wallet-focused summary from the authenticated user's current cart. Body: optional `use_wallet`, optional `wallet_amount`. **Do not send** `product_id`/`quantity` here. Auth: Bearer token.\n\nResponse returns `order_summary` (no product line item payload). **`order_summary.wallet_available`:** **false** if user wallet <= 0 — wallet row fields are omitted and app pays full `total`. **true** if balance > 0 — wallet fields are present (`wallet_balance`, `use_wallet`, `wallet_amount_applied`, `amount_due`). Send the same `wallet_amount_applied` as `wallet_amount` on checkout/start when using wallet.\n\n**Checkout wallet toggle (app UI):** call this same endpoint again with `use_wallet: true/false` and optional `wallet_amount`."
                             }
                         }
                     ]

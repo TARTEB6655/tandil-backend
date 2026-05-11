@@ -57,6 +57,7 @@ class ShopPaymentController extends Controller
             // Mobile often sends false before the user ticks; omit the field or send true — do not use strict "accepted" rule.
             'accepted_refund_policy' => 'nullable|boolean',
             'paypal_payment_method_id' => 'nullable|integer',
+            'use_wallet' => 'nullable|boolean',
             'wallet_amount' => 'nullable|numeric|min:0',
         ]);
 
@@ -131,11 +132,22 @@ class ShopPaymentController extends Controller
 
         if (! $isGuest && Schema::hasColumn('orders', 'wallet_amount_applied')) {
             $user->refresh();
+            $useWallet = $request->boolean('use_wallet');
+            $hasWalletAmount = $request->has('wallet_amount');
             $requested = max(0, (float) $request->input('wallet_amount', 0));
+            if ($useWallet && $requested <= 0) {
+                // Keep preview/start consistent: use_wallet=true with 0 or missing amount means "apply max possible".
+                $requested = (float) ($user->wallet_balance ?? 0);
+            }
+
             if ($requested > 0) {
                 $bal = (float) ($user->wallet_balance ?? 0);
                 $walletApplied = round(min($requested, $bal, $amountToCharge), 2);
                 $order->wallet_amount_applied = $walletApplied;
+                $order->save();
+            } elseif ($hasWalletAmount || $useWallet) {
+                // Explicit wallet toggle/value should clear any prior applied amount on this order.
+                $order->wallet_amount_applied = 0;
                 $order->save();
             }
             $amountToCharge = max(0, round((float) $order->total_amount - $walletApplied, 2));

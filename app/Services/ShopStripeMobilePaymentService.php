@@ -42,6 +42,7 @@ class ShopStripeMobilePaymentService
             'product_id' => 'required_if:is_buy_now,true|nullable|exists:products,id',
             'quantity' => 'sometimes|integer|min:1',
             'qty' => 'sometimes|integer|min:1',
+            'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'nullable|numeric|min:0',
             'shipping' => 'required|array',
             'shipping.full_name' => 'required|string|max:255',
@@ -114,6 +115,10 @@ class ShopStripeMobilePaymentService
 
         $user->refresh();
         $walletRequested = max(0, (float) $request->input('wallet_amount', 0));
+        if ($request->boolean('use_wallet') && $walletRequested <= 0) {
+            // Match checkout/start and summary behavior: use_wallet=true implies apply max if amount omitted/0.
+            $walletRequested = (float) ($user->wallet_balance ?? 0);
+        }
         $walletApplied = 0.0;
         if ($walletRequested > 0) {
             $bal = (float) ($user->wallet_balance ?? 0);
