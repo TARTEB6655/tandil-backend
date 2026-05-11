@@ -56,9 +56,9 @@
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Type to filter clients; results refresh automatically after a short pause while typing.</p>
             </div>
             <div class="p-4">
-                {{-- Full-width search: first grid track grows to fill the row (like the red box span) --}}
-                <div class="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
-                    <div class="relative min-w-0 w-full max-w-none">
+                {{-- Capped search width (readable, not edge-to-edge); per page aligned end on larger screens --}}
+                <div class="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+                    <div class="relative w-full min-w-0 max-w-xl">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                             <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -71,7 +71,7 @@
                             autocomplete="off"
                             x-model="q"
                             placeholder="Name or email"
-                            class="block h-11 w-full max-w-none min-w-0 rounded-lg border border-gray-300 bg-gray-50 pl-10 pr-10 text-sm text-gray-900 placeholder:text-xs placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:bg-gray-800 dark:focus:ring-gray-600"
+                            class="block h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-gray-50 pl-10 pr-10 text-sm text-gray-900 placeholder:text-xs placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:bg-gray-800 dark:focus:ring-gray-600"
                             @input.debounce.320ms="go()"
                             @keydown.enter.prevent="go()"
                         />
@@ -86,7 +86,7 @@
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
-                    <div class="flex shrink-0 items-center justify-start gap-2 sm:justify-end">
+                    <div class="flex shrink-0 items-center gap-2">
                         <label for="wallet-per-page" class="shrink-0 text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Per page</label>
                         <select
                             id="wallet-per-page"
