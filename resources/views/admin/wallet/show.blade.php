@@ -15,40 +15,40 @@
                 </div>
             </div>
 
-            <div class="w-full rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-900/40 dark:from-indigo-950/50 dark:to-gray-900 sm:p-6">
-                <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
-                    <div class="lg:col-span-4">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Wallet balance</p>
-                        <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight text-indigo-900 dark:text-indigo-100 sm:text-4xl">AED {{ number_format((float) $user->wallet_balance, 2) }}</p>
-                    </div>
-                    <div class="grid gap-6 border-t border-indigo-100 pt-6 sm:grid-cols-2 lg:col-span-8 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0 dark:border-indigo-900/40">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">First wallet credit</p>
-                            <p class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                                @if($firstWalletCreditAt)
-                                    {{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('M d, Y h:i A') }}
-                                @else
-                                    <span class="text-gray-500 dark:text-gray-400">—</span>
-                                @endif
-                            </p>
-                            <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">Earliest refund credit issued for this client (when wallet activity started).</p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Next active expiry</p>
-                            <p class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                                @if($nextActiveCreditExpiresAt)
-                                    {{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('M d, Y h:i A') }}
-                                @else
-                                    <span class="text-gray-500 dark:text-gray-400">None scheduled</span>
-                                @endif
-                            </p>
-                            <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">Soonest expiry among <strong>active</strong> lines that have an expiry date. Credits can expire separately.</p>
-                        </div>
-                    </div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div class="flex flex-col rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm dark:border-indigo-900/50 dark:bg-indigo-950/40">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-800 dark:text-indigo-200">Wallet balance</p>
+                    <p class="mt-3 text-2xl font-bold tabular-nums tracking-tight text-indigo-950 dark:text-indigo-50 sm:text-3xl">AED {{ number_format((float) $user->wallet_balance, 2) }}</p>
+                    <p class="mt-auto pt-4 text-xs leading-relaxed text-indigo-900/80 dark:text-indigo-200/80">Current in-app wallet total for this client.</p>
                 </div>
-                <p class="mt-5 border-t border-indigo-100 pt-4 text-xs text-gray-600 dark:border-indigo-900/40 dark:text-gray-400">
-                    Refund policy default: each credit typically expires <strong>{{ (int) $walletValidityMonths }} months</strong> after its credit date unless spent sooner (see payment / refund settings).
-                </p>
+                <div class="flex flex-col rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/35">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">First wallet credit</p>
+                    <p class="mt-3 text-lg font-bold tabular-nums text-emerald-950 dark:text-emerald-50 sm:text-xl">
+                        @if($firstWalletCreditAt)
+                            {{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('M d, Y') }}
+                            <span class="mt-0.5 block text-sm font-semibold text-emerald-900/90 dark:text-emerald-100/90">{{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('h:i A') }}</span>
+                        @else
+                            <span class="text-base font-semibold text-emerald-800/70 dark:text-emerald-200/70">—</span>
+                        @endif
+                    </p>
+                    <p class="mt-auto pt-4 text-xs leading-relaxed text-emerald-900/85 dark:text-emerald-100/80">When refund credit activity started (earliest credit issued).</p>
+                </div>
+                <div class="flex flex-col rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/35">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-200">Next active expiry</p>
+                    <p class="mt-3 text-lg font-bold tabular-nums text-amber-950 dark:text-amber-50 sm:text-xl">
+                        @if($nextActiveCreditExpiresAt)
+                            {{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('M d, Y') }}
+                            <span class="mt-0.5 block text-sm font-semibold text-amber-900/90 dark:text-amber-100/90">{{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('h:i A') }}</span>
+                        @else
+                            <span class="text-base font-semibold text-amber-900/70 dark:text-amber-200/70">None scheduled</span>
+                        @endif
+                    </p>
+                    <p class="mt-auto pt-4 text-xs leading-relaxed text-amber-950/90 dark:text-amber-100/80">Soonest expiry among <strong>active</strong> credit lines that have a date. Lines can expire separately.</p>
+                </div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3 text-xs leading-relaxed text-slate-700 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
+                <span class="font-semibold text-slate-800 dark:text-slate-200">Policy note:</span>
+                each credit typically expires after <strong>{{ (int) $walletValidityMonths }} months</strong> from its credit date unless spent sooner — see refund / payment settings.
             </div>
         </div>
 
