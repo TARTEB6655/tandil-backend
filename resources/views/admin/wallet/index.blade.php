@@ -32,40 +32,83 @@
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Refine wallet ledger by user and status.</p>
             </div>
             <form method="GET" action="{{ route('admin.wallet.index') }}" class="p-4">
-                <div class="flex flex-nowrap items-end gap-3 overflow-x-auto">
-                    <div class="min-w-[280px] flex-1">
-                        <label class="mb-1 block h-4 text-xs font-medium leading-4 text-gray-500 dark:text-gray-400">Search user</label>
-                        <input type="text" name="q" value="{{ $q }}" placeholder="Name or email"
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+                    <div class="min-w-0 sm:col-span-2 lg:col-span-5">
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400" for="wallet-q">Search user</label>
+                        <input id="wallet-q" type="text" name="q" value="{{ $q }}" placeholder="Name or email"
                                class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                     </div>
-                    <div class="w-40 shrink-0">
-                        <label class="mb-1 block h-4 text-xs font-medium leading-4 text-gray-500 dark:text-gray-400">Status</label>
-                        <select name="status" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <div class="w-full sm:w-auto lg:col-span-2">
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400" for="wallet-status">Status</label>
+                        <select id="wallet-status" name="status" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                             <option value="">All</option>
                             @foreach(['active', 'forfeited', 'used', 'expired'] as $st)
                                 <option value="{{ $st }}" {{ $status === $st ? 'selected' : '' }}>{{ ucfirst($st) }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="w-28 shrink-0">
-                        <label class="mb-1 block h-4 text-xs font-medium leading-4 text-gray-500 dark:text-gray-400">Per page</label>
-                        <select name="per_page" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <div class="w-full sm:w-auto lg:col-span-2">
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400" for="wallet-per-page">Per page</label>
+                        <select id="wallet-per-page" name="per_page" class="h-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                             @foreach([20, 50, 100] as $size)
                                 <option value="{{ $size }}" {{ (int) $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex shrink-0 self-center items-center gap-2">
-                        <button type="submit" class="inline-flex h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
+                    <div class="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-3 lg:justify-end">
+                        <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
                             Apply
                         </button>
-                        <a href="{{ route('admin.wallet.index') }}" class="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                        <a href="{{ route('admin.wallet.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                             Reset
                         </a>
                     </div>
                 </div>
             </form>
         </div>
+
+        @if($q !== '' && $focusUser && $userInsight)
+            <div class="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-900/40 dark:from-indigo-950/40 dark:to-gray-900">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Selected client</p>
+                        <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $focusUser->name }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ $focusUser->email }}</p>
+                        @if($userMatchCount > 1)
+                            <p class="mt-2 text-xs text-amber-800 dark:text-amber-200/90">
+                                {{ $userMatchCount }} users match this search — stats below are for this client only (first match). Narrow the search (e.g. full email) to target one person.
+                            </p>
+                        @endif
+                    </div>
+                    <div class="text-left lg:text-right">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Wallet balance</p>
+                        <p class="mt-1 text-3xl font-bold tabular-nums text-indigo-900 dark:text-indigo-100">AED {{ number_format($userInsight['wallet_balance'], 2) }}</p>
+                        <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">Active credit lines: AED {{ number_format($userInsight['active_credits_aed'], 2) }}</p>
+                    </div>
+                </div>
+                <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div class="rounded-lg border border-gray-200 bg-white/80 p-3 dark:border-gray-700 dark:bg-gray-800/80">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Paid shop orders</p>
+                        <p class="mt-1 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ $userInsight['paid_orders_count'] }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">Total AED {{ number_format($userInsight['paid_orders_total_aed'], 2) }}</p>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 bg-white/80 p-3 dark:border-gray-700 dark:bg-gray-800/80">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Cancelled shop orders</p>
+                        <p class="mt-1 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ $userInsight['cancelled_orders_count'] }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">Order total AED {{ number_format($userInsight['cancelled_orders_total_aed'], 2) }}</p>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 bg-white/80 p-3 dark:border-gray-700 dark:bg-gray-800/80">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Wallet credit rows (all time)</p>
+                        <p class="mt-1 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ $userInsight['wallet_credit_rows'] }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">Ledger lines for this client (see table below).</p>
+                    </div>
+                </div>
+            </div>
+        @elseif($q !== '' && ! $focusUser)
+            <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                No user matched “{{ $q }}”. Try another name or email.
+            </div>
+        @endif
 
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
