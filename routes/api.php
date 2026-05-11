@@ -453,6 +453,7 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
     Route::get('/wallet/overview', [\App\Http\Controllers\Api\Admin\WalletController::class, 'overview']);
     Route::get('/wallet/credits', [\App\Http\Controllers\Api\Admin\WalletController::class, 'credits']);
+    Route::get('/wallet/users/{user}', [\App\Http\Controllers\Api\Admin\WalletController::class, 'userDetail'])->whereNumber('user');
 });
 
 /*

@@ -201,6 +201,48 @@
                                 },
                                 "description": "Admin wallet credits list with filters and pagination."
                             }
+                        },
+                        {
+                            "name": "Admin Wallet Client Detail",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/wallet/users/{{user_id}}?orders_page=1&orders_per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "wallet",
+                                        "users",
+                                        "{{user_id}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "orders_page",
+                                            "value": "1",
+                                            "description": "Shop orders pagination page (same query name as admin web wallet user page)."
+                                        },
+                                        {
+                                            "key": "orders_per_page",
+                                            "value": "20",
+                                            "description": "Orders per page (1–100, default 20)."
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/admin/wallet/users/{user} — **Admin** Bearer. Same payload as web **Client wallet & history**: `data.user` (id, name, email, wallet_balance), `wallet_validity_months`, `first_wallet_credit_at`, `next_active_credit_expires_at`, `wallet_credit_rows`, `order_stats` (paid/cancelled counts & AED totals), `orders` (id, ISO placed_at/updated_at, statuses, total_amount), `orders_pagination`. Path `user` = client numeric **user id** (collection variable `user_id`). Auth: same admin group as overview/credits."
+                            }
                         }
                     ],
                     "description": "Wallet system APIs for client and admin monitoring."
