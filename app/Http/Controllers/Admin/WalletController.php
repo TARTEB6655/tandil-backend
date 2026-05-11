@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\WalletCredit;
-use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
 
 class WalletController extends Controller
@@ -37,17 +36,6 @@ class WalletController extends Controller
             'active_wallet_liability' => (float) WalletCredit::query()->where('status', 'active')->sum('amount'),
             'forfeited_total' => (float) WalletCredit::query()->where('status', 'forfeited')->sum('amount'),
             'total_wallet_balance' => (float) User::query()->sum('wallet_balance'),
-            'expiring_soon_7d' => (float) WalletCredit::query()
-                ->where('status', 'active')
-                ->whereNotNull('expires_at')
-                ->whereBetween('expires_at', [now(), now()->copy()->addDays(7)])
-                ->sum('amount'),
-            'wallet_validity_months' => RefundPolicy::walletValidityMonths(),
-            'next_active_expiry_at' => WalletCredit::query()
-                ->where('status', 'active')
-                ->whereNotNull('expires_at')
-                ->where('expires_at', '>', now())
-                ->min('expires_at'),
         ];
 
         return view('admin.wallet.index', compact('credits', 'summary', 'status', 'q', 'perPage'));

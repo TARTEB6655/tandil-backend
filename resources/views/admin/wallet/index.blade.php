@@ -11,7 +11,7 @@
             </a>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Total wallet balance</p>
                 <p class="mt-1 text-2xl font-bold text-indigo-900">AED {{ number_format((float) $summary['total_wallet_balance'], 2) }}</p>
@@ -19,14 +19,6 @@
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Active liability</p>
                 <p class="mt-1 text-2xl font-bold text-emerald-900">AED {{ number_format((float) $summary['active_wallet_liability'], 2) }}</p>
-            </div>
-            <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Wallet validity</p>
-                <p class="mt-1 text-2xl font-bold text-amber-900">{{ (int) ($summary['wallet_validity_months'] ?? 6) }} months</p>
-                <p class="mt-1 text-xs text-amber-800">
-                    Next expiry:
-                    {{ !empty($summary['next_active_expiry_at']) ? \Carbon\Carbon::parse($summary['next_active_expiry_at'])->format('M d, Y h:i A') : 'No active expiry' }}
-                </p>
             </div>
             <div class="rounded-xl border border-rose-200 bg-rose-50 p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Forfeited total</p>
