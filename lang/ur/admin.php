@@ -368,4 +368,16 @@ return [
     'success' => 'کامیابی',
     'error' => 'خرابی',
     'info' => 'معلومات',
+
+    'cancel_order_confirm_policy' => 'یہ آرڈر منسوخ کریں؟ ریفنڈ ٹائم لائن پالیسی (مکمل، جزوی، یا سروس فیس) کے مطابق ہوگا اور جہاں لاگو ہو وہاں والٹ میں جمع ہوگا۔',
+    'cancel_order_policy_hint' => 'فیصد اور گریس: ادائیگیاں ← ریفنڈ اور والٹ پالیسی۔',
+    'order_cancel_not_allowed_terminal' => 'یہ آرڈر یہاں منسوخ نہیں ہو سکتا کیونکہ پہلے ہی ڈلیور یا منسوخ ہے۔',
+    'refund_policy_dashboard_title' => 'منسوخی اور والٹ ریفنڈ',
+    'refund_policy_dashboard_intro' => 'کلائنٹ منسوخی، ایڈمن آرڈر منسوخی، اور ایڈمن API ایک ہی قواعد استعمال کرتے ہیں۔ اہل رقم ایپ والٹ میں جمع ہوتی ہے۔',
+    'refund_policy_dashboard_grace' => 'گریس: آرڈر کے وقت سے :minutes منٹ کے اندر مکمل ریفنڈ۔',
+    'refund_policy_dashboard_before' => 'اسائنمنٹ سے پہلے: ادا شدہ آرڈر پر مکمل ریفنڈ۔',
+    'refund_policy_dashboard_assigned' => 'اسائن (شروع نہیں): جزوی ریفنڈ (ڈیفالٹ کل کا :percent%)۔',
+    'refund_policy_dashboard_service' => 'جاری، شپ، یا مکمل: ریفنڈ ادا شدہ کل منہا سروس فیس :fee% (ترتیبات دیکھیں)۔',
+    'refund_policy_dashboard_terminal' => 'ڈلیور یا پہلے سے منسوخ آرڈر منسوخ نہیں ہو سکتے۔',
+    'refund_policy_dashboard_settings' => 'گریس، فیصد، اور والٹ میعاد ترمیم',
 ];

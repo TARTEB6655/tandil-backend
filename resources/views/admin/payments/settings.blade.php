@@ -139,6 +139,7 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Wallet validity (months)</label>
                         <input type="number" min="1" max="24" name="refund_wallet_validity_months" value="{{ old('refund_wallet_validity_months', $refundPolicy['wallet_validity_months']) }}"
                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Refund credits expire after this period; the daily job can forfeit unused amounts to the company bucket. Logged-in customers can apply wallet balance at checkout (<code class="text-xs">wallet_amount</code> on POST /api/shop/checkout/start or mobile payment-intent).</p>
                     </div>
                 </div>
 

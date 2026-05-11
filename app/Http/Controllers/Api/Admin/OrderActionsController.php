@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Transaction;
+use App\Services\ShopOrderCancellationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,25 +14,28 @@ use Illuminate\Support\Str;
 
 class OrderActionsController extends Controller
 {
+    public function __construct(
+        private ShopOrderCancellationService $orderCancellation,
+    ) {}
+
     public function cancel(Request $request, int $id): JsonResponse
     {
         $order = Order::query()->findOrFail($id);
-        $status = $this->normalizeOrderTrackingStatus((string) ($order->order_status ?? 'pending'));
 
-        if ($this->isCancellationBlockedByAssignment($status)) {
+        if ($this->orderCancellation->isForbidden((string) ($order->order_status ?? 'pending'))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order cannot be cancelled after technician assignment.',
+                'message' => $this->orderCancellation->forbiddenMessage((string) ($order->order_status ?? 'pending')),
             ], 422);
         }
 
-        $order->order_status = 'cancelled';
-        $order->save();
+        $refund = $this->orderCancellation->cancelOrder($order);
 
         return response()->json([
             'success' => true,
             'message' => 'Order cancelled successfully.',
             'data' => $this->payload($order->fresh()),
+            'refund' => $refund,
         ]);
     }
 
@@ -106,37 +110,4 @@ class OrderActionsController extends Controller
             'refunded_at' => $order->refunded_at?->toIso8601String(),
         ];
     }
-
-    private function normalizeOrderTrackingStatus(string $status): string
-    {
-        $status = strtolower(trim($status));
-
-        return match ($status) {
-            'paid' => 'confirmed',
-            'processing' => 'in_progress',
-            'shipped' => 'completed',
-            'pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => $status,
-            default => $status !== '' ? $status : 'pending',
-        };
-    }
-
-    private function orderTrackingRank(string $status): int
-    {
-        return match ($status) {
-            'pending' => 0,
-            'confirmed' => 1,
-            'assigned' => 2,
-            'in_progress' => 3,
-            'completed' => 4,
-            'delivered' => 5,
-            default => 0,
-        };
-    }
-
-    private function isCancellationBlockedByAssignment(string $status): bool
-    {
-        return $this->orderTrackingRank($status) >= $this->orderTrackingRank('assigned')
-            || $status === 'cancelled';
-    }
 }
-

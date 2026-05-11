@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\WalletCredit;
+use App\Services\ClientWalletNotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -45,13 +46,20 @@ class ForfeitExpiredWalletCredits extends Command
                 $currentBalance = (float) ($user->wallet_balance ?? 0);
                 $deduct = min($currentBalance, $amount);
 
-                $user->wallet_balance = round($currentBalance - $deduct, 2);
+                $newBalance = round($currentBalance - $deduct, 2);
+                $user->wallet_balance = $newBalance;
                 $user->wallet_forfeited_total = round((float) ($user->wallet_forfeited_total ?? 0) + $amount, 2);
                 $user->save();
 
                 $fresh->status = 'forfeited';
                 $fresh->forfeited_at = now();
                 $fresh->save();
+
+                $notifyUserId = (int) $user->id;
+                $notifyCreditAmount = $amount;
+                DB::afterCommit(function () use ($notifyUserId, $notifyCreditAmount, $newBalance) {
+                    ClientWalletNotificationService::notifyWalletForfeited($notifyUserId, $notifyCreditAmount, $newBalance);
+                });
 
                 $count++;
             });

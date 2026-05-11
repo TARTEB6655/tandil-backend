@@ -22,6 +22,7 @@ class ShopMobileCheckout extends Model
         'tax_percent',
         'shipping_amount',
         'total_amount',
+        'wallet_amount_applied',
         'special_instructions',
         'consumed_at',
     ];
@@ -36,6 +37,7 @@ class ShopMobileCheckout extends Model
             'tax_percent' => 'decimal:2',
             'shipping_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'wallet_amount_applied' => 'decimal:2',
             'consumed_at' => 'datetime',
         ];
     }

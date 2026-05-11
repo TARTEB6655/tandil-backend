@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Package;
 use App\Services\OrderExportService;
+use App\Services\ShopOrderCancellationService;
 use App\Services\SimpleXlsxWriter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -198,22 +199,25 @@ class OrderController extends Controller
     }
 
     /**
-     * Cancel an order.
+     * Cancel an order (same refund policy + wallet credit as customer/API cancel).
      */
     public function cancel(Request $request, $id)
     {
         $order = Order::findOrFail($id);
+        $cancellation = app(ShopOrderCancellationService::class);
 
-        // Can only cancel pending or processing orders
-        if (!in_array($order->order_status, ['pending', 'processing'])) {
-            return redirect()->back()->with('error', 'Only pending or processing orders can be cancelled.');
+        if ($cancellation->isForbidden((string) ($order->order_status ?? 'pending'))) {
+            return redirect()->back()->with('error', $cancellation->forbiddenMessage((string) ($order->order_status ?? 'pending')));
         }
 
-        $order->update([
-            'order_status' => 'cancelled',
-        ]);
+        $refund = $cancellation->cancelOrder($order);
 
-        return redirect()->back()->with('success', 'Order cancelled successfully.');
+        $message = 'Order cancelled successfully.';
+        if ($refund['wallet_credited'] > 0) {
+            $message .= ' Refund credited to customer wallet: AED '.number_format((float) $refund['wallet_credited'], 2).'.';
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**

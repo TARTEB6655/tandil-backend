@@ -22,6 +22,7 @@ class Order extends Model
         'package_id',
         'shipping_address_id',
         'total_amount',
+        'wallet_amount_applied',
         'subtotal_amount',
         'tax_amount',
         'tax_percent',
@@ -31,6 +32,7 @@ class Order extends Model
         'payment_method',
         'transaction_id',
         'paid_at',
+        'wallet_redeemed_at',
         'order_status',
         'refunded_at',
         'refund_amount',
@@ -42,12 +44,14 @@ class Order extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'wallet_amount_applied' => 'decimal:2',
         'subtotal_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'tax_percent' => 'decimal:2',
         'shipping_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'paid_at' => 'datetime',
+        'wallet_redeemed_at' => 'datetime',
         'refunded_at' => 'datetime',
     ];
 

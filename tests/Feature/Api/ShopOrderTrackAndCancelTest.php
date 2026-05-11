@@ -54,7 +54,7 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $response->assertJsonPath('data.order_summary.special_instructions', 'Please be careful with stitching');
         $this->assertSame(45.0, (float) $response->json('data.order_summary.total'));
         $response->assertJsonPath('data.order_summary.payment_method', 'Credit card');
-        $response->assertJsonPath('data.can_cancel', false);
+        $response->assertJsonPath('data.can_cancel', true);
         $response->assertJsonStructure([
             'data' => [
                 'refund_policy' => ['grace_minutes', 'wallet_validity_months', 'rules'],
@@ -249,22 +249,99 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $this->assertEquals(100.0, (float) $credit->amount);
     }
 
-    public function test_post_orders_cancel_fails_when_technician_assignment_started(): void
+    public function test_post_orders_cancel_applies_partial_refund_when_assigned(): void
     {
-        $user = User::factory()->create(['role' => 'client']);
+        $user = User::factory()->create(['role' => 'client', 'wallet_balance' => 0]);
         $order = Order::factory()->create([
             'user_id' => $user->id,
             'order_status' => 'assigned',
             'payment_status' => 'paid',
+            'total_amount' => 200,
+            'created_at' => now()->subHours(2),
+        ]);
+
+        \App\Models\Setting::set('refund_partial_percent', '40', 'number', 'payment');
+        \App\Models\Setting::set('refund_wallet_validity_months', '6', 'number', 'payment');
+
+        $response = $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user));
+
+        $response->assertOk();
+        $response->assertJsonPath('refund.stage', 'assigned_not_started');
+        $response->assertJsonPath('refund.refund_percent', 40);
+        $response->assertJsonPath('refund.refund_amount', 80);
+        $response->assertJsonPath('refund.wallet_credited', 80);
+
+        $order->refresh();
+        $user->refresh();
+        $this->assertSame('cancelled', $order->order_status);
+        $this->assertEquals(80.0, (float) $user->wallet_balance);
+    }
+
+    public function test_post_orders_cancel_applies_service_fee_tier_when_in_progress(): void
+    {
+        $user = User::factory()->create(['role' => 'client', 'wallet_balance' => 0]);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'in_progress',
+            'payment_status' => 'paid',
+            'total_amount' => 100,
+            'created_at' => now()->subDay(),
+        ]);
+
+        \App\Models\Setting::set('refund_service_fee_percent_after_start', '30', 'number', 'payment');
+
+        $response = $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user));
+
+        $response->assertOk();
+        $response->assertJsonPath('refund.stage', 'service_started_or_completed');
+        $response->assertJsonPath('refund.refund_percent', 70);
+        $response->assertJsonPath('refund.refund_amount', 70);
+        $response->assertJsonPath('refund.wallet_credited', 70);
+
+        $user->refresh();
+        $this->assertEquals(70.0, (float) $user->wallet_balance);
+    }
+
+    public function test_post_orders_cancel_grace_window_full_refund_even_when_assigned(): void
+    {
+        $user = User::factory()->create(['role' => 'client', 'wallet_balance' => 0]);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'assigned',
+            'payment_status' => 'paid',
+            'total_amount' => 50,
+            'created_at' => now(),
+        ]);
+
+        \App\Models\Setting::set('refund_grace_minutes', '60', 'number', 'payment');
+        \App\Models\Setting::set('refund_partial_percent', '25', 'number', 'payment');
+
+        $response = $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user));
+
+        $response->assertOk();
+        $response->assertJsonPath('refund.stage', 'grace_window');
+        $response->assertJsonPath('refund.refund_percent', 100);
+        $response->assertJsonPath('refund.refund_amount', 50);
+        $response->assertJsonPath('refund.wallet_credited', 50);
+
+        $user->refresh();
+        $this->assertEquals(50.0, (float) $user->wallet_balance);
+    }
+
+    public function test_post_orders_cancel_fails_when_already_cancelled(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'cancelled',
+            'payment_status' => 'refunded',
         ]);
 
         $response = $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user));
 
         $response->assertStatus(422);
         $response->assertJsonPath('success', false);
-        $response->assertJsonPath('message', 'Order cannot be cancelled after technician assignment.');
-        $order->refresh();
-        $this->assertSame('assigned', $order->order_status);
+        $response->assertJsonPath('message', 'This order is already cancelled.');
     }
 
     public function test_post_orders_cancel_fails_when_already_delivered(): void
@@ -280,6 +357,7 @@ class ShopOrderTrackAndCancelTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonPath('success', false);
+        $response->assertJsonPath('message', 'This order cannot be cancelled after delivery.');
         $order->refresh();
         $this->assertSame('delivered', $order->order_status);
     }

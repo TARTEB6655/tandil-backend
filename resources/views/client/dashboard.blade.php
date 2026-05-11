@@ -120,6 +120,29 @@
             </div>
             @endif
 
+            @if($showMetrics ?? true)
+            @php
+                $clientRp = \App\Support\RefundPolicy::policyForApi();
+                $clientPartial = $clientRp['rules'][1]['refund_percent'] ?? 50;
+                $clientFee = $clientRp['rules'][2]['service_fee_percent'] ?? 100;
+            @endphp
+            <div class="mb-4 sm:mb-6 md:mb-8 rounded-xl border border-indigo-200 bg-indigo-50/80 p-4 sm:p-5 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-semibold text-indigo-900">Shop orders: cancellations &amp; wallet</h2>
+                        <p class="mt-1 text-xs text-indigo-900/85 leading-relaxed">If you cancel a paid order, the refund follows your order stage (grace window, before assignment, after assignment, or while in progress). Eligible amounts are added to your <a href="{{ route('client.wallet.index') }}" class="font-semibold underline decoration-indigo-400 hover:text-indigo-950">wallet</a> for future use. You cannot cancel after delivery.</p>
+                        <ul class="mt-2 text-xs text-indigo-900/90 list-disc pl-4 space-y-0.5">
+                            <li>Grace: full refund within {{ (int) $clientRp['grace_minutes'] }} minutes of placing the order.</li>
+                            <li>Before assignment: full refund.</li>
+                            <li>Assigned (not started): {{ rtrim(rtrim(number_format((float) $clientPartial, 2), '0'), '.') }}% refund by default.</li>
+                            <li>In progress / shipped / completed: refund after deducting the {{ rtrim(rtrim(number_format((float) $clientFee, 2), '0'), '.') }}% service-fee portion (configurable by the store).</li>
+                        </ul>
+                    </div>
+                    <a href="{{ route('client.orders.index') }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-900 hover:bg-indigo-100/80 transition-colors">View orders</a>
+                </div>
+            </div>
+            @endif
+
             <!-- Secondary Metrics (visibility set by admin) -->
             @if($showSecondaryMetrics ?? true)
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">

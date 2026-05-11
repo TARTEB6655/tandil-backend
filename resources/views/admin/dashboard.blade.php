@@ -698,6 +698,30 @@
             </div>
         </div>
 
+        @php
+            $rpDash = \App\Support\RefundPolicy::policyForApi();
+            $rpPartial = $rpDash['rules'][1]['refund_percent'] ?? 50;
+            $rpServiceFee = $rpDash['rules'][2]['service_fee_percent'] ?? 100;
+        @endphp
+        <div class="mb-6 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/35 p-5 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div class="min-w-0">
+                    <h3 class="text-sm font-semibold text-emerald-900 dark:text-emerald-100">{{ __('admin.refund_policy_dashboard_title') }}</h3>
+                    <p class="mt-1 text-xs sm:text-sm text-emerald-900/90 dark:text-emerald-100/90 max-w-3xl">{{ __('admin.refund_policy_dashboard_intro') }}</p>
+                    <ul class="mt-3 space-y-1.5 text-xs text-emerald-900 dark:text-emerald-100 list-disc pl-4 sm:pl-5">
+                        <li>{{ __('admin.refund_policy_dashboard_grace', ['minutes' => $rpDash['grace_minutes']]) }}</li>
+                        <li>{{ __('admin.refund_policy_dashboard_before') }}</li>
+                        <li>{{ __('admin.refund_policy_dashboard_assigned', ['percent' => rtrim(rtrim(number_format((float) $rpPartial, 2), '0'), '.')]) }}</li>
+                        <li>{{ __('admin.refund_policy_dashboard_service', ['fee' => rtrim(rtrim(number_format((float) $rpServiceFee, 2), '0'), '.')]) }}</li>
+                    </ul>
+                </div>
+                <a href="{{ route('admin.payments.settings') }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 dark:border-emerald-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-xs font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/50 transition-colors">
+                    {{ __('admin.refund_policy_dashboard_settings') }} →
+                </a>
+            </div>
+            <p class="mt-3 text-xs text-emerald-800/80 dark:text-emerald-200/80">{{ __('admin.refund_policy_dashboard_terminal') }}</p>
+        </div>
+
         <!-- Order Status -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- Order Status Breakdown -->

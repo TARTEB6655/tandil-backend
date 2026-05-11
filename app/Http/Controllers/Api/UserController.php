@@ -7,6 +7,7 @@ use App\Helpers\ApiResponse;
 use App\Models\UserAddress;
 use App\Models\UserPaymentMethod;
 use App\Models\WalletCredit;
+use App\Support\RefundPolicy;
 use App\Support\UserNotificationInbox;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
@@ -48,6 +49,7 @@ class UserController extends Controller
             'balance' => (float) ($user->wallet_balance ?? 0),
             'forfeited_total' => (float) ($user->wallet_forfeited_total ?? 0),
             'credits' => $credits,
+            'wallet_terms' => RefundPolicy::policyForApi()['wallet_terms'] ?? [],
         ]);
     }
 

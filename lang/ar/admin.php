@@ -368,4 +368,16 @@ return [
     'success' => 'تم بنجاح',
     'error' => 'خطأ',
     'info' => 'معلومات',
+
+    'cancel_order_confirm_policy' => 'إلغاء هذا الطلب؟ سيُطبق استرداد حسب سياسة الجدول الزمني (كامل، جزئي، أو رسوم خدمة) ويُضاف للمحفظة عند الاقتضاء.',
+    'cancel_order_policy_hint' => 'النسب وفترة السماح: المدفوعات ← سياسة الاسترداد والمحفظة.',
+    'order_cancel_not_allowed_terminal' => 'لا يمكن إلغاء الطلب هنا لأنه مُسلَّم أو ملغى مسبقاً.',
+    'refund_policy_dashboard_title' => 'الإلغاء واسترداد المحفظة',
+    'refund_policy_dashboard_intro' => 'إلغاء العميل، واجهة الإدارة، وAPI الإدارة يستخدمون نفس القواعد. المبالغ المؤهلة تُضاف لمحفظة العميل داخل التطبيق.',
+    'refund_policy_dashboard_grace' => 'فترة سماح: استرداد كامل خلال :minutes دقيقة من وقت الطلب.',
+    'refund_policy_dashboard_before' => 'قبل التعيين: استرداد كامل للطلبات المدفوعة.',
+    'refund_policy_dashboard_assigned' => 'مُعيَّن (لم يبدأ): استرداد جزئي (:percent% من إجمالي الطلب افتراضياً).',
+    'refund_policy_dashboard_service' => 'قيد التنفيذ أو شحن أو مكتمل: الاسترداد هو إجمالي المدفوع ناقص جزء رسوم الخدمة :fee٪ (راجع الإعدادات).',
+    'refund_policy_dashboard_terminal' => 'لا يمكن إلغاء الطلبات المُسلَّمة أو الملغاة مسبقاً.',
+    'refund_policy_dashboard_settings' => 'تعديل السماح والنسب وصلاحية المحفظة',
 ];

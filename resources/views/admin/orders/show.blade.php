@@ -273,34 +273,26 @@
                             </span>
                         </div>
                         
-                        <!-- Admin Cancel Order -->
+                        <!-- Admin Cancel Order (policy: refund tier + wallet; blocked only when delivered or already cancelled) -->
                         @php
                             $rawOrderStatus = strtolower((string) ($order->order_status ?? 'pending'));
-                            $normalizedForCancel = match ($rawOrderStatus) {
-                                'paid' => 'confirmed',
-                                'processing' => 'in_progress',
-                                'shipped' => 'completed',
-                                default => $rawOrderStatus,
-                            };
-                            $cancelBlocked = match ($normalizedForCancel) {
-                                'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => true,
-                                default => false,
-                            };
+                            $cancelForbidden = in_array($rawOrderStatus, ['delivered', 'cancelled'], true);
                         @endphp
-                        @if(!in_array($order->order_status, ['cancelled', 'delivered']) && !$cancelBlocked)
+                        @if(! $cancelForbidden)
                             <div class="pt-4 border-t border-gray-200">
                                 <form method="POST" action="{{ route('admin.orders.cancel', $order->id) }}" 
-                                      onsubmit="return confirm('Are you sure you want to cancel this order?');">
+                                      onsubmit="return confirm(@json(__('admin.cancel_order_confirm_policy')));">
                                     @csrf
                                     <button type="submit" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                                         {{ __('admin.cancel_order') }}
                                     </button>
                                 </form>
+                                <p class="mt-2 text-xs text-gray-500 leading-relaxed">{{ __('admin.cancel_order_policy_hint') }}</p>
                             </div>
-                        @elseif($cancelBlocked)
+                        @else
                             <div class="pt-4 border-t border-gray-200">
                                 <div class="text-xs text-gray-500 leading-relaxed">
-                                    Cancellation disabled after technician assignment.
+                                    {{ __('admin.order_cancel_not_allowed_terminal') }}
                                 </div>
                             </div>
                         @endif

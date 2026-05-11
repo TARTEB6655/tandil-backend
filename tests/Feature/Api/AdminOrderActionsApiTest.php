@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Order;
 use App\Models\User;
+use App\Models\WalletCredit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
@@ -65,10 +66,37 @@ class AdminOrderActionsApiTest extends TestCase
         $response->assertJsonPath('data.order_status', 'cancelled');
     }
 
-    public function test_admin_cancel_order_api_rejects_assigned_order(): void
+    public function test_admin_cancel_order_api_applies_partial_refund_when_assigned(): void
+    {
+        $client = User::factory()->create(['role' => 'client', 'wallet_balance' => 0]);
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'order_status' => 'assigned',
+            'payment_status' => 'paid',
+            'total_amount' => 200,
+            'created_at' => now()->subHour(),
+        ]);
+
+        \App\Models\Setting::set('refund_partial_percent', '40', 'number', 'payment');
+        \App\Models\Setting::set('refund_wallet_validity_months', '6', 'number', 'payment');
+
+        $response = $this->postJson('/api/admin/orders/' . $order->id . '/cancel', [], $this->authHeaders());
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.order_status', 'cancelled');
+        $response->assertJsonPath('refund.stage', 'assigned_not_started');
+        $response->assertJsonPath('refund.wallet_credited', 80);
+
+        $client->refresh();
+        $this->assertEquals(80.0, (float) $client->wallet_balance);
+        $this->assertNotNull(WalletCredit::query()->where('order_id', $order->id)->first());
+    }
+
+    public function test_admin_cancel_order_api_rejects_delivered_order(): void
     {
         $order = Order::factory()->create([
-            'order_status' => 'assigned',
+            'order_status' => 'delivered',
             'payment_status' => 'paid',
         ]);
 
@@ -76,9 +104,8 @@ class AdminOrderActionsApiTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonPath('success', false);
-        $response->assertJsonPath('message', 'Order cannot be cancelled after technician assignment.');
         $order->refresh();
-        $this->assertSame('assigned', $order->order_status);
+        $this->assertSame('delivered', $order->order_status);
     }
 
     public function test_admin_refund_order_api_marks_order_refunded(): void

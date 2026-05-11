@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -323,5 +324,113 @@ class CartApiTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertSame(300.0, (float) $response->json('data.order_summary.subtotal'));
+    }
+
+    public function test_buy_now_summary_includes_wallet_balance_and_amount_due_matches_total_when_wallet_off(): void
+    {
+        Setting::set('shop_shipping_amount', '10', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $this->user->update(['wallet_balance' => 100]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 99,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.wallet_balance', 100);
+        $response->assertJsonPath('data.order_summary.use_wallet', false);
+        $response->assertJsonPath('data.order_summary.wallet_amount_applied', 0);
+        $this->assertSame(99.0, (float) $response->json('data.order_summary.subtotal'));
+        $response->assertJsonPath('data.order_summary.total', 113.95);
+        $response->assertJsonPath('data.order_summary.amount_due', 113.95);
+    }
+
+    public function test_buy_now_summary_use_wallet_true_applies_wallet_to_amount_due(): void
+    {
+        Setting::set('shop_shipping_amount', '10', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $this->user->update(['wallet_balance' => 100]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 99,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'use_wallet' => true,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.use_wallet', true);
+        $response->assertJsonPath('data.order_summary.wallet_amount_applied', 100);
+        $response->assertJsonPath('data.order_summary.amount_due', 13.95);
+        $response->assertJsonPath('data.order_summary.total', 113.95);
+    }
+
+    public function test_buy_now_summary_wallet_amount_caps_requested_amount(): void
+    {
+        Setting::set('shop_shipping_amount', '0', 'number', 'shop');
+        Setting::set('shop_tax_percent', '0', 'number', 'shop');
+
+        $this->user->update(['wallet_balance' => 80]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 100,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'use_wallet' => true,
+            'wallet_amount' => 30,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.wallet_amount_applied', 30);
+        $response->assertJsonPath('data.order_summary.amount_due', 70);
+    }
+
+    public function test_buy_now_summary_aed_minimum_card_rule_reduces_wallet_when_card_due_would_be_under_2(): void
+    {
+        config(['shop.currency' => 'aed']);
+        Setting::set('shop_shipping_amount', '10', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $this->user->update(['wallet_balance' => 112.95]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 99,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'use_wallet' => true,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.total', 113.95);
+        $response->assertJsonPath('data.order_summary.wallet_amount_applied', 111.95);
+        $this->assertEqualsWithDelta(2.0, (float) $response->json('data.order_summary.amount_due'), 0.001);
     }
 }

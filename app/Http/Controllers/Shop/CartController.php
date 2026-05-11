@@ -59,6 +59,43 @@ class CartController extends Controller
     }
 
     /**
+     * Preview wallet application against a gross order total (same rules as checkout: cap by balance and total,
+     * optional AED minimum card remainder when paying by card).
+     *
+     * @return array{wallet_applied: float, amount_due: float}
+     */
+    public static function previewWalletAgainstOrder(
+        float $orderTotalGross,
+        float $userBalance,
+        bool $useWallet,
+        ?float $requestedWalletAmount
+    ): array {
+        $orderTotalGross = round($orderTotalGross, 2);
+        $userBalance = round($userBalance, 2);
+
+        if (! $useWallet || $userBalance <= 0 || $orderTotalGross <= 0) {
+            return ['wallet_applied' => 0.0, 'amount_due' => $orderTotalGross];
+        }
+
+        $requested = $requestedWalletAmount !== null && $requestedWalletAmount > 0
+            ? round(max(0, $requestedWalletAmount), 2)
+            : $userBalance;
+
+        $walletApplied = round(min($requested, $userBalance, $orderTotalGross), 2);
+        $amountToCharge = max(0, round($orderTotalGross - $walletApplied, 2));
+
+        $currency = strtolower((string) config('shop.currency', self::CURRENCY));
+        $minAedCard = 2.0;
+        if ($currency === 'aed' && $walletApplied > 0 && $amountToCharge > 0 && $amountToCharge < $minAedCard) {
+            $shortfall = round($minAedCard - $amountToCharge, 2);
+            $walletApplied = max(0, round($walletApplied - $shortfall, 2));
+            $amountToCharge = max(0, round($orderTotalGross - $walletApplied, 2));
+        }
+
+        return ['wallet_applied' => $walletApplied, 'amount_due' => $amountToCharge];
+    }
+
+    /**
      * Format a cart item for frontend (Product Details / Shopping Cart / Review screens).
      */
     public static function cartItemToFrontend(Cart $item): array
@@ -210,6 +247,8 @@ class CartController extends Controller
             'product_id' => 'required|exists:products,id',
             'quantity' => 'sometimes|integer|min:1',
             'qty' => 'sometimes|integer|min:1',
+            'use_wallet' => 'sometimes|boolean',
+            'wallet_amount' => 'sometimes|numeric|min:0',
         ]);
 
         $user = $request->user();
@@ -223,6 +262,21 @@ class CartController extends Controller
         $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
         $orderSummary['tax'] = (float) $orderSummary['tax'];
         $orderSummary['total'] = (float) $orderSummary['total'];
+
+        $balance = (float) ($user->wallet_balance ?? 0);
+        $useWallet = $request->boolean('use_wallet');
+        $requestedWallet = $request->filled('wallet_amount') ? (float) $request->input('wallet_amount') : null;
+        $walletPreview = self::previewWalletAgainstOrder(
+            (float) $orderSummary['total'],
+            $balance,
+            $useWallet,
+            $requestedWallet
+        );
+
+        $orderSummary['wallet_balance'] = round($balance, 2);
+        $orderSummary['use_wallet'] = $useWallet;
+        $orderSummary['wallet_amount_applied'] = (float) $walletPreview['wallet_applied'];
+        $orderSummary['amount_due'] = (float) $walletPreview['amount_due'];
 
         return ApiResponse::success('Buy now summary retrieved.', [
             'item' => $item,

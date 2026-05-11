@@ -7,9 +7,9 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
+use App\Services\ShopOrderCancellationService;
 use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class OrderController extends Controller
@@ -189,14 +189,15 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
-        if ($this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending'))) {
+        $cancellation = app(ShopOrderCancellationService::class);
+        if ($cancellation->isForbidden((string) ($order->order_status ?? 'pending'))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order cannot be cancelled after technician assignment.',
+                'message' => $cancellation->forbiddenMessage((string) ($order->order_status ?? 'pending')),
             ], 422);
         }
 
-        $result = $this->cancelWithPolicy($order);
+        $result = $cancellation->cancelOrder($order);
         $order->refresh();
 
         // 🔔 Notify admin and client about cancellation
@@ -271,7 +272,7 @@ class OrderController extends Controller
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
                 'maintenance_photos' => $maintenancePhotos,
-                'can_cancel' => ! $this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending')),
+                'can_cancel' => ! app(ShopOrderCancellationService::class)->isForbidden((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
                 'wallet' => $this->walletSnapshot($order),
             ],
@@ -454,74 +455,11 @@ class OrderController extends Controller
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
                 'maintenance_photos' => $maintenancePhotos,
-                'can_cancel' => ! $this->isCancellationBlockedByAssignment((string) ($order->order_status ?? 'pending')),
+                'can_cancel' => ! app(ShopOrderCancellationService::class)->isForbidden((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
                 'wallet' => $this->walletSnapshot($order),
             ],
         ], 200);
-    }
-
-    /**
-     * Apply timeline-based cancellation + refund policy and wallet crediting.
-     *
-     * @return array{
-     *   stage:string,
-     *   refund_percent:float,
-     *   refund_amount:float,
-     *   service_fee_amount:float,
-     *   wallet_credited:float,
-     *   wallet_expires_at:?string
-     * }
-     */
-    private function cancelWithPolicy(Order $order): array
-    {
-        return DB::transaction(function () use ($order) {
-            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
-            $decision = RefundPolicy::decisionForOrder($locked);
-            $isPaid = strtolower((string) $locked->payment_status) === 'paid';
-            $total = (float) $locked->total_amount;
-            $refundAmount = $isPaid ? round($total * ((float) $decision['percent'] / 100), 2) : 0.0;
-            $serviceFeeAmount = $isPaid ? round(max(0, $total - $refundAmount), 2) : 0.0;
-
-            $walletCredited = 0.0;
-            $expiresAt = null;
-            if ($refundAmount > 0 && $locked->user_id) {
-                $user = User::query()->whereKey($locked->user_id)->lockForUpdate()->first();
-                if ($user) {
-                    $months = RefundPolicy::walletValidityMonths();
-                    $expiresAt = now()->addMonths($months);
-                    $walletCredited = $refundAmount;
-                    $user->wallet_balance = round((float) ($user->wallet_balance ?? 0) + $walletCredited, 2);
-                    $user->save();
-
-                    WalletCredit::create([
-                        'user_id' => $user->id,
-                        'order_id' => $locked->id,
-                        'amount' => $walletCredited,
-                        'reason' => 'order_refund',
-                        'status' => 'active',
-                        'credited_at' => now(),
-                        'expires_at' => $expiresAt,
-                    ]);
-                }
-            }
-
-            $locked->order_status = 'cancelled';
-            $locked->payment_status = $isPaid ? 'refunded' : 'pending';
-            $locked->refund_amount = $refundAmount;
-            $locked->refund_reason = (string) ($decision['reason'] ?? 'Refund policy applied');
-            $locked->refunded_at = $refundAmount > 0 ? now() : null;
-            $locked->save();
-
-            return [
-                'stage' => (string) ($decision['stage'] ?? 'fallback'),
-                'refund_percent' => (float) ($decision['percent'] ?? 0),
-                'refund_amount' => $refundAmount,
-                'service_fee_amount' => $serviceFeeAmount,
-                'wallet_credited' => $walletCredited,
-                'wallet_expires_at' => $expiresAt?->toIso8601String(),
-            ];
-        });
     }
 
     private function walletSnapshot(Order $order): ?array
@@ -736,14 +674,6 @@ class OrderController extends Controller
             'delivered' => 5,
             default => 0,
         };
-    }
-
-    private function isCancellationBlockedByAssignment(string $status): bool
-    {
-        $normalized = $this->normalizeOrderTrackingStatus($status);
-
-        return $this->orderTrackingRank($normalized) >= $this->orderTrackingRank('assigned')
-            || $normalized === 'cancelled';
     }
 
     /**

@@ -13,6 +13,7 @@ use App\Models\UserAddress;
 use App\Notifications\AdminNotification;
 use App\Support\OrderToVisitDispatcher;
 use App\Support\OrderSupervisorNotifier;
+use App\Support\RefundPolicy;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,7 @@ class ShopStripeMobilePaymentService
             'product_id' => 'required_if:is_buy_now,true|nullable|exists:products,id',
             'quantity' => 'sometimes|integer|min:1',
             'qty' => 'sometimes|integer|min:1',
+            'wallet_amount' => 'nullable|numeric|min:0',
             'shipping' => 'required|array',
             'shipping.full_name' => 'required|string|max:255',
             'shipping.phone' => 'required|string|max:40',
@@ -72,15 +74,7 @@ class ShopStripeMobilePaymentService
 
         $summary = CartController::buildOrderSummary($preview['subtotal'], 0);
         $total = (float) $summary['total'];
-        $amountMinor = (int) round($total * 100);
         $currency = strtolower((string) config('shop.currency', CartController::CURRENCY));
-
-        if ($currency === 'aed' && $amountMinor < self::MIN_AMOUNT_MINOR_AED) {
-            return $this->err('Order total is below the minimum for card payment (2.00 AED).', 422);
-        }
-        if ($amountMinor < 50) {
-            return $this->err('Order total is too low for card payment.', 422);
-        }
 
         $lines = [];
         foreach ($preview['items'] as $cart) {
@@ -118,12 +112,91 @@ class ShopStripeMobilePaymentService
             $specialInstructions = $t === '' ? null : mb_substr($t, 0, 2000);
         }
 
+        $user->refresh();
+        $walletRequested = max(0, (float) $request->input('wallet_amount', 0));
+        $walletApplied = 0.0;
+        if ($walletRequested > 0) {
+            $bal = (float) ($user->wallet_balance ?? 0);
+            $walletApplied = round(min($walletRequested, $bal, $total), 2);
+        }
+        $cardTotal = max(0, round($total - $walletApplied, 2));
+        if ($currency === 'aed' && $walletApplied > 0 && $cardTotal > 0 && $cardTotal < 2.0) {
+            $shortfall = round(2.0 - $cardTotal, 2);
+            $walletApplied = max(0, round($walletApplied - $shortfall, 2));
+            $cardTotal = max(0, round($total - $walletApplied, 2));
+        }
+
+        if ($cardTotal <= 0.0001 && $walletApplied > 0.0001) {
+            try {
+                $order = DB::transaction(function () use ($user, $preview, $ship, $specialInstructions, $summary, $total, $walletApplied, $isBuyNow, $currency, $shippingJson) {
+                    $linesW = [];
+                    foreach ($preview['items'] as $cart) {
+                        if ($cart->product === null) {
+                            continue;
+                        }
+                        $linesW[] = [
+                            'product_id' => (int) $cart->product_id,
+                            'quantity' => (int) $cart->quantity,
+                            'unit_price' => (float) $cart->product->price,
+                        ];
+                    }
+                    $row = new ShopMobileCheckout([
+                        'user_id' => $user->id,
+                        'source' => $isBuyNow ? 'buy_now' : 'cart',
+                        'currency' => $currency,
+                        'amount_minor' => 0,
+                        'lines_json' => $linesW,
+                        'shipping_json' => $shippingJson,
+                        'subtotal_amount' => $summary['subtotal'],
+                        'tax_amount' => $summary['tax'],
+                        'tax_percent' => $summary['tax_percent'],
+                        'shipping_amount' => $summary['shipping'],
+                        'total_amount' => $total,
+                        'wallet_amount_applied' => $walletApplied,
+                        'special_instructions' => $specialInstructions,
+                    ]);
+
+                    return $this->buildPaidOrder($user, $row, 'wallet:'.uniqid('', true));
+                });
+            } catch (\Throwable $e) {
+                Log::warning('Mobile wallet-only checkout failed', ['user_id' => $user->id, 'message' => $e->getMessage()]);
+
+                return $this->err(
+                    $e->getMessage() === 'Insufficient wallet balance.'
+                        ? 'Insufficient wallet balance.'
+                        : 'Could not complete wallet checkout.',
+                    422
+                );
+            }
+            $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'Wallet (mobile)');
+
+            return [
+                'ok' => true,
+                'message' => 'Order paid from wallet.',
+                'data' => array_merge($this->orderPayload($order), [
+                    'gateway' => 'wallet',
+                    'wallet_amount_applied' => $walletApplied,
+                    'refund_policy' => RefundPolicy::policyForApi(),
+                ]),
+            ];
+        }
+
+        $amountMinor = (int) round($cardTotal * 100);
+
+        if ($currency === 'aed' && $amountMinor < self::MIN_AMOUNT_MINOR_AED) {
+            return $this->err('Order total is below the minimum for card payment (2.00 AED).', 422);
+        }
+        if ($amountMinor < 50) {
+            return $this->err('Order total is too low for card payment.', 422);
+        }
+
         $secret = StripeCredentials::secretKey();
         $this->cancelLongAbandonedMobileCheckouts($user, $secret, 15);
 
         $fingerprint = hash('sha256', json_encode([
             'lines' => $lines,
             'amount_minor' => $amountMinor,
+            'wallet_applied' => round($walletApplied, 2),
             'ship' => $shippingJson,
             'special_instructions' => $specialInstructions,
         ], JSON_THROW_ON_ERROR));
@@ -191,6 +264,7 @@ class ShopStripeMobilePaymentService
             'metadata[account_email]' => Str::limit($userEmail, 500),
             'metadata[cart_preview]' => Str::limit($cartPreview, 500),
             'metadata[order_total]' => (string) $total,
+            'metadata[wallet_amount_applied]' => (string) round($walletApplied, 2),
             'metadata[currency]' => strtoupper($currency),
         ];
 
@@ -269,6 +343,7 @@ class ShopStripeMobilePaymentService
             'tax_percent' => $summary['tax_percent'],
             'shipping_amount' => $summary['shipping'],
             'total_amount' => $total,
+            'wallet_amount_applied' => $walletApplied,
             'special_instructions' => $specialInstructions,
         ]);
 
@@ -277,6 +352,9 @@ class ShopStripeMobilePaymentService
             'payment_intent_id' => $piId,
             'publishable_key' => StripeCredentials::publishableKey(),
             'stripe_mode' => str_starts_with(StripeCredentials::secretKey(), 'sk_live_') ? 'live' : 'test',
+            'order_total' => $total,
+            'amount_due' => $cardTotal,
+            'wallet_amount_applied' => $walletApplied,
         ];
 
         return [
@@ -462,6 +540,7 @@ class ShopStripeMobilePaymentService
 
     protected function buildPaidOrder(User $user, ShopMobileCheckout $row, string $paymentIntentId): Order
     {
+        $isWalletPayment = str_starts_with($paymentIntentId, 'wallet:');
         $ship = $row->shipping_json;
         $street = trim((string) ($ship['street_address'] ?? ''));
         $line2 = trim((string) ($ship['line2'] ?? ''));
@@ -484,13 +563,14 @@ class ShopStripeMobilePaymentService
             'user_id' => $user->id,
             'shipping_address_id' => $address->id,
             'total_amount' => $row->total_amount,
+            'wallet_amount_applied' => (float) ($row->wallet_amount_applied ?? 0),
             'subtotal_amount' => $row->subtotal_amount,
             'tax_amount' => $row->tax_amount,
             'tax_percent' => $row->tax_percent,
             'shipping_amount' => $row->shipping_amount,
             'order_status' => 'pending',
             'payment_status' => 'paid',
-            'payment_method' => 'stripe',
+            'payment_method' => $isWalletPayment ? 'wallet' : 'stripe',
             'payment_reference' => $paymentIntentId,
             'transaction_id' => $paymentIntentId,
             'paid_at' => now(),
@@ -517,6 +597,13 @@ class ShopStripeMobilePaymentService
             Cart::where('user_id', $user->id)->delete();
         }
 
+        $walletApplied = (float) ($row->wallet_amount_applied ?? 0);
+        if ($walletApplied > 0.0001) {
+            app(ShopWalletRedemptionService::class)->redeem($user, $walletApplied, (int) $order->id, $order->publicOrderNumber());
+            $order->wallet_redeemed_at = now();
+            $order->save();
+        }
+
         return $order;
     }
 
@@ -527,6 +614,7 @@ class ShopStripeMobilePaymentService
             'order_number' => $order->publicOrderNumber(),
             'payment_status' => $order->payment_status,
             'total_amount' => (float) $order->total_amount,
+            'wallet_amount_applied' => (float) ($order->wallet_amount_applied ?? 0),
         ];
     }
 

@@ -80,6 +80,7 @@ class CheckoutController extends Controller
         return ApiResponse::success('Checkout review retrieved.', [
             'items' => $items,
             'order_summary' => $orderSummary,
+            'wallet_balance' => (float) ($user->wallet_balance ?? 0),
             'addresses' => $addresses,
             'payment_methods' => $this->stripePayPalMethods(),
             'saved_paypal_methods' => UserPaymentMethod::query()

@@ -32,6 +32,12 @@ class RefundPolicy
     }
 
     /**
+     * Timeline-based refund tiers (client cancellation):
+     * 1) Full refund — immediate (grace window) or before assignment (pending / paid / confirmed).
+     * 2) Partial refund — assigned to technician/driver/supplier but service not started (assigned / legacy processing).
+     * 3) Service-fee rule — service started or order in completion (in_progress / shipped / completed).
+     * Delivered and already-cancelled orders are handled by the controller (not cancellable).
+     *
      * @return array{stage:string,percent:float,reason:string}
      */
     public static function decisionForOrder(Order $order): array
@@ -41,6 +47,16 @@ class RefundPolicy
         $partialPercent = self::partialRefundPercent();
         $serviceFeePercent = self::serviceFeePercentAfterStart();
 
+        if (in_array($status, ['delivered', 'cancelled'], true)) {
+            return [
+                'stage' => 'not_cancellable',
+                'percent' => 0.0,
+                'reason' => $status === 'delivered'
+                    ? 'Order already delivered.'
+                    : 'Order already cancelled.',
+            ];
+        }
+
         if ($order->created_at && now()->lessThanOrEqualTo($order->created_at->copy()->addMinutes($grace))) {
             return [
                 'stage' => 'grace_window',
@@ -49,7 +65,7 @@ class RefundPolicy
             ];
         }
 
-        if (in_array($status, ['pending', 'paid'], true)) {
+        if (in_array($status, ['pending', 'paid', 'confirmed'], true)) {
             return [
                 'stage' => 'before_assignment',
                 'percent' => 100.0,
@@ -57,15 +73,15 @@ class RefundPolicy
             ];
         }
 
-        if (in_array($status, ['processing'], true)) {
+        if (in_array($status, ['assigned', 'processing'], true)) {
             return [
                 'stage' => 'assigned_not_started',
                 'percent' => $partialPercent,
-                'reason' => 'Order already assigned/processing.',
+                'reason' => 'Order already assigned; partial refund per policy.',
             ];
         }
 
-        if (in_array($status, ['shipped', 'delivered'], true)) {
+        if (in_array($status, ['in_progress', 'shipped', 'completed'], true)) {
             $refundPercent = 100.0 - $serviceFeePercent;
             if ($refundPercent < 0) {
                 $refundPercent = 0;
@@ -74,7 +90,7 @@ class RefundPolicy
             return [
                 'stage' => 'service_started_or_completed',
                 'percent' => $refundPercent,
-                'reason' => 'Service already started/completed.',
+                'reason' => 'Service already started or order is in completion stage.',
             ];
         }
 
@@ -115,6 +131,10 @@ class RefundPolicy
             'wallet_terms' => [
                 'credit_destination' => 'in_app_wallet',
                 'expires_after_months' => $walletMonths,
+                'spend_within_months' => $walletMonths,
+                'forfeiture_to_company' => true,
+                'forfeiture_summary' => 'Refund amounts are issued as in-app wallet credit. You can apply this balance toward new purchases before each credit\'s expiry date (by default '.$walletMonths.' months from the credit date). Any unused wallet credit after expiry may be forfeited and recorded as company revenue in line with the app\'s published policy and terms & conditions.',
+                'terms_notice' => 'Use your wallet balance at checkout (logged-in customers). Unused credits may be forfeited after the validity period as described in the terms & conditions.',
             ],
         ];
     }

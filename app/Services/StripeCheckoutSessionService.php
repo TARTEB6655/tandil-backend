@@ -21,7 +21,9 @@ class StripeCheckoutSessionService
         }
 
         $currencyLower = strtolower($currency);
-        $unitAmount = (int) round((float) $order->total_amount * 100);
+        $walletApplied = (float) ($order->wallet_amount_applied ?? 0);
+        $toCharge = max(0, round((float) $order->total_amount - $walletApplied, 2));
+        $unitAmount = (int) round($toCharge * 100);
         if ($unitAmount < 1) {
             return ['error' => 'Invalid amount'];
         }

@@ -13,12 +13,14 @@ use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use App\Services\ShopCheckoutOrderService;
 use App\Services\ShopStripeMobilePaymentService;
+use App\Services\ShopWalletRedemptionService;
 use App\Services\StripeCheckoutSessionService;
 use App\Support\OrderToVisitDispatcher;
 use App\Support\RefundPolicy;
 use App\Support\OrderSupervisorNotifier;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
@@ -54,6 +56,7 @@ class ShopPaymentController extends Controller
             'cancel_url' => 'required|url',
             'accepted_refund_policy' => 'sometimes|accepted',
             'paypal_payment_method_id' => 'nullable|integer',
+            'wallet_amount' => 'nullable|numeric|min:0',
         ]);
 
         $method = $request->input('payment_method');
@@ -108,7 +111,76 @@ class ShopPaymentController extends Controller
         }
 
         $currency = config('shop.currency', CartController::CURRENCY);
-        $amount = (float) $order->total_amount;
+        $walletApplied = 0.0;
+        $amountToCharge = (float) $order->total_amount;
+
+        if (! $isGuest && Schema::hasColumn('orders', 'wallet_amount_applied')) {
+            $user->refresh();
+            $requested = max(0, (float) $request->input('wallet_amount', 0));
+            if ($requested > 0) {
+                $bal = (float) ($user->wallet_balance ?? 0);
+                $walletApplied = round(min($requested, $bal, $amountToCharge), 2);
+                $order->wallet_amount_applied = $walletApplied;
+                $order->save();
+            }
+            $amountToCharge = max(0, round((float) $order->total_amount - $walletApplied, 2));
+        }
+
+        $minAedCard = 2.0;
+        if (strtolower($currency) === 'aed' && $walletApplied > 0 && $amountToCharge > 0 && $amountToCharge < $minAedCard) {
+            $shortfall = round($minAedCard - $amountToCharge, 2);
+            $walletApplied = max(0, round($walletApplied - $shortfall, 2));
+            $amountToCharge = max(0, round((float) $order->total_amount - $walletApplied, 2));
+            $order->wallet_amount_applied = $walletApplied;
+            $order->save();
+        }
+
+        if (! $isGuest && $amountToCharge <= 0.0001 && $walletApplied > 0.0001) {
+            try {
+                DB::transaction(function () use ($order, $user) {
+                    $o = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+                    if ($o->payment_status === 'paid') {
+                        return;
+                    }
+                    app(ShopWalletRedemptionService::class)->redeem($user, (float) $o->wallet_amount_applied, (int) $o->id, $o->publicOrderNumber());
+                    $o->payment_status = 'paid';
+                    $o->paid_at = now();
+                    $o->payment_method = 'wallet';
+                    $o->payment_reference = 'wallet:'.$o->id.':'.uniqid('', true);
+                    $o->wallet_redeemed_at = now();
+                    $o->save();
+                });
+            } catch (\Throwable $e) {
+                Log::warning('Wallet-only checkout failed', ['order_id' => $order->id, 'message' => $e->getMessage()]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage() === 'Insufficient wallet balance.'
+                        ? 'Insufficient wallet balance.'
+                        : 'Wallet checkout could not be completed. Please try again.',
+                ], 422);
+            }
+            $order->refresh();
+            $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'Wallet');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order paid from wallet.',
+                'data' => [
+                    'gateway' => 'wallet',
+                    'order_id' => $order->id,
+                    'order_number' => $this->orderNumber($order),
+                    'order_total' => (float) $order->total_amount,
+                    'wallet_amount_applied' => $walletApplied,
+                    'amount_charged' => 0.0,
+                    'currency' => $currency,
+                    'status' => 'paid',
+                    'refund_policy' => RefundPolicy::policyForApi(),
+                ],
+            ], 201);
+        }
+
+        $amount = $amountToCharge;
 
         if ($method === 'stripe') {
             $stripe = $this->stripeCheckout->createForOrder(
@@ -138,6 +210,8 @@ class ShopPaymentController extends Controller
                     'publishable_key' => StripeCredentials::publishableKey(),
                     'order_id' => $order->id,
                     'order_number' => $this->orderNumber($order),
+                    'order_total' => (float) $order->total_amount,
+                    'wallet_amount_applied' => $walletApplied,
                     'amount' => $amount,
                     'currency' => $currency,
                     'refund_policy' => RefundPolicy::policyForApi(),
@@ -199,7 +273,8 @@ class ShopPaymentController extends Controller
                     $order->payment_status = 'paid';
                     $order->paid_at = now();
                     $order->save();
-                    $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'PayPal');
+                    app(ShopWalletRedemptionService::class)->redeemAfterOrderPaid($order->fresh());
+                    $this->notifyAdminsNewOrder($order->fresh(), (float) $order->total_amount, 'PayPal');
                 }
 
                 return response()->json([
@@ -211,6 +286,8 @@ class ShopPaymentController extends Controller
                         'paypal_order_id' => $paypalResult['id'] ?? null,
                         'order_id' => $order->id,
                         'order_number' => $this->orderNumber($order),
+                        'order_total' => (float) $order->total_amount,
+                        'wallet_amount_applied' => (float) ($order->wallet_amount_applied ?? 0),
                         'amount' => $amount,
                         'currency' => $currency,
                         'status' => 'paid',
@@ -230,6 +307,8 @@ class ShopPaymentController extends Controller
                 'vaulting_attempted' => $user !== null && $savedPayPalMethod === null,
                 'order_id' => $order->id,
                 'order_number' => $this->orderNumber($order),
+                'order_total' => (float) $order->total_amount,
+                'wallet_amount_applied' => $walletApplied,
                 'amount' => $amount,
                 'currency' => $currency,
                 'refund_policy' => RefundPolicy::policyForApi(),
@@ -266,7 +345,8 @@ class ShopPaymentController extends Controller
                     $order->paid_at = now();
                     $order->payment_reference = $session['id'] ?? $order->payment_reference;
                     $order->save();
-                    $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'Stripe');
+                    app(ShopWalletRedemptionService::class)->redeemAfterOrderPaid($order->fresh());
+                    $this->notifyAdminsNewOrder($order->fresh(), (float) $order->total_amount, 'Stripe');
                 }
             }
         }
@@ -324,7 +404,8 @@ class ShopPaymentController extends Controller
                 $order->payment_status = 'paid';
                 $order->paid_at = now();
                 $order->save();
-                $this->notifyAdminsNewOrder($order, (float) $order->total_amount, 'PayPal');
+                app(ShopWalletRedemptionService::class)->redeemAfterOrderPaid($order->fresh());
+                $this->notifyAdminsNewOrder($order->fresh(), (float) $order->total_amount, 'PayPal');
             }
             $this->upsertVaultedPayPalMethod($request->user(), $order, $result);
 

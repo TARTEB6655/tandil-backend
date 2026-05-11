@@ -390,4 +390,17 @@ return [
     'success' => 'Success',
     'error' => 'Error',
     'info' => 'Info',
+
+    // Order cancellation (shared policy with API / wallet)
+    'cancel_order_confirm_policy' => 'Cancel this order? Refund will follow the timeline policy (full, partial, or service-fee tier) and credit the customer wallet when applicable.',
+    'cancel_order_policy_hint' => 'Percentages and grace period are under Payments → Refund and wallet policy.',
+    'order_cancel_not_allowed_terminal' => 'This order cannot be cancelled here because it is already delivered or cancelled.',
+    'refund_policy_dashboard_title' => 'Cancellation & wallet refunds',
+    'refund_policy_dashboard_intro' => 'Customer cancellations, admin order cancel API, and admin “Cancel order” on an order use the same rules. Eligible amounts are credited to the customer’s in-app wallet.',
+    'refund_policy_dashboard_grace' => 'Grace: full refund within :minutes minutes of order time.',
+    'refund_policy_dashboard_before' => 'Before assignment: full refund of paid orders.',
+    'refund_policy_dashboard_assigned' => 'Assigned (not started): partial refund (:percent% of order total by default).',
+    'refund_policy_dashboard_service' => 'In progress, shipped, or completed: refund is the paid order total minus the :fee% service-fee portion (see settings).',
+    'refund_policy_dashboard_terminal' => 'Delivered or already cancelled orders cannot be cancelled.',
+    'refund_policy_dashboard_settings' => 'Edit grace, partial %, service fee %, and wallet expiry',
 ];

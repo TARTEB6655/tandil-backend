@@ -5,6 +5,13 @@
             <p class="mt-1 text-sm text-gray-500">Track refund credits, expiry, and forfeited amounts.</p>
         </div>
 
+        @php($wt = \App\Support\RefundPolicy::policyForApi()['wallet_terms'] ?? [])
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800 leading-relaxed">
+            <p class="font-semibold text-slate-900 mb-1">How your refund balance works</p>
+            <p class="text-slate-700">{{ $wt['forfeiture_summary'] ?? '' }}</p>
+            <p class="mt-2 text-xs text-slate-600">{{ $wt['terms_notice'] ?? '' }}</p>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Current balance</p>
