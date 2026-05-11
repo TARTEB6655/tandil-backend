@@ -201,6 +201,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('orders/{id}/refund', [OrderController::class, 'refund'])->name('orders.refund');
 
         Route::get('payments/settings', [PaymentController::class, 'settings'])->name('payments.settings');
+        Route::get('wallet/users/{user}', [AdminWalletController::class, 'show'])->name('wallet.user');
         Route::get('wallet', [AdminWalletController::class, 'index'])->name('wallet.index');
         Route::get('payments/order/{order}', [PaymentController::class, 'showOrderPayment'])->name('payments.order');
         Route::get('payments/mobile-checkout/{checkout}', [PaymentController::class, 'showMobileCheckout'])->name('payments.mobile-checkout');

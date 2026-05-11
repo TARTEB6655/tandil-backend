@@ -7,32 +7,26 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\WalletCredit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 class WalletController extends Controller
 {
     public function index(Request $request)
     {
-        $status = (string) $request->query('status', '');
         $q = trim((string) $request->query('q', ''));
         $perPage = min(max((int) $request->query('per_page', 20), 10), 100);
 
-        $creditsQuery = WalletCredit::query()
-            ->with(['user:id,name,email', 'order:id'])
-            ->latest('id');
-
-        if ($status !== '' && in_array($status, ['active', 'forfeited', 'used', 'expired'], true)) {
-            $creditsQuery->where('status', $status);
-        }
+        $usersQuery = User::query()
+            ->where('role', 'client')
+            ->orderBy('name');
 
         if ($q !== '') {
-            $creditsQuery->whereHas('user', function ($sub) use ($q) {
+            $usersQuery->where(function ($sub) use ($q) {
                 $sub->where('name', 'like', "%{$q}%")
                     ->orWhere('email', 'like', "%{$q}%");
             });
         }
 
-        $credits = $creditsQuery->paginate($perPage)->withQueryString();
+        $users = $usersQuery->paginate($perPage)->withQueryString();
 
         $summary = [
             'active_wallet_liability' => (float) WalletCredit::query()->where('status', 'active')->sum('amount'),
@@ -40,67 +34,56 @@ class WalletController extends Controller
             'total_wallet_balance' => (float) User::query()->sum('wallet_balance'),
         ];
 
-        $focusUser = null;
-        $userMatchCount = 0;
-        $userInsight = null;
+        return view('admin.wallet.index', compact('users', 'summary', 'q', 'perPage'));
+    }
 
-        if ($q !== '') {
-            $userMatchCount = (int) User::query()
-                ->where(function ($sub) use ($q) {
-                    $sub->where('name', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%");
-                })
-                ->count();
+    public function show(Request $request, User $user)
+    {
+        abort_unless($user->role === 'client', 404);
 
-            $focusUser = User::query()
-                ->where(function ($sub) use ($q) {
-                    $sub->where('name', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%");
-                })
-                ->orderBy('id')
-                ->first();
+        $creditStatus = (string) $request->query('credit_status', '');
+        $creditsQuery = WalletCredit::query()
+            ->where('user_id', $user->id)
+            ->with('order')
+            ->latest('id');
 
-            if ($focusUser !== null && Schema::hasTable('orders')) {
-                $uid = (int) $focusUser->id;
-
-                $paidQuery = Order::query()
-                    ->where('user_id', $uid)
-                    ->where('payment_status', 'paid')
-                    ->where(function ($w) {
-                        $w->whereNull('order_status')
-                            ->orWhere('order_status', '<>', 'cancelled');
-                    });
-
-                $userInsight = [
-                    'wallet_balance' => (float) ($focusUser->wallet_balance ?? 0),
-                    'active_credits_aed' => (float) WalletCredit::query()
-                        ->where('user_id', $uid)
-                        ->where('status', 'active')
-                        ->sum('amount'),
-                    'wallet_credit_rows' => (int) WalletCredit::query()->where('user_id', $uid)->count(),
-                    'paid_orders_count' => (int) (clone $paidQuery)->count(),
-                    'paid_orders_total_aed' => (float) (clone $paidQuery)->sum('total_amount'),
-                    'cancelled_orders_count' => (int) Order::query()
-                        ->where('user_id', $uid)
-                        ->where('order_status', 'cancelled')
-                        ->count(),
-                    'cancelled_orders_total_aed' => (float) Order::query()
-                        ->where('user_id', $uid)
-                        ->where('order_status', 'cancelled')
-                        ->sum('total_amount'),
-                ];
-            }
+        if ($creditStatus !== '' && in_array($creditStatus, ['active', 'forfeited', 'used', 'expired'], true)) {
+            $creditsQuery->where('status', $creditStatus);
         }
 
-        return view('admin.wallet.index', compact(
-            'credits',
-            'summary',
-            'status',
-            'q',
-            'perPage',
-            'focusUser',
-            'userInsight',
-            'userMatchCount'
-        ));
+        $orders = Order::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->paginate(20, ['*'], 'orders_page')
+            ->withQueryString();
+
+        $credits = $creditsQuery
+            ->paginate(20, ['*'], 'credits_page')
+            ->withQueryString();
+
+        $paidQuery = Order::query()
+            ->where('user_id', $user->id)
+            ->where('payment_status', 'paid')
+            ->where(function ($w) {
+                $w->whereNull('order_status')
+                    ->orWhere('order_status', '<>', 'cancelled');
+            });
+
+        $orderStats = [
+            'paid_orders_count' => (int) (clone $paidQuery)->count(),
+            'paid_orders_total_aed' => (float) (clone $paidQuery)->sum('total_amount'),
+            'cancelled_orders_count' => (int) Order::query()
+                ->where('user_id', $user->id)
+                ->where('order_status', 'cancelled')
+                ->count(),
+            'cancelled_orders_total_aed' => (float) Order::query()
+                ->where('user_id', $user->id)
+                ->where('order_status', 'cancelled')
+                ->sum('total_amount'),
+        ];
+
+        $walletCreditRows = (int) WalletCredit::query()->where('user_id', $user->id)->count();
+
+        return view('admin.wallet.show', compact('user', 'orders', 'credits', 'orderStats', 'creditStatus', 'walletCreditRows'));
     }
 }
