@@ -5,40 +5,65 @@
                 <p class="mt-1 text-xs sm:text-sm text-gray-500">{{ $dashboardSubtitle ?? "Welcome back! Here's an overview of your subscriptions, visits, and orders." }}</p>
             </div>
 
-            <!-- Banners Section (visibility set by admin) -->
+            {{-- Banners as compact catalog-style cards (admin promos) --}}
             @if(($showBanners ?? true) && isset($banners) && $banners->count() > 0)
                 <div class="mb-4 sm:mb-6 md:mb-8">
-                    <div class="relative">
-                        <div class="overflow-x-auto scrollbar-hide">
-                            <div class="flex gap-4 pb-2" style="scroll-snap-type: x mandatory;">
-                                @foreach($banners as $banner)
-                                    <div class="flex-shrink-0 w-full sm:w-4/5 md:w-2/3 lg:w-1/2" style="scroll-snap-align: start;">
-                                        @if($banner->action_type === 'link' && $banner->action_value)
-                                            <a href="{{ $banner->action_value }}" target="_blank" class="block">
-                                        @elseif($banner->action_type === 'route' && $banner->action_value)
-                                            <a href="{{ route($banner->action_value) ?? $banner->action_value }}" class="block">
-                                        @else
-                                            <div class="block">
-                                        @endif
-                                            <div class="relative rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                                                <img src="{{ $banner->image_url }}" 
-                                                     alt="{{ $banner->title ?: 'Banner' }}" 
-                                                     class="w-full h-40 sm:h-48 md:h-56 object-cover">
-                                                @if($banner->title)
-                                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                                                        <h3 class="text-white font-medium text-sm sm:text-base">{{ $banner->title }}</h3>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @if($banner->action_type !== 'none' && ($banner->action_value || $banner->link))
-                                            </a>
-                                        @else
-                                            </div>
-                                        @endif
+                    <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Updates &amp; offers</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+                        @foreach($banners as $banner)
+                            @php
+                                $accents = [
+                                    ['border' => 'hover:border-indigo-400 dark:hover:border-indigo-500', 'chev' => 'group-hover:text-indigo-500 dark:group-hover:text-indigo-400', 'tile' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/35 dark:text-indigo-300', 'ring' => 'ring-indigo-100/80 dark:ring-indigo-800/50'],
+                                    ['border' => 'hover:border-teal-400 dark:hover:border-teal-500', 'chev' => 'group-hover:text-teal-500 dark:group-hover:text-teal-400', 'tile' => 'bg-teal-50 text-teal-600 dark:bg-teal-900/35 dark:text-teal-300', 'ring' => 'ring-teal-100/80 dark:ring-teal-800/50'],
+                                    ['border' => 'hover:border-violet-400 dark:hover:border-violet-500', 'chev' => 'group-hover:text-violet-500 dark:group-hover:text-violet-400', 'tile' => 'bg-violet-50 text-violet-600 dark:bg-violet-900/35 dark:text-violet-300', 'ring' => 'ring-violet-100/80 dark:ring-violet-800/50'],
+                                    ['border' => 'hover:border-amber-400 dark:hover:border-amber-500', 'chev' => 'group-hover:text-amber-500 dark:group-hover:text-amber-400', 'tile' => 'bg-amber-50 text-amber-600 dark:bg-amber-900/35 dark:text-amber-300', 'ring' => 'ring-amber-100/80 dark:ring-amber-800/50'],
+                                ];
+                                $a = $accents[$loop->index % 4];
+                                $hasAction = $banner->action_type !== 'none' && ($banner->action_value || $banner->link);
+                                $href = null;
+                                if ($banner->action_type === 'link' && $banner->action_value) {
+                                    $href = $banner->action_value;
+                                } elseif ($banner->action_type === 'route' && $banner->action_value) {
+                                    try {
+                                        $href = route($banner->action_value);
+                                    } catch (\Throwable $e) {
+                                        $href = $banner->action_value;
+                                    }
+                                } elseif ($banner->link) {
+                                    $href = $banner->link;
+                                }
+                                $subtitle = $banner->description
+                                    ? \Illuminate\Support\Str::limit(strip_tags($banner->description), 72)
+                                    : ($banner->button_text ?: ($hasAction ? 'Tap to open' : 'Announcement'));
+                            @endphp
+                            @if($href && $hasAction)
+                                <a href="{{ $href }}" @if($banner->action_type === 'link' && $banner->action_value) target="_blank" rel="noopener noreferrer" @endif
+                                   class="group flex min-w-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-3 shadow-md transition-all duration-200 sm:gap-4 sm:p-4 {{ $a['border'] }} hover:shadow-lg dark:border-gray-600 dark:bg-gray-800">
+                            @else
+                                <div class="group flex min-w-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-3 shadow-md transition-all duration-200 sm:gap-4 sm:p-4 {{ $a['border'] }} hover:shadow-lg dark:border-gray-600 dark:bg-gray-800">
+                            @endif
+                                @if($banner->image_url)
+                                    <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-2 {{ $a['ring'] }} sm:h-14 sm:w-14">
+                                        <img src="{{ $banner->image_url }}" alt="{{ $banner->title ?: 'Promo' }}" class="h-full w-full object-cover" loading="lazy">
                                     </div>
-                                @endforeach
-                            </div>
-                        </div>
+                                @else
+                                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-14 sm:w-14 {{ $a['tile'] }}">
+                                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    </div>
+                                @endif
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $banner->title ?: 'Announcement' }}</p>
+                                    <p class="mt-0.5 text-xs leading-snug text-gray-600 dark:text-gray-400">{{ $subtitle }}</p>
+                                </div>
+                                @if($href && $hasAction)
+                                    <svg class="h-5 w-5 shrink-0 text-gray-400 transition-colors {{ $a['chev'] }} dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                @endif
+                            @if($href && $hasAction)
+                                </a>
+                            @else
+                                </div>
+                            @endif
+                        @endforeach
                     </div>
                 </div>
             @endif
@@ -115,44 +140,6 @@
                                 </svg>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            @endif
-
-            @if($showMetrics ?? true)
-            @php
-                $clientRp = \App\Support\RefundPolicy::policyForApi();
-                $clientPartial = $clientRp['rules'][1]['refund_percent'] ?? 50;
-                $clientFee = $clientRp['rules'][2]['service_fee_percent'] ?? 100;
-            @endphp
-            <div class="mb-4 sm:mb-6 md:mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-100">
-                <div class="border-b border-slate-100 bg-gradient-to-r from-indigo-50/90 to-white px-4 py-3 sm:px-5 sm:py-3.5">
-                    <div class="flex items-center gap-3">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 class="text-sm font-semibold text-slate-900 sm:text-base">Shop orders: cancellations &amp; wallet</h2>
-                            <p class="text-xs text-slate-500">Refunds for cancelled paid orders go to your in-app wallet (when eligible).</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-                    <div class="min-w-0 space-y-3 text-sm leading-relaxed text-slate-600">
-                        <p>If you cancel a paid order, the refund follows your order stage (grace window, before assignment, after assignment, or while in progress). Eligible amounts are added to your <a href="{{ url('/client/wallet') }}" title="Open My Wallet" class="font-semibold text-indigo-700 underline decoration-2 decoration-indigo-200 underline-offset-2 hover:text-indigo-900">wallet</a> for future use. You cannot cancel after delivery.</p>
-                        <ul class="list-disc space-y-1 pl-5 text-xs sm:text-sm text-slate-600">
-                            <li><span class="font-medium text-slate-800">Grace:</span> full refund within {{ (int) $clientRp['grace_minutes'] }} minutes of placing the order.</li>
-                            <li><span class="font-medium text-slate-800">Before assignment:</span> full refund.</li>
-                            <li><span class="font-medium text-slate-800">Assigned (not started):</span> {{ rtrim(rtrim(number_format((float) $clientPartial, 2), '0'), '.') }}% refund by default.</li>
-                            <li><span class="font-medium text-slate-800">In progress / shipped / completed:</span> refund after deducting the {{ rtrim(rtrim(number_format((float) $clientFee, 2), '0'), '.') }}% service-fee portion (store configurable).</li>
-                        </ul>
-                    </div>
-                    <div class="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
-                        <a href="{{ url('/client/wallet') }}" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700">My wallet</a>
-                        <a href="{{ route('client.orders.index') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">View orders</a>
                     </div>
                 </div>
             </div>
