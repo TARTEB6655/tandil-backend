@@ -22,8 +22,12 @@
                 <p class="mt-1 text-2xl font-bold text-emerald-900">AED {{ number_format((float) $summary['active_credits'], 2) }}</p>
             </div>
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Expiring in 7 days</p>
-                <p class="mt-1 text-2xl font-bold text-amber-900">AED {{ number_format((float) $summary['expiring_soon_7d'], 2) }}</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Wallet validity</p>
+                <p class="mt-1 text-2xl font-bold text-amber-900">{{ (int) ($summary['wallet_validity_months'] ?? 6) }} months</p>
+                <p class="mt-1 text-xs text-amber-800">
+                    Next expiry:
+                    {{ !empty($summary['next_active_expiry_at']) ? \Carbon\Carbon::parse($summary['next_active_expiry_at'])->format('M d, Y h:i A') : 'No active expiry' }}
+                </p>
             </div>
             <div class="rounded-xl border border-rose-200 bg-rose-50 p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Forfeited total</p>

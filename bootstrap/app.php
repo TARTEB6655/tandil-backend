@@ -12,6 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Allow logout even when browser/session CSRF token is stale.
+        // This prevents "419 Page Expired" when users hit /logout directly.
+        $middleware->validateCsrfTokens(except: [
+            'logout',
+        ]);
+
         // Register middleware aliases required by the application
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class, // Custom role middleware that checks both Spatie and role field
