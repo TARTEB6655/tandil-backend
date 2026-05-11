@@ -15,36 +15,50 @@
                 </div>
             </div>
 
-            {{-- flex-nowrap + equal flex children: always one row (no vertical stack) --}}
-            <div class="flex w-full min-w-0 flex-nowrap items-stretch gap-2 sm:gap-3">
-                <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-indigo-200/90 bg-gradient-to-br from-indigo-200/90 via-indigo-50 to-violet-100 p-3 shadow-md ring-1 ring-indigo-200/70 dark:border-indigo-700/70 dark:from-indigo-900/90 dark:via-gray-900 dark:to-violet-900/50 dark:ring-indigo-800/50 sm:min-h-0 sm:p-4">
-                    <p class="text-[10px] font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 sm:text-xs">Balance</p>
-                    <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-indigo-950 dark:text-indigo-50 sm:text-xl">AED {{ number_format((float) $user->wallet_balance, 2) }}</p>
-                    <p class="mt-2 line-clamp-2 text-[10px] leading-snug text-indigo-900/75 dark:text-indigo-200/80 sm:text-xs">In-app total</p>
+            {{-- Same row pattern as admin dashboard catalog cards: icon + title + value + subtitle + chevron --}}
+            <div class="flex w-full min-w-0 flex-nowrap items-stretch gap-3 sm:gap-4">
+                <div class="group flex min-w-0 flex-1 basis-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-md transition-all duration-200 hover:border-indigo-400 hover:shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:hover:border-indigo-500 sm:gap-4 sm:p-5">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform group-hover:scale-105 dark:bg-indigo-900/30 dark:text-indigo-400 sm:h-12 sm:w-12">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m0-6h2a2 2 0 110 4h-2m0-4v4"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Wallet balance</p>
+                        <p class="truncate text-xl font-bold tabular-nums text-indigo-700 dark:text-indigo-300 sm:text-2xl">AED {{ number_format((float) $user->wallet_balance, 2) }}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">In-app total for this client</p>
+                    </div>
+                    <svg class="h-5 w-5 shrink-0 text-gray-400 transition-colors group-hover:text-indigo-500 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </div>
-                <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-emerald-200/90 bg-gradient-to-br from-emerald-200/85 via-emerald-50 to-teal-100 p-3 shadow-md ring-1 ring-emerald-200/70 dark:border-emerald-800/50 dark:from-emerald-900/80 dark:via-gray-900 dark:to-teal-900/45 dark:ring-emerald-800/45 sm:min-h-0 sm:p-4">
-                    <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300 sm:text-xs">First credit</p>
-                    <p class="mt-1.5 text-xs font-bold tabular-nums leading-tight text-emerald-950 dark:text-emerald-50 sm:text-sm">
+                <div class="group flex min-w-0 flex-1 basis-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-md transition-all duration-200 hover:border-teal-400 hover:shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:hover:border-teal-500 sm:gap-4 sm:p-5">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 transition-transform group-hover:scale-105 dark:bg-teal-900/30 dark:text-teal-400 sm:h-12 sm:w-12">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">First wallet credit</p>
                         @if($firstWalletCreditAt)
-                            <span class="block truncate">{{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('M d, Y') }}</span>
-                            <span class="block text-[10px] font-semibold text-emerald-800 dark:text-emerald-200/90 sm:text-xs">{{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('h:i A') }}</span>
+                            <p class="truncate text-xl font-bold text-teal-700 dark:text-teal-300 sm:text-2xl">{{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('M d, Y') }}</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($firstWalletCreditAt)->format('h:i A') }} · earliest refund credit</p>
                         @else
-                            <span class="text-emerald-800/70 dark:text-emerald-300/70">—</span>
+                            <p class="text-xl font-bold text-gray-400 dark:text-gray-500 sm:text-2xl">—</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">No credits yet</p>
                         @endif
-                    </p>
-                    <p class="mt-2 line-clamp-2 text-[10px] leading-snug text-emerald-900/80 dark:text-emerald-100/75 sm:text-xs">Activity start</p>
+                    </div>
+                    <svg class="h-5 w-5 shrink-0 text-gray-400 transition-colors group-hover:text-teal-500 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </div>
-                <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-200/80 via-amber-50 to-orange-100 p-3 shadow-md ring-1 ring-amber-200/70 dark:border-amber-800/50 dark:from-amber-900/75 dark:via-gray-900 dark:to-orange-900/45 dark:ring-amber-800/45 sm:min-h-0 sm:p-4">
-                    <p class="text-[10px] font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200 sm:text-xs">Next expiry</p>
-                    <p class="mt-1.5 text-xs font-bold tabular-nums leading-tight text-amber-950 dark:text-amber-50 sm:text-sm">
+                <div class="group flex min-w-0 flex-1 basis-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-md transition-all duration-200 hover:border-amber-400 hover:shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:hover:border-amber-500 sm:gap-4 sm:p-5">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-transform group-hover:scale-105 dark:bg-amber-900/30 dark:text-amber-400 sm:h-12 sm:w-12">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Next active expiry</p>
                         @if($nextActiveCreditExpiresAt)
-                            <span class="block truncate">{{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('M d, Y') }}</span>
-                            <span class="block text-[10px] font-semibold text-amber-900 dark:text-amber-100/90 sm:text-xs">{{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('h:i A') }}</span>
+                            <p class="truncate text-xl font-bold text-amber-700 dark:text-amber-300 sm:text-2xl">{{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('M d, Y') }}</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($nextActiveCreditExpiresAt)->format('h:i A') }} · soonest among active lines</p>
                         @else
-                            <span class="text-[11px] text-amber-900/75 dark:text-amber-200/75">None</span>
+                            <p class="text-xl font-bold text-gray-400 dark:text-gray-500 sm:text-2xl">None</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">No upcoming expiry</p>
                         @endif
-                    </p>
-                    <p class="mt-2 line-clamp-2 text-[10px] leading-snug text-amber-950/90 dark:text-amber-100/75 sm:text-xs">Active lines</p>
+                    </div>
+                    <svg class="h-5 w-5 shrink-0 text-gray-400 transition-colors group-hover:text-amber-500 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </div>
             </div>
             <div class="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3 text-xs leading-relaxed text-slate-700 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
@@ -53,21 +67,39 @@
             </div>
         </div>
 
-        <div class="flex w-full min-w-0 flex-nowrap items-stretch gap-2 sm:gap-3">
-            <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-sky-200/90 bg-gradient-to-br from-sky-200/75 via-sky-50 to-slate-100 p-3 shadow-md ring-1 ring-sky-200/70 dark:border-sky-800/50 dark:from-sky-900/70 dark:via-gray-900 dark:to-slate-900/60 dark:ring-sky-800/40 sm:min-h-0 sm:p-4">
-                <p class="text-[10px] font-bold uppercase tracking-wide text-sky-800 dark:text-sky-300 sm:text-xs">Paid orders</p>
-                <p class="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 sm:text-xl">{{ $orderStats['paid_orders_count'] }}</p>
-                <p class="mt-1.5 truncate text-[10px] text-sky-900/80 dark:text-sky-200/75 sm:text-xs">AED {{ number_format($orderStats['paid_orders_total_aed'], 2) }}</p>
-            </div>
-            <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-rose-200/90 bg-gradient-to-br from-rose-200/70 via-rose-50 to-orange-100 p-3 shadow-md ring-1 ring-rose-200/70 dark:border-rose-900/45 dark:from-rose-900/65 dark:via-gray-900 dark:to-orange-900/40 dark:ring-rose-800/35 sm:min-h-0 sm:p-4">
-                <p class="text-[10px] font-bold uppercase tracking-wide text-rose-800 dark:text-rose-300 sm:text-xs">Cancelled</p>
-                <p class="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 sm:text-xl">{{ $orderStats['cancelled_orders_count'] }}</p>
-                <p class="mt-1.5 truncate text-[10px] text-rose-900/80 dark:text-rose-200/75 sm:text-xs">AED {{ number_format($orderStats['cancelled_orders_total_aed'], 2) }}</p>
-            </div>
-            <div class="flex min-h-[5.5rem] min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border border-violet-200/90 bg-gradient-to-br from-violet-200/75 via-violet-50 to-fuchsia-100 p-3 shadow-md ring-1 ring-violet-200/70 dark:border-violet-800/50 dark:from-violet-900/70 dark:via-gray-900 dark:to-fuchsia-900/40 dark:ring-violet-800/40 sm:min-h-0 sm:p-4">
-                <p class="text-[10px] font-bold uppercase tracking-wide text-violet-800 dark:text-violet-300 sm:text-xs">Credit rows</p>
-                <p class="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100 sm:text-xl">{{ $walletCreditRows }}</p>
-                <p class="mt-1.5 line-clamp-2 text-[10px] text-violet-900/80 dark:text-violet-200/75 sm:text-xs">All-time lines</p>
+        <div class="flex w-full min-w-0 flex-nowrap items-stretch gap-3 sm:gap-4">
+            <a href="{{ route('admin.orders.index', ['search' => $user->email]) }}" class="group flex min-w-0 flex-1 basis-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-md transition-all duration-200 hover:border-sky-400 hover:shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:hover:border-sky-500 sm:gap-4 sm:p-5">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition-transform group-hover:scale-105 dark:bg-sky-900/30 dark:text-sky-400 sm:h-12 sm:w-12">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Paid shop orders</p>
+                    <p class="text-2xl font-bold tabular-nums text-sky-700 dark:text-sky-300">{{ $orderStats['paid_orders_count'] }}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Total AED {{ number_format($orderStats['paid_orders_total_aed'], 2) }}</p>
+                </div>
+                <svg class="h-5 w-5 shrink-0 text-gray-400 transition-colors group-hover:text-sky-500 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            <a href="{{ route('admin.orders.cancelled', ['search' => $user->email]) }}" class="group flex min-w-0 flex-1 basis-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-md transition-all duration-200 hover:border-rose-400 hover:shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:hover:border-rose-500 sm:gap-4 sm:p-5">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition-transform group-hover:scale-105 dark:bg-rose-900/30 dark:text-rose-400 sm:h-12 sm:w-12">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Cancelled orders</p>
+                    <p class="text-2xl font-bold tabular-nums text-rose-700 dark:text-rose-300">{{ $orderStats['cancelled_orders_count'] }}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Order total AED {{ number_format($orderStats['cancelled_orders_total_aed'], 2) }}</p>
+                </div>
+                <svg class="h-5 w-5 shrink-0 text-gray-400 transition-colors group-hover:text-rose-500 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            <div class="group flex min-w-0 flex-1 basis-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-md transition-all duration-200 hover:border-violet-400 hover:shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:hover:border-violet-500 sm:gap-4 sm:p-5">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 transition-transform group-hover:scale-105 dark:bg-violet-900/30 dark:text-violet-400 sm:h-12 sm:w-12">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Wallet credit rows</p>
+                    <p class="text-2xl font-bold tabular-nums text-violet-700 dark:text-violet-300">{{ $walletCreditRows }}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">All-time ledger lines for this client</p>
+                </div>
+                <svg class="h-5 w-5 shrink-0 text-gray-400 transition-colors group-hover:text-violet-500 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </div>
         </div>
 
