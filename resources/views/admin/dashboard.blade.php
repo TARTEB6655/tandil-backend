@@ -14,14 +14,14 @@
     </div>
 
     @php
-        $jumpNavCatalog = 'inline-flex min-h-[2.75rem] items-center justify-center whitespace-nowrap rounded-xl border px-5 py-3 text-sm font-semibold leading-snug tracking-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/90 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/55 hover:border-indigo-300 dark:hover:border-indigo-500';
-        $jumpNavSection = 'inline-flex min-h-[2.75rem] items-center justify-center whitespace-nowrap rounded-xl border px-5 py-3 text-sm font-semibold leading-snug tracking-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-white dark:bg-gray-800/80 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-indigo-50/90 dark:hover:bg-indigo-950/35 hover:text-indigo-900 dark:hover:text-indigo-100';
+        $jumpNavCatalog = 'inline-flex shrink-0 min-h-[2.25rem] items-center justify-center whitespace-nowrap rounded-lg border px-3 py-2 text-xs sm:text-sm font-semibold leading-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/90 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/55 hover:border-indigo-300 dark:hover:border-indigo-500';
+        $jumpNavSection = 'inline-flex shrink-0 min-h-[2.25rem] items-center justify-center whitespace-nowrap rounded-lg border px-3 py-2 text-xs sm:text-sm font-semibold leading-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-white dark:bg-gray-800/80 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-indigo-50/90 dark:hover:bg-indigo-950/35 hover:text-indigo-900 dark:hover:text-indigo-100';
     @endphp
     <!-- Jump to Section - Sticky quick navigation (grouped) -->
     <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-4 py-4 md:-mx-4 md:px-5 lg:-mx-6 lg:px-6 mb-5 md:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg ring-1 ring-gray-200/50 dark:ring-gray-700/50">
         <p class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider mb-3">{{ __('admin.quick_navigation') }}</p>
-        <div class="flex flex-wrap items-center gap-3 sm:gap-3.5">
-            <span class="inline-flex min-h-[2.75rem] items-center rounded-lg bg-slate-100 dark:bg-slate-900/50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('admin.catalog') }}</span>
+        <div class="flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 min-w-0 [-ms-overflow-style:none] [scrollbar-width:thin]">
+            <span class="inline-flex shrink-0 min-h-[2.25rem] items-center rounded-lg bg-slate-100 dark:bg-slate-900/50 px-2.5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('admin.catalog') }}</span>
             <a href="{{ route('admin.products.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.products') }}</a>
             <a href="{{ route('admin.categories.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.categories') }}</a>
             <a href="{{ route('admin.services.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.services') }}</a>
