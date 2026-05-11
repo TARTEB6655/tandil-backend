@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -93,6 +94,38 @@ class CartController extends Controller
         }
 
         return ['wallet_applied' => $walletApplied, 'amount_due' => $amountToCharge];
+    }
+
+    /**
+     * @param  array<string, mixed>  $orderSummary
+     * @return array<string, mixed>
+     */
+    public static function mergeWalletPreviewIntoOrderSummary(array $orderSummary, Request $request, User $user): array
+    {
+        $balance = round((float) ($user->wallet_balance ?? 0), 2);
+
+        if ($balance <= 0) {
+            $orderSummary['wallet_available'] = false;
+
+            return $orderSummary;
+        }
+
+        $orderSummary['wallet_available'] = true;
+        $useWallet = $request->boolean('use_wallet');
+        $requestedWallet = $request->filled('wallet_amount') ? (float) $request->input('wallet_amount') : null;
+        $walletPreview = self::previewWalletAgainstOrder(
+            (float) $orderSummary['total'],
+            $balance,
+            $useWallet,
+            $requestedWallet
+        );
+
+        $orderSummary['wallet_balance'] = $balance;
+        $orderSummary['use_wallet'] = $useWallet;
+        $orderSummary['wallet_amount_applied'] = (float) $walletPreview['wallet_applied'];
+        $orderSummary['amount_due'] = (float) $walletPreview['amount_due'];
+
+        return $orderSummary;
     }
 
     /**
@@ -220,19 +253,26 @@ class CartController extends Controller
      * Tax-exclusive: subtotal = sum of item prices; tax = subtotal × (tax_percent/100); total = subtotal - discount + shipping + tax.
      * Uses current user's cart unless query product_id (+ optional quantity) is sent for Buy Now preview (cart can be empty).
      * Shipping and tax % from shop settings (settings table).
+     *
+     * Optional query (same behaviour as POST buy-now/summary): `use_wallet` (boolean), `wallet_amount` (number, caps applied amount when use_wallet is true).
      */
     public function orderSummary(Request $request)
     {
+        $request->validate([
+            'use_wallet' => 'sometimes|boolean',
+            'wallet_amount' => 'sometimes|numeric|min:0',
+        ]);
+
         $user = $request->user();
         $preview = self::checkoutPreview($request, $user->id);
         $orderSummary = self::buildOrderSummary($preview['subtotal'], 0);
-        // Ensure numeric fields for JSON (floats). Exclude tax amount from response – only tax_percent is returned.
         $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
         $orderSummary['discount'] = (float) $orderSummary['discount'];
         $orderSummary['shipping'] = (float) $orderSummary['shipping'];
         $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
         $orderSummary['tax'] = (float) $orderSummary['tax'];
         $orderSummary['total'] = (float) $orderSummary['total'];
+        $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
 
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
     }
@@ -262,21 +302,7 @@ class CartController extends Controller
         $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
         $orderSummary['tax'] = (float) $orderSummary['tax'];
         $orderSummary['total'] = (float) $orderSummary['total'];
-
-        $balance = (float) ($user->wallet_balance ?? 0);
-        $useWallet = $request->boolean('use_wallet');
-        $requestedWallet = $request->filled('wallet_amount') ? (float) $request->input('wallet_amount') : null;
-        $walletPreview = self::previewWalletAgainstOrder(
-            (float) $orderSummary['total'],
-            $balance,
-            $useWallet,
-            $requestedWallet
-        );
-
-        $orderSummary['wallet_balance'] = round($balance, 2);
-        $orderSummary['use_wallet'] = $useWallet;
-        $orderSummary['wallet_amount_applied'] = (float) $walletPreview['wallet_applied'];
-        $orderSummary['amount_due'] = (float) $walletPreview['amount_due'];
+        $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
 
         return ApiResponse::success('Buy now summary retrieved.', [
             'item' => $item,

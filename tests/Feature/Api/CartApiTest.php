@@ -224,6 +224,39 @@ class CartApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('data.subtotal', 0);
         $response->assertJsonPath('data.total', 0);
+        $response->assertJsonPath('data.wallet_available', false);
+        $this->assertArrayNotHasKey('wallet_balance', $response->json('data'));
+        $this->assertArrayNotHasKey('amount_due', $response->json('data'));
+    }
+
+    public function test_order_summary_get_includes_wallet_preview_with_use_wallet_query(): void
+    {
+        Setting::set('shop_shipping_amount', '10', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $this->user->update(['wallet_balance' => 100]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 99,
+            'status' => 'active',
+        ]);
+
+        $q = http_build_query([
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'use_wallet' => '1',
+        ]);
+
+        $response = $this->getJson('/api/shop/order-summary?'.$q, $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.wallet_available', true);
+        $response->assertJsonPath('data.use_wallet', true);
+        $response->assertJsonPath('data.wallet_amount_applied', 100);
+        $response->assertJsonPath('data.amount_due', 13.95);
+        $response->assertJsonPath('data.total', 113.95);
     }
 
     public function test_order_summary_buy_now_query_without_cart(): void
@@ -346,6 +379,7 @@ class CartApiTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.wallet_available', true);
         $response->assertJsonPath('data.order_summary.wallet_balance', 100);
         $response->assertJsonPath('data.order_summary.use_wallet', false);
         $response->assertJsonPath('data.order_summary.wallet_amount_applied', 0);
@@ -375,6 +409,7 @@ class CartApiTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.wallet_available', true);
         $response->assertJsonPath('data.order_summary.use_wallet', true);
         $response->assertJsonPath('data.order_summary.wallet_amount_applied', 100);
         $response->assertJsonPath('data.order_summary.amount_due', 13.95);
@@ -403,6 +438,7 @@ class CartApiTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.wallet_available', true);
         $response->assertJsonPath('data.order_summary.wallet_amount_applied', 30);
         $response->assertJsonPath('data.order_summary.amount_due', 70);
     }
@@ -429,8 +465,40 @@ class CartApiTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(200);
+        $response->assertJsonPath('data.order_summary.wallet_available', true);
         $response->assertJsonPath('data.order_summary.total', 113.95);
         $response->assertJsonPath('data.order_summary.wallet_amount_applied', 111.95);
         $this->assertEqualsWithDelta(2.0, (float) $response->json('data.order_summary.amount_due'), 0.001);
+    }
+
+    public function test_buy_now_summary_zero_wallet_omits_wallet_lines_even_when_use_wallet_true(): void
+    {
+        Setting::set('shop_shipping_amount', '10', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $this->user->update(['wallet_balance' => 0]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 99,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'use_wallet' => true,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $summary = $response->json('data.order_summary');
+        $this->assertIsArray($summary);
+        $response->assertJsonPath('data.order_summary.wallet_available', false);
+        $this->assertArrayNotHasKey('wallet_balance', $summary);
+        $this->assertArrayNotHasKey('use_wallet', $summary);
+        $this->assertArrayNotHasKey('wallet_amount_applied', $summary);
+        $this->assertArrayNotHasKey('amount_due', $summary);
+        $response->assertJsonPath('data.order_summary.total', 113.95);
     }
 }

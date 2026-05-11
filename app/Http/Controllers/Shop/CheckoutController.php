@@ -77,10 +77,10 @@ class CheckoutController extends Controller
             ->values()
             ->all();
 
-        return ApiResponse::success('Checkout review retrieved.', [
+        $walletBalance = round((float) ($user->wallet_balance ?? 0), 2);
+        $payload = [
             'items' => $items,
             'order_summary' => $orderSummary,
-            'wallet_balance' => (float) ($user->wallet_balance ?? 0),
             'addresses' => $addresses,
             'payment_methods' => $this->stripePayPalMethods(),
             'saved_paypal_methods' => UserPaymentMethod::query()
@@ -92,7 +92,16 @@ class CheckoutController extends Controller
                 ->values()
                 ->all(),
             'refund_policy' => RefundPolicy::policyForApi(),
-        ]);
+        ];
+
+        if ($walletBalance > 0) {
+            $payload['wallet_available'] = true;
+            $payload['wallet_balance'] = $walletBalance;
+        } else {
+            $payload['wallet_available'] = false;
+        }
+
+        return ApiResponse::success('Checkout review retrieved.', $payload);
     }
 
     /**
