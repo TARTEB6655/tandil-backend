@@ -18,7 +18,7 @@ class SettingController extends Controller
     }
 
     /**
-     * Main settings dashboard (mobile-style: System, App Config, Data & Privacy, Advanced).
+     * Main settings dashboard (System, App Config, Maintenance, Advanced).
      */
     public function index()
     {
@@ -31,7 +31,7 @@ class SettingController extends Controller
     }
 
     /**
-     * Full settings page (all sections: General, Contact, Payment, etc.).
+     * Full settings page (all sections: General, Contact, Email, etc.).
      */
     public function all()
     {
@@ -56,72 +56,6 @@ class SettingController extends Controller
             Setting::set('maintenance_mode', $request->boolean('maintenance_mode') ? '1' : '0', 'text', 'system');
         }
         return redirect()->back()->with('success', 'System settings updated.');
-    }
-
-    public function theme()
-    {
-        $current = Setting::get('app_theme', 'system');
-        $available = ['system' => 'System default', 'light' => 'Light', 'dark' => 'Dark'];
-        return view('admin.settings.theme', compact('current', 'available'));
-    }
-
-    public function updateTheme(Request $request)
-    {
-        $request->validate(['theme' => 'required|in:system,light,dark']);
-        Setting::set('app_theme', trim($request->theme), 'text', 'app_config');
-        return redirect()
-            ->back()
-            ->with('success', 'Theme updated.')
-            ->withHeaders([
-                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-                'Pragma' => 'no-cache',
-            ]);
-    }
-
-    public function language()
-    {
-        $language = Setting::get('app_language', 'en');
-        $region = Setting::get('app_region', '');
-        $available = [['code' => 'en', 'name' => 'English'], ['code' => 'ar', 'name' => 'العربية']];
-        return view('admin.settings.language', compact('language', 'region', 'available'));
-    }
-
-    public function updateLanguage(Request $request)
-    {
-        $request->validate(['language' => 'required|string|max:10', 'region' => 'nullable|string|max:10']);
-        Setting::set('app_language', $request->language, 'text', 'app_config');
-        Setting::set('app_region', $request->region ?? '', 'text', 'app_config');
-        return redirect()->back()->with('success', 'Language & region updated.');
-    }
-
-    public function privacyPolicy()
-    {
-        $url = Setting::get('privacy_policy_url', '');
-        $content = Setting::get('privacy_policy_content', '');
-        return view('admin.settings.privacy-policy', compact('url', 'content'));
-    }
-
-    public function updatePrivacyPolicy(Request $request)
-    {
-        $request->validate(['privacy_policy_url' => 'nullable|url', 'privacy_policy_content' => 'nullable|string']);
-        Setting::set('privacy_policy_url', $request->privacy_policy_url ?? '', 'text', 'legal');
-        Setting::set('privacy_policy_content', $request->privacy_policy_content ?? '', 'text', 'legal');
-        return redirect()->back()->with('success', 'Privacy policy updated.');
-    }
-
-    public function termsOfService()
-    {
-        $url = Setting::get('terms_of_service_url', '');
-        $content = Setting::get('terms_of_service_content', '');
-        return view('admin.settings.terms', compact('url', 'content'));
-    }
-
-    public function updateTermsOfService(Request $request)
-    {
-        $request->validate(['terms_of_service_url' => 'nullable|url', 'terms_of_service_content' => 'nullable|string']);
-        Setting::set('terms_of_service_url', $request->terms_of_service_url ?? '', 'text', 'legal');
-        Setting::set('terms_of_service_content', $request->terms_of_service_content ?? '', 'text', 'legal');
-        return redirect()->back()->with('success', 'Terms of service updated.');
     }
 
     public function clearCache(Request $request)
@@ -162,11 +96,6 @@ class SettingController extends Controller
     public function social()
     {
         return view('admin.settings.social');
-    }
-
-    public function payment()
-    {
-        return view('admin.settings.payment');
     }
 
     public function email()
@@ -219,21 +148,6 @@ class SettingController extends Controller
         }
 
         return redirect()->back()->with('success', 'App settings updated successfully');
-    }
-
-    public function updatePaymentSettings(Request $request)
-    {
-        $request->validate([
-            'payment_gateway' => 'required|in:stripe,paymob,ccavenue,tap',
-            'api_key' => 'required|string',
-            'api_secret' => 'required|string',
-        ]);
-
-        Setting::set('payment_gateway', $request->payment_gateway, 'text', 'payment');
-        Setting::set('payment_api_key', $request->api_key, 'text', 'payment');
-        Setting::set('payment_api_secret', $request->api_secret, 'text', 'payment');
-
-        return redirect()->back()->with('success', 'Payment settings updated successfully');
     }
 
     public function updateNotificationSettings(Request $request)

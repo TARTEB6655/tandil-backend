@@ -8,7 +8,6 @@
         ['id' => 'general', 'label' => 'General & Branding', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
         ['id' => 'contact', 'label' => 'Contact', 'icon' => 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
         ['id' => 'social', 'label' => 'Social', 'icon' => 'M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z'],
-        ['id' => 'payment', 'label' => 'Payment', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
         ['id' => 'email', 'label' => 'Email (SMTP)', 'icon' => 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
         ['id' => 'notifications', 'label' => 'Push Notifications', 'icon' => 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1'],
         ['id' => 'security', 'label' => 'Security', 'icon' => 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'],
@@ -244,57 +243,6 @@
                 </div>
                 <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow">
                     Save Social Links
-                </button>
-            </form>
-            </div>
-        </div>
-
-        <!-- Payment Settings -->
-        <div id="payment" class="scroll-mt-28 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div class="border-b border-gray-100 bg-gray-50/80 px-6 py-4">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    </span>
-                    Payment Gateway Settings
-                </h2>
-            </div>
-            <div class="p-6">
-            <form method="POST" action="{{ route('admin.settings.payment') }}" class="space-y-4">
-                @csrf
-                
-                <div>
-                    <label for="payment_gateway" class="block text-sm font-medium text-gray-700 mb-2">Payment Gateway</label>
-                    <select id="payment_gateway" 
-                            name="payment_gateway" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            required>
-                        <option value="stripe" {{ Setting::get('payment_gateway') === 'stripe' ? 'selected' : '' }}>Stripe</option>
-                        <option value="paymob" {{ Setting::get('payment_gateway') === 'paymob' ? 'selected' : '' }}>PayMob</option>
-                        <option value="ccavenue" {{ Setting::get('payment_gateway') === 'ccavenue' ? 'selected' : '' }}>CCAvenue</option>
-                        <option value="tap" {{ Setting::get('payment_gateway') === 'tap' ? 'selected' : '' }}>Tap Payments</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="api_key" class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-                    <input type="text" 
-                           id="api_key" 
-                           name="api_key" 
-                           value="{{ Setting::get('payment_api_key') }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                           required>
-                </div>
-                <div>
-                    <label for="api_secret" class="block text-sm font-medium text-gray-700 mb-2">API Secret</label>
-                    <input type="password" 
-                           id="api_secret" 
-                           name="api_secret" 
-                           value="{{ Setting::get('payment_api_secret') }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                           required>
-                </div>
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow">
-                    Save Payment Settings
                 </button>
             </form>
             </div>

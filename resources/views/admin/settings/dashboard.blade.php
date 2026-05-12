@@ -4,7 +4,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold text-gray-900">Settings</h1>
-                <p class="mt-1 text-sm text-gray-500">System, app configuration, data & privacy, and advanced options</p>
+                <p class="mt-1 text-sm text-gray-500">System, app configuration, maintenance, and advanced options</p>
             </div>
             <a href="{{ route('admin.settings.all') }}" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">All Settings →</a>
         </div>
@@ -88,42 +88,6 @@
         <div>
             <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">App Configuration</h2>
             <div class="bg-amber-50/60 rounded-xl border border-amber-100/80 shadow-sm overflow-hidden divide-y divide-amber-100/80">
-                <a href="{{ route('admin.settings.theme') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-                        </span>
-                        <div>
-                            <p class="font-medium text-gray-900">Theme Settings</p>
-                            <p class="text-sm text-gray-500">Customize app appearance</p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </a>
-                <a href="{{ route('admin.settings.language') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" /></svg>
-                        </span>
-                        <div>
-                            <p class="font-medium text-gray-900">Language & Region</p>
-                            <p class="text-sm text-gray-500">Change app language</p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </a>
-                <a href="{{ route('admin.settings.payment') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                        </span>
-                        <div>
-                            <p class="font-medium text-gray-900">Payment Settings</p>
-                            <p class="text-sm text-gray-500">Configure payment methods</p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </a>
                 <a href="{{ route('admin.settings.client-dashboard') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
                     <div class="flex items-center gap-3">
                         <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
@@ -139,34 +103,10 @@
             </div>
         </div>
 
-        <!-- Data & Privacy -->
+        <!-- Maintenance -->
         <div>
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Data & Privacy</h2>
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Maintenance</h2>
             <div class="bg-amber-50/60 rounded-xl border border-amber-100/80 shadow-sm overflow-hidden divide-y divide-amber-100/80">
-                <a href="{{ route('admin.settings.privacy-policy') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                        </span>
-                        <div>
-                            <p class="font-medium text-gray-900">Privacy Policy</p>
-                            <p class="text-sm text-gray-500">View privacy policy</p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </a>
-                <a href="{{ route('admin.settings.terms') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        </span>
-                        <div>
-                            <p class="font-medium text-gray-900">Terms of Service</p>
-                            <p class="text-sm text-gray-500">View terms and conditions</p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </a>
                 <form method="POST" action="{{ route('admin.settings.clear-cache') }}" class="block" onsubmit="return confirm('Clear all app cache?');">
                     @csrf
                     <button type="submit" class="flex w-full items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors text-left">
