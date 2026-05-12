@@ -16,7 +16,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReportManagementController;
 use App\Http\Controllers\Admin\RoleController;
-use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\AdminProfileSettingsController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SupportTicketWebController;
@@ -215,29 +215,8 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('complaints/{id}/assign-supervisor', [ComplaintController::class, 'assignSupervisor'])->name('complaints.assign-supervisor');
 
         Route::resource('hr', HrController::class);
-        Route::resource('settings', SettingController::class)->only(['index']);
-        Route::get('settings/all', [SettingController::class, 'all'])->name('settings.all');
-        Route::post('settings/clear-cache', [SettingController::class, 'clearCache'])->name('settings.clear-cache');
-        Route::post('settings/export-data', [SettingController::class, 'exportData'])->name('settings.export-data');
-        Route::post('settings/system', [SettingController::class, 'updateSystem'])->name('settings.system.store');
-        Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
-        Route::get('settings/contact', [SettingController::class, 'contact'])->name('settings.contact');
-        Route::get('settings/social', [SettingController::class, 'social'])->name('settings.social');
-        Route::get('settings/email', [SettingController::class, 'email'])->name('settings.email');
-        Route::get('settings/notifications', [SettingController::class, 'notifications'])->name('settings.notifications');
-        Route::get('settings/security', [SettingController::class, 'security'])->name('settings.security');
-        Route::get('settings/integrations', [SettingController::class, 'integrations'])->name('settings.integrations');
-        Route::post('settings/app', [SettingController::class, 'updateAppSettings'])->name('settings.app');
-        Route::post('settings/notification', [SettingController::class, 'updateNotificationSettings'])->name('settings.notification');
-        Route::post('settings/email', [SettingController::class, 'updateEmailSettings'])->name('settings.email.store');
-        Route::post('settings/social', [SettingController::class, 'updateSocialSettings'])->name('settings.social');
-        Route::post('settings/contact', [SettingController::class, 'updateContactSettings'])->name('settings.contact');
-        Route::get('settings/email-templates', [SettingController::class, 'emailTemplates'])->name('settings.email-templates');
-        Route::post('settings/email-templates/{id}', [SettingController::class, 'updateEmailTemplate'])->name('settings.email-template.update');
-        Route::post('settings/security', [SettingController::class, 'updateSecuritySettings'])->name('settings.security');
-        Route::post('settings/integrations', [SettingController::class, 'updateIntegrationsSettings'])->name('settings.integrations');
-        Route::get('settings/client-dashboard', [SettingController::class, 'clientDashboardDesign'])->name('settings.client-dashboard');
-        Route::post('settings/client-dashboard', [SettingController::class, 'updateClientDashboardDesign'])->name('settings.client-dashboard.store');
+        Route::get('settings', [AdminProfileSettingsController::class, 'index'])->name('settings.index');
+        Route::post('settings', [AdminProfileSettingsController::class, 'update'])->name('settings.update');
 
         Route::resource('audit-logs', AuditLogController::class)->only(['index', 'show']);
 
