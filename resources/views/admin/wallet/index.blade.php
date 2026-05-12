@@ -92,7 +92,7 @@
                             id="wallet-per-page"
                             x-model="perPage"
                             @change="go()"
-                            class="h-11 min-w-[5.25rem] shrink-0 rounded-lg border border-gray-300 bg-gray-50 px-3 text-center text-sm text-gray-900 focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:bg-gray-800 dark:focus:ring-gray-600"
+                            class="h-11 w-[7rem] min-w-[7rem] shrink-0 cursor-pointer rounded-lg border border-gray-300 bg-gray-50 py-0 pl-3 pr-10 text-left text-sm text-gray-900 focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:bg-gray-800 dark:focus:ring-gray-600"
                         >
                             @foreach([20, 50, 100] as $size)
                                 <option value="{{ $size }}">{{ $size }}</option>

@@ -189,18 +189,6 @@
         <div>
             <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Advanced</h2>
             <div class="bg-amber-50/60 rounded-xl border border-amber-100/80 shadow-sm overflow-hidden divide-y divide-amber-100/80">
-                <a href="{{ route('admin.settings.developer-options') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                        </span>
-                        <div>
-                            <p class="font-medium text-gray-900">Developer Options</p>
-                            <p class="text-sm text-gray-500">Advanced developer settings</p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </a>
                 <a href="{{ route('admin.settings.debug-logs') }}" class="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 transition-colors">
                     <div class="flex items-center gap-3">
                         <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 text-emerald-700">
@@ -208,7 +196,7 @@
                         </span>
                         <div>
                             <p class="font-medium text-gray-900">Debug Logs</p>
-                            <p class="text-sm text-gray-500">View system logs</p>
+                            <p class="text-sm text-gray-500">View logs, errors, and runtime (debug / environment)</p>
                         </div>
                     </div>
                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>

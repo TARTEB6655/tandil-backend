@@ -74,12 +74,29 @@ trait WebNotificationInbox
     }
 
     /**
+     * @return list<int>
+     */
+    public static function allowedNotificationPerPage(): array
+    {
+        return [10, 15, 20, 30, 50];
+    }
+
+    protected function resolvedNotificationPerPage(Request $request): int
+    {
+        $requested = (int) $request->query('per_page', 15);
+        $allowed = self::allowedNotificationPerPage();
+
+        return in_array($requested, $allowed, true) ? $requested : 15;
+    }
+
+    /**
      * @return array{0: \Illuminate\Contracts\Pagination\LengthAwarePaginator, 1: int}
      */
     protected function paginatedInbox(Request $request): array
     {
         $query = $this->buildFilteredInboxQuery($request);
-        $notifications = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
+        $perPage = $this->resolvedNotificationPerPage($request);
+        $notifications = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
         $unreadCount = $this->inboxUnreadCount($request);
 
         return [$notifications, $unreadCount];

@@ -1,152 +1,123 @@
 <x-hr-layout>
-    <!-- Page Header -->
-    <div class="mb-4 sm:mb-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-            <div>
-                <h1 class="text-lg sm:text-xl font-medium text-gray-900">Notifications</h1>
-                <p class="mt-1 text-xs sm:text-sm text-gray-500">Stay updated with employee and system notifications.</p>
+    <div class="space-y-5 sm:space-y-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight border-l-4 border-indigo-500 pl-3">
+                    Notifications
+                </h1>
             </div>
             @if($unreadCount > 0)
-                <form action="{{ route('hr.notifications.mark-all-read') }}" method="POST" class="inline">
+                <form method="POST" action="{{ route('hr.notifications.mark-all-read') }}" class="inline shrink-0">
                     @csrf
-                    <button type="submit" class="text-xs sm:text-sm text-indigo-600 hover:text-indigo-900 font-medium">
+                    @foreach(request()->query() as $key => $value)
+                        @if(is_string($value))
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}" />
+                        @endif
+                    @endforeach
+                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
                         Mark all as read
                     </button>
                 </form>
             @endif
         </div>
-    </div>
 
-    @if(session('success'))
-        <div class="mb-4 bg-green-50 border-l-4 border-green-400 p-3 sm:p-4 rounded-md">
-            <p class="text-xs sm:text-sm text-green-700">{{ session('success') }}</p>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 bg-red-50 border-l-4 border-red-400 p-3 sm:p-4 rounded-md">
-            <p class="text-xs sm:text-sm text-red-700">{{ session('error') }}</p>
-        </div>
-    @endif
+        <x-notification-inbox-toolbar route-name="hr.notifications.index" :show-audience-filter="false" />
 
-    <x-notification-inbox-toolbar route-name="hr.notifications.index" :show-audience-filter="false" />
-
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-        <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <input type="checkbox" id="select-all-notifications" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-            Select all on page
-        </label>
-        <span id="selected-count" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">0 selected</span>
-        <button type="submit" form="form-notifications-bulk" id="btn-delete-selected" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected?');">Delete selected</button>
-        <form method="POST" action="{{ route('hr.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete ALL notifications?');">
-            @csrf
-            <button type="submit" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200">Delete all</button>
-        </form>
-    </div>
-
-    <form method="POST" action="{{ route('hr.notifications.destroy-bulk') }}" id="form-notifications-bulk">
-        @csrf
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div class="divide-y divide-gray-200">
-            @forelse($notifications as $notification)
-                @php
-                    $data = $notification->data ?? [];
-                    $type = $notification->type ?? '';
-                    $isRead = !is_null($notification->read_at);
-                    $kindBadge = \App\Support\NotificationWebPresenter::kindBadge($type, is_array($data) ? $data : []);
-                    $audLabel = \App\Support\NotificationWebPresenter::audienceLabel(is_array($data) ? $data : []);
-                @endphp
-                <div class="notification-row group p-2.5 sm:p-3 hover:bg-gray-50 transition-colors cursor-pointer {{ !$isRead ? 'bg-blue-50' : '' }}"
-                     data-open-url="{{ route('hr.notifications.show', $notification->id) }}">
-                    <div class="flex items-start gap-3 sm:gap-4">
-                        <div class="flex-shrink-0 pt-0.5">
-                            <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                        </div>
-                        <div class="flex-shrink-0">
-                            <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
-                                <a href="{{ route('hr.notifications.show', $notification->id) }}" class="flex-1 block min-w-0">
-                                    <p class="text-xs sm:text-sm mb-1 {{ !$isRead ? 'font-semibold text-gray-900' : 'font-normal text-gray-700' }}">
-                                        {{ $data['message'] ?? class_basename($type) }}
-                                    </p>
-                                    <div class="flex flex-wrap gap-1 mb-0.5">
-                                        <span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-gray-100 text-gray-700">{{ $kindBadge }}</span>
-                                        @if($audLabel)<span class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-800">{{ $audLabel }}</span>@endif
-                                    </div>
-                                    @if(isset($data['employee_id']))
-                                        <p class="text-xs text-gray-500">Employee ID: #{{ $data['employee_id'] }}</p>
-                                    @endif
-                                </a>
-                                <div class="flex items-center gap-3 flex-shrink-0">
-                                    <div class="text-right">
-                                        <p class="text-[11px] font-medium text-gray-500 leading-4">{{ $notification->created_at->format('d M Y') }}</p>
-                                        <p class="text-[11px] text-gray-400 leading-4">{{ $notification->created_at->format('h:i A') }}</p>
-                                    </div>
-                                    <form action="{{ route('hr.notifications.destroy', $notification->id) }}" method="POST" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-red-500 hover:text-red-700 transition-colors" title="Delete">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        @if(!$isRead)
-                            <div class="flex-shrink-0">
-                                <span class="h-2 w-2 bg-red-500 rounded-full"></span>
-                            </div>
+        <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/40 px-4 py-3 sm:px-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:mr-1">Bulk actions</p>
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                <input type="checkbox" id="select-all-notifications" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800" />
+                Select all on this page
+            </label>
+            <span id="selected-count" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">0 selected</span>
+            <span class="hidden sm:inline h-4 w-px bg-slate-200 dark:bg-slate-600" aria-hidden="true"></span>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="submit" form="form-notifications-bulk" id="btn-delete-selected"
+                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-200 dark:border-red-900/60 bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                        onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
+                    Delete selected
+                </button>
+                <form method="POST" action="{{ route('hr.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete all notifications?');">
+                    @csrf
+                    @foreach(request()->query() as $key => $value)
+                        @if(is_string($value))
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}" />
                         @endif
-                    </div>
-                </div>
-            @empty
-                <div class="p-8 sm:p-12 text-center">
-                    <svg class="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
-                    </svg>
-                    <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2">No notifications</h3>
-                    <p class="text-xs sm:text-sm text-gray-500">You're all caught up!</p>
-                </div>
-            @endforelse
+                    @endforeach
+                    <button type="submit" class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-300 dark:border-red-800 bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm">
+                        Delete all
+                    </button>
+                </form>
+            </div>
         </div>
-        
-        @if(method_exists($notifications, 'hasPages') && $notifications->hasPages())
-            <div class="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
-                {{ $notifications->links() }}
+
+        @if(session('success'))
+            <div class="rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/90 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 px-4 py-3 flex items-center gap-3">
+                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm font-medium">{{ session('success') }}</span>
             </div>
         @endif
-    </div>
-    </form>
-    <script>
-        const selectAll = document.getElementById('select-all-notifications');
-        const selectedCount = document.getElementById('selected-count');
-        const deleteSelected = document.getElementById('btn-delete-selected');
-        const checkboxes = Array.from(document.querySelectorAll('.notification-cb'));
-        function syncBulkUi() {
-            const checked = checkboxes.filter(cb => cb.checked).length;
-            if (selectedCount) selectedCount.textContent = `${checked} selected`;
-            if (deleteSelected) deleteSelected.disabled = checked === 0;
-            if (selectAll) selectAll.checked = checked > 0 && checked === checkboxes.length;
-        }
-        selectAll?.addEventListener('change', function() {
-            checkboxes.forEach(cb => { cb.checked = this.checked; });
-            syncBulkUi();
-        });
-        checkboxes.forEach(cb => cb.addEventListener('change', syncBulkUi));
-        syncBulkUi();
-        document.querySelectorAll('.notification-row[data-open-url]').forEach(function(row) {
-            row.addEventListener('click', function (e) {
-                if (e.target.closest('input, button, form, label, a')) return;
-                window.location.href = row.getAttribute('data-open-url');
-            });
-        });
-    </script>
-</x-hr-layout>
 
+        @if(session('error'))
+            <div class="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/90 dark:bg-red-950/30 text-red-900 dark:text-red-100 px-4 py-3 flex items-center gap-3">
+                <svg class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm font-medium">{{ session('error') }}</span>
+            </div>
+        @endif
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total</p>
+                        <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums">{{ $totalCount }}</p>
+                    </div>
+                    <div class="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Unread</p>
+                        <p class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums">{{ $unreadCount }}</p>
+                    </div>
+                    <div class="h-12 w-12 rounded-xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Read</p>
+                        <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{{ max(0, $totalCount - $unreadCount) }}</p>
+                    </div>
+                    <div class="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('hr.notifications.destroy-bulk') }}" id="form-notifications-bulk">
+            @csrf
+            <x-notification-inbox-rows :notifications="$notifications" route-name="hr.notifications" />
+        </form>
+
+        <x-notification-inbox-scripts />
+        <x-notification-inbox-pagination :notifications="$notifications" />
+    </div>
+</x-hr-layout>

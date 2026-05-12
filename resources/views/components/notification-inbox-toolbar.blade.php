@@ -3,6 +3,7 @@
     'showAudienceFilter' => false,
 ])
 @php
+    use App\Http\Controllers\Concerns\WebNotificationInbox;
     use App\Support\NotificationInboxWebFilters;
     use App\Support\UserNotificationAudience;
     $activeFilter = request('filter', 'all');
@@ -14,6 +15,10 @@
         $activeKind = NotificationInboxWebFilters::KIND_ALL;
     }
     $activeAudience = (string) (request('audience_role', '') ?? '');
+    $activePerPage = (int) request('per_page', 15);
+    if (! in_array($activePerPage, WebNotificationInbox::allowedNotificationPerPage(), true)) {
+        $activePerPage = 15;
+    }
     $formId = 'notification-inbox-filters-' . str_replace(['.', '\\'], '-', $routeName);
     $controlH = 'h-11 min-h-[2.75rem]';
     $fieldBase = "{$controlH} box-border w-full rounded-xl border border-slate-200 bg-white text-sm font-medium leading-normal text-slate-800 shadow-sm transition-colors placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-500";
@@ -99,6 +104,24 @@
                     </select>
                 </div>
             @endif
+
+            {{-- Per page (resets to page 1 via GET; invalid values fall back server-side) --}}
+            <div class="relative min-w-0 shrink-0 sm:w-[7.5rem]">
+                <span class="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-10 items-center justify-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+                    <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10" />
+                    </svg>
+                </span>
+                <label for="{{ $formId }}-per-page" class="sr-only">Results per page</label>
+                <select id="{{ $formId }}-per-page" name="per_page" title="Results per page"
+                        class="{{ $selectBase }} pl-10"
+                        style="background-image: {!! $selectChevron !!};"
+                        onchange="this.form.submit()">
+                    @foreach(WebNotificationInbox::allowedNotificationPerPage() as $size)
+                        <option value="{{ $size }}" @selected($activePerPage === $size)>{{ $size }} / page</option>
+                    @endforeach
+                </select>
+            </div>
 
             <button type="submit"
                     class="{{ $controlH }} inline-flex shrink-0 items-center justify-center rounded-xl border border-indigo-700/20 !bg-indigo-600 px-5 text-sm font-semibold !text-white shadow-sm transition-colors hover:!bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white dark:border-indigo-400/30 dark:!bg-indigo-500 dark:hover:!bg-indigo-400 dark:focus:ring-indigo-400 dark:focus:ring-offset-slate-900 sm:min-w-[9.5rem]">

@@ -47,8 +47,8 @@
                         clear() { this.q = ''; this.go(); },
                     }"
                 >
-                    <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <div class="absolute inset-y-0 start-0 z-10 flex w-11 items-center justify-center pointer-events-none sm:w-12">
+                        <svg class="w-5 h-5 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </div>
@@ -58,7 +58,7 @@
                         x-model="q"
                         autocomplete="off"
                         placeholder="{{ __('admin.search_placeholder') }}"
-                        class="w-full h-11 rounded-xl border border-gray-200 bg-gray-50 pl-11 pr-10 text-sm text-gray-900 shadow-inner transition-all placeholder:text-xs placeholder:text-gray-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:bg-gray-900 dark:focus:ring-indigo-500/30"
+                        class="w-full min-w-0 h-11 rounded-xl border border-gray-200 bg-gray-50 ps-12 pe-11 text-sm text-gray-900 shadow-inner transition-all placeholder:text-gray-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-indigo-500 dark:focus:bg-gray-900 dark:focus:ring-indigo-500/30 sm:ps-14 sm:pe-12"
                         @input.debounce.400ms="go()"
                         @keydown.enter.prevent="go()"
                     />
@@ -67,7 +67,7 @@
                         x-show="String(q || '').trim().length > 0"
                         x-cloak
                         @click="clear()"
-                        class="absolute inset-y-0 right-0 flex items-center justify-center pr-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                        class="absolute inset-y-0 end-0 z-10 flex items-center justify-center pe-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                         aria-label="{{ __('admin.clear_search') }}"
                     >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">

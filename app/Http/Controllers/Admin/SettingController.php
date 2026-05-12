@@ -135,9 +135,7 @@ class SettingController extends Controller
 
     public function developerOptions()
     {
-        $debug = config('app.debug');
-        $env = app()->environment();
-        return view('admin.settings.developer-options', compact('debug', 'env'));
+        return redirect()->route('admin.settings.debug-logs');
     }
 
     public function debugLogs(Request $request)
@@ -148,7 +146,10 @@ class SettingController extends Controller
         if (file_exists($path)) {
             $log = implode('', array_slice(file($path), -$lines));
         }
-        return view('admin.settings.debug-logs', compact('lines', 'log'));
+        $debug = config('app.debug');
+        $env = app()->environment();
+
+        return view('admin.settings.debug-logs', compact('lines', 'log', 'debug', 'env'));
     }
 
     public function exportData(Request $request)
