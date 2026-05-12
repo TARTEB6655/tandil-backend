@@ -55,64 +55,62 @@
         @endif
 
         <!-- Order Statistics Cards -->
-        <div class="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
-            <div class="overflow-x-auto">
-                <div class="mx-auto flex w-max min-w-full flex-nowrap justify-center gap-4">
-                    <div class="w-64 shrink-0 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-blue-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                        <div class="mb-2 flex items-center justify-between">
-                            <p class="text-xs font-semibold tracking-wide text-gray-700 uppercase">Total Orders</p>
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100/80 text-blue-700">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 10H4L5 9z" /></svg>
+        <div class="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm">
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+                    <div class="min-w-0 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-blue-100/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                        <div class="mb-1.5 flex items-start justify-between gap-1">
+                            <p class="min-w-0 truncate text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-700 sm:text-xs">Total Orders</p>
+                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-100/80 text-blue-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 10H4L5 9z" /></svg>
                             </span>
                         </div>
-                        <p class="text-3xl font-bold leading-none text-gray-900">{{ number_format((int) ($stats['total'] ?? 0)) }}</p>
+                        <p class="text-lg font-bold tabular-nums leading-none text-gray-900 sm:text-xl lg:text-2xl">{{ number_format((int) ($stats['total'] ?? 0)) }}</p>
                     </div>
-                    <div class="w-64 shrink-0 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-amber-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                        <div class="mb-2 flex items-center justify-between">
-                            <p class="text-xs font-semibold tracking-wide text-gray-700 uppercase">Pending</p>
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100/80 text-amber-700">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div class="min-w-0 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-amber-100/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                        <div class="mb-1.5 flex items-start justify-between gap-1">
+                            <p class="min-w-0 truncate text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-700 sm:text-xs">Pending</p>
+                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-100/80 text-amber-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             </span>
                         </div>
-                        <p class="text-3xl font-bold leading-none text-gray-900">{{ number_format((int) ($stats['open'] ?? 0)) }}</p>
+                        <p class="text-lg font-bold tabular-nums leading-none text-gray-900 sm:text-xl lg:text-2xl">{{ number_format((int) ($stats['open'] ?? 0)) }}</p>
                     </div>
-                    <div class="w-64 shrink-0 rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-cyan-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                        <div class="mb-2 flex items-center justify-between">
-                            <p class="text-xs font-semibold tracking-wide text-gray-700 uppercase">Unfulfilled</p>
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-100/80 text-cyan-700">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8m-8 5h8m-5 5h5M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" /></svg>
+                    <div class="min-w-0 rounded-xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-cyan-100/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                        <div class="mb-1.5 flex items-start justify-between gap-1">
+                            <p class="min-w-0 truncate text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-700 sm:text-xs">Unfulfilled</p>
+                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cyan-100/80 text-cyan-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8m-8 5h8m-5 5h5M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" /></svg>
                             </span>
                         </div>
-                        <p class="text-3xl font-bold leading-none text-gray-900">{{ number_format((int) ($stats['unfulfilled'] ?? 0)) }}</p>
+                        <p class="text-lg font-bold tabular-nums leading-none text-gray-900 sm:text-xl lg:text-2xl">{{ number_format((int) ($stats['unfulfilled'] ?? 0)) }}</p>
                     </div>
-                    <div class="w-64 shrink-0 rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 via-white to-green-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                        <div class="mb-2 flex items-center justify-between">
-                            <p class="text-xs font-semibold tracking-wide text-gray-700 uppercase">Completed</p>
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-100/80 text-green-700">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    <div class="min-w-0 rounded-xl border border-green-100 bg-gradient-to-br from-green-50 via-white to-green-100/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                        <div class="mb-1.5 flex items-start justify-between gap-1">
+                            <p class="min-w-0 truncate text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-700 sm:text-xs">Completed</p>
+                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-green-100/80 text-green-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                             </span>
                         </div>
-                        <p class="text-3xl font-bold leading-none text-gray-900">{{ number_format((int) ($stats['fulfilled'] ?? 0)) }}</p>
+                        <p class="text-lg font-bold tabular-nums leading-none text-gray-900 sm:text-xl lg:text-2xl">{{ number_format((int) ($stats['fulfilled'] ?? 0)) }}</p>
                     </div>
-                    <div class="w-64 shrink-0 rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-rose-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                        <div class="mb-2 flex items-center justify-between">
-                            <p class="text-xs font-semibold tracking-wide text-gray-700 uppercase">Cancelled</p>
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-rose-100/80 text-rose-700">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18" /></svg>
+                    <div class="min-w-0 rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-rose-100/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                        <div class="mb-1.5 flex items-start justify-between gap-1">
+                            <p class="min-w-0 truncate text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-700 sm:text-xs">Cancelled</p>
+                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-rose-100/80 text-rose-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18" /></svg>
                             </span>
                         </div>
-                        <p class="text-3xl font-bold leading-none text-gray-900">{{ number_format((int) ($stats['archived'] ?? 0)) }}</p>
+                        <p class="text-lg font-bold tabular-nums leading-none text-gray-900 sm:text-xl lg:text-2xl">{{ number_format((int) ($stats['archived'] ?? 0)) }}</p>
                     </div>
-                    <div class="w-64 shrink-0 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-violet-100/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                        <div class="mb-2 flex items-center justify-between">
-                            <p class="text-xs font-semibold tracking-wide text-gray-700 uppercase">Revenue (AED)</p>
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100/80 text-violet-700">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 .895-4 2s1.79 2 4 2 4 .895 4 2-1.79 2-4 2m0-10V6m0 12v-2" /></svg>
+                    <div class="min-w-0 rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-violet-100/70 px-3 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                        <div class="mb-1.5 flex items-start justify-between gap-1">
+                            <p class="min-w-0 truncate text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-700 sm:text-xs">Revenue (AED)</p>
+                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-100/80 text-violet-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 .895-4 2s1.79 2 4 2 4 .895 4 2-1.79 2-4 2m0-10V6m0 12v-2" /></svg>
                             </span>
                         </div>
-                        <p class="text-3xl font-bold leading-none text-gray-900">{{ number_format((float) ($stats['total_revenue'] ?? 0), 2) }}</p>
+                        <p class="break-words text-base font-bold tabular-nums leading-none text-gray-900 sm:text-lg lg:text-xl">{{ number_format((float) ($stats['total_revenue'] ?? 0), 2) }}</p>
                     </div>
-                </div>
             </div>
         </div>
 
