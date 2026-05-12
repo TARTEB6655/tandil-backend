@@ -226,7 +226,6 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 226,15. Admin Dashboard – Settings (Mobile),15. Admin Dashboard – Settings (Mobile),PUT,/api/admin/settings/shop,Done
 227,15. Admin Dashboard – Settings (Mobile),15. Admin Dashboard – Settings (Mobile),GET,/api/admin/settings/legal,Done
 228,15. Admin Dashboard – Settings (Mobile),15. Admin Dashboard – Settings (Mobile),POST,/api/admin/settings/export-data,Done
-229,15. Admin Dashboard – Settings (Mobile),15. Admin Dashboard – Settings (Mobile),GET,/api/admin/settings/debug-logs,Done
 230,16. Other Modules,Exclusive Offers,GET,/api/exclusive-offers,Done
 231,16. Other Modules,Exclusive Offers,GET,/api/exclusive-offers/{id},Done
 232,16. Other Modules,Exclusive Offers,GET,/api/admin/exclusive-offers,Done

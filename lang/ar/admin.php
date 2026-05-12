@@ -46,7 +46,6 @@ return [
     'payment_settings' => 'إعدادات الدفع',
     'privacy_policy' => 'سياسة الخصوصية',
     'terms_of_service' => 'شروط الخدمة',
-    'debug_logs' => 'سجلات التصحيح',
     'logout' => 'تسجيل الخروج',
     'close_sidebar' => 'إغلاق القائمة',
     'search_placeholder' => 'البحث في المستخدمين والطلبات والزيارات...',

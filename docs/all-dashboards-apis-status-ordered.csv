@@ -137,8 +137,7 @@ SNo,Dashboard,Module,Method,Endpoint,Status
 137,Admin,"1. Reports Management",DELETE,/api/admin/reports/1,Done
 138,Admin,"1. Reports Management",DELETE,/api/admin/reports/1/cancel,Done
 139,Admin,"2. Settings (Mobile)",GET,/api/admin/settings,Done
-140,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/debug-logs,Done
-141,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/language,Done
+140,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/language,Done
 142,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/legal,Done
 143,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/payment,Done
 144,Admin,"2. Settings (Mobile)",GET,/api/admin/settings/shop,Done

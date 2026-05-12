@@ -133,25 +133,6 @@ class SettingController extends Controller
         return redirect()->back()->with('success', 'Cache cleared successfully.');
     }
 
-    public function developerOptions()
-    {
-        return redirect()->route('admin.settings.debug-logs');
-    }
-
-    public function debugLogs(Request $request)
-    {
-        $lines = min(max((int) $request->input('lines', 100), 10), 500);
-        $path = storage_path('logs/laravel.log');
-        $log = '';
-        if (file_exists($path)) {
-            $log = implode('', array_slice(file($path), -$lines));
-        }
-        $debug = config('app.debug');
-        $env = app()->environment();
-
-        return view('admin.settings.debug-logs', compact('lines', 'log', 'debug', 'env'));
-    }
-
     public function exportData(Request $request)
     {
         $format = $request->input('format', 'json');

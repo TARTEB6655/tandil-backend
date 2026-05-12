@@ -47,7 +47,6 @@ return [
     'payment_settings' => 'Payment Settings',
     'privacy_policy' => 'Privacy Policy',
     'terms_of_service' => 'Terms of Service',
-    'debug_logs' => 'Debug Logs',
     'logout' => 'Logout',
     'close_sidebar' => 'Close sidebar',
     'search_placeholder' => 'Search users, orders, visits...',

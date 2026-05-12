@@ -283,26 +283,4 @@ class AdminSettingsApiController extends Controller
             ],
         ], 202);
     }
-
-    /**
-     * GET /api/admin/settings/debug-logs
-     * Return recent log lines for developer options (admin only).
-     */
-    public function debugLogs(Request $request): JsonResponse
-    {
-        $lines = min(max((int) $request->input('lines', 100), 10), 500);
-        $path = storage_path('logs/laravel.log');
-        $content = [];
-        if (file_exists($path)) {
-            $content = array_slice(file($path), -$lines);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'lines' => $lines,
-                'log' => implode('', $content),
-            ],
-        ]);
-    }
 }

@@ -334,8 +334,7 @@
 333,"Update Shop Settings (Shipping & Tax)","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/shop,Active
 334,"Get Legal (Privacy or Terms)","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/legal,Active
 335,"Export Data","16. Admin Dashboard – Settings (Mobile)",POST,/api/admin/settings/export-data,Active
-336,"Debug Logs","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/debug-logs,Active
-337,"List (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers,Active
+336,"List (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers,Active
 338,"Get by ID (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers/{{offer_id}},Active
 339,"Admin - List","17. Other Modules > Exclusive Offers",GET,/api/admin/exclusive-offers,Active
 340,"Admin - Create","17. Other Modules > Exclusive Offers",POST,/api/admin/exclusive-offers,Active

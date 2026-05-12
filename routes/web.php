@@ -226,8 +226,6 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('settings/terms', [SettingController::class, 'termsOfService'])->name('settings.terms');
         Route::post('settings/terms', [SettingController::class, 'updateTermsOfService'])->name('settings.terms.store');
         Route::post('settings/clear-cache', [SettingController::class, 'clearCache'])->name('settings.clear-cache');
-        Route::get('settings/developer-options', [SettingController::class, 'developerOptions'])->name('settings.developer-options');
-        Route::get('settings/debug-logs', [SettingController::class, 'debugLogs'])->name('settings.debug-logs');
         Route::post('settings/export-data', [SettingController::class, 'exportData'])->name('settings.export-data');
         Route::post('settings/system', [SettingController::class, 'updateSystem'])->name('settings.system.store');
         Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');

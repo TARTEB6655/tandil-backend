@@ -226,8 +226,7 @@
 226,15. Admin Dashboard – Settings (Mobile),PUT,/api/admin/settings/shop,Done
 227,15. Admin Dashboard – Settings (Mobile),GET,/api/admin/settings/legal,Done
 228,15. Admin Dashboard – Settings (Mobile),POST,/api/admin/settings/export-data,Done
-229,15. Admin Dashboard – Settings (Mobile),GET,/api/admin/settings/debug-logs,Done
-230,Exclusive Offers,GET,/api/exclusive-offers,Done
+229,Exclusive Offers,GET,/api/exclusive-offers,Done
 231,Exclusive Offers,GET,/api/exclusive-offers/{id},Done
 232,Exclusive Offers,GET,/api/admin/exclusive-offers,Done
 233,Exclusive Offers,POST,/api/admin/exclusive-offers,Done

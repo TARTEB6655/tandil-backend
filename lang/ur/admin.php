@@ -46,7 +46,6 @@ return [
     'payment_settings' => 'ادائیگی کی ترتیبات',
     'privacy_policy' => 'رازداری کی پالیسی',
     'terms_of_service' => 'سروس کی شرائط',
-    'debug_logs' => 'ڈیبگ لاگز',
     'logout' => 'لاگ آؤٹ',
     'close_sidebar' => 'سائڈبار بند کریں',
     'search_placeholder' => 'صارفین، آرڈرز، وزٹس تلاش کریں...',

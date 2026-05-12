@@ -4,7 +4,7 @@
       "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
       "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
       "_exporter_id": "tandil-backend",
-      "version": "2.20.0"
+      "version": "2.20.1"
   },
   "item": [
       {
@@ -4156,45 +4156,9 @@
                       },
                       "description": "POST /api/admin/settings/export-data - format: json|csv. Returns export_id and status (202)."
                   }
-              },
-              {
-                  "name": "Debug Logs",
-                  "request": {
-                      "method": "GET",
-                      "header": [
-                          {
-                              "key": "Authorization",
-                              "value": "Bearer {{token}}"
-                          },
-                          {
-                              "key": "Accept",
-                              "value": "application/json"
-                          }
-                      ],
-                      "url": {
-                          "raw": "{{base_url}}/api/admin/settings/debug-logs?lines=100",
-                          "host": [
-                              "{{base_url}}"
-                          ],
-                          "path": [
-                              "api",
-                              "admin",
-                              "settings",
-                              "debug-logs"
-                          ],
-                          "query": [
-                              {
-                                  "key": "lines",
-                                  "value": "100",
-                                  "description": "10-500"
-                              }
-                          ]
-                      },
-                      "description": "GET /api/admin/settings/debug-logs?lines=100 - Recent Laravel log lines (admin only)."
-                  }
               }
           ],
-          "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, legal, export, debug logs."
+          "description": "Admin Settings API for React Native Settings screen. Base URL: /api/admin/settings. Auth: Bearer token + admin role. System toggles, theme, language, payment, legal, export."
       },
       {
           "name": "13. Other Modules",

@@ -300,7 +300,6 @@ Admin,"Folders ""13."" through ""16."" (stats & users, reports, support tickets,
 276,"Admin — folders 13–16 in Postman","16. Admin Dashboard – Settings (Mobile)","Update Shop Settings (Shipping & Tax)","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/shop,Active
 277,"Admin — folders 13–16 in Postman","16. Admin Dashboard – Settings (Mobile)","Get Legal (Privacy or Terms)","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/legal,Active
 278,"Admin — folders 13–16 in Postman","16. Admin Dashboard – Settings (Mobile)","Export Data","16. Admin Dashboard – Settings (Mobile)",POST,/api/admin/settings/export-data,Active
-279,"Admin — folders 13–16 in Postman","16. Admin Dashboard – Settings (Mobile)","Debug Logs","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/debug-logs,Active
 ,"--- Cross-role / other modules — folder 17 ---",,,,,,
 280,"Cross-role / other modules — folder 17","17. Other Modules","List (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers,Active
 281,"Cross-role / other modules — folder 17","17. Other Modules","Get by ID (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers/{{offer_id}},Active
