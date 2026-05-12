@@ -64,6 +64,8 @@ return [
     'save_changes' => 'محفوظ کریں',
     'profile_saved' => 'پروفائل کامیابی سے محفوظ ہو گئی۔',
     'current_password_incorrect' => 'موجودہ پاس ورڈ غلط ہے۔',
+    'show_password' => 'پاس ورڈ دکھائیں',
+    'hide_password' => 'پاس ورڈ چھپائیں',
     'close_sidebar' => 'سائڈبار بند کریں',
     'search_placeholder' => 'صارفین، آرڈرز، وزٹس تلاش کریں...',
     'mark_all_read' => 'سب پڑھا ہوا نشان زد کریں',

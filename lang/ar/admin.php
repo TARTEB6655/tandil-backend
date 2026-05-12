@@ -64,6 +64,8 @@ return [
     'save_changes' => 'حفظ التغييرات',
     'profile_saved' => 'تم حفظ الملف الشخصي بنجاح.',
     'current_password_incorrect' => 'كلمة المرور الحالية غير صحيحة.',
+    'show_password' => 'إظهار كلمة المرور',
+    'hide_password' => 'إخفاء كلمة المرور',
     'close_sidebar' => 'إغلاق القائمة',
     'search_placeholder' => 'البحث في المستخدمين والطلبات والزيارات...',
     'mark_all_read' => 'تحديد الكل كمقروء',

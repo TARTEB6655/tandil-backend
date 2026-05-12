@@ -65,6 +65,8 @@ return [
     'save_changes' => 'Save changes',
     'profile_saved' => 'Profile saved successfully.',
     'current_password_incorrect' => 'Current password is incorrect.',
+    'show_password' => 'Show password',
+    'hide_password' => 'Hide password',
     'close_sidebar' => 'Close sidebar',
     'search_placeholder' => 'Search users, orders, visits...',
     'mark_all_read' => 'Mark all read',

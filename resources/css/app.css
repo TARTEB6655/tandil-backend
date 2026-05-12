@@ -105,27 +105,32 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Admin profile settings: force visible Save (overrides @tailwindcss/forms + any layer order). */
+/* Admin profile settings: premium Save CTA (overrides @tailwindcss/forms). */
 button.admin-profile-save-btn {
-    background-color: #059669 !important;
+    background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0f766e 100%) !important;
     color: #ffffff !important;
     border-width: 0 !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.12), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow:
+        0 4px 14px -2px rgb(5 150 105 / 0.45),
+        0 2px 6px -2px rgb(15 118 110 / 0.35);
 }
 
 button.admin-profile-save-btn:hover {
-    background-color: #047857 !important;
+    background: linear-gradient(135deg, #047857 0%, #0f766e 50%, #115e59 100%) !important;
     color: #ffffff !important;
+    box-shadow:
+        0 6px 20px -4px rgb(5 150 105 / 0.5),
+        0 2px 8px -2px rgb(15 118 110 / 0.4);
 }
 
 button.admin-profile-save-btn:active {
-    background-color: #065f46 !important;
+    background: linear-gradient(135deg, #065f46 0%, #0f766e 100%) !important;
     color: #ffffff !important;
 }
 
 button.admin-profile-save-btn:focus-visible {
-    outline: 2px solid #10b981;
-    outline-offset: 2px;
+    outline: 2px solid #34d399;
+    outline-offset: 3px;
 }
 
 button.admin-profile-save-btn svg {
