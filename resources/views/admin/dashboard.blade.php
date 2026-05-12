@@ -29,7 +29,6 @@
             <a href="#key-metrics" class="{{ $jumpNavSection }}">{{ __('admin.key_metrics') }}</a>
             <a href="#ecommerce" class="{{ $jumpNavSection }}">{{ __('admin.ecommerce_section') }}</a>
             <a href="#manage-services" class="{{ $jumpNavSection }}">{{ __('admin.manage_services') }}</a>
-            <a href="#orders-export-supplier" class="{{ $jumpNavSection }}">{{ __('admin.orders_export') }}</a>
             <a href="{{ route('admin.orders.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.orders') }}</a>
             <a href="{{ route('admin.banners.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.banners') }}</a>
             <a href="{{ route('admin.packages.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.packages') }}</a>
@@ -596,34 +595,6 @@
         </div>
     </div>
 
-    <!-- Orders Export & Send to Supplier -->
-    <div id="orders-export-supplier" class="scroll-mt-24 mb-6 md:mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ __('admin.orders_export') }}</h2>
-            <a href="{{ route('admin.orders.index') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">{{ __('admin.orders') }} →</a>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-            <div class="p-5 md:p-6">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ __('admin.orders_export_description') }}</p>
-                <div class="flex flex-wrap items-center gap-3">
-                    <a href="{{ route('admin.orders.export', ['format' => 'csv']) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        {{ __('admin.download_csv') }}
-                    </a>
-                    <a href="{{ route('admin.orders.export', ['format' => 'xlsx']) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        {{ __('admin.download_excel') }}
-                    </a>
-                    <a href="{{ route('admin.orders.index') }}#send-supplier" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                        {{ __('admin.send_to_supplier') }}
-                    </a>
-                </div>
-                <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">{{ __('admin.scheduled_send_note') }}</p>
-            </div>
-        </div>
-    </div>
-
     <!-- 4. E-Commerce Section -->
     <div id="ecommerce" class="scroll-mt-24 mb-6 md:mb-8">
         <div class="flex items-center justify-between mb-4">
@@ -696,30 +667,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        @php
-            $rpDash = \App\Support\RefundPolicy::policyForApi();
-            $rpPartial = $rpDash['rules'][1]['refund_percent'] ?? 50;
-            $rpServiceFee = $rpDash['rules'][2]['service_fee_percent'] ?? 100;
-        @endphp
-        <div class="mb-6 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/35 p-5 shadow-sm">
-            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                <div class="min-w-0">
-                    <h3 class="text-sm font-semibold text-emerald-900 dark:text-emerald-100">{{ __('admin.refund_policy_dashboard_title') }}</h3>
-                    <p class="mt-1 text-xs sm:text-sm text-emerald-900/90 dark:text-emerald-100/90 max-w-3xl">{{ __('admin.refund_policy_dashboard_intro') }}</p>
-                    <ul class="mt-3 space-y-1.5 text-xs text-emerald-900 dark:text-emerald-100 list-disc pl-4 sm:pl-5">
-                        <li>{{ __('admin.refund_policy_dashboard_grace', ['minutes' => $rpDash['grace_minutes']]) }}</li>
-                        <li>{{ __('admin.refund_policy_dashboard_before') }}</li>
-                        <li>{{ __('admin.refund_policy_dashboard_assigned', ['percent' => rtrim(rtrim(number_format((float) $rpPartial, 2), '0'), '.')]) }}</li>
-                        <li>{{ __('admin.refund_policy_dashboard_service', ['fee' => rtrim(rtrim(number_format((float) $rpServiceFee, 2), '0'), '.')]) }}</li>
-                    </ul>
-                </div>
-                <a href="{{ route('admin.payments.settings') }}" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 dark:border-emerald-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-xs font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/50 transition-colors">
-                    {{ __('admin.refund_policy_dashboard_settings') }} →
-                </a>
-            </div>
-            <p class="mt-3 text-xs text-emerald-800/80 dark:text-emerald-200/80">{{ __('admin.refund_policy_dashboard_terminal') }}</p>
         </div>
 
         <!-- Order Status -->
@@ -1463,85 +1410,6 @@
                         </div>
                     </div>
                 @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Tips -->
-    <div id="recent-tips" class="scroll-mt-24 mb-6 md:mb-8">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <h2 class="text-lg font-semibold text-gray-900">{{ __('admin.recent_tips') }}</h2>
-                <a href="{{ route('admin.tips.index') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors">
-                    {{ __('admin.view_all') }}
-                </a>
-            </div>
-            <div class="divide-y divide-gray-100">
-                @forelse($recentTips ?? [] as $tip)
-                    <a href="{{ route('admin.tips.show', $tip->id) }}" class="block px-5 py-4 hover:bg-gray-50 transition-colors">
-                        <div class="flex items-start gap-3">
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-900">{{ $tip->title }}</p>
-                                <p class="text-xs text-gray-500 mt-0.5">{{ Str::limit($tip->content, 100) }}</p>
-                                <p class="text-xs text-gray-400 mt-1">{{ $tip->created_at?->format('M d, Y') }} · {{ ucfirst($tip->status) }}</p>
-                            </div>
-                        </div>
-                    </a>
-                @empty
-                    <div class="px-5 py-8 text-center text-sm text-gray-500">{{ __('admin.no_tips_yet') }} <a href="{{ route('admin.tips.create') }}" class="text-emerald-600 hover:underline">{{ __('admin.create_one') }}</a></div>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <!-- 10. Recent Activities -->
-    <div id="recent-activities" class="scroll-mt-24 mb-6 md:mb-8">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <h2 class="text-lg font-semibold text-gray-900">{{ __('admin.recent_activities') }}</h2>
-                <a href="{{ route('admin.recent-activities.index') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors">
-                    {{ __('admin.view_all') }}
-                </a>
-            </div>
-            <div class="divide-y divide-gray-100">
-                @forelse($recentActivities ?? [] as $activity)
-                    <div class="px-5 py-4 flex items-start gap-4 hover:bg-gray-50 transition-colors">
-                        @if(($activity['icon_type'] ?? '') === 'success' || ($activity['icon_type'] ?? '') === 'check')
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
-                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                        @elseif(($activity['icon_type'] ?? '') === 'user_add')
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-700/10">
-                                <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3z" /></svg>
-                            </div>
-                        @elseif(($activity['icon_type'] ?? '') === 'warning')
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                            </div>
-                        @elseif(($activity['icon_type'] ?? '') === 'error')
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                        @elseif(($activity['icon_type'] ?? '') === 'order')
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100">
-                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                            </div>
-                        @else
-                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                        @endif
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm font-medium text-gray-900">{{ $activity['description'] ?? '' }}</p>
-                            <p class="text-xs text-gray-500 mt-0.5">{{ $activity['timestamp'] ?? '' }}</p>
-                        </div>
-                    </div>
-                @empty
-                    <div class="px-5 py-8 text-center text-sm text-gray-500">{{ __('admin.no_recent_activities') }}</div>
-                @endforelse
             </div>
         </div>
     </div>
