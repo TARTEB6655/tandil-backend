@@ -112,9 +112,9 @@
 
                     <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
                         <p class="text-xs text-gray-500 dark:text-gray-400 sm:mr-auto">{{ __('admin.profile_save_footer_note') }}</p>
-                        <button type="submit" class="inline-flex min-w-[10rem] items-center justify-center gap-2 rounded-xl border-0 !bg-emerald-600 px-6 py-3 text-sm font-semibold !text-white shadow-md transition hover:!bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:!bg-emerald-800 dark:!bg-emerald-500 dark:hover:!bg-emerald-600 dark:active:!bg-emerald-700 dark:focus:ring-offset-gray-900 [&_svg]:text-white">
-                            <svg class="h-5 w-5 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                            <span class="text-white">{{ __('admin.save_changes') }}</span>
+                        <button type="submit" class="admin-profile-save-btn inline-flex min-w-[10rem] cursor-pointer items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition focus:outline-none">
+                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            <span>{{ __('admin.save_changes') }}</span>
                         </button>
                     </div>
                 </div>
