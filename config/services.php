@@ -41,4 +41,16 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+    /*
+    | OpenStreetMap Nominatim (free): forward-geocode typed addresses to lat/lng when the
+    | client does not send coordinates, then match operational areas by GPS radius.
+    | https://operations.osmfoundation.org/policies/nominatim/ — use a stable User-Agent.
+    */
+    'nominatim' => [
+        'forward_geocode_enabled' => filter_var(env('NOMINATIM_FORWARD_GEOCODE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'base_url' => rtrim((string) env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org'), '/'),
+        'timeout' => (int) env('NOMINATIM_TIMEOUT', 10),
+        'user_agent' => env('NOMINATIM_USER_AGENT'),
+    ],
+
 ];

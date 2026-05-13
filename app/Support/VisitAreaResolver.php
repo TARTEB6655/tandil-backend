@@ -3,15 +3,16 @@
 namespace App\Support;
 
 use App\Models\Area;
+use App\Services\NominatimForwardGeocoder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 /**
  * Resolves an operational {@see Area} + supervisor from visit/location payloads.
  *
- * Text matching uses area name/location/description (often English). For Arabic/Urdu
- * or other scripts, send **latitude** and **longitude** from the map pin — GPS resolution
- * runs before text matching when coordinates are present.
+ * Resolution order: optional area_id → GPS when latitude/longitude are sent
+ * → substring match on area text (often English) → optional OpenStreetMap Nominatim forward geocode
+ * of the typed address (any script) then GPS again. Operational areas need centre coordinates + radius in DB.
  */
 final class VisitAreaResolver
 {
@@ -94,6 +95,22 @@ final class VisitAreaResolver
                 'supervisor_id' => (int) $selected->supervisors->first()->id,
                 'distance_km' => null,
             ];
+        }
+
+        if ($lat === null || $lng === null) {
+            $geo = NominatimForwardGeocoder::firstLatLngFromAddressLines(
+                (string) ($payload['street_address'] ?? ''),
+                (string) ($payload['city'] ?? ''),
+                (string) ($payload['state'] ?? ''),
+                (string) ($payload['zip_code'] ?? ''),
+                (string) ($payload['country'] ?? ''),
+            );
+            if ($geo !== null) {
+                $gps = self::resolveClosestByGps($areas, $geo['lat'], $geo['lng']);
+                if ($gps !== null) {
+                    return $gps;
+                }
+            }
         }
 
         return null;
@@ -202,7 +219,15 @@ final class VisitAreaResolver
             return '';
         }
 
-        if (in_array($raw, ['uae', 'u.a.e', 'u_a_e', 'ae', 'united arab emirates', 'emirates'], true)) {
+        if (in_array($raw, ['uae', 'u.a.e', 'ae', 'united arab emirates', 'emirates'], true)) {
+            return 'uae';
+        }
+
+        if (str_contains($raw, '(uae)')) {
+            return 'uae';
+        }
+
+        if (str_contains($raw, 'متحدہ') && str_contains($raw, 'عرب')) {
             return 'uae';
         }
 

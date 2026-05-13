@@ -2910,7 +2910,7 @@
                                 "resolve-area"
                             ]
                         },
-                        "description": "Resolve service area and supervisor from app location inputs. Supports app form fields (`full_name`, `street_address`, `city`, `state`, `zip_code`, `country`) plus optional `area_id` or GPS (`latitude`, `longitude`). Response includes `serviceable`, `area_id`, `area_name`, `supervisor_id`, and optional `distance_km`.\\n\\n**Multilingual (Arabic/Urdu) addresses:** Operational area records are often English-only, so typed city/street may not substring-match. Always send **latitude** and **longitude** from the user's map selection when available — the server resolves by GPS first when both coordinates are present."
+                        "description": "Resolve service area and supervisor from app location inputs. Supports app form fields (`full_name`, `street_address`, `city`, `state`, `zip_code`, `country`) plus optional `area_id` or GPS (`latitude`, `longitude`). Response includes `serviceable`, `area_id`, `area_name`, `supervisor_id`, and optional `distance_km`.\\n\\n**Multilingual (Arabic/Urdu) addresses:** Operational area records are often English-only, so typed city/street may not substring-match. Send **latitude** and **longitude** from the map when possible (GPS resolves first). If coordinates are omitted, the server may call **OpenStreetMap Nominatim** once to geocode the typed address, then match by GPS — requires outbound HTTPS and areas must have `latitude`/`longitude` + `service_radius_km` in the database. Set **NOMINATIM_FORWARD_GEOCODE_ENABLED=false** to disable."
                     }
                 },
                 {

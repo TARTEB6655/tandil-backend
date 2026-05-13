@@ -178,6 +178,58 @@ class VisitCreateApiTest extends TestCase
             ->assertJsonPath('data.area_id', $area->id);
     }
 
+    public function test_resolve_area_forward_geocodes_via_nominatim_when_only_multilingual_text(): void
+    {
+        config(['services.nominatim.forward_geocode_enabled' => true]);
+
+        Http::fake([
+            'nominatim.openstreetmap.org/*' => Http::response([
+                [
+                    'lat' => '24.453884',
+                    'lon' => '54.377344',
+                ],
+            ], 200),
+        ]);
+
+        $client = User::factory()->create(['role' => 'client']);
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi',
+            'location' => 'UAE',
+            'country' => 'UAE',
+            'is_active' => true,
+            'latitude' => 24.45,
+            'longitude' => 54.37,
+            'service_radius_km' => 80,
+        ]);
+        DB::table('area_supervisor')->insert([
+            'area_id' => $area->id,
+            'user_id' => $supervisor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/visits/resolve-area', [
+            'street_address' => 'آفس 302، الخالدیة، کارنیش روڈ',
+            'city' => 'ابو ظبی',
+            'state' => 'ابو ظبی',
+            'country' => 'متحدہ عرب امارات',
+        ]);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            return str_contains($request->url(), 'nominatim.openstreetmap.org')
+                && str_contains($request->url(), 'search');
+        });
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('serviceable', true)
+            ->assertJsonPath('data.area_id', $area->id);
+    }
+
     /**
      * Client-style multilingual text fields + map coordinates: GPS must resolve (no external translation API).
      */
