@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -108,6 +109,122 @@ class VisitCreateApiTest extends TestCase
             ->assertJsonPath('serviceable', true)
             ->assertJsonPath('data.area_id', $area->id)
             ->assertJsonPath('data.supervisor_id', $supervisor->id);
+    }
+
+    public function test_resolve_area_prefers_gps_when_city_is_arabic_script(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi',
+            'location' => 'Abu Dhabi City',
+            'country' => 'UAE',
+            'is_active' => true,
+            'latitude' => 24.45,
+            'longitude' => 54.37,
+            'service_radius_km' => 80,
+        ]);
+        DB::table('area_supervisor')->insert([
+            'area_id' => $area->id,
+            'user_id' => $supervisor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/visits/resolve-area', [
+            'city' => 'أبو ظبي',
+            'country' => 'UAE',
+            'latitude' => 24.453884,
+            'longitude' => 54.377344,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('serviceable', true)
+            ->assertJsonPath('data.area_id', $area->id)
+            ->assertJsonPath('data.supervisor_id', $supervisor->id);
+    }
+
+    public function test_resolve_area_accepts_arabic_uae_country_label_with_english_city(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi',
+            'location' => 'Abu Dhabi City',
+            'country' => 'UAE',
+            'is_active' => true,
+        ]);
+        DB::table('area_supervisor')->insert([
+            'area_id' => $area->id,
+            'user_id' => $supervisor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/visits/resolve-area', [
+            'city' => 'Abu Dhabi',
+            'country' => 'الإمارات العربية المتحدة',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.area_id', $area->id);
+    }
+
+    /**
+     * Client-style multilingual text fields + map coordinates: GPS must resolve (no external translation API).
+     */
+    public function test_resolve_area_multilingual_abu_dhabi_payload_uses_map_coordinates(): void
+    {
+        Http::preventStrayRequests();
+
+        $client = User::factory()->create(['role' => 'client']);
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi',
+            'location' => 'Al Khalidiya Corniche Road',
+            'country' => 'UAE',
+            'is_active' => true,
+            'latitude' => 24.45,
+            'longitude' => 54.37,
+            'service_radius_km' => 80,
+        ]);
+        DB::table('area_supervisor')->insert([
+            'area_id' => $area->id,
+            'user_id' => $supervisor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($client, 'sanctum')->postJson('/api/visits/resolve-area', [
+            'full_name' => 'संजीव / سنجیو',
+            'street_address' => 'آفس 302، الخالدیة، کارنیش روڈ',
+            'city' => 'ابو ظہبی',
+            'state' => 'ابو ظہبی',
+            'zip_code' => '00000',
+            'country' => 'متحدہ عرب امارات (UAE)',
+            'latitude' => 24.453884,
+            'longitude' => 54.377344,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('serviceable', true)
+            ->assertJsonPath('data.area_id', $area->id)
+            ->assertJsonPath('data.area_name', 'Abu Dhabi');
+
+        $this->assertNotNull($response->json('data.distance_km'));
+        $this->assertLessThan(50.0, (float) $response->json('data.distance_km'));
     }
 
     public function test_create_visit_rejects_disabled_area(): void

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Area;
 use App\Models\Visit;
 use App\Models\VisitPhoto;
+use App\Support\VisitAreaResolver;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Services\VisitOfferService;
@@ -156,7 +157,7 @@ class VisitController extends Controller
             ], 422);
         }
 
-        $resolved = $this->resolveAreaFromRequest($request);
+        $resolved = VisitAreaResolver::fromRequest($request);
         if (! $resolved) {
             return response()->json([
                 'status' => false,
@@ -226,7 +227,7 @@ class VisitController extends Controller
                 return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
             }
 
-            $resolved = $this->resolveAreaFromRequest($request);
+            $resolved = VisitAreaResolver::fromRequest($request);
             if (! $resolved) {
                 return response()->json([
                     'status' => false,
@@ -753,122 +754,5 @@ class VisitController extends Controller
         }
 
         return response()->json(['status' => true, 'message' => 'Status updated', 'data' => $visit], 200);
-    }
-
-    private function resolveAreaFromRequest(Request $request): ?array
-    {
-        if ($request->filled('area_id')) {
-            $area = Area::with('supervisors')
-                ->where('is_active', true)
-                ->find((int) $request->input('area_id'));
-            if ($area && $area->supervisors->isNotEmpty()) {
-                return [
-                    'area' => $area,
-                    'supervisor_id' => (int) $area->supervisors->first()->id,
-                    'distance_km' => null,
-                ];
-            }
-        }
-
-        $country = strtolower(trim((string) $request->input('country', 'UAE')));
-        $city = strtolower(trim((string) $request->input('city', '')));
-        $state = strtolower(trim((string) $request->input('state', '')));
-        $streetAddress = strtolower(trim((string) $request->input('street_address', '')));
-        $zipCode = strtolower(trim((string) $request->input('zip_code', '')));
-        $lat = $request->filled('latitude') ? (float) $request->input('latitude') : null;
-        $lng = $request->filled('longitude') ? (float) $request->input('longitude') : null;
-
-        $areas = Area::with('supervisors')
-            ->where('is_active', true)
-            ->get()
-            ->filter(fn (Area $a) => $a->supervisors->isNotEmpty())
-            ->values();
-
-        if ($areas->isEmpty()) {
-            return null;
-        }
-
-        $normalizedCountry = $this->normalizeCountry($country);
-        if ($normalizedCountry !== '') {
-            $countryMatched = $areas->filter(function (Area $area) use ($normalizedCountry) {
-                return $this->normalizeCountry((string) ($area->country ?? '')) === $normalizedCountry;
-            })->values();
-            if ($countryMatched->isNotEmpty()) {
-                $areas = $countryMatched;
-            }
-        }
-
-        $nameMatched = $areas->filter(function (Area $area) use ($city, $state, $streetAddress, $zipCode) {
-            if ($city === '' && $state === '' && $streetAddress === '' && $zipCode === '') {
-                return false;
-            }
-            $hay = strtolower(trim((string) ($area->name . ' ' . ($area->location ?? '') . ' ' . ($area->description ?? ''))));
-
-            return ($city !== '' && str_contains($hay, $city))
-                || ($state !== '' && str_contains($hay, $state))
-                || ($streetAddress !== '' && str_contains($hay, $streetAddress))
-                || ($zipCode !== '' && str_contains($hay, $zipCode));
-        })->sortBy('priority')->values();
-
-        if ($nameMatched->isNotEmpty()) {
-            $selected = $nameMatched->first();
-            return [
-                'area' => $selected,
-                'supervisor_id' => (int) $selected->supervisors->first()->id,
-                'distance_km' => null,
-            ];
-        }
-
-        if ($lat === null || $lng === null) {
-            return null;
-        }
-
-        $closest = null;
-        foreach ($areas as $area) {
-            if ($area->latitude === null || $area->longitude === null) {
-                continue;
-            }
-
-            $distance = $this->distanceKm($lat, $lng, (float) $area->latitude, (float) $area->longitude);
-            $radius = max(0.1, (float) ($area->service_radius_km ?? 30));
-            if ($distance > $radius) {
-                continue;
-            }
-
-            if ($closest === null
-                || $distance < $closest['distance_km']
-                || ($distance === $closest['distance_km'] && (int) $area->priority < (int) $closest['area']->priority)
-            ) {
-                $closest = [
-                    'area' => $area,
-                    'supervisor_id' => (int) $area->supervisors->first()->id,
-                    'distance_km' => round($distance, 2),
-                ];
-            }
-        }
-
-        return $closest;
-    }
-
-    private function distanceKm(float $lat1, float $lng1, float $lat2, float $lng2): float
-    {
-        $earthRadiusKm = 6371;
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lng2 - $lng1);
-        $a = sin($dLat / 2) * sin($dLat / 2)
-            + cos(deg2rad($lat1)) * cos(deg2rad($lat2))
-            * sin($dLon / 2) * sin($dLon / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadiusKm * $c;
-    }
-
-    private function normalizeCountry(string $country): string
-    {
-        $raw = strtolower(trim($country));
-        return match ($raw) {
-            'uae', 'u.a.e', 'ae', 'united arab emirates' => 'uae',
-            default => $raw,
-        };
     }
 }

@@ -239,9 +239,9 @@
                                 <p class="max-w-md text-xs leading-relaxed text-slate-500 dark:text-slate-400">{{ __('admin.profile_save_footer_note') }}</p>
                                 <button
                                     type="submit"
-                                    class="admin-profile-save-btn inline-flex min-h-[2.875rem] min-w-[11rem] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-semibold tracking-wide shadow-lg transition focus:outline-none active:scale-[0.98]"
+                                    class="admin-profile-save-btn inline-flex min-h-[3rem] min-w-[11.5rem] shrink-0 cursor-pointer items-center justify-center gap-2.5 px-8 py-3.5 text-sm font-semibold transition focus:outline-none active:scale-[0.98]"
                                 >
-                                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    <svg class="h-5 w-5 shrink-0 stroke-[2.25]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                                     <span>{{ __('admin.save_changes') }}</span>
                                 </button>
                             </div>
