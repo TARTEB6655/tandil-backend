@@ -812,6 +812,70 @@
                     }
                 },
                 {
+                    "name": "Get Preferred Language",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user/language",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "language"
+                            ]
+                        },
+                        "description": "GET /api/user/language - returns current preferred locale, allowed locales, and rtl flag."
+                    }
+                },
+                {
+                    "name": "Update Preferred Language",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"locale\": \"ar\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/user/language",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "language"
+                            ]
+                        },
+                        "description": "PUT /api/user/language - save preferred locale for authenticated user. Allowed: en, ar, ur."
+                    }
+                },
+                {
                     "name": "Logout",
                     "request": {
                         "method": "POST",

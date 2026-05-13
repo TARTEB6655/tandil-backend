@@ -25,12 +25,18 @@ return Application::configure(basePath: dirname(__DIR__))
             'prevent.admin.cache' => \App\Http\Middleware\PreventAdminCache::class,
             'optional.sanctum' => \App\Http\Middleware\OptionalSanctum::class,
             'set.admin.locale' => \App\Http\Middleware\SetAdminLocale::class,
+            'set.request.locale' => \App\Http\Middleware\SetRequestLocale::class,
+        ]);
+
+        $middleware->web(prepend: [
+            \App\Http\Middleware\SetRequestLocale::class,
         ]);
         
         // All routes in routes/api.php use the api middleware group (prefix /api/).
         // Force JSON for every API; ensure no API ever returns HTML or raw error.
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\SetRequestLocale::class,
             \App\Http\Middleware\ForceJsonResponse::class,
         ], append: [
             \App\Http\Middleware\EnsureApiJsonResponse::class,

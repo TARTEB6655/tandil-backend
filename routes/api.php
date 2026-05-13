@@ -633,6 +633,8 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])
 */
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\UserController::class, 'getProfile']);
+    Route::get('/language', [\App\Http\Controllers\Api\UserController::class, 'getLanguage']);
+    Route::match(['put', 'patch', 'post'], '/language', [\App\Http\Controllers\Api\UserController::class, 'updateLanguage']);
     Route::get('/wallet', [\App\Http\Controllers\Api\UserController::class, 'walletSummary']);
     Route::get('/wallet/credits', [\App\Http\Controllers\Api\UserController::class, 'walletCredits']);
     Route::match(['put', 'post', 'patch'], '/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);

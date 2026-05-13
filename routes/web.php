@@ -83,6 +83,19 @@ Route::middleware('auth')->get('/dashboard', function () {
     return redirect()->route('dashboard.redirect');
 })->name('dashboard');
 
+Route::middleware('auth')->post('/locale', function (\Illuminate\Http\Request $request) {
+    $locale = $request->validate(['locale' => 'required|string|in:en,ar,ur'])['locale'];
+    session(['app_locale' => $locale]);
+
+    $user = $request->user();
+    if ($user) {
+        $user->preferred_locale = $locale;
+        $user->save();
+    }
+
+    return back();
+})->name('locale');
+
 // Role-based dashboard redirect route
 Route::middleware('auth')->get('/dashboard-redirect', function () {
     try {
@@ -133,7 +146,16 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
     ->group(function () {
         Route::post('/locale', function (\Illuminate\Http\Request $request) {
             $locale = $request->validate(['locale' => 'required|string|in:en,ar,ur'])['locale'];
-            session(['admin_locale' => $locale]);
+            session([
+                'admin_locale' => $locale,
+                'app_locale' => $locale,
+            ]);
+
+            $user = $request->user();
+            if ($user) {
+                $user->preferred_locale = $locale;
+                $user->save();
+            }
 
             return redirect()->back();
         })->name('locale');

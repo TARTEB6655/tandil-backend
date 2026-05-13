@@ -31,9 +31,52 @@ class UserController extends Controller
             'profile_picture' => $user->profile_picture ?? null,
             'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url ?? null,
             'role' => $user->role ?? null,
+            'preferred_locale' => $user->preferred_locale ?? 'en',
             'wallet_balance' => (float) ($user->wallet_balance ?? 0),
             'wallet_forfeited_total' => (float) ($user->wallet_forfeited_total ?? 0),
         ];
+    }
+
+    public function getLanguage(Request $request)
+    {
+        $user = $request->user();
+        $locale = $this->normalizeLocale((string) ($user->preferred_locale ?? app()->getLocale()));
+        if (! in_array($locale, ['en', 'ar', 'ur'], true)) {
+            $locale = 'en';
+        }
+
+        return ApiResponse::success('Language retrieved successfully.', [
+            'locale' => $locale,
+            'available_locales' => ['en', 'ar', 'ur'],
+            'rtl' => in_array($locale, ['ar', 'ur'], true),
+        ]);
+    }
+
+    public function updateLanguage(Request $request)
+    {
+        $validated = $request->validate([
+            'locale' => 'required|string|in:en,ar,ur',
+        ]);
+
+        $user = $request->user();
+        $locale = $this->normalizeLocale($validated['locale']);
+        $user->preferred_locale = $locale;
+        $user->save();
+
+        if ($request->hasSession()) {
+            $request->session()->put('app_locale', $locale);
+            if ($user->hasRole('admin')) {
+                $request->session()->put('admin_locale', $locale);
+            }
+        }
+
+        app()->setLocale($locale);
+
+        return ApiResponse::success('Language updated successfully.', [
+            'locale' => $locale,
+            'available_locales' => ['en', 'ar', 'ur'],
+            'rtl' => in_array($locale, ['ar', 'ur'], true),
+        ]);
     }
 
     public function walletSummary(Request $request)
@@ -228,6 +271,11 @@ class UserController extends Controller
             $v = $request->input('is_default');
             $request->merge(['is_default' => filter_var($v, FILTER_VALIDATE_BOOLEAN)]);
         }
+    }
+
+    private function normalizeLocale(string $locale): string
+    {
+        return strtolower(trim($locale));
     }
 
     /**

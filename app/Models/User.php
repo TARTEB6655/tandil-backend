@@ -21,6 +21,7 @@ class User extends Authenticatable
         'profile_picture',
         'password',
         'role',    // optional: quick reference
+        'preferred_locale',
         'status',  // active / inactive
         'wallet_balance',
         'wallet_forfeited_total',
@@ -40,6 +41,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'extra_emails' => 'array',
         'extra_phones' => 'array',
+        'preferred_locale' => 'string',
         'wallet_balance' => 'decimal:2',
         'wallet_forfeited_total' => 'decimal:2',
     ];

@@ -17,7 +17,10 @@ class SetAdminLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = session('admin_locale', config('app.locale'));
+        $locale = session('admin_locale')
+            ?? session('app_locale')
+            ?? ($request->user()?->preferred_locale)
+            ?? config('app.locale');
         if (in_array($locale, $this->allowed, true)) {
             app()->setLocale($locale);
         }
