@@ -27,7 +27,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
         ];
     }
 
-    private function shippingPayload(): array
+    private function shippingPayload(string $country = 'UAE'): array
     {
         return [
             'full_name' => 'Test User',
@@ -36,7 +36,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
             'city' => 'Dubai',
             'state' => 'DXB',
             'zip_code' => '00000',
-            'country' => 'UAE',
+            'country' => $country,
         ];
     }
 
@@ -177,5 +177,119 @@ class ShopStripeMobileCheckoutTest extends TestCase
 
         $second->assertStatus(200);
         $second->assertJsonPath('message', 'Order already confirmed.');
+    }
+
+    public function test_payment_intent_normalizes_arabic_country_to_iso_code_for_stripe(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 65,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            $url = $request->url();
+            if ($request->method() === 'POST' && preg_match('#/v1/customers/cus_[a-zA-Z0-9_]+$#', $url)) {
+                return Http::response(['id' => 'cus_test_ar'], 200);
+            }
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_test_ar'], 200);
+            }
+            if (str_contains($url, 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_test_ar',
+                    'client_secret' => 'pi_test_ar_secret',
+                    'status' => 'requires_payment_method',
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected URL '.$url]], 500);
+        });
+
+        $response = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload('متحدہ عرب امارات'),
+        ], $this->authHeaders($user));
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.shipping_country_iso', 'AE');
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            if ($request->method() !== 'POST' || ! str_contains($request->url(), '/v1/payment_intents')) {
+                return false;
+            }
+
+            $form = $request->data();
+            return ($form['shipping[address][country]'] ?? null) === 'AE'
+                && ($form['metadata[ship_country_iso]'] ?? null) === 'AE';
+        });
+    }
+
+    public function test_payment_intent_normalizes_urdu_country_to_iso_code_for_stripe(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 65,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            $url = $request->url();
+            if ($request->method() === 'POST' && preg_match('#/v1/customers/cus_[a-zA-Z0-9_]+$#', $url)) {
+                return Http::response(['id' => 'cus_test_ur'], 200);
+            }
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_test_ur'], 200);
+            }
+            if (str_contains($url, 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_test_ur',
+                    'client_secret' => 'pi_test_ur_secret',
+                    'status' => 'requires_payment_method',
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected URL '.$url]], 500);
+        });
+
+        $response = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload('متحدہ عرب امارات (UAE)'),
+        ], $this->authHeaders($user));
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.shipping_country_iso', 'AE');
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            if ($request->method() !== 'POST' || ! str_contains($request->url(), '/v1/payment_intents')) {
+                return false;
+            }
+
+            $form = $request->data();
+            return ($form['shipping[address][country]'] ?? null) === 'AE'
+                && ($form['metadata[ship_country_iso]'] ?? null) === 'AE';
+        });
     }
 }

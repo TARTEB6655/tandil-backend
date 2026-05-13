@@ -357,6 +357,7 @@ class ShopStripeMobilePaymentService
             'payment_intent_id' => $piId,
             'publishable_key' => StripeCredentials::publishableKey(),
             'stripe_mode' => str_starts_with(StripeCredentials::secretKey(), 'sk_live_') ? 'live' : 'test',
+            'shipping_country_iso' => $countryCode,
             'order_total' => $total,
             'amount_due' => $cardTotal,
             'wallet_amount_applied' => $walletApplied,
@@ -846,9 +847,17 @@ class ShopStripeMobilePaymentService
             return strtoupper($t);
         }
 
+        $tl = function_exists('mb_strtolower') ? mb_strtolower($t, 'UTF-8') : strtolower($t);
+        // Remove common wrappers: "متحدہ عرب امارات (UAE)" => "متحدہ عرب امارات uae"
+        $tl = preg_replace('/[()\\[\\]{}]/u', ' ', $tl) ?? $tl;
+        $tl = trim(preg_replace('/\\s+/u', ' ', $tl) ?? $tl);
+
         $map = [
             'uae' => 'AE',
             'united arab emirates' => 'AE',
+            'متحدہ عرب امارات' => 'AE',
+            'الامارات العربية المتحدة' => 'AE',
+            'الإمارات العربية المتحدة' => 'AE',
             'united states' => 'US',
             'usa' => 'US',
             'india' => 'IN',
@@ -859,7 +868,14 @@ class ShopStripeMobilePaymentService
             'uk' => 'GB',
         ];
 
-        return $map[strtolower($t)] ?? 'AE';
+        if (isset($map[$tl])) {
+            return $map[$tl];
+        }
+        if (str_contains($tl, 'uae') || str_contains($tl, 'emirates') || str_contains($tl, 'امارات') || str_contains($tl, 'الإمارات')) {
+            return 'AE';
+        }
+
+        return 'AE';
     }
 
     /**
