@@ -50,9 +50,9 @@ final class VisitAreaResolver
         }
 
         $country = self::normalizeLocaleText((string) ($payload['country'] ?? 'UAE'));
-        $city = self::normalizeLocaleText((string) ($payload['city'] ?? ''));
-        $state = self::normalizeLocaleText((string) ($payload['state'] ?? ''));
-        $streetAddress = self::normalizeLocaleText((string) ($payload['street_address'] ?? ''));
+        $city = self::normalizeAddressToken(self::normalizeLocaleText((string) ($payload['city'] ?? '')));
+        $state = self::normalizeAddressToken(self::normalizeLocaleText((string) ($payload['state'] ?? '')));
+        $streetAddress = self::normalizeAddressToken(self::normalizeLocaleText((string) ($payload['street_address'] ?? '')));
         $zipCode = self::normalizeLocaleText((string) ($payload['zip_code'] ?? ''));
 
         $lat = self::nullableCoordinate($payload['latitude'] ?? null);
@@ -210,6 +210,45 @@ final class VisitAreaResolver
         }
 
         return strtolower($t);
+    }
+
+    /**
+     * Normalize common UAE Arabic/Urdu place names to English tokens
+     * so text-only matching can still work when DB area labels are English.
+     */
+    private static function normalizeAddressToken(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        $map = [
+            'ابوظبی' => 'abu dhabi',
+            'ابو ظبی' => 'abu dhabi',
+            'ابو ظہبی' => 'abu dhabi',
+            'أبوظبي' => 'abu dhabi',
+            'أبو ظبي' => 'abu dhabi',
+            'دبئی' => 'dubai',
+            'دبي' => 'dubai',
+            'الشارقة' => 'sharjah',
+            'شارجہ' => 'sharjah',
+            'عجمان' => 'ajman',
+            'ام القيوين' => 'umm al quwain',
+            'أم القيوين' => 'umm al quwain',
+            'راس الخيمة' => 'ras al khaimah',
+            'رأس الخيمة' => 'ras al khaimah',
+            'الفجيرة' => 'fujairah',
+            'الفجيره' => 'fujairah',
+        ];
+
+        $normalized = $value;
+        foreach ($map as $needle => $replacement) {
+            if (str_contains($normalized, $needle)) {
+                $normalized = str_replace($needle, $replacement, $normalized);
+            }
+        }
+
+        return $normalized;
     }
 
     private static function normalizeCountry(string $country): string
