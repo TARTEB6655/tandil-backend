@@ -69,8 +69,9 @@ class AuthController extends Controller
     }
 
     /**
-     * PUBLIC: App login entry roles (first screen — titles/icons only).
+     * PUBLIC: App login entry roles (first screen — role heading + description + icon per row).
      * GET /api/auth/app-roles — same slugs the server uses for the logged-in user (see login response `slug`).
+     * Each row includes `role` (heading), `description` (body), `icon`, plus `title`/`subtitle` mirrors.
      */
     public function appLoginRoles(): JsonResponse
     {
@@ -180,15 +181,27 @@ class AuthController extends Controller
     /**
      * LOGIN
      *
-     * Email + password only. The user's role is resolved automatically (Spatie roles first,
-     * then users.role) for Sanctum token abilities — same priority as the web dashboard redirect.
+     * Body: email, password, and required `roles` (single slug from GET /api/auth/app-roles, e.g. "client").
+     * The account must have that role (Spatie / column); token is scoped to that slug only.
      */
     public function login(Request $request)
     {
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'roles' => ['required'],
         ]);
+
+        $rolesChosen = $this->normalizeLoginRolesParameter($validated['roles']);
+        if ($rolesChosen === false || $rolesChosen === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => [
+                    'roles' => ['roles must be a single slug: '.implode(', ', User::LOGIN_PORTALS).'.'],
+                ],
+            ], 422);
+        }
 
         $user = User::where('email', $validated['email'])->first();
 
@@ -200,10 +213,11 @@ class AuthController extends Controller
             return ApiResponse::error('Account is not active. Please contact admin.', 403);
         }
 
-        $portal = $user->resolvedLoginPortal();
-        if ($portal === null) {
-            return ApiResponse::error('This account has no recognized app role. Please contact support.', 403);
+        if (! $user->matchesLoginPortal($rolesChosen)) {
+            return ApiResponse::error('Invalid login credentials.', 401);
         }
+
+        $portal = $rolesChosen;
 
         $tokenName = 'api_'.$portal;
         $abilities = [$portal];
@@ -273,6 +287,36 @@ class AuthController extends Controller
     {
         // TODO: Implement password reset
         return ApiResponse::error('Password reset feature not implemented yet', 501);
+    }
+
+    /**
+     * JSON `roles` (required): string slug, or array of exactly one string slug.
+     *
+     * @return null|string|false null = empty after trim; string = valid slug; false = invalid shape/value
+     */
+    private function normalizeLoginRolesParameter(mixed $roles): string|false|null
+    {
+        if ($roles === null) {
+            return null;
+        }
+        if (is_array($roles)) {
+            if (count($roles) !== 1) {
+                return false;
+            }
+            $roles = reset($roles);
+        }
+        if (! is_string($roles)) {
+            return false;
+        }
+        $roles = trim($roles);
+        if ($roles === '') {
+            return null;
+        }
+        if (! in_array($roles, User::LOGIN_PORTALS, true)) {
+            return false;
+        }
+
+        return $roles;
     }
 
     /**

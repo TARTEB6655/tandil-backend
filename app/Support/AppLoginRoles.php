@@ -38,7 +38,7 @@ final class AppLoginRoles
             ],
             'hr' => [
                 'title' => 'HR Manager',
-                'subtitle' => 'Manage employee profiles, job IDs, schedules, and visit assignments.',
+                'subtitle' => 'Manage employee profiles, job IDs, schedules, and staff requirements.',
                 'icon' => 'briefcase',
             ],
             'admin' => [
@@ -50,9 +50,10 @@ final class AppLoginRoles
     }
 
     /**
-     * Ordered list for API consumers (no "portal" naming — use slug only).
+     * Ordered list for GET /api/auth/app-roles (mobile role picker).
+     * Includes explicit `role` + `description` for UI; `title` / `subtitle` kept for compatibility.
      *
-     * @return list<array{slug: string, title: string, subtitle: string, icon: string}>
+     * @return list<array{slug: string, role: string, description: string, title: string, subtitle: string, icon: string}>
      */
     public static function listForApi(): array
     {
@@ -60,10 +61,14 @@ final class AppLoginRoles
         $rows = [];
         foreach (User::LOGIN_PORTALS as $slug) {
             $meta = $bySlug[$slug] ?? ['title' => $slug, 'subtitle' => '', 'icon' => 'user'];
+            $title = $meta['title'];
+            $subtitle = $meta['subtitle'];
             $rows[] = [
                 'slug' => $slug,
-                'title' => $meta['title'],
-                'subtitle' => $meta['subtitle'],
+                'role' => $title,
+                'description' => $subtitle,
+                'title' => $title,
+                'subtitle' => $subtitle,
                 'icon' => $meta['icon'],
             ];
         }

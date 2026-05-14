@@ -201,33 +201,20 @@ class AuthApiTest extends TestCase
         $this->postJson('/api/auth/login', [
             'email' => 'portal-mismatch@example.com',
             'password' => 'password',
+            'roles' => 'area_manager',
         ])->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.slug', 'area_manager');
     }
 
-    public function test_login_succeeds_without_portal_field(): void
+    public function test_login_requires_roles_parameter(): void
     {
-        $user = User::factory()->create([
-            'email' => 'no-portal@example.com',
-            'password' => 'password',
-            'role' => 'client',
-            'status' => 'active',
-        ]);
-        try {
-            if (method_exists($user, 'assignRole')) {
-                $user->assignRole('client');
-            }
-        } catch (\Throwable $e) {
-            // no-op
-        }
-
         $this->postJson('/api/auth/login', [
-            'email' => 'no-portal@example.com',
+            'email' => 'any@example.com',
             'password' => 'password',
-        ])->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.slug', 'client');
+        ])->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['roles']);
     }
 
     public function test_app_login_roles_returns_ordered_slugs(): void
@@ -241,9 +228,66 @@ class AuthApiTest extends TestCase
         $this->assertIsArray($rows);
         $this->assertCount(6, $rows);
         $this->assertSame('client', $rows[0]['slug']);
-        $this->assertArrayHasKey('title', $rows[0]);
-        $this->assertArrayHasKey('subtitle', $rows[0]);
+        $this->assertSame('Client (Customer)', $rows[0]['role']);
+        $this->assertSame('Client (Customer)', $rows[0]['title']);
+        $this->assertStringContainsString('Subscribe to plans', $rows[0]['description']);
+        $this->assertSame($rows[0]['description'], $rows[0]['subtitle']);
         $this->assertArrayHasKey('icon', $rows[0]);
         $this->assertSame('admin', $rows[5]['slug']);
+    }
+
+    public function test_login_succeeds_with_roles_slug(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $user = User::factory()->create([
+            'email' => 'roles-param@example.com',
+            'password' => 'password',
+            'role' => 'client',
+            'status' => 'active',
+        ]);
+        $user->syncRoles(['client']);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'roles-param@example.com',
+            'password' => 'password',
+            'roles' => 'client',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.slug', 'client');
+    }
+
+    public function test_login_rejects_invalid_roles_value(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'any@example.com',
+            'password' => 'password',
+            'roles' => 'not-a-real-role',
+        ])->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['roles']);
+    }
+
+    public function test_login_roles_must_match_account(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $user = User::factory()->create([
+            'email' => 'roles-wrong@example.com',
+            'password' => 'password',
+            'role' => 'client',
+            'status' => 'active',
+        ]);
+        $user->syncRoles(['client']);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'roles-wrong@example.com',
+            'password' => 'password',
+            'roles' => 'admin',
+        ])->assertStatus(401)
+            ->assertJsonPath('success', false);
     }
 }
