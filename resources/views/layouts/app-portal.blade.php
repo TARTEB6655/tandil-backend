@@ -10,7 +10,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen font-sans antialiased text-gray-900 bg-[#f8f9fa]">
+<body class="min-h-screen font-sans text-[15px] antialiased text-slate-900">
     @yield('content')
 </body>
 </html>

@@ -1,8 +1,8 @@
 @php
     $iconType = $type ?? 'user';
-    $cls = 'h-5 w-5';
+    $cls = 'h-6 w-6';
 @endphp
-<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#2d4a3e]/30 bg-white text-[#2d4a3e]">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#2d4a3e]/20 bg-[#f4faf6] text-[#2d4a3e] shadow-inner shadow-white/50 ring-1 ring-white/80">
     @switch($iconType)
         @case('leaf')
             <svg class="{{ $cls }}" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
