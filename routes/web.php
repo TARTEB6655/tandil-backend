@@ -61,14 +61,14 @@ Route::get('/media/{path}', function (string $path) {
     return response()->file($fullPath, ['Content-Type' => $mime]);
 })->where('path', '.*')->name('storage.serve');
 
-// Redirect root '/' to login or dashboard redirect
+// Redirect root '/' to app portal (role picker) or dashboard redirect
 Route::get('/', function () {
     try {
         if (auth()->check()) {
             return redirect()->route('dashboard.redirect');
         }
 
-        return redirect()->route('login');
+        return redirect()->route('app-portal.roles');
     } catch (\Throwable $e) {
         \Illuminate\Support\Facades\Log::error('Root route error', [
             'message' => $e->getMessage(),
@@ -102,11 +102,21 @@ Route::middleware('auth')->get('/dashboard-redirect', function () {
     try {
         $user = auth()->user();
         $role = null;
+
+        $ordered = ['admin', 'hr', 'area_manager', 'supervisor', 'technician', 'client'];
         if (method_exists($user, 'getRoleNames')) {
             try {
                 $names = $user->getRoleNames();
                 if ($names->isNotEmpty()) {
-                    $role = $names->first();
+                    foreach ($ordered as $candidate) {
+                        if ($names->contains($candidate)) {
+                            $role = $candidate;
+                            break;
+                        }
+                    }
+                    if ($role === null) {
+                        $role = $names->first();
+                    }
                 }
             } catch (\Throwable $e) {
                 $role = null;

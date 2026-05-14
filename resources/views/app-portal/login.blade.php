@@ -3,7 +3,14 @@
 @section('title', __('Log in'))
 
 @section('content')
-<div class="min-h-screen flex flex-col items-center justify-center px-4 py-10 sm:py-12">
+<div class="min-h-screen bg-[#f8f9fa] px-4 py-10 sm:py-12">
+    <div class="mx-auto flex max-w-md flex-col items-center justify-center">
+    @if ($authUser ?? null)
+        <div class="mb-4 w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950 shadow-sm">
+            <p class="font-medium">{{ __('Switching account') }}</p>
+            <p class="mt-1 text-blue-900/90">{{ __('Currently signed in as :email. Submitting this form will sign you in as the account you enter below.', ['email' => $authUser->email]) }}</p>
+        </div>
+    @endif
     <div class="mb-8 text-center">
         <img src="{{ asset('images/logo.png') }}" alt="TANDIL" class="mx-auto h-20 w-20 rounded-full object-cover shadow-sm ring-1 ring-gray-200/80">
         <p class="mt-3 text-lg font-bold tracking-wide text-[#2d4a3e]">TANDIL</p>
@@ -58,7 +65,7 @@
 
             <div class="flex flex-col items-stretch gap-3 pt-1 sm:flex-row sm:items-center sm:justify-end">
                 @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" class="order-2 text-right text-sm text-gray-500 underline underline-offset-2 hover:text-gray-800 sm:order-1 sm:mr-auto sm:text-left">
+                    <a href="{{ route('password.request') }}" class="order-2 text-right text-sm text-blue-600 underline underline-offset-2 hover:text-blue-800 sm:order-1 sm:mr-auto sm:text-left">
                         {{ __('Forgot your password?') }}
                     </a>
                 @endif
@@ -82,6 +89,7 @@
         <div class="mt-6 text-center">
             <a href="{{ route('app-portal.roles') }}" class="text-sm text-gray-500 hover:text-gray-800">{{ __('← Change role') }}</a>
         </div>
+    </div>
     </div>
 </div>
 @endsection

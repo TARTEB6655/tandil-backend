@@ -12,7 +12,7 @@ use Illuminate\View\View;
 class AppPortalWebController extends Controller
 {
     /**
-     * @return array<string, array{title: string, subtitle: string}>
+     * @return array<string, array{title: string, subtitle: string, icon: string}>
      */
     public static function portalMeta(): array
     {
@@ -20,47 +20,46 @@ class AppPortalWebController extends Controller
             'client' => [
                 'title' => 'Client (Customer)',
                 'subtitle' => 'Subscribe to plans, receive reports, and purchase agricultural products.',
+                'icon' => 'user',
             ],
             'technician' => [
                 'title' => 'Worker (Field Technician)',
                 'subtitle' => 'Perform watering, planting, cleaning tasks and submit field reports.',
+                'icon' => 'leaf',
             ],
             'supervisor' => [
                 'title' => 'Supervisor (Team Leader)',
                 'subtitle' => 'Manage workers, review reports, and submit final reports to clients.',
+                'icon' => 'users',
             ],
             'area_manager' => [
                 'title' => 'Area Manager',
                 'subtitle' => 'Oversee supervisors and technicians within a defined region.',
+                'icon' => 'map',
             ],
             'hr' => [
                 'title' => 'HR Manager',
                 'subtitle' => 'Manage employee profiles, job IDs, schedules, and visit assignments.',
+                'icon' => 'briefcase',
             ],
             'admin' => [
                 'title' => 'Admin',
                 'subtitle' => 'Full platform administration, users, settings, and support.',
+                'icon' => 'shield',
             ],
         ];
     }
 
-    public function selectRole(Request $request): View|RedirectResponse
+    public function selectRole(Request $request): View
     {
-        if ($request->user()) {
-            return redirect()->route('dashboard.redirect');
-        }
-
         return view('app-portal.select-role', [
             'portals' => self::portalMeta(),
+            'authUser' => $request->user(),
         ]);
     }
 
     public function loginForm(Request $request): View|RedirectResponse
     {
-        if ($request->user()) {
-            return redirect()->route('dashboard.redirect');
-        }
-
         $portal = $request->query('portal');
         if (is_string($portal) && in_array($portal, User::LOGIN_PORTALS, true)) {
             $request->session()->put('app_portal', $portal);
@@ -79,15 +78,12 @@ class AppPortalWebController extends Controller
             'portal' => $portal,
             'portalLabel' => $meta['title'],
             'portalSubtitle' => $meta['subtitle'],
+            'authUser' => $request->user(),
         ]);
     }
 
     public function loginSubmit(Request $request): RedirectResponse
     {
-        if ($request->user()) {
-            return redirect()->route('dashboard.redirect');
-        }
-
         $validated = $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
@@ -124,6 +120,22 @@ class AppPortalWebController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard.redirect'));
+        // Never use redirect()->intended() here: a stale url.intended sends testers to the wrong dashboard.
+        $request->session()->forget('url.intended');
+
+        return $this->redirectToRoleDashboard($portal);
+    }
+
+    private function redirectToRoleDashboard(string $portal): RedirectResponse
+    {
+        return match ($portal) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'supervisor' => redirect()->route('supervisor.dashboard'),
+            'technician' => redirect()->route('technician.dashboard'),
+            'client' => redirect()->route('client.dashboard'),
+            'area_manager' => redirect()->route('areamanager.dashboard'),
+            'hr' => redirect()->route('hr.dashboard'),
+            default => redirect()->route('dashboard.redirect'),
+        };
     }
 }
