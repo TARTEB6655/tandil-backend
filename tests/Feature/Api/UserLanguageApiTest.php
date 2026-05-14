@@ -42,7 +42,7 @@ class UserLanguageApiTest extends TestCase
             'preferred_locale' => 'en',
         ]);
 
-        $response = $this->putJson('/api/user/language', [
+        $response = $this->postJson('/api/user/language', [
             'locale' => 'ar',
         ], $this->authHeaders($user));
 
