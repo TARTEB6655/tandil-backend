@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\AppLoginRoles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,38 +17,7 @@ class AppPortalWebController extends Controller
      */
     public static function portalMeta(): array
     {
-        return [
-            'client' => [
-                'title' => 'Client (Customer)',
-                'subtitle' => 'Subscribe to plans, receive reports, and purchase agricultural products.',
-                'icon' => 'user',
-            ],
-            'technician' => [
-                'title' => 'Worker (Field Technician)',
-                'subtitle' => 'Perform watering, planting, cleaning tasks and submit field reports.',
-                'icon' => 'leaf',
-            ],
-            'supervisor' => [
-                'title' => 'Supervisor (Team Leader)',
-                'subtitle' => 'Manage workers, review reports, and submit final reports to clients.',
-                'icon' => 'users',
-            ],
-            'area_manager' => [
-                'title' => 'Area Manager',
-                'subtitle' => 'Oversee supervisors and technicians within a defined region.',
-                'icon' => 'map',
-            ],
-            'hr' => [
-                'title' => 'HR Manager',
-                'subtitle' => 'Manage employee profiles, job IDs, schedules, and visit assignments.',
-                'icon' => 'briefcase',
-            ],
-            'admin' => [
-                'title' => 'Admin',
-                'subtitle' => 'Full platform administration, users, settings, and support.',
-                'icon' => 'shield',
-            ],
-        ];
+        return AppLoginRoles::bySlug();
     }
 
     public function selectRole(Request $request): View

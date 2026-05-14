@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\TechnicianSignupRequest;
 use App\Models\User;
+use App\Support\AppLoginRoles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -21,22 +21,22 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:100',
-            'email'    => 'required|email|unique:users,email',
-            'phone'    => 'nullable|string|max:20|unique:users,phone',
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'nullable|string|max:20|unique:users,phone',
             'password' => 'required|string|min:6|confirmed',
-            'role'     => 'required|in:client,technician,supervisor,area_manager,hr,admin',
+            'role' => 'required|in:client,technician,supervisor,area_manager,hr,admin',
         ]);
 
         // Create user
         // Note: User model has 'password' => 'hashed' cast, so password is auto-hashed
         $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'phone'    => $validated['phone'] ?? null,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
             'password' => $validated['password'], // Auto-hashed by model cast
-            'role'     => $validated['role'],
-            'status'   => 'active',
+            'role' => $validated['role'],
+            'status' => 'active',
         ]);
 
         // Assign Spatie role
@@ -48,11 +48,11 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User registered successfully.',
-            'data'    => [
+            'data' => [
                 'token' => $token,
-                'role'  => $user->role,
-                'user'  => $user
-            ]
+                'role' => $user->role,
+                'user' => $user,
+            ],
         ], 201);
     }
 
@@ -65,6 +65,18 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => $this->technicianSignupAreasList(),
+        ]);
+    }
+
+    /**
+     * PUBLIC: App login entry roles (first screen — titles/icons only).
+     * GET /api/auth/app-roles — same slugs the server uses for the logged-in user (see login response `slug`).
+     */
+    public function appLoginRoles(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => AppLoginRoles::listForApi(),
         ]);
     }
 
@@ -168,16 +180,14 @@ class AuthController extends Controller
     /**
      * LOGIN
      *
-     * Requires "portal" (same value the mobile app sends for the chosen role).
-     * Portal must match the account: Spatie-assigned roles win over users.role so a
-     * stale default users.role value cannot unlock the wrong app.
+     * Email + password only. The user's role is resolved automatically (Spatie roles first,
+     * then users.role) for Sanctum token abilities — same priority as the web dashboard redirect.
      */
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required|string',
-            'portal'   => ['required', 'string', Rule::in(User::LOGIN_PORTALS)],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
         ]);
 
         $user = User::where('email', $validated['email'])->first();
@@ -190,9 +200,9 @@ class AuthController extends Controller
             return ApiResponse::error('Account is not active. Please contact admin.', 403);
         }
 
-        $portal = $validated['portal'];
-        if (! $user->matchesLoginPortal($portal)) {
-            return ApiResponse::error('Invalid login credentials.', 401);
+        $portal = $user->resolvedLoginPortal();
+        if ($portal === null) {
+            return ApiResponse::error('This account has no recognized app role. Please contact support.', 403);
         }
 
         $tokenName = 'api_'.$portal;
@@ -202,11 +212,12 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
-            'data'    => [
+            'data' => [
                 'token' => $token,
-                'role'  => $user->role,
-                'user'  => $user
-            ]
+                'role' => $user->role,
+                'slug' => $portal,
+                'user' => $user,
+            ],
         ]);
     }
 
@@ -216,13 +227,14 @@ class AuthController extends Controller
     public function profile(Request $request)
     {
         $user = $request->user();
+
         return response()->json([
             'success' => true,
             'message' => 'User retrieved successfully.',
-            'data'    => [
+            'data' => [
                 'role' => $user->role,
-                'user' => $user
-            ]
+                'user' => $user,
+            ],
         ]);
     }
 

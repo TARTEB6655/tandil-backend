@@ -12,6 +12,7 @@ use Tests\TestCase;
 class AuthApiTest extends TestCase
 {
     use RefreshDatabase;
+
     private Area $area;
 
     protected function setUp(): void
@@ -183,7 +184,7 @@ class AuthApiTest extends TestCase
         $response->assertJsonValidationErrors(['email', 'phone']);
     }
 
-    public function test_login_rejects_wrong_portal_when_spatie_role_differs_from_stale_users_role_column(): void
+    public function test_login_resolves_portal_from_spatie_when_users_role_column_is_stale(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
             $this->markTestSkipped('Spatie permission tables unavailable.');
@@ -200,19 +201,12 @@ class AuthApiTest extends TestCase
         $this->postJson('/api/auth/login', [
             'email' => 'portal-mismatch@example.com',
             'password' => 'password',
-            'portal' => 'client',
-        ])->assertStatus(401)
-            ->assertJsonPath('success', false);
-
-        $this->postJson('/api/auth/login', [
-            'email' => 'portal-mismatch@example.com',
-            'password' => 'password',
-            'portal' => 'area_manager',
         ])->assertStatus(200)
-            ->assertJsonPath('success', true);
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.slug', 'area_manager');
     }
 
-    public function test_login_requires_portal(): void
+    public function test_login_succeeds_without_portal_field(): void
     {
         $user = User::factory()->create([
             'email' => 'no-portal@example.com',
@@ -231,8 +225,25 @@ class AuthApiTest extends TestCase
         $this->postJson('/api/auth/login', [
             'email' => 'no-portal@example.com',
             'password' => 'password',
-        ])->assertStatus(422)
-            ->assertJsonValidationErrors(['portal']);
+        ])->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.slug', 'client');
+    }
+
+    public function test_app_login_roles_returns_ordered_slugs(): void
+    {
+        $response = $this->getJson('/api/auth/app-roles');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $rows = $response->json('data');
+        $this->assertIsArray($rows);
+        $this->assertCount(6, $rows);
+        $this->assertSame('client', $rows[0]['slug']);
+        $this->assertArrayHasKey('title', $rows[0]);
+        $this->assertArrayHasKey('subtitle', $rows[0]);
+        $this->assertArrayHasKey('icon', $rows[0]);
+        $this->assertSame('admin', $rows[5]['slug']);
     }
 }
-

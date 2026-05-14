@@ -10,7 +10,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
         'name',
@@ -60,7 +60,8 @@ class User extends Authenticatable
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
         }
-        return request()->getSchemeAndHttpHost() ? (rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path) : asset('media/' . $path);
+
+        return request()->getSchemeAndHttpHost() ? (rtrim(request()->getSchemeAndHttpHost(), '/').'/media/'.$path) : asset('media/'.$path);
     }
 
     /*
@@ -176,8 +177,38 @@ class User extends Authenticatable
     |--------------------------------------------------------------------------
     */
 
-    /** Values allowed for POST /api/auth/login "portal" (must match role / Spatie). */
+    /** App login / Sanctum: allowed portal slugs (token abilities). */
     public const LOGIN_PORTALS = ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin'];
+
+    /**
+     * One portal slug for API token after login (Spatie first, same priority as web dashboard.redirect).
+     */
+    public function resolvedLoginPortal(): ?string
+    {
+        $ordered = ['admin', 'hr', 'area_manager', 'supervisor', 'technician', 'client'];
+
+        try {
+            $names = $this->getRoleNames();
+            if ($names->isNotEmpty()) {
+                foreach ($ordered as $candidate) {
+                    if ($names->contains($candidate)) {
+                        return $candidate;
+                    }
+                }
+                foreach ($names as $name) {
+                    if (is_string($name) && in_array($name, self::LOGIN_PORTALS, true)) {
+                        return $name;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // fall through to users.role
+        }
+
+        $col = $this->role ?? null;
+
+        return is_string($col) && in_array($col, self::LOGIN_PORTALS, true) ? $col : null;
+    }
 
     /**
      * Whether this user is the given app role (users.role column or Spatie role).
@@ -215,9 +246,28 @@ class User extends Authenticatable
         return ($this->role ?? '') === $portal;
     }
 
-    public function isTechnician()    { return $this->hasRole('technician'); }
-    public function isSupervisor()     { return $this->hasRole('supervisor'); }
-    public function isAreaManager()    { return $this->hasRole('area_manager'); }
-    public function isAdmin()          { return $this->hasRole('admin'); }
-    public function isClient()         { return $this->hasRole('client'); }
+    public function isTechnician()
+    {
+        return $this->hasRole('technician');
+    }
+
+    public function isSupervisor()
+    {
+        return $this->hasRole('supervisor');
+    }
+
+    public function isAreaManager()
+    {
+        return $this->hasRole('area_manager');
+    }
+
+    public function isAdmin()
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isClient()
+    {
+        return $this->hasRole('client');
+    }
 }

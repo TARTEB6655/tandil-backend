@@ -31,7 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [
             \App\Http\Middleware\SetRequestLocale::class,
         ]);
-        
+
         // All routes in routes/api.php use the api middleware group (prefix /api/).
         // Force JSON for every API; ensure no API ever returns HTML or raw error.
         $middleware->api(prepend: [
@@ -48,15 +48,14 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*') || $request->expectsJson() || $request->wantsJson() || $request->header('Accept') === 'application/json') {
                 // ValidationException: return 422 with errors (getResponse() can be null when thrown from validate())
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
-                    $response = $e->getResponse();
-                    if ($response !== null) {
-                        return $response;
-                    }
+                    $errors = $e->errors();
+                    $message = 'Validation failed.';
+
                     return response()->json([
                         'success' => false,
-                        'message' => $e->getMessage(),
-                        'errors' => $e->errors(),
-                    ], 422);
+                        'message' => $message,
+                        'errors' => $errors,
+                    ], $e->status);
                 }
                 // AuthenticationException: return 401 for unauthenticated API requests
                 if ($e instanceof \Illuminate\Auth\AuthenticationException) {
@@ -89,6 +88,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     } else {
                         $message = 'Endpoint not found. Check the URL and HTTP method (e.g. PUT for update).';
                     }
+
                     return response()->json([
                         'success' => false,
                         'message' => $message,
@@ -111,11 +111,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 // Other exceptions: for API always show actual error message so client knows what to fix
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 $message = $e->getMessage() ?: 'An error occurred.';
+
                 return response()->json([
                     'success' => false,
                     'message' => $message,
                 ], $statusCode);
             }
+
             return null;
         });
     })->create();
