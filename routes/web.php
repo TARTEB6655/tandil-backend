@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminProfileSettingsController;
 use App\Http\Controllers\Admin\AreaController;
-use App\Http\Controllers\Admin\AuditLogController;
 // Dashboard Controllers for roles
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ComplaintController;
@@ -16,7 +17,6 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReportManagementController;
 use App\Http\Controllers\Admin\RoleController;
-use App\Http\Controllers\Admin\AdminProfileSettingsController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SupportTicketWebController;
@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\Admin\WalletController as AdminWalletController;
+use App\Http\Controllers\AppPortalWebController;
 use App\Http\Controllers\AreaManager\AreaManagerDashboardController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\WalletController as ClientWalletController;
@@ -100,10 +101,18 @@ Route::middleware('auth')->post('/locale', function (\Illuminate\Http\Request $r
 Route::middleware('auth')->get('/dashboard-redirect', function () {
     try {
         $user = auth()->user();
-        $role = $user->role ?? null;
-        if ($role === null && method_exists($user, 'getRoleNames')) {
-            $role = $user->getRoleNames()->first();
+        $role = null;
+        if (method_exists($user, 'getRoleNames')) {
+            try {
+                $names = $user->getRoleNames();
+                if ($names->isNotEmpty()) {
+                    $role = $names->first();
+                }
+            } catch (\Throwable $e) {
+                $role = null;
+            }
         }
+        $role ??= $user->role ?? null;
         switch ($role) {
             case 'admin':
                 return redirect()->route('admin.dashboard');
@@ -570,12 +579,14 @@ Route::middleware(['auth', 'role:hr'])
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
     });
 
-// Mobile-style portal login tester (POST /api/auth/login with selected portal)
-Route::get('/portal-login-demo', function () {
-    return view('portal-login-demo', [
-        'apiLoginUrl' => url('/api/auth/login'),
-    ]);
-})->name('portal-login-demo');
+// App portal: role selection → login (same flow as mobile; session + web auth after success)
+Route::prefix('app-portal')->name('app-portal.')->group(function () {
+    Route::get('/', [AppPortalWebController::class, 'selectRole'])->name('roles');
+    Route::get('/login', [AppPortalWebController::class, 'loginForm'])->name('login');
+    Route::post('/login', [AppPortalWebController::class, 'loginSubmit'])->name('login.submit');
+});
+
+Route::redirect('/portal-login-demo', '/app-portal', 301)->name('portal-login-demo');
 
 // Breeze auth routes (login/logout/password/reset)
 require __DIR__.'/auth.php';
