@@ -12,6 +12,7 @@ use App\Support\UserNotificationInbox;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -60,8 +61,10 @@ class UserController extends Controller
 
         $user = $request->user();
         $locale = $this->normalizeLocale($validated['locale']);
-        $user->preferred_locale = $locale;
-        $user->save();
+        if (Schema::hasColumn('users', 'preferred_locale')) {
+            $user->preferred_locale = $locale;
+            $user->save();
+        }
 
         if ($request->hasSession()) {
             $request->session()->put('app_locale', $locale);

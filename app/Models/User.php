@@ -176,6 +176,45 @@ class User extends Authenticatable
     |--------------------------------------------------------------------------
     */
 
+    /** Values allowed for POST /api/auth/login "portal" (must match role / Spatie). */
+    public const LOGIN_PORTALS = ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin'];
+
+    /**
+     * Whether this user is the given app role (users.role column or Spatie role).
+     * Matches logic used by web login redirects and CheckRole middleware.
+     */
+    public function hasAppRole(string $roleName): bool
+    {
+        if ($this->role === $roleName) {
+            return true;
+        }
+
+        try {
+            return $this->hasRole($roleName);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * API login portal check: when Spatie roles exist they are authoritative.
+     * Avoids accepting portal=client because users.role stayed the DB default "client"
+     * while the account was assigned area_manager (or another role) in Spatie only.
+     */
+    public function matchesLoginPortal(string $portal): bool
+    {
+        try {
+            $names = $this->getRoleNames();
+            if ($names->isNotEmpty()) {
+                return $names->contains($portal);
+            }
+        } catch (\Throwable $e) {
+            // fall through to users.role
+        }
+
+        return ($this->role ?? '') === $portal;
+    }
+
     public function isTechnician()    { return $this->hasRole('technician'); }
     public function isSupervisor()     { return $this->hasRole('supervisor'); }
     public function isAreaManager()    { return $this->hasRole('area_manager'); }

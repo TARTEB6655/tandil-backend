@@ -88,7 +88,7 @@ Route::middleware('auth')->post('/locale', function (\Illuminate\Http\Request $r
     session(['app_locale' => $locale]);
 
     $user = $request->user();
-    if ($user) {
+    if ($user && \Illuminate\Support\Facades\Schema::hasColumn('users', 'preferred_locale')) {
         $user->preferred_locale = $locale;
         $user->save();
     }
@@ -152,7 +152,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
             ]);
 
             $user = $request->user();
-            if ($user) {
+            if ($user && \Illuminate\Support\Facades\Schema::hasColumn('users', 'preferred_locale')) {
                 $user->preferred_locale = $locale;
                 $user->save();
             }
@@ -569,6 +569,13 @@ Route::middleware(['auth', 'role:hr'])
         Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
     });
+
+// Mobile-style portal login tester (POST /api/auth/login with selected portal)
+Route::get('/portal-login-demo', function () {
+    return view('portal-login-demo', [
+        'apiLoginUrl' => url('/api/auth/login'),
+    ]);
+})->name('portal-login-demo');
 
 // Breeze auth routes (login/logout/password/reset)
 require __DIR__.'/auth.php';

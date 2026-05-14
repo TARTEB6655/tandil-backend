@@ -22,6 +22,8 @@ class AuthApiTest extends TestCase
             if (class_exists(Role::class) && Schema::hasTable('roles')) {
                 Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
                 Role::firstOrCreate(['name' => 'supervisor', 'guard_name' => 'web']);
+                Role::firstOrCreate(['name' => 'client', 'guard_name' => 'web']);
+                Role::firstOrCreate(['name' => 'area_manager', 'guard_name' => 'web']);
             }
         } catch (\Throwable $e) {
             // keep test resilient when permission tables are unavailable
@@ -179,6 +181,58 @@ class AuthApiTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['email', 'phone']);
+    }
+
+    public function test_login_rejects_wrong_portal_when_spatie_role_differs_from_stale_users_role_column(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $user = User::factory()->create([
+            'email' => 'portal-mismatch@example.com',
+            'password' => 'password',
+            'role' => 'client',
+            'status' => 'active',
+        ]);
+        $user->syncRoles(['area_manager']);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'portal-mismatch@example.com',
+            'password' => 'password',
+            'portal' => 'client',
+        ])->assertStatus(401)
+            ->assertJsonPath('success', false);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'portal-mismatch@example.com',
+            'password' => 'password',
+            'portal' => 'area_manager',
+        ])->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_login_requires_portal(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'no-portal@example.com',
+            'password' => 'password',
+            'role' => 'client',
+            'status' => 'active',
+        ]);
+        try {
+            if (method_exists($user, 'assignRole')) {
+                $user->assignRole('client');
+            }
+        } catch (\Throwable $e) {
+            // no-op
+        }
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'no-portal@example.com',
+            'password' => 'password',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['portal']);
     }
 }
 

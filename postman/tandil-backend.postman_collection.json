@@ -4,7 +4,7 @@
       "description": "Tandil Backend API. All responses JSON.\n\nEnv: base_url, token, category_id, product_id, tip_id, banner_id, visit_id, photo_id, order_id, offer_id, service_id.\n\nSections: Health → Auth → Categories → Products → Tips → Admin Banners → Visits → Maintenance Photos (8b) → Shop & Orders → Technician/Supervisor → Admin & HR (Dashboard: statistics, recent-activities, quick-overview, profile, top-selling-products) → 13. Other Modules (Exclusive Offers, Complaints, Tips, Notifications, Payment, Services, User Profile, etc.). Use Bearer token for protected routes. Image/photo uploads: multipart/form-data. Top Selling Products: ?limit=10&include_unsold=1 returns product details + sales/revenue or fallback list.",
       "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
       "_exporter_id": "tandil-backend",
-      "version": "2.20.1"
+      "version": "2.20.2"
   },
   "item": [
       {
@@ -125,7 +125,7 @@
                       ],
                       "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\"\n}"
+                          "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\",\n  \"portal\": \"admin\"\n}"
                       },
                       "url": {
                           "raw": "{{base_url}}/api/auth/login",
@@ -138,7 +138,7 @@
                               "login"
                           ]
                       },
-                      "description": "\u2705 STEP 2 (Alternative): Login with existing account"
+                      "description": "\u2705 STEP 2 (Alternative): Login. Body must include portal (client|technician|supervisor|area_manager|hr|admin) matching the user role unless API_LOGIN_PORTAL_REQUIRED=false."
                   }
               }
           ],

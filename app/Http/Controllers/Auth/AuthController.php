@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -166,12 +167,17 @@ class AuthController extends Controller
 
     /**
      * LOGIN
+     *
+     * Requires "portal" (same value the mobile app sends for the chosen role).
+     * Portal must match the account: Spatie-assigned roles win over users.role so a
+     * stale default users.role value cannot unlock the wrong app.
      */
     public function login(Request $request)
     {
         $validated = $request->validate([
             'email'    => 'required|email',
             'password' => 'required|string',
+            'portal'   => ['required', 'string', Rule::in(User::LOGIN_PORTALS)],
         ]);
 
         $user = User::where('email', $validated['email'])->first();
@@ -184,8 +190,14 @@ class AuthController extends Controller
             return ApiResponse::error('Account is not active. Please contact admin.', 403);
         }
 
-        // Create new token
-        $token = $user->createToken('api_token')->plainTextToken;
+        $portal = $validated['portal'];
+        if (! $user->matchesLoginPortal($portal)) {
+            return ApiResponse::error('Invalid login credentials.', 401);
+        }
+
+        $tokenName = 'api_'.$portal;
+        $abilities = [$portal];
+        $token = $user->createToken($tokenName, $abilities)->plainTextToken;
 
         return response()->json([
             'success' => true,
