@@ -7,7 +7,7 @@
     <div class="portal-shell">
         <header style="text-align:center;margin-bottom:1.25rem;">
             <div class="portal-logo-wrap">
-                <img src="{{ asset('images/logo.png') }}" alt="TANDIL" width="70" height="70" decoding="async">
+                <img src="{{ asset('images/logo.png') }}" alt="TANDIL" width="80" height="80" decoding="async">
             </div>
             <p class="portal-brandline" style="margin-top:12px;"><span dir="rtl">تنديل</span> &nbsp;|&nbsp; TANDIL</p>
             <h1 class="portal-title" style="margin-top:14px;">{{ __('Choose Your Role') }}</h1>

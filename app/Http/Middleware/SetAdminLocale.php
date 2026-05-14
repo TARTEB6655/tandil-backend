@@ -8,8 +8,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SetAdminLocale
 {
-    protected array $allowed = ['en', 'ar', 'ur'];
-
     /**
      * Set app locale for admin dashboard from session (admin_locale).
      *
@@ -21,7 +19,8 @@ class SetAdminLocale
             ?? session('app_locale')
             ?? ($request->user()?->preferred_locale)
             ?? config('app.locale');
-        if (in_array($locale, $this->allowed, true)) {
+        $allowed = config('locales.supported', ['en', 'ar', 'ur']);
+        if (in_array($locale, $allowed, true)) {
             app()->setLocale($locale);
         }
 

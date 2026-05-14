@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
+use App\Http\Controllers\Controller;
 use App\Models\UserAddress;
 use App\Models\UserPaymentMethod;
 use App\Models\WalletCredit;
-use App\Support\RefundPolicy;
-use App\Support\UserNotificationInbox;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
+use App\Support\RefundPolicy;
+use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -41,26 +41,28 @@ class UserController extends Controller
     public function getLanguage(Request $request)
     {
         $user = $request->user();
+        $supported = config('locales.supported', ['en', 'ar', 'ur']);
         $locale = $this->normalizeLocale((string) ($user->preferred_locale ?? app()->getLocale()));
-        if (! in_array($locale, ['en', 'ar', 'ur'], true)) {
-            $locale = 'en';
+        if (! in_array($locale, $supported, true)) {
+            $locale = (string) config('locales.fallback', 'en');
         }
 
         return ApiResponse::success('Language retrieved successfully.', [
             'locale' => $locale,
-            'available_locales' => ['en', 'ar', 'ur'],
-            'rtl' => in_array($locale, ['ar', 'ur'], true),
+            'available_locales' => $supported,
+            'rtl' => in_array($locale, config('locales.rtl', ['ar', 'ur']), true),
         ]);
     }
 
     public function updateLanguage(Request $request)
     {
         $validated = $request->validate([
-            'locale' => 'required|string|in:en,ar,ur',
+            'locale' => ['required', 'string', Rule::in(config('locales.supported', ['en', 'ar', 'ur']))],
         ]);
 
         $user = $request->user();
         $locale = $this->normalizeLocale($validated['locale']);
+        $supported = config('locales.supported', ['en', 'ar', 'ur']);
         if (Schema::hasColumn('users', 'preferred_locale')) {
             $user->preferred_locale = $locale;
             $user->save();
@@ -77,8 +79,8 @@ class UserController extends Controller
 
         return ApiResponse::success('Language updated successfully.', [
             'locale' => $locale,
-            'available_locales' => ['en', 'ar', 'ur'],
-            'rtl' => in_array($locale, ['ar', 'ur'], true),
+            'available_locales' => $supported,
+            'rtl' => in_array($locale, config('locales.rtl', ['ar', 'ur']), true),
         ]);
     }
 
@@ -132,6 +134,7 @@ class UserController extends Controller
     public function getProfile(Request $request)
     {
         $user = $request->user();
+
         return ApiResponse::success('Profile retrieved successfully.', $this->profileToArray($user));
     }
 
@@ -230,6 +233,7 @@ class UserController extends Controller
         }
 
         $address = UserAddress::create($validated);
+
         return ApiResponse::success('Address created successfully.', $address->toApiArray(), 201);
     }
 
@@ -262,6 +266,7 @@ class UserController extends Controller
         }
 
         $address->update($validated);
+
         return ApiResponse::success('Address updated successfully.', $address->fresh()->toApiArray());
     }
 
@@ -289,6 +294,7 @@ class UserController extends Controller
         $user = $request->user();
         $address = UserAddress::where('user_id', $user->id)->findOrFail($id);
         $address->delete();
+
         return ApiResponse::success('Address deleted successfully.');
     }
 
@@ -443,4 +449,3 @@ class UserController extends Controller
         ]);
     }
 }
-

@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'optional.sanctum' => \App\Http\Middleware\OptionalSanctum::class,
             'set.admin.locale' => \App\Http\Middleware\SetAdminLocale::class,
             'set.request.locale' => \App\Http\Middleware\SetRequestLocale::class,
+            'locale' => \App\Http\Middleware\SetRequestLocale::class,
         ]);
 
         $middleware->web(prepend: [

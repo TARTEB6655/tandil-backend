@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             ServicesCategoriesAndProductsSeeder::class,
             ExclusiveOfferSeeder::class,
             DummySupervisorAssignedTasksSeeder::class, // Temporary demo data for technician task assignment screens
+            LocalizedArticleSeeder::class,
         ]);
 
         $this->command->info('');

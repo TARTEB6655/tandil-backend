@@ -14,11 +14,11 @@
 
         <header style="text-align:center;margin-bottom:1.25rem;">
             <div class="portal-logo-wrap">
-                <img src="{{ asset('images/logo.png') }}" alt="TANDIL" width="70" height="70" decoding="async">
+                <img src="{{ asset('images/logo.png') }}" alt="TANDIL" width="80" height="80" decoding="async">
             </div>
-            <p class="portal-muted" style="margin-top:14px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;">{{ __('Signing in as') }}</p>
+            <p class="portal-muted" style="margin-top:1rem;font-weight:600;">{{ __('Signing in as') }}</p>
             <p class="portal-title" style="margin-top:6px;">{{ $portalLabel }}</p>
-            <p class="portal-sub" style="max-width:32ch;margin-left:auto;margin-right:auto;">{{ $portalSubtitle }}</p>
+            <p class="portal-sub" style="max-width:36ch;margin-left:auto;margin-right:auto;">{{ $portalSubtitle }}</p>
             <p class="portal-brandline"><span dir="rtl">تنديل</span> &nbsp;|&nbsp; TANDIL</p>
         </header>
 

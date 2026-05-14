@@ -11,6 +11,15 @@ Route::get('/health', function () {
     return ['status' => 'API is working'];
 });
 
+/*
+|--------------------------------------------------------------------------
+| MULTILINGUAL EXAMPLES (Spatie translatable + JSON columns)
+|--------------------------------------------------------------------------
+*/
+Route::get('/localized-articles', [\App\Http\Controllers\Api\LocalizedArticleController::class, 'index']);
+Route::get('/localized-articles/{slug}', [\App\Http\Controllers\Api\LocalizedArticleController::class, 'show'])
+    ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*');
+
 // Alias (same handler as api/auth/technician-signup-areas) — useful if proxies/docs use a shorter path; always deploy latest routes.
 Route::get('/technician-signup-areas', [\App\Http\Controllers\Auth\AuthController::class, 'technicianSignupAreas'])
     ->name('api.technician-signup-areas');

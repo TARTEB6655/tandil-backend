@@ -6,14 +6,32 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Resolves the active locale for web + API requests.
+ *
+ * Priority: lang query → locale query → X-Locale header → Accept-Language
+ * → authenticated user's preferred_locale → session → configured fallback.
+ */
 class SetRequestLocale
 {
-    /** @var list<string> */
-    private array $allowed = ['en', 'ar', 'ur'];
+    /** @return list<string> */
+    private function allowedLocales(): array
+    {
+        $locales = config('locales.supported', ['en', 'ar', 'ur']);
 
-    /**
-     * Resolve locale from query/header/user/session and apply globally.
-     */
+        return array_values(array_unique(array_map(
+            fn (string $l) => strtolower(trim($l)),
+            $locales
+        )));
+    }
+
+    private function fallbackLocale(): string
+    {
+        $fb = (string) config('locales.fallback', config('app.fallback_locale', 'en'));
+
+        return $this->isAllowed($fb) ? $this->normalize($fb) : 'en';
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         $locale = $this->resolveLocale($request);
@@ -33,9 +51,11 @@ class SetRequestLocale
 
     private function resolveLocale(Request $request): ?string
     {
-        $candidate = $request->query('locale');
-        if (is_string($candidate) && $this->isAllowed($candidate)) {
-            return $this->normalize($candidate);
+        foreach (['lang', 'locale'] as $queryKey) {
+            $candidate = $request->query($queryKey);
+            if (is_string($candidate) && $this->isAllowed($candidate)) {
+                return $this->normalize($candidate);
+            }
         }
 
         $candidate = $request->header('X-Locale');
@@ -70,9 +90,7 @@ class SetRequestLocale
             }
         }
 
-        $default = (string) config('app.locale', 'en');
-
-        return $this->isAllowed($default) ? $this->normalize($default) : 'en';
+        return $this->fallbackLocale();
     }
 
     private function normalize(string $locale): string
@@ -82,7 +100,6 @@ class SetRequestLocale
 
     private function isAllowed(string $locale): bool
     {
-        return in_array($this->normalize($locale), $this->allowed, true);
+        return in_array($this->normalize($locale), $this->allowedLocales(), true);
     }
 }
-
