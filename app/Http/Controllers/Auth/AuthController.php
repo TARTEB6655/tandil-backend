@@ -305,7 +305,12 @@ class AuthController extends Controller
         try {
             $claims = $appleIdTokenVerifier->verify($validated['id_token']);
         } catch (RuntimeException $e) {
-            return ApiResponse::error('Invalid Apple sign-in token.', 401);
+            $message = 'Invalid Apple sign-in token.';
+            if (config('app.debug') && $e->getPrevious() !== null) {
+                $message .= ' '.$e->getPrevious()->getMessage();
+            }
+
+            return ApiResponse::error($message, 401);
         }
 
         return $socialClientAuthService->authenticateApple(
