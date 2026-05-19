@@ -7,11 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\TechnicianSignupRequest;
 use App\Models\User;
+use App\Services\Auth\AppleIdTokenVerifier;
+use App\Services\Auth\GoogleIdTokenVerifier;
+use App\Services\Auth\SocialClientAuthService;
 use App\Support\AppLoginRoles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use RuntimeException;
 
 class AuthController extends Controller
 {
@@ -233,6 +237,83 @@ class AuthController extends Controller
                 'user' => $user,
             ],
         ]);
+    }
+
+    /**
+     * GOOGLE SIGN-IN (client app)
+     *
+     * Body: id_token, roles (must be "client").
+     */
+    public function google(
+        Request $request,
+        GoogleIdTokenVerifier $googleIdTokenVerifier,
+        SocialClientAuthService $socialClientAuthService,
+    ): JsonResponse {
+        $validated = $request->validate([
+            'id_token' => ['required', 'string'],
+            'roles' => ['required'],
+        ]);
+
+        $portal = $this->normalizeLoginRolesParameter($validated['roles']);
+        if ($portal === false || $portal === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => [
+                    'roles' => ['roles must be a single slug: '.implode(', ', User::LOGIN_PORTALS).'.'],
+                ],
+            ], 422);
+        }
+
+        try {
+            $claims = $googleIdTokenVerifier->verify($validated['id_token']);
+        } catch (RuntimeException $e) {
+            return ApiResponse::error('Invalid Google sign-in token.', 401);
+        }
+
+        return $socialClientAuthService->authenticateGoogle($claims, $portal);
+    }
+
+    /**
+     * APPLE SIGN-IN (client app)
+     *
+     * Body: id_token, roles (must be "client"); optional name, email (first sign-in).
+     */
+    public function apple(
+        Request $request,
+        AppleIdTokenVerifier $appleIdTokenVerifier,
+        SocialClientAuthService $socialClientAuthService,
+    ): JsonResponse {
+        $validated = $request->validate([
+            'id_token' => ['required', 'string'],
+            'roles' => ['required'],
+            'name' => ['nullable', 'string', 'max:100'],
+            'email' => ['nullable', 'email', 'max:255'],
+        ]);
+
+        $portal = $this->normalizeLoginRolesParameter($validated['roles']);
+        if ($portal === false || $portal === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => [
+                    'roles' => ['roles must be a single slug: '.implode(', ', User::LOGIN_PORTALS).'.'],
+                ],
+            ], 422);
+        }
+
+        try {
+            $claims = $appleIdTokenVerifier->verify($validated['id_token']);
+        } catch (RuntimeException $e) {
+            return ApiResponse::error('Invalid Apple sign-in token.', 401);
+        }
+
+        return $socialClientAuthService->authenticateApple(
+            $claims,
+            $portal,
+            $validated['name'] ?? null,
+            $validated['email'] ?? null,
+        );
     }
 
     /**

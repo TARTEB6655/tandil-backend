@@ -53,4 +53,20 @@ return [
         'user_agent' => env('NOMINATIM_USER_AGENT'),
     ],
 
+    /*
+    | Mobile social sign-in (POST /api/auth/google, POST /api/auth/apple).
+    | Comma-separated client IDs if you have separate iOS/Android OAuth clients.
+    */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID', env('PUBLIC_GOOGLE_CLIENT_ID')),
+        'client_ids' => env('GOOGLE_CLIENT_IDS', env('PUBLIC_GOOGLE_CLIENT_IDS')),
+    ],
+
+    'apple' => [
+        // iOS React Native: identity token `aud` = Bundle ID (e.g. com.company.tandil).
+        // Web Sign in with Apple: `aud` = Services ID — add both to APPLE_CLIENT_IDS if needed.
+        'client_id' => env('APPLE_CLIENT_ID', env('PUBLIC_APPLE_BUNDLE_ID', env('APPLE_BUNDLE_ID'))),
+        'client_ids' => env('APPLE_CLIENT_IDS', env('PUBLIC_APPLE_BUNDLE_IDS')),
+    ],
+
 ];

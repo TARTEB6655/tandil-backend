@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→I** (A–H as before, plus **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.28"
+        "version": "3.3.30"
     },
     "item": [
         {
@@ -890,6 +890,110 @@
                             ]
                         },
                         "description": "POST /api/auth/login. Body: email, password, required roles (single slug from GET /api/auth/app-roles, or JSON array of one slug). Token is scoped to that slug; the account must have that role. Response data.slug."
+                    }
+                },
+                {
+                    "name": "Google sign-in (client)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    var d = jsonData.data || jsonData;",
+                                    "    if (d.token) {",
+                                    "        pm.environment.set('token', d.token);",
+                                    "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                                    "        if (d.role) pm.environment.set('role', d.role);",
+                                    "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id_token\": \"<google_id_token_from_mobile_sdk>\",\n  \"roles\": \"client\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/google",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "google"
+                            ]
+                        },
+                        "description": "POST /api/auth/google. Public. Body: id_token (Google Sign-In SDK), roles (client). Verifies token with Google tokeninfo, finds or creates client user. Response = POST /api/auth/login (success, data.token, data.role, data.slug, data.user). Server .env: PUBLIC_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID (optional GOOGLE_CLIENT_IDS for multiple OAuth clients)."
+                    }
+                },
+                {
+                    "name": "Apple sign-in (client)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    var d = jsonData.data || jsonData;",
+                                    "    if (d.token) {",
+                                    "        pm.environment.set('token', d.token);",
+                                    "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                                    "        if (d.role) pm.environment.set('role', d.role);",
+                                    "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id_token\": \"<apple_identity_token>\",\n  \"roles\": \"client\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@privaterelay.appleid.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/apple",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "apple"
+                            ]
+                        },
+                        "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
                     }
                 },
                 {

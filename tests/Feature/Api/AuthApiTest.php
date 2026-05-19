@@ -4,7 +4,10 @@ namespace Tests\Feature\Api;
 
 use App\Models\Area;
 use App\Models\User;
+use App\Services\Auth\AppleIdTokenVerifier;
+use App\Services\Auth\GoogleIdTokenVerifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -289,5 +292,223 @@ class AuthApiTest extends TestCase
             'roles' => 'admin',
         ])->assertStatus(401)
             ->assertJsonPath('success', false);
+    }
+
+    public function test_google_auth_creates_client_and_returns_login_shape(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $this->mock(GoogleIdTokenVerifier::class, function ($mock): void {
+            $mock->shouldReceive('verify')
+                ->once()
+                ->with('valid-google-token')
+                ->andReturn([
+                    'sub' => 'google-sub-123',
+                    'email' => 'google.new@example.com',
+                    'name' => 'Google User',
+                    'email_verified' => true,
+                ]);
+        });
+
+        $response = $this->postJson('/api/auth/google', [
+            'id_token' => 'valid-google-token',
+            'roles' => 'client',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Login successful.')
+            ->assertJsonPath('data.slug', 'client')
+            ->assertJsonPath('data.role', 'client')
+            ->assertJsonPath('data.user.email', 'google.new@example.com')
+            ->assertJsonStructure(['data' => ['token', 'role', 'slug', 'user' => ['id', 'name', 'email']]]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'google.new@example.com',
+            'google_id' => 'google-sub-123',
+            'role' => 'client',
+        ]);
+    }
+
+    public function test_google_auth_logs_in_existing_user_by_google_id(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $user = User::factory()->create([
+            'email' => 'existing.google@example.com',
+            'google_id' => 'google-sub-existing',
+            'role' => 'client',
+            'status' => 'active',
+        ]);
+        $user->syncRoles(['client']);
+
+        $this->mock(GoogleIdTokenVerifier::class, function ($mock): void {
+            $mock->shouldReceive('verify')
+                ->once()
+                ->andReturn([
+                    'sub' => 'google-sub-existing',
+                    'email' => 'existing.google@example.com',
+                    'name' => 'Existing Google',
+                    'email_verified' => true,
+                ]);
+        });
+
+        $this->postJson('/api/auth/google', [
+            'id_token' => 'valid-google-token',
+            'roles' => 'client',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.user.id', $user->id)
+            ->assertJsonStructure(['data' => ['token']]);
+    }
+
+    public function test_google_auth_rejects_invalid_token(): void
+    {
+        $this->mock(GoogleIdTokenVerifier::class, function ($mock): void {
+            $mock->shouldReceive('verify')
+                ->once()
+                ->andThrow(new \RuntimeException('Invalid Google ID token.'));
+        });
+
+        $this->postJson('/api/auth/google', [
+            'id_token' => 'bad-token',
+            'roles' => 'client',
+        ])->assertStatus(401)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_google_auth_requires_id_token_and_roles(): void
+    {
+        $this->postJson('/api/auth/google', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['id_token', 'roles']);
+    }
+
+    public function test_apple_auth_creates_client_with_optional_name_and_email(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $this->mock(AppleIdTokenVerifier::class, function ($mock): void {
+            $mock->shouldReceive('verify')
+                ->once()
+                ->with('valid-apple-token')
+                ->andReturn([
+                    'sub' => 'apple-sub-456',
+                    'email' => null,
+                    'email_verified' => false,
+                ]);
+        });
+
+        $this->postJson('/api/auth/apple', [
+            'id_token' => 'valid-apple-token',
+            'roles' => 'client',
+            'name' => 'Apple Client',
+            'email' => 'apple.new@example.com',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.user.email', 'apple.new@example.com')
+            ->assertJsonPath('data.user.name', 'Apple Client');
+
+        $this->assertDatabaseHas('users', [
+            'apple_id' => 'apple-sub-456',
+            'email' => 'apple.new@example.com',
+        ]);
+    }
+
+    public function test_social_auth_endpoints_are_registered(): void
+    {
+        $this->postJson('/api/auth/google', ['roles' => 'client'])
+            ->assertStatus(422);
+
+        $this->postJson('/api/auth/apple', ['roles' => 'client'])
+            ->assertStatus(422);
+    }
+
+    public function test_google_tokeninfo_verifier_accepts_payload_when_audience_matches(): void
+    {
+        $clientId = '805072500013-5unlc40tcam3lidd9vb4hkhmausbnoep.apps.googleusercontent.com';
+        config(['services.google.client_id' => $clientId]);
+
+        Http::fake([
+            'oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => 'live-google-sub',
+                'email' => 'live.google@example.com',
+                'name' => 'Live Google',
+                'email_verified' => 'true',
+                'aud' => $clientId,
+            ]),
+        ]);
+
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $this->postJson('/api/auth/google', [
+            'id_token' => 'real-shaped-token',
+            'roles' => 'client',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.user.google_id', 'live-google-sub');
+    }
+
+    public function test_apple_auth_accepts_token_when_aud_matches_tandil_bundle_id(): void
+    {
+        $bundleId = 'com.tandilapp.tandil';
+        config(['services.apple.client_id' => $bundleId]);
+
+        $this->mock(AppleIdTokenVerifier::class, function ($mock) use ($bundleId): void {
+            $mock->shouldReceive('verify')
+                ->once()
+                ->andReturn([
+                    'sub' => 'apple-sub-tandil',
+                    'email' => 'apple.tandil@privaterelay.appleid.com',
+                    'email_verified' => true,
+                ]);
+        });
+
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $this->postJson('/api/auth/apple', [
+            'id_token' => 'valid-apple-token',
+            'roles' => 'client',
+            'name' => 'Tandil User',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.slug', 'client')
+            ->assertJsonPath('data.user.apple_id', 'apple-sub-tandil')
+            ->assertJsonPath('data.user.email', 'apple.tandil@privaterelay.appleid.com');
+
+        $this->assertSame($bundleId, config('services.apple.client_id'));
+    }
+
+    public function test_google_auth_rejects_token_with_wrong_audience_for_public_client_id(): void
+    {
+        config([
+            'services.google.client_id' => '805072500013-5unlc40tcam3lidd9vb4hkhmausbnoep.apps.googleusercontent.com',
+        ]);
+
+        Http::fake([
+            'oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => 'wrong-aud-sub',
+                'email' => 'wrong.aud@example.com',
+                'name' => 'Wrong Aud',
+                'email_verified' => 'true',
+                'aud' => 'other-client-id.apps.googleusercontent.com',
+            ]),
+        ]);
+
+        $this->postJson('/api/auth/google', [
+            'id_token' => 'token-wrong-aud',
+            'roles' => 'client',
+        ])->assertStatus(401)
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'wrong.aud@example.com',
+        ]);
     }
 }
