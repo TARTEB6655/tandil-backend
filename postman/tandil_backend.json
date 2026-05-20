@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** folder **Coupons – Admin & Shop (Mobile UI)** — admin list/add/edit (form-data) + shop validate/cart/checkout.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f. Admin Dashboard – Coupons** (CRUD, `discount_type`: percentage \| fixed_amount only) · **8 → K. Shop – Coupons** (validate, cart, checkout, Stripe). Seed: `php artisan db:seed --class=TwoCouponsSeeder` (SAVE10, FLAT20).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.37"
+        "version": "3.3.38"
     },
     "item": [
         {
@@ -3021,7 +3021,7 @@
         },
         {
             "name": "5f. Admin Dashboard – Coupons",
-            "description": "Admin mobile **Coupons** screen (list, add, edit, delete). Auth: Bearer **admin**. Demo: `php artisan db:seed --class=DemoCouponsSeeder`. Spec: docs/COUPON_API.md",
+            "description": "Admin mobile **Coupons** screen. Auth: Bearer **admin**.\n\n**Add coupon:** one API `POST /api/admin/coupons` — Postman items **3** (percentage) and **4** (fixed_amount) are examples only.\n\n**Fields:** code, title, description, discount_type (`percentage` | `fixed_amount`), discount_value, min_order_amount, max_discount_amount (percentage only), starts_at, ends_at, is_active, usage_limit, usage_limit_per_user, applies_to (`all` | `categories` | `services`), category_ids, service_ids. `catalog_scope` is auto (do not send).\n\n**Seed:** `php artisan db:seed --class=TwoCouponsSeeder` → SAVE10, FLAT20. Spec: docs/COUPON_API.md",
             "item": [
                 {
                     "name": "1. List coupons (GET)",
@@ -3065,7 +3065,7 @@
                                 "coupons"
                             ]
                         },
-                        "description": "GET /api/admin/coupons — Powers the **Coupons** list screen. Each item: `code`, `title`, `description`, `discount_type`, `discount_value`, `min_order_amount`, `max_discount_amount`, `is_active` (Active badge), `starts_at`, `ends_at`, `usage_limit`, `usage_limit_per_user`, `paid_redemptions`."
+                        "description": "GET /api/admin/coupons — List for Coupons screen. Query: `page`, `per_page`, `search`. Response `data[]`: code, title, description, discount_type, discount_value, min_order_amount, max_discount_amount, is_active, starts_at, ends_at, usage_limit, usage_limit_per_user, applies_to, catalog_scope, category_ids, service_ids, paid_redemptions. Plus `meta` pagination."
                     }
                 },
                 {
@@ -3194,24 +3194,24 @@
                                     "type": "text",
                                     "description": "Uses per customer (empty = unlimited)"
                                 },
-                                        {
-                                            "key": "applies_to",
-                                            "value": "all",
-                                            "type": "text",
-                                            "description": "all (all products) | categories | services"
-                                        },
-                                        {
-                                            "key": "category_ids",
-                                            "value": "[]",
-                                            "type": "text",
-                                            "description": "When applies_to=categories e.g. [3,7]. catalog_scope auto=products"
-                                        },
-                                        {
-                                            "key": "service_ids",
-                                            "value": "[]",
-                                            "type": "text",
-                                            "description": "When applies_to=services e.g. [1,2]. catalog_scope auto=services"
-                                        },
+                                {
+                                    "key": "applies_to",
+                                    "value": "all",
+                                    "type": "text",
+                                    "description": "all (all products) | categories | services"
+                                },
+                                {
+                                    "key": "category_ids",
+                                    "value": "[]",
+                                    "type": "text",
+                                    "description": "When applies_to=categories e.g. [3,7]"
+                                },
+                                {
+                                    "key": "service_ids",
+                                    "value": "[]",
+                                    "type": "text",
+                                    "description": "When applies_to=services e.g. [1,2]"
+                                },
                                 {
                                     "key": "is_active",
                                     "value": "1",
@@ -3231,7 +3231,7 @@
                                 "coupons"
                             ]
                         },
-                        "description": "POST /api/admin/coupons — **Add coupon** form (percentage). Matches mobile SAVE10: products scope, max 3 per user."
+                        "description": "POST /api/admin/coupons — **Add coupon** (percentage example → SAVE10). Same endpoint as item 4; only `discount_type` + values differ."
                     }
                 },
                 {
@@ -3308,6 +3308,22 @@
                                     "type": "text"
                                 },
                                 {
+                                    "key": "applies_to",
+                                    "value": "all",
+                                    "type": "text",
+                                    "description": "all | categories | services"
+                                },
+                                {
+                                    "key": "category_ids",
+                                    "value": "[]",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "service_ids",
+                                    "value": "[]",
+                                    "type": "text"
+                                },
+                                {
                                     "key": "is_active",
                                     "value": "1",
                                     "type": "text"
@@ -3325,7 +3341,7 @@
                                 "coupons"
                             ]
                         },
-                        "description": "POST — Fixed amount coupon (FLAT20). Footer: Fixed amount · AED 20 · min AED 100."
+                        "description": "POST /api/admin/coupons — **Add coupon** (fixed_amount example → FLAT20). Leave max_discount_amount empty for fixed."
                     }
                 },
                 {
@@ -3345,11 +3361,6 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {
-                                    "key": "code",
-                                    "value": "{{coupon_code}}",
-                                    "type": "text"
-                                },
                                 {
                                     "key": "title",
                                     "value": "10% off (updated)",
@@ -3401,6 +3412,21 @@
                                     "type": "text"
                                 },
                                 {
+                                    "key": "applies_to",
+                                    "value": "all",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "category_ids",
+                                    "value": "[]",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "service_ids",
+                                    "value": "[]",
+                                    "type": "text"
+                                },
+                                {
                                     "key": "is_active",
                                     "value": "1",
                                     "type": "text"
@@ -3419,7 +3445,7 @@
                                 "{{coupon_id}}"
                             ]
                         },
-                        "description": "PUT /api/admin/coupons/{id} — Full **Edit coupon** form. Partial fields also accepted (e.g. only title + is_active)."
+                        "description": "PUT /api/admin/coupons/{id} — **Edit coupon** (do not send `code` — immutable). Partial update OK (e.g. title + is_active only)."
                     }
                 },
                 {
@@ -4139,8 +4165,7 @@
                                         {
                                             "key": "coupon_code",
                                             "value": "SAVE10",
-                                            "description": "Optional. Invalid → 422.",
-                                            "disabled": true
+                                            "description": "Optional. Invalid → 422."
                                         },
                                         {
                                             "key": "product_id",
@@ -4155,7 +4180,7 @@
                                         }
                                     ]
                                 },
-                                "description": "GET /api/shop/order-summary – Cart checkout totals (or **Buy Now preview** with query `product_id` + `quantity`/`qty`). Auth: Bearer **client** token.\n\n**Coupon:** optional query `coupon_code` (or JSON if your client sends body on GET — prefer query). Invalid coupon → **422**.\n\n**Wallet:** `data.wallet_available` — if **false** (balance ≤ 0), no `wallet_balance` / `amount_due` / apply fields (use **`total`** only). If **true**, optional query `use_wallet`, `wallet_amount` preview same as POST buy-now; `total` = full order before wallet.\n\n**Tax-exclusive:** total = subtotal − merchandise discount + shipping (after free-ship) + tax. `shipping_discount` when free-shipping coupon."
+                                "description": "GET /api/shop/order-summary – Optional `coupon_code` (enable query). Invalid → 422.\n\n**Totals:** `subtotal`, `discount` (catalog/offers), `coupon_discount`, `coupon_code`, `shipping`, `tax`, `total`. Tax on (subtotal − catalog − coupon).\n\n**Wallet:** optional `use_wallet`, `wallet_amount` when balance > 0."
                             }
                         },
                         {
@@ -4287,7 +4312,7 @@
                                         }
                                     ]
                                 },
-                                "description": "GET /api/shop/cart – Shopping Cart screen. Optional query **`coupon_code`**. Response: items …, `order_summary` (subtotal, merchandise discount, shipping, tax, total, optional `coupon`, `shipping_discount`). Admin can set shipping and tax via PUT /api/admin/settings/shop."
+                                "description": "GET /api/shop/cart – Optional **`coupon_code`**. `order_summary` includes `coupon_discount`, `coupon_code` when valid."
                             }
                         },
                         {
@@ -5524,7 +5549,7 @@
                 },
                 {
                     "name": "K. Shop – Coupons (validate & checkout)",
-                    "description": "Client token. Validate coupon, cart/order-summary/checkout with `coupon_code`, Stripe payment-intent. See also **5f** for admin CRUD.",
+                    "description": "Client Bearer token. **Validate:** POST /api/shop/coupons/validate (`code`, optional `subtotal`, `catalog_discount`). **Summary:** `coupon_code` on cart, order-summary, checkout/review — response uses `discount` (catalog) + `coupon_discount` + `coupon_code`. **Pay:** folder **I** or item 5 here — `coupon_code` on payment-intent. Admin CRUD: **5f**.",
                     "item": [
                         {
                             "name": "1. Validate coupon (form-data)",
@@ -5588,7 +5613,7 @@
                                         "validate"
                                     ]
                                 },
-                                "description": "POST /api/shop/coupons/validate — Cart coupon field. Returns merchandise_discount, shipping_discount, order_summary."
+                                "description": "POST /api/shop/coupons/validate — Body: `code`, optional `subtotal`, `catalog_discount`. Success: `coupon_id`, `code`, `coupon_discount`, `free_shipping` (always false), `message`, optional `order_summary`."
                             }
                         },
                         {
@@ -5622,7 +5647,7 @@
                                         }
                                     ]
                                 },
-                                "description": "GET /api/shop/cart?coupon_code=SAVE10 — Cart screen with coupon line in order_summary."
+                                "description": "GET /api/shop/cart?coupon_code=SAVE10 — `order_summary`: subtotal, `discount` (catalog), `coupon_discount`, `coupon_code`, tax, total."
                             }
                         },
                         {
@@ -5733,7 +5758,7 @@
                             }
                         },
                         {
-                            "name": "6. Validate EXPIRED (expect 422)",
+                            "name": "6. Validate invalid code (expect 422)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5751,7 +5776,7 @@
                                     "formdata": [
                                         {
                                             "key": "code",
-                                            "value": "EXPIRED",
+                                            "value": "NOTAVALID",
                                             "type": "text"
                                         }
                                     ]
@@ -5768,7 +5793,7 @@
                                         "validate"
                                     ]
                                 },
-                                "description": "Inactive demo coupon — expect 422."
+                                "description": "Expect 422 — unknown coupon code."
                             }
                         }
                     ]
