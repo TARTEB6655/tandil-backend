@@ -56,6 +56,8 @@ List response includes `meta` (`current_page`, `last_page`, `total`). Messages: 
 
 **Update:** `PUT` or `PATCH` with JSON or `multipart/form-data` (same as Postman). **`code` cannot change** (422 if a different code is sent). Always send **`is_active`** as `0` or `1` when toggling off/on (do not omit the field when deactivating). Supports `is_active` or `isActive`.
 
+**Scope IDs (`category_ids` / `service_ids`):** send as JSON array (`[1,2]`), repeated form fields **`service_ids[]`** / **`category_ids[]`**, comma-separated string (`1,2`), or single **`service_id`** / **`category_id`**. Required when `applies_to` is `categories` or `services`.
+
 ---
 
 ## Shop (Bearer client)

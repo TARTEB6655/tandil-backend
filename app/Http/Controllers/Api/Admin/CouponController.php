@@ -110,7 +110,7 @@ class CouponController extends Controller
      */
     private function validatedData(Request $request, ?int $ignoreId = null, bool $isUpdate = false): array
     {
-        $this->normalizeRequestScalars($request);
+        $this->normalizeScopeIdInputs($request);
 
         $this->normalizeIsActiveInput($request);
 
@@ -269,8 +269,92 @@ class CouponController extends Controller
         }
 
         return array_key_exists('applies_to', $validated)
-            || array_key_exists('category_ids', $request->all())
-            || array_key_exists('service_ids', $request->all());
+            || $this->scopeIdFieldPresentInRequest($request, 'category_ids')
+            || $this->scopeIdFieldPresentInRequest($request, 'service_ids');
+    }
+
+    private function scopeIdFieldPresentInRequest(Request $request, string $key): bool
+    {
+        $singular = $key === 'service_ids' ? 'service_id' : 'category_id';
+
+        foreach (array_keys($request->all()) as $name) {
+            if ($name === $key || $name === $singular || $name === $key.'[]' || str_starts_with($name, $key.'[')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeScopeIdInputs(Request $request): void
+    {
+        foreach (['category_ids', 'service_ids'] as $key) {
+            if (! $this->scopeIdFieldPresentInRequest($request, $key)) {
+                continue;
+            }
+
+            $request->merge([$key => $this->extractIdList($request, $key)]);
+        }
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function extractIdList(Request $request, string $key): array
+    {
+        $singular = $key === 'service_ids' ? 'service_id' : 'category_id';
+        $collected = [];
+
+        foreach ($request->all() as $name => $value) {
+            if ($name === $key || $name === $singular || $name === $key.'[]' || str_starts_with($name, $key.'[')) {
+                $collected = array_merge($collected, $this->idListFromMixed($value));
+            }
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $collected), fn (int $id) => $id > 0)));
+    }
+
+    /**
+     * @return array<int, int|string>
+     */
+    private function idListFromMixed(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        if (is_array($value)) {
+            $out = [];
+            foreach ($value as $item) {
+                $out = array_merge($out, $this->idListFromMixed($item));
+            }
+
+            return $out;
+        }
+
+        if (is_numeric($value)) {
+            return [(int) $value];
+        }
+
+        if (! is_string($value)) {
+            return [];
+        }
+
+        $trim = trim($value);
+        if ($trim === '' || $trim === '[]') {
+            return [];
+        }
+
+        $decoded = json_decode($trim, true);
+        if (is_array($decoded)) {
+            return $this->idListFromMixed($decoded);
+        }
+
+        if (str_contains($trim, ',')) {
+            return array_values(array_filter(array_map('intval', explode(',', $trim))));
+        }
+
+        return is_numeric($trim) ? [(int) $trim] : [];
     }
 
     private function parseBooleanInput(mixed $value): bool
@@ -285,18 +369,6 @@ class CouponController extends Controller
         $normalized = strtolower(trim((string) $value));
 
         return in_array($normalized, ['1', 'true', 'on', 'yes'], true);
-    }
-
-    private function normalizeRequestScalars(Request $request): void
-    {
-        foreach (['category_ids', 'service_ids'] as $key) {
-            if ($request->has($key) && is_string($request->input($key))) {
-                $decoded = json_decode($request->input($key), true);
-                if (is_array($decoded)) {
-                    $request->merge([$key => $decoded]);
-                }
-            }
-        }
     }
 
     /**

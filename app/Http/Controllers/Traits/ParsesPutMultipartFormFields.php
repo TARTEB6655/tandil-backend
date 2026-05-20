@@ -75,7 +75,15 @@ trait ParsesPutMultipartFormFields
                 continue;
             }
 
-            $params[$nameMatch[1]] = $value;
+            $name = $nameMatch[1];
+            if (array_key_exists($name, $params)) {
+                if (! is_array($params[$name])) {
+                    $params[$name] = [$params[$name]];
+                }
+                $params[$name][] = $value;
+            } else {
+                $params[$name] = $value;
+            }
         }
 
         if ($params !== []) {
