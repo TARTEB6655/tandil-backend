@@ -9,6 +9,10 @@ class ShopMobileCheckout extends Model
 {
     protected $fillable = [
         'user_id',
+        'coupon_id',
+        'coupon_code',
+        'coupon_merchandise_discount',
+        'coupon_shipping_discount',
         'fingerprint',
         'checkout_ref',
         'stripe_payment_intent_id',
@@ -38,6 +42,8 @@ class ShopMobileCheckout extends Model
             'shipping_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'wallet_amount_applied' => 'decimal:2',
+            'coupon_merchandise_discount' => 'decimal:2',
+            'coupon_shipping_discount' => 'decimal:2',
             'consumed_at' => 'datetime',
         ];
     }
@@ -45,6 +51,11 @@ class ShopMobileCheckout extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function isConsumed(): bool

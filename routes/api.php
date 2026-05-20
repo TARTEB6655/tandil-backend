@@ -578,6 +578,7 @@ Route::prefix('shop')->group(function () {
         Route::get('/cart', [\App\Http\Controllers\Shop\CartController::class, 'view']);
         Route::get('/order-summary', [\App\Http\Controllers\Shop\CartController::class, 'orderSummary']);
         Route::post('/buy-now/summary', [\App\Http\Controllers\Shop\CartController::class, 'buyNowSummary']);
+        Route::post('/coupons/validate', [\App\Http\Controllers\Shop\ShopCouponController::class, 'validateCode']);
         Route::put('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::patch('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);
@@ -733,6 +734,19 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/packages')->gro
     Route::get('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\PackageController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN COUPONS (shop checkout)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/coupons')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\CouponController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\Admin\CouponController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\Admin\CouponController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\Admin\CouponController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\CouponController::class, 'destroy']);
 });
 
 /*

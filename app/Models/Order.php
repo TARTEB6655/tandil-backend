@@ -11,6 +11,9 @@ class Order extends Model
 
     protected $fillable = [
         'user_id',
+        'coupon_id',
+        'coupon_code',
+        'coupon_discount_amount',
         'guest_email',
         'guest_full_name',
         'guest_phone',
@@ -50,6 +53,7 @@ class Order extends Model
         'tax_percent' => 'decimal:2',
         'shipping_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
+        'coupon_discount_amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'wallet_redeemed_at' => 'datetime',
         'refunded_at' => 'datetime',
@@ -69,6 +73,11 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     /**

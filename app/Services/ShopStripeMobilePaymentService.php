@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\Shop\CartController;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -44,6 +45,7 @@ class ShopStripeMobilePaymentService
             'qty' => 'sometimes|integer|min:1',
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'nullable|numeric|min:0',
+            'coupon_code' => 'nullable|string|max:64',
             'shipping' => 'required|array',
             'shipping.full_name' => 'required|string|max:255',
             'shipping.phone' => 'required|string|max:40',
@@ -73,7 +75,28 @@ class ShopStripeMobilePaymentService
             return $this->err('Your cart is empty. Add items or use buy now with a product.', 422);
         }
 
-        $summary = CartController::buildOrderSummary($preview['subtotal'], 0);
+        $couponCodeInput = trim((string) $request->input('coupon_code', ''));
+        $couponId = null;
+        $couponCodeStored = null;
+        $couponMerchDisc = 0.0;
+        $couponShipDisc = 0.0;
+
+        if ($couponCodeInput !== '') {
+            $couponSvc = app(ShopCouponService::class);
+            $couponPreview = $couponSvc->preview($couponCodeInput, (float) $preview['subtotal'], (int) $user->id);
+            if (! ($couponPreview['ok'] ?? false)) {
+                return $this->err($couponPreview['message'] ?? 'Invalid coupon.', 422);
+            }
+            $summary = $couponPreview['order_summary'];
+            $couponRow = Coupon::query()->where('code', strtoupper($couponCodeInput))->first();
+            $couponId = $couponRow?->id;
+            $couponCodeStored = $couponRow?->code;
+            $couponMerchDisc = (float) ($couponPreview['merchandise_discount'] ?? 0);
+            $couponShipDisc = (float) ($couponPreview['shipping_discount'] ?? 0);
+        } else {
+            $summary = CartController::buildOrderSummary($preview['subtotal'], 0);
+        }
+
         $total = (float) $summary['total'];
         $currency = strtolower((string) config('shop.currency', CartController::CURRENCY));
 
@@ -133,7 +156,21 @@ class ShopStripeMobilePaymentService
 
         if ($cardTotal <= 0.0001 && $walletApplied > 0.0001) {
             try {
-                $order = DB::transaction(function () use ($user, $preview, $ship, $specialInstructions, $summary, $total, $walletApplied, $isBuyNow, $currency, $shippingJson) {
+                $order = DB::transaction(function () use (
+                    $user,
+                    $preview,
+                    $specialInstructions,
+                    $summary,
+                    $total,
+                    $walletApplied,
+                    $isBuyNow,
+                    $currency,
+                    $shippingJson,
+                    $couponId,
+                    $couponCodeStored,
+                    $couponMerchDisc,
+                    $couponShipDisc
+                ) {
                     $linesW = [];
                     foreach ($preview['items'] as $cart) {
                         if ($cart->product === null) {
@@ -147,6 +184,10 @@ class ShopStripeMobilePaymentService
                     }
                     $row = new ShopMobileCheckout([
                         'user_id' => $user->id,
+                        'coupon_id' => $couponId,
+                        'coupon_code' => $couponCodeStored,
+                        'coupon_merchandise_discount' => $couponMerchDisc,
+                        'coupon_shipping_discount' => $couponShipDisc,
                         'source' => $isBuyNow ? 'buy_now' : 'cart',
                         'currency' => $currency,
                         'amount_minor' => 0,
@@ -204,6 +245,9 @@ class ShopStripeMobilePaymentService
             'wallet_applied' => round($walletApplied, 2),
             'ship' => $shippingJson,
             'special_instructions' => $specialInstructions,
+            'coupon_id' => $couponId,
+            'coupon_merch' => round($couponMerchDisc, 2),
+            'coupon_ship' => round($couponShipDisc, 2),
         ], JSON_THROW_ON_ERROR));
 
         $reuse = $this->maybeReuseRecentPaymentIntent($user, $secret, $fingerprint, $amountMinor);
@@ -276,6 +320,9 @@ class ShopStripeMobilePaymentService
         if ($receiptEmail !== '') {
             $form['receipt_email'] = $receiptEmail;
         }
+        if ($couponCodeStored !== null && $couponCodeStored !== '') {
+            $form['metadata[coupon_code]'] = Str::limit($couponCodeStored, 40);
+        }
 
         // Shown on Stripe PaymentIntent / receipt; country must be ISO-3166-1 alpha-2
         $form['shipping[name]'] = Str::limit($fullName, 500);
@@ -338,6 +385,10 @@ class ShopStripeMobilePaymentService
             'fingerprint' => $fingerprint,
             'checkout_ref' => $checkoutRef,
             'stripe_payment_intent_id' => $piId,
+            'coupon_id' => $couponId,
+            'coupon_code' => $couponCodeStored,
+            'coupon_merchandise_discount' => $couponMerchDisc,
+            'coupon_shipping_discount' => $couponShipDisc,
             'source' => $isBuyNow ? 'buy_now' : 'cart',
             'currency' => $currency,
             'amount_minor' => $amountMinor,
@@ -565,8 +616,16 @@ class ShopStripeMobilePaymentService
             'is_default' => false,
         ]);
 
+        $couponDiscountTotal = round(
+            (float) ($row->coupon_merchandise_discount ?? 0) + (float) ($row->coupon_shipping_discount ?? 0),
+            2
+        );
+
         $order = Order::create([
             'user_id' => $user->id,
+            'coupon_id' => $row->coupon_id,
+            'coupon_code' => $row->coupon_code,
+            'coupon_discount_amount' => $couponDiscountTotal,
             'shipping_address_id' => $address->id,
             'total_amount' => $row->total_amount,
             'wallet_amount_applied' => (float) ($row->wallet_amount_applied ?? 0),
@@ -621,6 +680,8 @@ class ShopStripeMobilePaymentService
             'payment_status' => $order->payment_status,
             'total_amount' => (float) $order->total_amount,
             'wallet_amount_applied' => (float) ($order->wallet_amount_applied ?? 0),
+            'coupon_code' => $order->coupon_code,
+            'coupon_discount_amount' => (float) ($order->coupon_discount_amount ?? 0),
         ];
     }
 

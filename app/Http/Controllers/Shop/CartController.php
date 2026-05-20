@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Shop;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\ShopCouponService;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -43,15 +45,36 @@ class CartController extends Controller
     public static function buildOrderSummary(float $subtotal, float $discount = 0): array
     {
         $shippingAmount = self::getEffectiveShippingAmount();
+
+        return self::buildOrderSummaryWithAdjustments($subtotal, $discount, 0, $shippingAmount);
+    }
+
+    /**
+     * @param  float  $merchandiseDiscount  Subtotal reduction (percentage / fixed coupons).
+     * @param  float  $shippingDiscount  Amount waived from base shipping (e.g. free shipping coupon).
+     * @param  float|null  $baseShipping  Defaults to shop setting when null.
+     * @return array<string, mixed>
+     */
+    public static function buildOrderSummaryWithAdjustments(
+        float $subtotal,
+        float $merchandiseDiscount = 0,
+        float $shippingDiscount = 0,
+        ?float $baseShipping = null
+    ): array {
+        $baseShipping ??= self::getEffectiveShippingAmount();
         $taxPercent = self::getEffectiveTaxPercent();
         $taxAmount = round($subtotal * ($taxPercent / 100), 2);
-        $total = round($subtotal - $discount + $shippingAmount + $taxAmount, 2);
+        $merchandiseDiscount = round(max(0, $merchandiseDiscount), 2);
+        $shippingDiscount = round(max(0, min($shippingDiscount, $baseShipping)), 2);
+        $shippingAfter = round(max(0, $baseShipping - $shippingDiscount), 2);
+        $total = round($subtotal - $merchandiseDiscount + $shippingAfter + $taxAmount, 2);
 
         return [
             'subtotal' => $subtotal,
-            'discount' => $discount,
-            'shipping' => $shippingAmount,
-            'shipping_label' => $shippingAmount == 0 ? 'Free' : (string) $shippingAmount,
+            'discount' => $merchandiseDiscount,
+            'shipping_discount' => $shippingDiscount,
+            'shipping' => $shippingAfter,
+            'shipping_label' => $shippingAfter == 0 ? 'Free' : (string) $shippingAfter,
             'tax_percent' => $taxPercent,
             'tax' => $taxAmount,
             'total' => $total,
@@ -261,17 +284,16 @@ class CartController extends Controller
         $request->validate([
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'sometimes|numeric|min:0',
+            'coupon_code' => 'sometimes|string|max:64',
         ]);
 
         $user = $request->user();
-        $preview = self::checkoutPreview($request, $user->id);
-        $orderSummary = self::buildOrderSummary($preview['subtotal'], 0);
-        $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
-        $orderSummary['discount'] = (float) $orderSummary['discount'];
-        $orderSummary['shipping'] = (float) $orderSummary['shipping'];
-        $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
-        $orderSummary['tax'] = (float) $orderSummary['tax'];
-        $orderSummary['total'] = (float) $orderSummary['total'];
+        $pack = self::checkoutTotalsForRequest($request, $user);
+        if ($pack['error'] !== null) {
+            return ApiResponse::error($pack['error'], 422);
+        }
+
+        $orderSummary = $pack['order_summary'];
         $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
 
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
@@ -286,22 +308,103 @@ class CartController extends Controller
         $request->validate([
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'sometimes|numeric|min:0',
+            'coupon_code' => 'sometimes|string|max:64',
         ]);
 
         $user = $request->user();
-        $preview = self::checkoutPreview($request, $user->id);
-        $orderSummary = self::buildOrderSummary($preview['subtotal'], 0);
-        $orderSummary['subtotal'] = (float) $orderSummary['subtotal'];
-        $orderSummary['discount'] = (float) $orderSummary['discount'];
-        $orderSummary['shipping'] = (float) $orderSummary['shipping'];
-        $orderSummary['tax_percent'] = (float) $orderSummary['tax_percent'];
-        $orderSummary['tax'] = (float) $orderSummary['tax'];
-        $orderSummary['total'] = (float) $orderSummary['total'];
+        $pack = self::checkoutTotalsForRequest($request, $user);
+        if ($pack['error'] !== null) {
+            return ApiResponse::error($pack['error'], 422);
+        }
+
+        $orderSummary = $pack['order_summary'];
         $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
 
         return ApiResponse::success('Buy now summary retrieved.', [
             'order_summary' => $orderSummary,
         ]);
+    }
+
+    /**
+     * Cart / order-summary / checkout totals with optional coupon_code (query or JSON body).
+     *
+     * @return array{
+     *   cart_preview: array{items: \Illuminate\Support\Collection, subtotal: float},
+     *   order_summary: array<string, mixed>,
+     *   coupon_id: ?int,
+     *   coupon_code: ?string,
+     *   coupon_merchandise_discount: float,
+     *   coupon_shipping_discount: float,
+     *   error: ?string
+     * }
+     */
+    public static function checkoutTotalsForRequest(Request $request, User $user): array
+    {
+        $cartPreview = self::checkoutPreview($request, $user->id);
+        $subtotal = round((float) $cartPreview['subtotal'], 2);
+        $code = trim((string) ($request->input('coupon_code', $request->query('coupon_code', ''))));
+
+        if ($code === '') {
+            $summary = self::buildOrderSummary($subtotal, 0);
+            self::normalizeOrderSummaryNumericTypes($summary);
+
+            return [
+                'cart_preview' => $cartPreview,
+                'order_summary' => $summary,
+                'coupon_id' => null,
+                'coupon_code' => null,
+                'coupon_merchandise_discount' => 0.0,
+                'coupon_shipping_discount' => 0.0,
+                'error' => null,
+            ];
+        }
+
+        /** @var ShopCouponService $svc */
+        $svc = app(ShopCouponService::class);
+        $r = $svc->preview($code, $subtotal, (int) $user->id);
+        if (! ($r['ok'] ?? false)) {
+            return [
+                'cart_preview' => $cartPreview,
+                'order_summary' => [],
+                'coupon_id' => null,
+                'coupon_code' => null,
+                'coupon_merchandise_discount' => 0.0,
+                'coupon_shipping_discount' => 0.0,
+                'error' => $r['message'] ?? 'Invalid coupon.',
+            ];
+        }
+
+        $summary = $r['order_summary'];
+        self::normalizeOrderSummaryNumericTypes($summary);
+        $summary['coupon'] = $r['coupon'];
+
+        $couponRow = Coupon::query()->where('code', strtoupper($code))->first();
+
+        return [
+            'cart_preview' => $cartPreview,
+            'order_summary' => $summary,
+            'coupon_id' => $couponRow?->id,
+            'coupon_code' => $couponRow?->code,
+            'coupon_merchandise_discount' => (float) ($r['merchandise_discount'] ?? 0),
+            'coupon_shipping_discount' => (float) ($r['shipping_discount'] ?? 0),
+            'error' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $summary
+     */
+    public static function normalizeOrderSummaryNumericTypes(array &$summary): void
+    {
+        $summary['subtotal'] = (float) $summary['subtotal'];
+        $summary['discount'] = (float) ($summary['discount'] ?? 0);
+        if (array_key_exists('shipping_discount', $summary)) {
+            $summary['shipping_discount'] = (float) $summary['shipping_discount'];
+        }
+        $summary['shipping'] = (float) $summary['shipping'];
+        $summary['tax_percent'] = (float) $summary['tax_percent'];
+        $summary['tax'] = (float) $summary['tax'];
+        $summary['total'] = (float) $summary['total'];
     }
 
     /**
@@ -311,6 +414,12 @@ class CartController extends Controller
     {
         $user = $request->user();
 
+        $request->validate([
+            'use_wallet' => 'sometimes|boolean',
+            'wallet_amount' => 'sometimes|numeric|min:0',
+            'coupon_code' => 'sometimes|string|max:64',
+        ]);
+
         $cartItems = Cart::where('user_id', $user->id)
             ->with(['product.category', 'product.primaryImage'])
             ->get();
@@ -319,11 +428,13 @@ class CartController extends Controller
 
         $items = $validItems->map(fn ($item) => self::cartItemToFrontend($item))->values()->all();
 
-        $subtotal = $validItems->sum(function ($item) {
-            return $item->quantity * (float) $item->product->price;
-        });
-        $subtotal = round($subtotal, 2);
-        $orderSummary = self::buildOrderSummary($subtotal, 0);
+        $pack = self::checkoutTotalsForRequest($request, $user);
+        if ($pack['error'] !== null) {
+            return ApiResponse::error($pack['error'], 422);
+        }
+
+        $orderSummary = $pack['order_summary'];
+        $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
 
         return ApiResponse::success('Cart retrieved successfully.', [
             'items' => $items,

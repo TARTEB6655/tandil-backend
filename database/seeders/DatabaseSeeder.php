@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             SubscriptionAndReportDummySeeder::class,
             ServicesCategoriesAndProductsSeeder::class,
             ExclusiveOfferSeeder::class,
+            DemoCouponsSeeder::class,
             DummySupervisorAssignedTasksSeeder::class, // Temporary demo data for technician task assignment screens
             LocalizedArticleSeeder::class,
         ]);

@@ -65,9 +65,20 @@ class CheckoutController extends Controller
     {
         $user = $request->user();
 
-        $preview = CartController::checkoutPreview($request, $user->id);
-        $items = $preview['items']->map(fn ($item) => CartController::cartItemToFrontend($item))->values()->all();
-        $orderSummary = CartController::buildOrderSummary($preview['subtotal'], 0);
+        $request->validate([
+            'use_wallet' => 'sometimes|boolean',
+            'wallet_amount' => 'sometimes|numeric|min:0',
+            'coupon_code' => 'sometimes|string|max:64',
+        ]);
+
+        $pack = CartController::checkoutTotalsForRequest($request, $user);
+        if ($pack['error'] !== null) {
+            return ApiResponse::error($pack['error'], 422);
+        }
+
+        $cartPreview = $pack['cart_preview'];
+        $items = $cartPreview['items']->map(fn ($item) => CartController::cartItemToFrontend($item))->values()->all();
+        $orderSummary = CartController::mergeWalletPreviewIntoOrderSummary($pack['order_summary'], $request, $user);
 
         $addresses = UserAddress::where('user_id', $user->id)
             ->orderByDesc('is_default')
