@@ -116,14 +116,20 @@ class CartController extends Controller
 
     /**
      * @param  \Illuminate\Support\Collection<int, Cart>  $items
-     * @return array{catalog_discount: float, cart_category_ids: array<int>, cart_catalog: string}
+     * @return array{
+     *   catalog_discount: float,
+     *   cart_category_ids: array<int>,
+     *   cart_service_ids: array<int>,
+     *   cart_catalog: string
+     * }
      */
     public static function cartContextFromItems($items): array
     {
         $catalogDiscount = 0.0;
         $categoryIds = [];
+        $serviceIds = [];
         $hasProduct = false;
-        $hasService = false;
+        $hasServiceLine = false;
 
         foreach ($items as $item) {
             $product = $item->product;
@@ -138,24 +144,30 @@ class CartController extends Controller
             if ($product->category_id) {
                 $categoryIds[] = (int) $product->category_id;
             }
+            if ($product->relationLoaded('services')) {
+                foreach ($product->services as $service) {
+                    $serviceIds[] = (int) $service->id;
+                }
+            }
             $type = strtolower((string) ($product->type ?? 'physical'));
             if ($type === 'service') {
-                $hasService = true;
+                $hasServiceLine = true;
             } else {
                 $hasProduct = true;
             }
         }
 
         $cartCatalog = Coupon::SCOPE_BOTH;
-        if ($hasProduct && ! $hasService) {
+        if ($hasProduct && ! $hasServiceLine) {
             $cartCatalog = Coupon::SCOPE_PRODUCTS;
-        } elseif ($hasService && ! $hasProduct) {
+        } elseif ($hasServiceLine && ! $hasProduct) {
             $cartCatalog = Coupon::SCOPE_SERVICES;
         }
 
         return [
             'catalog_discount' => round($catalogDiscount, 2),
             'cart_category_ids' => array_values(array_unique($categoryIds)),
+            'cart_service_ids' => array_values(array_unique($serviceIds)),
             'cart_catalog' => $cartCatalog,
         ];
     }
@@ -320,7 +332,7 @@ class CartController extends Controller
                 'qty' => 'sometimes|integer|min:1',
             ]);
             $qty = self::resolveBuyNowQuantity($request);
-            $product = Product::with(['category', 'primaryImage'])->findOrFail((int) $request->input('product_id'));
+            $product = Product::with(['category', 'primaryImage', 'services'])->findOrFail((int) $request->input('product_id'));
             $cart = new Cart([
                 'user_id' => $userId,
                 'product_id' => $product->id,
@@ -338,12 +350,13 @@ class CartController extends Controller
                 'subtotal' => $subtotal,
                 'catalog_discount' => $ctx['catalog_discount'],
                 'cart_category_ids' => $ctx['cart_category_ids'],
+                'cart_service_ids' => $ctx['cart_service_ids'],
                 'cart_catalog' => $ctx['cart_catalog'],
             ];
         }
 
         $cartItems = Cart::where('user_id', $userId)
-            ->with(['product.category', 'product.primaryImage'])
+            ->with(['product.category', 'product.primaryImage', 'product.services'])
             ->get();
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null)->values();
         $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
@@ -354,6 +367,7 @@ class CartController extends Controller
             'subtotal' => $subtotal,
             'catalog_discount' => $ctx['catalog_discount'],
             'cart_category_ids' => $ctx['cart_category_ids'],
+            'cart_service_ids' => $ctx['cart_service_ids'],
             'cart_catalog' => $ctx['cart_catalog'],
         ];
     }
@@ -438,6 +452,12 @@ class CartController extends Controller
         }
         $cartCategoryIds = array_map('intval', (array) $cartCategoryIds);
         $cartCatalog = $request->input('cart_catalog', $cartPreview['cart_catalog'] ?? Coupon::SCOPE_BOTH);
+        $cartServiceIds = $request->input('cart_service_ids', $cartPreview['cart_service_ids'] ?? []);
+        if (is_string($cartServiceIds)) {
+            $decoded = json_decode($cartServiceIds, true);
+            $cartServiceIds = is_array($decoded) ? $decoded : [];
+        }
+        $cartServiceIds = array_map('intval', (array) $cartServiceIds);
         $code = trim((string) ($request->input('coupon_code', $request->query('coupon_code', ''))));
 
         if ($code === '') {
@@ -457,7 +477,7 @@ class CartController extends Controller
 
         /** @var ShopCouponService $svc */
         $svc = app(ShopCouponService::class);
-        $r = $svc->preview($code, $subtotal, $catalogDiscount, (int) $user->id, $cartCategoryIds, (string) $cartCatalog);
+        $r = $svc->preview($code, $subtotal, $catalogDiscount, (int) $user->id, $cartCategoryIds, (string) $cartCatalog, $cartServiceIds);
         if (! ($r['ok'] ?? false)) {
             return [
                 'cart_preview' => $cartPreview,

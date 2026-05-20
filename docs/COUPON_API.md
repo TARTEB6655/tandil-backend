@@ -10,15 +10,16 @@ Base: `/api`. JSON via `ApiResponse` (`success`, `message`, `data`, optional `me
 | `fixed_amount` | Required (AED) | `coupon_discount = min(value, after_catalog)` |
 | `free_shipping` | 0 or omit | `free_shipping: true`, shipping = 0 |
 
-## Scope (admin UI)
+## Where it applies (admin UI)
 
 | Field | Values |
 |-------|--------|
-| `applies_to` | `all` \| `categories` |
-| `catalog_scope` | Required when `applies_to=all`: `products` \| `services` \| `both` |
-| `category_ids` | Required when `applies_to=categories` — IDs from `/api/admin/categories` |
+| `applies_to` | `all` (all store products) \| `categories` \| `services` |
+| `catalog_scope` | **Auto** — `products` for `all` / `categories`, `services` for `services` (read-only in API response) |
+| `category_ids` | Required when `applies_to=categories` — from `/api/admin/categories` |
+| `service_ids` | Required when `applies_to=services` — from `/api/admin/services` |
 
-Shop validation also accepts `cart_category_ids` and `cart_catalog` (`products` \| `services` \| `both`) to match cart contents.
+Shop validation: `cart_category_ids`, `cart_service_ids`, `cart_catalog` (derived from cart when omitted).
 
 ## Discount math (server)
 

@@ -85,8 +85,8 @@ class AdminCouponApiTest extends TestCase
             'ends_at' => '2026-12-31',
             'is_active' => '1',
             'applies_to' => 'all',
-            'catalog_scope' => 'products',
             'category_ids' => '[]',
+            'service_ids' => '[]',
         ], $this->adminHeaders($admin))
             ->assertStatus(201)
             ->assertJsonPath('data.code', 'SAVE10')

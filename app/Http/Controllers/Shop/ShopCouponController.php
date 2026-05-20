@@ -21,6 +21,8 @@ class ShopCouponController extends Controller
             'cart_category_ids' => 'sometimes|array',
             'cart_category_ids.*' => 'integer',
             'cart_catalog' => 'sometimes|string|in:products,services,both',
+            'cart_service_ids' => 'sometimes|array',
+            'cart_service_ids.*' => 'integer',
             'product_id' => 'sometimes|exists:products,id',
             'quantity' => 'sometimes|integer|min:1',
             'qty' => 'sometimes|integer|min:1',
@@ -44,6 +46,11 @@ class ShopCouponController extends Controller
         }
 
         $cartCatalog = $request->input('cart_catalog', $preview['cart_catalog'] ?? 'both');
+        $cartServiceIds = $request->input('cart_service_ids', $preview['cart_service_ids'] ?? []);
+        if (is_string($cartServiceIds)) {
+            $decoded = json_decode($cartServiceIds, true);
+            $cartServiceIds = is_array($decoded) ? $decoded : [];
+        }
 
         $result = $coupons->preview(
             (string) $request->input('code'),
@@ -51,7 +58,8 @@ class ShopCouponController extends Controller
             $catalogDiscount,
             (int) $user->id,
             array_map('intval', (array) $cartCategoryIds),
-            (string) $cartCatalog
+            (string) $cartCatalog,
+            array_map('intval', (array) $cartServiceIds)
         );
 
         if (! ($result['ok'] ?? false)) {

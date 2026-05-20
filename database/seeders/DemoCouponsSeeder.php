@@ -26,6 +26,7 @@ class DemoCouponsSeeder extends Seeder
                 'applies_to' => Coupon::APPLIES_ALL,
                 'catalog_scope' => Coupon::SCOPE_PRODUCTS,
                 'category_ids' => [],
+                'service_ids' => [],
             ],
             [
                 'code' => 'FLAT20',
@@ -41,8 +42,9 @@ class DemoCouponsSeeder extends Seeder
                 'usage_limit' => null,
                 'usage_limit_per_user' => null,
                 'applies_to' => Coupon::APPLIES_ALL,
-                'catalog_scope' => Coupon::SCOPE_BOTH,
+                'catalog_scope' => Coupon::SCOPE_PRODUCTS,
                 'category_ids' => [],
+                'service_ids' => [],
             ],
             [
                 'code' => 'WELCOME15',
@@ -58,8 +60,9 @@ class DemoCouponsSeeder extends Seeder
                 'usage_limit' => null,
                 'usage_limit_per_user' => 1,
                 'applies_to' => Coupon::APPLIES_ALL,
-                'catalog_scope' => Coupon::SCOPE_BOTH,
+                'catalog_scope' => Coupon::SCOPE_PRODUCTS,
                 'category_ids' => [],
+                'service_ids' => [],
             ],
             [
                 'code' => 'FREESHIP',
@@ -75,8 +78,9 @@ class DemoCouponsSeeder extends Seeder
                 'usage_limit' => null,
                 'usage_limit_per_user' => null,
                 'applies_to' => Coupon::APPLIES_ALL,
-                'catalog_scope' => Coupon::SCOPE_BOTH,
+                'catalog_scope' => Coupon::SCOPE_PRODUCTS,
                 'category_ids' => [],
+                'service_ids' => [],
             ],
             [
                 'code' => 'EXPIRED',
@@ -92,20 +96,26 @@ class DemoCouponsSeeder extends Seeder
                 'usage_limit' => null,
                 'usage_limit_per_user' => null,
                 'applies_to' => Coupon::APPLIES_ALL,
-                'catalog_scope' => Coupon::SCOPE_BOTH,
+                'catalog_scope' => Coupon::SCOPE_PRODUCTS,
                 'category_ids' => [],
+                'service_ids' => [],
             ],
         ];
 
         foreach ($rows as $row) {
-            $categoryIds = $row['category_ids'];
-            unset($row['category_ids']);
+            $categoryIds = $row['category_ids'] ?? [];
+            $serviceIds = $row['service_ids'] ?? [];
+            unset($row['category_ids'], $row['service_ids']);
+            if (! isset($row['catalog_scope'])) {
+                $row['catalog_scope'] = Coupon::catalogScopeForAppliesTo($row['applies_to']);
+            }
 
             $coupon = Coupon::query()->updateOrCreate(
                 ['code' => $row['code']],
                 $row
             );
             $coupon->categories()->sync($categoryIds);
+            $coupon->services()->sync($serviceIds);
         }
     }
 }

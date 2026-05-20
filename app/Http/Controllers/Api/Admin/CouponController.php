@@ -17,7 +17,7 @@ class CouponController extends Controller
         $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
         $search = trim((string) $request->query('search', ''));
 
-        $query = Coupon::query()->with('categories')->orderByDesc('id');
+        $query = Coupon::query()->with(['categories', 'services'])->orderByDesc('id');
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -46,24 +46,26 @@ class CouponController extends Controller
     {
         $data = $this->validatedData($request);
         $categoryIds = $data['category_ids'];
-        unset($data['category_ids']);
+        $serviceIds = $data['service_ids'];
+        unset($data['category_ids'], $data['service_ids']);
 
         $coupon = Coupon::create($data);
         $coupon->categories()->sync($categoryIds);
+        $coupon->services()->sync($serviceIds);
 
-        return ApiResponse::success('Coupon created.', $this->toArray($coupon->fresh()->load('categories')), 201);
+        return ApiResponse::success('Coupon created.', $this->toArray($coupon->fresh()->load(['categories', 'services'])), 201);
     }
 
     public function show(int $id): JsonResponse
     {
-        $coupon = Coupon::with('categories')->findOrFail($id);
+        $coupon = Coupon::with(['categories', 'services'])->findOrFail($id);
 
         return ApiResponse::success('Coupon retrieved.', $this->toArray($coupon));
     }
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $coupon = Coupon::with('categories')->findOrFail($id);
+        $coupon = Coupon::with(['categories', 'services'])->findOrFail($id);
 
         if ($request->filled('code') && strtoupper(trim((string) $request->input('code'))) !== $coupon->code) {
             throw ValidationException::withMessages([
@@ -73,20 +75,25 @@ class CouponController extends Controller
 
         $data = $this->validatedData($request, $coupon->id, true);
         $categoryIds = $data['category_ids'] ?? null;
-        unset($data['category_ids']);
+        $serviceIds = $data['service_ids'] ?? null;
+        unset($data['category_ids'], $data['service_ids']);
 
         $coupon->update($data);
         if ($categoryIds !== null) {
             $coupon->categories()->sync($categoryIds);
         }
+        if ($serviceIds !== null) {
+            $coupon->services()->sync($serviceIds);
+        }
 
-        return ApiResponse::success('Coupon updated.', $this->toArray($coupon->fresh()->load('categories')));
+        return ApiResponse::success('Coupon updated.', $this->toArray($coupon->fresh()->load(['categories', 'services'])));
     }
 
     public function destroy(int $id): JsonResponse
     {
         $coupon = Coupon::findOrFail($id);
         $coupon->categories()->detach();
+        $coupon->services()->detach();
         $coupon->delete();
 
         return ApiResponse::success('Coupon deleted.');
@@ -124,10 +131,15 @@ class CouponController extends Controller
             'is_active' => [$isUpdate ? 'sometimes' : 'required', 'boolean'],
             'usage_limit' => 'nullable|integer|min:1',
             'usage_limit_per_user' => 'nullable|integer|min:1',
-            'applies_to' => [$isUpdate ? 'sometimes' : 'required', Rule::in([Coupon::APPLIES_ALL, Coupon::APPLIES_CATEGORIES])],
-            'catalog_scope' => ['nullable', Rule::in([Coupon::SCOPE_PRODUCTS, Coupon::SCOPE_SERVICES, Coupon::SCOPE_BOTH])],
+            'applies_to' => [$isUpdate ? 'sometimes' : 'required', Rule::in([
+                Coupon::APPLIES_ALL,
+                Coupon::APPLIES_CATEGORIES,
+                Coupon::APPLIES_SERVICES,
+            ])],
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'integer|exists:categories,id',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
         ];
 
         $validated = $request->validate($rules);
@@ -140,8 +152,9 @@ class CouponController extends Controller
             ]);
         }
 
-        $appliesTo = $validated['applies_to'] ?? Coupon::APPLIES_ALL;
+        $appliesTo = strtolower((string) ($validated['applies_to'] ?? Coupon::APPLIES_ALL));
         $categoryIds = array_map('intval', $validated['category_ids'] ?? []);
+        $serviceIds = array_map('intval', $validated['service_ids'] ?? []);
 
         if ($appliesTo === Coupon::APPLIES_CATEGORIES) {
             if ($categoryIds === []) {
@@ -149,14 +162,18 @@ class CouponController extends Controller
                     'category_ids' => ['Select at least one category when applies_to is categories.'],
                 ]);
             }
-        } else {
-            $scope = $validated['catalog_scope'] ?? null;
-            if (! $isUpdate && ($scope === null || $scope === '')) {
+            $serviceIds = [];
+        } elseif ($appliesTo === Coupon::APPLIES_SERVICES) {
+            if ($serviceIds === []) {
                 throw ValidationException::withMessages([
-                    'catalog_scope' => ['catalog_scope is required when applies_to is all (products, services, or both).'],
+                    'service_ids' => ['Select at least one service when applies_to is services.'],
                 ]);
             }
             $categoryIds = [];
+        } else {
+            $categoryIds = [];
+            $serviceIds = [];
+            $appliesTo = Coupon::APPLIES_ALL;
         }
 
         $payload = [];
@@ -211,24 +228,25 @@ class CouponController extends Controller
                 ? (int) $validated['usage_limit_per_user']
                 : null;
         }
-        if (array_key_exists('applies_to', $validated)) {
+        if (array_key_exists('applies_to', $validated) || ! $isUpdate) {
             $payload['applies_to'] = $appliesTo;
-            $payload['catalog_scope'] = $appliesTo === Coupon::APPLIES_ALL
-                ? ($validated['catalog_scope'] ?? Coupon::SCOPE_BOTH)
-                : ($validated['catalog_scope'] ?? Coupon::SCOPE_BOTH);
+            $payload['catalog_scope'] = Coupon::catalogScopeForAppliesTo($appliesTo);
         }
 
         $payload['category_ids'] = $categoryIds;
+        $payload['service_ids'] = $serviceIds;
 
         return $payload;
     }
 
     private function normalizeRequestScalars(Request $request): void
     {
-        if ($request->has('category_ids') && is_string($request->input('category_ids'))) {
-            $decoded = json_decode($request->input('category_ids'), true);
-            if (is_array($decoded)) {
-                $request->merge(['category_ids' => $decoded]);
+        foreach (['category_ids', 'service_ids'] as $key) {
+            if ($request->has($key) && is_string($request->input($key))) {
+                $decoded = json_decode($request->input($key), true);
+                if (is_array($decoded)) {
+                    $request->merge([$key => $decoded]);
+                }
             }
         }
     }
@@ -241,6 +259,10 @@ class CouponController extends Controller
         $categoryIds = $c->relationLoaded('categories')
             ? $c->categories->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
             : $c->categories()->pluck('categories.id')->map(fn ($id) => (int) $id)->all();
+
+        $serviceIds = $c->relationLoaded('services')
+            ? $c->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
+            : $c->services()->pluck('services.id')->map(fn ($id) => (int) $id)->all();
 
         return [
             'id' => $c->id,
@@ -257,8 +279,9 @@ class CouponController extends Controller
             'usage_limit' => $c->usage_limit,
             'usage_limit_per_user' => $c->usage_limit_per_user,
             'applies_to' => $c->applies_to ?? Coupon::APPLIES_ALL,
-            'catalog_scope' => $c->catalog_scope,
+            'catalog_scope' => $c->catalog_scope ?? Coupon::catalogScopeForAppliesTo((string) ($c->applies_to ?? Coupon::APPLIES_ALL)),
             'category_ids' => $categoryIds,
+            'service_ids' => $serviceIds,
             'paid_redemptions' => $c->paidOrdersCount(),
             'created_at' => $c->created_at?->toIso8601String(),
             'updated_at' => $c->updated_at?->toIso8601String(),

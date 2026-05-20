@@ -68,13 +68,14 @@ class ShopCouponApiTest extends TestCase
             'starts_at' => now()->subDay()->toDateString(),
             'is_active' => true,
             'applies_to' => 'all',
-            'catalog_scope' => 'both',
+            'catalog_scope' => 'products',
         ]);
 
         $cat = Category::factory()->create();
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => 100,
+            'compare_at_price' => null,
             'status' => 'active',
             'type' => 'physical',
         ]);
@@ -118,7 +119,7 @@ class ShopCouponApiTest extends TestCase
             'max_discount_amount' => 30,
             'is_active' => true,
             'applies_to' => 'all',
-            'catalog_scope' => 'both',
+            'catalog_scope' => 'products',
         ]);
 
         $this->postJson('/api/shop/coupons/validate', [
@@ -146,7 +147,7 @@ class ShopCouponApiTest extends TestCase
             'min_order_amount' => 0,
             'is_active' => false,
             'applies_to' => 'all',
-            'catalog_scope' => 'both',
+            'catalog_scope' => 'products',
         ]);
 
         $this->postJson('/api/shop/coupons/validate', ['code' => 'EXPIRED'], $this->clientHeaders($client))
@@ -170,8 +171,8 @@ class ShopCouponApiTest extends TestCase
             'min_order_amount' => 50,
             'is_active' => true,
             'applies_to' => 'all',
-            'catalog_scope' => 'both',
             'category_ids' => [],
+            'service_ids' => [],
         ], $this->adminHeaders($admin))
             ->assertStatus(201)
             ->assertJsonPath('data.code', 'NEWCODE');

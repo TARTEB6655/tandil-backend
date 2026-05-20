@@ -12,10 +12,13 @@ class Coupon extends Model
 
     public const APPLIES_CATEGORIES = 'categories';
 
+    public const APPLIES_SERVICES = 'services';
+
     public const SCOPE_PRODUCTS = 'products';
 
     public const SCOPE_SERVICES = 'services';
 
+    /** Mixed cart (products + service-type lines) — used only for cart context, not admin create. */
     public const SCOPE_BOTH = 'both';
 
     protected $fillable = [
@@ -49,6 +52,13 @@ class Coupon extends Model
         ];
     }
 
+    public static function catalogScopeForAppliesTo(string $appliesTo): string
+    {
+        return strtolower($appliesTo) === self::APPLIES_SERVICES
+            ? self::SCOPE_SERVICES
+            : self::SCOPE_PRODUCTS;
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
@@ -57,6 +67,11 @@ class Coupon extends Model
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'coupon_category');
+    }
+
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'coupon_service');
     }
 
     public function scopeActive($query)

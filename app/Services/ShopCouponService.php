@@ -13,6 +13,7 @@ final class ShopCouponService
 {
     /**
      * @param  array<int>  $cartCategoryIds
+     * @param  array<int>  $cartServiceIds
      * @return array{
      *   ok: bool,
      *   message?: string,
@@ -31,14 +32,15 @@ final class ShopCouponService
         float $catalogDiscount = 0,
         ?int $userId = null,
         array $cartCategoryIds = [],
-        ?string $cartCatalog = null
+        ?string $cartCatalog = null,
+        array $cartServiceIds = []
     ): array {
         $code = strtoupper(trim((string) $code));
         if ($code === '') {
             return ['ok' => false, 'message' => 'Please enter a coupon code.'];
         }
 
-        $coupon = Coupon::query()->with('categories')->where('code', $code)->first();
+        $coupon = Coupon::query()->with(['categories', 'services'])->where('code', $code)->first();
         if (! $coupon) {
             return ['ok' => false, 'message' => 'Invalid coupon code.'];
         }
@@ -47,7 +49,7 @@ final class ShopCouponService
         $catalogDiscount = round(max(0, $catalogDiscount), 2);
         $afterCatalog = round(max(0, $subtotal - $catalogDiscount), 2);
 
-        $err = $this->validateEligibility($coupon, $afterCatalog, $userId, $cartCategoryIds, $cartCatalog);
+        $err = $this->validateEligibility($coupon, $afterCatalog, $userId, $cartCategoryIds, $cartCatalog, $cartServiceIds);
         if ($err !== null) {
             return ['ok' => false, 'message' => $err];
         }
@@ -106,13 +108,15 @@ final class ShopCouponService
 
     /**
      * @param  array<int>  $cartCategoryIds
+     * @param  array<int>  $cartServiceIds
      */
     public function validateEligibility(
         Coupon $coupon,
         float $afterCatalog,
         ?int $userId,
         array $cartCategoryIds = [],
-        ?string $cartCatalog = null
+        ?string $cartCatalog = null,
+        array $cartServiceIds = []
     ): ?string {
         if (! $coupon->is_active) {
             return 'This coupon is not active.';
@@ -143,7 +147,7 @@ final class ShopCouponService
             }
         }
 
-        $scopeErr = $this->validateCatalogScope($coupon, $cartCategoryIds, $cartCatalog);
+        $scopeErr = $this->validateCatalogScope($coupon, $cartCategoryIds, $cartCatalog, $cartServiceIds);
         if ($scopeErr !== null) {
             return $scopeErr;
         }
@@ -153,8 +157,9 @@ final class ShopCouponService
 
     /**
      * @param  array<int>  $cartCategoryIds
+     * @param  array<int>  $cartServiceIds
      */
-    public function validateCatalogScope(Coupon $coupon, array $cartCategoryIds, ?string $cartCatalog): ?string
+    public function validateCatalogScope(Coupon $coupon, array $cartCategoryIds, ?string $cartCatalog, array $cartServiceIds = []): ?string
     {
         $appliesTo = strtolower((string) ($coupon->applies_to ?? Coupon::APPLIES_ALL));
 
@@ -175,17 +180,26 @@ final class ShopCouponService
             return null;
         }
 
-        $scope = strtolower((string) ($coupon->catalog_scope ?? Coupon::SCOPE_BOTH));
-        if ($scope === Coupon::SCOPE_BOTH || $cartCatalog === null || $cartCatalog === '') {
+        if ($appliesTo === Coupon::APPLIES_SERVICES) {
+            $allowed = $coupon->relationLoaded('services')
+                ? $coupon->services->pluck('id')->map(fn ($id) => (int) $id)->all()
+                : $coupon->services()->pluck('services.id')->all();
+
+            if ($allowed === []) {
+                return 'This coupon has no services configured.';
+            }
+
+            $cartServiceIds = array_map('intval', $cartServiceIds);
+            if ($cartServiceIds === [] || count(array_intersect($allowed, $cartServiceIds)) === 0) {
+                return 'This coupon does not apply to services in your cart.';
+            }
+
             return null;
         }
 
-        $cartCatalog = strtolower($cartCatalog);
-        if ($scope === Coupon::SCOPE_PRODUCTS && $cartCatalog === Coupon::SCOPE_SERVICES) {
-            return 'This coupon applies to products only.';
-        }
-        if ($scope === Coupon::SCOPE_SERVICES && $cartCatalog === Coupon::SCOPE_PRODUCTS) {
-            return 'This coupon applies to services only.';
+        // applies_to = all (store products)
+        if ($cartCatalog !== null && strtolower($cartCatalog) === Coupon::SCOPE_SERVICES) {
+            return 'This coupon applies to all store products.';
         }
 
         return null;
@@ -210,6 +224,9 @@ final class ShopCouponService
             'category_ids' => $coupon->relationLoaded('categories')
                 ? $coupon->categories->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
                 : $coupon->categories()->pluck('categories.id')->map(fn ($id) => (int) $id)->all(),
+            'service_ids' => $coupon->relationLoaded('services')
+                ? $coupon->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
+                : $coupon->services()->pluck('services.id')->map(fn ($id) => (int) $id)->all(),
         ];
     }
 }

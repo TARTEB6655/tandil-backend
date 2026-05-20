@@ -89,7 +89,8 @@ class ShopStripeMobilePaymentService
                 (float) ($preview['catalog_discount'] ?? 0),
                 (int) $user->id,
                 (array) ($preview['cart_category_ids'] ?? []),
-                (string) ($preview['cart_catalog'] ?? 'both')
+                (string) ($preview['cart_catalog'] ?? 'both'),
+                (array) ($preview['cart_service_ids'] ?? [])
             );
             if (! ($couponPreview['ok'] ?? false)) {
                 return $this->err($couponPreview['message'] ?? 'Invalid coupon.', 422);
