@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\ParsesPutMultipartFormFields;
 use App\Models\Coupon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class CouponController extends Controller
 {
+    use ParsesPutMultipartFormFields;
     public function index(Request $request): JsonResponse
     {
         $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
@@ -44,6 +46,8 @@ class CouponController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->mergePutMultipartFormFields($request);
+
         $data = $this->validatedData($request);
         $categoryIds = $data['category_ids'];
         $serviceIds = $data['service_ids'];
@@ -65,6 +69,8 @@ class CouponController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
+        $this->mergePutMultipartFormFields($request);
+
         $coupon = Coupon::with(['categories', 'services'])->findOrFail($id);
 
         if ($request->filled('code') && strtoupper(trim((string) $request->input('code'))) !== $coupon->code) {
@@ -106,10 +112,7 @@ class CouponController extends Controller
     {
         $this->normalizeRequestScalars($request);
 
-        // exists() — has() treats form-data "0" as empty, so is_active=0 was never applied.
-        if ($request->exists('is_active')) {
-            $request->merge(['is_active' => $this->parseBooleanInput($request->input('is_active'))]);
-        }
+        $this->normalizeIsActiveInput($request);
 
         $rules = [
             'title' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
@@ -153,6 +156,8 @@ class CouponController extends Controller
                 'discount_value' => ['discount_value is required for percentage and fixed_amount coupons.'],
             ]);
         }
+
+        $scopeFieldsSent = $this->scopeFieldsWereSent($request, $validated, $isUpdate);
 
         $appliesTo = strtolower((string) ($validated['applies_to'] ?? Coupon::APPLIES_ALL));
         $categoryIds = array_map('intval', $validated['category_ids'] ?? []);
@@ -233,10 +238,39 @@ class CouponController extends Controller
             $payload['catalog_scope'] = Coupon::catalogScopeForAppliesTo($appliesTo);
         }
 
-        $payload['category_ids'] = $categoryIds;
-        $payload['service_ids'] = $serviceIds;
+        if ($scopeFieldsSent) {
+            $payload['category_ids'] = $categoryIds;
+            $payload['service_ids'] = $serviceIds;
+        }
 
         return $payload;
+    }
+
+    private function normalizeIsActiveInput(Request $request): void
+    {
+        $all = $request->all();
+
+        if (array_key_exists('isActive', $all) && ! array_key_exists('is_active', $all)) {
+            $request->merge(['is_active' => $all['isActive']]);
+        }
+
+        if (array_key_exists('is_active', $request->all())) {
+            $request->merge(['is_active' => $this->parseBooleanInput($request->input('is_active'))]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function scopeFieldsWereSent(Request $request, array $validated, bool $isUpdate): bool
+    {
+        if (! $isUpdate) {
+            return true;
+        }
+
+        return array_key_exists('applies_to', $validated)
+            || array_key_exists('category_ids', $request->all())
+            || array_key_exists('service_ids', $request->all());
     }
 
     private function parseBooleanInput(mixed $value): bool

@@ -746,6 +746,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/coupons')->grou
     Route::post('/', [\App\Http\Controllers\Api\Admin\CouponController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Api\Admin\CouponController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Api\Admin\CouponController::class, 'update']);
+    Route::patch('/{id}', [\App\Http\Controllers\Api\Admin\CouponController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\CouponController::class, 'destroy']);
 });
 

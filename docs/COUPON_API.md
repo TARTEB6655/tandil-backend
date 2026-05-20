@@ -54,7 +54,7 @@ List response includes `meta` (`current_page`, `last_page`, `total`). Messages: 
 
 **Create body (JSON or form-data):** `code`, `title` (required), `description`, `discount_type`, `discount_value`, `min_order_amount` (required), `max_discount_amount`, `starts_at`, `ends_at`, `is_active` (required), `usage_limit`, `usage_limit_per_user`, `applies_to`, `catalog_scope`, `category_ids[]`.
 
-**Update:** same fields except **`code` cannot change** (422 if different code sent).
+**Update:** `PUT` or `PATCH` with JSON or `multipart/form-data` (same as Postman). **`code` cannot change** (422 if a different code is sent). Always send **`is_active`** as `0` or `1` when toggling off/on (do not omit the field when deactivating). Supports `is_active` or `isActive`.
 
 ---
 
