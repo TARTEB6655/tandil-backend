@@ -4,86 +4,116 @@ namespace App\Services;
 
 use App\Http\Controllers\Shop\CartController;
 use App\Models\Coupon;
-use App\Models\Order;
 use Carbon\Carbon;
 
 /**
- * Validates coupons against cart subtotal and usage limits; computes merchandise + shipping discounts.
+ * Coupon validation and discount math aligned with mobile COUPON_FLOW / API contract.
  */
 final class ShopCouponService
 {
     /**
+     * @param  array<int>  $cartCategoryIds
      * @return array{
      *   ok: bool,
      *   message?: string,
+     *   coupon_id?: int,
+     *   code?: string,
+     *   discount_type?: string,
+     *   coupon_discount?: float,
+     *   free_shipping?: bool,
      *   coupon?: array<string, mixed>,
-     *   merchandise_discount?: float,
-     *   shipping_discount?: float,
      *   order_summary?: array<string, mixed>
      * }
      */
-    public function preview(?string $code, float $subtotal, ?int $userId = null): array
-    {
+    public function preview(
+        ?string $code,
+        float $subtotal,
+        float $catalogDiscount = 0,
+        ?int $userId = null,
+        array $cartCategoryIds = [],
+        ?string $cartCatalog = null
+    ): array {
         $code = strtoupper(trim((string) $code));
         if ($code === '') {
             return ['ok' => false, 'message' => 'Please enter a coupon code.'];
         }
 
-        $coupon = Coupon::query()->where('code', $code)->first();
+        $coupon = Coupon::query()->with('categories')->where('code', $code)->first();
         if (! $coupon) {
             return ['ok' => false, 'message' => 'Invalid coupon code.'];
         }
 
-        $err = $this->validateEligibility($coupon, $subtotal, $userId);
+        $subtotal = round(max(0, $subtotal), 2);
+        $catalogDiscount = round(max(0, $catalogDiscount), 2);
+        $afterCatalog = round(max(0, $subtotal - $catalogDiscount), 2);
+
+        $err = $this->validateEligibility($coupon, $afterCatalog, $userId, $cartCategoryIds, $cartCatalog);
         if ($err !== null) {
             return ['ok' => false, 'message' => $err];
         }
 
-        [$merch, $ship] = $this->computeDiscounts($coupon, $subtotal);
-        $summary = CartController::buildOrderSummaryWithAdjustments($subtotal, $merch, $ship);
+        [$couponDiscount, $freeShipping] = $this->computeCouponDiscount($coupon, $afterCatalog);
+        $summary = CartController::buildOrderSummaryWithCoupon(
+            $subtotal,
+            $catalogDiscount,
+            $couponDiscount,
+            $freeShipping,
+            $coupon->code
+        );
 
         return [
             'ok' => true,
             'message' => 'Coupon applied.',
+            'coupon_id' => $coupon->id,
+            'code' => $coupon->code,
+            'discount_type' => $coupon->discount_type,
+            'coupon_discount' => $couponDiscount,
+            'free_shipping' => $freeShipping,
             'coupon' => $this->couponToApi($coupon),
-            'merchandise_discount' => $merch,
-            'shipping_discount' => $ship,
             'order_summary' => $summary,
         ];
     }
 
     /**
-     * @return array{0: float, 1: float} [merchandise_discount, shipping_discount]
+     * @return array{0: float, 1: bool} [coupon_discount, free_shipping]
      */
-    public function computeDiscounts(Coupon $coupon, float $subtotal): array
+    public function computeCouponDiscount(Coupon $coupon, float $afterCatalog): array
     {
-        $subtotal = round(max(0, $subtotal), 2);
-        $baseShipping = CartController::getEffectiveShippingAmount();
-
-        $merch = 0.0;
-        $ship = 0.0;
-
+        $afterCatalog = round(max(0, $afterCatalog), 2);
         $type = strtolower((string) $coupon->discount_type);
+
+        if ($type === 'free_shipping') {
+            return [0.0, true];
+        }
 
         if ($type === 'percentage') {
             $pct = (float) ($coupon->discount_value ?? 0);
-            $merch = round($subtotal * ($pct / 100), 2);
+            $raw = round($afterCatalog * ($pct / 100), 2);
             $max = $coupon->max_discount_amount;
             if ($max !== null && (float) $max > 0) {
-                $merch = min($merch, (float) $max);
+                $raw = min($raw, (float) $max);
             }
-            $merch = min($merch, $subtotal);
-        } elseif ($type === 'fixed_amount') {
-            $merch = min((float) ($coupon->discount_value ?? 0), $subtotal);
-        } elseif ($type === 'free_shipping') {
-            $ship = round($baseShipping, 2);
+
+            return [round(min($raw, $afterCatalog), 2), false];
         }
 
-        return [round($merch, 2), round($ship, 2)];
+        if ($type === 'fixed_amount') {
+            return [round(min((float) ($coupon->discount_value ?? 0), $afterCatalog), 2), false];
+        }
+
+        return [0.0, false];
     }
 
-    public function validateEligibility(Coupon $coupon, float $subtotal, ?int $userId): ?string
-    {
+    /**
+     * @param  array<int>  $cartCategoryIds
+     */
+    public function validateEligibility(
+        Coupon $coupon,
+        float $afterCatalog,
+        ?int $userId,
+        array $cartCategoryIds = [],
+        ?string $cartCatalog = null
+    ): ?string {
         if (! $coupon->is_active) {
             return 'This coupon is not active.';
         }
@@ -97,22 +127,65 @@ final class ShopCouponService
         }
 
         $min = (float) ($coupon->min_order_amount ?? 0);
-        if ($subtotal + 0.0001 < $min) {
-            return 'Order subtotal does not meet the minimum for this coupon (AED '.number_format($min, 2).').';
+        if ($afterCatalog + 0.0001 < $min) {
+            return 'Minimum order is '.number_format($min, 0).' AED after discounts.';
         }
 
         if ($coupon->usage_limit !== null && $coupon->usage_limit > 0) {
-            $used = $coupon->paidOrdersCount();
-            if ($used >= $coupon->usage_limit) {
+            if ($coupon->paidOrdersCount() >= $coupon->usage_limit) {
                 return 'This coupon has reached its maximum number of uses.';
             }
         }
 
         if ($userId !== null && $coupon->usage_limit_per_user !== null && $coupon->usage_limit_per_user > 0) {
-            $userUses = $coupon->paidOrdersCountForUser($userId);
-            if ($userUses >= $coupon->usage_limit_per_user) {
+            if ($coupon->paidOrdersCountForUser($userId) >= $coupon->usage_limit_per_user) {
                 return 'You have already used this coupon the maximum number of times.';
             }
+        }
+
+        $scopeErr = $this->validateCatalogScope($coupon, $cartCategoryIds, $cartCatalog);
+        if ($scopeErr !== null) {
+            return $scopeErr;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<int>  $cartCategoryIds
+     */
+    public function validateCatalogScope(Coupon $coupon, array $cartCategoryIds, ?string $cartCatalog): ?string
+    {
+        $appliesTo = strtolower((string) ($coupon->applies_to ?? Coupon::APPLIES_ALL));
+
+        if ($appliesTo === Coupon::APPLIES_CATEGORIES) {
+            $allowed = $coupon->relationLoaded('categories')
+                ? $coupon->categories->pluck('id')->map(fn ($id) => (int) $id)->all()
+                : $coupon->categories()->pluck('categories.id')->all();
+
+            if ($allowed === []) {
+                return 'This coupon has no categories configured.';
+            }
+
+            $cartCategoryIds = array_map('intval', $cartCategoryIds);
+            if ($cartCategoryIds === [] || count(array_intersect($allowed, $cartCategoryIds)) === 0) {
+                return 'This coupon does not apply to items in your cart.';
+            }
+
+            return null;
+        }
+
+        $scope = strtolower((string) ($coupon->catalog_scope ?? Coupon::SCOPE_BOTH));
+        if ($scope === Coupon::SCOPE_BOTH || $cartCatalog === null || $cartCatalog === '') {
+            return null;
+        }
+
+        $cartCatalog = strtolower($cartCatalog);
+        if ($scope === Coupon::SCOPE_PRODUCTS && $cartCatalog === Coupon::SCOPE_SERVICES) {
+            return 'This coupon applies to products only.';
+        }
+        if ($scope === Coupon::SCOPE_SERVICES && $cartCatalog === Coupon::SCOPE_PRODUCTS) {
+            return 'This coupon applies to services only.';
         }
 
         return null;
@@ -132,6 +205,11 @@ final class ShopCouponService
             'discount_value' => $coupon->discount_value !== null ? (float) $coupon->discount_value : null,
             'min_order_amount' => (float) ($coupon->min_order_amount ?? 0),
             'max_discount_amount' => $coupon->max_discount_amount !== null ? (float) $coupon->max_discount_amount : null,
+            'applies_to' => $coupon->applies_to ?? Coupon::APPLIES_ALL,
+            'catalog_scope' => $coupon->catalog_scope,
+            'category_ids' => $coupon->relationLoaded('categories')
+                ? $coupon->categories->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
+                : $coupon->categories()->pluck('categories.id')->map(fn ($id) => (int) $id)->all(),
         ];
     }
 }

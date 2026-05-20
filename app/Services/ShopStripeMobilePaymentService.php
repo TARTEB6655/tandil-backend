@@ -83,18 +83,29 @@ class ShopStripeMobilePaymentService
 
         if ($couponCodeInput !== '') {
             $couponSvc = app(ShopCouponService::class);
-            $couponPreview = $couponSvc->preview($couponCodeInput, (float) $preview['subtotal'], (int) $user->id);
+            $couponPreview = $couponSvc->preview(
+                $couponCodeInput,
+                (float) $preview['subtotal'],
+                (float) ($preview['catalog_discount'] ?? 0),
+                (int) $user->id,
+                (array) ($preview['cart_category_ids'] ?? []),
+                (string) ($preview['cart_catalog'] ?? 'both')
+            );
             if (! ($couponPreview['ok'] ?? false)) {
                 return $this->err($couponPreview['message'] ?? 'Invalid coupon.', 422);
             }
             $summary = $couponPreview['order_summary'];
-            $couponRow = Coupon::query()->where('code', strtoupper($couponCodeInput))->first();
-            $couponId = $couponRow?->id;
-            $couponCodeStored = $couponRow?->code;
-            $couponMerchDisc = (float) ($couponPreview['merchandise_discount'] ?? 0);
-            $couponShipDisc = (float) ($couponPreview['shipping_discount'] ?? 0);
+            $couponId = $couponPreview['coupon_id'] ?? null;
+            $couponCodeStored = $couponPreview['code'] ?? null;
+            $couponMerchDisc = (float) ($couponPreview['coupon_discount'] ?? 0);
+            $couponShipDisc = (bool) ($couponPreview['free_shipping'] ?? false)
+                ? (float) ($summary['shipping_discount'] ?? CartController::getEffectiveShippingAmount())
+                : 0.0;
         } else {
-            $summary = CartController::buildOrderSummary($preview['subtotal'], 0);
+            $catalogDisc = (float) ($preview['catalog_discount'] ?? 0);
+            $summary = $catalogDisc > 0
+                ? CartController::buildOrderSummaryWithCoupon((float) $preview['subtotal'], $catalogDisc, 0, false)
+                : CartController::buildOrderSummary($preview['subtotal'], 0);
         }
 
         $total = (float) $summary['total'];

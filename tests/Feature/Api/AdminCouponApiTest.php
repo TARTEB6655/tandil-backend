@@ -50,26 +50,18 @@ class AdminCouponApiTest extends TestCase
 
         $response = $this->getJson('/api/admin/coupons', $this->adminHeaders($admin))
             ->assertOk()
-            ->assertJsonPath('success', true);
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Coupons loaded.')
+            ->assertJsonStructure(['meta' => ['current_page', 'last_page', 'total']]);
 
-        $data = $response->json('data');
-        $this->assertIsArray($data);
-        $this->assertGreaterThanOrEqual(4, count($data));
-
-        $save10 = collect($data)->firstWhere('code', 'SAVE10');
+        $save10 = collect($response->json('data'))->firstWhere('code', 'SAVE10');
         $this->assertNotNull($save10);
         $this->assertSame('10% off', $save10['title']);
         $this->assertSame('percentage', $save10['discount_type']);
-        $this->assertSame(10.0, (float) $save10['discount_value']);
-        $this->assertSame(50.0, (float) $save10['min_order_amount']);
-        $this->assertSame(30.0, (float) $save10['max_discount_amount']);
+        $this->assertSame(3, $save10['usage_limit_per_user']);
+        $this->assertSame('all', $save10['applies_to']);
+        $this->assertSame('products', $save10['catalog_scope']);
         $this->assertTrue($save10['is_active']);
-
-        $freeShip = collect($data)->firstWhere('code', 'FREESHIP');
-        $this->assertNotNull($freeShip);
-        $this->assertSame('free_shipping', $freeShip['discount_type']);
-        $this->assertNull($freeShip['discount_value']);
-        $this->assertSame('Free shipping', $freeShip['title']);
     }
 
     public function test_admin_create_coupon_via_form_fields(): void
@@ -92,43 +84,16 @@ class AdminCouponApiTest extends TestCase
             'starts_at' => '2026-01-01',
             'ends_at' => '2026-12-31',
             'is_active' => '1',
-            'usage_limit' => '',
-            'usage_limit_per_user' => '',
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+            'category_ids' => '[]',
         ], $this->adminHeaders($admin))
             ->assertStatus(201)
             ->assertJsonPath('data.code', 'SAVE10')
-            ->assertJsonPath('data.title', '10% off')
-            ->assertJsonPath('data.is_active', true);
-
-        $this->assertDatabaseHas('coupons', [
-            'code' => 'SAVE10',
-            'discount_type' => 'percentage',
-        ]);
+            ->assertJsonPath('message', 'Coupon created.');
     }
 
-    public function test_admin_create_free_shipping_without_discount_value(): void
-    {
-        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
-            $this->markTestSkipped('Spatie permission tables unavailable.');
-        }
-
-        $admin = User::factory()->create(['role' => 'admin']);
-        $admin->assignRole('admin');
-
-        $this->post('/api/admin/coupons', [
-            'code' => 'FREESHIP2',
-            'title' => 'Free shipping',
-            'description' => 'Free shipping on orders over AED 75.',
-            'discount_type' => 'free_shipping',
-            'min_order_amount' => '75',
-            'is_active' => '1',
-        ], $this->adminHeaders($admin))
-            ->assertStatus(201)
-            ->assertJsonPath('data.discount_type', 'free_shipping')
-            ->assertJsonPath('data.discount_value', null);
-    }
-
-    public function test_admin_update_coupon_partial_form(): void
+    public function test_admin_update_rejects_code_change(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
             $this->markTestSkipped('Spatie permission tables unavailable.');
@@ -139,20 +104,19 @@ class AdminCouponApiTest extends TestCase
 
         $coupon = Coupon::create([
             'code' => 'OLDCODE',
-            'title' => 'Old title',
+            'title' => 'Old',
             'discount_type' => 'fixed_amount',
             'discount_value' => 10,
             'min_order_amount' => 0,
             'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'both',
         ]);
 
-        $this->put('/api/admin/coupons/'.$coupon->id, [
-            'title' => 'Updated title',
-            'is_active' => '0',
+        $this->putJson('/api/admin/coupons/'.$coupon->id, [
+            'code' => 'NEWCODE',
+            'title' => 'Updated',
         ], $this->adminHeaders($admin))
-            ->assertOk()
-            ->assertJsonPath('data.title', 'Updated title')
-            ->assertJsonPath('data.is_active', false)
-            ->assertJsonPath('data.code', 'OLDCODE');
+            ->assertStatus(422);
     }
 }

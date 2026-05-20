@@ -61,17 +61,43 @@ class CartController extends Controller
         float $shippingDiscount = 0,
         ?float $baseShipping = null
     ): array {
+        return self::buildOrderSummaryWithCoupon($subtotal, 0, $merchandiseDiscount, $shippingDiscount > 0, null, $shippingDiscount, $baseShipping);
+    }
+
+    /**
+     * Order summary per coupon API contract: catalog discount separate from coupon; tax on amount after both.
+     *
+     * @return array<string, mixed>
+     */
+    public static function buildOrderSummaryWithCoupon(
+        float $subtotal,
+        float $catalogDiscount,
+        float $couponDiscount,
+        bool $freeShipping = false,
+        ?string $couponCode = null,
+        ?float $shippingDiscountOverride = null,
+        ?float $baseShipping = null
+    ): array {
         $baseShipping ??= self::getEffectiveShippingAmount();
         $taxPercent = self::getEffectiveTaxPercent();
-        $taxAmount = round($subtotal * ($taxPercent / 100), 2);
-        $merchandiseDiscount = round(max(0, $merchandiseDiscount), 2);
-        $shippingDiscount = round(max(0, min($shippingDiscount, $baseShipping)), 2);
-        $shippingAfter = round(max(0, $baseShipping - $shippingDiscount), 2);
-        $total = round($subtotal - $merchandiseDiscount + $shippingAfter + $taxAmount, 2);
+        $catalogDiscount = round(max(0, $catalogDiscount), 2);
+        $subtotal = round(max(0, $subtotal), 2);
+        $afterCatalog = round(max(0, $subtotal - $catalogDiscount), 2);
+        $couponDiscount = round(max(0, min($couponDiscount, $afterCatalog)), 2);
 
-        return [
+        $shippingDiscount = $shippingDiscountOverride !== null
+            ? round(max(0, min($shippingDiscountOverride, $baseShipping)), 2)
+            : ($freeShipping ? round($baseShipping, 2) : 0.0);
+        $shippingAfter = round(max(0, $baseShipping - $shippingDiscount), 2);
+
+        $taxable = round(max(0, $afterCatalog - $couponDiscount), 2);
+        $taxAmount = round($taxable * ($taxPercent / 100), 2);
+        $total = round($taxable + $taxAmount + $shippingAfter, 2);
+
+        $summary = [
             'subtotal' => $subtotal,
-            'discount' => $merchandiseDiscount,
+            'discount' => $catalogDiscount,
+            'coupon_discount' => $couponDiscount,
             'shipping_discount' => $shippingDiscount,
             'shipping' => $shippingAfter,
             'shipping_label' => $shippingAfter == 0 ? 'Free' : (string) $shippingAfter,
@@ -79,6 +105,58 @@ class CartController extends Controller
             'tax' => $taxAmount,
             'total' => $total,
             'currency' => self::CURRENCY,
+        ];
+
+        if ($couponCode !== null && $couponCode !== '') {
+            $summary['coupon_code'] = strtoupper($couponCode);
+        }
+
+        return $summary;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Cart>  $items
+     * @return array{catalog_discount: float, cart_category_ids: array<int>, cart_catalog: string}
+     */
+    public static function cartContextFromItems($items): array
+    {
+        $catalogDiscount = 0.0;
+        $categoryIds = [];
+        $hasProduct = false;
+        $hasService = false;
+
+        foreach ($items as $item) {
+            $product = $item->product;
+            if ($product === null) {
+                continue;
+            }
+            $price = (float) $product->price;
+            $compareAt = $product->compare_at_price !== null ? (float) $product->compare_at_price : null;
+            if ($compareAt !== null && $compareAt > $price) {
+                $catalogDiscount += ($compareAt - $price) * (int) $item->quantity;
+            }
+            if ($product->category_id) {
+                $categoryIds[] = (int) $product->category_id;
+            }
+            $type = strtolower((string) ($product->type ?? 'physical'));
+            if ($type === 'service') {
+                $hasService = true;
+            } else {
+                $hasProduct = true;
+            }
+        }
+
+        $cartCatalog = Coupon::SCOPE_BOTH;
+        if ($hasProduct && ! $hasService) {
+            $cartCatalog = Coupon::SCOPE_PRODUCTS;
+        } elseif ($hasService && ! $hasProduct) {
+            $cartCatalog = Coupon::SCOPE_SERVICES;
+        }
+
+        return [
+            'catalog_discount' => round($catalogDiscount, 2),
+            'cart_category_ids' => array_values(array_unique($categoryIds)),
+            'cart_catalog' => $cartCatalog,
         ];
     }
 
@@ -252,9 +330,15 @@ class CartController extends Controller
             $cart->id = 0;
             $subtotal = round($qty * (float) $product->price, 2);
 
+            $items = collect([$cart]);
+            $ctx = self::cartContextFromItems($items);
+
             return [
-                'items' => collect([$cart]),
+                'items' => $items,
                 'subtotal' => $subtotal,
+                'catalog_discount' => $ctx['catalog_discount'],
+                'cart_category_ids' => $ctx['cart_category_ids'],
+                'cart_catalog' => $ctx['cart_catalog'],
             ];
         }
 
@@ -263,10 +347,14 @@ class CartController extends Controller
             ->get();
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null)->values();
         $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
+        $ctx = self::cartContextFromItems($validItems);
 
         return [
             'items' => $validItems,
             'subtotal' => $subtotal,
+            'catalog_discount' => $ctx['catalog_discount'],
+            'cart_category_ids' => $ctx['cart_category_ids'],
+            'cart_catalog' => $ctx['cart_catalog'],
         ];
     }
 
@@ -342,10 +430,18 @@ class CartController extends Controller
     {
         $cartPreview = self::checkoutPreview($request, $user->id);
         $subtotal = round((float) $cartPreview['subtotal'], 2);
+        $catalogDiscount = round((float) ($request->input('catalog_discount', $cartPreview['catalog_discount'] ?? 0)), 2);
+        $cartCategoryIds = $request->input('cart_category_ids', $cartPreview['cart_category_ids'] ?? []);
+        if (is_string($cartCategoryIds)) {
+            $decoded = json_decode($cartCategoryIds, true);
+            $cartCategoryIds = is_array($decoded) ? $decoded : [];
+        }
+        $cartCategoryIds = array_map('intval', (array) $cartCategoryIds);
+        $cartCatalog = $request->input('cart_catalog', $cartPreview['cart_catalog'] ?? Coupon::SCOPE_BOTH);
         $code = trim((string) ($request->input('coupon_code', $request->query('coupon_code', ''))));
 
         if ($code === '') {
-            $summary = self::buildOrderSummary($subtotal, 0);
+            $summary = self::buildOrderSummaryWithCoupon($subtotal, $catalogDiscount, 0, false);
             self::normalizeOrderSummaryNumericTypes($summary);
 
             return [
@@ -361,7 +457,7 @@ class CartController extends Controller
 
         /** @var ShopCouponService $svc */
         $svc = app(ShopCouponService::class);
-        $r = $svc->preview($code, $subtotal, (int) $user->id);
+        $r = $svc->preview($code, $subtotal, $catalogDiscount, (int) $user->id, $cartCategoryIds, (string) $cartCatalog);
         if (! ($r['ok'] ?? false)) {
             return [
                 'cart_preview' => $cartPreview,
@@ -378,15 +474,17 @@ class CartController extends Controller
         self::normalizeOrderSummaryNumericTypes($summary);
         $summary['coupon'] = $r['coupon'];
 
-        $couponRow = Coupon::query()->where('code', strtoupper($code))->first();
+        $couponDiscount = (float) ($r['coupon_discount'] ?? 0);
+        $freeShipping = (bool) ($r['free_shipping'] ?? false);
+        $shipDisc = $freeShipping ? (float) ($summary['shipping_discount'] ?? 0) : 0.0;
 
         return [
             'cart_preview' => $cartPreview,
             'order_summary' => $summary,
-            'coupon_id' => $couponRow?->id,
-            'coupon_code' => $couponRow?->code,
-            'coupon_merchandise_discount' => (float) ($r['merchandise_discount'] ?? 0),
-            'coupon_shipping_discount' => (float) ($r['shipping_discount'] ?? 0),
+            'coupon_id' => $r['coupon_id'] ?? null,
+            'coupon_code' => $r['code'] ?? null,
+            'coupon_merchandise_discount' => $couponDiscount,
+            'coupon_shipping_discount' => $shipDisc,
             'error' => null,
         ];
     }
@@ -398,6 +496,9 @@ class CartController extends Controller
     {
         $summary['subtotal'] = (float) $summary['subtotal'];
         $summary['discount'] = (float) ($summary['discount'] ?? 0);
+        if (array_key_exists('coupon_discount', $summary)) {
+            $summary['coupon_discount'] = (float) $summary['coupon_discount'];
+        }
         if (array_key_exists('shipping_discount', $summary)) {
             $summary['shipping_discount'] = (float) $summary['shipping_discount'];
         }

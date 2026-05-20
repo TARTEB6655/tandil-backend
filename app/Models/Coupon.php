@@ -3,10 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Coupon extends Model
 {
+    public const APPLIES_ALL = 'all';
+
+    public const APPLIES_CATEGORIES = 'categories';
+
+    public const SCOPE_PRODUCTS = 'products';
+
+    public const SCOPE_SERVICES = 'services';
+
+    public const SCOPE_BOTH = 'both';
+
     protected $fillable = [
         'code',
         'title',
@@ -20,6 +31,8 @@ class Coupon extends Model
         'is_active',
         'usage_limit',
         'usage_limit_per_user',
+        'applies_to',
+        'catalog_scope',
     ];
 
     protected function casts(): array
@@ -39,6 +52,11 @@ class Coupon extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'coupon_category');
     }
 
     public function scopeActive($query)

@@ -49,7 +49,7 @@ class ShopCouponApiTest extends TestCase
         }
     }
 
-    public function test_validate_coupon_and_order_summary_with_save10(): void
+    public function test_validate_coupon_returns_contract_shape(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
             $this->markTestSkipped('Spatie permission tables unavailable.');
@@ -60,16 +60,15 @@ class ShopCouponApiTest extends TestCase
 
         Coupon::create([
             'code' => 'SAVE10',
-            'title' => 'Save 10%',
+            'title' => '10% off',
             'discount_type' => 'percentage',
             'discount_value' => 10,
             'min_order_amount' => 50,
             'max_discount_amount' => 30,
             'starts_at' => now()->subDay()->toDateString(),
-            'ends_at' => null,
             'is_active' => true,
-            'usage_limit' => null,
-            'usage_limit_per_user' => null,
+            'applies_to' => 'all',
+            'catalog_scope' => 'both',
         ]);
 
         $cat = Category::factory()->create();
@@ -77,6 +76,7 @@ class ShopCouponApiTest extends TestCase
             'category_id' => $cat->id,
             'price' => 100,
             'status' => 'active',
+            'type' => 'physical',
         ]);
 
         $this->postJson('/api/shop/cart/add', [
@@ -86,13 +86,47 @@ class ShopCouponApiTest extends TestCase
 
         $this->postJson('/api/shop/coupons/validate', [
             'code' => 'save10',
+            'subtotal' => 100,
+            'catalog_discount' => 0,
         ], $this->clientHeaders($client))
             ->assertOk()
-            ->assertJsonPath('data.merchandise_discount', 10);
+            ->assertJsonPath('data.code', 'SAVE10')
+            ->assertJsonPath('data.coupon_discount', 10)
+            ->assertJsonPath('data.free_shipping', false);
 
         $this->getJson('/api/shop/order-summary?coupon_code=SAVE10', $this->clientHeaders($client))
             ->assertOk()
-            ->assertJsonPath('data.discount', 10);
+            ->assertJsonPath('data.coupon_code', 'SAVE10')
+            ->assertJsonPath('data.coupon_discount', 10);
+    }
+
+    public function test_validate_respects_catalog_discount_for_min_order(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'SAVE10',
+            'title' => '10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 50,
+            'max_discount_amount' => 30,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'both',
+        ]);
+
+        $this->postJson('/api/shop/coupons/validate', [
+            'code' => 'SAVE10',
+            'subtotal' => 55,
+            'catalog_discount' => 10,
+        ], $this->clientHeaders($client))
+            ->assertStatus(422);
     }
 
     public function test_inactive_coupon_returns_422(): void
@@ -111,25 +145,15 @@ class ShopCouponApiTest extends TestCase
             'discount_value' => 5,
             'min_order_amount' => 0,
             'is_active' => false,
+            'applies_to' => 'all',
+            'catalog_scope' => 'both',
         ]);
-
-        $cat = Category::factory()->create();
-        $product = Product::factory()->create([
-            'category_id' => $cat->id,
-            'price' => 100,
-            'status' => 'active',
-        ]);
-
-        $this->postJson('/api/shop/cart/add', [
-            'product_id' => $product->id,
-            'quantity' => 1,
-        ], $this->clientHeaders($client))->assertStatus(201);
 
         $this->postJson('/api/shop/coupons/validate', ['code' => 'EXPIRED'], $this->clientHeaders($client))
             ->assertStatus(422);
     }
 
-    public function test_admin_can_create_coupon(): void
+    public function test_admin_can_create_coupon_json(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
             $this->markTestSkipped('Spatie permission tables unavailable.');
@@ -145,6 +169,9 @@ class ShopCouponApiTest extends TestCase
             'discount_value' => 15,
             'min_order_amount' => 50,
             'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'both',
+            'category_ids' => [],
         ], $this->adminHeaders($admin))
             ->assertStatus(201)
             ->assertJsonPath('data.code', 'NEWCODE');

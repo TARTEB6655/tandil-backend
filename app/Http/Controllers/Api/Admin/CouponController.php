@@ -5,49 +5,91 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CouponController extends Controller
 {
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        $rows = Coupon::query()->orderByDesc('id')->get()->map(fn (Coupon $c) => $this->toArray($c));
+        $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
+        $search = trim((string) $request->query('search', ''));
 
-        return ApiResponse::success('Coupons retrieved successfully.', $rows);
+        $query = Coupon::query()->with('categories')->orderByDesc('id');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', '%'.strtoupper($search).'%')
+                    ->orWhere('title', 'like', '%'.$search.'%');
+            });
+        }
+
+        $paginator = $query->paginate($perPage);
+        $rows = $paginator->getCollection()->map(fn (Coupon $c) => $this->toArray($c))->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Coupons loaded.',
+            'data' => $rows,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $data = $this->validatedData($request);
+        $categoryIds = $data['category_ids'];
+        unset($data['category_ids']);
 
         $coupon = Coupon::create($data);
+        $coupon->categories()->sync($categoryIds);
 
-        return ApiResponse::success('Coupon created successfully.', $this->toArray($coupon), 201);
+        return ApiResponse::success('Coupon created.', $this->toArray($coupon->fresh()->load('categories')), 201);
     }
 
-    public function show(int $id)
+    public function show(int $id): JsonResponse
     {
-        $coupon = Coupon::findOrFail($id);
+        $coupon = Coupon::with('categories')->findOrFail($id);
 
-        return ApiResponse::success('Coupon retrieved successfully.', $this->toArray($coupon));
+        return ApiResponse::success('Coupon retrieved.', $this->toArray($coupon));
     }
 
-    public function update(Request $request, int $id)
+    public function update(Request $request, int $id): JsonResponse
     {
-        $coupon = Coupon::findOrFail($id);
+        $coupon = Coupon::with('categories')->findOrFail($id);
+
+        if ($request->filled('code') && strtoupper(trim((string) $request->input('code'))) !== $coupon->code) {
+            throw ValidationException::withMessages([
+                'code' => ['Coupon code cannot be changed.'],
+            ]);
+        }
+
         $data = $this->validatedData($request, $coupon->id, true);
-        $coupon->update($data);
+        $categoryIds = $data['category_ids'] ?? null;
+        unset($data['category_ids']);
 
-        return ApiResponse::success('Coupon updated successfully.', $this->toArray($coupon->fresh()));
+        $coupon->update($data);
+        if ($categoryIds !== null) {
+            $coupon->categories()->sync($categoryIds);
+        }
+
+        return ApiResponse::success('Coupon updated.', $this->toArray($coupon->fresh()->load('categories')));
     }
 
-    public function destroy(int $id)
+    public function destroy(int $id): JsonResponse
     {
         $coupon = Coupon::findOrFail($id);
+        $coupon->categories()->detach();
         $coupon->delete();
 
-        return ApiResponse::success('Coupon deleted successfully.');
+        return ApiResponse::success('Coupon deleted.');
     }
 
     /**
@@ -55,6 +97,8 @@ class CouponController extends Controller
      */
     private function validatedData(Request $request, ?int $ignoreId = null, bool $isUpdate = false): array
     {
+        $this->normalizeRequestScalars($request);
+
         if ($request->has('is_active')) {
             $request->merge([
                 'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
@@ -62,24 +106,28 @@ class CouponController extends Controller
         }
 
         $rules = [
-            'code' => [
-                $isUpdate ? 'sometimes' : 'required',
+            'code' => $isUpdate ? ['prohibited'] : [
+                'required',
                 'string',
                 'max:64',
                 'regex:/^[A-Za-z0-9_-]+$/',
                 Rule::unique('coupons', 'code')->ignore($ignoreId),
             ],
-            'title' => 'nullable|string|max:255',
+            'title' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'description' => 'nullable|string|max:5000',
             'discount_type' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['percentage', 'fixed_amount', 'free_shipping'])],
             'discount_value' => 'nullable|numeric|min:0',
-            'min_order_amount' => 'nullable|numeric|min:0',
+            'min_order_amount' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0'],
             'max_discount_amount' => 'nullable|numeric|min:0',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
-            'is_active' => 'sometimes|boolean',
+            'is_active' => [$isUpdate ? 'sometimes' : 'required', 'boolean'],
             'usage_limit' => 'nullable|integer|min:1',
             'usage_limit_per_user' => 'nullable|integer|min:1',
+            'applies_to' => [$isUpdate ? 'sometimes' : 'required', Rule::in([Coupon::APPLIES_ALL, Coupon::APPLIES_CATEGORIES])],
+            'catalog_scope' => ['nullable', Rule::in([Coupon::SCOPE_PRODUCTS, Coupon::SCOPE_SERVICES, Coupon::SCOPE_BOTH])],
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'integer|exists:categories,id',
         ];
 
         $validated = $request->validate($rules);
@@ -87,14 +135,33 @@ class CouponController extends Controller
         $type = $validated['discount_type'] ?? null;
         if ($type !== null && in_array($type, ['percentage', 'fixed_amount'], true)
             && (! array_key_exists('discount_value', $validated) || $validated['discount_value'] === null || $validated['discount_value'] === '')) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'discount_value' => ['discount_value is required for percentage and fixed_amount coupons.'],
             ]);
         }
 
+        $appliesTo = $validated['applies_to'] ?? Coupon::APPLIES_ALL;
+        $categoryIds = array_map('intval', $validated['category_ids'] ?? []);
+
+        if ($appliesTo === Coupon::APPLIES_CATEGORIES) {
+            if ($categoryIds === []) {
+                throw ValidationException::withMessages([
+                    'category_ids' => ['Select at least one category when applies_to is categories.'],
+                ]);
+            }
+        } else {
+            $scope = $validated['catalog_scope'] ?? null;
+            if (! $isUpdate && ($scope === null || $scope === '')) {
+                throw ValidationException::withMessages([
+                    'catalog_scope' => ['catalog_scope is required when applies_to is all (products, services, or both).'],
+                ]);
+            }
+            $categoryIds = [];
+        }
+
         $payload = [];
 
-        if (array_key_exists('code', $validated)) {
+        if (! $isUpdate) {
             $payload['code'] = strtoupper(trim($validated['code']));
         }
         if (array_key_exists('title', $validated)) {
@@ -105,10 +172,14 @@ class CouponController extends Controller
         }
         if ($type !== null) {
             $payload['discount_type'] = $type;
-        }
-        if (array_key_exists('discount_value', $validated)) {
+            if ($type === 'free_shipping') {
+                $payload['discount_value'] = 0;
+            } elseif (array_key_exists('discount_value', $validated)) {
+                $payload['discount_value'] = (float) $validated['discount_value'];
+            }
+        } elseif (array_key_exists('discount_value', $validated)) {
             $payload['discount_value'] = $validated['discount_value'] !== '' && $validated['discount_value'] !== null
-                ? $validated['discount_value']
+                ? (float) $validated['discount_value']
                 : null;
         }
         if (array_key_exists('min_order_amount', $validated)) {
@@ -126,7 +197,7 @@ class CouponController extends Controller
             $payload['ends_at'] = $validated['ends_at'] !== '' ? $validated['ends_at'] : null;
         }
         if (array_key_exists('is_active', $validated)) {
-            $payload['is_active'] = filter_var($validated['is_active'], FILTER_VALIDATE_BOOLEAN);
+            $payload['is_active'] = (bool) $validated['is_active'];
         } elseif (! $isUpdate) {
             $payload['is_active'] = true;
         }
@@ -140,15 +211,26 @@ class CouponController extends Controller
                 ? (int) $validated['usage_limit_per_user']
                 : null;
         }
-
-        if (! $isUpdate) {
-            $payload['min_order_amount'] = (float) ($payload['min_order_amount'] ?? $validated['min_order_amount'] ?? 0);
-            if (! array_key_exists('is_active', $payload)) {
-                $payload['is_active'] = true;
-            }
+        if (array_key_exists('applies_to', $validated)) {
+            $payload['applies_to'] = $appliesTo;
+            $payload['catalog_scope'] = $appliesTo === Coupon::APPLIES_ALL
+                ? ($validated['catalog_scope'] ?? Coupon::SCOPE_BOTH)
+                : ($validated['catalog_scope'] ?? Coupon::SCOPE_BOTH);
         }
 
+        $payload['category_ids'] = $categoryIds;
+
         return $payload;
+    }
+
+    private function normalizeRequestScalars(Request $request): void
+    {
+        if ($request->has('category_ids') && is_string($request->input('category_ids'))) {
+            $decoded = json_decode($request->input('category_ids'), true);
+            if (is_array($decoded)) {
+                $request->merge(['category_ids' => $decoded]);
+            }
+        }
     }
 
     /**
@@ -156,6 +238,10 @@ class CouponController extends Controller
      */
     private function toArray(Coupon $c): array
     {
+        $categoryIds = $c->relationLoaded('categories')
+            ? $c->categories->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
+            : $c->categories()->pluck('categories.id')->map(fn ($id) => (int) $id)->all();
+
         return [
             'id' => $c->id,
             'code' => $c->code,
@@ -170,6 +256,9 @@ class CouponController extends Controller
             'is_active' => (bool) $c->is_active,
             'usage_limit' => $c->usage_limit,
             'usage_limit_per_user' => $c->usage_limit_per_user,
+            'applies_to' => $c->applies_to ?? Coupon::APPLIES_ALL,
+            'catalog_scope' => $c->catalog_scope,
+            'category_ids' => $categoryIds,
             'paid_redemptions' => $c->paidOrdersCount(),
             'created_at' => $c->created_at?->toIso8601String(),
             'updated_at' => $c->updated_at?->toIso8601String(),
