@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→I** (A–H as before, plus **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** folder **Coupons – Admin & Shop (Mobile UI)** — admin list/add/edit (form-data) + shop validate/cart/checkout.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.34"
+        "version": "3.3.35"
     },
     "item": [
         {
@@ -394,791 +394,6 @@
                 }
             ],
             "description": "Health Check - Always test this first to verify API server is running"
-        },
-        {
-            "name": "Coupons – Admin & Shop (Mobile UI)",
-            "description": "**Dedicated coupon APIs** matching the mobile Admin → Coupons list and Add coupon form. Use **admin** Bearer `{{token}}` for Admin subfolder; **client** token for Shop subfolder.\n\n**Demo codes (after seed):** SAVE10, FLAT20, WELCOME15, FREESHIP, EXPIRED (inactive). `php artisan db:seed --class=DemoCouponsSeeder`\n\n**Spec:** docs/COUPON_API.md",
-            "item": [
-                {
-                    "name": "Admin – Coupons screen",
-                    "description": "Mobile: Admin → Coupons (list cards + trash) and Add/Edit coupon form. All create/update requests use **form-data** fields matching the app form labels.",
-                    "item": [
-                        {
-                            "name": "1. List coupons (GET)",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var j = pm.response.json();",
-                                            "    if (j.data && j.data.length) {",
-                                            "        pm.environment.set('coupon_id', j.data[0].id);",
-                                            "        pm.environment.set('coupon_code', j.data[0].code);",
-                                            "    }",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/coupons",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "coupons"
-                                    ]
-                                },
-                                "description": "GET /api/admin/coupons — Powers the **Coupons** list screen. Each item: `code`, `title`, `description`, `discount_type`, `discount_value`, `min_order_amount`, `max_discount_amount`, `is_active` (Active badge), `starts_at`, `ends_at`, `usage_limit`, `usage_limit_per_user`, `paid_redemptions`."
-                            }
-                        },
-                        {
-                            "name": "2. Get coupon by id (GET)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/coupons/{{coupon_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "coupons",
-                                        "{{coupon_id}}"
-                                    ]
-                                },
-                                "description": "GET /api/admin/coupons/{id} — Edit screen prefill. Run **List** first to set `coupon_id`."
-                            }
-                        },
-                        {
-                            "name": "3. Add coupon – Percentage (form-data)",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "exec": [
-                                            "if (pm.response.code === 201) {",
-                                            "    var j = pm.response.json();",
-                                            "    if (j.data && j.data.id) pm.environment.set('coupon_id', j.data.id);",
-                                            "}"
-                                        ],
-                                        "type": "text/javascript"
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "code",
-                                            "value": "SAVE10",
-                                            "type": "text",
-                                            "description": "Code (unique, uppercase)"
-                                        },
-                                        {
-                                            "key": "title",
-                                            "value": "10% off",
-                                            "type": "text",
-                                            "description": "Title"
-                                        },
-                                        {
-                                            "key": "description",
-                                            "value": "10% off orders over AED 50 (max AED 30 off).",
-                                            "type": "text",
-                                            "description": "Description"
-                                        },
-                                        {
-                                            "key": "discount_type",
-                                            "value": "percentage",
-                                            "type": "text",
-                                            "description": "percentage | fixed_amount | free_shipping"
-                                        },
-                                        {
-                                            "key": "discount_value",
-                                            "value": "10",
-                                            "type": "text",
-                                            "description": "Discount value (% or AED)"
-                                        },
-                                        {
-                                            "key": "min_order_amount",
-                                            "value": "50",
-                                            "type": "text",
-                                            "description": "Minimum order (AED) *"
-                                        },
-                                        {
-                                            "key": "max_discount_amount",
-                                            "value": "30",
-                                            "type": "text",
-                                            "description": "Maximum discount (AED) — percentage only"
-                                        },
-                                        {
-                                            "key": "starts_at",
-                                            "value": "2026-01-01",
-                                            "type": "text",
-                                            "description": "Valid from YYYY-MM-DD"
-                                        },
-                                        {
-                                            "key": "ends_at",
-                                            "value": "2026-12-31",
-                                            "type": "text",
-                                            "description": "Valid until YYYY-MM-DD"
-                                        },
-                                        {
-                                            "key": "usage_limit",
-                                            "value": "",
-                                            "type": "text",
-                                            "description": "Global usage limit (empty = unlimited)"
-                                        },
-                                        {
-                                            "key": "usage_limit_per_user",
-                                            "value": "3",
-                                            "type": "text",
-                                            "description": "Uses per customer (empty = unlimited)"
-                                        },
-                                        {
-                                            "key": "applies_to",
-                                            "value": "all",
-                                            "type": "text",
-                                            "description": "all | categories"
-                                        },
-                                        {
-                                            "key": "catalog_scope",
-                                            "value": "products",
-                                            "type": "text",
-                                            "description": "products | services | both (when applies_to=all)"
-                                        },
-                                        {
-                                            "key": "category_ids",
-                                            "value": "[]",
-                                            "type": "text",
-                                            "description": "JSON array when applies_to=categories e.g. [3,7]"
-                                        },
-                                        {
-                                            "key": "is_active",
-                                            "value": "1",
-                                            "type": "text",
-                                            "description": "Active toggle: 1 or 0"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/coupons",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "coupons"
-                                    ]
-                                },
-                                "description": "POST /api/admin/coupons — **Add coupon** form (percentage). Matches mobile SAVE10: products scope, max 3 per user."
-                            }
-                        },
-                        {
-                            "name": "4. Add coupon – Fixed amount (form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "code",
-                                            "value": "FLAT20",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "title",
-                                            "value": "Flat AED 20 off",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "description",
-                                            "value": "AED 20 off orders over AED 100.",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "discount_type",
-                                            "value": "fixed_amount",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "discount_value",
-                                            "value": "20",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "min_order_amount",
-                                            "value": "100",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "max_discount_amount",
-                                            "value": "",
-                                            "type": "text",
-                                            "description": "Leave empty for fixed amount"
-                                        },
-                                        {
-                                            "key": "starts_at",
-                                            "value": "2026-01-01",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "ends_at",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "usage_limit",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "usage_limit_per_user",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "is_active",
-                                            "value": "1",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/coupons",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "coupons"
-                                    ]
-                                },
-                                "description": "POST — Fixed amount coupon (FLAT20). Footer: Fixed amount · AED 20 · min AED 100."
-                            }
-                        },
-                        {
-                            "name": "5. Add coupon – Free shipping (form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "code",
-                                            "value": "FREESHIP",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "title",
-                                            "value": "Free shipping",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "description",
-                                            "value": "Free shipping on orders over AED 75.",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "discount_type",
-                                            "value": "free_shipping",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "discount_value",
-                                            "value": "",
-                                            "type": "text",
-                                            "description": "Hidden in app — leave empty"
-                                        },
-                                        {
-                                            "key": "min_order_amount",
-                                            "value": "75",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "max_discount_amount",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "starts_at",
-                                            "value": "2026-01-01",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "ends_at",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "usage_limit",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "usage_limit_per_user",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "is_active",
-                                            "value": "1",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/coupons",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "coupons"
-                                    ]
-                                },
-                                "description": "POST — Free shipping (FREESHIP). No discount_value."
-                            }
-                        },
-                        {
-                            "name": "6. Edit coupon (form-data PUT)",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "code",
-                                            "value": "{{coupon_code}}",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "title",
-                                            "value": "10% off (updated)",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "description",
-                                            "value": "10% off orders over AED 50 (max AED 30 off).",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "discount_type",
-                                            "value": "percentage",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "discount_value",
-                                            "value": "10",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "min_order_amount",
-                                            "value": "50",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "max_discount_amount",
-                                            "value": "30",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "starts_at",
-                                            "value": "2026-01-01",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "ends_at",
-                                            "value": "2026-12-31",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "usage_limit",
-                                            "value": "",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "usage_limit_per_user",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "is_active",
-                                            "value": "1",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/coupons/{{coupon_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "coupons",
-                                        "{{coupon_id}}"
-                                    ]
-                                },
-                                "description": "PUT /api/admin/coupons/{id} — Full **Edit coupon** form. Partial fields also accepted (e.g. only title + is_active)."
-                            }
-                        },
-                        {
-                            "name": "7. Delete coupon (DELETE)",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/coupons/{{coupon_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "coupons",
-                                        "{{coupon_id}}"
-                                    ]
-                                },
-                                "description": "DELETE /api/admin/coupons/{id} — Trash icon on coupon card."
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Shop – Cart & checkout",
-                    "description": "Client token. Cart → enter code → checkout → Stripe payment-intent with same coupon_code.",
-                    "item": [
-                        {
-                            "name": "1. Validate coupon (form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "code",
-                                            "value": "SAVE10",
-                                            "type": "text",
-                                            "description": "Coupon code"
-                                        },
-                                        {
-                                            "key": "subtotal",
-                                            "value": "100",
-                                            "type": "text",
-                                            "description": "Cart subtotal (optional if cart has items)"
-                                        },
-                                        {
-                                            "key": "catalog_discount",
-                                            "value": "0",
-                                            "type": "text",
-                                            "description": "Product/offer discount already applied"
-                                        },
-                                        {
-                                            "key": "product_id",
-                                            "value": "{{product_id}}",
-                                            "type": "text",
-                                            "description": "Optional Buy Now",
-                                            "disabled": true
-                                        },
-                                        {
-                                            "key": "quantity",
-                                            "value": "1",
-                                            "type": "text",
-                                            "disabled": true
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/coupons/validate",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "coupons",
-                                        "validate"
-                                    ]
-                                },
-                                "description": "POST /api/shop/coupons/validate — Cart coupon field. Returns merchandise_discount, shipping_discount, order_summary."
-                            }
-                        },
-                        {
-                            "name": "2. Cart with coupon (GET)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/cart?coupon_code=SAVE10",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "cart"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "coupon_code",
-                                            "value": "SAVE10"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/shop/cart?coupon_code=SAVE10 — Cart screen with coupon line in order_summary."
-                            }
-                        },
-                        {
-                            "name": "3. Order summary with coupon (GET)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/order-summary?coupon_code=SAVE10",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "order-summary"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "coupon_code",
-                                            "value": "SAVE10"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/shop/order-summary?coupon_code=SAVE10"
-                            }
-                        },
-                        {
-                            "name": "4. Checkout review with coupon (GET)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/checkout/review?coupon_code=SAVE10",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "checkout",
-                                        "review"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "coupon_code",
-                                            "value": "SAVE10"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/shop/checkout/review?coupon_code=SAVE10"
-                            }
-                        },
-                        {
-                            "name": "5. Stripe payment-intent with coupon (JSON)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"SAVE10\",\n  \"shipping\": {\n    \"full_name\": \"Test User\",\n    \"phone\": \"+971501234567\",\n    \"street\": \"Sheikh Zayed Road\",\n    \"city\": \"Dubai\",\n    \"state\": \"DXB\",\n    \"zip_code\": \"00000\",\n    \"country\": \"UAE\"\n  }\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "checkout",
-                                        "stripe",
-                                        "payment-intent"
-                                    ]
-                                },
-                                "description": "POST payment-intent with coupon_code — order stores coupon_id on payment."
-                            }
-                        },
-                        {
-                            "name": "6. Validate EXPIRED (expect 422)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "code",
-                                            "value": "EXPIRED",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/coupons/validate",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "coupons",
-                                        "validate"
-                                    ]
-                                },
-                                "description": "Inactive demo coupon — expect 422."
-                            }
-                        }
-                    ]
-                }
-            ]
         },
         {
             "name": "Notifications – All roles (hub)",
@@ -3805,6 +3020,534 @@
             "description": "Admin: export orders to Excel (CSV); send export by email to supplier (manual or use cron for automatic)."
         },
         {
+            "name": "5f. Admin Dashboard – Coupons",
+            "description": "Admin mobile **Coupons** screen (list, add, edit, delete). Auth: Bearer **admin**. Demo: `php artisan db:seed --class=DemoCouponsSeeder`. Spec: docs/COUPON_API.md",
+            "item": [
+                {
+                    "name": "1. List coupons (GET)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var j = pm.response.json();",
+                                    "    if (j.data && j.data.length) {",
+                                    "        pm.environment.set('coupon_id', j.data[0].id);",
+                                    "        pm.environment.set('coupon_code', j.data[0].code);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/coupons",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "coupons"
+                            ]
+                        },
+                        "description": "GET /api/admin/coupons — Powers the **Coupons** list screen. Each item: `code`, `title`, `description`, `discount_type`, `discount_value`, `min_order_amount`, `max_discount_amount`, `is_active` (Active badge), `starts_at`, `ends_at`, `usage_limit`, `usage_limit_per_user`, `paid_redemptions`."
+                    }
+                },
+                {
+                    "name": "2. Get coupon by id (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/coupons/{{coupon_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "coupons",
+                                "{{coupon_id}}"
+                            ]
+                        },
+                        "description": "GET /api/admin/coupons/{id} — Edit screen prefill. Run **List** first to set `coupon_id`."
+                    }
+                },
+                {
+                    "name": "3. Add coupon – Percentage (form-data)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var j = pm.response.json();",
+                                    "    if (j.data && j.data.id) pm.environment.set('coupon_id', j.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "code",
+                                    "value": "SAVE10",
+                                    "type": "text",
+                                    "description": "Code (unique, uppercase)"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": "10% off",
+                                    "type": "text",
+                                    "description": "Title"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "10% off orders over AED 50 (max AED 30 off).",
+                                    "type": "text",
+                                    "description": "Description"
+                                },
+                                {
+                                    "key": "discount_type",
+                                    "value": "percentage",
+                                    "type": "text",
+                                    "description": "percentage | fixed_amount | free_shipping"
+                                },
+                                {
+                                    "key": "discount_value",
+                                    "value": "10",
+                                    "type": "text",
+                                    "description": "Discount value (% or AED)"
+                                },
+                                {
+                                    "key": "min_order_amount",
+                                    "value": "50",
+                                    "type": "text",
+                                    "description": "Minimum order (AED) *"
+                                },
+                                {
+                                    "key": "max_discount_amount",
+                                    "value": "30",
+                                    "type": "text",
+                                    "description": "Maximum discount (AED) — percentage only"
+                                },
+                                {
+                                    "key": "starts_at",
+                                    "value": "2026-01-01",
+                                    "type": "text",
+                                    "description": "Valid from YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "ends_at",
+                                    "value": "2026-12-31",
+                                    "type": "text",
+                                    "description": "Valid until YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "usage_limit",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Global usage limit (empty = unlimited)"
+                                },
+                                {
+                                    "key": "usage_limit_per_user",
+                                    "value": "3",
+                                    "type": "text",
+                                    "description": "Uses per customer (empty = unlimited)"
+                                },
+                                {
+                                    "key": "applies_to",
+                                    "value": "all",
+                                    "type": "text",
+                                    "description": "all | categories"
+                                },
+                                {
+                                    "key": "catalog_scope",
+                                    "value": "products",
+                                    "type": "text",
+                                    "description": "products | services | both (when applies_to=all)"
+                                },
+                                {
+                                    "key": "category_ids",
+                                    "value": "[]",
+                                    "type": "text",
+                                    "description": "JSON array when applies_to=categories e.g. [3,7]"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": "1",
+                                    "type": "text",
+                                    "description": "Active toggle: 1 or 0"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/coupons",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "coupons"
+                            ]
+                        },
+                        "description": "POST /api/admin/coupons — **Add coupon** form (percentage). Matches mobile SAVE10: products scope, max 3 per user."
+                    }
+                },
+                {
+                    "name": "4. Add coupon – Fixed amount (form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "code",
+                                    "value": "FLAT20",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": "Flat AED 20 off",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "AED 20 off orders over AED 100.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount_type",
+                                    "value": "fixed_amount",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount_value",
+                                    "value": "20",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "min_order_amount",
+                                    "value": "100",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "max_discount_amount",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Leave empty for fixed amount"
+                                },
+                                {
+                                    "key": "starts_at",
+                                    "value": "2026-01-01",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "ends_at",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "usage_limit",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "usage_limit_per_user",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": "1",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/coupons",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "coupons"
+                            ]
+                        },
+                        "description": "POST — Fixed amount coupon (FLAT20). Footer: Fixed amount · AED 20 · min AED 100."
+                    }
+                },
+                {
+                    "name": "5. Add coupon – Free shipping (form-data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "code",
+                                    "value": "FREESHIP",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": "Free shipping",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Free shipping on orders over AED 75.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount_type",
+                                    "value": "free_shipping",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount_value",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "Hidden in app — leave empty"
+                                },
+                                {
+                                    "key": "min_order_amount",
+                                    "value": "75",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "max_discount_amount",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "starts_at",
+                                    "value": "2026-01-01",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "ends_at",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "usage_limit",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "usage_limit_per_user",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": "1",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/coupons",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "coupons"
+                            ]
+                        },
+                        "description": "POST — Free shipping (FREESHIP). No discount_value."
+                    }
+                },
+                {
+                    "name": "6. Edit coupon (form-data PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "code",
+                                    "value": "{{coupon_code}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "title",
+                                    "value": "10% off (updated)",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "10% off orders over AED 50 (max AED 30 off).",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount_type",
+                                    "value": "percentage",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount_value",
+                                    "value": "10",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "min_order_amount",
+                                    "value": "50",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "max_discount_amount",
+                                    "value": "30",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "starts_at",
+                                    "value": "2026-01-01",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "ends_at",
+                                    "value": "2026-12-31",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "usage_limit",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "usage_limit_per_user",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": "1",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/coupons/{{coupon_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "coupons",
+                                "{{coupon_id}}"
+                            ]
+                        },
+                        "description": "PUT /api/admin/coupons/{id} — Full **Edit coupon** form. Partial fields also accepted (e.g. only title + is_active)."
+                    }
+                },
+                {
+                    "name": "7. Delete coupon (DELETE)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/coupons/{{coupon_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "coupons",
+                                "{{coupon_id}}"
+                            ]
+                        },
+                        "description": "DELETE /api/admin/coupons/{id} — Trash icon on coupon card."
+                    }
+                }
+            ]
+        },
+        {
             "name": "6. Client Dashboard – Visits",
             "item": [
                 {
@@ -4400,7 +4143,7 @@
             "item": [
                 {
                     "name": "A. Shop settings & order totals",
-                    "description": "GET/PUT shop tax & shipping defaults; **GET order-summary** and **POST buy-now/summary** for checkout totals. **Coupons:** see root folder **Coupons – Admin & Shop (Mobile UI)**; optional `coupon_code` on order-summary, buy-now/summary, cart, checkout/review. **Wallet:** when `wallet_available` is **true** (user balance > 0), `order_summary` includes `wallet_balance`, `use_wallet`, `wallet_amount_applied`, `amount_due`. When **false** (no wallet money), those keys are omitted — hide wallet UI. **GET checkout/review:** `wallet_available` + optional `wallet_balance` same rule. Pass `wallet_amount` on checkout/start when paying with wallet. **Payment capture:** subfolder **I** (folder 8); optional `coupon_code` on payment-intent body.",
+                    "description": "GET/PUT shop tax & shipping defaults; **GET order-summary** and **POST buy-now/summary** for checkout totals. **Coupons:** see folder **K. Shop – Coupons**; optional `coupon_code` on order-summary, buy-now/summary, cart, checkout/review. **Wallet:** when `wallet_available` is **true** (user balance > 0), `order_summary` includes `wallet_balance`, `use_wallet`, `wallet_amount_applied`, `amount_due`. When **false** (no wallet money), those keys are omitted — hide wallet UI. **GET checkout/review:** `wallet_available` + optional `wallet_balance` same rule. Pass `wallet_amount` on checkout/start when paying with wallet. **Payment capture:** subfolder **I** (folder 8); optional `coupon_code` on payment-intent body.",
                     "item": [
                         {
                             "name": "Shop settings (GET)",
@@ -5869,6 +5612,257 @@
                                     ]
                                 },
                                 "description": "Wallet balance + refund credits + expiry/forfeiture visibility."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "K. Shop – Coupons (validate & checkout)",
+                    "description": "Client token. Validate coupon, cart/order-summary/checkout with `coupon_code`, Stripe payment-intent. See also **5f** for admin CRUD.",
+                    "item": [
+                        {
+                            "name": "1. Validate coupon (form-data)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "code",
+                                            "value": "SAVE10",
+                                            "type": "text",
+                                            "description": "Coupon code"
+                                        },
+                                        {
+                                            "key": "subtotal",
+                                            "value": "100",
+                                            "type": "text",
+                                            "description": "Cart subtotal (optional if cart has items)"
+                                        },
+                                        {
+                                            "key": "catalog_discount",
+                                            "value": "0",
+                                            "type": "text",
+                                            "description": "Product/offer discount already applied"
+                                        },
+                                        {
+                                            "key": "product_id",
+                                            "value": "{{product_id}}",
+                                            "type": "text",
+                                            "description": "Optional Buy Now",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "quantity",
+                                            "value": "1",
+                                            "type": "text",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/coupons/validate",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "coupons",
+                                        "validate"
+                                    ]
+                                },
+                                "description": "POST /api/shop/coupons/validate — Cart coupon field. Returns merchandise_discount, shipping_discount, order_summary."
+                            }
+                        },
+                        {
+                            "name": "2. Cart with coupon (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/cart?coupon_code=SAVE10",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "cart"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "coupon_code",
+                                            "value": "SAVE10"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/shop/cart?coupon_code=SAVE10 — Cart screen with coupon line in order_summary."
+                            }
+                        },
+                        {
+                            "name": "3. Order summary with coupon (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/order-summary?coupon_code=SAVE10",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "order-summary"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "coupon_code",
+                                            "value": "SAVE10"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/shop/order-summary?coupon_code=SAVE10"
+                            }
+                        },
+                        {
+                            "name": "4. Checkout review with coupon (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/checkout/review?coupon_code=SAVE10",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "checkout",
+                                        "review"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "coupon_code",
+                                            "value": "SAVE10"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/shop/checkout/review?coupon_code=SAVE10"
+                            }
+                        },
+                        {
+                            "name": "5. Stripe payment-intent with coupon (JSON)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"SAVE10\",\n  \"shipping\": {\n    \"full_name\": \"Test User\",\n    \"phone\": \"+971501234567\",\n    \"street\": \"Sheikh Zayed Road\",\n    \"city\": \"Dubai\",\n    \"state\": \"DXB\",\n    \"zip_code\": \"00000\",\n    \"country\": \"UAE\"\n  }\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "checkout",
+                                        "stripe",
+                                        "payment-intent"
+                                    ]
+                                },
+                                "description": "POST payment-intent with coupon_code — order stores coupon_id on payment."
+                            }
+                        },
+                        {
+                            "name": "6. Validate EXPIRED (expect 422)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "code",
+                                            "value": "EXPIRED",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/coupons/validate",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "coupons",
+                                        "validate"
+                                    ]
+                                },
+                                "description": "Inactive demo coupon — expect 422."
                             }
                         }
                     ]
