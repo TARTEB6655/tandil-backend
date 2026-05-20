@@ -84,10 +84,6 @@ final class ShopCouponService
         $afterCatalog = round(max(0, $afterCatalog), 2);
         $type = strtolower((string) $coupon->discount_type);
 
-        if ($type === 'free_shipping') {
-            return [0.0, true];
-        }
-
         if ($type === 'percentage') {
             $pct = (float) ($coupon->discount_value ?? 0);
             $raw = round($afterCatalog * ($pct / 100), 2);

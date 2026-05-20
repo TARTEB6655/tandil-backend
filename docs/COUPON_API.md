@@ -8,7 +8,6 @@ Base: `/api`. JSON via `ApiResponse` (`success`, `message`, `data`, optional `me
 |-------------------|------------------|--------|
 | `percentage` | Required (e.g. 10 = 10%) | Optional `max_discount_amount` cap (AED) |
 | `fixed_amount` | Required (AED) | `coupon_discount = min(value, after_catalog)` |
-| `free_shipping` | 0 or omit | `free_shipping: true`, shipping = 0 |
 
 ## Where it applies (admin UI)
 
@@ -29,8 +28,6 @@ after_catalog = max(0, subtotal - catalog_discount)
 
 - **Percentage:** `coupon_discount = min(after_catalog × value/100, max_discount_amount?)`
 - **Fixed:** `coupon_discount = min(value, after_catalog)`
-- **Free shipping:** `coupon_discount = 0`, shipping = 0
-
 **Tax** (shop settings):
 
 ```
@@ -106,7 +103,6 @@ php artisan db:seed --class=DemoCouponsSeeder
 | SAVE10 | 10%, min 50, max 30 off, products only, max 3 per user |
 | FLAT20 | AED 20, min 100, all catalog |
 | WELCOME15 | 15%, min 80, max 50, 1 per user |
-| FREESHIP | Free shipping, min 75 |
-| EXPIRED | Inactive |
+| EXPIRED | Inactive (demo only) |
 
 Postman: folder **Coupons – Admin & Shop (Mobile UI)**.

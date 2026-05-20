@@ -122,7 +122,7 @@ class CouponController extends Controller
             ],
             'title' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'description' => 'nullable|string|max:5000',
-            'discount_type' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['percentage', 'fixed_amount', 'free_shipping'])],
+            'discount_type' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['percentage', 'fixed_amount'])],
             'discount_value' => 'nullable|numeric|min:0',
             'min_order_amount' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0'],
             'max_discount_amount' => 'nullable|numeric|min:0',
@@ -189,9 +189,7 @@ class CouponController extends Controller
         }
         if ($type !== null) {
             $payload['discount_type'] = $type;
-            if ($type === 'free_shipping') {
-                $payload['discount_value'] = 0;
-            } elseif (array_key_exists('discount_value', $validated)) {
+            if (array_key_exists('discount_value', $validated)) {
                 $payload['discount_value'] = (float) $validated['discount_value'];
             }
         } elseif (array_key_exists('discount_value', $validated)) {

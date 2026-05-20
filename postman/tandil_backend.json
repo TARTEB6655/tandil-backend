@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** folder **Coupons – Admin & Shop (Mobile UI)** — admin list/add/edit (form-data) + shop validate/cart/checkout.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.36"
+        "version": "3.3.37"
     },
     "item": [
         {
@@ -3150,7 +3150,7 @@
                                     "key": "discount_type",
                                     "value": "percentage",
                                     "type": "text",
-                                    "description": "percentage | fixed_amount | free_shipping"
+                                    "description": "percentage | fixed_amount"
                                 },
                                 {
                                     "key": "discount_value",
@@ -3329,101 +3329,7 @@
                     }
                 },
                 {
-                    "name": "5. Add coupon – Free shipping (form-data)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "code",
-                                    "value": "FREESHIP",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "title",
-                                    "value": "Free shipping",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "description",
-                                    "value": "Free shipping on orders over AED 75.",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "discount_type",
-                                    "value": "free_shipping",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "discount_value",
-                                    "value": "",
-                                    "type": "text",
-                                    "description": "Hidden in app — leave empty"
-                                },
-                                {
-                                    "key": "min_order_amount",
-                                    "value": "75",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "max_discount_amount",
-                                    "value": "",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "starts_at",
-                                    "value": "2026-01-01",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "ends_at",
-                                    "value": "",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "usage_limit",
-                                    "value": "",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "usage_limit_per_user",
-                                    "value": "",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "is_active",
-                                    "value": "1",
-                                    "type": "text"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/admin/coupons",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "coupons"
-                            ]
-                        },
-                        "description": "POST — Free shipping (FREESHIP). No discount_value."
-                    }
-                },
-                {
-                    "name": "6. Edit coupon (form-data PUT)",
+                    "name": "5. Edit coupon (form-data PUT)",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -3517,7 +3423,7 @@
                     }
                 },
                 {
-                    "name": "7. Delete coupon (DELETE)",
+                    "name": "6. Delete coupon (DELETE)",
                     "request": {
                         "method": "DELETE",
                         "header": [
