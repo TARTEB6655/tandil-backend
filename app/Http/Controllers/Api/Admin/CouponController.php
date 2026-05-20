@@ -106,20 +106,12 @@ class CouponController extends Controller
     {
         $this->normalizeRequestScalars($request);
 
-        if ($request->has('is_active')) {
-            $request->merge([
-                'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
-            ]);
+        // exists() — has() treats form-data "0" as empty, so is_active=0 was never applied.
+        if ($request->exists('is_active')) {
+            $request->merge(['is_active' => $this->parseBooleanInput($request->input('is_active'))]);
         }
 
         $rules = [
-            'code' => $isUpdate ? ['prohibited'] : [
-                'required',
-                'string',
-                'max:64',
-                'regex:/^[A-Za-z0-9_-]+$/',
-                Rule::unique('coupons', 'code')->ignore($ignoreId),
-            ],
             'title' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'description' => 'nullable|string|max:5000',
             'discount_type' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['percentage', 'fixed_amount'])],
@@ -141,6 +133,16 @@ class CouponController extends Controller
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
         ];
+
+        if (! $isUpdate) {
+            $rules['code'] = [
+                'required',
+                'string',
+                'max:64',
+                'regex:/^[A-Za-z0-9_-]+$/',
+                Rule::unique('coupons', 'code')->ignore($ignoreId),
+            ];
+        }
 
         $validated = $request->validate($rules);
 
@@ -235,6 +237,20 @@ class CouponController extends Controller
         $payload['service_ids'] = $serviceIds;
 
         return $payload;
+    }
+
+    private function parseBooleanInput(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_int($value) || is_float($value)) {
+            return (int) $value !== 0;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'on', 'yes'], true);
     }
 
     private function normalizeRequestScalars(Request $request): void
