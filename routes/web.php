@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AreaController;
 // Dashboard Controllers for roles
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ComplaintController;
 use App\Http\Controllers\Admin\HrController;
@@ -265,6 +266,8 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
         Route::resource('banners', BannerController::class);
+        Route::post('coupons/{id}/toggle-status', [CouponController::class, 'toggleStatus'])->name('coupons.toggle-status');
+        Route::resource('coupons', CouponController::class)->except(['show']);
         Route::get('packages', [PackageController::class, 'index'])->name('packages.index');
         Route::get('packages/{id}/edit', [PackageController::class, 'edit'])->name('packages.edit');
         Route::put('packages/{id}', [PackageController::class, 'update'])->name('packages.update');

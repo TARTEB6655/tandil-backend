@@ -32,6 +32,7 @@
             <a href="{{ route('admin.orders.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.orders') }}</a>
             <a href="{{ route('admin.banners.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.banners') }}</a>
             <a href="{{ route('admin.packages.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.packages') }}</a>
+            <a href="{{ route('admin.coupons.index') }}" class="{{ $jumpNavSection }}">Coupons</a>
         </div>
     </div>
 
