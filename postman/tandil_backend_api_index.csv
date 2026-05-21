@@ -116,13 +116,17 @@
 115,"7. POST Stripe PaymentIntent (mobile — Payment Sheet)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/stripe/payment-intent,Active
 116,"8. POST Checkout confirm (mobile — after Payment Sheet)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/confirm,Active
 117,"9. POST Stripe webhook (alias — /shop/stripe/webhook)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/stripe/webhook,Active
-118,"List Maintenance Photos","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos,Active
-119,"Get Maintenance Photos by Visit","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos/visit/{{visit_id}},Active
-120,"GET Technician – Dashboard","9. Technician Dashboard – All APIs > A. Dashboard",GET,/api/technician/dashboard,Active
-121,"GET Technician – Profile","9. Technician Dashboard – All APIs > B. Profile",GET,/api/technician/profile,Active
-122,"PUT Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",PUT,/api/technician/profile,Active
-123,"POST Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",POST,/api/technician/profile,Active
-124,"Technician - Get Assigned Visits","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/tech/visits,Active
+118,"1. Validate coupon (form-data)","8. Client Dashboard – Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/validate,Active
+119,"2. Apply coupon at checkout (JSON)","8. Client Dashboard – Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/apply,Active
+120,"2b. Apply coupon at checkout (form-data)","8. Client Dashboard – Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/apply,Active
+121,"6. Stripe payment-intent with coupon (JSON)","8. Client Dashboard – Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/checkout/stripe/payment-intent,Active
+122,"List Maintenance Photos","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos,Active
+123,"Get Maintenance Photos by Visit","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos/visit/{{visit_id}},Active
+124,"GET Technician – Dashboard","9. Technician Dashboard – All APIs > A. Dashboard",GET,/api/technician/dashboard,Active
+125,"GET Technician – Profile","9. Technician Dashboard – All APIs > B. Profile",GET,/api/technician/profile,Active
+126,"PUT Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",PUT,/api/technician/profile,Active
+127,"POST Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",POST,/api/technician/profile,Active
+128,"Technician - Get Assigned Visits","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/tech/visits,Active
 125,"Technician - Accept Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/accept,Active
 126,"Technician - Start Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/start,Active
 127,"Technician - Complete Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/complete,Active
