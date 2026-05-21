@@ -579,6 +579,7 @@ Route::prefix('shop')->group(function () {
         Route::get('/order-summary', [\App\Http\Controllers\Shop\CartController::class, 'orderSummary']);
         Route::post('/buy-now/summary', [\App\Http\Controllers\Shop\CartController::class, 'buyNowSummary']);
         Route::post('/coupons/validate', [\App\Http\Controllers\Shop\ShopCouponController::class, 'validateCode']);
+        Route::post('/coupons/apply', [\App\Http\Controllers\Shop\ShopCouponController::class, 'applyCode']);
         Route::put('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::patch('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);

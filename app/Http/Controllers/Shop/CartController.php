@@ -443,7 +443,9 @@ class CartController extends Controller
     public static function checkoutTotalsForRequest(Request $request, User $user): array
     {
         $cartPreview = self::checkoutPreview($request, $user->id);
-        $subtotal = round((float) $cartPreview['subtotal'], 2);
+        $subtotal = $request->filled('subtotal')
+            ? round((float) $request->input('subtotal'), 2)
+            : round((float) $cartPreview['subtotal'], 2);
         $catalogDiscount = round((float) ($request->input('catalog_discount', $cartPreview['catalog_discount'] ?? 0)), 2);
         $cartCategoryIds = $request->input('cart_category_ids', $cartPreview['cart_category_ids'] ?? []);
         if (is_string($cartCategoryIds)) {
@@ -526,6 +528,18 @@ class CartController extends Controller
         $summary['tax_percent'] = (float) $summary['tax_percent'];
         $summary['tax'] = (float) $summary['tax'];
         $summary['total'] = (float) $summary['total'];
+    }
+
+    /**
+     * Mobile checkout UI labels (Payment summary: Subtotal, VAT, Total).
+     *
+     * @param  array<string, mixed>  $summary
+     */
+    public static function addCheckoutUiAliases(array &$summary): void
+    {
+        self::normalizeOrderSummaryNumericTypes($summary);
+        $summary['vat'] = (float) ($summary['tax'] ?? 0);
+        $summary['vat_percent'] = (float) ($summary['tax_percent'] ?? 0);
     }
 
     /**

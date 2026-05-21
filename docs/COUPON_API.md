@@ -80,6 +80,37 @@ List response includes `meta` (`current_page`, `last_page`, `total`). Messages: 
 
 **422:** e.g. `Minimum order is 50 AED after discounts.`
 
+### POST `/api/shop/coupons/apply` (checkout **Apply** button)
+
+Call when the user taps **Apply** on the coupon field. Returns the full **payment summary** for the UI (Subtotal, VAT, Total) and optionally updates an existing Stripe PaymentIntent.
+
+```json
+{
+  "code": "SAVE10",
+  "payment_intent_id": "pi_xxx",
+  "use_wallet": false,
+  "wallet_amount": 0
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|--------|
+| `code` or `coupon_code` | Yes | Coupon to apply |
+| `payment_intent_id` | No | If the app already created a PI, send it here to update the card amount |
+| `product_id`, `quantity` | No | Buy-now preview (same as order-summary) |
+| `use_wallet`, `wallet_amount` | No | Same as order-summary |
+
+**200 `data.order_summary`:** `subtotal`, `discount` (catalog), `coupon_discount`, `coupon_code`, `tax`, **`vat`** (alias of `tax`), `tax_percent`, **`vat_percent`**, `shipping`, `total`, `currency`. Wallet keys when applicable.
+
+**200 `data.payment`** (only when `payment_intent_id` sent): `client_secret`, `payment_intent_id`, `order_total`, `amount_due`, `wallet_amount_applied`.
+
+**Mobile flow:**
+
+1. Load checkout → `GET /api/shop/order-summary` (no coupon).
+2. User enters code, taps **Apply** → `POST /api/shop/coupons/apply` with `{ "code": "SAVE10" }` → bind UI to `data.order_summary`.
+3. Start card pay → `POST /api/shop/checkout/stripe/payment-intent` with **`coupon_code`** (same code) so PI amount matches summary.
+4. If PI was created **before** Apply, call apply with **`payment_intent_id`** to update Stripe amount, then present Payment Sheet with returned `client_secret`.
+
 ### GET `/api/shop/order-summary?coupon_code=SAVE10`
 
 Extends summary with `coupon_discount`, `coupon_code`; `discount` = catalog discount only.

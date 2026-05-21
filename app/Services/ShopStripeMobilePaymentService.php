@@ -954,6 +954,123 @@ class ShopStripeMobilePaymentService
     /**
      * @return array{ok: false, message: string, status: int}
      */
+    /**
+     * After POST /api/shop/coupons/apply — update Stripe PI amount to match discounted total.
+     *
+     * @param  array{
+     *   coupon_id: ?int,
+     *   coupon_code: ?string,
+     *   coupon_merchandise_discount: float,
+     *   coupon_shipping_discount: float,
+     *   order_summary: array<string, mixed>
+     * }  $pack
+     * @param  array<string, mixed>  $orderSummary
+     * @return array{ok: bool, message?: string, status?: int, data?: array<string, mixed>}
+     */
+    public function updatePaymentIntentForAppliedCoupon(Request $request, User $user, array $pack, array $orderSummary): array
+    {
+        if (! StripeCredentials::isStripeUsableForCheckout()) {
+            return $this->err('Stripe is not enabled or not configured.', 422);
+        }
+
+        $piId = trim((string) $request->input('payment_intent_id', ''));
+        if ($piId === '' || ! str_starts_with($piId, 'pi_')) {
+            return $this->err('Invalid payment_intent_id.', 422);
+        }
+
+        $row = ShopMobileCheckout::query()
+            ->where('user_id', $user->id)
+            ->where('stripe_payment_intent_id', $piId)
+            ->whereNull('consumed_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $row) {
+            return $this->err('Payment session not found. Create a new payment intent with coupon_code.', 404);
+        }
+
+        $total = (float) ($orderSummary['total'] ?? 0);
+        $currency = strtolower((string) ($row->currency ?: config('shop.currency', CartController::CURRENCY)));
+
+        $user->refresh();
+        $walletRequested = max(0, (float) $request->input('wallet_amount', 0));
+        if ($request->boolean('use_wallet') && $walletRequested <= 0) {
+            $walletRequested = (float) ($user->wallet_balance ?? 0);
+        }
+        $walletApplied = 0.0;
+        if ($walletRequested > 0) {
+            $bal = (float) ($user->wallet_balance ?? 0);
+            $walletApplied = round(min($walletRequested, $bal, $total), 2);
+        }
+
+        $cardTotal = max(0, round($total - $walletApplied, 2));
+        if ($currency === 'aed' && $walletApplied > 0 && $cardTotal > 0 && $cardTotal < 2.0) {
+            $shortfall = round(2.0 - $cardTotal, 2);
+            $walletApplied = max(0, round($walletApplied - $shortfall, 2));
+            $cardTotal = max(0, round($total - $walletApplied, 2));
+        }
+
+        $amountMinor = (int) round($cardTotal * 100);
+        if ($currency === 'aed' && $amountMinor > 0 && $amountMinor < self::MIN_AMOUNT_MINOR_AED) {
+            return $this->err('Order total is below the minimum for card payment (2.00 AED).', 422);
+        }
+        if ($amountMinor > 0 && $amountMinor < 50) {
+            return $this->err('Order total is too low for card payment.', 422);
+        }
+
+        $secret = StripeCredentials::secretKey();
+        $resp = Http::withToken($secret)
+            ->asForm()
+            ->post('https://api.stripe.com/v1/payment_intents/'.$piId, [
+                'amount' => $amountMinor,
+            ]);
+
+        if (! $resp->successful()) {
+            $msg = $resp->json('error.message') ?? $resp->body();
+            Log::warning('Stripe PaymentIntent update failed after coupon apply', ['pi' => $piId, 'body' => $msg]);
+
+            return $this->err('Could not update payment amount. Create a new payment intent with coupon_code.', 502);
+        }
+
+        $pi = $resp->json();
+        $status = (string) ($pi['status'] ?? '');
+        if (! in_array($status, ['requires_payment_method', 'requires_confirmation', 'requires_action', 'processing'], true)) {
+            return $this->err('Payment is no longer editable. Start checkout again with coupon_code on payment-intent.', 422);
+        }
+
+        $clientSecret = $pi['client_secret'] ?? null;
+        if (! is_string($clientSecret) || $clientSecret === '') {
+            return $this->err('Invalid Stripe response.', 502);
+        }
+
+        $couponCode = $pack['coupon_code'] ?? null;
+        $row->update([
+            'coupon_id' => $pack['coupon_id'] ?? null,
+            'coupon_code' => $couponCode,
+            'coupon_merchandise_discount' => (float) ($pack['coupon_merchandise_discount'] ?? 0),
+            'coupon_shipping_discount' => (float) ($pack['coupon_shipping_discount'] ?? 0),
+            'amount_minor' => $amountMinor,
+            'subtotal_amount' => $orderSummary['subtotal'] ?? $row->subtotal_amount,
+            'tax_amount' => $orderSummary['tax'] ?? $row->tax_amount,
+            'tax_percent' => $orderSummary['tax_percent'] ?? $row->tax_percent,
+            'shipping_amount' => $orderSummary['shipping'] ?? $row->shipping_amount,
+            'total_amount' => $total,
+            'wallet_amount_applied' => $walletApplied,
+        ]);
+
+        return [
+            'ok' => true,
+            'data' => [
+                'payment_intent_id' => $piId,
+                'client_secret' => $clientSecret,
+                'order_total' => $total,
+                'amount_due' => $cardTotal,
+                'wallet_amount_applied' => $walletApplied,
+                'currency' => strtoupper($currency),
+            ],
+        ];
+    }
+
     protected function err(string $message, int $status): array
     {
         return ['ok' => false, 'message' => $message, 'status' => $status];

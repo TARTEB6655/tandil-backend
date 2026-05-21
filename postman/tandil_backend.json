@@ -5549,7 +5549,7 @@
                 },
                 {
                     "name": "K. Shop – Coupons (validate & checkout)",
-                    "description": "Client Bearer token. **Validate:** POST /api/shop/coupons/validate (`code`, optional `subtotal`, `catalog_discount`). **Summary:** `coupon_code` on cart, order-summary, checkout/review — response uses `discount` (catalog) + `coupon_discount` + `coupon_code`. **Pay:** folder **I** or item 5 here — `coupon_code` on payment-intent. Admin CRUD: **5f**.",
+                    "description": "Client Bearer token. **Apply (checkout button):** POST /api/shop/coupons/apply — returns `order_summary` (subtotal, vat, total) + optional Stripe PI update. **Validate:** POST /api/shop/coupons/validate. **Pay:** `coupon_code` on payment-intent. Admin CRUD: **5f**.",
                     "item": [
                         {
                             "name": "1. Validate coupon (form-data)",
@@ -5614,6 +5614,43 @@
                                     ]
                                 },
                                 "description": "POST /api/shop/coupons/validate — Body: `code`, optional `subtotal`, `catalog_discount`. Success: `coupon_id`, `code`, `coupon_discount`, `free_shipping` (always false), `message`, optional `order_summary`."
+                            }
+                        },
+                        {
+                            "name": "1b. Apply coupon at checkout (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"code\": \"SAVE10\",\n  \"payment_intent_id\": \"\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/shop/coupons/apply",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shop",
+                                        "coupons",
+                                        "apply"
+                                    ]
+                                },
+                                "description": "POST /api/shop/coupons/apply — **Checkout Apply button.** Returns `data.order_summary` (subtotal, tax/vat, total, coupon_discount) for Payment summary UI. Optional `payment_intent_id` updates Stripe PI amount; response `data.payment.client_secret`. Then payment-intent with same `coupon_code` if PI not created yet."
                             }
                         },
                         {
