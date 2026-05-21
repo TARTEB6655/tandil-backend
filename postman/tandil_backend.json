@@ -3021,7 +3021,7 @@
         },
         {
             "name": "5f. Admin Dashboard – Coupons",
-            "description": "Admin mobile **Coupons** screen. Auth: Bearer **admin**.\n\n**Add coupon:** one API `POST /api/admin/coupons` — Postman items **3** (percentage) and **4** (fixed_amount) are examples only.\n\n**Fields:** code, title, description, discount_type (`percentage` | `fixed_amount`), discount_value, min_order_amount, max_discount_amount (percentage only), starts_at, ends_at, is_active, usage_limit, usage_limit_per_user, applies_to (`all` | `categories` | `services`), category_ids, service_ids. `catalog_scope` is auto (do not send).\n\n**Seed:** `php artisan db:seed --class=TwoCouponsSeeder` → SAVE10, FLAT20. Spec: docs/COUPON_API.md",
+            "description": "Admin mobile **Coupons** screen (create/edit/list/delete only). Auth: Bearer **admin**.\n\n**Checkout Apply button is NOT here** — use folder **8 → K. Shop – Coupons** → **2. Apply coupon at checkout** → `POST /api/shop/coupons/apply` (client token).\n\n**Add coupon:** `POST /api/admin/coupons` — items **3** (percentage) and **4** (fixed_amount) are examples only.\n\n**Fields:** code, title, description, discount_type (`percentage` | `fixed_amount`), discount_value, min_order_amount, max_discount_amount, starts_at, ends_at, is_active (`0`/`1`), usage_limit, usage_limit_per_user, applies_to, category_ids, service_ids (`service_ids[]` on form-data).\n\n**Seed:** `TwoCouponsSeeder` (SAVE10, FLAT20). Spec: `docs/COUPON_API.md`",
             "item": [
                 {
                     "name": "1. List coupons (GET)",
