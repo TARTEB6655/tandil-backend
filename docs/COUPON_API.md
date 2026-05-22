@@ -135,14 +135,15 @@ Optional (only when needed):
 
 **200 `data`:** `code`, `discount_type` (`percentage` \| `fixed_amount`), `discount_value`, `coupon_discount`, `free_shipping`, **`order_summary`** (subtotal, `coupon_discount`, `coupon_code`, `tax` / `vat`, `total`, …).
 
-**200 `data.payment`** (when a pending Stripe PI exists or `payment_intent_id` sent): `client_secret`, `payment_intent_id`, `order_total`, `amount_due`, `wallet_amount_applied`. **Re-present Payment Sheet** using this `client_secret` so Stripe shows the discounted amount.
+**200 `data.payment`** (when a pending Stripe PI exists or `payment_intent_id` sent): `client_secret`, `payment_intent_id`, `order_total`, `amount_due`, **`amount_minor`** (e.g. `12025` = AED 120.25), `reinitialize_payment_sheet: true`. **Close the old Payment Sheet** and open a new one with this `client_secret` — otherwise Stripe may still show the pre-coupon amount (e.g. 141.25).
 
 **Mobile flow:**
 
 1. Load checkout → `GET /api/shop/order-summary` (no coupon).
 2. User taps **Apply** → `POST /api/shop/coupons/apply` with `{ "code": "FLAT20" }` → bind UI to `data.order_summary`.
 3. **Stripe:** Either create PI **after** apply with `coupon_code` on `POST …/payment-intent`, **or** if PI was already created, apply returns `data.payment` — use **`data.payment.client_secret`** for Payment Sheet (amount matches discounted total).
-4. Do **not** keep the old `client_secret` after apply; Stripe button stays at the old total until you use the updated secret from `data.payment`.
+4. After apply, if `data.payment` is present: `initPaymentSheet({ paymentIntentClientSecret: data.payment.client_secret })` again. Confirm button shows `amount_due` (not the old PI amount).
+5. `POST …/payment-intent` without `coupon_code` still picks up the coupon from the latest pending checkout session after apply.
 
 ### GET `/api/shop/order-summary?coupon_code=SAVE10`
 

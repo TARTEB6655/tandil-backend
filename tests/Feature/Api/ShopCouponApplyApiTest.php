@@ -281,17 +281,27 @@ class ShopCouponApplyApiTest extends TestCase
 
         $stripeUpdateAmount = null;
         Http::fake(function (\Illuminate\Http\Client\Request $request) use (&$stripeUpdateAmount) {
-            if ($request->method() === 'POST' && str_contains($request->url(), 'payment_intents/pi_test_flat20')) {
+            $url = $request->url();
+            if ($request->method() === 'GET' && str_contains($url, 'payment_intents/pi_test_flat20')) {
+                return Http::response([
+                    'id' => 'pi_test_flat20',
+                    'amount' => $stripeUpdateAmount ?? 12025,
+                    'status' => 'requires_payment_method',
+                    'client_secret' => 'pi_test_flat20_secret_updated',
+                ], 200);
+            }
+            if ($request->method() === 'POST' && str_contains($url, 'payment_intents/pi_test_flat20') && ! str_contains($url, '/cancel')) {
                 $stripeUpdateAmount = (int) ($request->data()['amount'] ?? 0);
 
                 return Http::response([
                     'id' => 'pi_test_flat20',
                     'client_secret' => 'pi_test_flat20_secret_updated',
                     'status' => 'requires_payment_method',
+                    'amount' => $stripeUpdateAmount,
                 ], 200);
             }
 
-            return Http::response(['error' => ['message' => 'unexpected']], 500);
+            return Http::response(['error' => ['message' => 'unexpected '.$url]], 500);
         });
 
         $this->postJson('/api/shop/coupons/apply', ['code' => 'FLAT20'], $this->clientHeaders($client))
@@ -299,7 +309,9 @@ class ShopCouponApplyApiTest extends TestCase
             ->assertJsonPath('data.payment.payment_intent_id', 'pi_test_flat20')
             ->assertJsonPath('data.payment.client_secret', 'pi_test_flat20_secret_updated')
             ->assertJsonPath('data.payment.order_total', 120.25)
-            ->assertJsonPath('data.payment.amount_due', 120.25);
+            ->assertJsonPath('data.payment.amount_due', 120.25)
+            ->assertJsonPath('data.payment.amount_minor', 12025)
+            ->assertJsonPath('data.reinitialize_payment_sheet', true);
 
         $this->assertSame(12025, $stripeUpdateAmount);
     }

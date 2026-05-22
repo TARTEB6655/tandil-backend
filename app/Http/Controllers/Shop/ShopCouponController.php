@@ -209,7 +209,7 @@ class ShopCouponController extends Controller
         }
 
         if ($request->filled('payment_intent_id')) {
-            $payment = $stripeCheckout->updatePaymentIntentForAppliedCoupon(
+            $payment = $stripeCheckout->syncPaymentIntentAfterCoupon(
                 $request,
                 $user,
                 $pack,
@@ -219,6 +219,10 @@ class ShopCouponController extends Controller
                 return ApiResponse::error($payment['message'] ?? 'Could not update payment.', $payment['status'] ?? 422);
             }
             $data['payment'] = $payment['data'] ?? null;
+            if (is_array($data['payment'])) {
+                $data['stripe_amount_minor'] = $data['payment']['amount_minor'] ?? null;
+                $data['reinitialize_payment_sheet'] = true;
+            }
         }
 
         return ApiResponse::success('Coupon applied.', $data);

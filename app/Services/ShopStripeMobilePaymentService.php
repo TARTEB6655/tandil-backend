@@ -76,6 +76,19 @@ class ShopStripeMobilePaymentService
         }
 
         $couponCodeInput = trim((string) $request->input('coupon_code', ''));
+        if ($couponCodeInput === '') {
+            $inherited = ShopMobileCheckout::query()
+                ->where('user_id', $user->id)
+                ->whereNull('consumed_at')
+                ->whereNotNull('coupon_code')
+                ->where('coupon_code', '!=', '')
+                ->orderByDesc('id')
+                ->value('coupon_code');
+            if (is_string($inherited) && trim($inherited) !== '') {
+                $couponCodeInput = strtoupper(trim($inherited));
+            }
+        }
+
         $couponId = null;
         $couponCodeStored = null;
         $couponMerchDisc = 0.0;
@@ -983,7 +996,10 @@ class ShopStripeMobilePaymentService
         return is_string($piId) && $piId !== '' && str_starts_with($piId, 'pi_') ? $piId : null;
     }
 
-    public function updatePaymentIntentForAppliedCoupon(Request $request, User $user, array $pack, array $orderSummary): array
+    /**
+     * Sync Stripe after coupon apply: update amount, verify, or recreate PI so the app gets a fresh client_secret.
+     */
+    public function syncPaymentIntentAfterCoupon(Request $request, User $user, array $pack, array $orderSummary): array
     {
         if (! StripeCredentials::isStripeUsableForCheckout()) {
             return $this->err('Stripe is not enabled or not configured.', 422);
@@ -1002,9 +1018,63 @@ class ShopStripeMobilePaymentService
             ->first();
 
         if (! $row) {
-            return $this->err('Payment session not found. Create a new payment intent with coupon_code.', 404);
+            return $this->err('Payment session not found. Call POST /api/shop/checkout/stripe/payment-intent with coupon_code after applying the coupon.', 404);
         }
 
+        [$amountMinor, $cardTotal, $walletApplied, $total, $currency] = $this->resolveCardAmountFromOrderSummary(
+            $request,
+            $user,
+            $orderSummary,
+            $row
+        );
+
+        if ($amountMinor === null) {
+            return $this->err('Order total is too low for card payment.', 422);
+        }
+
+        $secret = StripeCredentials::secretKey();
+        $updated = $this->postPaymentIntentAmount($secret, $piId, $amountMinor);
+        if ($updated !== null && $this->paymentIntentAmountMatches($secret, $piId, $amountMinor)) {
+            return $this->persistCheckoutPaymentRow(
+                $row,
+                $pack,
+                $orderSummary,
+                $piId,
+                $updated['client_secret'],
+                $amountMinor,
+                $total,
+                $cardTotal,
+                $walletApplied,
+                $currency,
+                false
+            );
+        }
+
+        Log::info('Recreating Stripe PaymentIntent after coupon apply', [
+            'old_pi' => $piId,
+            'amount_minor' => $amountMinor,
+        ]);
+
+        return $this->recreatePaymentIntentForCoupon($secret, $row, $user, $pack, $orderSummary, $amountMinor, $total, $cardTotal, $walletApplied, $currency);
+    }
+
+    /**
+     * @deprecated Use syncPaymentIntentAfterCoupon
+     */
+    public function updatePaymentIntentForAppliedCoupon(Request $request, User $user, array $pack, array $orderSummary): array
+    {
+        return $this->syncPaymentIntentAfterCoupon($request, $user, $pack, $orderSummary);
+    }
+
+    /**
+     * @return array{0: ?int, 1: float, 2: float, 3: float, 4: string}
+     */
+    private function resolveCardAmountFromOrderSummary(
+        Request $request,
+        User $user,
+        array $orderSummary,
+        ShopMobileCheckout $row
+    ): array {
         $total = (float) ($orderSummary['total'] ?? 0);
         $currency = strtolower((string) ($row->currency ?: config('shop.currency', CartController::CURRENCY)));
 
@@ -1028,13 +1098,20 @@ class ShopStripeMobilePaymentService
 
         $amountMinor = (int) round($cardTotal * 100);
         if ($currency === 'aed' && $amountMinor > 0 && $amountMinor < self::MIN_AMOUNT_MINOR_AED) {
-            return $this->err('Order total is below the minimum for card payment (2.00 AED).', 422);
+            return [null, $cardTotal, $walletApplied, $total, $currency];
         }
         if ($amountMinor > 0 && $amountMinor < 50) {
-            return $this->err('Order total is too low for card payment.', 422);
+            return [null, $cardTotal, $walletApplied, $total, $currency];
         }
 
-        $secret = StripeCredentials::secretKey();
+        return [$amountMinor, $cardTotal, $walletApplied, $total, $currency];
+    }
+
+    /**
+     * @return array{client_secret: string}|null
+     */
+    private function postPaymentIntentAmount(string $secret, string $piId, int $amountMinor): ?array
+    {
         $resp = Http::withToken($secret)
             ->asForm()
             ->post('https://api.stripe.com/v1/payment_intents/'.$piId, [
@@ -1042,25 +1119,69 @@ class ShopStripeMobilePaymentService
             ]);
 
         if (! $resp->successful()) {
-            $msg = $resp->json('error.message') ?? $resp->body();
-            Log::warning('Stripe PaymentIntent update failed after coupon apply', ['pi' => $piId, 'body' => $msg]);
+            Log::warning('Stripe PaymentIntent amount update failed', [
+                'pi' => $piId,
+                'body' => $resp->json('error.message') ?? $resp->body(),
+            ]);
 
-            return $this->err('Could not update payment amount. Create a new payment intent with coupon_code.', 502);
+            return null;
         }
 
         $pi = $resp->json();
         $status = (string) ($pi['status'] ?? '');
         if (! in_array($status, ['requires_payment_method', 'requires_confirmation', 'requires_action', 'processing'], true)) {
-            return $this->err('Payment is no longer editable. Start checkout again with coupon_code on payment-intent.', 422);
+            return null;
         }
 
         $clientSecret = $pi['client_secret'] ?? null;
         if (! is_string($clientSecret) || $clientSecret === '') {
-            return $this->err('Invalid Stripe response.', 502);
+            return null;
         }
 
+        return ['client_secret' => $clientSecret];
+    }
+
+    private function paymentIntentAmountMatches(string $secret, string $piId, int $amountMinor): bool
+    {
+        $resp = Http::withToken($secret)->get('https://api.stripe.com/v1/payment_intents/'.$piId);
+        if (! $resp->successful()) {
+            return false;
+        }
+
+        return (int) ($resp->json('amount') ?? -1) === $amountMinor;
+    }
+
+    /**
+     * @return array{ok: true, data: array<string, mixed>}
+     */
+    private function persistCheckoutPaymentRow(
+        ShopMobileCheckout $row,
+        array $pack,
+        array $orderSummary,
+        string $piId,
+        string $clientSecret,
+        int $amountMinor,
+        float $total,
+        float $cardTotal,
+        float $walletApplied,
+        string $currency,
+        bool $recreated
+    ): array {
         $couponCode = $pack['coupon_code'] ?? null;
+        $lines = is_array($row->lines_json) ? $row->lines_json : [];
+        $ship = is_array($row->shipping_json) ? $row->shipping_json : [];
+        $fingerprint = hash('sha256', json_encode([
+            'lines' => $lines,
+            'amount_minor' => $amountMinor,
+            'wallet_applied' => round($walletApplied, 2),
+            'ship' => $ship,
+            'coupon_id' => $pack['coupon_id'] ?? null,
+            'coupon_merch' => round((float) ($pack['coupon_merchandise_discount'] ?? 0), 2),
+        ], JSON_THROW_ON_ERROR));
+
         $row->update([
+            'fingerprint' => $fingerprint,
+            'stripe_payment_intent_id' => $piId,
             'coupon_id' => $pack['coupon_id'] ?? null,
             'coupon_code' => $couponCode,
             'coupon_merchandise_discount' => (float) ($pack['coupon_merchandise_discount'] ?? 0),
@@ -1079,12 +1200,132 @@ class ShopStripeMobilePaymentService
             'data' => [
                 'payment_intent_id' => $piId,
                 'client_secret' => $clientSecret,
+                'publishable_key' => StripeCredentials::publishableKey(),
                 'order_total' => $total,
                 'amount_due' => $cardTotal,
+                'amount_minor' => $amountMinor,
                 'wallet_amount_applied' => $walletApplied,
                 'currency' => strtoupper($currency),
+                'reinitialize_payment_sheet' => true,
+                'payment_intent_recreated' => $recreated,
             ],
         ];
+    }
+
+    /**
+     * @return array{ok: true, data: array<string, mixed>}|array{ok: false, message: string, status: int}
+     */
+    private function recreatePaymentIntentForCoupon(
+        string $secret,
+        ShopMobileCheckout $row,
+        User $user,
+        array $pack,
+        array $orderSummary,
+        int $amountMinor,
+        float $total,
+        float $cardTotal,
+        float $walletApplied,
+        string $currency
+    ): array {
+        $oldPiId = $row->stripe_payment_intent_id;
+        if (is_string($oldPiId) && str_starts_with($oldPiId, 'pi_')) {
+            Http::withToken($secret)->asForm()->post(
+                'https://api.stripe.com/v1/payment_intents/'.$oldPiId.'/cancel',
+                []
+            );
+        }
+
+        $ship = is_array($row->shipping_json) ? $row->shipping_json : [];
+        $fullName = trim((string) ($ship['full_name'] ?? ''));
+        $phone = trim((string) ($ship['phone_number'] ?? $ship['phone'] ?? ''));
+        $street = trim((string) ($ship['street_address'] ?? $ship['street'] ?? ''));
+        $line2 = trim((string) ($ship['line2'] ?? ''));
+        $city = trim((string) ($ship['city'] ?? ''));
+        $state = trim((string) ($ship['state'] ?? ''));
+        $zip = trim((string) ($ship['zip_code'] ?? ''));
+        $countryRaw = trim((string) ($ship['country'] ?? ''));
+        $countryCode = self::stripeCountryCode($countryRaw);
+        $couponCode = strtoupper(trim((string) ($pack['coupon_code'] ?? '')));
+
+        $checkoutRef = (string) Str::ulid();
+        $form = [
+            'amount' => $amountMinor,
+            'currency' => $currency,
+            'automatic_payment_methods[enabled]' => 'true',
+            'description' => Str::limit('Shop · '.$fullName, 999),
+            'metadata[checkout_ref]' => $checkoutRef,
+            'metadata[user_id]' => (string) $user->id,
+            'metadata[order_total]' => (string) $total,
+            'metadata[wallet_amount_applied]' => (string) round($walletApplied, 2),
+            'metadata[currency]' => strtoupper($currency),
+            'shipping[name]' => Str::limit($fullName, 500),
+            'shipping[phone]' => Str::limit($phone, 20),
+            'shipping[address][line1]' => Str::limit($street, 500),
+            'shipping[address][city]' => Str::limit($city, 100),
+            'shipping[address][country]' => $countryCode,
+        ];
+        if ($line2 !== '') {
+            $form['shipping[address][line2]'] = Str::limit($line2, 500);
+        }
+        if ($state !== '') {
+            $form['shipping[address][state]'] = Str::limit($state, 100);
+        }
+        if ($zip !== '') {
+            $form['shipping[address][postal_code]'] = Str::limit($zip, 20);
+        }
+        if ($couponCode !== '') {
+            $form['metadata[coupon_code]'] = Str::limit($couponCode, 40);
+        }
+
+        $customerId = $this->findOrCreateStripeCustomer($secret, $user, [
+            'full_name' => $fullName,
+            'phone' => $phone,
+            'street' => $street,
+            'line2' => $line2,
+            'city' => $city,
+            'state' => $state,
+            'zip' => $zip,
+            'country' => $countryCode,
+            'email' => trim((string) ($user->email ?? '')),
+        ]);
+        if ($customerId !== null) {
+            $form['customer'] = $customerId;
+        }
+
+        $resp = Http::withToken($secret)
+            ->withHeaders(['Idempotency-Key' => 'smc_coupon_'.$checkoutRef])
+            ->asForm()
+            ->post('https://api.stripe.com/v1/payment_intents', $form);
+
+        if (! $resp->successful()) {
+            $msg = $resp->json('error.message') ?? $resp->body();
+            Log::warning('Stripe PaymentIntent recreate after coupon failed', ['body' => $msg]);
+
+            return $this->err('Could not refresh payment amount. Call payment-intent again with coupon_code.', 502);
+        }
+
+        $pi = $resp->json();
+        $newPiId = $pi['id'] ?? null;
+        $clientSecret = $pi['client_secret'] ?? null;
+        if (! is_string($newPiId) || ! is_string($clientSecret) || $clientSecret === '') {
+            return $this->err('Invalid Stripe response.', 502);
+        }
+
+        $row->checkout_ref = $checkoutRef;
+
+        return $this->persistCheckoutPaymentRow(
+            $row,
+            $pack,
+            $orderSummary,
+            $newPiId,
+            $clientSecret,
+            $amountMinor,
+            $total,
+            $cardTotal,
+            $walletApplied,
+            $currency,
+            true
+        );
     }
 
     protected function err(string $message, int $status): array
