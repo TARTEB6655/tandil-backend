@@ -64,12 +64,12 @@ List response includes `meta` (`current_page`, `last_page`, `total`). Messages: 
 
 ### GET `/api/shop/coupons/browse`
 
-Promo codes shown on a **category** or **service** product screen. Requires one of:
+Single endpoint for category **or** service product screens. Send **exactly one** query param (not both):
 
 | Query | Effect |
 |-------|--------|
-| `category_id` | Returns coupons with `applies_to=all` **or** `applies_to=categories` linked to that category |
-| `service_id` | Returns coupons with `applies_to=all` **or** `applies_to=services` linked to that service |
+| `category_id` | Coupons with `applies_to=all` **or** `applies_to=categories` for that category |
+| `service_id` | Coupons with `applies_to=all` **or** `applies_to=services` for that service |
 
 **200 `data`:** array of offer cards (`code`, `discount_label`, `scope_label`, `scope_summary`, `categories`, `services`, …).
 
