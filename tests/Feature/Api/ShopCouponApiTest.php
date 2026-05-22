@@ -102,7 +102,7 @@ class ShopCouponApiTest extends TestCase
             ->assertJsonPath('data.coupon_discount', 10);
     }
 
-    public function test_validate_respects_catalog_discount_for_min_order(): void
+    public function test_validate_min_order_uses_subtotal_not_catalog_discount(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
             $this->markTestSkipped('Spatie permission tables unavailable.');
@@ -128,7 +128,16 @@ class ShopCouponApiTest extends TestCase
             'subtotal' => 55,
             'catalog_discount' => 10,
         ], $this->clientHeaders($client))
-            ->assertStatus(422);
+            ->assertOk()
+            ->assertJsonPath('data.code', 'SAVE10');
+
+        $this->postJson('/api/shop/coupons/validate', [
+            'code' => 'SAVE10',
+            'subtotal' => 45,
+            'catalog_discount' => 0,
+        ], $this->clientHeaders($client))
+            ->assertStatus(422)
+            ->assertJsonFragment(['message' => 'Minimum order is 50 AED.']);
     }
 
     public function test_inactive_coupon_returns_422(): void
@@ -407,7 +416,7 @@ class ShopCouponApiTest extends TestCase
             ->assertJsonPath('data.available_for_order.0.applies_to_label', 'All products')
             ->assertJsonFragment([
                 'code' => 'SAVE10',
-                'ineligible_reason' => 'Minimum order is 50 AED after discounts.',
+                'ineligible_reason' => 'Minimum order is 50 AED.',
             ])
             ->assertJsonFragment([
                 'code' => 'CAT10',

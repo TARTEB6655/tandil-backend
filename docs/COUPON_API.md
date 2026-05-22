@@ -110,7 +110,7 @@ Example ineligible scope message: `This offer applies to specific categories. Yo
 
 **200 data:** `coupon_id`, `code`, `discount_type`, `coupon_discount`, `free_shipping`, `message`, optional `order_summary`.
 
-**422:** e.g. `Minimum order is 50 AED after discounts.`
+**422:** e.g. `Minimum order is 50 AED.` (checked against cart **subtotal**, not after compare-at catalog savings)
 
 ### POST `/api/shop/coupons/apply` (checkout **Apply** button)
 

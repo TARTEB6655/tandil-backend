@@ -49,7 +49,7 @@ final class ShopCouponService
         $catalogDiscount = round(max(0, $catalogDiscount), 2);
         $afterCatalog = round(max(0, $subtotal - $catalogDiscount), 2);
 
-        $err = $this->validateEligibility($coupon, $afterCatalog, $userId, $cartCategoryIds, $cartCatalog, $cartServiceIds);
+        $err = $this->validateEligibility($coupon, $afterCatalog, $userId, $cartCategoryIds, $cartCatalog, $cartServiceIds, $subtotal);
         if ($err !== null) {
             return ['ok' => false, 'message' => $err];
         }
@@ -112,7 +112,8 @@ final class ShopCouponService
         ?int $userId,
         array $cartCategoryIds = [],
         ?string $cartCatalog = null,
-        array $cartServiceIds = []
+        array $cartServiceIds = [],
+        ?float $orderSubtotal = null
     ): ?string {
         if (! $coupon->is_active) {
             return 'This coupon is not active.';
@@ -127,8 +128,9 @@ final class ShopCouponService
         }
 
         $min = (float) ($coupon->min_order_amount ?? 0);
-        if ($afterCatalog + 0.0001 < $min) {
-            return 'Minimum order is '.number_format($min, 0).' AED after discounts.';
+        $minBasis = round(max(0, $orderSubtotal ?? $afterCatalog), 2);
+        if ($minBasis + 0.0001 < $min) {
+            return 'Minimum order is '.number_format($min, 0).' AED.';
         }
 
         if ($coupon->usage_limit !== null && $coupon->usage_limit > 0) {
@@ -282,7 +284,8 @@ final class ShopCouponService
                 $userId,
                 $cartCategoryIds,
                 $cartCatalog,
-                $cartServiceIds
+                $cartServiceIds,
+                $subtotal
             );
 
             if ($reason === null) {
@@ -334,7 +337,8 @@ final class ShopCouponService
         ?int $userId,
         array $cartCategoryIds,
         ?string $cartCatalog,
-        array $cartServiceIds
+        array $cartServiceIds,
+        float $subtotal
     ): ?string {
         if (! $coupon->is_active) {
             return 'This coupon is not active.';
@@ -354,8 +358,8 @@ final class ShopCouponService
         }
 
         $min = (float) ($coupon->min_order_amount ?? 0);
-        if ($afterCatalog + 0.0001 < $min) {
-            return 'Minimum order is '.number_format($min, 0).' AED after discounts.';
+        if (round(max(0, $subtotal), 2) + 0.0001 < $min) {
+            return 'Minimum order is '.number_format($min, 0).' AED.';
         }
 
         if ($coupon->usage_limit !== null && $coupon->usage_limit > 0) {
