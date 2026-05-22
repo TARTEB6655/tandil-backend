@@ -967,6 +967,22 @@ class ShopStripeMobilePaymentService
      * @param  array<string, mixed>  $orderSummary
      * @return array{ok: bool, message?: string, status?: int, data?: array<string, mixed>}
      */
+    /**
+     * Latest unconsumed mobile checkout PaymentIntent for this user (last 24h).
+     */
+    public function findActivePaymentIntentIdForUser(int $userId): ?string
+    {
+        $piId = ShopMobileCheckout::query()
+            ->where('user_id', $userId)
+            ->whereNull('consumed_at')
+            ->whereNotNull('stripe_payment_intent_id')
+            ->where('created_at', '>=', now()->subDay())
+            ->orderByDesc('id')
+            ->value('stripe_payment_intent_id');
+
+        return is_string($piId) && $piId !== '' && str_starts_with($piId, 'pi_') ? $piId : null;
+    }
+
     public function updatePaymentIntentForAppliedCoupon(Request $request, User $user, array $pack, array $orderSummary): array
     {
         if (! StripeCredentials::isStripeUsableForCheckout()) {

@@ -126,7 +126,7 @@ Optional (only when needed):
 
 | Field | When to send |
 |-------|----------------|
-| `payment_intent_id` | Stripe PI already created — server updates card amount to discounted `total` |
+| `payment_intent_id` | Optional — if omitted and user has a pending checkout PI (last 24h), server **auto-updates** that Stripe amount |
 | `product_id`, `quantity` | Buy-now checkout (no cart rows) |
 | `use_wallet`, `wallet_amount` | Wallet preview on summary |
 | `subtotal`, `catalog_discount` | Rare override; omit in normal app flow |
@@ -135,14 +135,14 @@ Optional (only when needed):
 
 **200 `data`:** `code`, `discount_type` (`percentage` \| `fixed_amount`), `discount_value`, `coupon_discount`, `free_shipping`, **`order_summary`** (subtotal, `coupon_discount`, `coupon_code`, `tax` / `vat`, `total`, …).
 
-**200 `data.payment`** (only when `payment_intent_id` sent): `client_secret`, `payment_intent_id`, `order_total`, `amount_due`, `wallet_amount_applied`.
+**200 `data.payment`** (when a pending Stripe PI exists or `payment_intent_id` sent): `client_secret`, `payment_intent_id`, `order_total`, `amount_due`, `wallet_amount_applied`. **Re-present Payment Sheet** using this `client_secret` so Stripe shows the discounted amount.
 
 **Mobile flow:**
 
 1. Load checkout → `GET /api/shop/order-summary` (no coupon).
-2. User enters code, taps **Apply** → `POST /api/shop/coupons/apply` with `{ "code": "SAVE10" }` → bind UI to `data.order_summary`.
-3. Start card pay → `POST /api/shop/checkout/stripe/payment-intent` with **`coupon_code`** (same code) so PI amount matches summary.
-4. If PI was created **before** Apply, call apply with **`payment_intent_id`** to update Stripe amount, then present Payment Sheet with returned `client_secret`.
+2. User taps **Apply** → `POST /api/shop/coupons/apply` with `{ "code": "FLAT20" }` → bind UI to `data.order_summary`.
+3. **Stripe:** Either create PI **after** apply with `coupon_code` on `POST …/payment-intent`, **or** if PI was already created, apply returns `data.payment` — use **`data.payment.client_secret`** for Payment Sheet (amount matches discounted total).
+4. Do **not** keep the old `client_secret` after apply; Stripe button stays at the old total until you use the updated secret from `data.payment`.
 
 ### GET `/api/shop/order-summary?coupon_code=SAVE10`
 

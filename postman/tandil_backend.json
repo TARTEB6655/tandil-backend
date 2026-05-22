@@ -5757,7 +5757,7 @@
                                         "apply"
                                     ]
                                 },
-                                "description": "POST /api/shop/coupons/apply — **Required: `code` only.** Server uses cart (or buy-now) subtotal; applies **percentage** or **fixed_amount** from coupon. **200 data:** `discount_type`, `discount_value`, `discount_label` (e.g. 10% OFF), `coupon_discount`, `order_summary` (subtotal, vat, total). Optional: `payment_intent_id` → `data.payment` updates Stripe PI amount. Optional: `product_id`, `quantity`, `use_wallet`."
+                                "description": "POST /api/shop/coupons/apply — **`code` only.** **200:** `order_summary` + optional **`data.payment`** when a pending Stripe PI exists (auto-updates amount; saves `stripe_client_secret` — use this for Payment Sheet, not the old secret). Optional explicit `payment_intent_id`, `use_wallet`, buy-now `product_id`."
                             }
                         },
                         {

@@ -201,6 +201,13 @@ class ShopCouponController extends Controller
             'payment' => null,
         ];
 
+        if (! $request->filled('payment_intent_id')) {
+            $pendingPi = $stripeCheckout->findActivePaymentIntentIdForUser((int) $user->id);
+            if ($pendingPi !== null) {
+                $request->merge(['payment_intent_id' => $pendingPi]);
+            }
+        }
+
         if ($request->filled('payment_intent_id')) {
             $payment = $stripeCheckout->updatePaymentIntentForAppliedCoupon(
                 $request,
