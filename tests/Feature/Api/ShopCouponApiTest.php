@@ -237,6 +237,24 @@ class ShopCouponApiTest extends TestCase
             ->assertJsonMissing(['code' => 'OTHER']);
     }
 
+    public function test_browse_rejects_both_category_and_service_id(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        $cat = Category::factory()->create();
+        $service = Service::factory()->create();
+
+        $this->getJson(
+            '/api/shop/coupons/browse?category_id='.$cat->id.'&service_id='.$service->id,
+            $this->clientHeaders($client)
+        )->assertStatus(422);
+    }
+
     public function test_browse_lists_service_coupons_for_service(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {

@@ -24,6 +24,10 @@ class ShopCouponController extends Controller
         $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
         $serviceId = $request->filled('service_id') ? (int) $request->input('service_id') : null;
 
+        if ($categoryId !== null && $serviceId !== null) {
+            return ApiResponse::error('Send either category_id or service_id, not both.', 422);
+        }
+
         if ($categoryId === null && $serviceId === null) {
             return ApiResponse::error('Provide category_id or service_id to list applicable offers.', 422);
         }

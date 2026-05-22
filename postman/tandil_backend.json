@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.43"
+        "version": "3.3.44"
     },
     "item": [
         {
@@ -5552,7 +5552,7 @@
                     "description": "Client Bearer **{{token}}**. **Category/service screens:** GET browse (`category_id` or `service_id`). **Choose promo modal:** POST checkout-offers → `available_for_order` + `not_eligible_for_cart`. **Checkout Apply:** POST apply → `order_summary`. Admin CRUD: **5f**. Spec: `docs/COUPON_API.md`.",
                     "item": [
                         {
-                            "name": "0a. Browse coupons for category (GET)",
+                            "name": "0. Browse coupons (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5580,51 +5580,21 @@
                                         {
                                             "key": "category_id",
                                             "value": "{{category_id}}",
-                                            "description": "Show coupons for all products + this category"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/shop/coupons/browse?category_id= — Promo banners on category product list. Returns `data[]` with `discount_label`, `scope_label` (e.g. Category: Vegetables), `scope_summary`."
-                            }
-                        },
-                        {
-                            "name": "0b. Browse coupons for service (GET)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/shop/coupons/browse?service_id={{service_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shop",
-                                        "coupons",
-                                        "browse"
-                                    ],
-                                    "query": [
+                                            "description": "Category PLP — enable this OR service_id (not both)"
+                                        },
                                         {
                                             "key": "service_id",
                                             "value": "{{service_id}}",
-                                            "description": "Show coupons for all products + this service"
+                                            "description": "Service PLP — enable this OR category_id (not both)",
+                                            "disabled": true
                                         }
                                     ]
                                 },
-                                "description": "GET /api/shop/coupons/browse?service_id= — Promo on service product list. `scope_label` e.g. Service: Local slaughter."
+                                "description": "GET /api/shop/coupons/browse — **One API.** Query: `category_id` **or** `service_id` (exactly one). Returns promos for that catalog screen: `data[]` with `discount_label`, `scope_label`, `scope_summary`. Store-wide (`applies_to=all`) coupons always included."
                             }
                         },
                         {
-                            "name": "0c. Checkout offers — choose promo (POST)",
+                            "name": "1. Checkout offers — choose promo (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5661,7 +5631,7 @@
                             }
                         },
                         {
-                            "name": "1. Validate coupon (form-data)",
+                            "name": "2. Validate coupon (form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5726,7 +5696,7 @@
                             }
                         },
                         {
-                            "name": "2. Apply coupon at checkout (code only)",
+                            "name": "3. Apply coupon at checkout (code only)",
                             "event": [
                                 {
                                     "listen": "test",
@@ -5785,7 +5755,7 @@
                             }
                         },
                         {
-                            "name": "2b. Apply coupon (form-data — code only)",
+                            "name": "3b. Apply coupon (form-data — code only)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5846,7 +5816,7 @@
                             }
                         },
                         {
-                            "name": "3. Cart with coupon (GET)",
+                            "name": "4. Cart with coupon (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5880,7 +5850,7 @@
                             }
                         },
                         {
-                            "name": "4. Order summary with coupon (GET)",
+                            "name": "5. Order summary with coupon (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5914,7 +5884,7 @@
                             }
                         },
                         {
-                            "name": "5. Checkout review with coupon (GET)",
+                            "name": "6. Checkout review with coupon (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -5949,7 +5919,7 @@
                             }
                         },
                         {
-                            "name": "6. Stripe payment-intent with coupon (JSON)",
+                            "name": "7. Stripe payment-intent with coupon (JSON)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -5987,7 +5957,7 @@
                             }
                         },
                         {
-                            "name": "7. Validate invalid code (expect 422)",
+                            "name": "8. Validate invalid code (expect 422)",
                             "request": {
                                 "method": "POST",
                                 "header": [
