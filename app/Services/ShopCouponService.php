@@ -197,11 +197,11 @@ final class ShopCouponService
     }
 
     /**
-     * Coupons visible on a category or service catalog screen (client dashboard browse).
+     * Coupons for client browse: store-wide (all products), category PLP, or service PLP.
      *
-     * @return array{data: array<int, array<string, mixed>>, meta: array<string, int>}
+     * @return array{data: array<int, array<string, mixed>>, meta: array<string, int>, scope: string}
      */
-    public function listForBrowse(?int $categoryId = null, ?int $serviceId = null): array
+    public function listForBrowse(?int $categoryId = null, ?int $serviceId = null, bool $storewideAll = false): array
     {
         $coupons = Coupon::query()
             ->with(['categories', 'services'])
@@ -215,9 +215,15 @@ final class ShopCouponService
             ->orderByDesc('id')
             ->get();
 
+        $scope = $storewideAll ? 'all' : ($categoryId !== null ? 'category' : 'service');
+
         $rows = [];
         foreach ($coupons as $coupon) {
-            if (! $this->visibleOnBrowse($coupon, $categoryId, $serviceId)) {
+            if ($storewideAll) {
+                if (strtolower((string) ($coupon->applies_to ?? Coupon::APPLIES_ALL)) !== Coupon::APPLIES_ALL) {
+                    continue;
+                }
+            } elseif (! $this->visibleOnBrowse($coupon, $categoryId, $serviceId)) {
                 continue;
             }
             $rows[] = $this->offerCard($coupon, true, null);
@@ -225,7 +231,8 @@ final class ShopCouponService
 
         return [
             'data' => $rows,
-            'meta' => ['total' => count($rows)],
+            'meta' => ['total' => count($rows), 'scope' => $scope],
+            'scope' => $scope,
         ];
     }
 

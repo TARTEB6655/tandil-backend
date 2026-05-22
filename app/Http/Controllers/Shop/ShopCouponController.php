@@ -12,27 +12,30 @@ class ShopCouponController extends Controller
 {
     /**
      * GET /api/shop/coupons/browse
-     * Promo codes for a category or service catalog screen (client dashboard).
+     * Promo codes for store-wide (all products), category PLP, or service PLP.
      */
     public function browse(Request $request, ShopCouponService $coupons)
     {
         $request->validate([
+            'all' => 'sometimes|boolean',
             'category_id' => 'sometimes|integer|exists:categories,id',
             'service_id' => 'sometimes|integer|exists:services,id',
         ]);
 
+        $storewideAll = $request->boolean('all');
         $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
         $serviceId = $request->filled('service_id') ? (int) $request->input('service_id') : null;
+
+        $modes = ($storewideAll ? 1 : 0) + ($categoryId !== null ? 1 : 0) + ($serviceId !== null ? 1 : 0);
+        if ($modes !== 1) {
+            return ApiResponse::error('Send exactly one of: all=1 (all products), category_id, or service_id.', 422);
+        }
 
         if ($categoryId !== null && $serviceId !== null) {
             return ApiResponse::error('Send either category_id or service_id, not both.', 422);
         }
 
-        if ($categoryId === null && $serviceId === null) {
-            return ApiResponse::error('Provide category_id or service_id to list applicable offers.', 422);
-        }
-
-        $result = $coupons->listForBrowse($categoryId, $serviceId);
+        $result = $coupons->listForBrowse($categoryId, $serviceId, $storewideAll);
 
         return response()->json([
             'success' => true,

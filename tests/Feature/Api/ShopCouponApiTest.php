@@ -255,6 +255,71 @@ class ShopCouponApiTest extends TestCase
         )->assertStatus(422);
     }
 
+    public function test_browse_with_all_lists_only_storewide_coupons(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        $cat = Category::factory()->create();
+
+        Coupon::create([
+            'code' => 'ALLONLY',
+            'title' => 'All products',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $catCoupon = Coupon::create([
+            'code' => 'CATONLY',
+            'title' => 'Category only',
+            'discount_type' => 'percentage',
+            'discount_value' => 5,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'categories',
+            'catalog_scope' => 'products',
+        ]);
+        $catCoupon->categories()->sync([$cat->id]);
+
+        $this->getJson('/api/shop/coupons/browse?all=1', $this->clientHeaders($client))
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.scope', 'all')
+            ->assertJsonFragment(['code' => 'ALLONLY'])
+            ->assertJsonMissing(['code' => 'CATONLY']);
+    }
+
+    public function test_browse_rejects_all_with_category_or_service(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        $cat = Category::factory()->create();
+        $service = Service::factory()->create();
+
+        $this->getJson(
+            '/api/shop/coupons/browse?all=1&category_id='.$cat->id,
+            $this->clientHeaders($client)
+        )->assertStatus(422);
+
+        $this->getJson(
+            '/api/shop/coupons/browse?all=1&service_id='.$service->id,
+            $this->clientHeaders($client)
+        )->assertStatus(422);
+    }
+
     public function test_browse_lists_service_coupons_for_service(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {

@@ -64,14 +64,19 @@ List response includes `meta` (`current_page`, `last_page`, `total`). Messages: 
 
 ### GET `/api/shop/coupons/browse`
 
-Single endpoint for category **or** service product screens. Send **exactly one** query param (not both):
+Single endpoint for store-wide, category, or service product screens. Send **exactly one** query param:
 
 | Query | Effect |
 |-------|--------|
+| `all=1` | Only coupons with admin `applies_to=all` (all products / store-wide) |
 | `category_id` | Coupons with `applies_to=all` **or** `applies_to=categories` for that category |
 | `service_id` | Coupons with `applies_to=all` **or** `applies_to=services` for that service |
 
-**200 `data`:** array of offer cards (`code`, `discount_label`, `scope_label`, `scope_summary`, `categories`, `services`, …).
+Examples: `GET .../browse?all=1`, `GET .../browse?category_id=5`, `GET .../browse?service_id=12`.
+
+**422** if none of the above, or if more than one is sent (e.g. `all=1` with `service_id`).
+
+**200 `data`:** array of offer cards (`code`, `discount_label`, `scope_label`, `scope_summary`, `categories`, `services`, …). **`meta.scope`:** `all` | `category` | `service`.
 
 ### POST `/api/shop/coupons/checkout-offers`
 

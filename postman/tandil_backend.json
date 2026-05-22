@@ -5549,7 +5549,7 @@
                 },
                 {
                     "name": "K. Shop – Coupons (apply, validate & checkout)",
-                    "description": "Client Bearer **{{token}}**. **Category/service screens:** GET browse (`category_id` or `service_id`). **Choose promo modal:** POST checkout-offers → `available_for_order` + `not_eligible_for_cart`. **Checkout Apply:** POST apply → `order_summary`. Admin CRUD: **5f**. Spec: `docs/COUPON_API.md`.",
+                    "description": "Client Bearer **{{token}}**. **Browse:** GET browse (`all=1` **or** `category_id` **or** `service_id` — exactly one). **Choose promo modal:** POST checkout-offers → `available_for_order` + `not_eligible_for_cart`. **Checkout Apply:** POST apply → `order_summary`. Admin CRUD: **5f**. Spec: `docs/COUPON_API.md`.",
                     "item": [
                         {
                             "name": "0. Browse coupons (GET)",
@@ -5578,19 +5578,25 @@
                                     ],
                                     "query": [
                                         {
+                                            "key": "all",
+                                            "value": "1",
+                                            "description": "All products / store-wide — enable this OR category_id OR service_id (exactly one)",
+                                            "disabled": true
+                                        },
+                                        {
                                             "key": "category_id",
                                             "value": "{{category_id}}",
-                                            "description": "Category PLP — enable this OR service_id (not both)"
+                                            "description": "Category PLP — enable this OR all=1 OR service_id (exactly one)"
                                         },
                                         {
                                             "key": "service_id",
                                             "value": "{{service_id}}",
-                                            "description": "Service PLP — enable this OR category_id (not both)",
+                                            "description": "Service PLP — enable this OR all=1 OR category_id (exactly one)",
                                             "disabled": true
                                         }
                                     ]
                                 },
-                                "description": "GET /api/shop/coupons/browse — **One API.** Query: `category_id` **or** `service_id` (exactly one). Returns promos for that catalog screen: `data[]` with `discount_label`, `scope_label`, `scope_summary`. Store-wide (`applies_to=all`) coupons always included."
+                                "description": "GET /api/shop/coupons/browse — **One API.** Query: `all=1` **or** `category_id` **or** `service_id` (exactly one). `all=1` → only admin `applies_to=all` coupons. Category/service → store-wide + scoped promos. Response: `data[]`, `meta.scope` (`all`|`category`|`service`)."
                             }
                         },
                         {
