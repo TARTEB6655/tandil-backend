@@ -11,6 +11,89 @@ use Illuminate\Http\Request;
 class ShopCouponController extends Controller
 {
     /**
+     * GET /api/shop/coupons/browse
+     * Promo codes for a category or service catalog screen (client dashboard).
+     */
+    public function browse(Request $request, ShopCouponService $coupons)
+    {
+        $request->validate([
+            'category_id' => 'sometimes|integer|exists:categories,id',
+            'service_id' => 'sometimes|integer|exists:services,id',
+        ]);
+
+        $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
+        $serviceId = $request->filled('service_id') ? (int) $request->input('service_id') : null;
+
+        if ($categoryId === null && $serviceId === null) {
+            return ApiResponse::error('Provide category_id or service_id to list applicable offers.', 422);
+        }
+
+        $result = $coupons->listForBrowse($categoryId, $serviceId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Coupons loaded.',
+            'data' => $result['data'],
+            'meta' => $result['meta'],
+        ]);
+    }
+
+    /**
+     * POST /api/shop/coupons/checkout-offers
+     * "Choose a promo code" modal: available vs not eligible for the current cart.
+     */
+    public function checkoutOffers(Request $request, ShopCouponService $coupons)
+    {
+        $request->validate([
+            'subtotal' => 'sometimes|numeric|min:0',
+            'catalog_discount' => 'sometimes|numeric|min:0',
+            'cart_category_ids' => 'sometimes|array',
+            'cart_category_ids.*' => 'integer',
+            'cart_catalog' => 'sometimes|string|in:products,services,both',
+            'cart_service_ids' => 'sometimes|array',
+            'cart_service_ids.*' => 'integer',
+            'product_id' => 'sometimes|exists:products,id',
+            'quantity' => 'sometimes|integer|min:1',
+            'qty' => 'sometimes|integer|min:1',
+        ]);
+
+        $user = $request->user();
+        $preview = CartController::checkoutPreview($request, $user->id);
+
+        $subtotal = $request->filled('subtotal')
+            ? (float) $request->input('subtotal')
+            : (float) $preview['subtotal'];
+
+        $catalogDiscount = $request->filled('catalog_discount')
+            ? (float) $request->input('catalog_discount')
+            : (float) ($preview['catalog_discount'] ?? 0);
+
+        $cartCategoryIds = $request->input('cart_category_ids', $preview['cart_category_ids'] ?? []);
+        if (is_string($cartCategoryIds)) {
+            $decoded = json_decode($cartCategoryIds, true);
+            $cartCategoryIds = is_array($decoded) ? $decoded : [];
+        }
+
+        $cartCatalog = $request->input('cart_catalog', $preview['cart_catalog'] ?? 'both');
+        $cartServiceIds = $request->input('cart_service_ids', $preview['cart_service_ids'] ?? []);
+        if (is_string($cartServiceIds)) {
+            $decoded = json_decode($cartServiceIds, true);
+            $cartServiceIds = is_array($decoded) ? $decoded : [];
+        }
+
+        $lists = $coupons->listForCheckout(
+            $subtotal,
+            $catalogDiscount,
+            (int) $user->id,
+            array_map('intval', (array) $cartCategoryIds),
+            (string) $cartCatalog,
+            array_map('intval', (array) $cartServiceIds)
+        );
+
+        return ApiResponse::success('Checkout offers loaded.', $lists);
+    }
+
+    /**
      * POST /api/shop/coupons/validate
      */
     public function validateCode(Request $request, ShopCouponService $coupons)
@@ -119,14 +202,18 @@ class ShopCouponController extends Controller
         if ($pack['error'] !== null) {
             return ApiResponse::error($pack['error'], 422);
         }
-
         $orderSummary = $pack['order_summary'];
         $orderSummary = CartController::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
         CartController::addCheckoutUiAliases($orderSummary);
 
+        $couponMeta = is_array($orderSummary['coupon'] ?? null) ? $orderSummary['coupon'] : [];
+
         $data = [
             'coupon_id' => $pack['coupon_id'],
             'code' => $pack['coupon_code'],
+            'discount_type' => $couponMeta['discount_type'] ?? null,
+            'discount_value' => isset($couponMeta['discount_value']) ? (float) $couponMeta['discount_value'] : null,
+            'discount_label' => $couponMeta['discount_label'] ?? null,
             'coupon_discount' => (float) $pack['coupon_merchandise_discount'],
             'free_shipping' => $pack['coupon_shipping_discount'] > 0,
             'order_summary' => $orderSummary,

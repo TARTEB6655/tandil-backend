@@ -170,7 +170,7 @@ final class ShopCouponService
 
             $cartCategoryIds = array_map('intval', $cartCategoryIds);
             if ($cartCategoryIds === [] || count(array_intersect($allowed, $cartCategoryIds)) === 0) {
-                return 'This coupon does not apply to items in your cart.';
+                return 'This offer applies to specific categories. Your cart does not include eligible category items.';
             }
 
             return null;
@@ -187,18 +187,341 @@ final class ShopCouponService
 
             $cartServiceIds = array_map('intval', $cartServiceIds);
             if ($cartServiceIds === [] || count(array_intersect($allowed, $cartServiceIds)) === 0) {
-                return 'This coupon does not apply to services in your cart.';
+                return 'This offer applies to specific services. Your cart does not include eligible service items.';
             }
 
             return null;
         }
 
-        // applies_to = all (store products)
-        if ($cartCatalog !== null && strtolower($cartCatalog) === Coupon::SCOPE_SERVICES) {
-            return 'This coupon applies to all store products.';
+        return null;
+    }
+
+    /**
+     * Coupons visible on a category or service catalog screen (client dashboard browse).
+     *
+     * @return array{data: array<int, array<string, mixed>>, meta: array<string, int>}
+     */
+    public function listForBrowse(?int $categoryId = null, ?int $serviceId = null): array
+    {
+        $coupons = Coupon::query()
+            ->with(['categories', 'services'])
+            ->active()
+            ->where(function ($q) {
+                $q->whereNull('starts_at')->orWhere('starts_at', '<=', Carbon::today());
+            })
+            ->where(function ($q) {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>=', Carbon::today());
+            })
+            ->orderByDesc('id')
+            ->get();
+
+        $rows = [];
+        foreach ($coupons as $coupon) {
+            if (! $this->visibleOnBrowse($coupon, $categoryId, $serviceId)) {
+                continue;
+            }
+            $rows[] = $this->offerCard($coupon, true, null);
+        }
+
+        return [
+            'data' => $rows,
+            'meta' => ['total' => count($rows)],
+        ];
+    }
+
+    /**
+     * Checkout "Choose a promo code" — split eligible vs not eligible for current cart.
+     *
+     * @param  array<int>  $cartCategoryIds
+     * @param  array<int>  $cartServiceIds
+     * @return array{
+     *   available_for_order: array<int, array<string, mixed>>,
+     *   not_eligible_for_cart: array<int, array<string, mixed>>,
+     *   available_count: int,
+     *   not_eligible_count: int
+     * }
+     */
+    public function listForCheckout(
+        float $subtotal,
+        float $catalogDiscount,
+        ?int $userId,
+        array $cartCategoryIds = [],
+        ?string $cartCatalog = null,
+        array $cartServiceIds = []
+    ): array {
+        $subtotal = round(max(0, $subtotal), 2);
+        $catalogDiscount = round(max(0, $catalogDiscount), 2);
+        $afterCatalog = round(max(0, $subtotal - $catalogDiscount), 2);
+
+        $coupons = Coupon::query()
+            ->with(['categories', 'services'])
+            ->active()
+            ->where(function ($q) {
+                $q->whereNull('starts_at')->orWhere('starts_at', '<=', Carbon::today());
+            })
+            ->where(function ($q) {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>=', Carbon::today());
+            })
+            ->orderBy('code')
+            ->get();
+
+        $available = [];
+        $notEligible = [];
+
+        foreach ($coupons as $coupon) {
+            $reason = $this->checkoutIneligibilityReason(
+                $coupon,
+                $afterCatalog,
+                $userId,
+                $cartCategoryIds,
+                $cartCatalog,
+                $cartServiceIds
+            );
+
+            if ($reason === null) {
+                $card = $this->offerCard($coupon, true, null, $subtotal, $catalogDiscount);
+                $available[] = $card;
+            } else {
+                $notEligible[] = $this->offerCard($coupon, false, $reason, $subtotal, $catalogDiscount);
+            }
+        }
+
+        return [
+            'available_for_order' => array_values($available),
+            'not_eligible_for_cart' => array_values($notEligible),
+            'available_count' => count($available),
+            'not_eligible_count' => count($notEligible),
+        ];
+    }
+
+    public function visibleOnBrowse(Coupon $coupon, ?int $categoryId, ?int $serviceId): bool
+    {
+        $appliesTo = strtolower((string) ($coupon->applies_to ?? Coupon::APPLIES_ALL));
+
+        if ($appliesTo === Coupon::APPLIES_ALL) {
+            return true;
+        }
+
+        if ($categoryId !== null && $appliesTo === Coupon::APPLIES_CATEGORIES) {
+            $allowed = $this->couponCategoryIds($coupon);
+
+            return $allowed !== [] && in_array($categoryId, $allowed, true);
+        }
+
+        if ($serviceId !== null && $appliesTo === Coupon::APPLIES_SERVICES) {
+            $allowed = $this->couponServiceIds($coupon);
+
+            return $allowed !== [] && in_array($serviceId, $allowed, true);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<int>  $cartCategoryIds
+     * @param  array<int>  $cartServiceIds
+     */
+    private function checkoutIneligibilityReason(
+        Coupon $coupon,
+        float $afterCatalog,
+        ?int $userId,
+        array $cartCategoryIds,
+        ?string $cartCatalog,
+        array $cartServiceIds
+    ): ?string {
+        if (! $coupon->is_active) {
+            return 'This coupon is not active.';
+        }
+
+        $today = Carbon::today();
+        if ($coupon->starts_at && $today->lt($coupon->starts_at->startOfDay())) {
+            return 'This coupon is not valid yet.';
+        }
+        if ($coupon->ends_at && $today->gt($coupon->ends_at->endOfDay())) {
+            return 'This coupon has expired.';
+        }
+
+        $scopeErr = $this->validateCatalogScope($coupon, $cartCategoryIds, $cartCatalog, $cartServiceIds);
+        if ($scopeErr !== null) {
+            return $scopeErr;
+        }
+
+        $min = (float) ($coupon->min_order_amount ?? 0);
+        if ($afterCatalog + 0.0001 < $min) {
+            return 'Minimum order is '.number_format($min, 0).' AED after discounts.';
+        }
+
+        if ($coupon->usage_limit !== null && $coupon->usage_limit > 0) {
+            if ($coupon->paidOrdersCount() >= $coupon->usage_limit) {
+                return 'This coupon has reached its maximum number of uses.';
+            }
+        }
+
+        if ($userId !== null && $coupon->usage_limit_per_user !== null && $coupon->usage_limit_per_user > 0) {
+            if ($coupon->paidOrdersCountForUser($userId) >= $coupon->usage_limit_per_user) {
+                return 'You have already used this coupon the maximum number of times.';
+            }
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function offerCard(
+        Coupon $coupon,
+        bool $eligible,
+        ?string $ineligibleReason,
+        ?float $subtotal = null,
+        ?float $catalogDiscount = null
+    ): array {
+        $previewDiscount = null;
+        if ($eligible && $subtotal !== null && $catalogDiscount !== null) {
+            $afterCatalog = round(max(0, $subtotal - $catalogDiscount), 2);
+            [$previewDiscount] = $this->computeCouponDiscount($coupon, $afterCatalog);
+        }
+
+        $categories = $coupon->relationLoaded('categories')
+            ? $coupon->categories->map(fn ($c) => ['id' => (int) $c->id, 'name' => (string) $c->name])->values()->all()
+            : [];
+        $services = $coupon->relationLoaded('services')
+            ? $coupon->services->map(fn ($s) => ['id' => (int) $s->id, 'name' => (string) $s->name])->values()->all()
+            : [];
+
+        return [
+            'id' => $coupon->id,
+            'code' => $coupon->code,
+            'title' => $coupon->title,
+            'description' => $coupon->description,
+            'discount_type' => $coupon->discount_type,
+            'discount_value' => $coupon->discount_value !== null ? (float) $coupon->discount_value : null,
+            'discount_label' => $this->discountLabel($coupon),
+            'min_order_amount' => (float) ($coupon->min_order_amount ?? 0),
+            'max_discount_amount' => $coupon->max_discount_amount !== null ? (float) $coupon->max_discount_amount : null,
+            'starts_at' => $coupon->starts_at?->toDateString(),
+            'ends_at' => $coupon->ends_at?->toDateString(),
+            'usage_limit' => $coupon->usage_limit,
+            'usage_limit_per_user' => $coupon->usage_limit_per_user,
+            'applies_to' => $coupon->applies_to ?? Coupon::APPLIES_ALL,
+            'applies_to_label' => $this->appliesToLabel($coupon),
+            'scope_label' => $this->scopeLabel($coupon),
+            'scope_summary' => $this->scopeSummary($coupon),
+            'category_ids' => $this->couponCategoryIds($coupon),
+            'service_ids' => $this->couponServiceIds($coupon),
+            'categories' => $categories,
+            'services' => $services,
+            'eligible' => $eligible,
+            'ineligible_reason' => $ineligibleReason,
+            'coupon_discount_preview' => $previewDiscount,
+        ];
+    }
+
+    public function discountLabel(Coupon $coupon): string
+    {
+        $type = strtolower((string) $coupon->discount_type);
+        if ($type === 'percentage') {
+            $v = rtrim(rtrim(number_format((float) ($coupon->discount_value ?? 0), 2), '0'), '.');
+
+            return $v.'% OFF';
+        }
+
+        return number_format((float) ($coupon->discount_value ?? 0), 0).' AED OFF';
+    }
+
+    private function appliesToLabel(Coupon $coupon): string
+    {
+        return match (strtolower((string) ($coupon->applies_to ?? Coupon::APPLIES_ALL))) {
+            Coupon::APPLIES_CATEGORIES => 'Specific categories',
+            Coupon::APPLIES_SERVICES => 'Specific services',
+            default => 'All products',
+        };
+    }
+
+    private function scopeLabel(Coupon $coupon): string
+    {
+        $appliesTo = strtolower((string) ($coupon->applies_to ?? Coupon::APPLIES_ALL));
+
+        if ($appliesTo === Coupon::APPLIES_CATEGORIES) {
+            $names = $coupon->relationLoaded('categories')
+                ? $coupon->categories->pluck('name')->filter()->values()->all()
+                : [];
+            if ($names === []) {
+                return 'Category';
+            }
+            $first = (string) $names[0];
+
+            return 'Category: '.$first;
+        }
+
+        if ($appliesTo === Coupon::APPLIES_SERVICES) {
+            $names = $coupon->relationLoaded('services')
+                ? $coupon->services->pluck('name')->filter()->values()->all()
+                : [];
+            if ($names === []) {
+                return 'Service';
+            }
+            $first = (string) $names[0];
+
+            return 'Service: '.$first;
+        }
+
+        return 'All products';
+    }
+
+    private function scopeSummary(Coupon $coupon): string
+    {
+        $appliesTo = strtolower((string) ($coupon->applies_to ?? Coupon::APPLIES_ALL));
+
+        if ($appliesTo === Coupon::APPLIES_CATEGORIES) {
+            $names = $coupon->relationLoaded('categories')
+                ? $coupon->categories->pluck('name')->filter()->values()->all()
+                : [];
+            if ($names === []) {
+                return 'Categories';
+            }
+            if (count($names) === 1) {
+                return 'Categories: '.$names[0];
+            }
+
+            return 'Categories: +'.(count($names) - 1).' more';
+        }
+
+        if ($appliesTo === Coupon::APPLIES_SERVICES) {
+            $names = $coupon->relationLoaded('services')
+                ? $coupon->services->pluck('name')->filter()->values()->all()
+                : [];
+            if ($names === []) {
+                return 'Services';
+            }
+            if (count($names) === 1) {
+                return 'Services: '.$names[0];
+            }
+
+            return 'Services: +'.(count($names) - 1).' more';
+        }
+
+        return 'All products';
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function couponCategoryIds(Coupon $coupon): array
+    {
+        return $coupon->relationLoaded('categories')
+            ? $coupon->categories->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
+            : $coupon->categories()->pluck('categories.id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function couponServiceIds(Coupon $coupon): array
+    {
+        return $coupon->relationLoaded('services')
+            ? $coupon->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
+            : $coupon->services()->pluck('services.id')->map(fn ($id) => (int) $id)->all();
     }
 
     /**
@@ -213,6 +536,7 @@ final class ShopCouponService
             'description' => $coupon->description,
             'discount_type' => $coupon->discount_type,
             'discount_value' => $coupon->discount_value !== null ? (float) $coupon->discount_value : null,
+            'discount_label' => $this->discountLabel($coupon),
             'min_order_amount' => (float) ($coupon->min_order_amount ?? 0),
             'max_discount_amount' => $coupon->max_discount_amount !== null ? (float) $coupon->max_discount_amount : null,
             'applies_to' => $coupon->applies_to ?? Coupon::APPLIES_ALL,

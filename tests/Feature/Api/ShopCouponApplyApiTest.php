@@ -78,6 +78,8 @@ class ShopCouponApplyApiTest extends TestCase
         ], $this->clientHeaders($client))
             ->assertOk()
             ->assertJsonPath('data.code', 'SAVE10')
+            ->assertJsonPath('data.discount_type', 'percentage')
+            ->assertJsonPath('data.discount_value', 10)
             ->assertJsonPath('data.coupon_discount', 30)
             ->assertJsonStructure([
                 'data' => [
@@ -97,6 +99,49 @@ class ShopCouponApplyApiTest extends TestCase
         $this->assertSame(30.0, (float) $summary['coupon_discount']);
         $this->assertSame((float) $summary['tax'], (float) $summary['vat']);
         $this->assertLessThan(315.0, (float) $summary['total']);
+        $this->assertSame('10% OFF', $response->json('data.discount_label'));
+    }
+
+    public function test_apply_fixed_amount_coupon_with_code_only(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'FLAT20',
+            'title' => 'AED 20 off',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 20,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 100,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+
+        $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], $this->clientHeaders($client));
+
+        $this->postJson('/api/shop/coupons/apply', ['code' => 'FLAT20'], $this->clientHeaders($client))
+            ->assertOk()
+            ->assertJsonPath('data.discount_type', 'fixed_amount')
+            ->assertJsonPath('data.discount_value', 20)
+            ->assertJsonPath('data.coupon_discount', 20)
+            ->assertJsonPath('data.discount_label', '20 AED OFF')
+            ->assertJsonPath('data.order_summary.coupon_code', 'FLAT20');
     }
 
     public function test_apply_invalid_coupon_returns_422(): void

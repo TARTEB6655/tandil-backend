@@ -54,6 +54,7 @@ class ShopSettingsController extends Controller
     {
         $shipping = Setting::get('shop_shipping_amount');
         $tax = Setting::get('shop_tax_percent');
+
         return [
             'shipping_amount' => (float) ($shipping !== null && $shipping !== '' ? $shipping : config('shop.shipping_amount', 0)),
             'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),

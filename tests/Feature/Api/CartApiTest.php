@@ -121,8 +121,8 @@ class CartApiTest extends TestCase
     public function test_cart_view_returns_items_and_total(): void
     {
         $category = Category::factory()->create();
-        $p1 = Product::factory()->create(['category_id' => $category->id, 'price' => 10, 'status' => 'active']);
-        $p2 = Product::factory()->create(['category_id' => $category->id, 'price' => 20, 'status' => 'active']);
+        $p1 = Product::factory()->create(['category_id' => $category->id, 'price' => 10, 'compare_at_price' => null, 'status' => 'active']);
+        $p2 = Product::factory()->create(['category_id' => $category->id, 'price' => 20, 'compare_at_price' => null, 'status' => 'active']);
 
         Cart::create(['user_id' => $this->user->id, 'product_id' => $p1->id, 'quantity' => 2]);
         Cart::create(['user_id' => $this->user->id, 'product_id' => $p2->id, 'quantity' => 1]);
@@ -240,6 +240,7 @@ class CartApiTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 99,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
 
@@ -265,6 +266,7 @@ class CartApiTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 15,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
 
@@ -398,6 +400,7 @@ class CartApiTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 99,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -429,6 +432,7 @@ class CartApiTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 99,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -460,6 +464,7 @@ class CartApiTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 100,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -491,6 +496,7 @@ class CartApiTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 99,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -521,6 +527,7 @@ class CartApiTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 99,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -543,4 +550,5 @@ class CartApiTest extends TestCase
         $this->assertArrayNotHasKey('amount_due', $summary);
         $response->assertJsonPath('data.order_summary.total', 113.95);
     }
+
 }

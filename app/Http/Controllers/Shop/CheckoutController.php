@@ -75,7 +75,6 @@ class CheckoutController extends Controller
         if ($pack['error'] !== null) {
             return ApiResponse::error($pack['error'], 422);
         }
-
         $cartPreview = $pack['cart_preview'];
         $items = $cartPreview['items']->map(fn ($item) => CartController::cartItemToFrontend($item))->values()->all();
         $orderSummary = CartController::mergeWalletPreviewIntoOrderSummary($pack['order_summary'], $request, $user);

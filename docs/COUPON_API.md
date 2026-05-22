@@ -62,6 +62,33 @@ List response includes `meta` (`current_page`, `last_page`, `total`). Messages: 
 
 ## Shop (Bearer client)
 
+### GET `/api/shop/coupons/browse`
+
+Promo codes shown on a **category** or **service** product screen. Requires one of:
+
+| Query | Effect |
+|-------|--------|
+| `category_id` | Returns coupons with `applies_to=all` **or** `applies_to=categories` linked to that category |
+| `service_id` | Returns coupons with `applies_to=all` **or** `applies_to=services` linked to that service |
+
+**200 `data`:** array of offer cards (`code`, `discount_label`, `scope_label`, `scope_summary`, `categories`, `services`, …).
+
+### POST `/api/shop/coupons/checkout-offers`
+
+**“Choose a promo code”** modal at checkout. Same cart context as validate (`subtotal`, `catalog_discount`, `cart_category_ids`, `cart_service_ids`, or server cart).
+
+**200 `data`:**
+
+| Key | Description |
+|-----|-------------|
+| `available_for_order` | Coupons the user can apply now |
+| `not_eligible_for_cart` | Active coupons that fail min order, scope, or usage limits |
+| `available_count` / `not_eligible_count` | Counts for UI (“View N available offers”) |
+
+Each offer includes `discount_label` (e.g. `10% OFF`), `applies_to_label` (`All products`), `scope_summary` (`Categories: +1 more`), `eligible`, `ineligible_reason`, and `coupon_discount_preview` when eligible.
+
+Example ineligible scope message: `This offer applies to specific categories. Your cart does not include eligible category items.`
+
 ### POST `/api/shop/coupons/validate`
 
 ```json
@@ -82,25 +109,26 @@ List response includes `meta` (`current_page`, `last_page`, `total`). Messages: 
 
 ### POST `/api/shop/coupons/apply` (checkout **Apply** button)
 
-Call when the user taps **Apply** on the coupon field. Returns the full **payment summary** for the UI (Subtotal, VAT, Total) and optionally updates an existing Stripe PaymentIntent.
+Send **only the coupon code** — subtotal, tax, and discount are calculated on the server from the user’s cart (or buy-now `product_id` + `quantity`).
 
 ```json
 {
-  "code": "SAVE10",
-  "payment_intent_id": "pi_xxx",
-  "use_wallet": false,
-  "wallet_amount": 0
+  "code": "SAVE10"
 }
 ```
 
-| Field | Required | Notes |
-|-------|----------|--------|
-| `code` or `coupon_code` | Yes | Coupon to apply |
-| `payment_intent_id` | No | If the app already created a PI, send it here to update the card amount |
-| `product_id`, `quantity` | No | Buy-now preview (same as order-summary) |
-| `use_wallet`, `wallet_amount` | No | Same as order-summary |
+Optional (only when needed):
 
-**200 `data.order_summary`:** `subtotal`, `discount` (catalog), `coupon_discount`, `coupon_code`, `tax`, **`vat`** (alias of `tax`), `tax_percent`, **`vat_percent`**, `shipping`, `total`, `currency`. Wallet keys when applicable.
+| Field | When to send |
+|-------|----------------|
+| `payment_intent_id` | Stripe PI already created — server updates card amount to discounted `total` |
+| `product_id`, `quantity` | Buy-now checkout (no cart rows) |
+| `use_wallet`, `wallet_amount` | Wallet preview on summary |
+| `subtotal`, `catalog_discount` | Rare override; omit in normal app flow |
+
+**Discount math:** `percentage` → `coupon_discount = min(subtotal × %, max_discount_amount?)`; `fixed_amount` → `coupon_discount = min(AED value, subtotal after catalog discount)`. Tax is on the amount **after** catalog + coupon discounts.
+
+**200 `data`:** `code`, `discount_type` (`percentage` \| `fixed_amount`), `discount_value`, `coupon_discount`, `free_shipping`, **`order_summary`** (subtotal, `coupon_discount`, `coupon_code`, `tax` / `vat`, `total`, …).
 
 **200 `data.payment`** (only when `payment_intent_id` sent): `client_secret`, `payment_intent_id`, `order_total`, `amount_due`, `wallet_amount_applied`.
 

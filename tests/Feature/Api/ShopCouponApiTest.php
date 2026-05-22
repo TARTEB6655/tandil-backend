@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -178,5 +179,157 @@ class ShopCouponApiTest extends TestCase
             ->assertJsonPath('data.code', 'NEWCODE');
 
         $this->assertDatabaseHas('coupons', ['code' => 'NEWCODE']);
+    }
+
+    public function test_browse_lists_all_and_category_coupons_for_category(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        $catA = Category::factory()->create(['name' => 'Vegetables']);
+        $catB = Category::factory()->create(['name' => 'Fruits']);
+
+        $allCoupon = Coupon::create([
+            'code' => 'ALL5',
+            'title' => 'Store wide',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 5,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $catCoupon = Coupon::create([
+            'code' => 'CAT10',
+            'title' => 'Category demo',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'categories',
+            'catalog_scope' => 'products',
+        ]);
+        $catCoupon->categories()->sync([$catA->id]);
+
+        $otherCatCoupon = Coupon::create([
+            'code' => 'OTHER',
+            'title' => 'Other cat',
+            'discount_type' => 'percentage',
+            'discount_value' => 5,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'categories',
+            'catalog_scope' => 'products',
+        ]);
+        $otherCatCoupon->categories()->sync([$catB->id]);
+
+        $this->getJson('/api/shop/coupons/browse?category_id='.$catA->id, $this->clientHeaders($client))
+            ->assertOk()
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonFragment(['code' => 'ALL5'])
+            ->assertJsonFragment(['code' => 'CAT10'])
+            ->assertJsonFragment(['scope_label' => 'Category: Vegetables'])
+            ->assertJsonMissing(['code' => 'OTHER']);
+    }
+
+    public function test_browse_lists_service_coupons_for_service(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        $service = Service::factory()->create(['name' => 'Local slaughter']);
+
+        $svcCoupon = Coupon::create([
+            'code' => 'SVC20',
+            'title' => 'Service offer',
+            'discount_type' => 'percentage',
+            'discount_value' => 20,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'services',
+            'catalog_scope' => 'services',
+        ]);
+        $svcCoupon->services()->sync([$service->id]);
+
+        $this->getJson('/api/shop/coupons/browse?service_id='.$service->id, $this->clientHeaders($client))
+            ->assertOk()
+            ->assertJsonFragment(['code' => 'SVC20'])
+            ->assertJsonPath('data.0.scope_label', 'Service: Local slaughter');
+    }
+
+    public function test_checkout_offers_splits_available_and_not_eligible(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        $cat = Category::factory()->create(['name' => 'Summer']);
+
+        Coupon::create([
+            'code' => 'DEMO5',
+            'title' => 'Small order',
+            'description' => 'AED 5 off (small orders)',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 5,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        Coupon::create([
+            'code' => 'SAVE10',
+            'title' => '10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 50,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $catCoupon = Coupon::create([
+            'code' => 'CAT10',
+            'title' => '10% category demo',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'categories',
+            'catalog_scope' => 'products',
+        ]);
+        $catCoupon->categories()->sync([$cat->id]);
+
+        $this->postJson('/api/shop/coupons/checkout-offers', [
+            'subtotal' => 26.10,
+            'catalog_discount' => 0,
+            'cart_category_ids' => [],
+            'cart_catalog' => 'products',
+        ], $this->clientHeaders($client))
+            ->assertOk()
+            ->assertJsonPath('data.available_count', 1)
+            ->assertJsonPath('data.available_for_order.0.code', 'DEMO5')
+            ->assertJsonPath('data.available_for_order.0.applies_to_label', 'All products')
+            ->assertJsonFragment([
+                'code' => 'SAVE10',
+                'ineligible_reason' => 'Minimum order is 50 AED after discounts.',
+            ])
+            ->assertJsonFragment([
+                'code' => 'CAT10',
+                'ineligible_reason' => 'This offer applies to specific categories. Your cart does not include eligible category items.',
+            ])
+            ->assertJsonFragment(['code' => 'CAT10', 'scope_summary' => 'Categories: Summer']);
     }
 }
