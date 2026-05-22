@@ -177,6 +177,50 @@ class ShopCouponApplyApiTest extends TestCase
             ->assertJsonPath('data.order_summary.coupon_discount', 20);
     }
 
+    public function test_apply_ignores_client_subtotal_when_server_cart_meets_min(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'FLAT20',
+            'title' => 'AED 20 off',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 20,
+            'min_order_amount' => 100,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 125,
+            'compare_at_price' => 150,
+            'status' => 'active',
+        ]);
+
+        $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], $this->clientHeaders($client))->assertStatus(201);
+
+        $this->postJson('/api/shop/coupons/apply', [
+            'code' => 'FLAT20',
+            'subtotal' => 50,
+            'catalog_discount' => 40,
+        ], $this->clientHeaders($client))
+            ->assertOk()
+            ->assertJsonPath('data.code', 'FLAT20')
+            ->assertJsonPath('data.order_summary.subtotal', 125)
+            ->assertJsonPath('data.coupon_discount', 20);
+    }
+
     public function test_apply_invalid_coupon_returns_422(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {

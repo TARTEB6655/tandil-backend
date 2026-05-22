@@ -51,7 +51,11 @@ final class ShopCouponService
 
         $err = $this->validateEligibility($coupon, $afterCatalog, $userId, $cartCategoryIds, $cartCatalog, $cartServiceIds, $subtotal);
         if ($err !== null) {
-            return ['ok' => false, 'message' => $err];
+            return [
+                'ok' => false,
+                'message' => $err['message'],
+                'error_details' => $err['details'] ?? [],
+            ];
         }
 
         [$couponDiscount, $freeShipping] = $this->computeCouponDiscount($coupon, $afterCatalog);
@@ -114,43 +118,59 @@ final class ShopCouponService
         ?string $cartCatalog = null,
         array $cartServiceIds = [],
         ?float $orderSubtotal = null
-    ): ?string {
+    ): ?array {
         if (! $coupon->is_active) {
-            return 'This coupon is not active.';
+            return $this->eligibilityError('This coupon is not active.');
         }
 
         $today = Carbon::today();
         if ($coupon->starts_at && $today->lt($coupon->starts_at->startOfDay())) {
-            return 'This coupon is not valid yet.';
+            return $this->eligibilityError('This coupon is not valid yet.');
         }
         if ($coupon->ends_at && $today->gt($coupon->ends_at->endOfDay())) {
-            return 'This coupon has expired.';
+            return $this->eligibilityError('This coupon has expired.');
         }
 
         $min = (float) ($coupon->min_order_amount ?? 0);
         $minBasis = round(max(0, $orderSubtotal ?? $afterCatalog), 2);
-        if ($minBasis + 0.0001 < $min) {
-            return 'Minimum order is '.number_format($min, 0).' AED.';
+        if ($min > 0 && $minBasis + 0.0001 < $min) {
+            return $this->eligibilityError(
+                'Minimum order is '.number_format($min, 0).' AED. Your cart subtotal is '.number_format($minBasis, 2).' AED.',
+                [
+                    'code' => $coupon->code,
+                    'min_order_amount' => $min,
+                    'cart_subtotal' => $minBasis,
+                ]
+            );
         }
 
         if ($coupon->usage_limit !== null && $coupon->usage_limit > 0) {
             if ($coupon->paidOrdersCount() >= $coupon->usage_limit) {
-                return 'This coupon has reached its maximum number of uses.';
+                return $this->eligibilityError('This coupon has reached its maximum number of uses.');
             }
         }
 
         if ($userId !== null && $coupon->usage_limit_per_user !== null && $coupon->usage_limit_per_user > 0) {
             if ($coupon->paidOrdersCountForUser($userId) >= $coupon->usage_limit_per_user) {
-                return 'You have already used this coupon the maximum number of times.';
+                return $this->eligibilityError('You have already used this coupon the maximum number of times.');
             }
         }
 
         $scopeErr = $this->validateCatalogScope($coupon, $cartCategoryIds, $cartCatalog, $cartServiceIds);
         if ($scopeErr !== null) {
-            return $scopeErr;
+            return $this->eligibilityError($scopeErr);
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $details
+     * @return array{message: string, details: array<string, mixed>}
+     */
+    private function eligibilityError(string $message, array $details = []): array
+    {
+        return ['message' => $message, 'details' => $details];
     }
 
     /**
@@ -358,8 +378,9 @@ final class ShopCouponService
         }
 
         $min = (float) ($coupon->min_order_amount ?? 0);
-        if (round(max(0, $subtotal), 2) + 0.0001 < $min) {
-            return 'Minimum order is '.number_format($min, 0).' AED.';
+        $minBasis = round(max(0, $subtotal), 2);
+        if ($min > 0 && $minBasis + 0.0001 < $min) {
+            return 'Minimum order is '.number_format($min, 0).' AED. Your cart subtotal is '.number_format($minBasis, 2).' AED.';
         }
 
         if ($coupon->usage_limit !== null && $coupon->usage_limit > 0) {

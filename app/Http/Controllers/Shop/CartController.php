@@ -428,6 +428,63 @@ class CartController extends Controller
     }
 
     /**
+     * Checkout amounts for coupons: use the server cart when the user has cart lines so
+     * min-order checks match GET /cart and order-summary.
+     *
+     * @param  array<string, mixed>  $cartPreview
+     * @return array{
+     *   subtotal: float,
+     *   catalog_discount: float,
+     *   cart_category_ids: array<int>,
+     *   cart_service_ids: array<int>,
+     *   cart_catalog: string
+     * }
+     */
+    public static function resolveCheckoutAmountsFromRequest(Request $request, array $cartPreview): array
+    {
+        $items = $cartPreview['items'] ?? collect();
+        $hasServerCart = $items instanceof \Illuminate\Support\Collection
+            ? $items->isNotEmpty()
+            : (is_countable($items) && count($items) > 0);
+
+        if ($hasServerCart && ! $request->filled('product_id')) {
+            return [
+                'subtotal' => round((float) ($cartPreview['subtotal'] ?? 0), 2),
+                'catalog_discount' => round((float) ($cartPreview['catalog_discount'] ?? 0), 2),
+                'cart_category_ids' => array_map('intval', (array) ($cartPreview['cart_category_ids'] ?? [])),
+                'cart_service_ids' => array_map('intval', (array) ($cartPreview['cart_service_ids'] ?? [])),
+                'cart_catalog' => (string) ($cartPreview['cart_catalog'] ?? Coupon::SCOPE_BOTH),
+            ];
+        }
+
+        $subtotal = $request->filled('subtotal')
+            ? round((float) $request->input('subtotal'), 2)
+            : round((float) ($cartPreview['subtotal'] ?? 0), 2);
+        $catalogDiscount = $request->filled('catalog_discount')
+            ? round((float) $request->input('catalog_discount'), 2)
+            : round((float) ($cartPreview['catalog_discount'] ?? 0), 2);
+
+        $cartCategoryIds = $request->input('cart_category_ids', $cartPreview['cart_category_ids'] ?? []);
+        if (is_string($cartCategoryIds)) {
+            $decoded = json_decode($cartCategoryIds, true);
+            $cartCategoryIds = is_array($decoded) ? $decoded : [];
+        }
+        $cartServiceIds = $request->input('cart_service_ids', $cartPreview['cart_service_ids'] ?? []);
+        if (is_string($cartServiceIds)) {
+            $decoded = json_decode($cartServiceIds, true);
+            $cartServiceIds = is_array($decoded) ? $decoded : [];
+        }
+
+        return [
+            'subtotal' => $subtotal,
+            'catalog_discount' => $catalogDiscount,
+            'cart_category_ids' => array_map('intval', (array) $cartCategoryIds),
+            'cart_service_ids' => array_map('intval', (array) $cartServiceIds),
+            'cart_catalog' => (string) $request->input('cart_catalog', $cartPreview['cart_catalog'] ?? Coupon::SCOPE_BOTH),
+        ];
+    }
+
+    /**
      * Cart / order-summary / checkout totals with optional coupon_code (query or JSON body).
      *
      * @return array{
@@ -437,29 +494,19 @@ class CartController extends Controller
      *   coupon_code: ?string,
      *   coupon_merchandise_discount: float,
      *   coupon_shipping_discount: float,
-     *   error: ?string
+     *   error: ?string,
+     *   error_details: array<string, mixed>
      * }
      */
     public static function checkoutTotalsForRequest(Request $request, User $user): array
     {
         $cartPreview = self::checkoutPreview($request, $user->id);
-        $subtotal = $request->filled('subtotal')
-            ? round((float) $request->input('subtotal'), 2)
-            : round((float) $cartPreview['subtotal'], 2);
-        $catalogDiscount = round((float) ($request->input('catalog_discount', $cartPreview['catalog_discount'] ?? 0)), 2);
-        $cartCategoryIds = $request->input('cart_category_ids', $cartPreview['cart_category_ids'] ?? []);
-        if (is_string($cartCategoryIds)) {
-            $decoded = json_decode($cartCategoryIds, true);
-            $cartCategoryIds = is_array($decoded) ? $decoded : [];
-        }
-        $cartCategoryIds = array_map('intval', (array) $cartCategoryIds);
-        $cartCatalog = $request->input('cart_catalog', $cartPreview['cart_catalog'] ?? Coupon::SCOPE_BOTH);
-        $cartServiceIds = $request->input('cart_service_ids', $cartPreview['cart_service_ids'] ?? []);
-        if (is_string($cartServiceIds)) {
-            $decoded = json_decode($cartServiceIds, true);
-            $cartServiceIds = is_array($decoded) ? $decoded : [];
-        }
-        $cartServiceIds = array_map('intval', (array) $cartServiceIds);
+        $amounts = self::resolveCheckoutAmountsFromRequest($request, $cartPreview);
+        $subtotal = $amounts['subtotal'];
+        $catalogDiscount = $amounts['catalog_discount'];
+        $cartCategoryIds = $amounts['cart_category_ids'];
+        $cartServiceIds = $amounts['cart_service_ids'];
+        $cartCatalog = $amounts['cart_catalog'];
         $code = trim((string) ($request->input('coupon_code', $request->query('coupon_code', ''))));
 
         if ($code === '') {
@@ -474,6 +521,20 @@ class CartController extends Controller
                 'coupon_merchandise_discount' => 0.0,
                 'coupon_shipping_discount' => 0.0,
                 'error' => null,
+                'error_details' => [],
+            ];
+        }
+
+        if ($subtotal < 0.01 && ! $request->filled('product_id')) {
+            return [
+                'cart_preview' => $cartPreview,
+                'order_summary' => [],
+                'coupon_id' => null,
+                'coupon_code' => null,
+                'coupon_merchandise_discount' => 0.0,
+                'coupon_shipping_discount' => 0.0,
+                'error' => 'Your cart is empty. Add items before applying a coupon.',
+                'error_details' => ['subtotal' => 0.0],
             ];
         }
 
@@ -489,6 +550,7 @@ class CartController extends Controller
                 'coupon_merchandise_discount' => 0.0,
                 'coupon_shipping_discount' => 0.0,
                 'error' => $r['message'] ?? 'Invalid coupon.',
+                'error_details' => is_array($r['error_details'] ?? null) ? $r['error_details'] : [],
             ];
         }
 
@@ -508,6 +570,7 @@ class CartController extends Controller
             'coupon_merchandise_discount' => $couponDiscount,
             'coupon_shipping_discount' => $shipDisc,
             'error' => null,
+            'error_details' => [],
         ];
     }
 

@@ -66,35 +66,15 @@ class ShopCouponController extends Controller
 
         $user = $request->user();
         $preview = CartController::checkoutPreview($request, $user->id);
-
-        $subtotal = $request->filled('subtotal')
-            ? (float) $request->input('subtotal')
-            : (float) $preview['subtotal'];
-
-        $catalogDiscount = $request->filled('catalog_discount')
-            ? (float) $request->input('catalog_discount')
-            : (float) ($preview['catalog_discount'] ?? 0);
-
-        $cartCategoryIds = $request->input('cart_category_ids', $preview['cart_category_ids'] ?? []);
-        if (is_string($cartCategoryIds)) {
-            $decoded = json_decode($cartCategoryIds, true);
-            $cartCategoryIds = is_array($decoded) ? $decoded : [];
-        }
-
-        $cartCatalog = $request->input('cart_catalog', $preview['cart_catalog'] ?? 'both');
-        $cartServiceIds = $request->input('cart_service_ids', $preview['cart_service_ids'] ?? []);
-        if (is_string($cartServiceIds)) {
-            $decoded = json_decode($cartServiceIds, true);
-            $cartServiceIds = is_array($decoded) ? $decoded : [];
-        }
+        $amounts = CartController::resolveCheckoutAmountsFromRequest($request, $preview);
 
         $lists = $coupons->listForCheckout(
-            $subtotal,
-            $catalogDiscount,
+            $amounts['subtotal'],
+            $amounts['catalog_discount'],
             (int) $user->id,
-            array_map('intval', (array) $cartCategoryIds),
-            (string) $cartCatalog,
-            array_map('intval', (array) $cartServiceIds)
+            $amounts['cart_category_ids'],
+            $amounts['cart_catalog'],
+            $amounts['cart_service_ids']
         );
 
         return ApiResponse::success('Checkout offers loaded.', $lists);
@@ -121,40 +101,30 @@ class ShopCouponController extends Controller
 
         $user = $request->user();
         $preview = CartController::checkoutPreview($request, $user->id);
+        $amounts = CartController::resolveCheckoutAmountsFromRequest($request, $preview);
 
-        $subtotal = $request->filled('subtotal')
-            ? (float) $request->input('subtotal')
-            : (float) $preview['subtotal'];
-
-        $catalogDiscount = $request->filled('catalog_discount')
-            ? (float) $request->input('catalog_discount')
-            : (float) ($preview['catalog_discount'] ?? 0);
-
-        $cartCategoryIds = $request->input('cart_category_ids', $preview['cart_category_ids'] ?? []);
-        if (is_string($cartCategoryIds)) {
-            $decoded = json_decode($cartCategoryIds, true);
-            $cartCategoryIds = is_array($decoded) ? $decoded : [];
-        }
-
-        $cartCatalog = $request->input('cart_catalog', $preview['cart_catalog'] ?? 'both');
-        $cartServiceIds = $request->input('cart_service_ids', $preview['cart_service_ids'] ?? []);
-        if (is_string($cartServiceIds)) {
-            $decoded = json_decode($cartServiceIds, true);
-            $cartServiceIds = is_array($decoded) ? $decoded : [];
+        if ($amounts['subtotal'] < 0.01 && ! $request->filled('product_id')) {
+            return ApiResponse::error('Your cart is empty. Add items before applying a coupon.', 422, [
+                'subtotal' => 0.0,
+            ]);
         }
 
         $result = $coupons->preview(
             (string) $request->input('code'),
-            $subtotal,
-            $catalogDiscount,
+            $amounts['subtotal'],
+            $amounts['catalog_discount'],
             (int) $user->id,
-            array_map('intval', (array) $cartCategoryIds),
-            (string) $cartCatalog,
-            array_map('intval', (array) $cartServiceIds)
+            $amounts['cart_category_ids'],
+            $amounts['cart_catalog'],
+            $amounts['cart_service_ids']
         );
 
         if (! ($result['ok'] ?? false)) {
-            return ApiResponse::error($result['message'] ?? 'Invalid coupon.', 422);
+            return ApiResponse::error(
+                $result['message'] ?? 'Invalid coupon.',
+                422,
+                is_array($result['error_details'] ?? null) ? $result['error_details'] : []
+            );
         }
 
         $orderSummary = $result['order_summary'] ?? [];
@@ -207,7 +177,11 @@ class ShopCouponController extends Controller
         $user = $request->user();
         $pack = CartController::checkoutTotalsForRequest($request, $user);
         if ($pack['error'] !== null) {
-            return ApiResponse::error($pack['error'], 422);
+            return ApiResponse::error(
+                $pack['error'],
+                422,
+                is_array($pack['error_details'] ?? null) ? $pack['error_details'] : []
+            );
         }
         $orderSummary = $pack['order_summary'];
         $orderSummary = CartController::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);

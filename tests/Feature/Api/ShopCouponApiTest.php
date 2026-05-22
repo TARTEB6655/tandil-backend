@@ -137,7 +137,7 @@ class ShopCouponApiTest extends TestCase
             'catalog_discount' => 0,
         ], $this->clientHeaders($client))
             ->assertStatus(422)
-            ->assertJsonFragment(['message' => 'Minimum order is 50 AED.']);
+            ->assertJsonFragment(['message' => 'Minimum order is 50 AED. Your cart subtotal is 45.00 AED.']);
     }
 
     public function test_inactive_coupon_returns_422(): void
@@ -416,7 +416,7 @@ class ShopCouponApiTest extends TestCase
             ->assertJsonPath('data.available_for_order.0.applies_to_label', 'All products')
             ->assertJsonFragment([
                 'code' => 'SAVE10',
-                'ineligible_reason' => 'Minimum order is 50 AED.',
+                'ineligible_reason' => 'Minimum order is 50 AED. Your cart subtotal is 26.10 AED.',
             ])
             ->assertJsonFragment([
                 'code' => 'CAT10',
