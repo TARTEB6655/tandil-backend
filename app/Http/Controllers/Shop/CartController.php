@@ -541,19 +541,63 @@ class CartController extends Controller
             ];
         }
 
+        return self::checkoutPackWithOptionalCoupon(
+            $cartPreview,
+            $subtotal,
+            $catalogDiscount,
+            $cartCategoryIds,
+            $cartCatalog,
+            $cartServiceIds,
+            $code,
+            (int) $user->id
+        );
+    }
+
+    /**
+     * Checkout totals: coupon is optional — invalid/inactive codes are ignored (order still proceeds).
+     * Use POST /api/shop/coupons/apply for strict validation when the user taps Apply.
+     *
+     * @param  array<int>  $cartCategoryIds
+     * @param  array<int>  $cartServiceIds
+     * @return array{
+     *   cart_preview: array<string, mixed>,
+     *   order_summary: array<string, mixed>,
+     *   coupon_id: ?int,
+     *   coupon_code: ?string,
+     *   coupon_merchandise_discount: float,
+     *   coupon_shipping_discount: float,
+     *   error: ?string,
+     *   error_details: array<string, mixed>
+     * }
+     */
+    public static function checkoutPackWithOptionalCoupon(
+        array $cartPreview,
+        float $subtotal,
+        float $catalogDiscount,
+        array $cartCategoryIds,
+        string $cartCatalog,
+        array $cartServiceIds,
+        string $code,
+        int $userId
+    ): array {
         /** @var ShopCouponService $svc */
         $svc = app(ShopCouponService::class);
-        $r = $svc->preview($code, $subtotal, $catalogDiscount, (int) $user->id, $cartCategoryIds, (string) $cartCatalog, $cartServiceIds);
+        $r = $svc->preview($code, $subtotal, $catalogDiscount, $userId, $cartCategoryIds, $cartCatalog, $cartServiceIds);
+
         if (! ($r['ok'] ?? false)) {
+            $summary = self::buildOrderSummaryWithCoupon($subtotal, $catalogDiscount, 0, false);
+            self::normalizeOrderSummaryNumericTypes($summary);
+            unset($summary['coupon_code']);
+
             return [
                 'cart_preview' => $cartPreview,
-                'order_summary' => [],
+                'order_summary' => $summary,
                 'coupon_id' => null,
                 'coupon_code' => null,
                 'coupon_merchandise_discount' => 0.0,
                 'coupon_shipping_discount' => 0.0,
-                'error' => $r['message'] ?? 'Invalid coupon.',
-                'error_details' => is_array($r['error_details'] ?? null) ? $r['error_details'] : [],
+                'error' => null,
+                'error_details' => [],
             ];
         }
 

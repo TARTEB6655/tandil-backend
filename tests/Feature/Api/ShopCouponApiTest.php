@@ -160,8 +160,53 @@ class ShopCouponApiTest extends TestCase
             'catalog_scope' => 'products',
         ]);
 
-        $this->postJson('/api/shop/coupons/validate', ['code' => 'EXPIRED'], $this->clientHeaders($client))
-            ->assertStatus(422);
+        $this->postJson('/api/shop/coupons/validate', [
+            'code' => 'EXPIRED',
+            'subtotal' => 100,
+            'catalog_discount' => 0,
+        ], $this->clientHeaders($client))
+            ->assertStatus(422)
+            ->assertJsonFragment(['message' => 'This coupon is not active.']);
+    }
+
+    public function test_order_summary_ignores_invalid_coupon_checkout_still_works(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'EXPIRED',
+            'title' => 'Off',
+            'discount_type' => 'percentage',
+            'discount_value' => 5,
+            'min_order_amount' => 0,
+            'is_active' => false,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 100,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'type' => 'physical',
+        ]);
+
+        $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], $this->clientHeaders($client))->assertStatus(201);
+
+        $this->getJson('/api/shop/order-summary?coupon_code=EXPIRED', $this->clientHeaders($client))
+            ->assertOk()
+            ->assertJsonPath('data.coupon_code', null)
+            ->assertJsonPath('data.coupon_discount', 0);
     }
 
     public function test_admin_can_create_coupon_json(): void

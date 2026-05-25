@@ -101,26 +101,21 @@ class ShopStripeMobilePaymentService
         $couponShipDisc = 0.0;
 
         if ($couponCodeInput !== '') {
-            $couponSvc = app(ShopCouponService::class);
-            $couponPreview = $couponSvc->preview(
-                $couponCodeInput,
+            $pack = CartController::checkoutPackWithOptionalCoupon(
+                $preview,
                 (float) $preview['subtotal'],
                 (float) ($preview['catalog_discount'] ?? 0),
-                (int) $user->id,
                 (array) ($preview['cart_category_ids'] ?? []),
                 (string) ($preview['cart_catalog'] ?? 'both'),
-                (array) ($preview['cart_service_ids'] ?? [])
+                (array) ($preview['cart_service_ids'] ?? []),
+                $couponCodeInput,
+                (int) $user->id
             );
-            if (! ($couponPreview['ok'] ?? false)) {
-                return $this->err($couponPreview['message'] ?? 'Invalid coupon.', 422);
-            }
-            $summary = $couponPreview['order_summary'];
-            $couponId = $couponPreview['coupon_id'] ?? null;
-            $couponCodeStored = $couponPreview['code'] ?? null;
-            $couponMerchDisc = (float) ($couponPreview['coupon_discount'] ?? 0);
-            $couponShipDisc = (bool) ($couponPreview['free_shipping'] ?? false)
-                ? (float) ($summary['shipping_discount'] ?? CartController::getEffectiveShippingAmount())
-                : 0.0;
+            $summary = $pack['order_summary'];
+            $couponId = $pack['coupon_id'];
+            $couponCodeStored = $pack['coupon_code'];
+            $couponMerchDisc = (float) $pack['coupon_merchandise_discount'];
+            $couponShipDisc = (float) $pack['coupon_shipping_discount'];
         } else {
             $catalogDisc = (float) ($preview['catalog_discount'] ?? 0);
             $summary = $catalogDisc > 0
