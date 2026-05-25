@@ -65,10 +65,16 @@ class ShopStripeMobilePaymentService
             return $this->err('product_id is required when is_buy_now is true.', 422);
         }
 
-        $previewRequest = Request::create($request->url(), 'GET', $isBuyNow ? [
-            'product_id' => $request->input('product_id'),
-            'quantity' => $request->input('quantity', $request->input('qty', 1)),
-        ] : []);
+        // Product Details "Buy Now" often sends product_id + quantity without is_buy_now — must not use stale cart qty 1.
+        $previewQuery = [];
+        if ($request->filled('product_id')) {
+            $previewQuery = [
+                'product_id' => $request->input('product_id'),
+                'quantity' => $request->input('quantity', $request->input('qty', 1)),
+            ];
+        }
+
+        $previewRequest = Request::create($request->url(), 'GET', $previewQuery);
 
         $preview = CartController::checkoutPreview($previewRequest, $user->id);
         if ($preview['items']->isEmpty()) {
@@ -428,6 +434,12 @@ class ShopStripeMobilePaymentService
             'special_instructions' => $specialInstructions,
         ]);
 
+        $previewQty = 0;
+        $firstLine = $preview['items']->first();
+        if ($firstLine !== null) {
+            $previewQty = (int) $firstLine->quantity;
+        }
+
         $data = [
             'client_secret' => $clientSecret,
             'payment_intent_id' => $piId,
@@ -437,6 +449,9 @@ class ShopStripeMobilePaymentService
             'order_total' => $total,
             'amount_due' => $cardTotal,
             'wallet_amount_applied' => $walletApplied,
+            'preview_subtotal' => (float) $preview['subtotal'],
+            'preview_quantity' => $previewQty,
+            'checkout_source' => $request->filled('product_id') ? 'product_buy_now' : ($isBuyNow ? 'buy_now' : 'cart'),
         ];
 
         return [

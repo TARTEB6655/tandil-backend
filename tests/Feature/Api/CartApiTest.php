@@ -344,6 +344,29 @@ class CartApiTest extends TestCase
         $this->assertSame(650.0, (float) $response->json('data.order_summary.subtotal'));
     }
 
+    public function test_buy_now_summary_uses_product_id_and_quantity_over_cart(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 25,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 2,
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $this->assertSame(50.0, (float) $response->json('data.order_summary.subtotal'));
+    }
+
     public function test_buy_now_summary_ignores_product_specific_payload_and_uses_cart(): void
     {
         $category = Category::factory()->create();

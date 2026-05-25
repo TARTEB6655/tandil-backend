@@ -408,6 +408,9 @@ class CartController extends Controller
     public function buyNowSummary(Request $request)
     {
         $request->validate([
+            'product_id' => 'sometimes|exists:products,id',
+            'quantity' => 'sometimes|integer|min:1',
+            'qty' => 'sometimes|integer|min:1',
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'sometimes|numeric|min:0',
             'coupon_code' => 'sometimes|string|max:64',

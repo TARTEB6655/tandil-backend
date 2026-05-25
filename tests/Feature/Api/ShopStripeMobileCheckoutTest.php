@@ -292,4 +292,60 @@ class ShopStripeMobileCheckoutTest extends TestCase
                 && ($form['metadata[ship_country_iso]'] ?? null) === 'AE';
         });
     }
+
+    public function test_payment_intent_uses_product_quantity_when_cart_has_different_qty(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 25,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            $url = $request->url();
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_test_qty'], 200);
+            }
+            if (str_contains($url, 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_test_qty',
+                    'client_secret' => 'pi_test_qty_secret',
+                    'status' => 'requires_payment_method',
+                    'amount' => (int) ($request->data()['amount'] ?? 0),
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected']], 500);
+        });
+
+        $response = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'shipping' => $this->shippingPayload(),
+        ], $this->authHeaders($user));
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.preview_subtotal', 50);
+        $response->assertJsonPath('data.preview_quantity', 2);
+        $response->assertJsonPath('data.checkout_source', 'product_buy_now');
+        // 50 - 0 coupon + 10 ship + 5% tax on 50 = 62.5
+        $response->assertJsonPath('data.order_total', 62.5);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), 'payment_intents')
+                && (int) ($request->data()['amount'] ?? 0) === 6250;
+        });
+    }
 }

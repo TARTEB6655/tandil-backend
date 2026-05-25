@@ -59,6 +59,8 @@ class ShopSettingsController extends Controller
             'shipping_amount' => (float) ($shipping !== null && $shipping !== '' ? $shipping : config('shop.shipping_amount', 0)),
             'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),
             'currency' => config('shop.currency', 'AED'),
+            // Store checkout has no backend minimum-order gate (enforce in app only if needed).
+            'minimum_order_amount' => 0.0,
         ];
     }
 }
