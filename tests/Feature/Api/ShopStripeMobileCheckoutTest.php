@@ -4,8 +4,10 @@ namespace Tests\Feature\Api;
 
 use App\Models\Cart;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Models\ShopMobileCheckout;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -346,6 +348,86 @@ class ShopStripeMobileCheckoutTest extends TestCase
             return $request->method() === 'POST'
                 && str_contains($request->url(), 'payment_intents')
                 && (int) ($request->data()['amount'] ?? 0) === 6250;
+        });
+    }
+
+    public function test_payment_intent_does_not_inherit_coupon_from_old_pending_checkout(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 820,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $coupon = Coupon::create([
+            'code' => 'FLAT20',
+            'title' => '20 off',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 20,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        ShopMobileCheckout::create([
+            'user_id' => $user->id,
+            'checkout_ref' => '01OLDPENDINGTEST',
+            'fingerprint' => 'old-coupon-fp',
+            'coupon_id' => $coupon->id,
+            'coupon_code' => 'FLAT20',
+            'coupon_merchandise_discount' => 20,
+            'coupon_shipping_discount' => 0,
+            'source' => 'cart',
+            'currency' => 'aed',
+            'amount_minor' => 85000,
+            'lines_json' => [['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 820]],
+            'shipping_json' => [],
+            'subtotal_amount' => 820,
+            'tax_amount' => 40,
+            'tax_percent' => 5,
+            'shipping_amount' => 10,
+            'total_amount' => 850,
+            'wallet_amount_applied' => 0,
+        ]);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if ($request->method() === 'POST' && str_contains($request->url(), '/v1/customers')) {
+                return Http::response(['id' => 'cus_no_inherit'], 200);
+            }
+            if (str_contains($request->url(), 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_no_inherit',
+                    'client_secret' => 'pi_no_inherit_secret',
+                    'status' => 'requires_payment_method',
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected']], 500);
+        });
+
+        $response = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+        ], $this->authHeaders($user));
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.order_total', 871);
+        $response->assertJsonPath('data.amount_due', 871);
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), 'payment_intents')
+                && (int) ($request->data()['amount'] ?? 0) === 87100;
         });
     }
 }

@@ -81,19 +81,10 @@ class ShopStripeMobilePaymentService
             return $this->err('Your cart is empty. Add items or use buy now with a product.', 422);
         }
 
+        // Coupon is opt-in only: send coupon_code on this request (or use client_secret from POST /coupons/apply).
+        // Do not inherit from an old pending checkout — that caused Stripe to charge a discounted amount
+        // while order-summary showed the full total when the user cleared the promo field.
         $couponCodeInput = trim((string) $request->input('coupon_code', ''));
-        if ($couponCodeInput === '') {
-            $inherited = ShopMobileCheckout::query()
-                ->where('user_id', $user->id)
-                ->whereNull('consumed_at')
-                ->whereNotNull('coupon_code')
-                ->where('coupon_code', '!=', '')
-                ->orderByDesc('id')
-                ->value('coupon_code');
-            if (is_string($inherited) && trim($inherited) !== '') {
-                $couponCodeInput = strtoupper(trim($inherited));
-            }
-        }
 
         $couponId = null;
         $couponCodeStored = null;

@@ -143,7 +143,7 @@ Optional (only when needed):
 2. User taps **Apply** → `POST /api/shop/coupons/apply` with `{ "code": "FLAT20" }` → bind UI to `data.order_summary`.
 3. **Stripe:** Either create PI **after** apply with `coupon_code` on `POST …/payment-intent`, **or** if PI was already created, apply returns `data.payment` — use **`data.payment.client_secret`** for Payment Sheet (amount matches discounted total).
 4. After apply, if `data.payment` is present: `initPaymentSheet({ paymentIntentClientSecret: data.payment.client_secret })` again. Confirm button shows `amount_due` (not the old PI amount).
-5. `POST …/payment-intent` without `coupon_code` still picks up the coupon from the latest pending checkout session after apply.
+5. `POST …/payment-intent` **must** include `coupon_code` when the user applied a coupon (or reuse `data.payment.client_secret` from apply). Omitting `coupon_code` always charges the **full** order total — old pending sessions are not reused.
 
 ### GET `/api/shop/order-summary?coupon_code=SAVE10`
 
