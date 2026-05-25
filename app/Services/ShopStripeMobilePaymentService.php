@@ -65,54 +65,24 @@ class ShopStripeMobilePaymentService
             return $this->err('product_id is required when is_buy_now is true.', 422);
         }
 
-        // Product Details "Buy Now" often sends product_id + quantity without is_buy_now — must not use stale cart qty 1.
-        $previewQuery = [];
-        if ($request->filled('product_id')) {
-            $previewQuery = [
-                'product_id' => $request->input('product_id'),
-                'quantity' => $request->input('quantity', $request->input('qty', 1)),
-            ];
+        // Same totals as GET /api/shop/order-summary (cart, buy-now product_id/qty, coupon_code, catalog discount).
+        $pack = CartController::checkoutTotalsForRequest($request, $user);
+        if ($pack['error'] !== null) {
+            return $this->err($pack['error'], 422);
         }
 
-        $previewRequest = Request::create($request->url(), 'GET', $previewQuery);
-
-        $preview = CartController::checkoutPreview($previewRequest, $user->id);
+        $preview = $pack['cart_preview'];
         if ($preview['items']->isEmpty()) {
             return $this->err('Your cart is empty. Add items or use buy now with a product.', 422);
         }
 
-        // Coupon is opt-in only: send coupon_code on this request (or use client_secret from POST /coupons/apply).
-        // Do not inherit from an old pending checkout — that caused Stripe to charge a discounted amount
-        // while order-summary showed the full total when the user cleared the promo field.
-        $couponCodeInput = trim((string) $request->input('coupon_code', ''));
+        $summary = CartController::mergeWalletPreviewIntoOrderSummary($pack['order_summary'], $request, $user);
+        CartController::addCheckoutUiAliases($summary);
 
-        $couponId = null;
-        $couponCodeStored = null;
-        $couponMerchDisc = 0.0;
-        $couponShipDisc = 0.0;
-
-        if ($couponCodeInput !== '') {
-            $pack = CartController::checkoutPackWithOptionalCoupon(
-                $preview,
-                (float) $preview['subtotal'],
-                (float) ($preview['catalog_discount'] ?? 0),
-                (array) ($preview['cart_category_ids'] ?? []),
-                (string) ($preview['cart_catalog'] ?? 'both'),
-                (array) ($preview['cart_service_ids'] ?? []),
-                $couponCodeInput,
-                (int) $user->id
-            );
-            $summary = $pack['order_summary'];
-            $couponId = $pack['coupon_id'];
-            $couponCodeStored = $pack['coupon_code'];
-            $couponMerchDisc = (float) $pack['coupon_merchandise_discount'];
-            $couponShipDisc = (float) $pack['coupon_shipping_discount'];
-        } else {
-            $catalogDisc = (float) ($preview['catalog_discount'] ?? 0);
-            $summary = $catalogDisc > 0
-                ? CartController::buildOrderSummaryWithCoupon((float) $preview['subtotal'], $catalogDisc, 0, false)
-                : CartController::buildOrderSummary($preview['subtotal'], 0);
-        }
+        $couponId = $pack['coupon_id'];
+        $couponCodeStored = $pack['coupon_code'];
+        $couponMerchDisc = (float) $pack['coupon_merchandise_discount'];
+        $couponShipDisc = (float) $pack['coupon_shipping_discount'];
 
         $total = (float) $summary['total'];
         $currency = strtolower((string) config('shop.currency', CartController::CURRENCY));
@@ -154,22 +124,8 @@ class ShopStripeMobilePaymentService
         }
 
         $user->refresh();
-        $walletRequested = max(0, (float) $request->input('wallet_amount', 0));
-        if ($request->boolean('use_wallet') && $walletRequested <= 0) {
-            // Match checkout/start and summary behavior: use_wallet=true implies apply max if amount omitted/0.
-            $walletRequested = (float) ($user->wallet_balance ?? 0);
-        }
-        $walletApplied = 0.0;
-        if ($walletRequested > 0) {
-            $bal = (float) ($user->wallet_balance ?? 0);
-            $walletApplied = round(min($walletRequested, $bal, $total), 2);
-        }
-        $cardTotal = max(0, round($total - $walletApplied, 2));
-        if ($currency === 'aed' && $walletApplied > 0 && $cardTotal > 0 && $cardTotal < 2.0) {
-            $shortfall = round(2.0 - $cardTotal, 2);
-            $walletApplied = max(0, round($walletApplied - $shortfall, 2));
-            $cardTotal = max(0, round($total - $walletApplied, 2));
-        }
+        $walletApplied = (float) ($summary['wallet_amount_applied'] ?? 0);
+        $cardTotal = (float) ($summary['amount_due'] ?? $summary['total']);
 
         if ($cardTotal <= 0.0001 && $walletApplied > 0.0001) {
             try {
@@ -435,6 +391,7 @@ class ShopStripeMobilePaymentService
             'order_total' => $total,
             'amount_due' => $cardTotal,
             'wallet_amount_applied' => $walletApplied,
+            'order_summary' => $summary,
             'preview_subtotal' => (float) $preview['subtotal'],
             'preview_quantity' => $previewQty,
             'checkout_source' => $request->filled('product_id') ? 'product_buy_now' : ($isBuyNow ? 'buy_now' : 'cart'),

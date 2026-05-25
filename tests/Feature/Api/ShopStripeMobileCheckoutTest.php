@@ -430,4 +430,60 @@ class ShopStripeMobileCheckoutTest extends TestCase
                 && (int) ($request->data()['amount'] ?? 0) === 87100;
         });
     }
+
+    public function test_payment_intent_order_summary_matches_order_summary_endpoint(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 100,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+        ]);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if ($request->method() === 'POST' && str_contains($request->url(), '/v1/customers')) {
+                return Http::response(['id' => 'cus_match_summary'], 200);
+            }
+            if (str_contains($request->url(), 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_match_summary',
+                    'client_secret' => 'pi_match_summary_secret',
+                    'status' => 'requires_payment_method',
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected']], 500);
+        });
+
+        $headers = $this->authHeaders($user);
+        $summary = $this->getJson('/api/shop/order-summary', $headers);
+        $summary->assertOk();
+        $expectedTotal = (float) $summary->json('data.total');
+
+        $pi = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+        ], $headers);
+
+        $pi->assertOk();
+        $this->assertSame($expectedTotal, (float) $pi->json('data.order_total'));
+        $this->assertSame($expectedTotal, (float) $pi->json('data.amount_due'));
+        $this->assertSame($expectedTotal, (float) $pi->json('data.order_summary.total'));
+        $pi->assertJsonPath('data.order_summary.subtotal', 200);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($expectedTotal): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), 'payment_intents')
+                && (int) ($request->data()['amount'] ?? 0) === (int) round($expectedTotal * 100);
+        });
+    }
 }

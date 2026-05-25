@@ -151,7 +151,9 @@ Extends summary with `coupon_discount`, `coupon_code`; `discount` = catalog disc
 
 ### POST `/api/shop/checkout/stripe/payment-intent`
 
-Body includes `coupon_code`. Stripe amount = server `total` after coupon.
+Uses the **same** server logic as `GET /api/shop/order-summary` (`checkoutTotalsForRequest` + wallet preview). Send the same query/body fields: `coupon_code`, `product_id`, `quantity`, `use_wallet`, `wallet_amount`.
+
+Response includes `order_total`, `amount_due`, and **`order_summary`** (same shape as order-summary). Stripe `amount` = `amount_due` in minor units (fils).
 
 ### Orders
 
