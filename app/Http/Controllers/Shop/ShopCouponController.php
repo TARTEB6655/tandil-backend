@@ -183,6 +183,9 @@ class ShopCouponController extends Controller
                 is_array($pack['error_details'] ?? null) ? $pack['error_details'] : []
             );
         }
+
+        CartController::rememberAppliedCheckoutCouponFromPack($request, $user, $pack['cart_preview'], $pack);
+
         $orderSummary = $pack['order_summary'];
         $orderSummary = CartController::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
         CartController::addCheckoutUiAliases($orderSummary);

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Http\Controllers\Shop\CartController;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Coupon;
@@ -10,6 +11,7 @@ use App\Models\Setting;
 use App\Models\ShopMobileCheckout;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -17,6 +19,12 @@ use Tests\TestCase;
 class ShopStripeMobileCheckoutTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Cache::flush();
+    }
 
     private function authHeaders(User $user): array
     {
@@ -66,6 +74,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 65,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -133,6 +142,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 100,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create(['user_id' => $user->id, 'product_id' => $product->id, 'quantity' => 1]);
@@ -306,6 +316,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 25,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -362,6 +373,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 820,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -485,5 +497,77 @@ class ShopStripeMobileCheckoutTest extends TestCase
                 && str_contains($request->url(), 'payment_intents')
                 && (int) ($request->data()['amount'] ?? 0) === (int) round($expectedTotal * 100);
         });
+    }
+
+    public function test_payment_intent_uses_applied_coupon_from_session_when_coupon_code_omitted(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 820,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        Coupon::create([
+            'code' => 'FLAT20',
+            'title' => '20 off',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 20,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $headers = $this->authHeaders($user);
+
+        $this->postJson('/api/shop/coupons/apply', ['code' => 'FLAT20'], $headers)->assertOk();
+
+        $summary = $this->getJson('/api/shop/order-summary', $headers);
+        $summary->assertOk();
+        $expectedTotal = (float) $summary->json('data.total');
+        $this->assertLessThan(871.0, $expectedTotal);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if ($request->method() === 'POST' && str_contains($request->url(), '/v1/customers')) {
+                return Http::response(['id' => 'cus_coupon_session'], 200);
+            }
+            if (str_contains($request->url(), 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_coupon_session',
+                    'client_secret' => 'pi_coupon_session_secret',
+                    'status' => 'requires_payment_method',
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected']], 500);
+        });
+
+        $pi = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+        ], $headers);
+
+        $pi->assertOk();
+        $this->assertSame($expectedTotal, (float) $pi->json('data.order_total'));
+        $this->assertSame($expectedTotal, (float) $pi->json('data.amount_due'));
+        $this->assertSame('FLAT20', $pi->json('data.order_summary.coupon_code'));
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($expectedTotal): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), 'payment_intents')
+                && (int) ($request->data()['amount'] ?? 0) === (int) round($expectedTotal * 100);
+        });
+
+        CartController::clearAppliedCheckoutCoupon((int) $user->id);
     }
 }

@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\ShopCouponService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CartController extends Controller
 {
@@ -510,7 +511,10 @@ class CartController extends Controller
         $cartCategoryIds = $amounts['cart_category_ids'];
         $cartServiceIds = $amounts['cart_service_ids'];
         $cartCatalog = $amounts['cart_catalog'];
-        $code = trim((string) ($request->input('coupon_code', $request->query('coupon_code', ''))));
+        $code = self::resolveCheckoutCouponCode($request, $user, $cartPreview);
+        if ($code !== '') {
+            $request->merge(['coupon_code' => $code]);
+        }
 
         if ($code === '') {
             $summary = self::buildOrderSummaryWithCoupon($subtotal, $catalogDiscount, 0, false);
@@ -541,7 +545,7 @@ class CartController extends Controller
             ];
         }
 
-        return self::checkoutPackWithOptionalCoupon(
+        $pack = self::checkoutPackWithOptionalCoupon(
             $cartPreview,
             $subtotal,
             $catalogDiscount,
@@ -551,6 +555,122 @@ class CartController extends Controller
             $code,
             (int) $user->id
         );
+        self::rememberAppliedCheckoutCouponFromPack($request, $user, $cartPreview, $pack);
+
+        return $pack;
+    }
+
+    /**
+     * Fingerprint of cart lines + subtotal so a stored coupon applies only to the same checkout basket.
+     *
+     * @param  array<string, mixed>  $cartPreview
+     */
+    public static function checkoutCartFingerprint(Request $request, array $cartPreview): string
+    {
+        $lines = [];
+        foreach ($cartPreview['items'] ?? [] as $cart) {
+            if ($cart->product === null) {
+                continue;
+            }
+            $lines[] = [
+                'product_id' => (int) $cart->product_id,
+                'quantity' => (int) $cart->quantity,
+            ];
+        }
+        usort($lines, fn (array $a, array $b): int => $a['product_id'] <=> $b['product_id']);
+
+        $payload = [
+            'lines' => $lines,
+            'subtotal' => round((float) ($cartPreview['subtotal'] ?? 0), 2),
+            'catalog_discount' => round((float) ($cartPreview['catalog_discount'] ?? 0), 2),
+        ];
+        if ($request->filled('product_id')) {
+            $payload['buy_now_product_id'] = (int) $request->input('product_id');
+            $payload['buy_now_quantity'] = self::resolveBuyNowQuantity($request);
+        }
+
+        return hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
+    }
+
+    public static function storeAppliedCheckoutCoupon(
+        int $userId,
+        string $code,
+        Request $request,
+        array $cartPreview,
+        ?int $couponId = null
+    ): void {
+        $code = strtoupper(trim($code));
+        if ($code === '') {
+            return;
+        }
+
+        Cache::put(self::checkoutCouponCacheKey($userId), [
+            'code' => $code,
+            'fingerprint' => self::checkoutCartFingerprint($request, $cartPreview),
+            'coupon_id' => $couponId,
+        ], now()->addHours(4));
+    }
+
+    public static function clearAppliedCheckoutCoupon(int $userId): void
+    {
+        Cache::forget(self::checkoutCouponCacheKey($userId));
+    }
+
+    /**
+     * Same coupon for order-summary and payment-intent: explicit coupon_code, or last successful Apply for this cart.
+     *
+     * @param  array<string, mixed>  $cartPreview
+     */
+    public static function resolveCheckoutCouponCode(Request $request, User $user, array $cartPreview): string
+    {
+        $explicit = $request->has('coupon_code') || $request->query->has('coupon_code');
+        $code = trim((string) $request->input('coupon_code', $request->query('coupon_code', '')));
+
+        if ($request->boolean('clear_coupon') || ($explicit && $code === '')) {
+            self::clearAppliedCheckoutCoupon((int) $user->id);
+
+            return '';
+        }
+
+        if ($code !== '') {
+            return strtoupper($code);
+        }
+
+        $stored = Cache::get(self::checkoutCouponCacheKey((int) $user->id));
+        if (! is_array($stored)) {
+            return '';
+        }
+
+        if (($stored['fingerprint'] ?? '') !== self::checkoutCartFingerprint($request, $cartPreview)) {
+            return '';
+        }
+
+        return strtoupper(trim((string) ($stored['code'] ?? '')));
+    }
+
+    /**
+     * @param  array<string, mixed>  $cartPreview
+     * @param  array<string, mixed>  $pack
+     */
+    public static function rememberAppliedCheckoutCouponFromPack(Request $request, User $user, array $cartPreview, array $pack): void
+    {
+        $code = $pack['coupon_code'] ?? null;
+        if (! is_string($code) || trim($code) === '') {
+            return;
+        }
+
+        self::storeAppliedCheckoutCoupon(
+            (int) $user->id,
+            $code,
+            $request,
+            $cartPreview,
+            isset($pack['coupon_id']) ? (int) $pack['coupon_id'] : null
+        );
+    }
+
+    private static function checkoutCouponCacheKey(int $userId): string
+    {
+        return 'shop_checkout_coupon:'.$userId;
     }
 
     /**

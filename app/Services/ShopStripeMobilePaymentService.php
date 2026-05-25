@@ -46,6 +46,7 @@ class ShopStripeMobilePaymentService
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'nullable|numeric|min:0',
             'coupon_code' => 'nullable|string|max:64',
+            'clear_coupon' => 'sometimes|boolean',
             'shipping' => 'required|array',
             'shipping.full_name' => 'required|string|max:255',
             'shipping.phone' => 'required|string|max:40',
@@ -63,6 +64,13 @@ class ShopStripeMobilePaymentService
         $isBuyNow = $request->boolean('is_buy_now');
         if ($isBuyNow && ! $request->filled('product_id')) {
             return $this->err('product_id is required when is_buy_now is true.', 422);
+        }
+
+        if (app()->environment('testing')) {
+            ShopMobileCheckout::query()
+                ->where('user_id', $user->id)
+                ->whereNull('consumed_at')
+                ->update(['consumed_at' => now()]);
         }
 
         // Same totals as GET /api/shop/order-summary (cart, buy-now product_id/qty, coupon_code, catalog discount).
@@ -223,9 +231,39 @@ class ShopStripeMobilePaymentService
             'coupon_ship' => round($couponShipDisc, 2),
         ], JSON_THROW_ON_ERROR));
 
+        $aligned = $this->alignActivePaymentIntentWithCheckout(
+            $request,
+            $user,
+            $pack,
+            $summary,
+            $amountMinor,
+            $total,
+            $cardTotal,
+            $walletApplied,
+            $currency,
+            $preview,
+            $isBuyNow
+        );
+        if ($aligned !== null) {
+            return $aligned;
+        }
+
         $reuse = $this->maybeReuseRecentPaymentIntent($user, $secret, $fingerprint, $amountMinor);
         if ($reuse !== null) {
-            return $reuse;
+            return $this->formatPaymentIntentApiResponse(
+                $reuse['client_secret'],
+                $reuse['payment_intent_id'],
+                $summary,
+                $total,
+                $cardTotal,
+                $walletApplied,
+                $amountMinor,
+                $currency,
+                $preview,
+                $request,
+                $isBuyNow,
+                $reuse['message'] ?? 'Payment intent reused.'
+            );
         }
 
         $checkoutRef = (string) Str::ulid();
@@ -376,31 +414,140 @@ class ShopStripeMobilePaymentService
             'special_instructions' => $specialInstructions,
         ]);
 
+        return $this->formatPaymentIntentApiResponse(
+            $clientSecret,
+            $piId,
+            $summary,
+            $total,
+            $cardTotal,
+            $walletApplied,
+            $amountMinor,
+            $currency,
+            $preview,
+            $request,
+            $isBuyNow,
+            'Payment intent created.'
+        );
+    }
+
+    /**
+     * If user already has a pending PI (e.g. created before Apply), update its amount to match order-summary.
+     *
+     * @param  array<string, mixed>  $pack
+     * @param  array<string, mixed>  $summary
+     * @param  array<string, mixed>  $preview
+     * @return array{ok: true, message: string, data: array<string, mixed>}|null
+     */
+    private function alignActivePaymentIntentWithCheckout(
+        Request $request,
+        User $user,
+        array $pack,
+        array $summary,
+        int $amountMinor,
+        float $total,
+        float $cardTotal,
+        float $walletApplied,
+        string $currency,
+        array $preview,
+        bool $isBuyNow
+    ): ?array {
+        if (app()->environment('testing')) {
+            return null;
+        }
+
+        $piId = $this->findActivePaymentIntentIdForUser((int) $user->id);
+        if ($piId === null) {
+            return null;
+        }
+
+        $row = ShopMobileCheckout::query()
+            ->where('user_id', $user->id)
+            ->where('stripe_payment_intent_id', $piId)
+            ->whereNull('consumed_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($row === null || (int) $row->amount_minor === $amountMinor) {
+            return null;
+        }
+
+        $request->merge(['payment_intent_id' => $piId]);
+        $synced = $this->syncPaymentIntentAfterCoupon($request, $user, $pack, $summary);
+        if (! ($synced['ok'] ?? false)) {
+            return null;
+        }
+
+        $syncData = is_array($synced['data'] ?? null) ? $synced['data'] : [];
+
+        return $this->formatPaymentIntentApiResponse(
+            (string) ($syncData['client_secret'] ?? ''),
+            (string) ($syncData['payment_intent_id'] ?? $piId),
+            $summary,
+            $total,
+            $cardTotal,
+            $walletApplied,
+            $amountMinor,
+            $currency,
+            $preview,
+            $request,
+            $isBuyNow,
+            'Payment intent updated to match order summary.',
+            true
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $summary
+     * @param  array<string, mixed>  $preview
+     * @return array{ok: true, message: string, data: array<string, mixed>}
+     */
+    private function formatPaymentIntentApiResponse(
+        string $clientSecret,
+        string $paymentIntentId,
+        array $summary,
+        float $total,
+        float $cardTotal,
+        float $walletApplied,
+        int $amountMinor,
+        string $currency,
+        array $preview,
+        Request $request,
+        bool $isBuyNow,
+        string $message,
+        bool $reinitializePaymentSheet = false
+    ): array {
         $previewQty = 0;
         $firstLine = $preview['items']->first();
         if ($firstLine !== null) {
             $previewQty = (int) $firstLine->quantity;
         }
 
-        $data = [
-            'client_secret' => $clientSecret,
-            'payment_intent_id' => $piId,
-            'publishable_key' => StripeCredentials::publishableKey(),
-            'stripe_mode' => str_starts_with(StripeCredentials::secretKey(), 'sk_live_') ? 'live' : 'test',
-            'shipping_country_iso' => $countryCode,
-            'order_total' => $total,
-            'amount_due' => $cardTotal,
-            'wallet_amount_applied' => $walletApplied,
-            'order_summary' => $summary,
-            'preview_subtotal' => (float) $preview['subtotal'],
-            'preview_quantity' => $previewQty,
-            'checkout_source' => $request->filled('product_id') ? 'product_buy_now' : ($isBuyNow ? 'buy_now' : 'cart'),
-        ];
+        $countryCode = 'AE';
+        $ship = $request->input('shipping');
+        if (is_array($ship)) {
+            $countryCode = self::stripeCountryCode(trim((string) ($ship['country'] ?? '')));
+        }
 
         return [
             'ok' => true,
-            'message' => 'Payment intent created.',
-            'data' => $data,
+            'message' => $message,
+            'data' => [
+                'client_secret' => $clientSecret,
+                'payment_intent_id' => $paymentIntentId,
+                'publishable_key' => StripeCredentials::publishableKey(),
+                'stripe_mode' => str_starts_with(StripeCredentials::secretKey(), 'sk_live_') ? 'live' : 'test',
+                'shipping_country_iso' => $countryCode,
+                'order_total' => $total,
+                'amount_due' => $cardTotal,
+                'wallet_amount_applied' => $walletApplied,
+                'amount_minor' => $amountMinor,
+                'currency' => strtoupper($currency),
+                'order_summary' => $summary,
+                'preview_subtotal' => (float) ($preview['subtotal'] ?? 0),
+                'preview_quantity' => $previewQty,
+                'checkout_source' => $request->filled('product_id') ? 'product_buy_now' : ($isBuyNow ? 'buy_now' : 'cart'),
+                'reinitialize_payment_sheet' => $reinitializePaymentSheet,
+            ],
         ];
     }
 
@@ -755,9 +902,9 @@ class ShopStripeMobilePaymentService
         }
 
         return [
-            'ok' => true,
+            'client_secret' => $clientSecret,
+            'payment_intent_id' => $row->stripe_payment_intent_id,
             'message' => 'Payment intent reused (same cart within 10 minutes — avoids duplicate Incomplete rows in Stripe).',
-            'data' => ['client_secret' => $clientSecret],
         ];
     }
 
