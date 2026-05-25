@@ -37,6 +37,7 @@ class ShopStripeMobilePaymentService
         }
 
         $this->mergeNormalizedShipping($request);
+        CartController::normalizeCheckoutCouponInput($request);
 
         $request->validate([
             'is_buy_now' => 'sometimes|boolean',
@@ -45,6 +46,7 @@ class ShopStripeMobilePaymentService
             'qty' => 'sometimes|integer|min:1',
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'nullable|numeric|min:0',
+            'code' => 'nullable|string|max:64',
             'coupon_code' => 'nullable|string|max:64',
             'clear_coupon' => 'sometimes|boolean',
             'shipping' => 'required|array',
@@ -242,24 +244,6 @@ class ShopStripeMobilePaymentService
         );
         if ($reconciled !== null) {
             return $reconciled;
-        }
-
-        $reuse = $this->maybeReuseRecentPaymentIntent($user, $secret, $fingerprint, $amountMinor);
-        if ($reuse !== null) {
-            return $this->formatPaymentIntentApiResponse(
-                $reuse['client_secret'],
-                $reuse['payment_intent_id'],
-                $summary,
-                $total,
-                $cardTotal,
-                $walletApplied,
-                $amountMinor,
-                $currency,
-                $preview,
-                $request,
-                $isBuyNow,
-                $reuse['message'] ?? 'Payment intent reused.'
-            );
         }
 
         $checkoutRef = (string) Str::ulid();
@@ -488,6 +472,20 @@ class ShopStripeMobilePaymentService
                 return null;
             }
 
+            $this->persistCheckoutPaymentRow(
+                $row,
+                $pack,
+                $summary,
+                $piId,
+                $clientSecret,
+                $amountMinor,
+                $total,
+                $cardTotal,
+                $walletApplied,
+                $currency,
+                false
+            );
+
             return $this->formatPaymentIntentApiResponse(
                 $clientSecret,
                 $piId,
@@ -508,11 +506,13 @@ class ShopStripeMobilePaymentService
         $request->merge(['payment_intent_id' => $piId]);
         $synced = $this->syncPaymentIntentAfterCoupon($request, $user, $pack, $summary);
         if (! ($synced['ok'] ?? false)) {
-            Log::warning('Could not reconcile Stripe PI with order summary; will create a new payment intent.', [
+            Log::warning('Could not reconcile Stripe PI with order summary; canceling stale PI.', [
                 'user_id' => $user->id,
                 'pi' => $piId,
                 'amount_minor' => $amountMinor,
             ]);
+            $this->cancelStripePaymentIntent($secret, $piId);
+            $row->delete();
 
             return null;
         }
@@ -1314,6 +1314,18 @@ class ShopStripeMobilePaymentService
         }
 
         return (int) ($resp->json('amount') ?? -1) === $amountMinor;
+    }
+
+    private function cancelStripePaymentIntent(string $secret, string $piId): void
+    {
+        if ($piId === '' || ! str_starts_with($piId, 'pi_')) {
+            return;
+        }
+
+        Http::withToken($secret)->asForm()->post(
+            'https://api.stripe.com/v1/payment_intents/'.$piId.'/cancel',
+            []
+        );
     }
 
     /**

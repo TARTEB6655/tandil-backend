@@ -178,6 +178,51 @@ class CheckoutStripeTotalsSmokeTest extends TestCase
         $this->assertSame('FLAT20', $pi->json('data.order_summary.coupon_code'));
     }
 
+    public function test_payment_intent_accepts_code_alias_same_as_coupon_code_on_order_summary(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $this->seedCart($user, 820);
+        $headers = $this->headers($user);
+
+        Coupon::create([
+            'code' => 'FLAT20',
+            'title' => '20 off',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 20,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $summary = $this->getJson('/api/shop/order-summary?coupon_code=FLAT20', $headers);
+        $summary->assertOk();
+        $expectedTotal = (float) $summary->json('data.total');
+        $this->assertSame(850.0, $expectedTotal);
+
+        $this->fakeStripe(85000);
+        $pi = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shipping(),
+            'code' => 'FLAT20',
+        ], $headers);
+
+        $pi->assertOk();
+        $this->assertSame($expectedTotal, (float) $pi->json('data.order_total'));
+        $this->assertSame($expectedTotal, (float) $pi->json('data.order_summary.total'));
+        $this->assertSame('FLAT20', $pi->json('data.order_summary.coupon_code'));
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), 'payment_intents')
+                && ! str_contains($request->url(), 'pi_smoke_test/')
+                && (int) ($request->data()['amount'] ?? 0) === 85000;
+        });
+    }
+
     public function test_order_summary_without_coupon_param_is_full_price_not_remembered_apply(): void
     {
         Setting::set('shop_tax_percent', '5');

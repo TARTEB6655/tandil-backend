@@ -504,8 +504,29 @@ class CartController extends Controller
      *   error_details: array<string, mixed>
      * }
      */
+    /**
+     * Mobile apps often send `code` (same as coupons/apply) while order-summary may use coupon_code.
+     */
+    public static function normalizeCheckoutCouponInput(Request $request): void
+    {
+        if ($request->filled('coupon_code')) {
+            return;
+        }
+
+        foreach (['code', 'promo_code', 'promoCode', 'couponCode'] as $key) {
+            $raw = $request->input($key, $request->query($key));
+            if (is_string($raw) && trim($raw) !== '') {
+                $request->merge(['coupon_code' => trim($raw)]);
+
+                return;
+            }
+        }
+    }
+
     public static function checkoutTotalsForRequest(Request $request, User $user): array
     {
+        self::normalizeCheckoutCouponInput($request);
+
         $cartPreview = self::checkoutPreview($request, $user->id);
         $amounts = self::resolveCheckoutAmountsFromRequest($request, $cartPreview);
         $subtotal = $amounts['subtotal'];
