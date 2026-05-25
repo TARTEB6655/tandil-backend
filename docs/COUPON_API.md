@@ -143,7 +143,7 @@ Optional (only when needed):
 2. User taps **Apply** → `POST /api/shop/coupons/apply` with `{ "code": "FLAT20" }` → bind UI to `data.order_summary`.
 3. **Stripe:** Either create PI **after** apply with `coupon_code` on `POST …/payment-intent`, **or** if PI was already created, apply returns `data.payment` — use **`data.payment.client_secret`** for Payment Sheet (amount matches discounted total).
 4. After apply, if `data.payment` is present: `initPaymentSheet({ paymentIntentClientSecret: data.payment.client_secret })` again. Confirm button shows `amount_due` (not the old PI amount).
-5. After **Apply**, the coupon is stored in the database (`shop_applied_checkout_coupons`) for this cart fingerprint (plus cache). `order-summary` and `payment-intent` both use it even if the app omits `coupon_code`. Send `clear_coupon: true` to remove. If a PaymentIntent was created **before** Apply, the next `payment-intent` call updates Stripe to the discounted `amount_due` and returns `reinitialize_payment_sheet: true` when the amount changed.
+5. After **Apply**, bind the UI to `data.order_summary` and pass the same `coupon_code` on `GET order-summary` and `POST payment-intent` (or use `data.payment.client_secret` from apply). If `coupon_code` is **omitted**, totals are **without** coupon (e.g. 871 AED). Send `clear_coupon: true` or `coupon_code=` to remove an applied code. Stored apply session is cleared when the user sends an empty `coupon_code`.
 
 ### GET `/api/shop/order-summary?coupon_code=SAVE10`
 

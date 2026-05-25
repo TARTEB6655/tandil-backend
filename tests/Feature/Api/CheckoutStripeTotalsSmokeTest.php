@@ -132,7 +132,7 @@ class CheckoutStripeTotalsSmokeTest extends TestCase
         });
     }
 
-    public function test_smoke_with_coupon_apply_payment_intent_matches_order_summary_without_coupon_param(): void
+    public function test_smoke_with_coupon_apply_requires_coupon_code_on_summary_and_payment_intent(): void
     {
         Config::set('services.stripe.secret', 'sk_test_dummy');
         Setting::set('shop_tax_percent', '5');
@@ -156,28 +156,55 @@ class CheckoutStripeTotalsSmokeTest extends TestCase
 
         $this->postJson('/api/shop/coupons/apply', ['code' => 'FLAT20'], $headers)->assertOk();
 
-        $this->assertDatabaseHas('shop_applied_checkout_coupons', [
-            'user_id' => $user->id,
-            'coupon_code' => 'FLAT20',
-        ]);
+        $without = $this->getJson('/api/shop/order-summary', $headers);
+        $without->assertOk();
+        $this->assertSame(871.0, (float) $without->json('data.total'));
+        $this->assertNull($without->json('data.coupon_code'));
 
-        $summary = $this->getJson('/api/shop/order-summary', $headers);
+        $summary = $this->getJson('/api/shop/order-summary?coupon_code=FLAT20', $headers);
         $summary->assertOk();
         $expectedTotal = (float) $summary->json('data.total');
         $this->assertSame('FLAT20', $summary->json('data.coupon_code'));
-        $this->assertLessThan(871.0, $expectedTotal);
+        $this->assertSame(850.0, $expectedTotal);
 
-        $this->fakeStripe((int) round($expectedTotal * 100));
+        $this->fakeStripe(85000);
         $pi = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
             'shipping' => $this->shipping(),
+            'coupon_code' => 'FLAT20',
         ], $headers);
 
         $pi->assertOk();
         $this->assertSame($expectedTotal, (float) $pi->json('data.order_total'));
-        $this->assertSame($expectedTotal, (float) $pi->json('data.amount_due'));
-        $this->assertSame($expectedTotal, (float) $pi->json('data.order_summary.total'));
         $this->assertSame('FLAT20', $pi->json('data.order_summary.coupon_code'));
-        $this->assertTrue((bool) $pi->json('data.reinitialize_payment_sheet') === false || (bool) $pi->json('data.reinitialize_payment_sheet') === true);
+    }
+
+    public function test_order_summary_without_coupon_param_is_full_price_not_remembered_apply(): void
+    {
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $this->seedCart($user, 820);
+
+        Coupon::create([
+            'code' => 'FLAT20',
+            'title' => '20 off',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => 20,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $headers = $this->headers($user);
+        $this->postJson('/api/shop/coupons/apply', ['code' => 'FLAT20'], $headers)->assertOk();
+
+        $this->getJson('/api/shop/order-summary', $headers)
+            ->assertOk()
+            ->assertJsonPath('data.total', 871)
+            ->assertJsonPath('data.coupon_code', null)
+            ->assertJsonPath('data.tax', 41);
     }
 
     public function test_smoke_pi_created_before_apply_is_reconciled_to_discounted_total(): void
@@ -246,17 +273,18 @@ class CheckoutStripeTotalsSmokeTest extends TestCase
 
         $this->postJson('/api/shop/coupons/apply', ['code' => 'FLAT20'], $headers)->assertOk();
 
-        $summary = $this->getJson('/api/shop/order-summary', $headers);
+        $summary = $this->getJson('/api/shop/order-summary?coupon_code=FLAT20', $headers);
         $discounted = (float) $summary->json('data.total');
+        $this->assertSame(850.0, $discounted);
 
         $after = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
             'shipping' => $this->shipping(),
+            'coupon_code' => 'FLAT20',
         ], $headers);
 
         $after->assertOk();
         $this->assertSame($discounted, (float) $after->json('data.order_total'));
         $this->assertSame($discounted, (float) $after->json('data.amount_due'));
-        $this->assertLessThan(871.0, $discounted);
         Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($discounted): bool {
             return $request->method() === 'POST'
                 && str_contains($request->url(), 'payment_intents/pi_before_apply')

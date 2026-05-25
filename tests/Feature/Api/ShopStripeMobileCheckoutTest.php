@@ -499,7 +499,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
         });
     }
 
-    public function test_payment_intent_uses_applied_coupon_from_session_when_coupon_code_omitted(): void
+    public function test_payment_intent_without_coupon_code_charges_full_total_after_prior_apply(): void
     {
         Config::set('services.stripe.secret', 'sk_test_dummy');
         Setting::set('shop_tax_percent', '5');
@@ -510,6 +510,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 820,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         Cart::create([
@@ -530,22 +531,16 @@ class ShopStripeMobileCheckoutTest extends TestCase
         ]);
 
         $headers = $this->authHeaders($user);
-
         $this->postJson('/api/shop/coupons/apply', ['code' => 'FLAT20'], $headers)->assertOk();
-
-        $summary = $this->getJson('/api/shop/order-summary', $headers);
-        $summary->assertOk();
-        $expectedTotal = (float) $summary->json('data.total');
-        $this->assertLessThan(871.0, $expectedTotal);
 
         Http::fake(function (\Illuminate\Http\Client\Request $request) {
             if ($request->method() === 'POST' && str_contains($request->url(), '/v1/customers')) {
-                return Http::response(['id' => 'cus_coupon_session'], 200);
+                return Http::response(['id' => 'cus_full'], 200);
             }
             if (str_contains($request->url(), 'payment_intents') && $request->method() === 'POST') {
                 return Http::response([
-                    'id' => 'pi_coupon_session',
-                    'client_secret' => 'pi_coupon_session_secret',
+                    'id' => 'pi_full',
+                    'client_secret' => 'pi_full_secret',
                     'status' => 'requires_payment_method',
                 ], 200);
             }
@@ -558,16 +553,13 @@ class ShopStripeMobileCheckoutTest extends TestCase
         ], $headers);
 
         $pi->assertOk();
-        $this->assertSame($expectedTotal, (float) $pi->json('data.order_total'));
-        $this->assertSame($expectedTotal, (float) $pi->json('data.amount_due'));
-        $this->assertSame('FLAT20', $pi->json('data.order_summary.coupon_code'));
+        $this->assertSame(871.0, (float) $pi->json('data.order_total'));
+        $this->assertNull($pi->json('data.order_summary.coupon_code'));
 
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($expectedTotal): bool {
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
             return $request->method() === 'POST'
                 && str_contains($request->url(), 'payment_intents')
-                && (int) ($request->data()['amount'] ?? 0) === (int) round($expectedTotal * 100);
+                && (int) ($request->data()['amount'] ?? 0) === 87100;
         });
-
-        CartController::clearAppliedCheckoutCoupon((int) $user->id);
     }
 }

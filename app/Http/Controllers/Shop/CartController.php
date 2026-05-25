@@ -640,47 +640,35 @@ class CartController extends Controller
     }
 
     /**
-     * Same coupon for order-summary and payment-intent: explicit coupon_code, or last successful Apply for this cart.
+     * Coupon applies only when the client sends coupon_code (or Apply merged it into the request).
+     * We do not auto-apply a remembered coupon when the field is omitted — that caused summary/Stripe
+     * to show a discount (e.g. 850) while the user had not applied a code on this checkout (expected 871).
      *
      * @param  array<string, mixed>  $cartPreview
      */
     public static function resolveCheckoutCouponCode(Request $request, User $user, array $cartPreview): string
     {
-        $explicit = $request->has('coupon_code') || $request->query->has('coupon_code');
-        $rawCoupon = $request->input('coupon_code', $request->query('coupon_code'));
-        $code = is_string($rawCoupon) ? trim($rawCoupon) : '';
-
-        if ($request->boolean('clear_coupon') || ($explicit && $code === '')) {
+        if ($request->boolean('clear_coupon')) {
             self::clearAppliedCheckoutCoupon((int) $user->id);
 
             return '';
         }
 
-        if ($code !== '') {
-            return strtoupper($code);
-        }
-
-        $fingerprint = self::checkoutCartFingerprint($request, $cartPreview);
-
-        $dbCoupon = ShopAppliedCheckoutCoupon::query()
-            ->where('user_id', (int) $user->id)
-            ->where('cart_fingerprint', $fingerprint)
-            ->first();
-
-        if ($dbCoupon !== null && trim((string) $dbCoupon->coupon_code) !== '') {
-            return strtoupper(trim((string) $dbCoupon->coupon_code));
-        }
-
-        $stored = Cache::get(self::checkoutCouponCacheKey((int) $user->id));
-        if (! is_array($stored)) {
+        $explicit = $request->has('coupon_code') || $request->query->has('coupon_code');
+        if (! $explicit) {
             return '';
         }
 
-        if (($stored['fingerprint'] ?? '') !== $fingerprint) {
+        $rawCoupon = $request->input('coupon_code', $request->query('coupon_code'));
+        $code = is_string($rawCoupon) ? trim($rawCoupon) : '';
+
+        if ($code === '') {
+            self::clearAppliedCheckoutCoupon((int) $user->id);
+
             return '';
         }
 
-        return strtoupper(trim((string) ($stored['code'] ?? '')));
+        return strtoupper($code);
     }
 
     /**
