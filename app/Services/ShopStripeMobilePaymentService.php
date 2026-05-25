@@ -66,13 +66,6 @@ class ShopStripeMobilePaymentService
             return $this->err('product_id is required when is_buy_now is true.', 422);
         }
 
-        if (app()->environment('testing')) {
-            ShopMobileCheckout::query()
-                ->where('user_id', $user->id)
-                ->whereNull('consumed_at')
-                ->update(['consumed_at' => now()]);
-        }
-
         // Same totals as GET /api/shop/order-summary (cart, buy-now product_id/qty, coupon_code, catalog discount).
         $pack = CartController::checkoutTotalsForRequest($request, $user);
         if ($pack['error'] !== null) {
@@ -231,7 +224,7 @@ class ShopStripeMobilePaymentService
             'coupon_ship' => round($couponShipDisc, 2),
         ], JSON_THROW_ON_ERROR));
 
-        $aligned = $this->alignActivePaymentIntentWithCheckout(
+        $reconciled = $this->reconcileActivePaymentIntentWithCheckout(
             $request,
             $user,
             $pack,
@@ -242,10 +235,13 @@ class ShopStripeMobilePaymentService
             $walletApplied,
             $currency,
             $preview,
-            $isBuyNow
+            $isBuyNow,
+            $secret,
+            $couponId,
+            $couponCodeStored
         );
-        if ($aligned !== null) {
-            return $aligned;
+        if ($reconciled !== null) {
+            return $reconciled;
         }
 
         $reuse = $this->maybeReuseRecentPaymentIntent($user, $secret, $fingerprint, $amountMinor);
@@ -391,7 +387,7 @@ class ShopStripeMobilePaymentService
             return $this->err('Invalid Stripe response.', 502);
         }
 
-        ShopMobileCheckout::create([
+        $checkoutPayload = [
             'user_id' => $user->id,
             'fingerprint' => $fingerprint,
             'checkout_ref' => $checkoutRef,
@@ -412,7 +408,18 @@ class ShopStripeMobilePaymentService
             'total_amount' => $total,
             'wallet_amount_applied' => $walletApplied,
             'special_instructions' => $specialInstructions,
-        ]);
+            'consumed_at' => null,
+        ];
+
+        $existingRow = ShopMobileCheckout::query()
+            ->where('stripe_payment_intent_id', $piId)
+            ->first();
+
+        if ($existingRow !== null) {
+            $existingRow->update($checkoutPayload);
+        } else {
+            ShopMobileCheckout::create($checkoutPayload);
+        }
 
         return $this->formatPaymentIntentApiResponse(
             $clientSecret,
@@ -431,14 +438,14 @@ class ShopStripeMobilePaymentService
     }
 
     /**
-     * If user already has a pending PI (e.g. created before Apply), update its amount to match order-summary.
+     * Pending PI exists (e.g. opened before Apply): force Stripe amount + DB row to match order-summary now.
      *
      * @param  array<string, mixed>  $pack
      * @param  array<string, mixed>  $summary
      * @param  array<string, mixed>  $preview
      * @return array{ok: true, message: string, data: array<string, mixed>}|null
      */
-    private function alignActivePaymentIntentWithCheckout(
+    private function reconcileActivePaymentIntentWithCheckout(
         Request $request,
         User $user,
         array $pack,
@@ -449,12 +456,11 @@ class ShopStripeMobilePaymentService
         float $walletApplied,
         string $currency,
         array $preview,
-        bool $isBuyNow
+        bool $isBuyNow,
+        string $secret,
+        ?int $couponId,
+        ?string $couponCodeStored
     ): ?array {
-        if (app()->environment('testing')) {
-            return null;
-        }
-
         $piId = $this->findActivePaymentIntentIdForUser((int) $user->id);
         if ($piId === null) {
             return null;
@@ -467,13 +473,47 @@ class ShopStripeMobilePaymentService
             ->orderByDesc('id')
             ->first();
 
-        if ($row === null || (int) $row->amount_minor === $amountMinor) {
+        if ($row === null) {
             return null;
+        }
+
+        $stripeMatches = $this->paymentIntentAmountMatches($secret, $piId, $amountMinor);
+        $rowMatches = (int) $row->amount_minor === $amountMinor
+            && (int) ($row->coupon_id ?? 0) === (int) ($couponId ?? 0)
+            && strtoupper(trim((string) ($row->coupon_code ?? ''))) === strtoupper(trim((string) ($couponCodeStored ?? '')));
+
+        if ($stripeMatches && $rowMatches) {
+            $clientSecret = $this->fetchPaymentIntentClientSecret($secret, $piId);
+            if ($clientSecret === null) {
+                return null;
+            }
+
+            return $this->formatPaymentIntentApiResponse(
+                $clientSecret,
+                $piId,
+                $summary,
+                $total,
+                $cardTotal,
+                $walletApplied,
+                $amountMinor,
+                $currency,
+                $preview,
+                $request,
+                $isBuyNow,
+                'Payment intent matches order summary.',
+                false
+            );
         }
 
         $request->merge(['payment_intent_id' => $piId]);
         $synced = $this->syncPaymentIntentAfterCoupon($request, $user, $pack, $summary);
         if (! ($synced['ok'] ?? false)) {
+            Log::warning('Could not reconcile Stripe PI with order summary; will create a new payment intent.', [
+                'user_id' => $user->id,
+                'pi' => $piId,
+                'amount_minor' => $amountMinor,
+            ]);
+
             return null;
         }
 
@@ -494,6 +534,26 @@ class ShopStripeMobilePaymentService
             'Payment intent updated to match order summary.',
             true
         );
+    }
+
+    private function fetchPaymentIntentClientSecret(string $secret, string $piId): ?string
+    {
+        $resp = Http::withToken($secret)->get('https://api.stripe.com/v1/payment_intents/'.$piId);
+        if (! $resp->successful()) {
+            return null;
+        }
+
+        $clientSecret = $resp->json('client_secret');
+        if (! is_string($clientSecret) || $clientSecret === '') {
+            return null;
+        }
+
+        $status = (string) ($resp->json('status') ?? '');
+        if (! in_array($status, ['requires_payment_method', 'requires_confirmation', 'requires_action'], true)) {
+            return null;
+        }
+
+        return $clientSecret;
     }
 
     /**

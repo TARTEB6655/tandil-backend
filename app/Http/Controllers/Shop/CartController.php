@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Coupon;
 use App\Models\Product;
+use App\Models\ShopAppliedCheckoutCoupon;
+use App\Models\ShopMobileCheckout;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ShopCouponService;
@@ -604,16 +606,37 @@ class CartController extends Controller
             return;
         }
 
+        $fingerprint = self::checkoutCartFingerprint($request, $cartPreview);
+
+        ShopAppliedCheckoutCoupon::query()->updateOrCreate(
+            ['user_id' => $userId],
+            [
+                'cart_fingerprint' => $fingerprint,
+                'coupon_id' => $couponId,
+                'coupon_code' => $code,
+            ]
+        );
+
         Cache::put(self::checkoutCouponCacheKey($userId), [
             'code' => $code,
-            'fingerprint' => self::checkoutCartFingerprint($request, $cartPreview),
+            'fingerprint' => $fingerprint,
             'coupon_id' => $couponId,
         ], now()->addHours(4));
     }
 
     public static function clearAppliedCheckoutCoupon(int $userId): void
     {
+        ShopAppliedCheckoutCoupon::query()->where('user_id', $userId)->delete();
         Cache::forget(self::checkoutCouponCacheKey($userId));
+        ShopMobileCheckout::query()
+            ->where('user_id', $userId)
+            ->whereNull('consumed_at')
+            ->update([
+                'coupon_id' => null,
+                'coupon_code' => null,
+                'coupon_merchandise_discount' => 0,
+                'coupon_shipping_discount' => 0,
+            ]);
     }
 
     /**
@@ -624,7 +647,8 @@ class CartController extends Controller
     public static function resolveCheckoutCouponCode(Request $request, User $user, array $cartPreview): string
     {
         $explicit = $request->has('coupon_code') || $request->query->has('coupon_code');
-        $code = trim((string) $request->input('coupon_code', $request->query('coupon_code', '')));
+        $rawCoupon = $request->input('coupon_code', $request->query('coupon_code'));
+        $code = is_string($rawCoupon) ? trim($rawCoupon) : '';
 
         if ($request->boolean('clear_coupon') || ($explicit && $code === '')) {
             self::clearAppliedCheckoutCoupon((int) $user->id);
@@ -636,12 +660,23 @@ class CartController extends Controller
             return strtoupper($code);
         }
 
+        $fingerprint = self::checkoutCartFingerprint($request, $cartPreview);
+
+        $dbCoupon = ShopAppliedCheckoutCoupon::query()
+            ->where('user_id', (int) $user->id)
+            ->where('cart_fingerprint', $fingerprint)
+            ->first();
+
+        if ($dbCoupon !== null && trim((string) $dbCoupon->coupon_code) !== '') {
+            return strtoupper(trim((string) $dbCoupon->coupon_code));
+        }
+
         $stored = Cache::get(self::checkoutCouponCacheKey((int) $user->id));
         if (! is_array($stored)) {
             return '';
         }
 
-        if (($stored['fingerprint'] ?? '') !== self::checkoutCartFingerprint($request, $cartPreview)) {
+        if (($stored['fingerprint'] ?? '') !== $fingerprint) {
             return '';
         }
 
