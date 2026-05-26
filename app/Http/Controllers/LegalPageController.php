@@ -11,6 +11,11 @@ class LegalPageController extends Controller
      */
     public function privacyPolicy(): View
     {
+        $user = auth()->user();
+        if ($user && $user->hasAppRole('admin')) {
+            return view('legal.privacy-policy-admin');
+        }
+
         return view('legal.privacy-policy');
     }
 }
