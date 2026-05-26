@@ -4,8 +4,8 @@
 
 @section('content')
     <article class="legal-prose">
-        <h1 class="text-3xl font-bold text-slate-900">Privacy Policy</h1>
-        <p class="mt-2 text-slate-600"><strong>Effective Date:</strong> 2026</p>
+        <h1>Privacy Policy</h1>
+        <p class="mt-3 text-slate-600" style="font-size: 16px;"><strong>Effective Date:</strong> 2026</p>
 
         <p class="mt-6">
             Tandil (“we”, “our”, or “us”) respects your privacy and is committed to protecting your personal information.
