@@ -3,6 +3,7 @@
 @section('title', 'Privacy Policy')
 
 @section('content')
+    @php($websiteUrl = rtrim((string) config('app.url'), '/'))
     <article class="legal-prose">
         <h1>Privacy Policy</h1>
         <p class="mt-3 text-slate-600" style="font-size: 16px;"><strong>Effective Date:</strong> 2026</p>
@@ -90,7 +91,7 @@
         <p>If you have any questions regarding this Privacy Policy, please contact us:</p>
         <p class="mt-4 font-medium text-slate-800">
             Tandil<br>
-            Website: <a href="https://tandil.ae" class="text-emerald-800 hover:underline" rel="noopener noreferrer">https://tandil.ae</a><br>
+            Website: <a href="{{ $websiteUrl }}" class="text-emerald-800 hover:underline" rel="noopener noreferrer">{{ $websiteUrl }}</a><br>
             Email: <a href="mailto:info@tandil.ae" class="text-emerald-800 hover:underline">info@tandil.ae</a><br>
             Phone: <a href="tel:+971555381810" class="text-emerald-800 hover:underline">+971 55 538 1810</a>
         </p>
