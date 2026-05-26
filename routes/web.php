@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\Admin\WalletController as AdminWalletController;
 use App\Http\Controllers\AppPortalWebController;
+use App\Http\Controllers\LegalPageController;
 use App\Http\Controllers\AreaManager\AreaManagerDashboardController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\WalletController as ClientWalletController;
@@ -61,6 +62,10 @@ Route::get('/media/{path}', function (string $path) {
 
     return response()->file($fullPath, ['Content-Type' => $mime]);
 })->where('path', '.*')->name('storage.serve');
+
+// Public legal pages (no authentication — App Store / website)
+Route::get('/privacy-policy', [LegalPageController::class, 'privacyPolicy'])->name('legal.privacy-policy');
+Route::redirect('/privacy', '/privacy-policy', 301);
 
 // Redirect root '/' to app portal (role picker) or dashboard redirect
 Route::get('/', function () {
