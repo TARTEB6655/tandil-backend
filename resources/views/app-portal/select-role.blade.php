@@ -19,10 +19,10 @@
                 <strong>{{ __('You are already signed in') }}</strong><br>
                 {{ $authUser->email }}
                 <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">
-                    <a href="{{ route('dashboard.redirect') }}" class="portal-btn" style="width:auto;display:inline-block;padding:8px 14px;font-size:12px;">{{ __('Continue to dashboard') }}</a>
+                    <a href="{{ route('dashboard.redirect') }}" class="portal-btn" style="width:auto;display:inline-block;padding:8px 14px;font-size:16px;">{{ __('Continue to dashboard') }}</a>
                     <form method="POST" action="{{ route('logout') }}" style="display:inline;">
                         @csrf
-                        <button type="submit" style="padding:8px 14px;font-size:12px;border-radius:10px;border:1px solid #b45309;background:#fff;color:#78350f;font-weight:600;cursor:pointer;">{{ __('Sign out to use another account') }}</button>
+                        <button type="submit" style="padding:8px 14px;font-size:16px;border-radius:10px;border:1px solid #b45309;background:#fff;color:#78350f;font-weight:600;cursor:pointer;">{{ __('Sign out to use another account') }}</button>
                     </form>
                 </div>
             </div>
