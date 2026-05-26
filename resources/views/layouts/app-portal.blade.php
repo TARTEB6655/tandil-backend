@@ -98,9 +98,6 @@
         .portal-page--roles { background: linear-gradient(180deg, #f5f0e8 0%, #ebe4d8 100%); }
         .portal-page--login {
             background: linear-gradient(165deg, #f8fafc 0%, #e8eef4 45%, #f1f5f9 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
             justify-content: center;
         }
         .portal-page--login .portal-shell { width: 100%; }
@@ -123,9 +120,38 @@
             display: flex; align-items: center; justify-content: center; color: #2d4a3e;
         }
         .portal-err { color: #dc2626; font-size: 0.875rem; margin: 6px 0 0; }
+        .portal-site-footer {
+            text-align: center;
+            padding: 1.25rem 1.5rem 1.75rem;
+            margin-top: auto;
+        }
+        .portal-site-footer__link {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d4a3e;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .portal-site-footer__link:hover { color: #1a3329; }
+        .portal-page--roles,
+        .portal-page--login {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .portal-page--roles .portal-shell,
+        .portal-page--login .portal-shell {
+            flex: 1;
+        }
+        .portal-page--login .portal-shell {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="portal-page">
     @yield('content')
+    @include('app-portal.partials.site-footer')
 </body>
 </html>
