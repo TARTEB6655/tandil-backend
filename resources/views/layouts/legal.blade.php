@@ -37,14 +37,8 @@
         @yield('content')
     </main>
 
-    @php($websiteUrl = rtrim((string) config('app.url'), '/'))
     <footer class="border-t border-slate-200 bg-white py-6 text-center text-base text-slate-500" style="font-size: 16px;">
         <p>&copy; {{ date('Y') }} Tandil. All rights reserved.</p>
-        <p class="mt-1">
-            <a href="{{ $websiteUrl }}" class="text-emerald-800 hover:underline">{{ parse_url($websiteUrl, PHP_URL_HOST) ?: $websiteUrl }}</a>
-            &middot;
-            <a href="mailto:info@tandil.ae" class="text-emerald-800 hover:underline">info@tandil.ae</a>
-        </p>
     </footer>
 </body>
 </html>
