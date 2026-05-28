@@ -105,7 +105,7 @@ class AdminReportController extends Controller
     }
 
     /**
-     * 3. Generate Report (async)
+     * 3. Generate Report
      * POST /api/admin/reports/generate
      */
     public function generate(Request $request): JsonResponse
@@ -140,12 +140,26 @@ class AdminReportController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        GenerateReportJob::dispatch($report);
+        // Generate synchronously by default so API callers immediately receive
+        // generated/failed status even when queue workers are down in production.
+        // Set ?async=1 to preserve the older queue behavior when needed.
+        if ($request->boolean('async')) {
+            GenerateReportJob::dispatch($report);
+        } else {
+            GenerateReportJob::dispatchSync($report);
+            $report->refresh();
+        }
 
         $data = $this->transformReport($report->load('creator'));
+        $message = $report->status === 'generated'
+            ? 'Report generated successfully.'
+            : ($report->status === 'failed'
+                ? 'Report generation failed.'
+                : 'Report generation started. You will be notified when it\'s ready.');
+
         return response()->json([
             'success' => true,
-            'message' => 'Report generation started. You will be notified when it\'s ready.',
+            'message' => $message,
             'data' => $data,
         ], 201);
     }
