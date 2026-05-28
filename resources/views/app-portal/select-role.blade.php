@@ -48,9 +48,6 @@
             @endforeach
         </ul>
 
-        <p class="portal-foot portal-muted" style="margin-top:1.5rem;">
-            <a class="portal-link" href="{{ route('login') }}">{{ __('Classic staff login') }}</a>
-        </p>
     </div>
 </div>
 @endsection

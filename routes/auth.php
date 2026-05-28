@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\AppPortalWebController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -17,10 +18,16 @@ Route::middleware('guest')->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
+    // Single login flow: classic /login now forwards to app-portal role picker.
+    Route::get('login', function () {
+        return redirect()->route('app-portal.roles');
+    })->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    // Disallow legacy classic login submit endpoint and guide users to app portal flow.
+    Route::post('login', function () {
+        return redirect()->route('app-portal.roles')
+            ->with('error', __('Please sign in from the role selection page.'));
+    });
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

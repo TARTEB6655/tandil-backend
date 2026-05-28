@@ -116,6 +116,24 @@
                 </div>
 
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-3">Coupon</h2>
+                    <div class="flex gap-2">
+                        <input
+                            type="text"
+                            name="coupon_code"
+                            value="{{ old('coupon_code', $appliedCouponCode ?? '') }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 uppercase"
+                            placeholder="Enter coupon code (optional)"
+                        >
+                    </div>
+                    @if(!empty($couponError))
+                        <p class="mt-2 text-sm text-red-600">{{ $couponError }}</p>
+                    @elseif(!empty($appliedCouponCode))
+                        <p class="mt-2 text-sm text-green-700">Applied: {{ $appliedCouponCode }}</p>
+                    @endif
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                     <h2 class="text-lg font-semibold text-gray-900 mb-3">Cancellation & Refund Policy</h2>
                     <div class="space-y-2 text-sm text-gray-700">
                         <p>- Full refund before assignment/processing or within {{ $refundPolicy['grace_minutes'] ?? 15 }} minutes.</p>
@@ -177,6 +195,12 @@
                             <span class="text-gray-600">Shipping</span>
                             <span class="text-gray-900 font-medium">{{ $shipping > 0 ? 'AED ' . number_format($shipping, 2) : ($shippingLabel ?? 'Free') }}</span>
                         </div>
+                        @if(($couponDiscount ?? 0) > 0)
+                            <div class="flex justify-between text-sm">
+                                <span class="text-green-700">Coupon Discount</span>
+                                <span class="font-medium text-green-700">- AED {{ number_format($couponDiscount, 2) }}</span>
+                            </div>
+                        @endif
                         <div class="border-t border-gray-200 pt-3">
                             <div class="flex justify-between">
                                 <span class="text-base font-semibold text-gray-900">Total</span>

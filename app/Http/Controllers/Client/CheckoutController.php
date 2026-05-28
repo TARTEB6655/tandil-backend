@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
+use App\Services\ShopCouponService;
 use App\Services\StripeCheckoutSessionService;
 use App\Support\RefundPolicy;
 use App\Support\StripeCredentials;
@@ -23,6 +24,7 @@ class CheckoutController extends Controller
 {
     public function __construct(
         protected PayPalService $paypal,
+        protected ShopCouponService $couponService,
         protected StripeCheckoutSessionService $stripeCheckout
     ) {
         $this->middleware(['auth', 'role:client']);
@@ -43,16 +45,60 @@ class CheckoutController extends Controller
             return $item->product ? $item->quantity * (float) $item->product->price : 0;
         }), 2);
 
-        $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+        $couponCode = strtoupper(trim((string) request()->query('coupon_code', old('coupon_code', ''))));
+        $couponResult = null;
+        if ($couponCode !== '') {
+            $categoryIds = $cartItems
+                ->map(fn ($item) => $item->product?->category_id)
+                ->filter(fn ($id) => $id !== null)
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            $couponResult = $this->couponService->preview(
+                $couponCode,
+                $subtotal,
+                0,
+                (int) $user->id,
+                $categoryIds,
+                'products',
+                []
+            );
+        }
+
+        $orderSummary = (is_array($couponResult) && ($couponResult['ok'] ?? false) && is_array($couponResult['order_summary'] ?? null))
+            ? $couponResult['order_summary']
+            : ShopCartController::buildOrderSummary($subtotal, 0);
+
         $tax = $orderSummary['tax'];
         $shipping = $orderSummary['shipping'];
         $total = $orderSummary['total'];
         $taxPercent = $orderSummary['tax_percent'];
         $shippingLabel = $orderSummary['shipping_label'];
+        $couponDiscount = (float) ($orderSummary['coupon_discount'] ?? 0);
+        $appliedCouponCode = (string) ($orderSummary['coupon_code'] ?? '');
+        $couponError = null;
+        if ($couponCode !== '' && (! is_array($couponResult) || ! ($couponResult['ok'] ?? false))) {
+            $couponError = (string) ($couponResult['message'] ?? 'Invalid coupon code.');
+        }
 
         $refundPolicy = RefundPolicy::policyForApi();
 
-        return view('client.checkout.index', compact('cartItems', 'subtotal', 'tax', 'shipping', 'total', 'taxPercent', 'shippingLabel', 'user', 'refundPolicy'));
+        return view('client.checkout.index', compact(
+            'cartItems',
+            'subtotal',
+            'tax',
+            'shipping',
+            'total',
+            'taxPercent',
+            'shippingLabel',
+            'user',
+            'refundPolicy',
+            'couponDiscount',
+            'appliedCouponCode',
+            'couponError'
+        ));
     }
 
     public function process(Request $request)
@@ -65,6 +111,7 @@ class CheckoutController extends Controller
             'shipping_country' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
             'accepted_refund_policy' => 'required|accepted',
+            'coupon_code' => 'nullable|string|max:64',
         ]);
 
         $method = $request->input('payment_method');
@@ -87,7 +134,43 @@ class CheckoutController extends Controller
         $subtotal = round($cartItems->sum(function ($item) {
             return $item->quantity * (float) $item->product->price;
         }), 2);
-        $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+        $couponCode = strtoupper(trim((string) $request->input('coupon_code', '')));
+        $couponId = null;
+        $couponDiscount = 0.0;
+
+        if ($couponCode !== '') {
+            $categoryIds = $cartItems
+                ->map(fn ($item) => $item->product?->category_id)
+                ->filter(fn ($id) => $id !== null)
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            $couponResult = $this->couponService->preview(
+                $couponCode,
+                $subtotal,
+                0,
+                (int) $user->id,
+                $categoryIds,
+                'products',
+                []
+            );
+
+            if (! ($couponResult['ok'] ?? false)) {
+                return back()->withInput()->with('error', (string) ($couponResult['message'] ?? 'Invalid coupon code.'));
+            }
+
+            $couponId = (int) ($couponResult['coupon_id'] ?? 0);
+            $couponCode = (string) ($couponResult['code'] ?? $couponCode);
+            $couponDiscount = round((float) ($couponResult['coupon_discount'] ?? 0), 2);
+            $orderSummary = is_array($couponResult['order_summary'] ?? null)
+                ? $couponResult['order_summary']
+                : ShopCartController::buildOrderSummary($subtotal, 0);
+        } else {
+            $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+        }
+
         $tax = $orderSummary['tax'];
         $shipping = $orderSummary['shipping'];
         $total = $orderSummary['total'];
@@ -105,6 +188,9 @@ class CheckoutController extends Controller
         try {
             $order = Order::create([
                 'user_id' => $user->id,
+                'coupon_id' => $couponId ?: null,
+                'coupon_code' => $couponCode !== '' ? $couponCode : null,
+                'coupon_discount_amount' => $couponDiscount,
                 'total_amount' => $total,
                 'subtotal_amount' => $subtotal,
                 'tax_amount' => $tax,
