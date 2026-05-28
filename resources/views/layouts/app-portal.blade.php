@@ -118,8 +118,8 @@
             transition: all 0.22s ease;
         }
         .portal-role-link:hover { border-color: #4f46e580; transform: translateY(-2px); box-shadow: 0 12px 22px rgba(15, 23, 42, 0.11); }
-        .portal-role-title { font-weight: 700; font-size: 1.02rem; color: #0f172a; margin: 0; line-height: 1.3; }
-        .portal-role-desc { font-size: 0.86rem; color: #475569; margin: 6px 0 0; line-height: 1.55; }
+        .portal-role-title { font-weight: 700; font-size: 15px; color: #0f172a; margin: 0; line-height: 1.3; }
+        .portal-role-desc { font-size: 12px; color: #475569; margin: 6px 0 0; line-height: 1.55; }
         .portal-role-list li:nth-child(1) .portal-role-link { background: linear-gradient(135deg, #eff6ff 0%, #e0ecff 100%); }
         .portal-role-list li:nth-child(2) .portal-role-link { background: linear-gradient(135deg, #ecfdf5 0%, #d9fbe8 100%); }
         .portal-role-list li:nth-child(3) .portal-role-link { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); }
