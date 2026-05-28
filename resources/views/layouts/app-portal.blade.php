@@ -105,6 +105,46 @@
             background: #ffffff;
             justify-content: center;
         }
+        .portal-page--login .portal-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #dbe4ef;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.1);
+        }
+        .portal-page--login .portal-label {
+            font-size: 15px;
+            color: #1e293b;
+            font-weight: 700;
+        }
+        .portal-page--login .portal-input {
+            font-size: 15px;
+            border-color: #bfdbfe;
+            background: #f8fbff;
+        }
+        .portal-page--login .portal-row,
+        .portal-page--login .portal-row label,
+        .portal-page--login .portal-link,
+        .portal-page--login .portal-divider,
+        .portal-page--login .portal-foot,
+        .portal-page--login .portal-muted {
+            font-size: 12px;
+        }
+        .portal-page--login .portal-title {
+            font-size: 1.9rem;
+        }
+        .portal-page--login .portal-sub {
+            font-size: 12px;
+        }
+        .portal-page--login .portal-brandline {
+            font-size: 12px;
+            letter-spacing: 0.12em;
+        }
+        .portal-page--login .portal-btn {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+            font-size: 15px;
+            text-transform: none;
+            letter-spacing: 0.01em;
+        }
+        .portal-page--login .portal-btn:hover { background: linear-gradient(135deg, #111827 0%, #030712 100%) !important; }
         .portal-page--login .portal-shell { width: 100%; }
         .portal-role-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
         .portal-role-link {

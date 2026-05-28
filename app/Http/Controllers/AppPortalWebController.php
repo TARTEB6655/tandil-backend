@@ -22,8 +22,24 @@ class AppPortalWebController extends Controller
 
     public function selectRole(Request $request): View
     {
+        $meta = self::portalMeta();
+        $ordered = [];
+
+        // App portal UX requirement: keep Admin first on role picker.
+        foreach (['admin', 'client', 'technician', 'supervisor', 'area_manager', 'hr'] as $slug) {
+            if (isset($meta[$slug])) {
+                $ordered[$slug] = $meta[$slug];
+            }
+        }
+
+        foreach ($meta as $slug => $row) {
+            if (! isset($ordered[$slug])) {
+                $ordered[$slug] = $row;
+            }
+        }
+
         return view('app-portal.select-role', [
-            'portals' => self::portalMeta(),
+            'portals' => $ordered,
             'authUser' => $request->user(),
         ]);
     }
