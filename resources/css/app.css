@@ -140,3 +140,20 @@ button.admin-profile-save-btn svg {
     color: #ffffff !important;
     stroke: #ffffff !important;
 }
+
+/* Notification inbox checkboxes: fixed 16px (avoids rem/forms-plugin size drift per row). */
+input.notification-inbox-cb[type='checkbox'] {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    max-width: 16px !important;
+    max-height: 16px !important;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
+    border-radius: 0.25rem;
+    accent-color: #4f46e5;
+}

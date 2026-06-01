@@ -9,10 +9,12 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden ring-1 ring-slate-900/5 dark:ring-white/5">
     @if($showSelectAllHeader && $notifications->count() > 0)
         <div class="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/50 px-4 py-2.5">
-            <input type="checkbox"
-                   id="select-all-notifications"
-                   class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800"
-                   aria-label="Select all on this page" />
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center">
+                <input type="checkbox"
+                       id="select-all-notifications"
+                       class="notification-inbox-cb rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800"
+                       aria-label="Select all on this page" />
+            </div>
             <label for="select-all-notifications" class="text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer select-none">
                 Select all
             </label>
@@ -54,8 +56,8 @@
              data-open-url="{{ route($routeName . '.show', $notification->id) }}{{ $showQuerySuffix }}">
             <div class="px-4 py-2.5">
                 <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 pt-1">
-                        <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800" />
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center">
+                        <input type="checkbox" name="ids[]" value="{{ $notification->id }}" class="notification-cb notification-inbox-cb rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800" />
                     </div>
                     <div class="flex-shrink-0 mt-0.5">
                         <div class="h-8 w-8 rounded-full {{ $iconBg }} dark:opacity-90 {{ $iconBorder }} border flex items-center justify-center">
