@@ -34,8 +34,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <button type="submit" form="form-notifications-bulk" id="btn-delete-selected"
                         class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-200 bg-white text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled
-                        onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
+                        disabled>
                     Delete selected
                 </button>
                 <form method="POST" action="{{ route('supervisor.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete all notifications?');">

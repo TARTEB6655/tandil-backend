@@ -178,8 +178,24 @@ class NotificationController extends Controller
      */
     public function destroyBulk(Request $request)
     {
-        $request->validate(['ids' => 'required|array', 'ids.*' => 'uuid']);
-        $deleted = GlobalNotificationFilter::allUsers()->whereIn('id', $request->ids)->delete();
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'uuid',
+        ]);
+
+        $ids = collect($validated['ids'])->unique()->values();
+
+        if ($request->boolean('admin_notifications_index')) {
+            $query = GlobalNotificationFilter::allUsers();
+        } else {
+            $query = UserNotificationInbox::forUser(Auth::user());
+        }
+
+        $deleted = $query->whereIn('id', $ids)->delete();
+
+        if ($deleted === 0) {
+            return redirect()->back()->with('error', 'No notifications were deleted. Please try again.');
+        }
 
         return redirect()->back()->with('success', $deleted . ' notification(s) deleted.');
     }

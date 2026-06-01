@@ -87,8 +87,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <button type="submit" form="form-notifications-bulk" id="btn-delete-selected"
                         class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-200 dark:border-red-900/60 bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled
-                        onclick="return document.querySelectorAll('input[name=\'ids[]\']:checked').length && confirm('Delete selected notifications?');">
+                        disabled>
                     Delete selected
                 </button>
                 <form method="POST" action="{{ route('admin.notifications.destroy-all') }}" class="inline" onsubmit="return confirm({{ json_encode($isSystemWideInbox ? __('admin.delete_all_notifications_confirm_global') : __('admin.delete_all_notifications_confirm_personal')) }});">
@@ -124,6 +123,15 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span class="text-sm font-medium">{{ session('error') }}</span>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/90 dark:bg-red-950/30 text-red-900 dark:text-red-100 px-4 py-3 flex items-center gap-3">
+                <svg class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm font-medium">{{ $errors->first() }}</span>
             </div>
         @endif
 
@@ -175,6 +183,9 @@
         <!-- Notifications List with checkboxes for bulk delete -->
         <form method="POST" action="{{ route('admin.notifications.destroy-bulk') }}" id="form-notifications-bulk">
             @csrf
+            @if($isSystemWideInbox)
+                <input type="hidden" name="admin_notifications_index" value="1" />
+            @endif
             <x-notification-inbox-rows
                 :notifications="$notifications"
                 route-name="admin.notifications"

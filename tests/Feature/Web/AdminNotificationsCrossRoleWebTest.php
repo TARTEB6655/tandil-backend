@@ -151,6 +151,46 @@ class AdminNotificationsCrossRoleWebTest extends TestCase
             ->assertSee('No notifications', false);
     }
 
+    public function test_admin_statistics_bulk_delete_removes_selected_notifications(): void
+    {
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'supervisor', 'guard_name' => 'web']);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $supervisor->assignRole('supervisor');
+
+        $supervisor->notify(new AdminNotification('Delete me', 'BULK_DELETE_MSG_ONE', []));
+        $supervisor->notify(new AdminNotification('Keep me', 'BULK_DELETE_MSG_TWO', []));
+
+        $ids = DB::table('notifications')
+            ->where('notifiable_id', $supervisor->id)
+            ->orderBy('created_at')
+            ->pluck('id')
+            ->all();
+
+        $this->assertCount(2, $ids);
+
+        $this->actingAs($admin)
+            ->post(route('admin.notifications.destroy-bulk'), [
+                'ids' => [$ids[0]],
+                'admin_notifications_index' => '1',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('notifications', ['id' => $ids[0]]);
+        $this->assertDatabaseHas('notifications', ['id' => $ids[1]]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.notifications.statistics'))
+            ->assertOk()
+            ->assertDontSee('BULK_DELETE_MSG_ONE', false)
+            ->assertSee('BULK_DELETE_MSG_TWO', false);
+    }
+
     public function test_personal_notifications_index_excludes_other_users_rows(): void
     {
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);

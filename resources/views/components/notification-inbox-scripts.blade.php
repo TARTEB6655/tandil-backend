@@ -1,21 +1,57 @@
 <script>
     (function () {
+        const bulkForm = document.getElementById('form-notifications-bulk');
         const selectAll = document.getElementById('select-all-notifications');
         const selectedCount = document.getElementById('selected-count');
         const deleteSelected = document.getElementById('btn-delete-selected');
-        const checkboxes = Array.from(document.querySelectorAll('.notification-cb'));
-        function syncBulkUi() {
-            const checked = checkboxes.filter(cb => cb.checked).length;
-            if (selectedCount) selectedCount.textContent = `${checked} selected`;
-            if (deleteSelected) deleteSelected.disabled = checked === 0;
-            if (selectAll) selectAll.checked = checked > 0 && checked === checkboxes.length;
+
+        function notificationCheckboxes() {
+            return Array.from(document.querySelectorAll('.notification-cb'));
         }
+
+        function syncBulkUi() {
+            const boxes = notificationCheckboxes();
+            const checked = boxes.filter(cb => cb.checked).length;
+            if (selectedCount) {
+                selectedCount.textContent = `${checked} selected`;
+            }
+            if (deleteSelected) {
+                deleteSelected.disabled = checked === 0;
+            }
+            if (selectAll) {
+                selectAll.checked = checked > 0 && checked === boxes.length;
+            }
+        }
+
         selectAll?.addEventListener('change', function () {
-            checkboxes.forEach(cb => { cb.checked = this.checked; });
+            notificationCheckboxes().forEach(cb => { cb.checked = this.checked; });
             syncBulkUi();
         });
-        checkboxes.forEach(cb => cb.addEventListener('change', syncBulkUi));
+        notificationCheckboxes().forEach(cb => cb.addEventListener('change', syncBulkUi));
         syncBulkUi();
+
+        bulkForm?.addEventListener('submit', function (e) {
+            const checked = notificationCheckboxes().filter(cb => cb.checked);
+            if (checked.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one notification.');
+                return;
+            }
+            if (!confirm(`Delete ${checked.length} selected notification(s)?`)) {
+                e.preventDefault();
+                return;
+            }
+            // Submit button may sit outside the form; inject hidden ids[] so POST always includes selection.
+            bulkForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+            checked.forEach(cb => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = cb.value;
+                bulkForm.appendChild(input);
+            });
+        });
+
         document.querySelectorAll('.notification-row[data-open-url]').forEach(function (row) {
             row.addEventListener('click', function (e) {
                 if (e.target.closest('input, button, form, label')) return;
