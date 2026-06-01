@@ -1,0 +1,36 @@
+---
+description: Auto-commit and push completed work to GitHub without waiting for the user to ask
+alwaysApply: true
+---
+
+# Auto push to GitHub
+
+After finishing **implementation work** (features, fixes, UI changes, refactors the user requested), **automatically** commit and push to the remote repository. Do **not** wait for the user to say "push to GitHub" or "push all the code."
+
+## When to push
+
+- User asked for a change and you applied it successfully
+- Bug fix or UI adjustment is complete
+- Tests were run when relevant; fix failures before pushing
+
+## When NOT to push
+
+- Question-only or review-only turns (no code changes)
+- User explicitly says not to commit/push yet
+- Only exploratory reads with no file edits
+- Commit would include secrets (`.env`, credentials)
+
+## How to push
+
+1. `git status` — confirm there are changes
+2. Stage only relevant files (never secrets)
+3. Write a concise commit message (why, not just what)
+4. `git push -u origin HEAD` (or current branch)
+5. Briefly tell the user the commit hash and that it was pushed — no need to ask permission first
+
+## Git safety (always)
+
+- Never `git push --force` to `main`/`master`
+- Never skip hooks unless the user asks
+- Never amend unless the user rule for amend applies
+- Remote: `https://github.com/TARTEB6655/tandil-backend.git` on `main` unless the branch context differs
