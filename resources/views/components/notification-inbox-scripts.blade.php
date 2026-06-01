@@ -4,6 +4,8 @@
         const selectAll = document.getElementById('select-all-notifications');
         const selectedCount = document.getElementById('selected-count');
         const deleteSelected = document.getElementById('btn-delete-selected');
+        const deleteAllForm = document.getElementById('form-notifications-delete-all');
+        const bulkActionsBar = document.getElementById('bulk-actions-bar');
 
         function notificationCheckboxes() {
             return Array.from(document.querySelectorAll('.notification-cb'));
@@ -12,14 +14,31 @@
         function syncBulkUi() {
             const boxes = notificationCheckboxes();
             const checked = boxes.filter(cb => cb.checked).length;
+            const total = boxes.length;
+            const allOnPageSelected = total > 0 && checked === total;
+            const hasSelection = checked > 0;
+
             if (selectedCount) {
                 selectedCount.textContent = `${checked} selected`;
             }
-            if (deleteSelected) {
-                deleteSelected.disabled = checked === 0;
-            }
+
             if (selectAll) {
-                selectAll.checked = checked > 0 && checked === boxes.length;
+                selectAll.checked = allOnPageSelected;
+                selectAll.indeterminate = hasSelection && !allOnPageSelected;
+            }
+
+            if (bulkActionsBar) {
+                bulkActionsBar.classList.toggle('hidden', !hasSelection);
+            }
+
+            if (deleteSelected) {
+                const showSelected = hasSelection && !allOnPageSelected;
+                deleteSelected.classList.toggle('hidden', !showSelected);
+                deleteSelected.disabled = !showSelected;
+            }
+
+            if (deleteAllForm) {
+                deleteAllForm.classList.toggle('hidden', !allOnPageSelected);
             }
         }
 
@@ -41,7 +60,6 @@
                 e.preventDefault();
                 return;
             }
-            // Submit button may sit outside the form; inject hidden ids[] so POST always includes selection.
             bulkForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
             checked.forEach(cb => {
                 const input = document.createElement('input');

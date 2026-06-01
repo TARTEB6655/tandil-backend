@@ -21,31 +21,6 @@
             @endif
         </div>
 
-        <x-notification-inbox-toolbar route-name="supervisor.notifications.index" :show-audience-filter="false" />
-
-        <div class="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3 sm:px-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 sm:mr-1">Bulk actions</p>
-            <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer select-none">
-                <input type="checkbox" id="select-all-notifications" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0" />
-                Select all on this page
-            </label>
-            <span id="selected-count" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">0 selected</span>
-            <span class="hidden sm:inline h-4 w-px bg-slate-200" aria-hidden="true"></span>
-            <div class="flex flex-wrap items-center gap-2">
-                <button type="submit" form="form-notifications-bulk" id="btn-delete-selected"
-                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-200 bg-white text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled>
-                    Delete selected
-                </button>
-                <form method="POST" action="{{ route('supervisor.notifications.destroy-all') }}" class="inline" onsubmit="return confirm('Delete all notifications?');">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg border border-red-300 bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm">
-                        Delete all
-                    </button>
-                </form>
-            </div>
-        </div>
-
         @if(session('success'))
             <div class="rounded-xl border border-emerald-200 bg-emerald-50/90 text-emerald-900 px-4 py-3 flex items-center gap-3">
                 <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -107,6 +82,13 @@
                 </div>
             </div>
         </div>
+
+        <x-notification-inbox-toolbar route-name="supervisor.notifications.index" :show-audience-filter="false" />
+
+        <x-notification-inbox-bulk-actions
+            :destroy-all-route="route('supervisor.notifications.destroy-all')"
+            destroy-all-confirm="Delete all notifications matching your current filters?"
+        />
 
         <form method="POST" action="{{ route('supervisor.notifications.destroy-bulk') }}" id="form-notifications-bulk">
             @csrf

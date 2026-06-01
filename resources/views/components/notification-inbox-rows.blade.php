@@ -3,9 +3,21 @@
     /** e.g. client.notifications */
     'routeName',
     'showQuerySuffix' => '',
+    'showSelectAllHeader' => true,
 ])
 
 <div class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden ring-1 ring-slate-900/5 dark:ring-white/5">
+    @if($showSelectAllHeader && $notifications->count() > 0)
+        <div class="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/50 px-4 py-2.5">
+            <input type="checkbox"
+                   id="select-all-notifications"
+                   class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-gray-800"
+                   aria-label="Select all on this page" />
+            <label for="select-all-notifications" class="text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer select-none">
+                Select all
+            </label>
+        </div>
+    @endif
     @forelse($notifications as $notification)
         @php
             $isUnread = is_null($notification->read_at);
