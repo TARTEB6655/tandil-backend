@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -117,6 +116,11 @@ class Product extends Model
      */
     private function buildImageUrl(string $path, string $prefix = ''): ?string
     {
+        $path = trim($path);
+        if ($path === '') {
+            return null;
+        }
+
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
         }
@@ -131,17 +135,8 @@ class Product extends Model
             $normalized = $prefix . $normalized;
         }
 
-        // Prefer /storage URLs for uploaded files (Laravel standard).
-        if (str_starts_with($normalized, 'products/')) {
-            return asset('storage/' . $normalized);
-        }
-
-        // If it is not under products/, still try public storage root.
-        if (Storage::disk('public')->exists($normalized)) {
-            return asset('storage/' . $normalized);
-        }
-
-        // Backward-compatible fallback (legacy nginx mapping).
+        // Enforce production media URL style requested by frontend/deployment.
+        // Example: https://<host>/media/products/abc.jpg
         return asset('media/' . $normalized);
     }
 
