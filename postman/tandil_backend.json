@@ -10648,11 +10648,11 @@
             "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
-            "name": "Variable Product CRUD (Form-Data)",
-            "description": "Only required APIs for variable product management.",
+            "name": "Variable Product (Old CRUD Only)",
+            "description": "Use existing admin product CRUD endpoints. Variable fields are optional: product_type, option_groups_json, option_images[*].",
             "item": [
                 {
-                    "name": "Create Variable Product",
+                    "name": "1) Create Variable Product (form-data)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -10689,7 +10689,7 @@
                     }
                 },
                 {
-                    "name": "Update Variable Product",
+                    "name": "2) Update Variable Product (form-data)",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -10720,7 +10720,7 @@
                     }
                 },
                 {
-                    "name": "Get Single Product",
+                    "name": "3) Get Single Variable Product",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -10741,7 +10741,7 @@
                     }
                 },
                 {
-                    "name": "Delete Product",
+                    "name": "4) Delete Variable Product",
                     "request": {
                         "method": "DELETE",
                         "header": [
