@@ -36,5 +36,14 @@ class ShopController extends Controller
 
         return view('client.shop.index', compact('products', 'categories', 'selectedCategory'));
     }
+
+    public function show($id)
+    {
+        $product = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options'])
+            ->where('status', 'active')
+            ->findOrFail($id);
+
+        return view('client.shop.show', compact('product'));
+    }
 }
 

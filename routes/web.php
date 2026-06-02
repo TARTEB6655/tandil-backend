@@ -448,6 +448,7 @@ Route::middleware(['auth', 'role:client'])
 
         // Shop (cart & checkout – Stripe / PayPal only)
         Route::get('/shop', [\App\Http\Controllers\Client\ShopController::class, 'index'])->name('shop.index');
+        Route::get('/shop/{id}', [\App\Http\Controllers\Client\ShopController::class, 'show'])->name('shop.show');
         Route::get('/cart', [\App\Http\Controllers\Client\CartController::class, 'index'])->name('cart.index');
         Route::post('/cart/add', [\App\Http\Controllers\Client\CartController::class, 'add'])->name('cart.add');
         Route::put('/cart/{id}', [\App\Http\Controllers\Client\CartController::class, 'update'])->name('cart.update');
