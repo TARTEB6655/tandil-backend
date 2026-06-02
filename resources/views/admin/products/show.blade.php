@@ -84,6 +84,60 @@
                 </div>
             </div>
 
+            @php
+                $isVariable = ($product->product_type ?? 'simple') === 'variable';
+            @endphp
+            @if($isVariable)
+                <div class="px-6 pb-6">
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                        <div class="px-4 py-3 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Variable options</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">All option groups and selected labels configured for this product.</p>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            @forelse($product->optionGroups as $group)
+                                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $group->name }}</p>
+                                        <span class="text-xs px-2 py-0.5 rounded-full {{ $group->is_required ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }}">
+                                            {{ $group->is_required ? 'Required' : 'Optional' }}
+                                        </span>
+                                    </div>
+                                    @if($group->subtitle)
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ $group->subtitle }}</p>
+                                    @endif
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ $group->input_type === 'multi' ? 'Select many' : 'Select one' }}</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        @forelse($group->options as $opt)
+                                            <div class="flex items-center gap-3 p-2 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800/40">
+                                                @if($opt->image_url)
+                                                    <img src="{{ $opt->image_url }}" alt="{{ $opt->label }}" class="w-10 h-10 rounded object-cover border border-gray-200 dark:border-gray-600">
+                                                @else
+                                                    <div class="w-10 h-10 rounded bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600"></div>
+                                                @endif
+                                                <div class="min-w-0 flex-1">
+                                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ $opt->label }}</p>
+                                                    @if($opt->subtitle)
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $opt->subtitle }}</p>
+                                                    @endif
+                                                </div>
+                                                <p class="text-xs font-semibold {{ ((float)$opt->price_modifier) > 0 ? 'text-green-700' : 'text-gray-500 dark:text-gray-400' }}">
+                                                    {{ ((float)$opt->price_modifier) > 0 ? '+' . number_format((float)$opt->price_modifier, 2) . ' AED' : 'Free' }}
+                                                </p>
+                                            </div>
+                                        @empty
+                                            <p class="text-xs text-gray-400">No options added.</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-sm text-gray-500 dark:text-gray-400">No option groups found for this variable product.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-3">
                 <a href="{{ route('admin.products.edit', $product) }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">Edit product</a>
                 <a href="{{ route('admin.products.index') }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Back to products</a>

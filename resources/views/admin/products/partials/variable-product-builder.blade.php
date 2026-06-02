@@ -314,6 +314,30 @@
             ? 'Current: ' + (opt.image_path.length > 42 ? opt.image_path.substring(0, 42) + '...' : opt.image_path)
             : 'No image selected';
 
+        var imagePreview = document.createElement('div');
+        imagePreview.className = 'w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 overflow-hidden flex items-center justify-center';
+        var imagePreviewImg = document.createElement('img');
+        imagePreviewImg.className = 'w-full h-full object-cover hidden';
+        imagePreview.appendChild(imagePreviewImg);
+
+        var imagePreviewPlaceholder = document.createElement('span');
+        imagePreviewPlaceholder.className = 'text-[10px] text-gray-400';
+        imagePreviewPlaceholder.textContent = 'No image';
+        imagePreview.appendChild(imagePreviewPlaceholder);
+
+        function setPreview(src) {
+            if (src) {
+                imagePreviewImg.src = src;
+                imagePreviewImg.classList.remove('hidden');
+                imagePreviewPlaceholder.classList.add('hidden');
+            } else {
+                imagePreviewImg.src = '';
+                imagePreviewImg.classList.add('hidden');
+                imagePreviewPlaceholder.classList.remove('hidden');
+            }
+        }
+        setPreview(opt.image_url || '');
+
         var fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = 'image/*';
@@ -321,7 +345,13 @@
         fileInput.className = 'block w-full text-xs text-gray-600 dark:text-gray-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-green-700 file:text-white hover:file:bg-green-800';
         fileInput.addEventListener('change', function () {
             var f = this.files && this.files[0] ? this.files[0] : null;
-            imageMeta.textContent = f ? ('Selected: ' + f.name) : (opt.image_path ? ('Current: ' + opt.image_path) : 'No image selected');
+            if (f) {
+                imageMeta.textContent = 'Selected: ' + f.name;
+                setPreview(URL.createObjectURL(f));
+            } else {
+                imageMeta.textContent = opt.image_path ? ('Current: ' + opt.image_path) : 'No image selected';
+                setPreview(opt.image_url || '');
+            }
         });
 
         row.appendChild(rmBtn);
@@ -333,6 +363,7 @@
         row.appendChild(priceLabel);
         row.appendChild(priceInput);
         row.appendChild(imageLabel);
+        row.appendChild(imagePreview);
         row.appendChild(imageMeta);
         row.appendChild(fileInput);
         return row;

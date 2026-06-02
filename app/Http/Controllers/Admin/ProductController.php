@@ -720,7 +720,7 @@ class ProductController extends Controller
         if ($err = $this->invalidProductIdResponse($id, $request)) {
             return $err;
         }
-        $product = Product::with(['category', 'images', 'primaryImage'])->findOrFail($id);
+        $product = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options'])->findOrFail($id);
         
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
