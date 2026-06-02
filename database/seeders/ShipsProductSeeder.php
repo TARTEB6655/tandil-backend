@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductOptionGroup;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -39,7 +40,6 @@ class ShipsProductSeeder extends Seeder
                 'price'       => 1030.00,
                 'handle'      => 'najdi-sheep',
                 'sku'         => 'SHP-NAJDI-001',
-                'image_url'   => 'https://via.placeholder.com/900x600.png?text=Najdi+Sheep',
                 'option_groups' => [
                     [
                         'name'        => 'Packaging type',
@@ -99,7 +99,6 @@ class ShipsProductSeeder extends Seeder
                 'price'       => 850.00,
                 'handle'      => 'haili-goat',
                 'sku'         => 'SHP-HAILI-001',
-                'image_url'   => 'https://via.placeholder.com/900x600.png?text=Haili+Goat',
                 'option_groups' => [
                     [
                         'name'        => 'Packaging type',
@@ -156,7 +155,6 @@ class ShipsProductSeeder extends Seeder
                 'price'       => 1200.00,
                 'handle'      => 'premium-lamb',
                 'sku'         => 'SHP-LAMB-001',
-                'image_url'   => 'https://via.placeholder.com/900x600.png?text=Premium+Lamb',
                 'option_groups' => [
                     [
                         'name'        => 'Packaging type',
@@ -214,7 +212,18 @@ class ShipsProductSeeder extends Seeder
             ],
         ];
 
-        foreach ($products as $pd) {
+        // Reuse real local product images so client cards render reliably in all environments.
+        $localImagePool = ProductImage::query()
+            ->whereNotNull('image_path')
+            ->where('image_path', '!=', '')
+            ->where('image_path', 'not like', 'http%')
+            ->orderBy('id')
+            ->pluck('image_path')
+            ->unique()
+            ->values()
+            ->all();
+
+        foreach ($products as $index => $pd) {
             // Skip if already seeded (idempotent)
             $product = Product::firstOrCreate(
                 ['handle' => $pd['handle']],
@@ -250,11 +259,12 @@ class ShipsProductSeeder extends Seeder
             }
 
             // Ensure each seeded variable product has a visible image in client cards.
-            if (! empty($pd['image_url'])) {
+            $seedImagePath = $localImagePool[$index] ?? 'images/logo.png';
+            if ($seedImagePath) {
                 $firstImage = $product->images()->orderBy('sort_order')->first();
                 if (! $firstImage) {
                     $product->images()->create([
-                        'image_path' => $pd['image_url'],
+                        'image_path' => $seedImagePath,
                         'sort_order' => 0,
                         'is_primary' => true,
                     ]);
@@ -262,13 +272,13 @@ class ShipsProductSeeder extends Seeder
                     if (! $firstImage->is_primary) {
                         $firstImage->update(['is_primary' => true, 'sort_order' => 0]);
                     }
-                    if ($firstImage->image_path !== $pd['image_url'] && str_starts_with((string) $firstImage->image_path, 'http')) {
-                        // Keep custom uploaded local image paths untouched.
-                        $firstImage->update(['image_path' => $pd['image_url']]);
+                    if ($firstImage->image_path !== $seedImagePath && (str_starts_with((string) $firstImage->image_path, 'http') || str_starts_with((string) $firstImage->image_path, 'https'))) {
+                        // If current image is external placeholder, replace with local fallback path.
+                        $firstImage->update(['image_path' => $seedImagePath]);
                     }
                 }
-                if ($product->image !== $pd['image_url']) {
-                    $product->update(['image' => $pd['image_url']]);
+                if ($product->image !== $seedImagePath) {
+                    $product->update(['image' => $seedImagePath]);
                 }
             }
         }

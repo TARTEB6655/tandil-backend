@@ -130,6 +130,10 @@ class Product extends Model
         if (str_starts_with($normalized, 'media/')) {
             return asset($normalized);
         }
+        // Support plain public images paths as well (e.g. images/logo.png).
+        if (str_starts_with($normalized, 'images/')) {
+            return asset($normalized);
+        }
 
         if ($prefix && strpos($normalized, $prefix) !== 0) {
             $normalized = $prefix . $normalized;
