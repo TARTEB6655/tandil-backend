@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -119,10 +120,24 @@ class Product extends Model
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
         }
-        if ($prefix && strpos($path, $prefix) !== 0) {
-            $path = $prefix . $path;
+        $normalized = ltrim(str_replace('\\', '/', $path), '/');
+
+        // Remove accidental leading "media/" so DB values like media/products/x.jpg still resolve.
+        if (str_starts_with($normalized, 'media/')) {
+            $normalized = substr($normalized, 6);
         }
-        return asset('media/' . ltrim(str_replace('\\', '/', $path), '/'));
+
+        if ($prefix && strpos($normalized, $prefix) !== 0) {
+            $normalized = $prefix . $normalized;
+        }
+
+        // Primary URL for real uploaded files in storage/app/public.
+        if (Storage::disk('public')->exists($normalized)) {
+            return asset('storage/' . $normalized);
+        }
+
+        // Backward-compatible fallback for deployments serving /media/* directly.
+        return asset('media/' . $normalized);
     }
 
     /**
