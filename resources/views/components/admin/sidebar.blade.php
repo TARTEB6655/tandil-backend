@@ -41,14 +41,15 @@
                     @php
                         $navTopBase = 'flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors';
                         $navSubBase = 'flex items-center gap-2.5 rounded-md pl-7 pr-3 py-2 text-sm font-medium transition-colors';
-                        $navActive = 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold border-l-2 border-indigo-500';
-                        $navActiveTop = $navActive . ' -ml-px pl-[11px]';
+                        $navActive = 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold';
+                        $navActiveTop = $navActive;
                         $navIdleTop = 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100';
                         $navIdleSub = 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100';
                         $navSectionIdle = 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800';
                         $navSectionActive = 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300';
                     @endphp
                     <nav class="px-3 py-2" x-data="{ 
+                        notifications: {{ request()->routeIs('admin.notifications.*') ? 'true' : 'false' }},
                         userManagement: {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'true' : 'false' }},
                         subscriptions: {{ request()->routeIs('admin.subscription-plans.*') || request()->routeIs('admin.subscriptions.*') ? 'true' : 'false' }},
                         operations: {{ request()->routeIs('admin.visits.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.report-management.*') || request()->routeIs('admin.areas.*') || request()->routeIs('admin.zone-assignment.*') || request()->routeIs('admin.recent-activities.*') ? 'true' : 'false' }},
@@ -79,15 +80,34 @@
                                 $notificationsStatsNavActive = request()->routeIs('admin.notifications.statistics')
                                     || (request()->routeIs('admin.notifications.show') && request()->query('from') === 'stats');
                             @endphp
-                            <a href="{{ route('admin.notifications.index') }}" 
-                               class="{{ $navTopBase }} {{ $notificationsNavActive ? $navActiveTop : $navIdleTop }}">
+                            <button @click="notifications = !notifications"
+                                    class="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors {{ $notificationsNavActive ? $navActiveTop : $navIdleTop }}">
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                                 </svg>
                                 <span>{{ __('admin.notifications') }}</span>
                                 <span class="ml-auto px-2 py-0.5 text-xs font-semibold text-white bg-blue-600 dark:bg-blue-500 rounded-full shadow-sm">{{ $adminPersonalUnread }}</span>
-                            </a>
-                            <ul class="mt-1.5 flex flex-col gap-0.5">
+                                <svg class="w-3 h-3 text-gray-500 transition-transform duration-200" :class="{ 'rotate-90': notifications }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                            <ul x-show="notifications"
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="mt-1.5 flex flex-col gap-0.5">
+                                <li>
+                                    <a href="{{ route('admin.notifications.index') }}"
+                                       class="{{ $navSubBase }} {{ $notificationsNavActive ? $navActive : $navIdleSub }}">
+                                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
+                                        </svg>
+                                        <span class="min-w-0 truncate">{{ __('admin.notifications') }}</span>
+                                    </a>
+                                </li>
                                 <li>
                                     <a href="{{ route('admin.notifications.statistics') }}"
                                        class="{{ $navSubBase }} {{ $notificationsStatsNavActive ? $navActive : $navIdleSub }}">

@@ -56,15 +56,12 @@
 <div id="variableBuilderSection"
      class="{{ (old('product_type', $product->product_type ?? 'simple') === 'variable') ? '' : 'hidden' }} bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
 
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
         <div>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Product options (dummy)</h2>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Use this for sheep options like packaging, cutting, packing, contains, and weight. You can set option subtitle, extra price, and upload option image.
-            </p>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Product options</h2>
         </div>
         <button type="button" onclick="addOptionGroup()"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors shadow-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -124,7 +121,7 @@
 
     function buildGroupEl(g, gi) {
         var div = document.createElement('div');
-        div.className = 'border border-gray-200 dark:border-gray-600 rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-700/40';
+        div.className = 'border border-gray-100 dark:border-gray-700 rounded-xl p-4 space-y-3 bg-gray-50/70 dark:bg-gray-700/30 shadow-sm';
         div.dataset.groupIndex = gi;
 
         var header = document.createElement('div');
@@ -201,7 +198,7 @@
         var rmBtn = document.createElement('button');
         rmBtn.type = 'button';
         rmBtn.innerHTML = '&times;';
-        rmBtn.className = 'text-red-500 hover:text-red-700 text-xl font-bold leading-none px-1';
+        rmBtn.className = 'inline-flex items-center justify-center w-8 h-8 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-lg font-bold leading-none';
         rmBtn.addEventListener('click', function () {
             groups.splice(gi, 1);
             renderGroups();
@@ -227,7 +224,7 @@
         var addOptBtn = document.createElement('button');
         addOptBtn.type = 'button';
         addOptBtn.textContent = '+ Add option';
-        addOptBtn.className = 'text-xs text-indigo-600 hover:text-indigo-800 font-medium ml-2';
+        addOptBtn.className = 'inline-flex items-center ml-2 px-2.5 py-1.5 rounded-md text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-200 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 transition-colors';
         addOptBtn.addEventListener('click', function () {
             if (!groups[gi].options) groups[gi].options = [];
             groups[gi].options.push({
@@ -247,24 +244,24 @@
 
     function buildOptionEl(gi, oi, opt) {
         var row = document.createElement('div');
-        row.className = 'relative border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-700/60 space-y-2';
+        row.className = 'relative border border-gray-100 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-700/50 space-y-2';
 
         var rmBtn = document.createElement('button');
         rmBtn.type = 'button';
         rmBtn.innerHTML = '&times;';
-        rmBtn.className = 'absolute top-2 right-2 text-red-400 hover:text-red-600 font-bold text-lg leading-none';
+        rmBtn.className = 'absolute top-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold text-lg leading-none';
         rmBtn.addEventListener('click', function () {
             groups[gi].options.splice(oi, 1);
             renderGroups();
         });
 
         var optionTitle = document.createElement('div');
-        optionTitle.className = 'text-xs font-semibold text-gray-500 dark:text-gray-300';
-        optionTitle.textContent = 'Option';
+        optionTitle.className = 'text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide';
+        optionTitle.textContent = 'Option ' + (oi + 1);
 
         var nameLabel = document.createElement('div');
         nameLabel.className = 'text-xs font-semibold text-gray-600 dark:text-gray-300';
-        nameLabel.textContent = 'Option name';
+        nameLabel.textContent = 'Name';
 
         var label = document.createElement('input');
         label.type = 'text';
@@ -312,17 +309,17 @@
         imageMeta.className = 'text-[11px] text-gray-500 dark:text-gray-300';
         imageMeta.textContent = opt.image_path
             ? 'Current: ' + (opt.image_path.length > 42 ? opt.image_path.substring(0, 42) + '...' : opt.image_path)
-            : 'No image selected';
+            : '';
 
         var imagePreview = document.createElement('div');
-        imagePreview.className = 'w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 overflow-hidden flex items-center justify-center';
+        imagePreview.className = 'w-16 h-16 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 overflow-hidden flex items-center justify-center';
         var imagePreviewImg = document.createElement('img');
         imagePreviewImg.className = 'w-full h-full object-cover hidden';
         imagePreview.appendChild(imagePreviewImg);
 
         var imagePreviewPlaceholder = document.createElement('span');
-        imagePreviewPlaceholder.className = 'text-[10px] text-gray-400';
-        imagePreviewPlaceholder.textContent = 'No image';
+        imagePreviewPlaceholder.className = 'hidden';
+        imagePreviewPlaceholder.textContent = '';
         imagePreview.appendChild(imagePreviewPlaceholder);
 
         function setPreview(src) {
@@ -349,7 +346,7 @@
                 imageMeta.textContent = 'Selected: ' + f.name;
                 setPreview(URL.createObjectURL(f));
             } else {
-                imageMeta.textContent = opt.image_path ? ('Current: ' + opt.image_path) : 'No image selected';
+                imageMeta.textContent = opt.image_path ? ('Current: ' + opt.image_path) : '';
                 setPreview(opt.image_url || '');
             }
         });

@@ -82,15 +82,13 @@
                                             <img id="existingPrimaryImg" src="{{ $primaryExisting ? $primaryExisting->getImageUrl() : '' }}" alt="Main product image" class="w-full h-full object-cover">
                                         </div>
                                         <div class="space-y-1">
-                                            <p class="text-xs font-medium text-gray-600 dark:text-gray-400">All images ({{ $existingImages->count() }}) — scroll to see all</p>
                                             <div class="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 scrollbar-thin" style="scrollbar-width: thin;">
                                                 @foreach($existingImages as $img)
-                                                    <div class="existing-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer {{ $img->is_primary ? 'border-indigo-500 ring-2 ring-indigo-500/40' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}" data-url="{{ $img->getImageUrl() }}" title="Click to set as main (upload new to replace)">
+                                                    <div class="existing-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border cursor-pointer {{ $img->is_primary ? 'border-gray-300 dark:border-gray-500' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' }}" data-url="{{ $img->getImageUrl() }}" title="Click to set as main (upload new to replace)">
                                                         <img src="{{ $img->getImageUrl() }}" alt="" class="w-full h-full object-cover pointer-events-none">
-                                                        @if($img->is_primary)<span class="absolute bottom-0 left-0 right-0 bg-indigo-600 text-white text-[10px] font-medium text-center py-0.5">Main</span>@endif
                                                     </div>
                                                 @endforeach
-                                                <label for="imageInput" class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors gap-0.5 bg-transparent" title="Add more photos">
+                                                <label for="imageInput" class="flex-shrink-0 w-16 h-16 rounded-lg border border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors gap-0.5 bg-transparent" title="Add more photos">
                                                     <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                                                     <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">Add</span>
                                                 </label>
@@ -109,7 +107,7 @@
                                 </div>
                             @else
                                 <!-- No existing images: same empty state as create -->
-                                <label id="imageUploadArea" for="imageInput" class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/30 min-h-[280px] cursor-pointer transition-colors hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 block">
+                                <label id="imageUploadArea" for="imageInput" class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/30 min-h-[280px] cursor-pointer transition-colors hover:border-gray-300 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 block">
                                     <div class="flex flex-col items-center text-center pointer-events-none">
                                         <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mb-4">
                                             <svg class="w-8 h-8 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -130,7 +128,7 @@
                                     </div>
                                     <div class="flex flex-wrap items-center gap-2">
                                         <div id="imagePreviewGrid" class="flex flex-wrap gap-2 items-center"></div>
-                                        <button type="button" id="addMoreBtn" class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors gap-0.5 bg-transparent" title="Add more photos">
+                                        <button type="button" id="addMoreBtn" class="flex-shrink-0 w-16 h-16 rounded-lg border border-dashed border-gray-200 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors gap-0.5 bg-transparent" title="Add more photos">
                                             <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                                             <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">Add</span>
                                         </button>
@@ -420,10 +418,9 @@
                     if (primaryPreviewImg) primaryPreviewImg.src = uploadedImages[0].preview;
                     imagePreviewGrid.innerHTML = uploadedImages.map(function(img, index) {
                         var isPrimary = index === 0;
-                        return '<div class="media-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-move ' + (isPrimary ? 'border-indigo-500 ring-2 ring-indigo-500/40' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500') + '" data-index="' + index + '" draggable="true" title="Drag to reorder, click to set as main">' +
+                        return '<div class="media-thumb relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border cursor-move ' + (isPrimary ? 'border-gray-300 dark:border-gray-500' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500') + '" data-index="' + index + '" draggable="true" title="Drag to reorder, click to set as main">' +
                             '<img src="' + img.preview + '" alt="" class="w-full h-full object-cover pointer-events-none">' +
                             '<span class="absolute top-0.5 left-0.5 w-5 h-5 flex items-center justify-center bg-black/50 rounded cursor-move text-white text-[10px] font-bold leading-none">⋮⋮</span>' +
-                            (isPrimary ? '<span class="absolute bottom-0 left-0 right-0 bg-indigo-600 text-white text-[10px] font-medium text-center py-0.5">Main</span>' : '') +
                             '<button type="button" class="media-remove absolute top-0.5 right-0.5 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity" data-index="' + index + '" title="Remove"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>' +
                             '</div>';
                     }).join('');
@@ -498,14 +495,14 @@
             if (imageInput) imageInput.addEventListener('change', function(e) { addFiles(e.target.files); e.target.value = ''; });
             if (addMoreBtn) addMoreBtn.addEventListener('click', function(e) { e.preventDefault(); openFilePicker(); });
             if (imageUploadArea) {
-                imageUploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('border-indigo-500', 'bg-indigo-50/50', 'dark:bg-indigo-900/20'); var h = document.getElementById('dropHint'); if (h) h.classList.remove('hidden'); });
-                imageUploadArea.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('border-indigo-500', 'bg-indigo-50/50', 'dark:bg-indigo-900/20'); var h = document.getElementById('dropHint'); if (h) h.classList.add('hidden'); });
-                imageUploadArea.addEventListener('drop', function(e) { e.preventDefault(); this.classList.remove('border-indigo-500', 'bg-indigo-50/50', 'dark:bg-indigo-900/20'); var h = document.getElementById('dropHint'); if (h) h.classList.add('hidden'); addFiles(e.dataTransfer.files); });
+                imageUploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('border-gray-300', 'bg-gray-50/80', 'dark:bg-gray-700/40'); var h = document.getElementById('dropHint'); if (h) h.classList.remove('hidden'); });
+                imageUploadArea.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('border-gray-300', 'bg-gray-50/80', 'dark:bg-gray-700/40'); var h = document.getElementById('dropHint'); if (h) h.classList.add('hidden'); });
+                imageUploadArea.addEventListener('drop', function(e) { e.preventDefault(); this.classList.remove('border-gray-300', 'bg-gray-50/80', 'dark:bg-gray-700/40'); var h = document.getElementById('dropHint'); if (h) h.classList.add('hidden'); addFiles(e.dataTransfer.files); });
             }
             if (addMoreBtn) {
-                addMoreBtn.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); this.classList.add('border-indigo-500', 'bg-indigo-50/50'); });
-                addMoreBtn.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('border-indigo-500', 'bg-indigo-50/50'); });
-                addMoreBtn.addEventListener('drop', function(e) { e.preventDefault(); e.stopPropagation(); this.classList.remove('border-indigo-500', 'bg-indigo-50/50'); addFiles(e.dataTransfer.files); });
+                addMoreBtn.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); this.classList.add('border-gray-300', 'bg-gray-50/80'); });
+                addMoreBtn.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('border-gray-300', 'bg-gray-50/80'); });
+                addMoreBtn.addEventListener('drop', function(e) { e.preventDefault(); e.stopPropagation(); this.classList.remove('border-gray-300', 'bg-gray-50/80'); addFiles(e.dataTransfer.files); });
             }
             document.querySelectorAll('.existing-thumb').forEach(function(el) {
                 el.addEventListener('click', function() {
