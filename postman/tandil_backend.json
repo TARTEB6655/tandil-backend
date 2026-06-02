@@ -10310,7 +10310,7 @@
                                         "products"
                                     ]
                                 },
-                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), weight_unit, sku, handle, main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids. Auth: Bearer {{token}}."
+                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), weight_unit, sku, handle, main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids, data.option_groups (variable groups), data.variants (if configured). Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -10339,7 +10339,7 @@
                                         "{{product_id}}"
                                     ]
                                 },
-                                "description": "GET single product by ID (admin). Response: data.images, data.image_url (primary), data.service_ids (array of linked service IDs). 200 = success; 404 = not found; 401 = missing token. Auth: Bearer {{token}}."
+                                "description": "GET single product by ID (admin). Response: data.images, data.image_url (primary), data.service_ids (array of linked service IDs), and for variable products: data.option_groups[].name + data.option_groups[].options[].label, image_url, price_modifier. 200 = success; 404 = not found; 401 = missing token. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -10467,7 +10467,7 @@
                                         "{{product_id}}"
                                     ]
                                 },
-                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response: data.images, data.image_url, data.service_ids. Set product_id. Auth: Bearer {{token}}."
+                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response: data.images, data.image_url, data.service_ids, data.option_groups, data.variants (if configured). Set product_id. Auth: Bearer {{token}}."
                             }
                         },
                         {

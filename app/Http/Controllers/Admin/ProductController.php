@@ -75,6 +75,57 @@ class ProductController extends Controller
         // Canonical image for API response should always follow resolved main image first.
         // This avoids stale `products.image` values when primary image was changed.
         $rootImagePath = $mainImage['image_path'] ?? $product->image;
+
+        // Variable product extras (option groups + variants)
+        $optionGroups = [];
+        if ($product->relationLoaded('optionGroups')) {
+            foreach ($product->optionGroups as $group) {
+                $options = [];
+                if ($group->relationLoaded('options')) {
+                    foreach ($group->options as $opt) {
+                        $options[] = [
+                            'id' => $opt->id,
+                            'label' => $opt->label,
+                            'subtitle' => $opt->subtitle,
+                            'price_modifier' => $opt->price_modifier,
+                            'image_path' => $opt->image_path,
+                            'image_url' => $opt->image_url,
+                            'sort_order' => (int) $opt->sort_order,
+                        ];
+                    }
+                }
+
+                $optionGroups[] = [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'subtitle' => $group->subtitle,
+                    'input_type' => $group->input_type,
+                    'is_required' => (bool) $group->is_required,
+                    'sort_order' => (int) $group->sort_order,
+                    'options' => $options,
+                ];
+            }
+        }
+
+        $variants = [];
+        if ($product->relationLoaded('variants')) {
+            foreach ($product->variants as $variant) {
+                $optIds = [];
+                if ($variant->relationLoaded('options')) {
+                    $optIds = $variant->options->pluck('id')->values()->all();
+                }
+                $variants[] = [
+                    'id' => $variant->id,
+                    'sku' => $variant->sku,
+                    'price' => $variant->price,
+                    'stock' => $variant->stock,
+                    'is_default' => (bool) $variant->is_default,
+                    'label' => $variant->label,
+                    'option_ids' => $optIds,
+                ];
+            }
+        }
+
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -96,6 +147,8 @@ class ProductController extends Controller
             'gallery_images' => $galleryImages,
             'category' => $product->relationLoaded('category') ? $product->category : null,
             'service_ids' => $product->relationLoaded('services') ? $product->services->pluck('id')->values()->all() : $product->services()->pluck('id')->values()->all(),
+            'option_groups' => $optionGroups,
+            'variants' => $variants,
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at,
         ];
@@ -333,9 +386,13 @@ class ProductController extends Controller
             'firstImage:id,product_id,image_path,sort_order',
         ]);
         
-        // Add images relation only if needed (API requests)
+        // Add extra relations only for API requests (so variable option groups are available in JSON).
         if ($isApi) {
-            $query->with('images:id,product_id,image_path,sort_order,is_primary');
+            $query->with([
+                'images:id,product_id,image_path,sort_order,is_primary',
+                'optionGroups.options',
+                'variants.options',
+            ]);
         }
 
         if ($search) {
@@ -688,7 +745,7 @@ class ProductController extends Controller
         // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
         if ($request->expectsJson() || $request->is('api/*')) {
             $product->refresh();
-            $product->load(['category', 'services', 'images', 'primaryImage']);
+            $product->load(['category', 'services', 'images', 'primaryImage', 'optionGroups.options', 'variants.options']);
             return response()->json([
                 'status' => true,
                 'message' => 'Product created successfully.',
@@ -720,7 +777,7 @@ class ProductController extends Controller
         if ($err = $this->invalidProductIdResponse($id, $request)) {
             return $err;
         }
-        $product = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options'])->findOrFail($id);
+        $product = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])->findOrFail($id);
         
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
@@ -1016,7 +1073,7 @@ class ProductController extends Controller
 
         if ($request->expectsJson() || $request->is('api/*')) {
             // Reload from DB so response shows all updated values (name, description, price, image, etc.)
-            $fresh = Product::with(['category', 'services', 'images', 'primaryImage'])->find($product->id);
+            $fresh = Product::with(['category', 'services', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])->find($product->id);
             $updatedFields = array_keys($updateData);
             return response()->json([
                 'status' => true,
@@ -1313,7 +1370,7 @@ class ProductController extends Controller
         
         if ($request->expectsJson() || $request->is('api/*')) {
             $product->refresh();
-            $product->load(['category', 'images', 'primaryImage']);
+            $product->load(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options']);
             return response()->json([
                 'status'  => true,
                 'message' => $message,
