@@ -41,7 +41,8 @@
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
                         @forelse($categories as $category)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                                onclick="window.location='{{ route('admin.categories.show', $category->id) }}'">
                                 <td class="px-4 py-3">
                                     @if($category->image_url)
                                         <img src="{{ $category->image_url }}" alt="{{ $category->name }}" 
@@ -76,7 +77,7 @@
                                 <td class="px-4 py-3 hidden lg:table-cell max-w-[200px]">
                                     <div class="text-sm text-gray-500 dark:text-gray-400 truncate" title="{{ $category->description ?? 'N/A' }}">{{ Str::limit($category->description ?? 'N/A', 40) }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-right">
+                                <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
                                     <div class="flex items-center justify-end gap-2">
                                         <a href="{{ route('admin.categories.edit', $category->id) }}" 
                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-md transition-colors">Edit</a>

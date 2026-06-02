@@ -35,6 +35,21 @@ class CategoryController extends Controller
     }
 
     /**
+     * Display a category and all products linked to it.
+     */
+    public function show($id)
+    {
+        $category = Category::findOrFail($id);
+
+        $products = $category->products()
+            ->with(['primaryImage:id,product_id,image_path,is_primary', 'firstImage:id,product_id,image_path,sort_order'])
+            ->orderByDesc('id')
+            ->paginate(20);
+
+        return view('admin.categories.show', compact('category', 'products'));
+    }
+
+    /**
      * Store a newly created category.
      */
     public function store(Request $request)

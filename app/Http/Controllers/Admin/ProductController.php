@@ -72,7 +72,9 @@ class ProductController extends Controller
                 ];
             }
         }
-        $rootImagePath = $product->image ?? ($mainImage['image_path'] ?? null);
+        // Canonical image for API response should always follow resolved main image first.
+        // This avoids stale `products.image` values when primary image was changed.
+        $rootImagePath = $mainImage['image_path'] ?? $product->image;
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -88,7 +90,7 @@ class ProductController extends Controller
             'handle' => $product->handle,
             'estimated_arrival' => $product->estimated_arrival,
             'job_duration' => $product->job_duration,
-            'image' => $product->image,
+            'image' => $rootImagePath,
             'image_url' => ProductImage::buildFullUrl($rootImagePath),
             'main_image' => $mainImage,
             'gallery_images' => $galleryImages,
