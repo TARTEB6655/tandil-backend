@@ -10298,6 +10298,18 @@
                                             "type": "text"
                                         },
                                         {
+                                            "key": "product_type",
+                                            "value": "variable",
+                                            "type": "text",
+                                            "description": "Optional. simple | variable. For variable product set value = variable."
+                                        },
+                                        {
+                                            "key": "option_groups_json",
+                                            "value": "[{\"name\":\"Packaging type\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_pack_1\",\"label\":\"In bag\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]",
+                                            "type": "text",
+                                            "description": "Optional. JSON string for variable options."
+                                        },
+                                        {
                                             "key": "image_urls",
                                             "value": "",
                                             "type": "text",
@@ -10314,6 +10326,12 @@
                                             "type": "file",
                                             "src": [],
                                             "description": "Extra product images. Optional."
+                                        },
+                                        {
+                                            "key": "option_images[opt_pack_1]",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "Optional option image file. temp_key in key name must match option_groups_json temp_key."
                                         }
                                     ]
                                 },
@@ -10328,7 +10346,7 @@
                                         "products"
                                     ]
                                 },
-                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), weight_unit, sku, handle, main_image, images[]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids. Auth: Bearer {{token}}."
+                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), weight_unit, sku, handle, main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids. Auth: Bearer {{token}}."
                             }
                         },
                         {
@@ -10436,6 +10454,18 @@
                                             "type": "text"
                                         },
                                         {
+                                            "key": "product_type",
+                                            "value": "variable",
+                                            "type": "text",
+                                            "description": "Optional. simple | variable."
+                                        },
+                                        {
+                                            "key": "option_groups_json",
+                                            "value": "[{\"name\":\"Cutting\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_cut_1\",\"label\":\"Arabic cut (8 pieces)\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]",
+                                            "type": "text",
+                                            "description": "Optional. JSON string for variable options update."
+                                        },
+                                        {
                                             "key": "image_urls",
                                             "value": "",
                                             "type": "text",
@@ -10452,6 +10482,12 @@
                                             "type": "file",
                                             "src": [],
                                             "description": "Extra images. Optional. Use POST if PUT doesn't send file."
+                                        },
+                                        {
+                                            "key": "option_images[opt_cut_1]",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "Optional option image file. temp_key must match option_groups_json."
                                         }
                                     ]
                                 },
@@ -10467,7 +10503,7 @@
                                         "{{product_id}}"
                                     ]
                                 },
-                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), main_image, images[]. Response: data.images, data.image_url, data.service_ids. Set product_id. Auth: Bearer {{token}}."
+                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response: data.images, data.image_url, data.service_ids. Set product_id. Auth: Bearer {{token}}."
                             }
                         },
                         {
