@@ -20,9 +20,9 @@
         <div class="mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-md text-sm text-red-700">{{ session('error') }}</div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 items-start">
-        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden max-w-[520px] w-full">
-            <div class="aspect-[4/3] bg-gray-100">
+    <div class="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden max-w-[420px] w-full mx-auto lg:mx-0">
+            <div class="aspect-square max-h-[420px] bg-gray-100">
                 @if($imgUrl)
                     <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
                 @else
@@ -35,7 +35,7 @@
             </div>
         </div>
 
-        <div class="max-w-[560px] w-full">
+        <div class="max-w-[520px] w-full">
             @if($product->category)
                 <p class="text-sm text-gray-500 mb-1">{{ $product->category->name }}</p>
             @endif
