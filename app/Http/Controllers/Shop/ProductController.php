@@ -157,7 +157,9 @@ class ProductController extends Controller
                 ];
             }
         }
-        $rootImagePath = $product->image ?? ($mainImage['image_path'] ?? null);
+        // Keep public API image fields aligned with resolved primary/main image.
+        // Prevents stale `products.image` from leaking into client responses.
+        $rootImagePath = $mainImage['image_path'] ?? $product->image;
 
         // Variable product extras
         $optionGroups = [];
@@ -222,7 +224,7 @@ class ProductController extends Controller
             'handle'           => $product->handle,
             'estimated_arrival'=> $product->estimated_arrival,
             'job_duration'     => $product->job_duration,
-            'image'            => $product->image,
+            'image'            => $rootImagePath,
             'image_url'        => ProductImage::buildFullUrl($rootImagePath),
             'main_image'       => $mainImage,
             'gallery_images'   => $galleryImages,
