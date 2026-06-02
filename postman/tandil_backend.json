@@ -10639,150 +10639,8 @@
                                 },
                                 "description": "Bulk update product stock. Body: product_ids (array), stock (integer). Returns JSON: status, message, count."
                             }
-                        },
-                        {
-                            "name": "Variable Products (Admin)",
-                            "item": [
-                                {
-                                    "name": "Sync Option Groups",
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application/json"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"groups\": [\n    {\n      \"name\": \"Packaging type\",\n      \"input_type\": \"single\",\n      \"is_required\": true,\n      \"sort_order\": 0,\n      \"options\": [\n        { \"label\": \"In bag\", \"price_modifier\": 0, \"sort_order\": 0 },\n        { \"label\": \"In box\", \"price_modifier\": 5, \"sort_order\": 1 }\n      ]\n    },\n    {\n      \"name\": \"Cutting\",\n      \"input_type\": \"single\",\n      \"is_required\": true,\n      \"sort_order\": 1,\n      \"options\": [\n        { \"label\": \"Arabic 8 cuts\", \"price_modifier\": 0, \"sort_order\": 0 },\n        { \"label\": \"Biryani large\", \"price_modifier\": 0, \"sort_order\": 1 }\n      ]\n    }\n  ]\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/option-groups/sync",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "products",
-                                                "{{product_id}}",
-                                                "option-groups",
-                                                "sync"
-                                            ]
-                                        },
-                                        "description": "Replace all option groups/options for a variable product. Use after creating product with product_type=variable."
-                                    }
-                                },
-                                {
-                                    "name": "List Option Groups",
-                                    "request": {
-                                        "method": "GET",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/option-groups",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "products",
-                                                "{{product_id}}",
-                                                "option-groups"
-                                            ]
-                                        },
-                                        "description": "Get option groups + options for selected product."
-                                    }
-                                },
-                                {
-                                    "name": "Create Variant",
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application/json"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"sku\": \"SHP-NAJDI-8CUT-BAG\",\n  \"price\": 1030,\n  \"stock\": 25,\n  \"is_default\": true,\n  \"label\": \"In bag + Arabic 8 cuts\",\n  \"option_ids\": [1, 3]\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/variants",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "products",
-                                                "{{product_id}}",
-                                                "variants"
-                                            ]
-                                        },
-                                        "description": "Create one variant linked to selected option IDs."
-                                    }
-                                },
-                                {
-                                    "name": "List Variants",
-                                    "request": {
-                                        "method": "GET",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/variants",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "products",
-                                                "{{product_id}}",
-                                                "variants"
-                                            ]
-                                        },
-                                        "description": "Get all variants for selected variable product."
-                                    }
-                                }
-                            ],
-                            "description": "Variable product APIs (admin). Flow: create product with product_type=variable -> sync option groups -> create/list variants."
                         }
+
                     ],
                     "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
                 }
@@ -10790,49 +10648,11 @@
             "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
         },
         {
-            "name": "Variable Product APIs (Quick Access)",
-            "description": "Dedicated quick-access folder for variable product testing in correct order.",
+            "name": "Variable Product CRUD (Form-Data)",
+            "description": "Only required APIs for variable product management.",
             "item": [
                 {
-                    "name": "Step 1 - Admin List Products (set product_id)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/admin/products?per_page=50&filter=all",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "products"
-                            ],
-                            "query": [
-                                {
-                                    "key": "per_page",
-                                    "value": "50"
-                                },
-                                {
-                                    "key": "filter",
-                                    "value": "all"
-                                }
-                            ]
-                        },
-                        "description": "Run first. Copy/set {{product_id}} for variable product."
-                    }
-                },
-                {
-                    "name": "Step 2 - Sync Option Groups",
+                    "name": "Create Variable Product",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -10841,8 +10661,41 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
+                                "key": "Accept",
                                 "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                { "key": "name", "value": "Najdi Sheep", "type": "text" },
+                                { "key": "description", "value": "Variable product sample", "type": "text" },
+                                { "key": "price", "value": "1030", "type": "text" },
+                                { "key": "stock", "value": "50", "type": "text" },
+                                { "key": "status", "value": "active", "type": "text" },
+                                { "key": "category_id", "value": "18", "type": "text" },
+                                { "key": "product_type", "value": "variable", "type": "text" },
+                                { "key": "option_groups_json", "value": "[{\"name\":\"Packaging type\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_pack_1\",\"label\":\"In bag\",\"subtitle\":\"Free\",\"price_modifier\":0}]},{\"name\":\"Najdi weight\",\"subtitle\":\"Optional - Select one\",\"input_type\":\"single\",\"is_required\":false,\"options\":[{\"temp_key\":\"opt_w_1\",\"label\":\"8-10 KG\",\"subtitle\":\"age 3-4\",\"price_modifier\":210}]}]", "type": "text" },
+                                { "key": "main_image", "type": "file", "src": "" },
+                                { "key": "option_images[opt_pack_1]", "type": "file", "src": "" },
+                                { "key": "option_images[opt_w_1]", "type": "file", "src": "" }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/products",
+                            "host": [ "{{base_url}}" ],
+                            "path": [ "api", "admin", "products" ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Variable Product",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
                             },
                             {
                                 "key": "Accept",
@@ -10850,27 +10703,24 @@
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"groups\": [\n    {\n      \"name\": \"Packaging type\",\n      \"input_type\": \"single\",\n      \"is_required\": true,\n      \"sort_order\": 0,\n      \"options\": [\n        { \"label\": \"In bag\", \"price_modifier\": 0, \"sort_order\": 0 },\n        { \"label\": \"In box\", \"price_modifier\": 5, \"sort_order\": 1 }\n      ]\n    },\n    {\n      \"name\": \"Cutting\",\n      \"input_type\": \"single\",\n      \"is_required\": true,\n      \"sort_order\": 1,\n      \"options\": [\n        { \"label\": \"Arabic 8 cuts\", \"price_modifier\": 0, \"sort_order\": 0 },\n        { \"label\": \"Biryani large\", \"price_modifier\": 0, \"sort_order\": 1 }\n      ]\n    }\n  ]\n}"
+                            "mode": "formdata",
+                            "formdata": [
+                                { "key": "name", "value": "Najdi Sheep Updated", "type": "text" },
+                                { "key": "price", "value": "1040", "type": "text" },
+                                { "key": "product_type", "value": "variable", "type": "text" },
+                                { "key": "option_groups_json", "value": "[{\"name\":\"Cutting\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_cut_1\",\"label\":\"Arabic cut (8 pieces)\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]", "type": "text" },
+                                { "key": "option_images[opt_cut_1]", "type": "file", "src": "" }
+                            ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/option-groups/sync",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "products",
-                                "{{product_id}}",
-                                "option-groups",
-                                "sync"
-                            ]
+                            "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                            "host": [ "{{base_url}}" ],
+                            "path": [ "api", "admin", "products", "{{product_id}}" ]
                         }
                     }
                 },
                 {
-                    "name": "Step 3 - List Option Groups",
+                    "name": "Get Single Product",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -10884,62 +10734,16 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/option-groups",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "products",
-                                "{{product_id}}",
-                                "option-groups"
-                            ]
-                        },
-                        "description": "Use option IDs from this response for Step 4."
-                    }
-                },
-                {
-                    "name": "Step 4 - Create Variant",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"sku\": \"SHP-NAJDI-8CUT-BAG\",\n  \"price\": 1030,\n  \"stock\": 25,\n  \"is_default\": true,\n  \"label\": \"In bag + Arabic 8 cuts\",\n  \"option_ids\": [1, 3]\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/variants",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "products",
-                                "{{product_id}}",
-                                "variants"
-                            ]
+                            "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                            "host": [ "{{base_url}}" ],
+                            "path": [ "api", "admin", "products", "{{product_id}}" ]
                         }
                     }
                 },
                 {
-                    "name": "Step 5 - List Variants",
+                    "name": "Delete Product",
                     "request": {
-                        "method": "GET",
+                        "method": "DELETE",
                         "header": [
                             {
                                 "key": "Authorization",
@@ -10951,43 +10755,10 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/admin/products/{{product_id}}/variants",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "products",
-                                "{{product_id}}",
-                                "variants"
-                            ]
+                            "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                            "host": [ "{{base_url}}" ],
+                            "path": [ "api", "admin", "products", "{{product_id}}" ]
                         }
-                    }
-                },
-                {
-                    "name": "Step 6 - Public Product Details (verify variable payload)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shop/products/{{product_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shop",
-                                "products",
-                                "{{product_id}}"
-                            ]
-                        },
-                        "description": "Final smoke check: confirm product_type=variable and option_groups/variants in response."
                     }
                 }
             ]
