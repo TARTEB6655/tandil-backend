@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Service;
 use Illuminate\Http\Request;
 
@@ -13,6 +14,25 @@ use Illuminate\Http\Request;
  */
 class ServiceController extends Controller
 {
+    /**
+     * Return product payload with canonical image path/url from primary image.
+     */
+    private function productToApiData(Product $product): array
+    {
+        $rootImagePath = $product->primaryImage?->image_path ?? $product->image;
+
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->handle ?? \Illuminate\Support\Str::slug($product->name),
+            'description' => $product->description,
+            'price' => (float) $product->price,
+            'image' => $rootImagePath,
+            'image_url' => ProductImage::buildFullUrl($rootImagePath),
+            'status' => $product->status,
+        ];
+    }
+
     private function serviceToArray(Service $service, array $extra = []): array
     {
         return array_merge([
@@ -105,15 +125,16 @@ class ServiceController extends Controller
 
         $data = $products->getCollection()->map(function (Product $product) {
             $serviceNames = $product->services()->pluck('name')->values()->all();
+            $productData = $this->productToApiData($product);
             return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'slug' => $product->handle ?? \Illuminate\Support\Str::slug($product->name),
-                'description' => $product->description,
-                'price' => (float) $product->price,
+                'id' => $productData['id'],
+                'name' => $productData['name'],
+                'slug' => $productData['slug'],
+                'description' => $productData['description'],
+                'price' => $productData['price'],
                 'currency' => 'AED',
-                'image' => $product->image,
-                'image_url' => $product->image_url,
+                'image' => $productData['image'],
+                'image_url' => $productData['image_url'],
                 'category' => $product->relationLoaded('category') && $product->category
                     ? ['id' => $product->category->id, 'name' => $product->category->name]
                     : null,
@@ -142,20 +163,10 @@ class ServiceController extends Controller
         $service = Service::findOrFail($id);
         $products = $service->products()
             ->where('status', 'active')
+            ->with('primaryImage')
             ->orderBy('name')
             ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'slug' => $product->handle ?? \Illuminate\Support\Str::slug($product->name),
-                    'description' => $product->description,
-                    'price' => (float) $product->price,
-                    'image' => $product->image,
-                    'image_url' => $product->image_url,
-                    'status' => $product->status,
-                ];
-            })
+            ->map(fn (Product $product) => $this->productToApiData($product))
             ->values()
             ->all();
 
@@ -206,21 +217,13 @@ class ServiceController extends Controller
     public function getByCategory($id)
     {
         $service = Service::with(['products' => function ($q) {
-            $q->where('status', 'active')->orderBy('name');
+            $q->where('status', 'active')->with('primaryImage')->orderBy('name');
         }])->findOrFail($id);
 
-        $products = $service->products->map(function ($product) {
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'slug' => $product->handle ?? \Illuminate\Support\Str::slug($product->name),
-                'description' => $product->description,
-                'price' => (float) $product->price,
-                'image' => $product->image,
-                'image_url' => $product->image_url,
-                'status' => $product->status,
-            ];
-        })->values()->all();
+        $products = $service->products
+            ->map(fn (Product $product) => $this->productToApiData($product))
+            ->values()
+            ->all();
 
         $serviceData = $this->serviceToArray($service, [
             'products_count' => $service->products->count(),

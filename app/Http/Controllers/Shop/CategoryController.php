@@ -4,10 +4,38 @@ namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductImage;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
+    /**
+     * Build stable product image payload (root image + image_url follow primary image).
+     */
+    private function productToCategoryApiData(Product $product): array
+    {
+        $imagesCollection = $product->relationLoaded('images') ? $product->images : collect([]);
+        $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
+        $mainImagePath = $primaryImage?->image_path;
+
+        if (! $mainImagePath) {
+            foreach (ProductImage::uniqueByPath($imagesCollection) as $img) {
+                if ($img->is_primary && $img->image_path) {
+                    $mainImagePath = $img->image_path;
+                    break;
+                }
+            }
+        }
+
+        $rootImagePath = $mainImagePath ?? $product->image;
+        $arr = $product->toArray();
+        $arr['image'] = $rootImagePath;
+        $arr['image_url'] = ProductImage::buildFullUrl($rootImagePath);
+
+        return $arr;
+    }
+
     /**
      * Same category data shape as admin API: id, name, slug, description, image, image_url (+ optional extras).
      */
@@ -38,7 +66,7 @@ class CategoryController extends Controller
         }])
             ->with(['products' => function ($query) {
                 $query->where('status', 'active')
-                    ->with('primaryImage')
+                    ->with(['images', 'primaryImage'])
                     ->orderBy('created_at', 'desc')
                     ->take(3);
             }])
@@ -47,7 +75,9 @@ class CategoryController extends Controller
 
         $data = $categories->map(fn (Category $c) => $this->categoryToApiData($c, [
             'products_count' => $c->products_count ?? 0,
-            'products' => $c->relationLoaded('products') ? $c->products->toArray() : [],
+            'products' => $c->relationLoaded('products')
+                ? $c->products->map(fn (Product $p) => $this->productToCategoryApiData($p))->values()->all()
+                : [],
         ]))->values()->all();
 
         return response()->json([
@@ -103,7 +133,7 @@ class CategoryController extends Controller
             'message' => 'Category retrieved successfully.',
             'data' => [
                 'category' => $categoryData,
-                'products' => $products->items(),
+                'products' => array_map(fn (Product $p) => $this->productToCategoryApiData($p), $products->items()),
                 'pagination' => [
                     'current_page' => $products->currentPage(),
                     'last_page' => $products->lastPage(),
