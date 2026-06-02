@@ -460,7 +460,16 @@ class ProductController extends Controller
             return;
         }
 
-        DB::transaction(function () use ($product, $groups, $optionImageFiles) {
+        // Keep old image paths by option id so editing one option image does not clear others.
+        $existingOptionImagePaths = $product->optionGroups()
+            ->with('options:id,product_option_group_id,image_path')
+            ->get()
+            ->flatMap(fn ($group) => $group->options->mapWithKeys(
+                fn ($opt) => [$opt->id => $opt->image_path]
+            ))
+            ->all();
+
+        DB::transaction(function () use ($product, $groups, $optionImageFiles, $existingOptionImagePaths) {
             $product->optionGroups()->delete();
             foreach ($groups as $gi => $groupData) {
                 if (empty($groupData['name'])) {
@@ -481,7 +490,7 @@ class ProductController extends Controller
                         'label'          => $opt['label'],
                         'subtitle'       => $opt['subtitle'] ?? null,
                         'price_modifier' => $opt['price_modifier'] ?? 0,
-                        'image_path'     => $this->resolveOptionImagePath($opt, $optionImageFiles),
+                        'image_path'     => $this->resolveOptionImagePath($opt, $optionImageFiles, $existingOptionImagePaths),
                         'sort_order'     => $opt['sort_order'] ?? $oi,
                     ]);
                 }
@@ -492,7 +501,11 @@ class ProductController extends Controller
     /**
      * Resolve option image from uploaded file (preferred) or existing path in JSON.
      */
-    private function resolveOptionImagePath(array $optionData, ?array $optionImageFiles = null): ?string
+    private function resolveOptionImagePath(
+        array $optionData,
+        ?array $optionImageFiles = null,
+        array $existingOptionImagePaths = []
+    ): ?string
     {
         $tempKey = $optionData['temp_key'] ?? null;
         if ($tempKey && is_array($optionImageFiles) && isset($optionImageFiles[$tempKey])) {
@@ -506,6 +519,10 @@ class ProductController extends Controller
 
         $imagePath = $optionData['image_path'] ?? null;
         if (! is_string($imagePath) || trim($imagePath) === '') {
+            $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : null;
+            if ($optionId && isset($existingOptionImagePaths[$optionId])) {
+                return $existingOptionImagePaths[$optionId];
+            }
             return null;
         }
 
