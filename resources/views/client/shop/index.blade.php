@@ -1,6 +1,3 @@
-@php
-    use Illuminate\Support\Facades\Storage;
-@endphp
 <x-client-layout>
     {{-- Page Header --}}
     <div class="mb-6 flex items-center justify-between">
@@ -88,9 +85,9 @@
                         $isVariable = ($product->product_type ?? 'simple') === 'variable';
                         $hasGroups  = $isVariable && $product->optionGroups->isNotEmpty();
                     @endphp
-                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group flex flex-col">
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group flex flex-col h-full">
                         {{-- Image --}}
-                        <div class="relative h-52 bg-gray-100 overflow-hidden shrink-0">
+                        <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden shrink-0">
                             @if($imgUrl)
                                 <img src="{{ $imgUrl }}" alt="{{ $product->name }}"
                                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
@@ -112,7 +109,7 @@
                             @endif
                         </div>
 
-                        <div class="p-4 flex flex-col flex-1">
+                        <div class="p-4 flex flex-col flex-1 min-h-[190px]">
                             @if($product->category)
                                 <p class="text-xs text-gray-400 mb-1">{{ $product->category->name }}</p>
                             @endif
