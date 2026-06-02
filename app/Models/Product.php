@@ -69,6 +69,14 @@ class Product extends Model
     }
 
     /**
+     * First available image by sort order (fallback when no primary image is marked).
+     */
+    public function firstImage()
+    {
+        return $this->hasOne(ProductImage::class)->orderBy('sort_order');
+    }
+
+    /**
      * Get primary_image from already-loaded relation (no extra query).
      */
     public function getPrimaryImageAttribute()
@@ -87,6 +95,13 @@ class Product extends Model
             $primary = $this->getRelation('primaryImage');
             if ($primary && $primary->image_path) {
                 return $this->buildImageUrl($primary->image_path);
+            }
+        }
+        // Fallback to first available image relation when no primary is marked
+        if ($this->relationLoaded('firstImage')) {
+            $first = $this->getRelation('firstImage');
+            if ($first && $first->image_path) {
+                return $this->buildImageUrl($first->image_path);
             }
         }
         // Fallback to image field

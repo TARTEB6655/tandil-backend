@@ -325,7 +325,11 @@ class ProductController extends Controller
         $categoryId = $request->query('category_id');
 
         // Optimized: only load what's needed
-        $query = Product::with(['category:id,name,slug', 'primaryImage:id,product_id,image_path,is_primary']);
+        $query = Product::with([
+            'category:id,name,slug',
+            'primaryImage:id,product_id,image_path,is_primary',
+            'firstImage:id,product_id,image_path,sort_order',
+        ]);
         
         // Add images relation only if needed (API requests)
         if ($isApi) {
@@ -927,7 +931,15 @@ class ProductController extends Controller
                     'is_primary' => false,
                 ]);
             }
-            // Leave product.image and primary record unchanged
+            // If there was no primary image before, promote first newly uploaded image as primary
+            // so admin listing cards and API always have a canonical thumbnail.
+            if (! $primaryImage) {
+                $newPrimary = ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
+                if ($newPrimary) {
+                    $newPrimary->update(['is_primary' => true, 'sort_order' => 0]);
+                    $updateData['image'] = $newPrimary->image_path;
+                }
+            }
         }
 
         // Optional: add image URLs (multipart image_urls or image_url[])
