@@ -1,6 +1,3 @@
-@php
-    use Illuminate\Support\Facades\Storage;
-@endphp
 <x-client-layout>
     <!-- Page Header -->
     <div class="mb-6">
@@ -41,8 +38,8 @@
                             <!-- Product Image -->
                             <div class="flex-shrink-0">
                                 <div class="h-24 w-24 rounded-lg overflow-hidden bg-gray-100">
-                                    @if($item->product->image)
-                                        <img src="{{ Storage::disk('public')->exists($item->product->image) ? asset('storage/' . $item->product->image) : (str_starts_with($item->product->image, 'http') ? $item->product->image : asset('images/placeholder.png')) }}" 
+                                    @if($item->product->getImageUrl())
+                                        <img src="{{ $item->product->getImageUrl() }}" 
                                              alt="{{ $item->product->name }}" 
                                              class="h-full w-full object-cover">
                                     @else

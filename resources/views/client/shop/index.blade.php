@@ -83,15 +83,8 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 @forelse($products as $product)
                     @php
-                        $imgUrl = null;
-                        if ($product->relationLoaded('primaryImage') && $product->primaryImage) {
-                            $ip = $product->primaryImage->image_path;
-                            $imgUrl = str_starts_with($ip, 'http') ? $ip : asset('storage/' . $ip);
-                        } elseif ($product->image) {
-                            $imgUrl = str_starts_with($product->image, 'http')
-                                ? $product->image
-                                : asset('storage/' . $product->image);
-                        }
+                        // Use centralized model URL accessor (same behavior as admin/products API).
+                        $imgUrl = $product->getImageUrl();
                         $isVariable = ($product->product_type ?? 'simple') === 'variable';
                         $hasGroups  = $isVariable && $product->optionGroups->isNotEmpty();
                     @endphp
