@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class ProductOption extends Model
 {
@@ -43,6 +44,14 @@ class ProductOption extends Model
         if (str_starts_with($normalized, 'media/')) {
             return asset($normalized);
         }
+
+        // Option images are uploaded via store('product-options', 'public'),
+        // so the canonical URL should come from the public disk.
+        if (Storage::disk('public')->exists($normalized)) {
+            return asset(ltrim(Storage::disk('public')->url($normalized), '/'));
+        }
+
+        // Backward compatibility for older deployments that expose files via /media.
         return asset('media/' . $normalized);
     }
 }
