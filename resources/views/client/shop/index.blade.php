@@ -208,7 +208,7 @@
                     {{-- Modal scrollable body --}}
                     <div class="overflow-y-auto flex-1 px-5 py-4 space-y-6">
                         @foreach($product->optionGroups as $group)
-                            <div>
+                            <div data-group-name="opt_{{ $group->id }}" data-required="{{ $group->is_required ? '1' : '0' }}">
                                 <div class="flex items-center justify-between mb-2">
                                     <h4 class="text-sm font-semibold text-gray-800">{{ $group->name }}</h4>
                                     <span class="text-xs px-2 py-0.5 rounded-full
@@ -334,13 +334,12 @@
         var modal = document.getElementById('varModal-' + productId);
         if (!form || !modal) return true;
 
-        // Check required radio groups
+        // Check required single-select groups only
         var valid = true;
-        var requiredGroups = modal.querySelectorAll('[name^="opt_"][type="radio"]');
-        var groupNames = new Set();
-        requiredGroups.forEach(function(r) { groupNames.add(r.name); });
-        groupNames.forEach(function(gname) {
-            if (!modal.querySelector('[name="' + gname + '"]:checked')) {
+        modal.querySelectorAll('[data-group-name][data-required="1"]').forEach(function(groupEl) {
+            var gname = groupEl.getAttribute('data-group-name');
+            var radios = groupEl.querySelectorAll('input[type="radio"][name="' + gname + '"]');
+            if (radios.length > 0 && !groupEl.querySelector('input[type="radio"][name="' + gname + '"]:checked')) {
                 alert('Please select an option for all required groups.');
                 valid = false;
             }

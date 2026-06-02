@@ -176,7 +176,8 @@
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 truncate">{{ $item->product->name }}</p>
                                     <p class="text-xs text-gray-500">Qty: {{ $item->quantity }}</p>
-                                    <p class="text-sm font-semibold text-gray-900">AED {{ number_format($item->quantity * $item->product->price, 2) }}</p>
+                                    @php $unitPrice = $item->unit_price ?? $item->product->price; @endphp
+                                    <p class="text-sm font-semibold text-gray-900">AED {{ number_format($item->quantity * $unitPrice, 2) }}</p>
                                 </div>
                             </div>
                         @endforeach

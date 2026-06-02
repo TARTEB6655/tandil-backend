@@ -42,7 +42,11 @@ class CheckoutController extends Controller
         }
 
         $subtotal = round($cartItems->sum(function ($item) {
-            return $item->product ? $item->quantity * (float) $item->product->price : 0;
+            if (! $item->product) {
+                return 0;
+            }
+            $unit = $item->unit_price ?? (float) $item->product->price;
+            return $item->quantity * $unit;
         }), 2);
 
         $couponCode = strtoupper(trim((string) request()->query('coupon_code', old('coupon_code', ''))));
@@ -132,7 +136,8 @@ class CheckoutController extends Controller
         }
 
         $subtotal = round($cartItems->sum(function ($item) {
-            return $item->quantity * (float) $item->product->price;
+            $unit = $item->unit_price ?? (float) $item->product->price;
+            return $item->quantity * $unit;
         }), 2);
         $couponCode = strtoupper(trim((string) $request->input('coupon_code', '')));
         $couponId = null;
@@ -206,8 +211,8 @@ class CheckoutController extends Controller
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
                     'quantity' => $cartItem->quantity,
-                    'price' => $cartItem->product->price,
-                    'subtotal' => $cartItem->quantity * $cartItem->product->price,
+                    'price' => $cartItem->unit_price ?? $cartItem->product->price,
+                    'subtotal' => $cartItem->quantity * ($cartItem->unit_price ?? $cartItem->product->price),
                 ]);
 
                 $cartItem->product->decrement('stock', $cartItem->quantity);

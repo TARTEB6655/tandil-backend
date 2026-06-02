@@ -61,7 +61,11 @@
                                 @if($item->product->category)
                                     <p class="text-xs text-gray-500 mb-2">{{ $item->product->category->name }}</p>
                                 @endif
-                                <p class="text-lg font-bold text-indigo-600 mb-3">AED {{ number_format($item->product->price, 2) }}</p>
+                                @php $unitPrice = $item->unit_price ?? $item->product->price; @endphp
+                                <p class="text-lg font-bold text-indigo-600 mb-1">AED {{ number_format($unitPrice, 2) }}</p>
+                                @if(!empty($item->selected_options))
+                                    <p class="text-xs text-gray-500 mb-2">Configured variant</p>
+                                @endif
                                 
                                 <!-- Quantity & Remove -->
                                 <div class="flex items-center gap-4">
@@ -85,7 +89,7 @@
                             
                             <!-- Item Total -->
                             <div class="text-right">
-                                <p class="text-lg font-bold text-gray-900">AED {{ number_format($item->quantity * $item->product->price, 2) }}</p>
+                                <p class="text-lg font-bold text-gray-900">AED {{ number_format($item->quantity * $unitPrice, 2) }}</p>
                             </div>
                         </div>
                     </div>

@@ -20,7 +20,7 @@ class ProductController extends Controller
 {
     /** Product API allowed fields for create/update payload (plus images handled separately). */
     private const PRODUCT_API_FIELDS = [
-        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle',
+        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle', 'product_type',
         'estimated_arrival', 'job_duration',
     ];
 
@@ -77,6 +77,7 @@ class ProductController extends Controller
             'id' => $product->id,
             'name' => $product->name,
             'description' => $product->description,
+            'product_type' => $product->product_type ?? 'simple',
             'price' => $product->price,
             'stock' => $product->stock,
             'status' => $product->status,

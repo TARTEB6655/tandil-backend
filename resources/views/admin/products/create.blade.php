@@ -428,13 +428,13 @@
 
                             <div>
                                 <label for="type" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Product type
+                                    Product family (optional)
                                 </label>
                                 <input type="text" 
                                        id="type" 
                                        name="type" 
                                        value="{{ old('type') }}"
-                                       placeholder="e.g. T-Shirt"
+                                       placeholder="e.g. Sheep, Accessories"
                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
 
