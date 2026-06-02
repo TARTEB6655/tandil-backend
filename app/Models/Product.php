@@ -115,7 +115,7 @@ class Product extends Model
     /**
      * Build full image URL from path.
      */
-    private function buildImageUrl(string $path, string $prefix = ''): string
+    private function buildImageUrl(string $path, string $prefix = ''): ?string
     {
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
@@ -137,7 +137,13 @@ class Product extends Model
         }
 
         // Backward-compatible fallback for deployments serving /media/* directly.
-        return asset('media/' . $normalized);
+        $mediaFsPath = public_path('media/' . $normalized);
+        if (is_file($mediaFsPath)) {
+            return asset('media/' . $normalized);
+        }
+
+        // No file exists in known public locations -> let UI show placeholder.
+        return null;
     }
 
     /**

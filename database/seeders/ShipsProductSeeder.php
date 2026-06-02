@@ -39,6 +39,7 @@ class ShipsProductSeeder extends Seeder
                 'price'       => 1030.00,
                 'handle'      => 'najdi-sheep',
                 'sku'         => 'SHP-NAJDI-001',
+                'image_url'   => 'https://via.placeholder.com/900x600.png?text=Najdi+Sheep',
                 'option_groups' => [
                     [
                         'name'        => 'Packaging type',
@@ -98,6 +99,7 @@ class ShipsProductSeeder extends Seeder
                 'price'       => 850.00,
                 'handle'      => 'haili-goat',
                 'sku'         => 'SHP-HAILI-001',
+                'image_url'   => 'https://via.placeholder.com/900x600.png?text=Haili+Goat',
                 'option_groups' => [
                     [
                         'name'        => 'Packaging type',
@@ -154,6 +156,7 @@ class ShipsProductSeeder extends Seeder
                 'price'       => 1200.00,
                 'handle'      => 'premium-lamb',
                 'sku'         => 'SHP-LAMB-001',
+                'image_url'   => 'https://via.placeholder.com/900x600.png?text=Premium+Lamb',
                 'option_groups' => [
                     [
                         'name'        => 'Packaging type',
@@ -243,6 +246,29 @@ class ShipsProductSeeder extends Seeder
                         'price_modifier' => $optData['price_modifier'],
                         'sort_order'     => $oi,
                     ]);
+                }
+            }
+
+            // Ensure each seeded variable product has a visible image in client cards.
+            if (! empty($pd['image_url'])) {
+                $firstImage = $product->images()->orderBy('sort_order')->first();
+                if (! $firstImage) {
+                    $product->images()->create([
+                        'image_path' => $pd['image_url'],
+                        'sort_order' => 0,
+                        'is_primary' => true,
+                    ]);
+                } else {
+                    if (! $firstImage->is_primary) {
+                        $firstImage->update(['is_primary' => true, 'sort_order' => 0]);
+                    }
+                    if ($firstImage->image_path !== $pd['image_url'] && str_starts_with((string) $firstImage->image_path, 'http')) {
+                        // Keep custom uploaded local image paths untouched.
+                        $firstImage->update(['image_path' => $pd['image_url']]);
+                    }
+                }
+                if ($product->image !== $pd['image_url']) {
+                    $product->update(['image' => $pd['image_url']]);
                 }
             }
         }
