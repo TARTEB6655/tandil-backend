@@ -122,28 +122,27 @@ class Product extends Model
         }
         $normalized = ltrim(str_replace('\\', '/', $path), '/');
 
-        // Remove accidental leading "media/" so DB values like media/products/x.jpg still resolve.
+        // If DB already stores a public media path, keep it as-is.
         if (str_starts_with($normalized, 'media/')) {
-            $normalized = substr($normalized, 6);
+            return asset($normalized);
         }
 
         if ($prefix && strpos($normalized, $prefix) !== 0) {
             $normalized = $prefix . $normalized;
         }
 
-        // Primary URL for real uploaded files in storage/app/public.
+        // Prefer /storage URLs for uploaded files (Laravel standard).
+        if (str_starts_with($normalized, 'products/')) {
+            return asset('storage/' . $normalized);
+        }
+
+        // If it is not under products/, still try public storage root.
         if (Storage::disk('public')->exists($normalized)) {
             return asset('storage/' . $normalized);
         }
 
-        // Backward-compatible fallback for deployments serving /media/* directly.
-        $mediaFsPath = public_path('media/' . $normalized);
-        if (is_file($mediaFsPath)) {
-            return asset('media/' . $normalized);
-        }
-
-        // No file exists in known public locations -> let UI show placeholder.
-        return null;
+        // Backward-compatible fallback (legacy nginx mapping).
+        return asset('media/' . $normalized);
     }
 
     /**
