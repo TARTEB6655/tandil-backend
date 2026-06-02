@@ -823,10 +823,14 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/reports')->grou
     Route::post('/schedule', [\App\Http\Controllers\Admin\AdminReportController::class, 'schedule']);
     Route::get('/', [\App\Http\Controllers\Admin\AdminReportController::class, 'index']);
     Route::get('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'show']);
-    Route::get('/{id}/download', [\App\Http\Controllers\Admin\AdminReportController::class, 'download'])->name('api.admin.reports.download');
     Route::delete('/{id}/cancel', [\App\Http\Controllers\Admin\AdminReportController::class, 'cancel']);
     Route::delete('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'destroy']);
 });
+
+// Browser-friendly admin report download (works with or without Bearer token).
+Route::get('/admin/reports/{id}/download', [\App\Http\Controllers\Admin\AdminReportController::class, 'download'])
+    ->name('api.admin.reports.download')
+    ->middleware('optional.sanctum');
 
 /*
 |--------------------------------------------------------------------------
