@@ -10187,42 +10187,6 @@
                             }
                         },
                         {
-                            "name": "Add Product (JSON – URL-only images)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Test Product\",\n  \"description\": \"Description here\",\n  \"price\": 99.99,\n  \"stock\": 10,\n  \"status\": \"active\",\n  \"is_featured\": false,\n  \"category_id\": 2,\n  \"weight_unit\": \"kg\",\n  \"sku\": \"SKU-UNIQUE-002\",\n  \"handle\": \"test-product-unique\",\n  \"service_ids\": [1, 2],\n  \"image_urls\": [\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/products",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "products"
-                                    ]
-                                },
-                                "description": "Create product with JSON body. Required: name, price. Optional: description, stock, status, is_featured (boolean), category_id, service_id or service_ids, weight_unit, sku, handle, image_urls. Response 201: data includes image, image_url, images, primary_image, service_ids, is_featured. Auth: Bearer {{token}}."
-                            }
-                        },
-                        {
                             "name": "Add Product (Multipart – with image files)",
                             "request": {
                                 "method": "POST",
