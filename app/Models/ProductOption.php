@@ -13,6 +13,7 @@ class ProductOption extends Model
     protected $fillable = [
         'product_option_group_id',
         'label',
+        'subtitle',
         'price_modifier',
         'image_path',
         'sort_order',
@@ -38,6 +39,10 @@ class ProductOption extends Model
         if (str_starts_with($this->image_path, 'http')) {
             return $this->image_path;
         }
-        return asset('storage/' . $this->image_path);
+        $normalized = ltrim(str_replace('\\', '/', $this->image_path), '/');
+        if (str_starts_with($normalized, 'media/')) {
+            return asset($normalized);
+        }
+        return asset('media/' . $normalized);
     }
 }

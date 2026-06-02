@@ -388,7 +388,7 @@ class ProductController extends Controller
      * Save option groups (and their options) from the JSON blob submitted by the admin UI.
      * Replaces all existing groups for this product when variable; clears them when simple.
      */
-    private function syncOptionGroupsFromJson(Product $product, ?string $json): void
+    private function syncOptionGroupsFromJson(Product $product, ?string $json, ?array $optionImageFiles = null): void
     {
         if ($product->product_type !== 'variable' || blank($json)) {
             // Simple product: remove any leftover groups
@@ -403,7 +403,7 @@ class ProductController extends Controller
             return;
         }
 
-        DB::transaction(function () use ($product, $groups) {
+        DB::transaction(function () use ($product, $groups, $optionImageFiles) {
             $product->optionGroups()->delete();
             foreach ($groups as $gi => $groupData) {
                 if (empty($groupData['name'])) {
@@ -411,6 +411,7 @@ class ProductController extends Controller
                 }
                 $group = $product->optionGroups()->create([
                     'name'        => $groupData['name'],
+                    'subtitle'    => $groupData['subtitle'] ?? null,
                     'input_type'  => $groupData['input_type'] ?? 'single',
                     'is_required' => $groupData['is_required'] ?? true,
                     'sort_order'  => $groupData['sort_order'] ?? $gi,
@@ -421,12 +422,37 @@ class ProductController extends Controller
                     }
                     $group->options()->create([
                         'label'          => $opt['label'],
+                        'subtitle'       => $opt['subtitle'] ?? null,
                         'price_modifier' => $opt['price_modifier'] ?? 0,
+                        'image_path'     => $this->resolveOptionImagePath($opt, $optionImageFiles),
                         'sort_order'     => $opt['sort_order'] ?? $oi,
                     ]);
                 }
             }
         });
+    }
+
+    /**
+     * Resolve option image from uploaded file (preferred) or existing path in JSON.
+     */
+    private function resolveOptionImagePath(array $optionData, ?array $optionImageFiles = null): ?string
+    {
+        $tempKey = $optionData['temp_key'] ?? null;
+        if ($tempKey && is_array($optionImageFiles) && isset($optionImageFiles[$tempKey])) {
+            $file = $optionImageFiles[$tempKey];
+            if ($file instanceof UploadedFile && $file->isValid()) {
+                $path = $file->store('product-options', 'public');
+                $this->compressProductImageIfNeeded($path);
+                return $path;
+            }
+        }
+
+        $imagePath = $optionData['image_path'] ?? null;
+        if (! is_string($imagePath) || trim($imagePath) === '') {
+            return null;
+        }
+
+        return trim($imagePath);
     }
 
     public function store(Request $request)
@@ -482,6 +508,8 @@ class ProductController extends Controller
             'job_duration'        => 'nullable|string|max:255',
             'product_type'        => 'nullable|in:simple,variable',
             'option_groups_json'  => 'nullable|string',
+            'option_images'       => 'nullable|array',
+            'option_images.*'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
@@ -655,7 +683,7 @@ class ProductController extends Controller
         }
 
         // Sync option groups for variable products
-        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'));
+        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
 
         // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
         if ($request->expectsJson() || $request->is('api/*')) {
@@ -790,6 +818,8 @@ class ProductController extends Controller
             'job_duration'       => 'nullable|string|max:255',
             'product_type'       => 'nullable|in:simple,variable',
             'option_groups_json' => 'nullable|string',
+            'option_images'      => 'nullable|array',
+            'option_images.*'    => 'nullable|image|mimes:jpg,jpeg,png,webp',
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
@@ -974,7 +1004,7 @@ class ProductController extends Controller
         if ($request->has('product_type')) {
             $product->update(['product_type' => $request->input('product_type', 'simple')]);
         }
-        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'));
+        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
 
         // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();

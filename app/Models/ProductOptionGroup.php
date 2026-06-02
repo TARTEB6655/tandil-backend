@@ -14,6 +14,7 @@ class ProductOptionGroup extends Model
     protected $fillable = [
         'product_id',
         'name',
+        'subtitle',
         'input_type',  // single | multi
         'is_required',
         'sort_order',

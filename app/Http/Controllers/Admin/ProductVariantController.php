@@ -8,6 +8,7 @@ use App\Models\ProductOption;
 use App\Models\ProductOptionGroup;
 use App\Models\ProductVariant;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -51,18 +52,22 @@ class ProductVariantController extends Controller
     {
         $data = $request->validate([
             'name'       => 'required|string|max:200',
+            'subtitle'   => 'nullable|string|max:255',
             'input_type' => ['sometimes', Rule::in(['single', 'multi'])],
             'is_required' => 'sometimes|boolean',
             'sort_order'  => 'sometimes|integer|min:0',
             'options'     => 'sometimes|array',
             'options.*.label'          => 'required_with:options|string|max:200',
+            'options.*.subtitle'       => 'nullable|string|max:255',
             'options.*.price_modifier' => 'sometimes|numeric',
             'options.*.sort_order'     => 'sometimes|integer|min:0',
+            'options.*.image_path'     => 'nullable|string|max:500',
         ]);
 
         DB::transaction(function () use ($data, $product, &$group) {
             $group = $product->optionGroups()->create([
                 'name'        => $data['name'],
+                'subtitle'    => $data['subtitle'] ?? null,
                 'input_type'  => $data['input_type'] ?? 'single',
                 'is_required' => $data['is_required'] ?? true,
                 'sort_order'  => $data['sort_order'] ?? 0,
@@ -71,7 +76,9 @@ class ProductVariantController extends Controller
             foreach ($data['options'] ?? [] as $i => $opt) {
                 $group->options()->create([
                     'label'          => $opt['label'],
+                    'subtitle'       => $opt['subtitle'] ?? null,
                     'price_modifier' => $opt['price_modifier'] ?? 0,
+                    'image_path'     => $opt['image_path'] ?? null,
                     'sort_order'     => $opt['sort_order'] ?? $i,
                 ]);
             }
@@ -86,6 +93,7 @@ class ProductVariantController extends Controller
 
         $data = $request->validate([
             'name'        => 'sometimes|string|max:200',
+            'subtitle'    => 'nullable|string|max:255',
             'input_type'  => ['sometimes', Rule::in(['single', 'multi'])],
             'is_required' => 'sometimes|boolean',
             'sort_order'  => 'sometimes|integer|min:0',
@@ -110,10 +118,14 @@ class ProductVariantController extends Controller
 
         $data = $request->validate([
             'label'          => 'required|string|max:200',
+            'subtitle'       => 'nullable|string|max:255',
             'price_modifier' => 'sometimes|numeric',
             'sort_order'     => 'sometimes|integer|min:0',
+            'image_path'     => 'nullable|string|max:500',
+            'image'          => 'nullable|image|mimes:jpg,jpeg,png,webp',
         ]);
 
+        $data['image_path'] = $this->resolveOptionImage($data, $request->file('image'));
         $option = $group->options()->create($data);
         return response()->json(['success' => true, 'data' => $option], 201);
     }
@@ -125,10 +137,16 @@ class ProductVariantController extends Controller
 
         $data = $request->validate([
             'label'          => 'sometimes|string|max:200',
+            'subtitle'       => 'nullable|string|max:255',
             'price_modifier' => 'sometimes|numeric',
             'sort_order'     => 'sometimes|integer|min:0',
+            'image_path'     => 'nullable|string|max:500',
+            'image'          => 'nullable|image|mimes:jpg,jpeg,png,webp',
         ]);
 
+        if ($request->hasFile('image') || array_key_exists('image_path', $data)) {
+            $data['image_path'] = $this->resolveOptionImage($data, $request->file('image'));
+        }
         $option->update($data);
         return response()->json(['success' => true, 'data' => $option]);
     }
@@ -219,13 +237,16 @@ class ProductVariantController extends Controller
         $data = $request->validate([
             'groups'                             => 'required|array',
             'groups.*.name'                      => 'required|string|max:200',
+            'groups.*.subtitle'                  => 'nullable|string|max:255',
             'groups.*.input_type'                => ['required', Rule::in(['single', 'multi'])],
             'groups.*.is_required'               => 'required|boolean',
             'groups.*.sort_order'                => 'sometimes|integer|min:0',
             'groups.*.options'                   => 'required|array|min:1',
             'groups.*.options.*.label'           => 'required|string|max:200',
+            'groups.*.options.*.subtitle'        => 'nullable|string|max:255',
             'groups.*.options.*.price_modifier'  => 'sometimes|numeric',
             'groups.*.options.*.sort_order'      => 'sometimes|integer|min:0',
+            'groups.*.options.*.image_path'      => 'nullable|string|max:500',
         ]);
 
         DB::transaction(function () use ($data, $product) {
@@ -233,6 +254,7 @@ class ProductVariantController extends Controller
             foreach ($data['groups'] as $gi => $groupData) {
                 $group = $product->optionGroups()->create([
                     'name'        => $groupData['name'],
+                    'subtitle'    => $groupData['subtitle'] ?? null,
                     'input_type'  => $groupData['input_type'],
                     'is_required' => $groupData['is_required'],
                     'sort_order'  => $groupData['sort_order'] ?? $gi,
@@ -240,7 +262,9 @@ class ProductVariantController extends Controller
                 foreach ($groupData['options'] as $oi => $optData) {
                     $group->options()->create([
                         'label'          => $optData['label'],
+                        'subtitle'       => $optData['subtitle'] ?? null,
                         'price_modifier' => $optData['price_modifier'] ?? 0,
+                        'image_path'     => $optData['image_path'] ?? null,
                         'sort_order'     => $optData['sort_order'] ?? $oi,
                     ]);
                 }
@@ -251,5 +275,22 @@ class ProductVariantController extends Controller
             'success' => true,
             'data'    => $product->optionGroups()->with('options')->get(),
         ]);
+    }
+
+    private function resolveOptionImage(array $validated, ?UploadedFile $uploadedFile): ?string
+    {
+        if ($uploadedFile && $uploadedFile->isValid()) {
+            $path = $uploadedFile->store('product-options', 'public');
+            \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($path);
+            return $path;
+        }
+
+        $imagePath = $validated['image_path'] ?? null;
+        if (! is_string($imagePath)) {
+            return null;
+        }
+
+        $imagePath = trim($imagePath);
+        return $imagePath !== '' ? $imagePath : null;
     }
 }

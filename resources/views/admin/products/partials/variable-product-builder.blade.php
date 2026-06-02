@@ -10,13 +10,18 @@
         ? $product->optionGroups->map(fn($g) => [
             'id'          => $g->id,
             'name'        => $g->name,
+            'subtitle'    => $g->subtitle,
             'input_type'  => $g->input_type,
             'is_required' => $g->is_required,
             'sort_order'  => $g->sort_order,
             'options'     => $g->options->map(fn($o) => [
                 'id'             => $o->id,
+                'temp_key'       => 'opt_' . $o->id,
                 'label'          => $o->label,
+                'subtitle'       => $o->subtitle,
                 'price_modifier' => $o->price_modifier,
+                'image_path'     => $o->image_path,
+                'image_url'      => $o->image_url,
                 'sort_order'     => $o->sort_order,
             ])->values()->all(),
         ])->values()->all()
@@ -53,9 +58,9 @@
 
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Option groups</h2>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Product options (dummy)</h2>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Add option groups like "Packaging type", "Cutting", "Weight". Each group has selectable options.
+                Use this for sheep options like packaging, cutting, packing, contains, and weight. You can set option subtitle, extra price, and upload option image.
             </p>
         </div>
         <button type="button" onclick="addOptionGroup()"
@@ -80,7 +85,26 @@
     // Bootstrap from server-side existing data (edit mode)
     var serverGroups = @json($existingGroups);
     var groups = serverGroups.length ? serverGroups : [];
-    var groupCounter = groups.length;
+    var uniqueCounter = Date.now();
+
+    function nextTempKey() {
+        uniqueCounter += 1;
+        return 'opt_' + uniqueCounter;
+    }
+
+    function normalizeGroups() {
+        groups.forEach(function (g, gi) {
+            g.sort_order = gi;
+            g.subtitle = g.subtitle || '';
+            if (!Array.isArray(g.options)) g.options = [];
+            g.options.forEach(function (opt, oi) {
+                opt.sort_order = oi;
+                opt.subtitle = opt.subtitle || '';
+                opt.image_path = opt.image_path || '';
+                if (!opt.temp_key) opt.temp_key = nextTempKey();
+            });
+        });
+    }
 
     function toggleVariableBuilder() {
         var isVariable = document.querySelector('input[name="product_type"]:checked')?.value === 'variable';
@@ -91,6 +115,7 @@
     function renderGroups() {
         var list = document.getElementById('optionGroupsList');
         list.innerHTML = '';
+        normalizeGroups();
         groups.forEach(function (g, gi) {
             list.appendChild(buildGroupEl(g, gi));
         });
@@ -103,17 +128,46 @@
         div.dataset.groupIndex = gi;
 
         var header = document.createElement('div');
-        header.className = 'flex items-center gap-3';
+        header.className = 'flex items-start gap-3';
+
+        var titleWrap = document.createElement('div');
+        titleWrap.className = 'flex-1 space-y-2';
+
+        var nameLabel = document.createElement('div');
+        nameLabel.className = 'text-xs font-semibold text-gray-600 dark:text-gray-300';
+        nameLabel.textContent = 'Group title';
 
         var nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.placeholder = 'Group name (e.g. Packaging type)';
+        nameInput.placeholder = 'e.g. Packaging type';
         nameInput.value = g.name || '';
         nameInput.className = 'flex-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100';
         nameInput.addEventListener('input', function () {
             groups[gi].name = this.value;
             syncJson();
         });
+
+        var subtitleLabel = document.createElement('div');
+        subtitleLabel.className = 'text-xs font-semibold text-gray-600 dark:text-gray-300';
+        subtitleLabel.textContent = 'Group subtitle';
+
+        var subtitleInput = document.createElement('input');
+        subtitleInput.type = 'text';
+        subtitleInput.placeholder = 'e.g. Required - Select one';
+        subtitleInput.value = g.subtitle || '';
+        subtitleInput.className = 'flex-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100';
+        subtitleInput.addEventListener('input', function () {
+            groups[gi].subtitle = this.value;
+            syncJson();
+        });
+
+        titleWrap.appendChild(nameLabel);
+        titleWrap.appendChild(nameInput);
+        titleWrap.appendChild(subtitleLabel);
+        titleWrap.appendChild(subtitleInput);
+
+        var controlsWrap = document.createElement('div');
+        controlsWrap.className = 'flex items-center gap-2 pt-5';
 
         // input_type
         var typeSelect = document.createElement('select');
@@ -153,10 +207,12 @@
             renderGroups();
         });
 
-        header.appendChild(nameInput);
-        header.appendChild(typeSelect);
-        header.appendChild(reqLabel);
-        header.appendChild(rmBtn);
+        controlsWrap.appendChild(typeSelect);
+        controlsWrap.appendChild(reqLabel);
+        controlsWrap.appendChild(rmBtn);
+
+        header.appendChild(titleWrap);
+        header.appendChild(controlsWrap);
         div.appendChild(header);
 
         // Options list
@@ -174,7 +230,14 @@
         addOptBtn.className = 'text-xs text-indigo-600 hover:text-indigo-800 font-medium ml-2';
         addOptBtn.addEventListener('click', function () {
             if (!groups[gi].options) groups[gi].options = [];
-            groups[gi].options.push({ label: '', price_modifier: 0, sort_order: groups[gi].options.length });
+            groups[gi].options.push({
+                temp_key: nextTempKey(),
+                label: '',
+                subtitle: '',
+                price_modifier: 0,
+                image_path: '',
+                sort_order: groups[gi].options.length
+            });
             renderGroups();
         });
         div.appendChild(addOptBtn);
@@ -184,51 +247,101 @@
 
     function buildOptionEl(gi, oi, opt) {
         var row = document.createElement('div');
-        row.className = 'flex items-center gap-2';
-
-        var label = document.createElement('input');
-        label.type = 'text';
-        label.placeholder = 'Option label (e.g. in bag)';
-        label.value = opt.label || '';
-        label.className = 'flex-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100';
-        label.addEventListener('input', function () {
-            groups[gi].options[oi].label = this.value;
-            syncJson();
-        });
-
-        var priceLabel = document.createElement('span');
-        priceLabel.className = 'text-xs text-gray-500 whitespace-nowrap';
-        priceLabel.textContent = '+price';
-
-        var priceInput = document.createElement('input');
-        priceInput.type = 'number';
-        priceInput.step = '0.01';
-        priceInput.value = opt.price_modifier || 0;
-        priceInput.className = 'w-20 rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100';
-        priceInput.addEventListener('input', function () {
-            groups[gi].options[oi].price_modifier = parseFloat(this.value) || 0;
-            syncJson();
-        });
+        row.className = 'relative border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-700/60 space-y-2';
 
         var rmBtn = document.createElement('button');
         rmBtn.type = 'button';
         rmBtn.innerHTML = '&times;';
-        rmBtn.className = 'text-red-400 hover:text-red-600 font-bold text-lg leading-none';
+        rmBtn.className = 'absolute top-2 right-2 text-red-400 hover:text-red-600 font-bold text-lg leading-none';
         rmBtn.addEventListener('click', function () {
             groups[gi].options.splice(oi, 1);
             renderGroups();
         });
 
+        var optionTitle = document.createElement('div');
+        optionTitle.className = 'text-xs font-semibold text-gray-500 dark:text-gray-300';
+        optionTitle.textContent = 'Option';
+
+        var nameLabel = document.createElement('div');
+        nameLabel.className = 'text-xs font-semibold text-gray-600 dark:text-gray-300';
+        nameLabel.textContent = 'Option name';
+
+        var label = document.createElement('input');
+        label.type = 'text';
+        label.placeholder = 'e.g. Foam';
+        label.value = opt.label || '';
+        label.className = 'w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100';
+        label.addEventListener('input', function () {
+            groups[gi].options[oi].label = this.value;
+            syncJson();
+        });
+
+        var subtitleLabel = document.createElement('div');
+        subtitleLabel.className = 'text-xs font-semibold text-gray-600 dark:text-gray-300';
+        subtitleLabel.textContent = 'Option subtitle (optional)';
+
+        var subtitleInput = document.createElement('input');
+        subtitleInput.type = 'text';
+        subtitleInput.placeholder = 'e.g. age 3-4';
+        subtitleInput.value = opt.subtitle || '';
+        subtitleInput.className = 'w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100';
+        subtitleInput.addEventListener('input', function () {
+            groups[gi].options[oi].subtitle = this.value;
+            syncJson();
+        });
+
+        var priceLabel = document.createElement('div');
+        priceLabel.className = 'text-xs font-semibold text-gray-600 dark:text-gray-300';
+        priceLabel.textContent = 'Extra price (AED, 0 = Free)';
+
+        var priceInput = document.createElement('input');
+        priceInput.type = 'number';
+        priceInput.step = '0.01';
+        priceInput.value = opt.price_modifier || 0;
+        priceInput.className = 'w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100';
+        priceInput.addEventListener('input', function () {
+            groups[gi].options[oi].price_modifier = parseFloat(this.value) || 0;
+            syncJson();
+        });
+
+        var imageLabel = document.createElement('div');
+        imageLabel.className = 'text-xs font-semibold text-gray-600 dark:text-gray-300';
+        imageLabel.textContent = 'Option image (optional)';
+
+        var imageMeta = document.createElement('div');
+        imageMeta.className = 'text-[11px] text-gray-500 dark:text-gray-300';
+        imageMeta.textContent = opt.image_path
+            ? 'Current: ' + (opt.image_path.length > 42 ? opt.image_path.substring(0, 42) + '...' : opt.image_path)
+            : 'No image selected';
+
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.name = 'option_images[' + opt.temp_key + ']';
+        fileInput.className = 'block w-full text-xs text-gray-600 dark:text-gray-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-green-700 file:text-white hover:file:bg-green-800';
+        fileInput.addEventListener('change', function () {
+            var f = this.files && this.files[0] ? this.files[0] : null;
+            imageMeta.textContent = f ? ('Selected: ' + f.name) : (opt.image_path ? ('Current: ' + opt.image_path) : 'No image selected');
+        });
+
+        row.appendChild(rmBtn);
+        row.appendChild(optionTitle);
+        row.appendChild(nameLabel);
         row.appendChild(label);
+        row.appendChild(subtitleLabel);
+        row.appendChild(subtitleInput);
         row.appendChild(priceLabel);
         row.appendChild(priceInput);
-        row.appendChild(rmBtn);
+        row.appendChild(imageLabel);
+        row.appendChild(imageMeta);
+        row.appendChild(fileInput);
         return row;
     }
 
     function addOptionGroup() {
         groups.push({
             name: '',
+            subtitle: '',
             input_type: 'single',
             is_required: true,
             sort_order: groups.length,
@@ -245,6 +358,7 @@
 
     // Init
     document.addEventListener('DOMContentLoaded', function () {
+        normalizeGroups();
         renderGroups();
         toggleVariableBuilder();
     });

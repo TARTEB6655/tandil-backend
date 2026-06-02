@@ -174,7 +174,9 @@ class ProductController extends Controller
                             $opts[] = [
                                 'id'             => $opt->id,
                                 'label'          => $opt->label,
+                                'subtitle'       => $opt->subtitle,
                                 'price_modifier' => $opt->price_modifier,
+                                'image_path'     => $opt->image_path,
                                 'image_url'      => $opt->image_url,
                                 'sort_order'     => $opt->sort_order,
                             ];
@@ -183,6 +185,7 @@ class ProductController extends Controller
                     $optionGroups[] = [
                         'id'          => $group->id,
                         'name'        => $group->name,
+                        'subtitle'    => $group->subtitle,
                         'input_type'  => $group->input_type,
                         'is_required' => $group->is_required,
                         'sort_order'  => $group->sort_order,
