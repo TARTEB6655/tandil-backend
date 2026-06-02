@@ -14,16 +14,27 @@ class ShopController extends Controller
         $this->middleware(['auth', 'role:client']);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('category')
+        $categoryId = $request->query('category_id');
+
+        $query = Product::with(['category', 'primaryImage', 'optionGroups.options'])
             ->where('status', 'active')
-            ->orderBy('created_at', 'desc')
-            ->paginate(12);
+            ->orderBy('created_at', 'desc');
 
-        $categories = Category::withCount('products')->get();
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
 
-        return view('client.shop.index', compact('products', 'categories'));
+        $products = $query->paginate(12)->withQueryString();
+
+        $categories = Category::withCount(['products' => fn ($q) => $q->where('status', 'active')])
+            ->orderBy('name')
+            ->get();
+
+        $selectedCategory = $categoryId ? Category::find($categoryId) : null;
+
+        return view('client.shop.index', compact('products', 'categories', 'selectedCategory'));
     }
 }
 

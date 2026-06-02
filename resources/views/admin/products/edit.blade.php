@@ -231,6 +231,9 @@
                         </div>
                     </div>
 
+                    <!-- Variable product builder -->
+                    @include('admin.products.partials.variable-product-builder', ['product' => $product])
+
                     <!-- 5. Shipping -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Shipping</h2>

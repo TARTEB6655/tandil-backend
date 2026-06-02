@@ -448,6 +448,23 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::delete('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'destroy']);
     Route::post('/products/{id}/toggle-status', [\App\Http\Controllers\Admin\ProductController::class, 'toggleStatus']);
 
+    // Variable product: option groups, options, variants
+    Route::prefix('/products/{product}')->group(function () {
+        $vc = \App\Http\Controllers\Admin\ProductVariantController::class;
+        Route::get('/option-groups',                              [$vc, 'listGroups']);
+        Route::post('/option-groups',                             [$vc, 'storeGroup']);
+        Route::put('/option-groups/{group}',                      [$vc, 'updateGroup']);
+        Route::delete('/option-groups/{group}',                   [$vc, 'destroyGroup']);
+        Route::post('/option-groups/sync',                        [$vc, 'syncOptionGroups']);
+        Route::post('/option-groups/{group}/options',             [$vc, 'storeOption']);
+        Route::put('/option-groups/{group}/options/{option}',     [$vc, 'updateOption']);
+        Route::delete('/option-groups/{group}/options/{option}',  [$vc, 'destroyOption']);
+        Route::get('/variants',                                   [$vc, 'listVariants']);
+        Route::post('/variants',                                  [$vc, 'storeVariant']);
+        Route::put('/variants/{variant}',                         [$vc, 'updateVariant']);
+        Route::delete('/variants/{variant}',                      [$vc, 'destroyVariant']);
+    });
+
     // Support Tickets (submitted by clients)
     Route::get('/support/tickets', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'index']);
     Route::get('/support/tickets/{id}', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'show']);

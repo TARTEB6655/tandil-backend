@@ -17,7 +17,7 @@ class ProductController extends Controller
         try {
             $limit = min(max((int) $request->query('limit', 10), 1), 50);
 
-            $products = Product::with(['category', 'images', 'primaryImage'])
+            $products = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
                 ->where('status', 'active')
                 ->where('is_featured', true)
                 ->orderBy('created_at', 'desc')
@@ -54,7 +54,7 @@ class ProductController extends Controller
             $sortDir  = $request->query('sort_dir', 'desc');        // asc, desc
             $inStock  = $request->query('in_stock'); // Filter by stock availability
 
-            $query = Product::with(['category', 'images', 'primaryImage']);
+            $query = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options']);
 
             // Search
             if ($search) {
@@ -123,6 +123,7 @@ class ProductController extends Controller
 
     /**
      * Build product data for public API. Main image once (main_image + image_url); gallery separate (gallery_images).
+     * For variable products, includes option_groups (with options) and variants.
      */
     private function productToPublicData(Product $product): array
     {
@@ -157,27 +158,79 @@ class ProductController extends Controller
             }
         }
         $rootImagePath = $product->image ?? ($mainImage['image_path'] ?? null);
+
+        // Variable product extras
+        $optionGroups = [];
+        $variants     = [];
+        $productType  = $product->product_type ?? 'simple';
+        if ($productType === 'variable') {
+            if ($product->relationLoaded('optionGroups')) {
+                foreach ($product->optionGroups as $group) {
+                    $opts = [];
+                    if ($group->relationLoaded('options')) {
+                        foreach ($group->options as $opt) {
+                            $opts[] = [
+                                'id'             => $opt->id,
+                                'label'          => $opt->label,
+                                'price_modifier' => $opt->price_modifier,
+                                'image_url'      => $opt->image_url,
+                                'sort_order'     => $opt->sort_order,
+                            ];
+                        }
+                    }
+                    $optionGroups[] = [
+                        'id'          => $group->id,
+                        'name'        => $group->name,
+                        'input_type'  => $group->input_type,
+                        'is_required' => $group->is_required,
+                        'sort_order'  => $group->sort_order,
+                        'options'     => $opts,
+                    ];
+                }
+            }
+            if ($product->relationLoaded('variants')) {
+                foreach ($product->variants as $variant) {
+                    $optIds = [];
+                    if ($variant->relationLoaded('options')) {
+                        $optIds = $variant->options->pluck('id')->all();
+                    }
+                    $variants[] = [
+                        'id'         => $variant->id,
+                        'sku'        => $variant->sku,
+                        'price'      => $variant->price ?? $product->price,
+                        'stock'      => $variant->stock,
+                        'is_default' => $variant->is_default,
+                        'label'      => $variant->label,
+                        'option_ids' => $optIds,
+                    ];
+                }
+            }
+        }
+
         return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'description' => $product->description,
-            'price' => $product->price,
-            'stock' => $product->stock,
-            'status' => $product->status,
-            'is_featured' => (bool) ($product->is_featured ?? false),
-            'category_id' => $product->category_id,
-            'weight_unit' => $product->weight_unit,
-            'sku' => $product->sku,
-            'handle' => $product->handle,
-            'estimated_arrival' => $product->estimated_arrival,
-            'job_duration' => $product->job_duration,
-            'image' => $product->image,
-            'image_url' => ProductImage::buildFullUrl($rootImagePath),
-            'main_image' => $mainImage,
-            'gallery_images' => $galleryImages,
-            'category' => $product->relationLoaded('category') ? $product->category : null,
-            'created_at' => $product->created_at,
-            'updated_at' => $product->updated_at,
+            'id'               => $product->id,
+            'name'             => $product->name,
+            'description'      => $product->description,
+            'product_type'     => $productType,
+            'price'            => $product->price,
+            'stock'            => $product->stock,
+            'status'           => $product->status,
+            'is_featured'      => (bool) ($product->is_featured ?? false),
+            'category_id'      => $product->category_id,
+            'weight_unit'      => $product->weight_unit,
+            'sku'              => $product->sku,
+            'handle'           => $product->handle,
+            'estimated_arrival'=> $product->estimated_arrival,
+            'job_duration'     => $product->job_duration,
+            'image'            => $product->image,
+            'image_url'        => ProductImage::buildFullUrl($rootImagePath),
+            'main_image'       => $mainImage,
+            'gallery_images'   => $galleryImages,
+            'category'         => $product->relationLoaded('category') ? $product->category : null,
+            'option_groups'    => $optionGroups,
+            'variants'         => $variants,
+            'created_at'       => $product->created_at,
+            'updated_at'       => $product->updated_at,
         ];
     }
 
@@ -190,7 +243,7 @@ class ProductController extends Controller
         try {
             $product = Product::where('id', $id)
                 ->orWhere('handle', $id)
-                ->with(['category', 'images', 'primaryImage'])
+                ->with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
                 ->first();
 
             if (! $product) {
@@ -259,7 +312,7 @@ class ProductController extends Controller
 
             $products = Product::where('category_id', $category->id)
                 ->where('status', 'active')
-                ->with(['category', 'images', 'primaryImage'])
+                ->with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
                 ->paginate(12);
 
             return response()->json([

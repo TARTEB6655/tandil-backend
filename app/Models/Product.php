@@ -10,14 +10,19 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = [
-        'category_id', 'name', 'vendor', 'type', 'sku', 'barcode', 'description',
+        'category_id', 'name', 'vendor', 'type', 'product_type', 'sku', 'barcode', 'description',
         'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured',
         'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
         'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
         'estimated_arrival', 'job_duration',
     ];
 
+    // Valid values for product_type column
+    public const TYPE_SIMPLE   = 'simple';
+    public const TYPE_VARIABLE = 'variable';
+
     protected $casts = [
+        'product_type' => 'string',
         'is_featured' => 'boolean',
         'track_quantity' => 'boolean',
         'allow_backorder' => 'boolean',
@@ -111,5 +116,22 @@ class Product extends Model
     public function getImageUrl(): ?string
     {
         return $this->image_url;
+    }
+
+    // ── Variable product relations ──────────────────────────────────────────
+
+    public function optionGroups()
+    {
+        return $this->hasMany(ProductOptionGroup::class)->orderBy('sort_order');
+    }
+
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    public function isVariable(): bool
+    {
+        return $this->product_type === self::TYPE_VARIABLE;
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\ProductOptionGroup;
 use App\Models\Service;
 use App\Models\ProductImage;
 use Illuminate\Support\Facades\Storage;
@@ -376,6 +377,51 @@ class ProductController extends Controller
      *     + optional image_urls (JSON string) or image_url[] (repeated) to merge with file uploads.
      * Auth: Authorization: Bearer {{admin_token}}.
      */
+    /**
+     * Save option groups (and their options) from the JSON blob submitted by the admin UI.
+     * Replaces all existing groups for this product when variable; clears them when simple.
+     */
+    private function syncOptionGroupsFromJson(Product $product, ?string $json): void
+    {
+        if ($product->product_type !== 'variable' || blank($json)) {
+            // Simple product: remove any leftover groups
+            if ($product->product_type === 'simple') {
+                $product->optionGroups()->delete();
+            }
+            return;
+        }
+
+        $groups = json_decode($json, true);
+        if (! is_array($groups)) {
+            return;
+        }
+
+        DB::transaction(function () use ($product, $groups) {
+            $product->optionGroups()->delete();
+            foreach ($groups as $gi => $groupData) {
+                if (empty($groupData['name'])) {
+                    continue;
+                }
+                $group = $product->optionGroups()->create([
+                    'name'        => $groupData['name'],
+                    'input_type'  => $groupData['input_type'] ?? 'single',
+                    'is_required' => $groupData['is_required'] ?? true,
+                    'sort_order'  => $groupData['sort_order'] ?? $gi,
+                ]);
+                foreach ($groupData['options'] ?? [] as $oi => $opt) {
+                    if (empty($opt['label'])) {
+                        continue;
+                    }
+                    $group->options()->create([
+                        'label'          => $opt['label'],
+                        'price_modifier' => $opt['price_modifier'] ?? 0,
+                        'sort_order'     => $opt['sort_order'] ?? $oi,
+                    ]);
+                }
+            }
+        });
+    }
+
     public function store(Request $request)
     {
         // Capture category_id from form-data early (multipart + files can sometimes hide it from input())
@@ -425,8 +471,10 @@ class ProductController extends Controller
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'service_id'    => 'nullable|integer|exists:services,id',
-            'estimated_arrival' => 'nullable|string|max:255',
-            'job_duration' => 'nullable|string|max:255',
+            'estimated_arrival'   => 'nullable|string|max:255',
+            'job_duration'        => 'nullable|string|max:255',
+            'product_type'        => 'nullable|in:simple,variable',
+            'option_groups_json'  => 'nullable|string',
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
@@ -449,6 +497,7 @@ class ProductController extends Controller
         $createData['is_featured'] = $request->has('is_featured') ? $request->boolean('is_featured') : false;
         $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
         $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
+        $createData['product_type'] = $request->input('product_type', 'simple');
         if (empty($createData['handle']) && ! empty($createData['name'])) {
             $createData['handle'] = Str::slug($createData['name']);
             $counter = 1;
@@ -598,6 +647,9 @@ class ProductController extends Controller
             $product->services()->sync($serviceIds);
         }
 
+        // Sync option groups for variable products
+        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'));
+
         // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
         if ($request->expectsJson() || $request->is('api/*')) {
             $product->refresh();
@@ -618,7 +670,7 @@ class ProductController extends Controller
      */
     public function edit($id)
     {
-        $product = Product::with(['category', 'services', 'images'])->findOrFail($id);
+        $product = Product::with(['category', 'services', 'images', 'optionGroups.options'])->findOrFail($id);
         $categories = Category::orderBy('name')->get();
         $services = Service::with('category')->orderBy('name')->get();
         return view('admin.products.edit', compact('product', 'categories', 'services'));
@@ -727,8 +779,10 @@ class ProductController extends Controller
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'service_id'    => 'nullable|integer|exists:services,id',
-            'estimated_arrival' => 'nullable|string|max:255',
-            'job_duration' => 'nullable|string|max:255',
+            'estimated_arrival'  => 'nullable|string|max:255',
+            'job_duration'       => 'nullable|string|max:255',
+            'product_type'       => 'nullable|in:simple,variable',
+            'option_groups_json' => 'nullable|string',
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
@@ -900,6 +954,12 @@ class ProductController extends Controller
             $serviceIds = array_values(array_filter(array_map('intval', $request->service_ids)));
         }
         $product->services()->sync($serviceIds);
+
+        // Sync product_type and option groups
+        if ($request->has('product_type')) {
+            $product->update(['product_type' => $request->input('product_type', 'simple')]);
+        }
+        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'));
 
         // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
