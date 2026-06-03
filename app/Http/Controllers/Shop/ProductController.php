@@ -163,54 +163,41 @@ class ProductController extends Controller
         // Prevents stale `products.image` from leaking into client responses.
         $rootImagePath = $mainImage['image_path'] ?? $product->image;
 
-        // Variable product extras
+        $imagesList = [];
+        if ($mainImage !== null) {
+            $imagesList[] = $mainImage;
+        }
+        foreach ($galleryImages as $galleryImage) {
+            $imagesList[] = $galleryImage;
+        }
+
         $optionGroups = [];
         $variants     = [];
         $productType  = $product->product_type ?? 'simple';
-        if ($productType === 'variable') {
-            if ($product->relationLoaded('optionGroups')) {
-                foreach ($product->optionGroups as $group) {
-                    $opts = [];
-                    if ($group->relationLoaded('options')) {
-                        foreach ($group->options as $opt) {
-                            $opts[] = [
-                                'id'             => $opt->id,
-                                'label'          => $opt->label,
-                                'subtitle'       => $opt->subtitle,
-                                'price_modifier' => $opt->price_modifier,
-                                'image_path'     => $opt->image_path,
-                                'image_url'      => $opt->image_url,
-                                'sort_order'     => $opt->sort_order,
-                            ];
-                        }
-                    }
-                    $optionGroups[] = [
-                        'id'          => $group->id,
-                        'name'        => $group->name,
-                        'subtitle'    => $group->subtitle,
-                        'input_type'  => $group->input_type,
-                        'is_required' => $group->is_required,
-                        'sort_order'  => $group->sort_order,
-                        'options'     => $opts,
-                    ];
+
+        if ($product->relationLoaded('optionGroups')) {
+            $optionGroups = $product->optionGroups
+                ->sortBy('sort_order')
+                ->values()
+                ->map(fn (\App\Models\ProductOptionGroup $group) => $group->toApiArray())
+                ->all();
+        }
+
+        if ($product->relationLoaded('variants')) {
+            foreach ($product->variants as $variant) {
+                $optIds = [];
+                if ($variant->relationLoaded('options')) {
+                    $optIds = $variant->options->pluck('id')->all();
                 }
-            }
-            if ($product->relationLoaded('variants')) {
-                foreach ($product->variants as $variant) {
-                    $optIds = [];
-                    if ($variant->relationLoaded('options')) {
-                        $optIds = $variant->options->pluck('id')->all();
-                    }
-                    $variants[] = [
-                        'id'         => $variant->id,
-                        'sku'        => $variant->sku,
-                        'price'      => $variant->price ?? $product->price,
-                        'stock'      => $variant->stock,
-                        'is_default' => $variant->is_default,
-                        'label'      => $variant->label,
-                        'option_ids' => $optIds,
-                    ];
-                }
+                $variants[] = [
+                    'id'         => $variant->id,
+                    'sku'        => $variant->sku,
+                    'price'      => $variant->price ?? $product->price,
+                    'stock'      => $variant->stock,
+                    'is_default' => $variant->is_default,
+                    'label'      => $variant->label,
+                    'option_ids' => $optIds,
+                ];
             }
         }
 
@@ -250,6 +237,7 @@ class ProductController extends Controller
             'image_url'        => ProductImage::buildFullUrl($rootImagePath),
             'main_image'       => $mainImage,
             'gallery_images'   => $galleryImages,
+            'images'           => $imagesList,
             'category'         => $categoryPayload,
             'estimated_shipping' => round((float) $estimatedShipping, 2),
             'option_groups'    => $optionGroups,

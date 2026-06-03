@@ -34,24 +34,63 @@ class ProductOption extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        if (! $this->image_path) {
+        return self::buildFullUrl($this->image_path);
+    }
+
+    /**
+     * Full absolute URL for option images (same host logic as ProductImage::buildFullUrl).
+     */
+    public static function buildFullUrl(?string $imagePath): ?string
+    {
+        if (! $imagePath || ! is_string($imagePath)) {
             return null;
         }
-        if (str_starts_with($this->image_path, 'http')) {
-            return $this->image_path;
-        }
-        $normalized = ltrim(str_replace('\\', '/', $this->image_path), '/');
-        if (str_starts_with($normalized, 'media/')) {
-            return asset($normalized);
+
+        if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+            return $imagePath;
         }
 
-        // Option images are uploaded via store('product-options', 'public'),
-        // so the canonical URL should come from the public disk.
-        if (Storage::disk('public')->exists($normalized)) {
-            return asset(ltrim(Storage::disk('public')->url($normalized), '/'));
+        $path = ltrim(str_replace('\\', '/', $imagePath), '/');
+
+        if (str_starts_with($path, 'media/')) {
+            $path = substr($path, strlen('media/'));
         }
 
-        // Backward compatibility for older deployments that expose files via /media.
-        return asset('media/' . $normalized);
+        if (str_contains($path, 'product-options/')) {
+            $path = substr($path, strpos($path, 'product-options/'));
+        } elseif (! str_starts_with($path, 'product-options/')) {
+            $path = 'product-options/' . $path;
+        }
+
+        $mediaPath = 'media/' . $path;
+
+        if (function_exists('request') && request() && request()->getHttpHost()) {
+            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/' . $mediaPath;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            return asset(ltrim(Storage::disk('public')->url($path), '/'));
+        }
+
+        return asset($mediaPath);
+    }
+
+    /**
+     * Standard API shape for product detail / list responses.
+     *
+     * @return array<string, mixed>
+     */
+    public function toApiArray(): array
+    {
+        return [
+            'id'             => $this->id,
+            'temp_key'       => 'opt_'.$this->id,
+            'label'          => $this->label,
+            'subtitle'       => $this->subtitle,
+            'price_modifier' => (float) $this->price_modifier,
+            'image_path'     => $this->image_path,
+            'image_url'      => self::buildFullUrl($this->image_path),
+            'sort_order'     => (int) $this->sort_order,
+        ];
     }
 }

@@ -222,6 +222,44 @@ class VariableProductOptionImagePreserveTest extends TestCase
         ]);
     }
 
+    public function test_put_update_binds_option_image_when_file_key_differs_from_option_id(): void
+    {
+        ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();
+
+        $newFile = UploadedFile::fake()->image('postman-style.jpg');
+
+        $this->call(
+            'PUT',
+            "/api/admin/products/{$product->id}",
+            [
+                'product_type' => 'variable',
+                'option_groups_json' => json_encode([
+                    [
+                        'id' => $option->product_option_group_id,
+                        'name' => 'Packaging type',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'id' => $option->id,
+                                'label' => 'In box',
+                                'price_modifier' => 5,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            ['option_images' => ['opt_cut_1' => $newFile]],
+            $this->transformHeadersToServerVars($this->authJson())
+        )->assertOk();
+
+        $freshPath = ProductOption::find($option->id)->image_path;
+        $this->assertNotNull($freshPath);
+        $this->assertNotSame($oldPath, $freshPath);
+        Storage::disk('public')->assertExists($freshPath);
+    }
+
     public function test_new_option_image_upload_replaces_only_that_option(): void
     {
         ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();

@@ -77,36 +77,22 @@ class ProductController extends Controller
         // This avoids stale `products.image` values when primary image was changed.
         $rootImagePath = $mainImage['image_path'] ?? $product->image;
 
-        // Variable product extras (option groups + variants)
+        $imagesList = [];
+        if ($mainImage !== null) {
+            $imagesList[] = $mainImage;
+        }
+        foreach ($galleryImages as $galleryImage) {
+            $imagesList[] = $galleryImage;
+        }
+
+        // Variable product extras (option groups + variants) — full group/option + image URLs
         $optionGroups = [];
         if ($product->relationLoaded('optionGroups')) {
-            foreach ($product->optionGroups as $group) {
-                $options = [];
-                if ($group->relationLoaded('options')) {
-                    foreach ($group->options as $opt) {
-                        $options[] = [
-                            'id' => $opt->id,
-                            'temp_key' => 'opt_'.$opt->id,
-                            'label' => $opt->label,
-                            'subtitle' => $opt->subtitle,
-                            'price_modifier' => $opt->price_modifier,
-                            'image_path' => $opt->image_path,
-                            'image_url' => $opt->image_url,
-                            'sort_order' => (int) $opt->sort_order,
-                        ];
-                    }
-                }
-
-                $optionGroups[] = [
-                    'id' => $group->id,
-                    'name' => $group->name,
-                    'subtitle' => $group->subtitle,
-                    'input_type' => $group->input_type,
-                    'is_required' => (bool) $group->is_required,
-                    'sort_order' => (int) $group->sort_order,
-                    'options' => $options,
-                ];
-            }
+            $optionGroups = $product->optionGroups
+                ->sortBy('sort_order')
+                ->values()
+                ->map(fn (ProductOptionGroup $group) => $group->toApiArray())
+                ->all();
         }
 
         $variants = [];
@@ -147,6 +133,7 @@ class ProductController extends Controller
             'image_url' => ProductImage::buildFullUrl($rootImagePath),
             'main_image' => $mainImage,
             'gallery_images' => $galleryImages,
+            'images' => $imagesList,
             'category' => $product->relationLoaded('category') ? $product->category : null,
             'service_ids' => $product->relationLoaded('services') ? $product->services->pluck('id')->values()->all() : $product->services()->pluck('id')->values()->all(),
             'option_groups' => $optionGroups,
@@ -209,8 +196,7 @@ class ProductController extends Controller
         $filesImage = [];
         $filesMulti = [];
         $filesOptionImages = [];
-        $lineDelimiter = "\r\n--" . $boundary;
-        $parts = explode($lineDelimiter, $raw);
+        $parts = preg_split('/\r?\n--'.preg_quote($boundary, '/').'/', $raw) ?: [];
         $firstPrefix = '--' . $boundary;
         foreach ($parts as $i => $segment) {
             $part = $segment;
@@ -222,6 +208,8 @@ class ProductController extends Controller
                     $part = substr($part, strlen($firstPrefix) + 2);
                 } elseif (str_starts_with($part, $firstPrefix . "\n")) {
                     $part = substr($part, strlen($firstPrefix) + 1);
+                } elseif ($part === $firstPrefix || str_starts_with($part, $firstPrefix)) {
+                    $part = ltrim(substr($part, strlen($firstPrefix)), "\r\n");
                 }
             }
             $part = trim($part, "\r\n");
@@ -239,10 +227,10 @@ class ProductController extends Controller
             $bodyStart = $headerEnd + (str_contains($part, "\r\n\r\n") ? 4 : 2);
             $value = substr($part, $bodyStart);
             $value = preg_replace('/\r?\n$/s', '', $value);
-            if (! preg_match('/name="([^"]+)"/', $headers, $nameMatch)) {
+            if (! preg_match('/(?:name)="([^"]+)"|(?:name)=\'([^\']+)\'/i', $headers, $nameMatch)) {
                 continue;
             }
-            $name = $nameMatch[1];
+            $name = $nameMatch[1] !== '' ? $nameMatch[1] : ($nameMatch[2] ?? '');
             $isFile = preg_match('/filename="([^"]*)"/', $headers, $fileMatch);
             if ($isFile) {
                 $originalName = $fileMatch[1] !== '' ? $fileMatch[1] : 'file';
@@ -252,6 +240,10 @@ class ProductController extends Controller
                 }
                 $tmpPath = tempnam(sys_get_temp_dir(), 'put_');
                 if ($tmpPath !== false && file_put_contents($tmpPath, $value) !== false) {
+                    if (($mimeType === null || $mimeType === '') && is_file($tmpPath)) {
+                        $detected = mime_content_type($tmpPath);
+                        $mimeType = is_string($detected) && $detected !== '' ? $detected : 'application/octet-stream';
+                    }
                     $uploaded = new UploadedFile($tmpPath, $originalName, $mimeType, \UPLOAD_ERR_OK, true);
                     if ($name === 'main_image') {
                         $filesMainImage[] = $uploaded;
@@ -546,7 +538,7 @@ class ProductController extends Controller
      */
     private function addOptionImageFileToMap(array &$files, string $key, mixed $file): void
     {
-        if ($file instanceof UploadedFile && $file->isValid()) {
+        if ($this->isUsableOptionImageUpload($file)) {
             $files[$key] = $file;
 
             return;
@@ -582,12 +574,105 @@ class ProductController extends Controller
                 continue;
             }
             $file = $optionImageFiles[$key];
-            if ($file instanceof UploadedFile && $file->isValid()) {
+            if ($this->isUsableOptionImageUpload($file)) {
                 return $file;
             }
         }
 
+        foreach ($optionImageFiles as $fileKey => $file) {
+            if (! $this->isUsableOptionImageUpload($file)) {
+                continue;
+            }
+            if ($tempKey !== null && $tempKey !== '' && strcasecmp((string) $fileKey, $tempKey) === 0) {
+                return $file;
+            }
+            if ($optionId !== null && $optionId > 0) {
+                $idStr = (string) $optionId;
+                if ($fileKey === $idStr || $fileKey === 'opt_'.$idStr || $fileKey === 'option_'.$idStr) {
+                    return $file;
+                }
+            }
+        }
+
         return null;
+    }
+
+    private function isUsableOptionImageUpload(mixed $file): bool
+    {
+        if (! $file instanceof UploadedFile) {
+            return false;
+        }
+
+        if ($file->isValid()) {
+            return true;
+        }
+
+        $path = $file->getPathname();
+
+        return is_string($path) && $path !== '' && is_file($path) && filesize($path) > 0;
+    }
+
+    /**
+     * Link uploaded option_images[...] keys to options in JSON (id, temp_key, or single file per group).
+     *
+     * @param  array<int, array<string, mixed>>  $groups
+     * @param  array<string, UploadedFile>  $optionImageFiles
+     * @return array<int, array<string, mixed>>
+     */
+    private function bindUploadedOptionImagesToGroupsPayload(array $groups, array $optionImageFiles): array
+    {
+        if ($optionImageFiles === []) {
+            return $groups;
+        }
+
+        $assignedKeys = [];
+
+        foreach ($groups as $groupIndex => $groupData) {
+            foreach ($groupData['options'] ?? [] as $optionIndex => $optionData) {
+                $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : 0;
+                $tempKey = isset($optionData['temp_key']) ? trim((string) $optionData['temp_key']) : '';
+
+                foreach ($optionImageFiles as $fileKey => $file) {
+                    if (in_array($fileKey, $assignedKeys, true) || ! $this->isUsableOptionImageUpload($file)) {
+                        continue;
+                    }
+
+                    $matchesId = $optionId > 0 && in_array($fileKey, [
+                        (string) $optionId,
+                        'opt_'.$optionId,
+                        'option_'.$optionId,
+                    ], true);
+                    $matchesTempKey = $tempKey !== '' && strcasecmp($fileKey, $tempKey) === 0;
+
+                    if ($matchesId || $matchesTempKey) {
+                        $groups[$groupIndex]['options'][$optionIndex]['temp_key'] = $fileKey;
+                        $assignedKeys[] = $fileKey;
+                        break;
+                    }
+                }
+            }
+        }
+
+        foreach ($groups as $groupIndex => $groupData) {
+            $remainingKeys = array_values(array_diff(array_keys($optionImageFiles), $assignedKeys));
+            if (count($remainingKeys) !== 1) {
+                continue;
+            }
+
+            $fileKey = $remainingKeys[0];
+            foreach ($groupData['options'] ?? [] as $optionIndex => $optionData) {
+                $hasImage = ! empty($optionData['image_path'])
+                    || ! empty($optionData['image_url'])
+                    || ! empty($optionData['existing_image_path']);
+                if (! $hasImage) {
+                    $groups[$groupIndex]['options'][$optionIndex]['temp_key'] = $fileKey;
+                    $assignedKeys[] = $fileKey;
+                    break;
+                }
+            }
+        }
+
+        return $groups;
     }
 
     /**
@@ -719,6 +804,7 @@ class ProductController extends Controller
         if ($json !== null) {
             $groups = $this->decodeOptionGroupsPayload($json);
             if ($groups !== null && $groups !== []) {
+                $groups = $this->bindUploadedOptionImagesToGroupsPayload($groups, $optionImageFiles);
                 $enriched = $this->enrichOptionGroupsPayload($product, $groups);
                 $this->syncOptionGroupsFromJson($product, json_encode($enriched), $optionImageFiles);
 
@@ -929,7 +1015,7 @@ class ProductController extends Controller
         $file = is_array($optionImageFiles)
             ? $this->resolveOptionImageFileFromKeys($optionId, $tempKey, $optionImageFiles)
             : null;
-        if ($file) {
+        if ($file && $this->isUsableOptionImageUpload($file)) {
             $path = $file->store('product-options', 'public');
             $this->compressProductImageIfNeeded($path);
 
