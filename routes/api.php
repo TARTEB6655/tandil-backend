@@ -447,6 +447,7 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     // Individual product routes
     Route::get('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'show']);
     Route::put('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'update']);
+    Route::post('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'update']);
     Route::delete('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'destroy']);
     Route::post('/products/{id}/toggle-status', [\App\Http\Controllers\Admin\ProductController::class, 'toggleStatus']);
 

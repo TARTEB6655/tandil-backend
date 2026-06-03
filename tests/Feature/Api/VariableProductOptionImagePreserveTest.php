@@ -146,6 +146,82 @@ class VariableProductOptionImagePreserveTest extends TestCase
         ]);
     }
 
+    public function test_empty_option_groups_json_array_does_not_wipe_option_images(): void
+    {
+        ['product' => $product, 'image_path' => $imagePath] = $this->seedVariableProductWithOptionImage();
+
+        $this->putJson("/api/admin/products/{$product->id}", [
+            'name' => 'Title only',
+            'product_type' => 'variable',
+            'option_groups_json' => '[]',
+        ], $this->authJson())->assertOk();
+
+        $this->assertDatabaseHas('product_options', [
+            'label' => 'In box',
+            'image_path' => $imagePath,
+        ]);
+    }
+
+    public function test_post_multipart_update_accepts_option_images_keyed_by_option_id(): void
+    {
+        ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();
+
+        $newFile = UploadedFile::fake()->image('via-post.jpg');
+
+        $this->call(
+            'POST',
+            "/api/admin/products/{$product->id}",
+            [
+                'name' => 'Updated via POST',
+                'option_groups_json' => json_encode([
+                    [
+                        'name' => 'Packaging type',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'id' => $option->id,
+                                'label' => 'In box',
+                                'price_modifier' => 5,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            ['option_images' => [(string) $option->id => $newFile]],
+            $this->transformHeadersToServerVars($this->authJson())
+        )->assertOk();
+
+        $freshPath = ProductOption::where('label', 'In box')->value('image_path');
+        $this->assertNotNull($freshPath);
+        $this->assertNotSame($oldPath, $freshPath);
+        Storage::disk('public')->assertExists($freshPath);
+    }
+
+    public function test_option_images_only_without_json_patches_existing_option(): void
+    {
+        ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();
+
+        $newFile = UploadedFile::fake()->image('patch-only.jpg');
+
+        $this->call(
+            'POST',
+            "/api/admin/products/{$product->id}",
+            ['name' => 'Patch image only'],
+            [],
+            ['option_images' => ['opt_'.$option->id => $newFile]],
+            $this->transformHeadersToServerVars($this->authJson())
+        )->assertOk();
+
+        $freshPath = ProductOption::where('id', $option->id)->value('image_path');
+        $this->assertNotSame($oldPath, $freshPath);
+        $this->assertDatabaseHas('product_options', [
+            'id' => $option->id,
+            'label' => 'In box',
+        ]);
+    }
+
     public function test_new_option_image_upload_replaces_only_that_option(): void
     {
         ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();

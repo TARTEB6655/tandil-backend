@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\ProductOption;
 use App\Models\ProductOptionGroup;
 use App\Models\Service;
 use App\Models\ProductImage;
@@ -85,6 +86,7 @@ class ProductController extends Controller
                     foreach ($group->options as $opt) {
                         $options[] = [
                             'id' => $opt->id,
+                            'temp_key' => 'opt_'.$opt->id,
                             'label' => $opt->label,
                             'subtitle' => $opt->subtitle,
                             'price_modifier' => $opt->price_modifier,
@@ -446,17 +448,254 @@ class ProductController extends Controller
      * Replaces all existing groups for this product when variable; clears them when simple.
      */
     /**
-     * Only sync option groups when the client sent option_groups_json (avoids wiping on partial product updates).
+     * option_groups_json (string) or option_groups (array) from JSON / multipart.
      */
-    private function shouldSyncOptionGroupsFromRequest(Request $request): bool
+    private function normalizeOptionGroupsJsonInput(Request $request): ?string
     {
-        if (! $request->has('option_groups_json')) {
-            return false;
+        if ($request->has('option_groups_json')) {
+            $value = $request->input('option_groups_json');
+            if (is_array($value)) {
+                return json_encode($value);
+            }
+            if (is_string($value)) {
+                return $value;
+            }
         }
 
-        $json = $request->input('option_groups_json');
+        if ($request->has('option_groups')) {
+            $value = $request->input('option_groups');
+            if (is_array($value)) {
+                return json_encode($value);
+            }
+            if (is_string($value) && trim($value) !== '') {
+                return $value;
+            }
+        }
 
-        return $json !== null && (! is_string($json) || trim($json) !== '');
+        return null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function decodeOptionGroupsPayload(?string $json): ?array
+    {
+        if ($json === null) {
+            return null;
+        }
+
+        $json = trim($json);
+        if ($json === '') {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+        if (! is_array($decoded)) {
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * Collect option image uploads (multipart). Keys: temp_key, option id, opt_{id}.
+     *
+     * @return array<string, UploadedFile>
+     */
+    private function collectOptionImageFilesFromRequest(Request $request): array
+    {
+        $files = [];
+
+        $bag = $request->file('option_images');
+        if (is_array($bag)) {
+            foreach ($bag as $key => $file) {
+                $this->addOptionImageFileToMap($files, (string) $key, $file);
+            }
+        } elseif ($bag instanceof UploadedFile) {
+            $this->addOptionImageFileToMap($files, '0', $bag);
+        }
+
+        foreach ($request->allFiles() as $name => $file) {
+            if (preg_match('/^option_images\[([^\]]+)\]$/', (string) $name, $matches)) {
+                $this->addOptionImageFileToMap($files, $matches[1], $file);
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * @param  array<string, UploadedFile>  $files
+     */
+    private function addOptionImageFileToMap(array &$files, string $key, mixed $file): void
+    {
+        if ($file instanceof UploadedFile && $file->isValid()) {
+            $files[$key] = $file;
+
+            return;
+        }
+
+        if (! is_array($file)) {
+            return;
+        }
+
+        foreach ($file as $nestedKey => $nestedFile) {
+            $resolvedKey = is_string($nestedKey) ? $nestedKey : $key;
+            $this->addOptionImageFileToMap($files, $resolvedKey, $nestedFile);
+        }
+    }
+
+    /**
+     * @param  array<string, UploadedFile>  $optionImageFiles
+     */
+    private function resolveOptionImageFileFromKeys(?int $optionId, ?string $tempKey, array $optionImageFiles): ?UploadedFile
+    {
+        $candidates = [];
+        if (is_string($tempKey) && trim($tempKey) !== '') {
+            $candidates[] = trim($tempKey);
+        }
+        if ($optionId !== null && $optionId > 0) {
+            $candidates[] = (string) $optionId;
+            $candidates[] = 'opt_'.$optionId;
+            $candidates[] = 'option_'.$optionId;
+        }
+
+        foreach ($candidates as $key) {
+            if (! isset($optionImageFiles[$key])) {
+                continue;
+            }
+            $file = $optionImageFiles[$key];
+            if ($file instanceof UploadedFile && $file->isValid()) {
+                return $file;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Fill missing option ids / image paths from DB so option sync does not drop images.
+     *
+     * @param  array<int, array<string, mixed>>  $groups
+     * @return array<int, array<string, mixed>>
+     */
+    private function enrichOptionGroupsPayload(Product $product, array $groups): array
+    {
+        $existingGroups = $product->optionGroups()->with('options')->get();
+        $groupsById = $existingGroups->keyBy('id');
+        $groupsByName = $existingGroups->keyBy(fn ($group) => $this->optionLookupKey($group->name));
+
+        foreach ($groups as $groupIndex => $groupData) {
+            $existingGroup = null;
+            $groupId = isset($groupData['id']) && is_numeric($groupData['id']) ? (int) $groupData['id'] : 0;
+            if ($groupId > 0 && $groupsById->has($groupId)) {
+                $existingGroup = $groupsById->get($groupId);
+            } elseif (! empty($groupData['name'])) {
+                $existingGroup = $groupsByName->get($this->optionLookupKey($groupData['name']));
+            }
+
+            if ($existingGroup) {
+                $groups[$groupIndex]['id'] = $groups[$groupIndex]['id'] ?? $existingGroup->id;
+                if (empty($groups[$groupIndex]['name'])) {
+                    $groups[$groupIndex]['name'] = $existingGroup->name;
+                }
+            }
+
+            $optionsById = $existingGroup
+                ? $existingGroup->options->keyBy('id')
+                : collect();
+            $optionsByLabel = $existingGroup
+                ? $existingGroup->options->keyBy(fn ($opt) => $this->optionLookupKey($opt->label))
+                : collect();
+
+            foreach ($groupData['options'] ?? [] as $optionIndex => $optionData) {
+                $existingOption = null;
+                $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : 0;
+                if ($optionId > 0 && $optionsById->has($optionId)) {
+                    $existingOption = $optionsById->get($optionId);
+                } elseif (! empty($optionData['label'])) {
+                    $existingOption = $optionsByLabel->get($this->optionLookupKey($optionData['label']));
+                }
+
+                if (! $existingOption) {
+                    continue;
+                }
+
+                if (empty($groups[$groupIndex]['options'][$optionIndex]['id'])) {
+                    $groups[$groupIndex]['options'][$optionIndex]['id'] = $existingOption->id;
+                }
+                if (empty($groups[$groupIndex]['options'][$optionIndex]['temp_key'])) {
+                    $groups[$groupIndex]['options'][$optionIndex]['temp_key'] = 'opt_'.$existingOption->id;
+                }
+
+                $hasImagePath = ! empty($groups[$groupIndex]['options'][$optionIndex]['image_path'])
+                    || ! empty($groups[$groupIndex]['options'][$optionIndex]['existing_image_path']);
+                $hasImageUrl = ! empty($groups[$groupIndex]['options'][$optionIndex]['image_url']);
+
+                if (! $hasImagePath && ! $hasImageUrl && $existingOption->image_path) {
+                    $groups[$groupIndex]['options'][$optionIndex]['image_path'] = $existingOption->image_path;
+                    $groups[$groupIndex]['options'][$optionIndex]['image_url'] = $existingOption->image_url;
+                }
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Update only option images (no full option-group rebuild) when client sends files without JSON.
+     *
+     * @param  array<string, UploadedFile>  $optionImageFiles
+     */
+    private function patchOptionImagesFromUploads(Product $product, array $optionImageFiles): void
+    {
+        if ($product->product_type !== 'variable' || $optionImageFiles === []) {
+            return;
+        }
+
+        $product->loadMissing('optionGroups.options');
+
+        foreach ($product->optionGroups as $group) {
+            foreach ($group->options as $option) {
+                $file = $this->resolveOptionImageFileFromKeys((int) $option->id, null, $optionImageFiles);
+                if (! $file) {
+                    continue;
+                }
+
+                if ($option->image_path
+                    && ! str_starts_with($option->image_path, 'http')
+                    && Storage::disk('public')->exists($option->image_path)) {
+                    Storage::disk('public')->delete($option->image_path);
+                }
+
+                $path = $file->store('product-options', 'public');
+                $this->compressProductImageIfNeeded($path);
+                $option->update(['image_path' => $path]);
+            }
+        }
+    }
+
+    /**
+     * Sync or patch variable-product options from the request (multipart-safe).
+     */
+    private function syncProductOptionGroupsFromRequest(Product $product, Request $request): void
+    {
+        $optionImageFiles = $this->collectOptionImageFilesFromRequest($request);
+        $json = $this->normalizeOptionGroupsJsonInput($request);
+
+        if ($json !== null) {
+            $groups = $this->decodeOptionGroupsPayload($json);
+            if ($groups !== null && $groups !== []) {
+                $enriched = $this->enrichOptionGroupsPayload($product, $groups);
+                $this->syncOptionGroupsFromJson($product, json_encode($enriched), $optionImageFiles);
+
+                return;
+            }
+        }
+
+        if ($optionImageFiles !== []) {
+            $this->patchOptionImagesFromUploads($product, $optionImageFiles);
+        }
     }
 
     /**
@@ -588,15 +827,16 @@ class ProductController extends Controller
         array $existingOptionImagePaths = [],
         string $groupName = ''
     ): ?string {
-        $tempKey = $optionData['temp_key'] ?? null;
-        if ($tempKey && is_array($optionImageFiles) && isset($optionImageFiles[$tempKey])) {
-            $file = $optionImageFiles[$tempKey];
-            if ($file instanceof UploadedFile && $file->isValid()) {
-                $path = $file->store('product-options', 'public');
-                $this->compressProductImageIfNeeded($path);
+        $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : null;
+        $tempKey = isset($optionData['temp_key']) && is_string($optionData['temp_key']) ? $optionData['temp_key'] : null;
+        $file = is_array($optionImageFiles)
+            ? $this->resolveOptionImageFileFromKeys($optionId, $tempKey, $optionImageFiles)
+            : null;
+        if ($file) {
+            $path = $file->store('product-options', 'public');
+            $this->compressProductImageIfNeeded($path);
 
-                return $path;
-            }
+            return $path;
         }
 
         foreach (['image_path', 'existing_image_path'] as $key) {
@@ -611,9 +851,9 @@ class ProductController extends Controller
             return $fromUrl;
         }
 
-        $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : 0;
-        if ($optionId > 0 && isset($existingOptionImagePaths['by_id'][$optionId])) {
-            return $existingOptionImagePaths['by_id'][$optionId];
+        $resolvedOptionId = $optionId ?? 0;
+        if ($resolvedOptionId > 0 && isset($existingOptionImagePaths['by_id'][$resolvedOptionId])) {
+            return $existingOptionImagePaths['by_id'][$resolvedOptionId];
         }
 
         $labelKey = $this->optionLookupKey($groupName).'|'.$this->optionLookupKey($optionData['label'] ?? '');
@@ -676,7 +916,8 @@ class ProductController extends Controller
             'estimated_arrival'   => 'nullable|string|max:255',
             'job_duration'        => 'nullable|string|max:255',
             'product_type'        => 'nullable|in:simple,variable',
-            'option_groups_json'  => 'nullable|string',
+            'option_groups_json'  => 'nullable',
+            'option_groups'       => 'nullable',
             'option_images'       => 'nullable|array',
             'option_images.*'     => 'nullable|image|mimes:jpg,jpeg,png,webp',
         ], [
@@ -851,10 +1092,7 @@ class ProductController extends Controller
             $product->services()->sync($serviceIds);
         }
 
-        // Sync option groups for variable products
-        if ($this->shouldSyncOptionGroupsFromRequest($request)) {
-            $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
-        }
+        $this->syncProductOptionGroupsFromRequest($product, $request);
 
         // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
         if ($request->expectsJson() || $request->is('api/*')) {
@@ -988,7 +1226,8 @@ class ProductController extends Controller
             'estimated_arrival'  => 'nullable|string|max:255',
             'job_duration'       => 'nullable|string|max:255',
             'product_type'       => 'nullable|in:simple,variable',
-            'option_groups_json' => 'nullable|string',
+            'option_groups_json' => 'nullable',
+            'option_groups'      => 'nullable',
             'option_images'      => 'nullable|array',
             'option_images.*'    => 'nullable|image|mimes:jpg,jpeg,png,webp',
         ], [
@@ -1175,9 +1414,7 @@ class ProductController extends Controller
         if ($request->has('product_type')) {
             $product->update(['product_type' => $request->input('product_type', 'simple')]);
         }
-        if ($this->shouldSyncOptionGroupsFromRequest($request)) {
-            $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
-        }
+        $this->syncProductOptionGroupsFromRequest($product, $request);
 
         // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();
