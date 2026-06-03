@@ -16,20 +16,16 @@ class AdminProductWebUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_dashboard_shows_recent_products_with_edit_link(): void
+    public function test_admin_dashboard_does_not_show_recent_products_section(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $category = Category::factory()->create();
-        $product = Product::factory()->create([
-            'category_id' => $category->id,
-            'name' => 'Dashboard Test Product',
-        ]);
+        Category::factory()->create();
+        Product::factory()->create(['name' => 'Dashboard Test Product']);
 
         $this->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Dashboard Test Product')
-            ->assertSee(route('admin.products.edit', $product, false));
+            ->assertDontSee(__('admin.recent_products'), false);
     }
 
     public function test_admin_can_update_variable_product_via_web_post_with_option_image(): void
