@@ -10545,9 +10545,9 @@
                             }
                         },
                         {
-                            "name": "Update Product (Multipart – same as Add Product)",
+                            "name": "Update Product (POST multipart – recommended)",
                             "request": {
-                                "method": "PUT",
+                                "method": "POST",
                                 "header": [
                                     {
                                         "key": "Authorization",
@@ -10627,9 +10627,9 @@
                                         },
                                         {
                                             "key": "option_groups_json",
-                                            "value": "[{\"name\":\"Cutting\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_cut_1\",\"label\":\"Arabic cut (8 pieces)\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]",
+                                            "value": "[{\"id\":1,\"name\":\"Cutting\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"id\":12,\"temp_key\":\"opt_12\",\"label\":\"Arabic cut (8 pieces)\",\"subtitle\":\"Free\",\"price_modifier\":0,\"image_path\":\"product-options/existing.jpg\"}]}]",
                                             "type": "text",
-                                            "description": "Optional. JSON string for variable options update."
+                                            "description": "Optional. JSON string. Include option id + image_path (or image_url) from GET product to keep images. Omit this field entirely for partial update (name/price only)."
                                         },
                                         {
                                             "key": "image_urls",
@@ -10650,10 +10650,10 @@
                                             "description": "Extra images. Optional. Use POST if PUT doesn't send file."
                                         },
                                         {
-                                            "key": "option_images[opt_cut_1]",
+                                            "key": "option_images[opt_12]",
                                             "type": "file",
                                             "src": [],
-                                            "description": "Optional option image file. temp_key must match option_groups_json."
+                                            "description": "Option image file. Key = temp_key OR opt_{id} OR numeric id. Use POST (not PUT) when uploading files."
                                         }
                                     ]
                                 },
@@ -10669,7 +10669,44 @@
                                         "{{product_id}}"
                                     ]
                                 },
-                                "description": "Update product: PUT or POST multipart. Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response: data.images, data.image_url, data.service_ids, data.option_groups, data.variants (if configured). Set product_id. Auth: Bearer {{token}}."
+                                "description": "Update product at PUT/POST {{base_url}}/api/admin/products/{{product_id}}. Auth: Bearer {{token}}. JSON-only partial update: PUT + application/json (send only changed fields; omit option_groups_json to keep options/images). Multipart with files (main_image, option_images): POST + form-data (recommended). Variable: product_type=variable, option_groups_json (include option id from GET), option_images[opt_{id}]. Response 200: data.option_groups[].options[].image_url, temp_key. Empty option_groups_json [] is ignored (will not wipe options)."
+                            }
+                        },
+                        {
+                            "name": "Update Product (PUT JSON – partial, no files)",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Updated Name\",\n  \"price\": 149.99,\n  \"stock\": 20,\n  \"status\": \"active\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/{{product_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "{{product_id}}"
+                                    ]
+                                },
+                                "description": "Same URL as multipart update. Use when changing text fields only (no image upload). Do not send option_groups_json unless you intend to sync variable options."
                             }
                         },
                         {

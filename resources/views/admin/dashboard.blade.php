@@ -45,6 +45,10 @@
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                     {{ __('admin.new_product') }}
                 </a>
+                <a href="{{ route('admin.products.index') }}" class="inline-flex min-h-[2.5rem] items-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-xs font-semibold shadow-sm transition-colors bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    {{ __('admin.edit_products') }}
+                </a>
                 <a href="{{ route('admin.categories.create') }}" class="inline-flex min-h-[2.5rem] items-center gap-2 rounded-xl border border-indigo-200 dark:border-indigo-700 px-4 py-2.5 text-xs font-semibold shadow-sm transition-colors bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                     {{ __('admin.new_category') }}
@@ -90,6 +94,71 @@
                 <svg class="w-5 h-5 text-gray-500 group-hover:text-teal-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </a>
         </div>
+
+        @if(isset($recentProducts) && $recentProducts->isNotEmpty())
+        <div class="mt-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/80">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ __('admin.recent_products') }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('admin.recent_products_hint') }}</p>
+                </div>
+                <a href="{{ route('admin.products.index') }}" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">{{ __('admin.view_all_products') }} &rarr;</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left">{{ __('admin.product') }}</th>
+                            <th class="px-4 py-2.5 text-left">{{ __('admin.status') }}</th>
+                            <th class="px-4 py-2.5 text-left">{{ __('admin.price') }}</th>
+                            <th class="px-4 py-2.5 text-right">{{ __('admin.actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                        @foreach($recentProducts as $recentProduct)
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-3 min-w-[200px]">
+                                    <div class="h-10 w-10 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
+                                        @php $thumbUrl = $recentProduct->getImageUrl(); @endphp
+                                        @if($thumbUrl)
+                                            <img src="{{ $thumbUrl }}" alt="" class="h-full w-full object-cover">
+                                        @else
+                                            <div class="h-full w-full flex items-center justify-center text-gray-400">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ $recentProduct->name }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            {{ $recentProduct->product_type === 'variable' ? __('admin.variable_product') : __('admin.simple_product') }}
+                                            @if($recentProduct->option_groups_count > 0)
+                                                · {{ $recentProduct->option_groups_count }} {{ __('admin.option_groups') }}
+                                            @endif
+                                        </p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $recentProduct->status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+                                    {{ ucfirst($recentProduct->status ?? 'draft') }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ number_format($recentProduct->price ?? 0, 2) }} AED</td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                <a href="{{ route('admin.products.edit', $recentProduct) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    {{ __('admin.update_product') }}
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
     </div>
 
     @php

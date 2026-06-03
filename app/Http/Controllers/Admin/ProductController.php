@@ -680,6 +680,22 @@ class ProductController extends Controller
      */
     private function syncProductOptionGroupsFromRequest(Product $product, Request $request): void
     {
+        $product->refresh();
+        $productType = (string) ($request->input('product_type', $product->product_type) ?? 'simple');
+
+        if ($productType !== 'variable') {
+            if ($productType === 'simple') {
+                $product->optionGroups()->delete();
+            }
+
+            return;
+        }
+
+        if ($product->product_type !== 'variable') {
+            $product->update(['product_type' => 'variable']);
+            $product->refresh();
+        }
+
         $optionImageFiles = $this->collectOptionImageFilesFromRequest($request);
         $json = $this->normalizeOptionGroupsJsonInput($request);
 
@@ -695,6 +711,17 @@ class ProductController extends Controller
 
         if ($optionImageFiles !== []) {
             $this->patchOptionImagesFromUploads($product, $optionImageFiles);
+        }
+    }
+
+    private function deleteStoredOptionImage(?string $imagePath): void
+    {
+        if (! $imagePath || str_starts_with($imagePath, 'http')) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($imagePath)) {
+            Storage::disk('public')->delete($imagePath);
         }
     }
 
@@ -785,36 +812,89 @@ class ProductController extends Controller
         $existingOptionImagePaths = $this->collectExistingOptionImagePaths($product);
 
         DB::transaction(function () use ($product, $groups, $optionImageFiles, $existingOptionImagePaths) {
-            $product->optionGroups()->delete();
+            $keptGroupIds = [];
+
             foreach ($groups as $gi => $groupData) {
                 if (empty($groupData['name'])) {
                     continue;
                 }
-                $group = $product->optionGroups()->create([
+
+                $groupId = isset($groupData['id']) && is_numeric($groupData['id']) ? (int) $groupData['id'] : 0;
+                $group = $groupId > 0
+                    ? $product->optionGroups()->where('id', $groupId)->first()
+                    : null;
+
+                $groupAttrs = [
                     'name'        => $groupData['name'],
                     'subtitle'    => $groupData['subtitle'] ?? null,
                     'input_type'  => $groupData['input_type'] ?? 'single',
                     'is_required' => $groupData['is_required'] ?? true,
                     'sort_order'  => $groupData['sort_order'] ?? $gi,
-                ]);
+                ];
+
+                if ($group) {
+                    $group->update($groupAttrs);
+                } else {
+                    $group = $product->optionGroups()->create($groupAttrs);
+                }
+
+                $keptGroupIds[] = $group->id;
+                $keptOptionIds = [];
+
                 foreach ($groupData['options'] ?? [] as $oi => $opt) {
                     if (empty($opt['label'])) {
                         continue;
                     }
-                    $group->options()->create([
+
+                    $resolvedImagePath = $this->resolveOptionImagePath(
+                        $opt,
+                        $optionImageFiles,
+                        $existingOptionImagePaths,
+                        (string) $groupData['name']
+                    );
+
+                    $optionId = isset($opt['id']) && is_numeric($opt['id']) ? (int) $opt['id'] : 0;
+                    $option = $optionId > 0
+                        ? $group->options()->where('id', $optionId)->first()
+                        : null;
+
+                    if ($resolvedImagePath === null && $option?->image_path) {
+                        $resolvedImagePath = $option->image_path;
+                    }
+
+                    $optionAttrs = [
                         'label'          => $opt['label'],
                         'subtitle'       => $opt['subtitle'] ?? null,
                         'price_modifier' => $opt['price_modifier'] ?? 0,
-                        'image_path'     => $this->resolveOptionImagePath(
-                            $opt,
-                            $optionImageFiles,
-                            $existingOptionImagePaths,
-                            (string) $groupData['name']
-                        ),
+                        'image_path'     => $resolvedImagePath,
                         'sort_order'     => $opt['sort_order'] ?? $oi,
-                    ]);
+                    ];
+
+                    if ($option) {
+                        if ($resolvedImagePath !== $option->image_path) {
+                            $this->deleteStoredOptionImage($option->image_path);
+                        }
+                        $option->update($optionAttrs);
+                    } else {
+                        $option = $group->options()->create($optionAttrs);
+                    }
+
+                    $keptOptionIds[] = $option->id;
                 }
+
+                $group->options()->whereNotIn('id', $keptOptionIds)->get()->each(function (ProductOption $orphan): void {
+                    $this->deleteStoredOptionImage($orphan->image_path);
+                    $orphan->delete();
+                });
             }
+
+            $product->optionGroups()->whereNotIn('id', $keptGroupIds)->with('options')->get()->each(function (ProductOptionGroup $orphanGroup): void {
+                foreach ($orphanGroup->options as $orphanOption) {
+                    $this->deleteStoredOptionImage($orphanOption->image_path);
+                    $orphanOption->delete();
+                }
+                $orphanGroup->delete();
+            });
         });
     }
 

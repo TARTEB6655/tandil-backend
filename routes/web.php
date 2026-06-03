@@ -194,6 +194,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
 
         Route::resource('roles', RoleController::class);
         Route::resource('products', ProductController::class);
+        Route::post('products/{product}', [ProductController::class, 'update'])->name('products.update.post');
         Route::get('products/import', [ProductController::class, 'showImport'])->name('products.import');
         Route::post('products/import', [ProductController::class, 'import'])->name('products.import.store');
         Route::get('products/export', [ProductController::class, 'export'])->name('products.export');

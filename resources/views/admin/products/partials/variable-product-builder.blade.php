@@ -312,14 +312,21 @@
             : '';
 
         var imagePreview = document.createElement('div');
-        imagePreview.className = 'w-16 h-16 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 overflow-hidden flex items-center justify-center';
+        imagePreview.className = 'w-16 h-16 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 overflow-hidden flex flex-col items-center justify-center gap-0.5 shrink-0';
+        imagePreview.setAttribute('aria-label', 'Option image preview');
+
         var imagePreviewImg = document.createElement('img');
         imagePreviewImg.className = 'w-full h-full object-cover hidden';
+        imagePreviewImg.alt = 'Option image';
         imagePreview.appendChild(imagePreviewImg);
 
-        var imagePreviewPlaceholder = document.createElement('span');
-        imagePreviewPlaceholder.className = 'hidden';
-        imagePreviewPlaceholder.textContent = '';
+        var imagePreviewPlaceholder = document.createElement('div');
+        imagePreviewPlaceholder.className = 'flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 px-1';
+        imagePreviewPlaceholder.innerHTML =
+            '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>' +
+            '</svg>' +
+            '<span class="text-[10px] font-semibold uppercase tracking-wide">Image</span>';
         imagePreview.appendChild(imagePreviewPlaceholder);
 
         function setPreview(src) {
@@ -327,10 +334,14 @@
                 imagePreviewImg.src = src;
                 imagePreviewImg.classList.remove('hidden');
                 imagePreviewPlaceholder.classList.add('hidden');
+                imagePreview.classList.remove('border-dashed');
+                imagePreview.classList.add('border-solid', 'border-gray-200', 'dark:border-gray-700');
             } else {
                 imagePreviewImg.src = '';
                 imagePreviewImg.classList.add('hidden');
                 imagePreviewPlaceholder.classList.remove('hidden');
+                imagePreview.classList.add('border-dashed');
+                imagePreview.classList.remove('border-solid', 'border-gray-200', 'dark:border-gray-700');
             }
         }
         setPreview(opt.image_url || '');
@@ -399,6 +410,7 @@
                         subtitle: opt.subtitle || '',
                         price_modifier: parseFloat(opt.price_modifier) || 0,
                         image_path: opt.image_path || '',
+                        image_url: opt.image_url || '',
                         sort_order: oi,
                     };
                 }),
