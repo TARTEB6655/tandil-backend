@@ -445,6 +445,88 @@ class ProductController extends Controller
      * Save option groups (and their options) from the JSON blob submitted by the admin UI.
      * Replaces all existing groups for this product when variable; clears them when simple.
      */
+    /**
+     * Only sync option groups when the client sent option_groups_json (avoids wiping on partial product updates).
+     */
+    private function shouldSyncOptionGroupsFromRequest(Request $request): bool
+    {
+        if (! $request->has('option_groups_json')) {
+            return false;
+        }
+
+        $json = $request->input('option_groups_json');
+
+        return $json !== null && (! is_string($json) || trim($json) !== '');
+    }
+
+    /**
+     * @return array{by_id: array<int, string>, by_label: array<string, string>}
+     */
+    private function collectExistingOptionImagePaths(Product $product): array
+    {
+        $byId = [];
+        $byLabel = [];
+
+        $product->optionGroups()
+            ->with('options:id,product_option_group_id,label,image_path')
+            ->get()
+            ->each(function ($group) use (&$byId, &$byLabel): void {
+                $groupKey = $this->optionLookupKey($group->name);
+                foreach ($group->options as $opt) {
+                    $path = is_string($opt->image_path) ? trim($opt->image_path) : '';
+                    if ($path === '') {
+                        continue;
+                    }
+                    $byId[(int) $opt->id] = $path;
+                    $byLabel[$groupKey.'|'.$this->optionLookupKey($opt->label)] = $path;
+                }
+            });
+
+        return ['by_id' => $byId, 'by_label' => $byLabel];
+    }
+
+    private function optionLookupKey(?string $value): string
+    {
+        return mb_strtolower(trim((string) $value));
+    }
+
+    /**
+     * Normalize image_path from JSON or derive relative storage path from image_url.
+     */
+    private function normalizeStoredOptionImagePath(?string $value, bool $fromUrl = false): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (! $fromUrl && ! str_starts_with($value, 'http://') && ! str_starts_with($value, 'https://')) {
+            return ltrim(str_replace('\\', '/', $value), '/');
+        }
+
+        $path = parse_url($value, PHP_URL_PATH);
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        if (str_contains($path, 'product-options/')) {
+            return substr($path, strpos($path, 'product-options/'));
+        }
+
+        if (str_contains($path, '/media/')) {
+            $afterMedia = substr($path, strpos($path, '/media/') + 7);
+
+            return ltrim($afterMedia, '/');
+        }
+
+        return null;
+    }
+
     private function syncOptionGroupsFromJson(Product $product, ?string $json, ?array $optionImageFiles = null): void
     {
         if ($product->product_type !== 'variable' || blank($json)) {
@@ -452,6 +534,7 @@ class ProductController extends Controller
             if ($product->product_type === 'simple') {
                 $product->optionGroups()->delete();
             }
+
             return;
         }
 
@@ -460,14 +543,7 @@ class ProductController extends Controller
             return;
         }
 
-        // Keep old image paths by option id so editing one option image does not clear others.
-        $existingOptionImagePaths = $product->optionGroups()
-            ->with('options:id,product_option_group_id,image_path')
-            ->get()
-            ->flatMap(fn ($group) => $group->options->mapWithKeys(
-                fn ($opt) => [$opt->id => $opt->image_path]
-            ))
-            ->all();
+        $existingOptionImagePaths = $this->collectExistingOptionImagePaths($product);
 
         DB::transaction(function () use ($product, $groups, $optionImageFiles, $existingOptionImagePaths) {
             $product->optionGroups()->delete();
@@ -490,7 +566,12 @@ class ProductController extends Controller
                         'label'          => $opt['label'],
                         'subtitle'       => $opt['subtitle'] ?? null,
                         'price_modifier' => $opt['price_modifier'] ?? 0,
-                        'image_path'     => $this->resolveOptionImagePath($opt, $optionImageFiles, $existingOptionImagePaths),
+                        'image_path'     => $this->resolveOptionImagePath(
+                            $opt,
+                            $optionImageFiles,
+                            $existingOptionImagePaths,
+                            (string) $groupData['name']
+                        ),
                         'sort_order'     => $opt['sort_order'] ?? $oi,
                     ]);
                 }
@@ -499,34 +580,48 @@ class ProductController extends Controller
     }
 
     /**
-     * Resolve option image from uploaded file (preferred) or existing path in JSON.
+     * Resolve option image from uploaded file (preferred) or existing path in JSON / DB.
      */
     private function resolveOptionImagePath(
         array $optionData,
         ?array $optionImageFiles = null,
-        array $existingOptionImagePaths = []
-    ): ?string
-    {
+        array $existingOptionImagePaths = [],
+        string $groupName = ''
+    ): ?string {
         $tempKey = $optionData['temp_key'] ?? null;
         if ($tempKey && is_array($optionImageFiles) && isset($optionImageFiles[$tempKey])) {
             $file = $optionImageFiles[$tempKey];
             if ($file instanceof UploadedFile && $file->isValid()) {
                 $path = $file->store('product-options', 'public');
                 $this->compressProductImageIfNeeded($path);
+
                 return $path;
             }
         }
 
-        $imagePath = $optionData['image_path'] ?? null;
-        if (! is_string($imagePath) || trim($imagePath) === '') {
-            $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : null;
-            if ($optionId && isset($existingOptionImagePaths[$optionId])) {
-                return $existingOptionImagePaths[$optionId];
+        foreach (['image_path', 'existing_image_path'] as $key) {
+            $stored = $this->normalizeStoredOptionImagePath($optionData[$key] ?? null);
+            if ($stored !== null) {
+                return $stored;
             }
-            return null;
         }
 
-        return trim($imagePath);
+        $fromUrl = $this->normalizeStoredOptionImagePath($optionData['image_url'] ?? null, true);
+        if ($fromUrl !== null) {
+            return $fromUrl;
+        }
+
+        $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : 0;
+        if ($optionId > 0 && isset($existingOptionImagePaths['by_id'][$optionId])) {
+            return $existingOptionImagePaths['by_id'][$optionId];
+        }
+
+        $labelKey = $this->optionLookupKey($groupName).'|'.$this->optionLookupKey($optionData['label'] ?? '');
+        if ($labelKey !== '|' && isset($existingOptionImagePaths['by_label'][$labelKey])) {
+            return $existingOptionImagePaths['by_label'][$labelKey];
+        }
+
+        return null;
     }
 
     public function store(Request $request)
@@ -757,7 +852,9 @@ class ProductController extends Controller
         }
 
         // Sync option groups for variable products
-        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
+        if ($this->shouldSyncOptionGroupsFromRequest($request)) {
+            $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
+        }
 
         // Check if this is an API request – same response shape as update/detail (main_image, gallery_images, no duplication)
         if ($request->expectsJson() || $request->is('api/*')) {
@@ -1078,7 +1175,9 @@ class ProductController extends Controller
         if ($request->has('product_type')) {
             $product->update(['product_type' => $request->input('product_type', 'simple')]);
         }
-        $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
+        if ($this->shouldSyncOptionGroupsFromRequest($request)) {
+            $this->syncOptionGroupsFromJson($product, $request->input('option_groups_json'), $request->file('option_images', []));
+        }
 
         // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();

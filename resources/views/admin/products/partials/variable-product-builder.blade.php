@@ -381,14 +381,44 @@
 
     function syncJson() {
         var el = document.getElementById('optionGroupsJson');
-        if (el) el.value = JSON.stringify(groups);
+        if (!el) return;
+        normalizeGroups();
+        var payload = groups.map(function (g, gi) {
+            return {
+                id: g.id || null,
+                name: g.name || '',
+                subtitle: g.subtitle || '',
+                input_type: g.input_type || 'single',
+                is_required: g.is_required !== false,
+                sort_order: gi,
+                options: (g.options || []).map(function (opt, oi) {
+                    return {
+                        id: opt.id || null,
+                        temp_key: opt.temp_key || '',
+                        label: opt.label || '',
+                        subtitle: opt.subtitle || '',
+                        price_modifier: parseFloat(opt.price_modifier) || 0,
+                        image_path: opt.image_path || '',
+                        sort_order: oi,
+                    };
+                }),
+            };
+        });
+        el.value = JSON.stringify(payload);
     }
+    window.syncOptionGroupsJson = syncJson;
 
     // Init
     document.addEventListener('DOMContentLoaded', function () {
         normalizeGroups();
         renderGroups();
         toggleVariableBuilder();
+        var productForm = document.getElementById('productForm');
+        if (productForm) {
+            productForm.addEventListener('submit', function () {
+                syncJson();
+            });
+        }
     });
 })();
 </script>
