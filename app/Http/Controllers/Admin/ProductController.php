@@ -295,16 +295,34 @@ class ProductController extends Controller
         }
     }
 
-    /** Product main + gallery: max 1920px, ~800 KB (handles very large admin uploads). */
-    private function compressProductImageIfNeeded(string $relativePath): void
+    /**
+     * Optimize images after the API/web response is sent (avoids timeouts on large uploads).
+     */
+    private function scheduleProductImageOptimization(string $relativePath, string $profile = 'gallery'): void
     {
-        \App\Services\ImageCompressionService::optimizeProductGalleryFromPublicPath($relativePath);
+        if ($relativePath === '') {
+            return;
+        }
+
+        if (app()->environment('testing')) {
+            (new \App\Jobs\OptimizePublicDiskImageJob($relativePath, $profile))->handle();
+
+            return;
+        }
+
+        \App\Jobs\OptimizePublicDiskImageJob::dispatch($relativePath, $profile)->afterResponse();
     }
 
-    /** Option thumbnails: max 800px, ~384 KB. */
+    /** Product main + gallery: max 1920px, ~800 KB (runs after response). */
+    private function compressProductImageIfNeeded(string $relativePath): void
+    {
+        $this->scheduleProductImageOptimization($relativePath, 'gallery');
+    }
+
+    /** Option thumbnails: max 800px, ~384 KB (runs after response). */
     private function compressOptionImageIfNeeded(string $relativePath): void
     {
-        \App\Services\ImageCompressionService::optimizeProductOptionFromPublicPath($relativePath);
+        $this->scheduleProductImageOptimization($relativePath, 'option');
     }
 
     /**

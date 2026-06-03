@@ -85,6 +85,15 @@ class ImageCompressionService
             return true;
         }
 
+        if ($size > $maxBytes * 2 && $maxDimension !== null && $maxDimension > 0) {
+            $result = self::fastCompressAndSave($image, $fullPath, $type, $width, $height, $maxBytes, $maxDimension);
+            if (is_resource($image) || $image instanceof \GdImage) {
+                imagedestroy($image);
+            }
+
+            return $result;
+        }
+
         $result = self::compressAndSave($image, $fullPath, $type, $width, $height, $maxBytes, $maxDimension);
         if (is_resource($image) || $image instanceof \GdImage) {
             imagedestroy($image);
@@ -173,6 +182,56 @@ class ImageCompressionService
         };
     }
 
+    /**
+     * Single-pass resize + encode for very large uploads (fast; used before response returns).
+     */
+    private static function fastCompressAndSave($image, string $path, int $type, int $width, int $height, int $maxBytes, int $maxDimension): bool
+    {
+        $scale = 1.0;
+        if (max($width, $height) > $maxDimension) {
+            $scale = $maxDimension / (float) max($width, $height);
+        }
+        if ($scale < 1.0) {
+            $outW = max(1, (int) round($width * $scale));
+            $outH = max(1, (int) round($height * $scale));
+            if (! self::resizeAndSave($image, $path, $type, $width, $height, $outW, $outH)) {
+                return false;
+            }
+            $newSize = filesize($path);
+            if ($newSize !== false && $newSize <= $maxBytes) {
+                return true;
+            }
+            $image = self::loadImage($path, $type);
+            if ($image === null) {
+                return true;
+            }
+            $info = @getimagesize($path);
+            if ($info === false) {
+                return false;
+            }
+            $width = (int) $info[0];
+            $height = (int) $info[1];
+            $type = (int) $info[2];
+        }
+
+        $ext = pathinfo($path, PATHINFO_EXTENSION);
+        $outW = max(1, (int) round($width * min(1.0, $maxDimension / (float) max($width, $height, 1))));
+        $outH = max(1, (int) round($height * ($outW / max($width, 1))));
+        $out = imagecreatetruecolor($outW, $outH);
+        if ($out === false) {
+            return false;
+        }
+        if (in_array($type, [IMAGETYPE_PNG, IMAGETYPE_GIF], true)) {
+            imagealphablending($out, false);
+            imagesavealpha($out, true);
+        }
+        imagecopyresampled($out, $image, 0, 0, 0, 0, $outW, $outH, $width, $height);
+        $saved = self::saveImage($out, $path, $type, $ext, 78);
+        imagedestroy($out);
+
+        return $saved;
+    }
+
     private static function compressAndSave($image, string $path, int $type, int $width, int $height, int $maxBytes, ?int $maxDimension = null): bool
     {
         $ext = pathinfo($path, PATHINFO_EXTENSION);
@@ -182,7 +241,7 @@ class ImageCompressionService
             $scale = min($scale, $maxDimension / (float) max($width, $height));
         }
         $attempts = 0;
-        $maxAttempts = 25;
+        $maxAttempts = 12;
 
         while ($attempts < $maxAttempts) {
             $outW = (int) round($width * $scale);
