@@ -318,9 +318,9 @@ class CartController extends Controller
         $compareAt = $product->compare_at_price !== null ? (float) $product->compare_at_price : null;
         $lineTotal = round($item->quantity * $price, 2);
         $selectedOptionIds = Cart::normalizeSelectedOptionIds($item->selected_options);
-        $optionLabels = $selectedOptionIds !== []
-            ? \App\Models\ProductOption::whereIn('id', $selectedOptionIds)->orderBy('id')->pluck('label')->values()->all()
-            : [];
+        $basePrice = round((float) $product->price, 2);
+        $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds);
+        $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
 
         return [
             'id' => $item->id,
@@ -331,12 +331,15 @@ class CartController extends Controller
                 ? $product->category->name
                 : null,
             'brand' => $product->vendor ?? null,
+            'base_price' => $basePrice,
+            'options_extra' => max(0, round($price - $basePrice, 2)),
             'current_price' => $price,
             'original_price' => $compareAt,
             'quantity' => $item->quantity,
             'line_total' => $lineTotal,
             'selected_option_ids' => $selectedOptionIds,
             'selected_options' => $optionLabels,
+            'selected_options_detail' => $optionsDetail,
             'currency' => self::CURRENCY,
         ];
     }
@@ -434,7 +437,7 @@ class CartController extends Controller
             ]);
         }
 
-        $cartItem->load(['product.category', 'product.primaryImage']);
+        $cartItem->load(['product.category', 'product.primaryImage', 'product.optionGroups.options']);
         $data = self::cartItemToFrontend($cartItem);
 
         return ApiResponse::success('Item added to cart.', $data, 201);
@@ -1003,7 +1006,7 @@ class CartController extends Controller
         ]);
 
         $cartItems = Cart::where('user_id', $user->id)
-            ->with(['product.category', 'product.primaryImage'])
+            ->with(['product.category', 'product.primaryImage', 'product.optionGroups.options'])
             ->get();
 
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
@@ -1041,7 +1044,7 @@ class CartController extends Controller
         $cartItem->quantity = $request->quantity;
         $cartItem->save();
 
-        $cartItem->load(['product.category', 'product.primaryImage']);
+        $cartItem->load(['product.category', 'product.primaryImage', 'product.optionGroups.options']);
         $data = self::cartItemToFrontend($cartItem);
 
         return ApiResponse::success('Cart item updated.', $data);

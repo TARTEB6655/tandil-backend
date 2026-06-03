@@ -20,14 +20,11 @@ class CartController extends Controller
     {
         $user = Auth::user();
         $cartItems = Cart::where('user_id', $user->id)
-            ->with('product.category')
+            ->with(['product.category', 'product.optionGroups.options'])
             ->get();
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
 
-        $subtotal = round($validItems->sum(function ($item) {
-            $unit = $item->unit_price ?? (float) $item->product->price;
-            return $item->quantity * $unit;
-        }), 2);
+        $subtotal = round($validItems->sum(fn (Cart $item) => $item->quantity * $item->lineUnitPrice()), 2);
 
         // Use same order summary as API (admin settings: tax %, shipping)
         $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0, $cartItems);

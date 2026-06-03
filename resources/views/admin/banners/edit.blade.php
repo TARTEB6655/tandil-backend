@@ -79,9 +79,12 @@
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2">Button link</h2>
                     <div>
                         <label for="button_link" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Button link (optional)</label>
-                        <input type="url" name="button_link" id="button_link" value="{{ old('button_link', $banner->action_value ?? $banner->link) }}" placeholder="https://example.com"
+                        <input type="text" name="button_link" id="button_link" value="{{ old('button_link', $banner->action_type === 'route' ? $banner->action_value : ($banner->action_value ?? $banner->link)) }}" placeholder="client.shop.index or https://example.com"
                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Single URL opened when the user taps the button. Leave empty for no link.</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Internal route (e.g. <code class="text-indigo-600">client.shop.index</code>) or full URL (<code>https://...</code>). Shortcuts: <code>shop</code>, <code>cart</code>. Leave empty for no link.</p>
+                        @if($banner->resolved_href)
+                            <p class="mt-1 text-xs text-green-600 dark:text-green-400">Resolves to: {{ $banner->resolved_href }}</p>
+                        @endif
                         @error('button_link')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror

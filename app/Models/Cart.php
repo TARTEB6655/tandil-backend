@@ -123,6 +123,53 @@ class Cart extends Model
     }
 
     /**
+     * Selected options grouped for cart / checkout UI (group name, label, image, modifier).
+     *
+     * @param  array<int|string>|null  $selectedOptionIds
+     * @return list<array{
+     *   group_name: string,
+     *   option_id: int,
+     *   label: string,
+     *   subtitle: ?string,
+     *   image_url: ?string,
+     *   price_modifier: float
+     * }>
+     */
+    public static function resolveSelectedOptionsDisplay(Product $product, ?array $selectedOptionIds = null): array
+    {
+        $ids = self::normalizeSelectedOptionIds($selectedOptionIds);
+        if ($ids === []) {
+            return [];
+        }
+
+        if (! $product->relationLoaded('optionGroups')) {
+            $product->load(['optionGroups.options']);
+        }
+
+        $selectedLookup = array_fill_keys($ids, true);
+        $lines = [];
+
+        foreach ($product->optionGroups->sortBy('sort_order') as $group) {
+            foreach ($group->options->sortBy('sort_order') as $option) {
+                if (! isset($selectedLookup[(int) $option->id])) {
+                    continue;
+                }
+
+                $lines[] = [
+                    'group_name' => (string) $group->name,
+                    'option_id' => (int) $option->id,
+                    'label' => (string) $option->label,
+                    'subtitle' => $option->subtitle ? (string) $option->subtitle : null,
+                    'image_url' => $option->image_url,
+                    'price_modifier' => round((float) $option->price_modifier, 2),
+                ];
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
      * Line payload stored on ShopMobileCheckout / Stripe fingerprint.
      *
      * @return array{product_id: int, quantity: int, unit_price: float, selected_options: array<int>}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Support\BannerLinkResolver;
 use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -38,7 +39,7 @@ class BannerController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $buttonLink = $request->button_link ? trim($request->button_link) : null;
+        $linkFields = BannerLinkResolver::parseAdminButtonLink($request->button_link);
         $imagePath = $request->file('image')->store('banners', 'public');
         ImageCompressionService::compressIfNeededFromPublicPath($imagePath);
 
@@ -46,9 +47,9 @@ class BannerController extends Controller
             'title' => $request->title,
             'description' => $request->description,
             'image' => $imagePath,
-            'link' => $buttonLink,
-            'action_type' => $buttonLink ? 'link' : 'none',
-            'action_value' => $buttonLink,
+            'link' => $linkFields['link'],
+            'action_type' => $linkFields['action_type'],
+            'action_value' => $linkFields['action_value'],
             'button_text' => $request->button_text,
             'priority' => $request->priority ?? 0,
             'is_active' => $request->has('is_active') ? (bool)$request->is_active : true,
@@ -78,15 +79,19 @@ class BannerController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $buttonLink = $request->has('button_link')
-            ? (trim((string) $request->button_link) ?: null)
-            : ($banner->action_value ?: $banner->link);
+        $linkFields = $request->has('button_link')
+            ? BannerLinkResolver::parseAdminButtonLink($request->button_link)
+            : [
+                'action_type' => $banner->action_type ?? 'none',
+                'action_value' => $banner->action_value,
+                'link' => $banner->link,
+            ];
         $data = [
             'title' => $request->title,
             'description' => $request->description,
-            'link' => $buttonLink,
-            'action_type' => $buttonLink ? 'link' : 'none',
-            'action_value' => $buttonLink,
+            'link' => $linkFields['link'],
+            'action_type' => $linkFields['action_type'],
+            'action_value' => $linkFields['action_value'],
             'button_text' => $request->button_text,
             'priority' => $request->priority ?? $banner->priority,
             'is_active' => $request->has('is_active') ? (bool)$request->is_active : $banner->is_active,

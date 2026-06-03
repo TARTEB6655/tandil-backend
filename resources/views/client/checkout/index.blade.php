@@ -173,8 +173,15 @@
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 truncate">{{ $item->product->name }}</p>
                                     <p class="text-xs text-gray-500">Qty: {{ $item->quantity }}</p>
-                                    @php $unitPrice = $item->unit_price ?? $item->product->price; @endphp
-                                    <p class="text-sm font-semibold text-gray-900">AED {{ number_format($item->quantity * $unitPrice, 2) }}</p>
+                                    @php
+                                        $unitPrice = $item->lineUnitPrice();
+                                        $optionLines = \App\Models\Cart::resolveSelectedOptionsDisplay($item->product, $item->selected_options);
+                                    @endphp
+                                    <x-shop.cart-selected-options
+                                        :lines="$optionLines"
+                                        class="mt-1.5 space-y-1"
+                                    />
+                                    <p class="text-sm font-semibold text-gray-900 tabular-nums mt-1">AED {{ number_format($item->quantity * $unitPrice, 2) }}</p>
                                 </div>
                             </div>
                         @endforeach

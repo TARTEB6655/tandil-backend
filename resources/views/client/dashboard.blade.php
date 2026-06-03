@@ -19,25 +19,14 @@
                                     ['border' => 'hover:border-amber-400 dark:hover:border-amber-500', 'chev' => 'group-hover:text-amber-500 dark:group-hover:text-amber-400', 'tile' => 'bg-amber-50 text-amber-600 dark:bg-amber-900/35 dark:text-amber-300', 'ring' => 'ring-amber-100/80 dark:ring-amber-800/50'],
                                 ];
                                 $a = $accents[$loop->index % 4];
-                                $hasAction = $banner->action_type !== 'none' && ($banner->action_value || $banner->link);
-                                $href = null;
-                                if ($banner->action_type === 'link' && $banner->action_value) {
-                                    $href = $banner->action_value;
-                                } elseif ($banner->action_type === 'route' && $banner->action_value) {
-                                    try {
-                                        $href = route($banner->action_value);
-                                    } catch (\Throwable $e) {
-                                        $href = $banner->action_value;
-                                    }
-                                } elseif ($banner->link) {
-                                    $href = $banner->link;
-                                }
+                                $href = $banner->resolved_href;
+                                $hasAction = $href !== null;
                                 $subtitle = $banner->description
                                     ? \Illuminate\Support\Str::limit(strip_tags($banner->description), 72)
                                     : ($banner->button_text ?: ($hasAction ? 'Tap to open' : 'Announcement'));
                             @endphp
                             @if($href && $hasAction)
-                                <a href="{{ $href }}" @if($banner->action_type === 'link' && $banner->action_value) target="_blank" rel="noopener noreferrer" @endif
+                                <a href="{{ $href }}" @if($banner->resolved_href_is_external) target="_blank" rel="noopener noreferrer" @endif
                                    class="group flex min-w-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-3 shadow-md transition-all duration-200 sm:gap-4 sm:p-4 {{ $a['border'] }} hover:shadow-lg dark:border-gray-600 dark:bg-gray-800">
                             @else
                                 <div class="group flex min-w-0 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-3 shadow-md transition-all duration-200 sm:gap-4 sm:p-4 {{ $a['border'] }} hover:shadow-lg dark:border-gray-600 dark:bg-gray-800">

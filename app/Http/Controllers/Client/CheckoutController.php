@@ -34,7 +34,7 @@ class CheckoutController extends Controller
     {
         $user = Auth::user();
         $cartItems = Cart::where('user_id', $user->id)
-            ->with('product')
+            ->with(['product.category', 'product.optionGroups.options'])
             ->get();
 
         if ($cartItems->isEmpty()) {
@@ -45,8 +45,8 @@ class CheckoutController extends Controller
             if (! $item->product) {
                 return 0;
             }
-            $unit = $item->unit_price ?? (float) $item->product->price;
-            return $item->quantity * $unit;
+
+            return $item->quantity * $item->lineUnitPrice();
         }), 2);
 
         $couponCode = strtoupper(trim((string) request()->query('coupon_code', old('coupon_code', ''))));
@@ -133,17 +133,14 @@ class CheckoutController extends Controller
 
         $user = Auth::user();
         $cartItems = Cart::where('user_id', $user->id)
-            ->with('product')
+            ->with(['product.category', 'product.optionGroups.options'])
             ->get();
 
         if ($cartItems->isEmpty()) {
             return back()->with('error', 'Your cart is empty.');
         }
 
-        $subtotal = round($cartItems->sum(function ($item) {
-            $unit = $item->unit_price ?? (float) $item->product->price;
-            return $item->quantity * $unit;
-        }), 2);
+        $subtotal = round($cartItems->sum(fn (Cart $item) => $item->quantity * $item->lineUnitPrice()), 2);
         $couponCode = strtoupper(trim((string) $request->input('coupon_code', '')));
         $couponId = null;
         $couponDiscount = 0.0;
@@ -214,12 +211,13 @@ class CheckoutController extends Controller
             ]);
 
             foreach ($cartItems as $cartItem) {
+                $lineUnit = $cartItem->lineUnitPrice();
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
                     'quantity' => $cartItem->quantity,
-                    'price' => $cartItem->unit_price ?? $cartItem->product->price,
-                    'subtotal' => $cartItem->quantity * ($cartItem->unit_price ?? $cartItem->product->price),
+                    'price' => $lineUnit,
+                    'subtotal' => $cartItem->quantity * $lineUnit,
                 ]);
 
                 $cartItem->product->decrement('stock', $cartItem->quantity);

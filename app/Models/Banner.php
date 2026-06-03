@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\BannerLinkResolver;
 use Illuminate\Database\Eloquent\Model;
 
 class Banner extends Model
@@ -51,5 +52,18 @@ class Banner extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('priority', 'asc')->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Safe click URL for web dashboard / app (null = not clickable).
+     */
+    public function getResolvedHrefAttribute(): ?string
+    {
+        return BannerLinkResolver::resolve($this);
+    }
+
+    public function getResolvedHrefIsExternalAttribute(): bool
+    {
+        return BannerLinkResolver::isExternalUrl($this->resolved_href);
     }
 }

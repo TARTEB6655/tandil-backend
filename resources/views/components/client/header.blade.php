@@ -73,20 +73,21 @@
                     </div>
                 </form>
 
-                <!-- Cart (Shopify-style icon + item count) -->
+                <!-- Cart -->
                 <a
                     href="{{ route('client.cart.index') }}"
-                    class="relative p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex-shrink-0"
-                    aria-label="{{ $cartItemCount > 0 ? 'Cart, '.$cartItemCount.' items' : 'Cart' }}"
-                    title="Cart"
+                    class="header-cart-btn relative inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-gray-700 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 {{ request()->routeIs('client.cart.*') ? 'bg-gray-100 text-gray-900' : '' }}"
+                    aria-label="{{ $cartItemCount > 0 ? 'Shopping cart, '.$cartItemCount.' '.($cartItemCount === 1 ? 'item' : 'items') : 'Shopping cart, empty' }}"
+                    title="{{ $cartItemCount > 0 ? 'View cart ('.$cartItemCount.')' : 'View cart' }}"
                 >
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6z"></path>
-                        <path d="M3 6h18"></path>
-                        <path d="M16 10a4 4 0 01-8 0"></path>
+                    <svg class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
                     @if($cartItemCount > 0)
-                        <span class="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 flex items-center justify-center rounded-full bg-gray-900 text-white text-[10px] font-bold leading-none ring-2 ring-white">
+                        <span
+                            class="pointer-events-none absolute right-1 top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white tabular-nums"
+                            aria-hidden="true"
+                        >
                             {{ $cartItemCount > 99 ? '99+' : $cartItemCount }}
                         </span>
                     @endif
@@ -96,14 +97,14 @@
                 <div class="relative flex-shrink-0" x-data="{ open: false }">
                     <button
                         @click="open = !open"
-                        class="relative p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex-shrink-0"
+                        class="relative inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-gray-700 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2"
                         aria-label="Notifications"
                     >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <svg class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                             <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                         </svg>
                         @if($unreadCount > 0)
-                            <span class="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
+                            <span class="pointer-events-none absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-hidden="true"></span>
                         @endif
                     </button>
 

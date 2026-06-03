@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Banner;
+use App\Support\BannerLinkResolver;
 use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -47,8 +48,7 @@ class BannerController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $buttonLink = $request->input('button_link');
-        $buttonLink = $buttonLink ? trim((string) $buttonLink) : null;
+        $linkFields = BannerLinkResolver::parseAdminButtonLink($request->input('button_link'));
 
         $imagePath = null;
         $imageFile = $this->getSingleImageFile($request, 'image');
@@ -62,9 +62,9 @@ class BannerController extends Controller
                 'title' => $request->input('title'),
                 'description' => $request->input('description'),
                 'image' => $imagePath,
-                'link' => $buttonLink,
-                'action_type' => $buttonLink ? 'link' : 'none',
-                'action_value' => $buttonLink,
+                'link' => $linkFields['link'],
+                'action_type' => $linkFields['action_type'],
+                'action_value' => $linkFields['action_value'],
                 'button_text' => $request->input('button_text'),
                 'priority' => (int) ($request->input('priority') ?? 0),
                 'is_active' => $request->has('is_active') ? filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) : true,
@@ -233,16 +233,20 @@ class BannerController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $buttonLink = $request->has('button_link')
-            ? (trim((string) $request->input('button_link')) ?: null)
-            : (trim((string) ($banner->action_value ?? $banner->link ?? '')) ?: null);
+        $linkFields = $request->has('button_link')
+            ? BannerLinkResolver::parseAdminButtonLink($request->input('button_link'))
+            : [
+                'action_type' => $banner->action_type ?? 'none',
+                'action_value' => $banner->action_value,
+                'link' => $banner->link,
+            ];
 
         $data = [
             'title' => $request->has('title') ? (string) $request->title : (string) ($banner->title ?? ''),
             'description' => $request->has('description') ? $request->description : $banner->description,
-            'link' => $buttonLink,
-            'action_type' => $buttonLink ? 'link' : 'none',
-            'action_value' => $buttonLink,
+            'link' => $linkFields['link'],
+            'action_type' => $linkFields['action_type'],
+            'action_value' => $linkFields['action_value'],
             'button_text' => $request->has('button_text') ? (string) $request->button_text : (string) ($banner->button_text ?? ''),
             'priority' => $request->has('priority') ? (int) $request->priority : (int) ($banner->priority ?? 0),
             'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : (bool) $banner->is_active,
@@ -328,6 +332,8 @@ class BannerController extends Controller
             'link' => $banner->link,
             'action_type' => $banner->action_type,
             'action_value' => $banner->action_value ?: $banner->link,
+            'href' => $banner->resolved_href,
+            'is_external' => $banner->resolved_href_is_external,
             'priority' => $banner->priority,
             'is_active' => $banner->is_active,
             'created_at' => $banner->created_at?->format('c'),

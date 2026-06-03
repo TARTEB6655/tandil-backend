@@ -58,11 +58,18 @@
                                 @if($item->product->category)
                                     <p class="text-xs text-gray-500 mb-2">{{ $item->product->category->name }}</p>
                                 @endif
-                                @php $unitPrice = $item->unit_price ?? $item->product->price; @endphp
-                                <p class="text-lg font-bold text-indigo-600 mb-1">AED {{ number_format($unitPrice, 2) }}</p>
-                                @if(!empty($item->selected_options))
-                                    <p class="text-xs text-gray-500 mb-2">Configured variant</p>
-                                @endif
+                                @php
+                                    $unitPrice = $item->lineUnitPrice();
+                                    $basePrice = (float) $item->product->price;
+                                    $optionLines = \App\Models\Cart::resolveSelectedOptionsDisplay($item->product, $item->selected_options);
+                                @endphp
+                                <p class="text-lg font-bold text-gray-900 tabular-nums mb-1">AED {{ number_format($unitPrice, 2) }} <span class="text-xs font-normal text-gray-500">/ unit</span></p>
+
+                                <x-shop.cart-selected-options
+                                    :lines="$optionLines"
+                                    :base-price="$basePrice"
+                                    :unit-price="$unitPrice"
+                                />
                                 
                                 <!-- Quantity & Remove -->
                                 <div class="flex items-center gap-4">
