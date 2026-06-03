@@ -5,6 +5,9 @@
     $unreadCount = \App\Support\GlobalNotificationFilter::unreadForUser($user)->count();
     $headerProfilePic = $user->profile_picture_url ?? null;
     $headerInitial = $user->name ? mb_substr(trim($user->name), 0, 1) : 'A';
+    $cartItemCount = $user
+        ? (int) \App\Models\Cart::where('user_id', $user->id)->sum('quantity')
+        : 0;
 @endphp
 
 <header class="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm py-4">
@@ -69,6 +72,25 @@
                         @endif
                     </div>
                 </form>
+
+                <!-- Cart (Shopify-style icon + item count) -->
+                <a
+                    href="{{ route('client.cart.index') }}"
+                    class="relative p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex-shrink-0"
+                    aria-label="{{ $cartItemCount > 0 ? 'Cart, '.$cartItemCount.' items' : 'Cart' }}"
+                    title="Cart"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6z"></path>
+                        <path d="M3 6h18"></path>
+                        <path d="M16 10a4 4 0 01-8 0"></path>
+                    </svg>
+                    @if($cartItemCount > 0)
+                        <span class="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 flex items-center justify-center rounded-full bg-gray-900 text-white text-[10px] font-bold leading-none ring-2 ring-white">
+                            {{ $cartItemCount > 99 ? '99+' : $cartItemCount }}
+                        </span>
+                    @endif
+                </a>
 
                 <!-- Notification Dropdown -->
                 <div class="relative flex-shrink-0" x-data="{ open: false }">
