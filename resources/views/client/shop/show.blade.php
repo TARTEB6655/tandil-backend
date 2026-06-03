@@ -39,21 +39,26 @@
             </div>
 
             @if(count($displayImages) > 1)
-                <div class="px-3 pt-4 pb-3 border-t border-gray-100">
-                    <div class="flex gap-2 overflow-x-auto py-1 snap-x" id="productGalleryThumbs" role="listbox" aria-label="Product images">
-                        @foreach($displayImages as $index => $img)
-                            <button type="button"
-                                    role="option"
-                                    aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
-                                    aria-label="View image {{ $index + 1 }}"
-                                    data-gallery-url="{{ $img['url'] }}"
-                                    class="product-gallery-thumb shrink-0 snap-start rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ $index === 0 ? 'border-indigo-600' : 'border-gray-200 hover:border-indigo-300' }}">
-                                <img src="{{ $img['url'] }}"
-                                     alt="{{ $product->name }} — image {{ $index + 1 }}"
-                                     class="w-16 h-16 object-cover block rounded-md"
-                                     loading="lazy">
-                            </button>
-                        @endforeach
+                <div class="border-t border-gray-100">
+                    <div class="p-4">
+                        <div class="product-gallery-scroll">
+                            <div class="product-gallery-track" id="productGalleryThumbs" role="listbox" aria-label="Product images">
+                                @foreach($displayImages as $index => $img)
+                                    <button type="button"
+                                            role="option"
+                                            aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+                                            aria-label="View image {{ $index + 1 }}"
+                                            data-gallery-url="{{ $img['url'] }}"
+                                            class="product-gallery-thumb{{ $index === 0 ? ' is-active' : '' }}">
+                                        <img src="{{ $img['url'] }}"
+                                             alt="{{ $product->name }} — image {{ $index + 1 }}"
+                                             class="gallery-thumb-img"
+                                             loading="lazy"
+                                             draggable="false">
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                 </div>
             @endif
@@ -139,6 +144,64 @@
         </div>
     </div>
 
+    @push('styles')
+    <style>
+        .product-gallery-scroll {
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+        }
+        .product-gallery-track {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.75rem;
+            padding: 6px 4px;
+            width: max-content;
+            min-width: 100%;
+        }
+        #productGalleryThumbs .product-gallery-thumb {
+            flex-shrink: 0;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: none !important;
+            outline: none !important;
+            transition: none !important;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        #productGalleryThumbs .product-gallery-thumb.is-active {
+            border-color: #d1d5db;
+        }
+        #productGalleryThumbs .product-gallery-thumb:hover,
+        #productGalleryThumbs .product-gallery-thumb:focus,
+        #productGalleryThumbs .product-gallery-thumb:active {
+            outline: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        #productGalleryThumbs .product-gallery-thumb:not(.is-active):hover,
+        #productGalleryThumbs .product-gallery-thumb:not(.is-active):focus {
+            border-color: #e5e7eb;
+        }
+        #productGalleryThumbs .product-gallery-thumb.is-active:hover,
+        #productGalleryThumbs .product-gallery-thumb.is-active:focus {
+            border-color: #d1d5db;
+        }
+        #productGalleryThumbs .gallery-thumb-img {
+            display: block;
+            width: 4rem;
+            height: 4rem;
+            object-fit: cover;
+            border-radius: 0.375rem;
+            pointer-events: none;
+        }
+    </style>
+    @endpush
+
     @push('scripts')
     <script>
     (function () {
@@ -152,12 +215,10 @@
                 if (!url) return;
                 main.src = url;
                 thumbs.querySelectorAll('.product-gallery-thumb').forEach(function (b) {
-                    b.classList.remove('border-indigo-600');
-                    b.classList.add('border-gray-200');
+                    b.classList.remove('is-active');
                     b.setAttribute('aria-selected', 'false');
                 });
-                btn.classList.remove('border-gray-200');
-                btn.classList.add('border-indigo-600');
+                btn.classList.add('is-active');
                 btn.setAttribute('aria-selected', 'true');
             });
         });
