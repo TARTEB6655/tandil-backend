@@ -239,6 +239,89 @@ class VariableProductUpdateE2ESmokeTest extends TestCase
         $this->assertNotEmpty($show->json('data.option_groups.0.options.1.image_url'));
     }
 
+    /**
+     * Mirrors admin/Postman: variable product, Cutting group, option without image,
+     * file keyed as option_images[opt_cut_1] while JSON uses temp_key opt_cut_1.
+     */
+    public function test_put_uploads_first_option_image_and_get_returns_image_url(): void
+    {
+        $category = Category::factory()->create();
+        $create = $this->call(
+            'POST',
+            '/api/admin/products',
+            [
+                'name' => 'Test Product',
+                'price' => 149.99,
+                'stock' => 20,
+                'status' => 'active',
+                'category_id' => $category->id,
+                'product_type' => 'variable',
+                'option_groups_json' => json_encode([
+                    [
+                        'name' => 'Cutting',
+                        'subtitle' => 'Required - Select one',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'temp_key' => 'opt_cut_1',
+                                'label' => 'Arabic cut (8 pieces)',
+                                'subtitle' => 'Free',
+                                'price_modifier' => 0,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            [],
+            $this->transformHeadersToServerVars($this->authJson())
+        );
+        $create->assertCreated();
+        $productId = $create->json('data.id');
+        $optionId = $create->json('data.option_groups.0.options.0.id');
+        $groupId = $create->json('data.option_groups.0.id');
+        $this->assertNull($create->json('data.option_groups.0.options.0.image_path'));
+
+        $cutFile = UploadedFile::fake()->image('arabic-cut.jpg');
+        $this->call(
+            'PUT',
+            "/api/admin/products/{$productId}",
+            [
+                'name' => 'Updated Name',
+                'product_type' => 'variable',
+                'option_groups_json' => json_encode([
+                    [
+                        'id' => $groupId,
+                        'name' => 'Cutting',
+                        'subtitle' => 'Required - Select one',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'id' => $optionId,
+                                'temp_key' => 'opt_cut_1',
+                                'label' => 'Arabic cut (8 pieces)',
+                                'subtitle' => 'Free',
+                                'price_modifier' => 0,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            ['option_images' => ['opt_cut_1' => $cutFile]],
+            $this->transformHeadersToServerVars($this->authJson())
+        )->assertOk();
+
+        $get = $this->getJson("/api/admin/products/{$productId}", $this->authJson());
+        $get->assertOk();
+        $get->assertJsonPath('data.option_groups.0.options.0.id', $optionId);
+        $this->assertNotEmpty($get->json('data.option_groups.0.options.0.image_path'));
+        $this->assertNotEmpty($get->json('data.option_groups.0.options.0.image_url'));
+        Storage::disk('public')->assertExists($get->json('data.option_groups.0.options.0.image_path'));
+    }
+
     public function test_e2e_add_new_option_with_image_keeps_existing_option_images(): void
     {
         $category = Category::factory()->create();

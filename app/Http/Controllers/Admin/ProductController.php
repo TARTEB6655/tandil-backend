@@ -759,22 +759,46 @@ class ProductController extends Controller
 
         foreach ($product->optionGroups as $group) {
             foreach ($group->options as $option) {
-                $file = $this->resolveOptionImageFileFromKeys((int) $option->id, null, $optionImageFiles);
+                $file = $this->resolveOptionImageFileFromKeys(
+                    (int) $option->id,
+                    'opt_'.$option->id,
+                    $optionImageFiles
+                );
                 if (! $file) {
                     continue;
                 }
 
+                $path = $this->storeOptionImageFile($file);
+                if ($path === null) {
+                    continue;
+                }
+
                 if ($option->image_path
+                    && $option->image_path !== $path
                     && ! str_starts_with($option->image_path, 'http')
                     && Storage::disk('public')->exists($option->image_path)) {
                     Storage::disk('public')->delete($option->image_path);
                 }
 
-                $path = $file->store('product-options', 'public');
-                $this->compressProductImageIfNeeded($path);
                 $option->update(['image_path' => $path]);
             }
         }
+    }
+
+    private function storeOptionImageFile(UploadedFile $file): ?string
+    {
+        if (! $this->isUsableOptionImageUpload($file)) {
+            return null;
+        }
+
+        $path = $file->store('product-options', 'public');
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        $this->compressProductImageIfNeeded($path);
+
+        return $path;
     }
 
     /**
@@ -801,6 +825,11 @@ class ProductController extends Controller
         $optionImageFiles = $this->collectOptionImageFilesFromRequest($request);
         $json = $this->normalizeOptionGroupsJsonInput($request);
 
+        // Apply uploaded files to existing options first (PUT/POST multipart) so DB has paths before JSON sync.
+        if ($optionImageFiles !== []) {
+            $this->patchOptionImagesFromUploads($product, $optionImageFiles);
+        }
+
         if ($json !== null) {
             $groups = $this->decodeOptionGroupsPayload($json);
             if ($groups !== null && $groups !== []) {
@@ -808,12 +837,13 @@ class ProductController extends Controller
                 $enriched = $this->enrichOptionGroupsPayload($product, $groups);
                 $this->syncOptionGroupsFromJson($product, json_encode($enriched), $optionImageFiles);
 
+                // Safety net: re-apply files after sync in case JSON sync missed a match.
+                if ($optionImageFiles !== []) {
+                    $this->patchOptionImagesFromUploads($product, $optionImageFiles);
+                }
+
                 return;
             }
-        }
-
-        if ($optionImageFiles !== []) {
-            $this->patchOptionImagesFromUploads($product, $optionImageFiles);
         }
     }
 
@@ -969,16 +999,19 @@ class ProductController extends Controller
                         'label'          => $opt['label'],
                         'subtitle'       => $opt['subtitle'] ?? null,
                         'price_modifier' => $opt['price_modifier'] ?? 0,
-                        'image_path'     => $resolvedImagePath,
                         'sort_order'     => $opt['sort_order'] ?? $oi,
                     ];
 
                     if ($option) {
-                        if ($resolvedImagePath !== $option->image_path) {
-                            $this->deleteStoredOptionImage($option->image_path);
+                        if ($resolvedImagePath !== null) {
+                            if ($resolvedImagePath !== $option->image_path) {
+                                $this->deleteStoredOptionImage($option->image_path);
+                            }
+                            $optionAttrs['image_path'] = $resolvedImagePath;
                         }
                         $option->update($optionAttrs);
                     } else {
+                        $optionAttrs['image_path'] = $resolvedImagePath;
                         $option = $group->options()->create($optionAttrs);
                     }
 
@@ -1015,11 +1048,11 @@ class ProductController extends Controller
         $file = is_array($optionImageFiles)
             ? $this->resolveOptionImageFileFromKeys($optionId, $tempKey, $optionImageFiles)
             : null;
-        if ($file && $this->isUsableOptionImageUpload($file)) {
-            $path = $file->store('product-options', 'public');
-            $this->compressProductImageIfNeeded($path);
-
-            return $path;
+        if ($file) {
+            $stored = $this->storeOptionImageFile($file);
+            if ($stored !== null) {
+                return $stored;
+            }
         }
 
         foreach (['image_path', 'existing_image_path'] as $key) {
