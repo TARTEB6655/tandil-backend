@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\UserAddress;
 use App\Models\UserPaymentMethod;
 use App\Models\WalletCredit;
+use App\Services\AccountDeletionService;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use App\Support\RefundPolicy;
@@ -447,5 +448,44 @@ class UserController extends Controller
         return ApiResponse::success('All notifications cleared successfully.', [
             'deleted_count' => $deleted,
         ]);
+    }
+
+    /**
+     * DELETE /api/user/account — POST /api/user/delete-account
+     * Apple App Store: permanent client account deletion (Profile → Delete Account).
+     *
+     * Body: { "confirmation": "DELETE", "password": "..." }
+     * Password required for email/password accounts; optional for Google/Apple sign-in.
+     */
+    public function deleteAccount(Request $request, AccountDeletionService $accountDeletion)
+    {
+        $user = $request->user();
+
+        if (! $user->hasAppRole('client')) {
+            return ApiResponse::error('Account deletion is only available for client accounts.', 403);
+        }
+
+        $usesPasswordLogin = empty($user->google_id) && empty($user->apple_id);
+
+        $rules = [
+            'confirmation' => ['required', 'string', 'in:DELETE'],
+        ];
+        if ($usesPasswordLogin) {
+            $rules['password'] = ['required', 'string'];
+        } else {
+            $rules['password'] = ['sometimes', 'nullable', 'string'];
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($usesPasswordLogin && ! Hash::check((string) $validated['password'], $user->password)) {
+            return ApiResponse::error('Password is incorrect.', 422, [
+                'password' => ['The provided password is incorrect.'],
+            ]);
+        }
+
+        $accountDeletion->deleteClientAccount($user);
+
+        return ApiResponse::success('Your account and personal data have been permanently deleted.');
     }
 }

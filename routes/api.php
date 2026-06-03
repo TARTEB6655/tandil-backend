@@ -110,6 +110,8 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::post('/logout', [\App\Http\Controllers\Auth\AuthController::class, 'logout']);
     Route::get('/profile', [\App\Http\Controllers\Auth\AuthController::class, 'profile']);
     Route::get('/user', [\App\Http\Controllers\Auth\AuthController::class, 'profile']); // Alias for /profile
+    Route::delete('/account', [\App\Http\Controllers\Api\UserController::class, 'deleteAccount']);
+    Route::post('/delete-account', [\App\Http\Controllers\Api\UserController::class, 'deleteAccount']);
 
     /*
     |--------------------------------------------------------------------------
@@ -657,6 +659,8 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/wallet', [\App\Http\Controllers\Api\UserController::class, 'walletSummary']);
     Route::get('/wallet/credits', [\App\Http\Controllers\Api\UserController::class, 'walletCredits']);
     Route::match(['put', 'post', 'patch'], '/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
+    Route::delete('/account', [\App\Http\Controllers\Api\UserController::class, 'deleteAccount']);
+    Route::post('/delete-account', [\App\Http\Controllers\Api\UserController::class, 'deleteAccount']);
     Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);
     Route::post('/addresses', [\App\Http\Controllers\Api\UserController::class, 'createAddress']);
     Route::put('/addresses/{id}', [\App\Http\Controllers\Api\UserController::class, 'updateAddress']);

@@ -30,6 +30,7 @@ class ClientSettingsController extends Controller
             ['id' => 'payment_methods', 'title' => 'Payment Methods', 'path' => '/api/user/payment-methods', 'method' => 'GET'],
             ['id' => 'notifications', 'title' => 'Notifications', 'path' => '/api/user/notifications', 'method' => 'GET'],
             ['id' => 'help_support', 'title' => 'Help & Support', 'path' => '/api/support/help-center', 'method' => 'GET'],
+            ['id' => 'delete_account', 'title' => 'Delete Account', 'path' => '/api/user/delete-account', 'method' => 'POST'],
         ];
 
         return ApiResponse::success('Profile settings sections retrieved.', $sections);
