@@ -22,15 +22,17 @@
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <div class="bg-white rounded-xl border border-gray-200 w-full max-w-md mx-auto lg:mx-0" style="max-width: 420px;">
-            <div class="h-80 bg-gray-100 overflow-hidden rounded-t-xl" style="max-height: 420px;">
+        <div class="product-gallery-card bg-white rounded-xl border border-gray-200 w-full max-w-md mx-auto lg:mx-0" style="max-width: 420px;">
+            <div class="product-main-image-wrap rounded-t-xl">
                 @if($mainImageUrl)
                     <img id="productMainImage"
                          src="{{ $mainImageUrl }}"
                          alt="{{ $product->name }}"
-                         class="w-full h-full object-cover transition-opacity duration-200">
+                         width="420"
+                         height="420"
+                         class="product-main-image">
                 @else
-                    <div class="w-full h-full flex items-center justify-center text-gray-300">
+                    <div class="product-main-image-placeholder flex items-center justify-center text-gray-300">
                         <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/>
                         </svg>
@@ -146,6 +148,31 @@
 
     @push('styles')
     <style>
+        .product-main-image-wrap {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            min-height: 420px;
+            max-height: 420px;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: #f3f4f6;
+        }
+        .product-main-image-wrap .product-main-image,
+        .product-main-image-wrap .product-main-image-placeholder {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .product-main-image-wrap .product-main-image {
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+        .product-gallery-card {
+            flex-shrink: 0;
+        }
         .product-gallery-scroll {
             overflow-x: auto;
             overflow-y: hidden;
