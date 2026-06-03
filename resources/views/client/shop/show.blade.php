@@ -22,8 +22,8 @@
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden w-full max-w-md mx-auto lg:mx-0" style="max-width: 420px;">
-            <div class="h-80 bg-gray-100" style="max-height: 420px;">
+        <div class="bg-white rounded-xl border border-gray-200 w-full max-w-md mx-auto lg:mx-0" style="max-width: 420px;">
+            <div class="h-80 bg-gray-100 overflow-hidden rounded-t-xl" style="max-height: 420px;">
                 @if($mainImageUrl)
                     <img id="productMainImage"
                          src="{{ $mainImageUrl }}"
@@ -39,18 +39,18 @@
             </div>
 
             @if(count($displayImages) > 1)
-                <div class="p-3 border-t border-gray-100">
-                    <div class="flex gap-2 overflow-x-auto pb-1 snap-x" id="productGalleryThumbs" role="listbox" aria-label="Product images">
+                <div class="px-3 pt-4 pb-3 border-t border-gray-100">
+                    <div class="flex gap-2 overflow-x-auto py-1 snap-x" id="productGalleryThumbs" role="listbox" aria-label="Product images">
                         @foreach($displayImages as $index => $img)
                             <button type="button"
                                     role="option"
                                     aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
                                     aria-label="View image {{ $index + 1 }}"
                                     data-gallery-url="{{ $img['url'] }}"
-                                    class="product-gallery-thumb shrink-0 snap-start rounded-lg overflow-hidden border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 {{ $index === 0 ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-indigo-300' }}">
+                                    class="product-gallery-thumb shrink-0 snap-start rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ $index === 0 ? 'border-indigo-600' : 'border-gray-200 hover:border-indigo-300' }}">
                                 <img src="{{ $img['url'] }}"
                                      alt="{{ $product->name }} — image {{ $index + 1 }}"
-                                     class="w-16 h-16 object-cover block"
+                                     class="w-16 h-16 object-cover block rounded-md"
                                      loading="lazy">
                             </button>
                         @endforeach
@@ -152,12 +152,12 @@
                 if (!url) return;
                 main.src = url;
                 thumbs.querySelectorAll('.product-gallery-thumb').forEach(function (b) {
-                    b.classList.remove('border-indigo-600', 'ring-1', 'ring-indigo-600');
+                    b.classList.remove('border-indigo-600');
                     b.classList.add('border-gray-200');
                     b.setAttribute('aria-selected', 'false');
                 });
                 btn.classList.remove('border-gray-200');
-                btn.classList.add('border-indigo-600', 'ring-1', 'ring-indigo-600');
+                btn.classList.add('border-indigo-600');
                 btn.setAttribute('aria-selected', 'true');
             });
         });
