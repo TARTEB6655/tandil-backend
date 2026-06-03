@@ -152,6 +152,48 @@ class Product extends Model
         return $this->image_url;
     }
 
+    /**
+     * All product images for gallery UI (primary first, then sort_order). Deduped by path.
+     *
+     * @return array<int, array{id: int, url: string, is_primary: bool}>
+     */
+    public function getDisplayImageList(): array
+    {
+        $collection = $this->relationLoaded('images')
+            ? $this->images
+            : $this->images()->get();
+
+        $unique = ProductImage::uniqueByPath($collection);
+        usort($unique, function (ProductImage $a, ProductImage $b): int {
+            if ($a->is_primary !== $b->is_primary) {
+                return $b->is_primary <=> $a->is_primary;
+            }
+
+            return $a->sort_order <=> $b->sort_order;
+        });
+
+        $list = [];
+        foreach ($unique as $img) {
+            $url = $img->image_url;
+            if ($url) {
+                $list[] = [
+                    'id' => (int) $img->id,
+                    'url' => $url,
+                    'is_primary' => (bool) $img->is_primary,
+                ];
+            }
+        }
+
+        if ($list === []) {
+            $fallback = $this->getImageUrl();
+            if ($fallback) {
+                $list[] = ['id' => 0, 'url' => $fallback, 'is_primary' => true];
+            }
+        }
+
+        return $list;
+    }
+
     // ── Variable product relations ──────────────────────────────────────────
 
     public function optionGroups()

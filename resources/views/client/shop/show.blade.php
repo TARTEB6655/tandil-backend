@@ -1,6 +1,7 @@
 <x-client-layout>
     @php
-        $imgUrl = $product->getImageUrl();
+        $displayImages = $product->getDisplayImageList();
+        $mainImageUrl = $displayImages[0]['url'] ?? null;
         $isVariable = ($product->product_type ?? 'simple') === 'variable' && $product->optionGroups->isNotEmpty();
     @endphp
 
@@ -23,8 +24,11 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden w-full max-w-md mx-auto lg:mx-0" style="max-width: 420px;">
             <div class="h-80 bg-gray-100" style="max-height: 420px;">
-                @if($imgUrl)
-                    <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
+                @if($mainImageUrl)
+                    <img id="productMainImage"
+                         src="{{ $mainImageUrl }}"
+                         alt="{{ $product->name }}"
+                         class="w-full h-full object-cover transition-opacity duration-200">
                 @else
                     <div class="w-full h-full flex items-center justify-center text-gray-300">
                         <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,6 +37,26 @@
                     </div>
                 @endif
             </div>
+
+            @if(count($displayImages) > 1)
+                <div class="p-3 border-t border-gray-100">
+                    <div class="flex gap-2 overflow-x-auto pb-1 snap-x" id="productGalleryThumbs" role="listbox" aria-label="Product images">
+                        @foreach($displayImages as $index => $img)
+                            <button type="button"
+                                    role="option"
+                                    aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+                                    aria-label="View image {{ $index + 1 }}"
+                                    data-gallery-url="{{ $img['url'] }}"
+                                    class="product-gallery-thumb shrink-0 snap-start rounded-lg overflow-hidden border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 {{ $index === 0 ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-indigo-300' }}">
+                                <img src="{{ $img['url'] }}"
+                                     alt="{{ $product->name }} — image {{ $index + 1 }}"
+                                     class="w-16 h-16 object-cover block"
+                                     loading="lazy">
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="w-full max-w-xl" style="max-width: 520px;">
@@ -117,6 +141,28 @@
 
     @push('scripts')
     <script>
+    (function () {
+        var main = document.getElementById('productMainImage');
+        var thumbs = document.getElementById('productGalleryThumbs');
+        if (!main || !thumbs) return;
+
+        thumbs.querySelectorAll('.product-gallery-thumb').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var url = btn.getAttribute('data-gallery-url');
+                if (!url) return;
+                main.src = url;
+                thumbs.querySelectorAll('.product-gallery-thumb').forEach(function (b) {
+                    b.classList.remove('border-indigo-600', 'ring-1', 'ring-indigo-600');
+                    b.classList.add('border-gray-200');
+                    b.setAttribute('aria-selected', 'false');
+                });
+                btn.classList.remove('border-gray-200');
+                btn.classList.add('border-indigo-600', 'ring-1', 'ring-indigo-600');
+                btn.setAttribute('aria-selected', 'true');
+            });
+        });
+    })();
+
     function validateDetailOptions() {
         var form = document.getElementById('productDetailForm');
         if (!form) return true;
@@ -160,4 +206,3 @@
     </script>
     @endpush
 </x-client-layout>
-

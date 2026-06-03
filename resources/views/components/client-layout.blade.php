@@ -68,6 +68,7 @@
     
     <!-- Toast Notifications -->
     <x-toast-notifications />
+    @stack('scripts')
 </body>
 </html>
 
