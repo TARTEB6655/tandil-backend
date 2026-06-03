@@ -681,7 +681,10 @@ class ProductController extends Controller
      * @param  array<int, array<string, mixed>>  $groups
      * @return array<int, array<string, mixed>>
      */
-    private function enrichOptionGroupsPayload(Product $product, array $groups): array
+    /**
+     * @param  array<string, UploadedFile>  $optionImageFiles
+     */
+    private function enrichOptionGroupsPayload(Product $product, array $groups, array $optionImageFiles = []): array
     {
         $existingGroups = $product->optionGroups()->with('options')->get();
         $groupsById = $existingGroups->keyBy('id');
@@ -713,6 +716,9 @@ class ProductController extends Controller
             foreach ($groupData['options'] ?? [] as $optionIndex => $optionData) {
                 $existingOption = null;
                 $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : 0;
+                if ($optionId <= 0) {
+                    $optionId = (int) ($this->parseOptionIdFromTempKey($optionData['temp_key'] ?? null) ?? 0);
+                }
                 if ($optionId > 0 && $optionsById->has($optionId)) {
                     $existingOption = $optionsById->get($optionId);
                 } elseif (! empty($optionData['label'])) {
@@ -730,11 +736,24 @@ class ProductController extends Controller
                     $groups[$groupIndex]['options'][$optionIndex]['temp_key'] = 'opt_'.$existingOption->id;
                 }
 
+                $resolvedId = (int) $groups[$groupIndex]['options'][$optionIndex]['id'];
+                $tempKey = $groups[$groupIndex]['options'][$optionIndex]['temp_key'] ?? null;
+                $incomingFile = $optionImageFiles !== []
+                    ? $this->resolveOptionImageFileFromKeys($resolvedId, is_string($tempKey) ? $tempKey : null, $optionImageFiles)
+                    : null;
+                $hasNewUpload = $incomingFile && $this->isUsableOptionImageUpload($incomingFile);
+
                 $hasImagePath = ! empty($groups[$groupIndex]['options'][$optionIndex]['image_path'])
                     || ! empty($groups[$groupIndex]['options'][$optionIndex]['existing_image_path']);
                 $hasImageUrl = ! empty($groups[$groupIndex]['options'][$optionIndex]['image_url']);
 
-                if (! $hasImagePath && ! $hasImageUrl && $existingOption->image_path) {
+                if ($hasNewUpload) {
+                    unset(
+                        $groups[$groupIndex]['options'][$optionIndex]['image_path'],
+                        $groups[$groupIndex]['options'][$optionIndex]['image_url'],
+                        $groups[$groupIndex]['options'][$optionIndex]['existing_image_path']
+                    );
+                } elseif (! $hasImagePath && ! $hasImageUrl && $existingOption->image_path) {
                     $groups[$groupIndex]['options'][$optionIndex]['image_path'] = $existingOption->image_path;
                     $groups[$groupIndex]['options'][$optionIndex]['image_url'] = $existingOption->image_url;
                 }
@@ -834,7 +853,7 @@ class ProductController extends Controller
             $groups = $this->decodeOptionGroupsPayload($json);
             if ($groups !== null && $groups !== []) {
                 $groups = $this->bindUploadedOptionImagesToGroupsPayload($groups, $optionImageFiles);
-                $enriched = $this->enrichOptionGroupsPayload($product, $groups);
+                $enriched = $this->enrichOptionGroupsPayload($product, $groups, $optionImageFiles);
                 $this->syncOptionGroupsFromJson($product, json_encode($enriched), $optionImageFiles);
 
                 // Safety net: re-apply files after sync in case JSON sync missed a match.
@@ -887,6 +906,25 @@ class ProductController extends Controller
     private function optionLookupKey(?string $value): string
     {
         return mb_strtolower(trim((string) $value));
+    }
+
+    /**
+     * Parse numeric option id from GET-style temp_key (e.g. opt_417 → 417).
+     */
+    private function parseOptionIdFromTempKey(mixed $tempKey): ?int
+    {
+        if (! is_string($tempKey)) {
+            return null;
+        }
+
+        $tempKey = trim($tempKey);
+        if ($tempKey === '' || ! preg_match('/^opt_(\d+)$/i', $tempKey, $matches)) {
+            return null;
+        }
+
+        $id = (int) $matches[1];
+
+        return $id > 0 ? $id : null;
     }
 
     /**
@@ -987,6 +1025,9 @@ class ProductController extends Controller
                     );
 
                     $optionId = isset($opt['id']) && is_numeric($opt['id']) ? (int) $opt['id'] : 0;
+                    if ($optionId <= 0) {
+                        $optionId = (int) ($this->parseOptionIdFromTempKey($opt['temp_key'] ?? null) ?? 0);
+                    }
                     $option = $optionId > 0
                         ? $group->options()->where('id', $optionId)->first()
                         : null;

@@ -38,6 +38,73 @@ Example: option `id = 434` → file field `option_images[opt_434]` (also works: 
 
 ---
 
+## How option data is updated (important)
+
+There is **no separate API** like:
+
+```text
+PUT /api/admin/options/{option_id}   ❌ does not exist
+```
+
+Options are always updated **through the product update API**, same as product `id` in the URL — but **option `id` goes inside JSON**, not in the URL.
+
+| ID type | Where to send | Example |
+|---------|---------------|---------|
+| **Product id** | URL path | `POST /api/admin/products/92` |
+| **Option group id** | Inside `option_groups_json` → `"id": 156` | From GET `data.option_groups[0].id` |
+| **Option id** | Inside `option_groups_json` → `"options": [{ "id": 434, ... }]` | From GET `data.option_groups[0].options[0].id` |
+
+### Visual: one request, nested IDs
+
+```text
+POST /api/admin/products/92          ← product_id = 92 (URL only)
+
+Body (multipart or JSON):
+  product_type = variable
+  option_groups_json = '
+    [
+      {
+        "id": 156,                  ← group id (GET se)
+        "name": "Color",
+        "options": [
+          {
+            "id": 434,              ← option id (GET se) — YAHAN bhejni hai
+            "label": "Red",
+            "price_modifier": 10
+          },
+          {
+            "id": 435,
+            "label": "Blue",
+            "price_modifier": 0
+          }
+        ]
+      }
+    ]
+  '
+  option_images[opt_434] = <file>    ← optional; only if option 434 ki image change ho
+```
+
+### Flow for the app developer
+
+1. **GET** `/api/admin/products/92` → read `option_groups[].id` and `options[].id`.
+2. User edits option (e.g. Red price 0 → 10).
+3. **POST** `/api/admin/products/92` with `option_groups_json` containing that option object **with `"id": 434`** and new `price_modifier`.
+4. Server matches `id` 434 and updates that row in `product_options` table.
+
+You **do not** add `option_id` as a top-level form field (unless you only upload an image — then URL still product id, file key `option_images[opt_434]`, and minimal JSON with `"id": 434`).
+
+### Update one option vs all options
+
+| Case | What to put in `option_groups_json` |
+|------|-------------------------------------|
+| Change **one** option’s label/price | Send the **group** that contains it, with **all options in that group** you want to keep (each with `id`). Easiest: copy whole group from GET, change one field. |
+| Change **only** option image | Same group + option with `"id": 434` + file `option_images[opt_434]`. |
+| Change **product name only** | Omit `option_groups_json` entirely — no option `id` needed. |
+
+If you send a group **without** option `id`s, the server may treat them as **new** options and remove old ones. **Always include `id` from GET for existing options.**
+
+---
+
 ## Endpoints
 
 | Action | Method | URL |
@@ -389,6 +456,9 @@ Options missing from JSON may be **deleted** by sync.
 |---------|--------|
 | Update with `option_groups_json` but **without** option `id` | May create duplicates or lose images |
 | Use create-time `temp_key` (`opt_cut_1`) on update without matching JSON | Image may not attach to correct option |
+| File key `option_images[opt_pack_1]` but JSON `temp_key` is `opt_417` | **Keys must match exactly** |
+| Call **POST `/products`** (no id) instead of **POST `/products/92`** | Creates new product; does not update option 417 |
+| Send old `image_url` in JSON while uploading new file | Avoid; let server set path from file. Use `temp_key` + file only |
 | Send empty `option_groups_json` `[]` expecting clear | Ignored (safe) |
 | PUT multipart on iOS/Android without POST fallback | Files may not arrive — use **POST** |
 | Confuse `main_image` with `option_images` | Wrong image type (product vs option) |

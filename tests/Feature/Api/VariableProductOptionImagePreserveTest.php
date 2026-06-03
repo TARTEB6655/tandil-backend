@@ -260,6 +260,51 @@ class VariableProductOptionImagePreserveTest extends TestCase
         Storage::disk('public')->assertExists($freshPath);
     }
 
+    public function test_update_option_image_using_get_style_temp_key_opt_id_only(): void
+    {
+        ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();
+        $groupId = $option->product_option_group_id;
+        $tempKey = 'opt_'.$option->id;
+
+        $newFile = UploadedFile::fake()->image('via-temp-key-only.jpg');
+
+        $this->call(
+            'POST',
+            "/api/admin/products/{$product->id}",
+            [
+                'product_type' => 'variable',
+                'option_groups_json' => json_encode([
+                    [
+                        'id' => $groupId,
+                        'name' => 'Packaging type',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'temp_key' => $tempKey,
+                                'label' => 'In box',
+                                'price_modifier' => 5,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            ['option_images' => [$tempKey => $newFile]],
+            $this->transformHeadersToServerVars($this->authJson())
+        )->assertOk();
+
+        $freshPath = ProductOption::find($option->id)->image_path;
+        $this->assertNotNull($freshPath);
+        $this->assertNotSame($oldPath, $freshPath);
+        Storage::disk('public')->assertExists($freshPath);
+
+        $show = $this->getJson("/api/admin/products/{$product->id}", $this->authJson());
+        $show->assertOk();
+        $this->assertNotEmpty($show->json('data.option_groups.0.options.0.image_url'));
+        $this->assertNotSame($oldPath, $show->json('data.option_groups.0.options.0.image_path'));
+    }
+
     public function test_new_option_image_upload_replaces_only_that_option(): void
     {
         ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();
