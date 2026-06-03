@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.44"
+        "version": "3.3.45"
     },
     "item": [
         {
@@ -893,6 +893,57 @@
                     }
                 },
                 {
+                    "name": "Delete Account (POST)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.unset('token');",
+                                    "    pm.environment.unset('user_id');",
+                                    "    console.log('Account deleted. Token cleared — use Register or Login again.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/delete-account",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "delete-account"
+                            ]
+                        },
+                        "description": "POST /api/auth/delete-account — Permanent **client** account deletion (Apple Guideline 5.1.1). Run **Login** first to set {{token}}. Body: confirmation must be DELETE; password required for email login (omit for Google/Apple). Success: clears account and personal data — app must logout locally. Aliases: DELETE /api/auth/account, POST /api/user/delete-account. See docs/DELETE_ACCOUNT_API.md"
+                    }
+                },
+                {
                     "name": "Google sign-in (client)",
                     "event": [
                         {
@@ -1053,7 +1104,7 @@
                     }
                 }
             ],
-            "description": "Authentication endpoints - Register and Login"
+            "description": "Authentication endpoints - Register, Login, Google/Apple sign-in, Delete Account (after login)"
         },
         {
             "name": "3. Client Dashboard – Profile",
@@ -1112,6 +1163,107 @@
                             ]
                         },
                         "description": "Logout and invalidate token"
+                    }
+                },
+                {
+                    "name": "Delete Account (POST)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.unset('token');",
+                                    "    pm.environment.unset('user_id');",
+                                    "    console.log('Account deleted. Token cleared.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/delete-account",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "delete-account"
+                            ]
+                        },
+                        "description": "Profile → Delete Account. POST /api/auth/delete-account (client role). Body: confirmation=DELETE; password for email accounts. Same as folder 2 Authentication → Delete Account. Clears user, cart, addresses, tokens, etc."
+                    }
+                },
+                {
+                    "name": "Delete Account (DELETE alias)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.unset('token');",
+                                    "    pm.environment.unset('user_id');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/user/account",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "account"
+                            ]
+                        },
+                        "description": "DELETE /api/user/account — same handler as POST /api/auth/delete-account."
                     }
                 },
                 {
@@ -1374,7 +1526,7 @@
                     ]
                 }
             ],
-            "description": "Authentication endpoints - Register, Login, Logout, Password Reset"
+            "description": "Authentication endpoints - Register, Login, Logout, Delete Account, Password Reset"
         },
         {
             "name": "3a. Client Dashboard – Settings",
@@ -1440,7 +1592,7 @@
             "description": "Client dashboard settings – title, subtitle, section toggles (set by admin, read by client app). Memberships = same as subscription data (client's subscriptions)."
         },
         {
-            "name": "3b. Client Profile – All Settings (One Place) [13 requests]",
+            "name": "3b. Client Profile – All Settings (One Place) [15 requests]",
             "item": [
                 {
                     "name": "1. Memberships (GET)",
@@ -2115,9 +2267,59 @@
                         },
                         "description": "Reply to my ticket (client/technician). Body: message (required). Not allowed when status is resolved or closed."
                     }
+                },
+                {
+                    "name": "15. Delete Account (POST)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.unset('token');",
+                                    "    pm.environment.unset('user_id');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/user/delete-account",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "delete-account"
+                            ]
+                        },
+                        "description": "Profile → Delete Account (Apple 5.1.1). POST /api/user/delete-account. Listed in GET /api/client/settings/sections as delete_account. Google/Apple users: send only confirmation DELETE."
+                    }
                 }
             ],
-            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses List/Create/Update/Delete, (8) Payment Methods, (9-9b) Notifications List + Clear All, (10-14) Help and Support (help center, submit ticket, list my tickets, get ticket, reply). Auth: Bearer token (client)."
+            "description": "All Profile screens: (1) Memberships, (2-3) Personal Information Get/Put, (4-7) Addresses, (8) Payment Methods, (9-9b) Notifications, (10-14) Help and Support, (15) Delete Account. Auth: Bearer token (client)."
         },
         {
             "name": "4. Client Dashboard – Subscriptions",

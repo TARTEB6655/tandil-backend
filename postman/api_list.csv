@@ -3,27 +3,31 @@
 2,1. Health Check - START HERE,GET,/api/debug/performance,Done
 3,2. Authentication,POST,/api/auth/register,Done
 4,2. Authentication,POST,/api/auth/login,Done
-5,3. Client Dashboard – Profile,GET,/api/auth/profile,Done
-6,3. Client Dashboard – Profile,POST,/api/auth/logout,Done
-7,3. Client Dashboard – Profile,POST,/api/auth/forgot-password,Done
-8,3. Client Dashboard – Profile,POST,/api/auth/verify-otp,Done
-9,3. Client Dashboard – Profile,POST,/api/auth/reset-password,Done
-10,3a. Client Dashboard – Settings,GET,/api/client/settings/dashboard,Done
+5,2. Authentication,POST,/api/auth/delete-account,Done
+6,3. Client Dashboard – Profile,GET,/api/auth/profile,Done
+7,3. Client Dashboard – Profile,POST,/api/auth/logout,Done
+8,3. Client Dashboard – Profile,POST,/api/auth/delete-account,Done
+9,3. Client Dashboard – Profile,DELETE,/api/user/account,Done
+10,3. Client Dashboard – Profile,POST,/api/auth/forgot-password,Done
+11,3. Client Dashboard – Profile,POST,/api/auth/verify-otp,Done
+12,3. Client Dashboard – Profile,POST,/api/auth/reset-password,Done
+13,3a. Client Dashboard – Settings,GET,/api/client/settings/dashboard,Done
 11,3a. Client Dashboard – Settings,GET,/api/client/memberships,Done
-12,3b. Client Profile – All Settings (One Place) [12 requests],GET,/api/user/profile,Done
-13,3b. Client Profile – All Settings (One Place) [12 requests],POST,/api/user/profile,Done
-14,3b. Client Profile – All Settings (One Place) [12 requests],GET,/api/user/addresses,Done
-15,3b. Client Profile – All Settings (One Place) [12 requests],POST,/api/user/addresses,Done
-16,3b. Client Profile – All Settings (One Place) [12 requests],PUT,/api/user/addresses/{id},Done
-17,3b. Client Profile – All Settings (One Place) [12 requests],DELETE,/api/user/addresses/{id},Done
-18,3b. Client Profile – All Settings (One Place) [12 requests],GET,/api/user/payment-methods,Done
-19,3b. Client Profile – All Settings (One Place) [12 requests],GET,/api/user/notifications,Done
-20,3b. Client Profile – All Settings (One Place) [12 requests],POST,/api/user/notifications/clear-all,Done
-21,3b. Client Profile – All Settings (One Place) [12 requests],GET,/api/support/help-center,Done
-22,3b. Client Profile – All Settings (One Place) [12 requests],POST,/api/support/tickets,Done
-23,3b. Client Profile – All Settings (One Place) [12 requests],GET,/api/support/tickets,Done
-24,3b. Client Profile – All Settings (One Place) [12 requests],GET,/api/support/tickets/{id},Done
-25,3b. Client Profile – All Settings (One Place) [12 requests],POST,/api/support/tickets/{id}/reply,Done
+12,3b. Client Profile – All Settings (One Place) [15 requests],GET,/api/user/profile,Done
+13,3b. Client Profile – All Settings (One Place) [15 requests],POST,/api/user/profile,Done
+14,3b. Client Profile – All Settings (One Place) [15 requests],GET,/api/user/addresses,Done
+15,3b. Client Profile – All Settings (One Place) [15 requests],POST,/api/user/addresses,Done
+16,3b. Client Profile – All Settings (One Place) [15 requests],PUT,/api/user/addresses/{id},Done
+17,3b. Client Profile – All Settings (One Place) [15 requests],DELETE,/api/user/addresses/{id},Done
+18,3b. Client Profile – All Settings (One Place) [15 requests],GET,/api/user/payment-methods,Done
+19,3b. Client Profile – All Settings (One Place) [15 requests],GET,/api/user/notifications,Done
+20,3b. Client Profile – All Settings (One Place) [15 requests],POST,/api/user/notifications/clear-all,Done
+21,3b. Client Profile – All Settings (One Place) [15 requests],GET,/api/support/help-center,Done
+22,3b. Client Profile – All Settings (One Place) [15 requests],POST,/api/support/tickets,Done
+23,3b. Client Profile – All Settings (One Place) [15 requests],GET,/api/support/tickets,Done
+24,3b. Client Profile – All Settings (One Place) [15 requests],GET,/api/support/tickets/{id},Done
+25,3b. Client Profile – All Settings (One Place) [15 requests],POST,/api/support/tickets/{id}/reply,Done
+26,3b. Client Profile – All Settings (One Place) [15 requests],POST,/api/user/delete-account,Done
 26,4. Client Dashboard – Subscriptions,GET,/api/subscriptions/plans,Done
 27,4. Client Dashboard – Subscriptions,POST,/api/subscriptions,Done
 28,4. Client Dashboard – Subscriptions,GET,/api/subscriptions,Done

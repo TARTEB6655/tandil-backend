@@ -18,6 +18,12 @@
     "path": "/api/auth/login"
   },
   {
+    "folder": "2. Authentication",
+    "name": "Delete Account (POST)",
+    "method": "POST",
+    "path": "/api/auth/delete-account"
+  },
+  {
     "folder": "3. Client Dashboard – Profile",
     "name": "Get Profile",
     "method": "GET",
@@ -28,6 +34,18 @@
     "name": "Logout",
     "method": "POST",
     "path": "/api/auth/logout"
+  },
+  {
+    "folder": "3. Client Dashboard – Profile",
+    "name": "Delete Account (POST)",
+    "method": "POST",
+    "path": "/api/auth/delete-account"
+  },
+  {
+    "folder": "3. Client Dashboard – Profile",
+    "name": "Delete Account (DELETE alias)",
+    "method": "DELETE",
+    "path": "/api/user/account"
   },
   {
     "folder": "3. Client Dashboard – Profile",
