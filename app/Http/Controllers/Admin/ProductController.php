@@ -530,6 +530,29 @@ class ProductController extends Controller
             }
         }
 
+        // Fallback: some clients / PUT parsers leave files only in $_FILES
+        if ($files === [] && isset($_FILES['option_images']) && is_array($_FILES['option_images']['name'])) {
+            foreach ($_FILES['option_images']['name'] as $key => $originalName) {
+                if (! is_string($originalName) || $originalName === '') {
+                    continue;
+                }
+                $tmpName = $_FILES['option_images']['tmp_name'][$key] ?? null;
+                $error = (int) ($_FILES['option_images']['error'][$key] ?? UPLOAD_ERR_NO_FILE);
+                $mime = $_FILES['option_images']['type'][$key] ?? null;
+                if (! is_string($tmpName) || ! is_uploaded_file($tmpName) || $error !== UPLOAD_ERR_OK) {
+                    continue;
+                }
+                $symfony = new \Symfony\Component\HttpFoundation\File\UploadedFile(
+                    $tmpName,
+                    $originalName,
+                    is_string($mime) ? $mime : null,
+                    $error,
+                    true
+                );
+                $this->addOptionImageFileToMap($files, (string) $key, UploadedFile::createFromBase($symfony));
+            }
+        }
+
         return $files;
     }
 
@@ -610,6 +633,46 @@ class ProductController extends Controller
         $path = $file->getPathname();
 
         return is_string($path) && $path !== '' && is_file($path) && filesize($path) > 0;
+    }
+
+    /**
+     * When client uploads option_images[...], drop stale image_path/image_url from JSON (Postman often copies GET).
+     *
+     * @param  array<int, array<string, mixed>>  $groups
+     * @param  array<string, UploadedFile>  $optionImageFiles
+     * @return array<int, array<string, mixed>>
+     */
+    private function stripOptionImageFieldsWhenNewFilesPresent(array $groups, array $optionImageFiles): array
+    {
+        if ($optionImageFiles === []) {
+            return $groups;
+        }
+
+        foreach ($groups as $groupIndex => $groupData) {
+            foreach ($groupData['options'] ?? [] as $optionIndex => $optionData) {
+                $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : 0;
+                if ($optionId <= 0) {
+                    $optionId = (int) ($this->parseOptionIdFromTempKey($optionData['temp_key'] ?? null) ?? 0);
+                }
+                $tempKey = isset($optionData['temp_key']) && is_string($optionData['temp_key']) ? $optionData['temp_key'] : null;
+                $file = $this->resolveOptionImageFileFromKeys(
+                    $optionId > 0 ? $optionId : null,
+                    $tempKey,
+                    $optionImageFiles
+                );
+                if (! $file || ! $this->isUsableOptionImageUpload($file)) {
+                    continue;
+                }
+
+                unset(
+                    $groups[$groupIndex]['options'][$optionIndex]['image_path'],
+                    $groups[$groupIndex]['options'][$optionIndex]['image_url'],
+                    $groups[$groupIndex]['options'][$optionIndex]['existing_image_path']
+                );
+            }
+        }
+
+        return $groups;
     }
 
     /**
@@ -852,6 +915,7 @@ class ProductController extends Controller
         if ($json !== null) {
             $groups = $this->decodeOptionGroupsPayload($json);
             if ($groups !== null && $groups !== []) {
+                $groups = $this->stripOptionImageFieldsWhenNewFilesPresent($groups, $optionImageFiles);
                 $groups = $this->bindUploadedOptionImagesToGroupsPayload($groups, $optionImageFiles);
                 $enriched = $this->enrichOptionGroupsPayload($product, $groups, $optionImageFiles);
                 $this->syncOptionGroupsFromJson($product, json_encode($enriched), $optionImageFiles);
@@ -1086,6 +1150,9 @@ class ProductController extends Controller
     ): ?string {
         $optionId = isset($optionData['id']) && is_numeric($optionData['id']) ? (int) $optionData['id'] : null;
         $tempKey = isset($optionData['temp_key']) && is_string($optionData['temp_key']) ? $optionData['temp_key'] : null;
+        if (($optionId === null || $optionId <= 0) && $tempKey !== null) {
+            $optionId = $this->parseOptionIdFromTempKey($tempKey);
+        }
         $file = is_array($optionImageFiles)
             ? $this->resolveOptionImageFileFromKeys($optionId, $tempKey, $optionImageFiles)
             : null;
@@ -1673,6 +1740,15 @@ class ProductController extends Controller
             $product->refresh();
         }
         $this->syncProductOptionGroupsFromRequest($product, $request);
+
+        // Final pass: ensure option image files are applied (Postman / mobile multipart)
+        $product->refresh();
+        if ($product->product_type === 'variable') {
+            $lateOptionFiles = $this->collectOptionImageFilesFromRequest($request);
+            if ($lateOptionFiles !== []) {
+                $this->patchOptionImagesFromUploads($product, $lateOptionFiles);
+            }
+        }
 
         // Sync product.image to primary image when we have product_images (ensures response has correct image_url)
         $primaryImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first();

@@ -260,6 +260,47 @@ class VariableProductOptionImagePreserveTest extends TestCase
         Storage::disk('public')->assertExists($freshPath);
     }
 
+    public function test_update_replaces_option_image_when_json_contains_old_image_url(): void
+    {
+        ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();
+        $groupId = $option->product_option_group_id;
+        $oldUrl = $option->image_url;
+
+        $newFile = UploadedFile::fake()->image('replace-despite-url.jpg');
+
+        $this->call(
+            'POST',
+            "/api/admin/products/{$product->id}",
+            [
+                'product_type' => 'variable',
+                'option_groups_json' => json_encode([
+                    [
+                        'id' => $groupId,
+                        'name' => 'Packaging type',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'id' => $option->id,
+                                'temp_key' => 'opt_'.$option->id,
+                                'label' => 'In box',
+                                'image_url' => $oldUrl,
+                                'price_modifier' => 5,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            ['option_images' => ['opt_'.$option->id => $newFile]],
+            $this->transformHeadersToServerVars($this->authJson())
+        )->assertOk();
+
+        $freshPath = ProductOption::find($option->id)->image_path;
+        $this->assertNotSame($oldPath, $freshPath);
+        Storage::disk('public')->assertExists($freshPath);
+    }
+
     public function test_update_option_image_using_get_style_temp_key_opt_id_only(): void
     {
         ['product' => $product, 'option' => $option, 'image_path' => $oldPath] = $this->seedVariableProductWithOptionImage();

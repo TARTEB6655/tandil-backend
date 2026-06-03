@@ -310,6 +310,15 @@ No `option_groups_json`, no `option_images`.
 
 ### B) Update one option image only
 
+**Postman checklist (old image still in response?):**
+
+1. URL must be `POST .../api/admin/products/{product_id}` — **not** `POST .../api/admin/products` without id.
+2. Body type **form-data** (not raw JSON).
+3. File row key exactly `option_images[opt_417]` if `temp_key` / `id` is `417` (`opt_417`).
+4. Do **not** paste old `image_url` into `option_groups_json`.
+5. Prefer **POST** over **PUT** for file upload.
+6. After deploy of latest backend, `image_path` in response should change to a **new** `product-options/...` filename.
+
 **Step 1:** GET product → option `id = 434`, group `id = 156`.
 
 **Step 2:** POST multipart:

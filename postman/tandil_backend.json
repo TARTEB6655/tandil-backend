@@ -10627,9 +10627,9 @@
                                         },
                                         {
                                             "key": "option_groups_json",
-                                            "value": "[{\"id\":1,\"name\":\"Cutting\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"id\":12,\"temp_key\":\"opt_12\",\"label\":\"Arabic cut (8 pieces)\",\"subtitle\":\"Free\",\"price_modifier\":0,\"image_path\":\"product-options/existing.jpg\"}]}]",
+                                            "value": "[{\"id\":1,\"name\":\"Cutting\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"id\":12,\"temp_key\":\"opt_12\",\"label\":\"Arabic cut (8 pieces)\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]",
                                             "type": "text",
-                                            "description": "Optional. JSON string. Include option id + image_path (or image_url) from GET product to keep images. Omit this field entirely for partial update (name/price only)."
+                                            "description": "From GET: use real group id + option id. Do NOT paste image_url/image_path when uploading a new file. Omit field for name/price-only update."
                                         },
                                         {
                                             "key": "image_urls",
@@ -10653,7 +10653,7 @@
                                             "key": "option_images[opt_12]",
                                             "type": "file",
                                             "src": [],
-                                            "description": "Option image file. Key = temp_key OR opt_{id} OR numeric id. Use POST (not PUT) when uploading files."
+                                            "description": "Required for option image update. Rename bracket to opt_{optionId} from GET (e.g. opt_417). Must match option id in JSON. Select file. POST only."
                                         }
                                     ]
                                 },
