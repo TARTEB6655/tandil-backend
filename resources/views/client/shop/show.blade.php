@@ -148,56 +148,72 @@
     <style>
         .product-gallery-scroll {
             overflow-x: auto;
-            overflow-y: visible;
+            overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
+            height: 4.75rem;
         }
         .product-gallery-track {
             display: flex;
             flex-wrap: nowrap;
+            align-items: center;
             gap: 0.75rem;
-            padding: 6px 4px;
+            padding: 4px 2px;
             width: max-content;
-            min-width: 100%;
+            height: 4.75rem;
+            box-sizing: border-box;
         }
         #productGalleryThumbs .product-gallery-thumb {
             flex-shrink: 0;
+            box-sizing: border-box;
+            width: 4.25rem;
+            height: 4.25rem;
+            min-width: 4.25rem;
+            min-height: 4.25rem;
             padding: 0;
             margin: 0;
-            border: 1px solid #e5e7eb;
+            border: 2px solid #e5e7eb;
             border-radius: 0.5rem;
             background: #fff;
             cursor: pointer;
+            line-height: 0;
             box-shadow: none !important;
             outline: none !important;
             transition: none !important;
+            transform: none !important;
             appearance: none;
             -webkit-appearance: none;
         }
         #productGalleryThumbs .product-gallery-thumb.is-active {
-            border-color: #d1d5db;
+            border-color: #6366f1;
         }
         #productGalleryThumbs .product-gallery-thumb:hover,
         #productGalleryThumbs .product-gallery-thumb:focus,
+        #productGalleryThumbs .product-gallery-thumb:focus-visible,
         #productGalleryThumbs .product-gallery-thumb:active {
             outline: none !important;
             box-shadow: none !important;
             transform: none !important;
+            padding: 0;
+            margin: 0;
         }
         #productGalleryThumbs .product-gallery-thumb:not(.is-active):hover,
-        #productGalleryThumbs .product-gallery-thumb:not(.is-active):focus {
+        #productGalleryThumbs .product-gallery-thumb:not(.is-active):focus,
+        #productGalleryThumbs .product-gallery-thumb:not(.is-active):active {
             border-color: #e5e7eb;
         }
         #productGalleryThumbs .product-gallery-thumb.is-active:hover,
-        #productGalleryThumbs .product-gallery-thumb.is-active:focus {
-            border-color: #d1d5db;
+        #productGalleryThumbs .product-gallery-thumb.is-active:focus,
+        #productGalleryThumbs .product-gallery-thumb.is-active:active {
+            border-color: #6366f1;
         }
         #productGalleryThumbs .gallery-thumb-img {
             display: block;
-            width: 4rem;
-            height: 4rem;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
             border-radius: 0.375rem;
             pointer-events: none;
+            user-select: none;
         }
     </style>
     @endpush
@@ -220,6 +236,7 @@
                 });
                 btn.classList.add('is-active');
                 btn.setAttribute('aria-selected', 'true');
+                btn.blur();
             });
         });
     })();
