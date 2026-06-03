@@ -165,7 +165,11 @@
                     </thead>
                     <tbody class="bg-white dark:bg-gray-900/50 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse($products as $product)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                                onclick="window.location='{{ route('admin.products.show', $product) }}'"
+                                role="link"
+                                tabindex="0"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ route('admin.products.show', $product) }}';}">
                                 <td class="px-4 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                                     <input type="checkbox" 
                                            class="product-checkbox h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
@@ -192,8 +196,11 @@
                                                 </div>
                                             @endif
                                         </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ $product->name }}</div>
+                                        <div class="min-w-0 flex-1" onclick="event.stopPropagation()">
+                                            <a href="{{ route('admin.products.show', $product) }}"
+                                               class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 block">
+                                                {{ $product->name }}
+                                            </a>
                                             @if($product->sku)
                                                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">SKU: {{ $product->sku }}</div>
                                             @endif

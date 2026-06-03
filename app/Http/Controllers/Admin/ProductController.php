@@ -208,6 +208,7 @@ class ProductController extends Controller
         $filesMainImage = [];
         $filesImage = [];
         $filesMulti = [];
+        $filesOptionImages = [];
         $lineDelimiter = "\r\n--" . $boundary;
         $parts = explode($lineDelimiter, $raw);
         $firstPrefix = '--' . $boundary;
@@ -259,6 +260,10 @@ class ProductController extends Controller
                     } elseif ($name === 'images' || $name === 'images[]') {
                         $filesMulti['images'] = $filesMulti['images'] ?? [];
                         $filesMulti['images'][] = $uploaded;
+                    } elseif (preg_match('/^option_images\[([^\]]+)\]$/', $name, $optMatch)) {
+                        $filesOptionImages[$optMatch[1]] = $uploaded;
+                    } elseif ($name === 'option_images') {
+                        $filesOptionImages[] = $uploaded;
                     }
                 } else {
                     if ($tmpPath !== false) {
@@ -283,6 +288,18 @@ class ProductController extends Controller
             if ($key === 'images') {
                 $request->files->set('images[]', $fileArray);
             }
+        }
+        if ($filesOptionImages !== []) {
+            $existingOptionFiles = $request->file('option_images');
+            $merged = is_array($existingOptionFiles) ? $existingOptionFiles : [];
+            foreach ($filesOptionImages as $key => $file) {
+                if (is_int($key)) {
+                    $merged[(string) $key] = $file;
+                } else {
+                    $merged[$key] = $file;
+                }
+            }
+            $request->files->set('option_images', $merged);
         }
     }
 
@@ -1490,9 +1507,10 @@ class ProductController extends Controller
         }
         $product->services()->sync($serviceIds);
 
-        // Sync product_type and option groups
+        // Variable options: same pipeline as store() — product_type then option groups + images
         if ($request->has('product_type')) {
             $product->update(['product_type' => $request->input('product_type', 'simple')]);
+            $product->refresh();
         }
         $this->syncProductOptionGroupsFromRequest($product, $request);
 
@@ -1515,7 +1533,7 @@ class ProductController extends Controller
                 'data' => $this->productToApiData($fresh),
             ]);
         }
-        return redirect()->route('admin.products.index')
+        return redirect()->route('admin.products.show', $product)
             ->with('success', 'Product updated successfully.');
     }
 

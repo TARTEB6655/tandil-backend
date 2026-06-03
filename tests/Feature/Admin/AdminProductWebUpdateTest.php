@@ -89,7 +89,7 @@ class AdminProductWebUpdateTest extends TestCase
             ],
         ]);
 
-        $response->assertRedirect(route('admin.products.index'));
+        $response->assertRedirect(route('admin.products.show', $product));
         $response->assertSessionHas('success');
 
         $option->refresh();

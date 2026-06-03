@@ -164,6 +164,81 @@ class VariableProductUpdateE2ESmokeTest extends TestCase
         $final->assertJsonPath('data.option_groups.0.options.0.id', $optionId);
     }
 
+    public function test_update_with_new_option_uses_same_flow_as_create(): void
+    {
+        $category = Category::factory()->create();
+        $create = $this->call(
+            'POST',
+            '/api/admin/products',
+            [
+                'name' => 'Create Like Mobile',
+                'price' => 100,
+                'stock' => 5,
+                'status' => 'active',
+                'category_id' => $category->id,
+                'product_type' => 'variable',
+                'option_groups_json' => json_encode([
+                    [
+                        'name' => 'Cutting',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'temp_key' => 'opt_new_1',
+                                'label' => 'Foam',
+                                'price_modifier' => 0,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            ['option_images' => ['opt_new_1' => UploadedFile::fake()->image('foam.jpg')]],
+            $this->transformHeadersToServerVars($this->authJson())
+        );
+        $create->assertCreated();
+        $productId = $create->json('data.id');
+        $optionId = $create->json('data.option_groups.0.options.0.id');
+        $this->assertNotNull($optionId);
+        $this->assertNotEmpty($create->json('data.option_groups.0.options.0.image_url'));
+
+        $this->call(
+            'POST',
+            "/api/admin/products/{$productId}",
+            [
+                'product_type' => 'variable',
+                'option_groups_json' => json_encode([
+                    [
+                        'name' => 'Cutting',
+                        'input_type' => 'single',
+                        'is_required' => true,
+                        'options' => [
+                            [
+                                'id' => $optionId,
+                                'temp_key' => 'opt_'.$optionId,
+                                'label' => 'Foam',
+                                'price_modifier' => 10,
+                            ],
+                            [
+                                'temp_key' => 'opt_new_2',
+                                'label' => 'Arabic cut',
+                                'price_modifier' => 0,
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+            [],
+            ['option_images' => ['opt_new_2' => UploadedFile::fake()->image('cut.jpg')]],
+            $this->transformHeadersToServerVars($this->authJson())
+        )->assertOk();
+
+        $show = $this->getJson("/api/admin/products/{$productId}", $this->authJson())->assertOk();
+        $show->assertJsonPath('data.option_groups.0.options.0.price_modifier', 10);
+        $show->assertJsonCount(2, 'data.option_groups.0.options');
+        $this->assertNotEmpty($show->json('data.option_groups.0.options.1.image_url'));
+    }
+
     public function test_e2e_add_new_option_with_image_keeps_existing_option_images(): void
     {
         $category = Category::factory()->create();
