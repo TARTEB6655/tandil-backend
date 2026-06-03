@@ -480,7 +480,9 @@ This is **not** a Laravel/API bug. Postman’s **Cloud Agent** stops requests af
 3. Send to your API directly from the machine that can reach the server (Desktop Agent), not through Postman cloud relay.
 
 After the request completes, check `data.option_groups[].options[].image_path` changed to a new `product-options/...` file name.
-| Send old `image_url` in JSON while uploading new file | Avoid; let server set path from file. Use `temp_key` + file only |
+| Send old `image_url` in JSON while uploading new file | Avoid; use `temp_key` + file only |
+
+**API speed:** Images are saved on disk immediately; compression runs **after** the HTTP response (fast 200/201). Postman Cloud Agent may still timeout if **uploading** a 5 MB file through their cloud takes >30s — use **Desktop Agent**.
 | Send empty `option_groups_json` `[]` expecting clear | Ignored (safe) |
 | PUT multipart on iOS/Android without POST fallback | Files may not arrive — use **POST** |
 | Confuse `main_image` with `option_images` | Wrong image type (product vs option) |
