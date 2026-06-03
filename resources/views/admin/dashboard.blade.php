@@ -20,7 +20,7 @@
     <!-- Jump to Section - Sticky quick navigation (grouped) -->
     <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-4 py-4 md:-mx-4 md:px-5 lg:-mx-6 lg:px-6 mb-5 md:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg ring-1 ring-gray-200/50 dark:ring-gray-700/50">
         <p class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider mb-3">{{ __('admin.quick_navigation') }}</p>
-        <div class="flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 min-w-0 [-ms-overflow-style:none] [scrollbar-width:thin]">
+        <div class="flex flex-wrap items-center gap-2">
             <span class="inline-flex shrink-0 min-h-[2.25rem] items-center rounded-lg bg-slate-100 dark:bg-slate-900/50 px-2.5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('admin.catalog') }}</span>
             <a href="{{ route('admin.products.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.products') }}</a>
             <a href="{{ route('admin.categories.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.categories') }}</a>
