@@ -151,6 +151,7 @@ class CategoryController extends Controller
             'image_url' => $this->buildCategoryImageUrl($imagePath),
             'is_active' => $isActive,
             'coming_soon' => ! $isActive,
+            'shipping_amount' => $category->shipping_amount !== null ? round((float) $category->shipping_amount, 2) : null,
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
         ];
@@ -233,12 +234,17 @@ class CategoryController extends Controller
             $slug = $originalSlug . '-' . $counter;
             $counter++;
         }
+        $shippingAmount = $request->filled('shipping_amount')
+            ? round(max(0, (float) $request->input('shipping_amount')), 2)
+            : null;
+
         $category = Category::create([
             'name' => $name,
             'slug' => $slug,
             'description' => $description,
             'image' => $imagePath,
             'is_active' => $isActive,
+            'shipping_amount' => $shippingAmount,
         ]);
         
         if (request()->expectsJson() || request()->is('api/*')) {
@@ -310,13 +316,20 @@ class CategoryController extends Controller
         $request->validate($request->rules());
         $fillable = array_flip($category->getFillable());
         $updateData = [];
-        foreach (['name', 'slug', 'description', 'is_active'] as $key) {
+        foreach (['name', 'slug', 'description', 'is_active', 'shipping_amount'] as $key) {
             if (! array_key_exists($key, $fillable)) {
                 continue;
             }
             if ($key === 'is_active') {
                 if ($request->has($key)) {
                     $updateData[$key] = $request->boolean($key);
+                }
+                continue;
+            }
+            if ($key === 'shipping_amount') {
+                if ($request->has($key)) {
+                    $raw = $request->input($key);
+                    $updateData[$key] = ($raw === '' || $raw === null) ? null : round(max(0, (float) $raw), 2);
                 }
                 continue;
             }

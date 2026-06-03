@@ -61,6 +61,8 @@ class ShopStripeMobilePaymentService
             'shipping.company' => 'nullable|string|max:255',
             'shipping.email' => 'nullable|email|max:255',
             'special_instructions' => 'nullable|string|max:2000',
+            'option_ids' => 'nullable|array',
+            'option_ids.*' => 'integer|exists:product_options,id',
         ]);
 
         $isBuyNow = $request->boolean('is_buy_now');
@@ -95,11 +97,7 @@ class ShopStripeMobilePaymentService
             if ($cart->product === null) {
                 continue;
             }
-            $lines[] = [
-                'product_id' => (int) $cart->product_id,
-                'quantity' => (int) $cart->quantity,
-                'unit_price' => (float) $cart->product->price,
-            ];
+            $lines[] = $cart->checkoutLinePayload();
         }
         if ($lines === []) {
             return $this->err('No valid line items for checkout.', 422);
@@ -152,11 +150,7 @@ class ShopStripeMobilePaymentService
                         if ($cart->product === null) {
                             continue;
                         }
-                        $linesW[] = [
-                            'product_id' => (int) $cart->product_id,
-                            'quantity' => (int) $cart->quantity,
-                            'unit_price' => (float) $cart->product->price,
-                        ];
+                        $linesW[] = $cart->checkoutLinePayload();
                     }
                     $row = new ShopMobileCheckout([
                         'user_id' => $user->id,

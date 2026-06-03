@@ -11,6 +11,7 @@ use App\Models\ShopAppliedCheckoutCoupon;
 use App\Models\ShopMobileCheckout;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\CategoryShippingService;
 use App\Services\ShopCouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -45,11 +46,48 @@ class CartController extends Controller
      * Tax = Subtotal × (tax_percent / 100). Total = Subtotal - Discount + Shipping + Tax.
      * Same result as per-product tax when all products have the same tax rate.
      */
-    public static function buildOrderSummary(float $subtotal, float $discount = 0): array
+    /**
+     * @param  iterable<int, Cart>|null  $cartItems  When provided, shipping is summed from per-category rates.
+     */
+    public static function buildOrderSummary(float $subtotal, float $discount = 0, ?iterable $cartItems = null): array
     {
-        $shippingAmount = self::getEffectiveShippingAmount();
+        $shippingAmount = $cartItems !== null
+            ? CategoryShippingService::resolveForCartItems($cartItems)['amount']
+            : self::getEffectiveShippingAmount();
 
-        return self::buildOrderSummaryWithAdjustments($subtotal, $discount, 0, $shippingAmount);
+        $summary = self::buildOrderSummaryWithAdjustments($subtotal, $discount, 0, $shippingAmount);
+
+        return self::mergeCategoryShippingIntoSummary($summary, $cartItems);
+    }
+
+    /**
+     * @param  iterable<int, Cart>|null  $cartItems
+     */
+    public static function mergeCategoryShippingIntoSummary(array $summary, ?iterable $cartItems = null): array
+    {
+        if ($cartItems === null) {
+            return $summary;
+        }
+
+        $pack = CategoryShippingService::resolveForCartItems($cartItems);
+        if ($pack['breakdown'] !== []) {
+            $summary['category_shipping_breakdown'] = $pack['breakdown'];
+            $summary['uses_category_shipping'] = $pack['uses_category_rates'];
+        }
+
+        return $summary;
+    }
+
+    /**
+     * @param  iterable<int, Cart>|null  $cartItems
+     */
+    public static function resolveBaseShippingForCart(?iterable $cartItems): float
+    {
+        if ($cartItems === null) {
+            return self::getEffectiveShippingAmount();
+        }
+
+        return CategoryShippingService::resolveForCartItems($cartItems)['amount'];
     }
 
     /**
@@ -118,6 +156,32 @@ class CartController extends Controller
     }
 
     /**
+     * @param  iterable<int, Cart>|null  $cartItems
+     */
+    public static function buildOrderSummaryWithCouponForCart(
+        float $subtotal,
+        float $catalogDiscount,
+        float $couponDiscount,
+        bool $freeShipping = false,
+        ?string $couponCode = null,
+        ?float $shippingDiscountOverride = null,
+        ?iterable $cartItems = null
+    ): array {
+        $baseShipping = self::resolveBaseShippingForCart($cartItems);
+        $summary = self::buildOrderSummaryWithCoupon(
+            $subtotal,
+            $catalogDiscount,
+            $couponDiscount,
+            $freeShipping,
+            $couponCode,
+            $shippingDiscountOverride,
+            $baseShipping
+        );
+
+        return self::mergeCategoryShippingIntoSummary($summary, $cartItems);
+    }
+
+    /**
      * @param  \Illuminate\Support\Collection<int, Cart>  $items
      * @return array{
      *   catalog_discount: float,
@@ -139,7 +203,7 @@ class CartController extends Controller
             if ($product === null) {
                 continue;
             }
-            $price = (float) $product->price;
+            $price = $item->lineUnitPrice();
             $compareAt = $product->compare_at_price !== null ? (float) $product->compare_at_price : null;
             if ($compareAt !== null && $compareAt > $price) {
                 $catalogDiscount += ($compareAt - $price) * (int) $item->quantity;
@@ -250,9 +314,13 @@ class CartController extends Controller
     public static function cartItemToFrontend(Cart $item): array
     {
         $product = $item->product;
-        $price = (float) $product->price;
+        $price = $item->lineUnitPrice();
         $compareAt = $product->compare_at_price !== null ? (float) $product->compare_at_price : null;
         $lineTotal = round($item->quantity * $price, 2);
+        $selectedOptionIds = Cart::normalizeSelectedOptionIds($item->selected_options);
+        $optionLabels = $selectedOptionIds !== []
+            ? \App\Models\ProductOption::whereIn('id', $selectedOptionIds)->orderBy('id')->pluck('label')->values()->all()
+            : [];
 
         return [
             'id' => $item->id,
@@ -267,8 +335,20 @@ class CartController extends Controller
             'original_price' => $compareAt,
             'quantity' => $item->quantity,
             'line_total' => $lineTotal,
+            'selected_option_ids' => $selectedOptionIds,
+            'selected_options' => $optionLabels,
             'currency' => self::CURRENCY,
         ];
+    }
+
+    /**
+     * @return array<int>
+     */
+    public static function selectedOptionIdsFromRequest(Request $request): array
+    {
+        $raw = $request->input('option_ids', $request->input('optionIds', []));
+
+        return Cart::normalizeSelectedOptionIds(is_array($raw) ? $raw : []);
     }
 
     /**
@@ -294,23 +374,42 @@ class CartController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1',
+            'option_ids' => 'nullable|array',
+            'option_ids.*' => 'integer|exists:product_options,id',
         ]);
 
         $user = $request->user();
-        $product = Product::findOrFail($request->product_id);
+        $product = Product::with('optionGroups.options')->findOrFail($request->product_id);
+
+        $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
+        $optionError = Cart::validateSelectedOptionsMessage($product, $selectedOptionsNormalized);
+        if ($optionError !== null) {
+            return ApiResponse::error($optionError, 422);
+        }
+
+        $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
         $cartItem = Cart::where('user_id', $user->id)
             ->where('product_id', $request->product_id)
-            ->first();
+            ->get()
+            ->first(function (Cart $row) use ($selectedOptionsNormalized) {
+                $current = Cart::normalizeSelectedOptionIds($row->selected_options);
+
+                return $current === $selectedOptionsNormalized;
+            });
 
         if ($cartItem) {
-            $cartItem->quantity += $request->quantity;
+            $cartItem->quantity += (int) $request->quantity;
+            $cartItem->unit_price = $unitPrice;
+            $cartItem->selected_options = $selectedOptionsNormalized;
             $cartItem->save();
         } else {
             $cartItem = Cart::create([
                 'user_id' => $user->id,
                 'product_id' => $request->product_id,
                 'quantity' => $request->quantity,
+                'selected_options' => $selectedOptionsNormalized,
+                'unit_price' => $unitPrice,
             ]);
         }
 
@@ -333,17 +432,24 @@ class CartController extends Controller
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'sometimes|integer|min:1',
                 'qty' => 'sometimes|integer|min:1',
+                'option_ids' => 'nullable|array',
+                'option_ids.*' => 'integer|exists:product_options,id',
             ]);
             $qty = self::resolveBuyNowQuantity($request);
-            $product = Product::with(['category', 'primaryImage', 'services'])->findOrFail((int) $request->input('product_id'));
+            $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
+                ->findOrFail((int) $request->input('product_id'));
+            $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
+            $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
             $cart = new Cart([
                 'user_id' => $userId,
                 'product_id' => $product->id,
                 'quantity' => $qty,
+                'selected_options' => $selectedOptionsNormalized,
+                'unit_price' => $unitPrice,
             ]);
             $cart->setRelation('product', $product);
             $cart->id = 0;
-            $subtotal = round($qty * (float) $product->price, 2);
+            $subtotal = round($qty * $unitPrice, 2);
 
             $items = collect([$cart]);
             $ctx = self::cartContextFromItems($items);
@@ -362,7 +468,7 @@ class CartController extends Controller
             ->with(['product.category', 'product.primaryImage', 'product.services'])
             ->get();
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null)->values();
-        $subtotal = round($validItems->sum(fn ($item) => $item->quantity * (float) $item->product->price), 2);
+        $subtotal = round($validItems->sum(fn ($item) => $item->quantity * $item->lineUnitPrice()), 2);
         $ctx = self::cartContextFromItems($validItems);
 
         return [
@@ -523,11 +629,31 @@ class CartController extends Controller
         }
     }
 
-    public static function checkoutTotalsForRequest(Request $request, User $user): array
+    public static function checkoutTotalsForRequest(Request $request, User $user, bool $strictCoupon = false): array
     {
         self::normalizeCheckoutCouponInput($request);
 
         $cartPreview = self::checkoutPreview($request, $user->id);
+
+        foreach ($cartPreview['items'] as $cart) {
+            if ($cart->product === null) {
+                continue;
+            }
+            $optionError = Cart::validateSelectedOptionsMessage($cart->product, $cart->selected_options ?? []);
+            if ($optionError !== null) {
+                return [
+                    'cart_preview' => $cartPreview,
+                    'order_summary' => [],
+                    'coupon_id' => null,
+                    'coupon_code' => null,
+                    'coupon_merchandise_discount' => 0.0,
+                    'coupon_shipping_discount' => 0.0,
+                    'error' => $optionError,
+                    'error_details' => [],
+                ];
+            }
+        }
+
         $amounts = self::resolveCheckoutAmountsFromRequest($request, $cartPreview);
         $subtotal = $amounts['subtotal'];
         $catalogDiscount = $amounts['catalog_discount'];
@@ -539,8 +665,10 @@ class CartController extends Controller
             $request->merge(['coupon_code' => $code]);
         }
 
+        $cartItems = $cartPreview['items'];
+
         if ($code === '') {
-            $summary = self::buildOrderSummaryWithCoupon($subtotal, $catalogDiscount, 0, false);
+            $summary = self::buildOrderSummaryWithCouponForCart($subtotal, $catalogDiscount, 0, false, null, null, $cartItems);
             self::normalizeOrderSummaryNumericTypes($summary);
 
             return [
@@ -576,9 +704,13 @@ class CartController extends Controller
             $cartCatalog,
             $cartServiceIds,
             $code,
-            (int) $user->id
+            (int) $user->id,
+            $cartItems,
+            $strictCoupon
         );
-        self::rememberAppliedCheckoutCouponFromPack($request, $user, $cartPreview, $pack);
+        if ($pack['error'] === null) {
+            self::rememberAppliedCheckoutCouponFromPack($request, $user, $cartPreview, $pack);
+        }
 
         return $pack;
     }
@@ -595,12 +727,16 @@ class CartController extends Controller
             if ($cart->product === null) {
                 continue;
             }
-            $lines[] = [
-                'product_id' => (int) $cart->product_id,
-                'quantity' => (int) $cart->quantity,
-            ];
+            $lines[] = $cart->checkoutLinePayload();
         }
-        usort($lines, fn (array $a, array $b): int => $a['product_id'] <=> $b['product_id']);
+        usort($lines, function (array $a, array $b): int {
+            $cmp = $a['product_id'] <=> $b['product_id'];
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+
+            return json_encode($a['selected_options'] ?? []) <=> json_encode($b['selected_options'] ?? []);
+        });
 
         $payload = [
             'lines' => $lines,
@@ -610,6 +746,7 @@ class CartController extends Controller
         if ($request->filled('product_id')) {
             $payload['buy_now_product_id'] = (int) $request->input('product_id');
             $payload['buy_now_quantity'] = self::resolveBuyNowQuantity($request);
+            $payload['buy_now_option_ids'] = self::selectedOptionIdsFromRequest($request);
         }
 
         return hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
@@ -742,14 +879,31 @@ class CartController extends Controller
         string $cartCatalog,
         array $cartServiceIds,
         string $code,
-        int $userId
+        int $userId,
+        ?iterable $cartItems = null,
+        bool $strictCoupon = false
     ): array {
+        $baseShipping = self::resolveBaseShippingForCart($cartItems);
+
         /** @var ShopCouponService $svc */
         $svc = app(ShopCouponService::class);
-        $r = $svc->preview($code, $subtotal, $catalogDiscount, $userId, $cartCategoryIds, $cartCatalog, $cartServiceIds);
+        $r = $svc->preview($code, $subtotal, $catalogDiscount, $userId, $cartCategoryIds, $cartCatalog, $cartServiceIds, $baseShipping);
 
         if (! ($r['ok'] ?? false)) {
-            $summary = self::buildOrderSummaryWithCoupon($subtotal, $catalogDiscount, 0, false);
+            if ($strictCoupon) {
+                return [
+                    'cart_preview' => $cartPreview,
+                    'order_summary' => [],
+                    'coupon_id' => null,
+                    'coupon_code' => null,
+                    'coupon_merchandise_discount' => 0.0,
+                    'coupon_shipping_discount' => 0.0,
+                    'error' => $r['message'] ?? 'Invalid coupon code.',
+                    'error_details' => is_array($r['error_details'] ?? null) ? $r['error_details'] : [],
+                ];
+            }
+
+            $summary = self::buildOrderSummaryWithCouponForCart($subtotal, $catalogDiscount, 0, false, null, null, $cartItems);
             self::normalizeOrderSummaryNumericTypes($summary);
             unset($summary['coupon_code']);
 
@@ -765,7 +919,7 @@ class CartController extends Controller
             ];
         }
 
-        $summary = $r['order_summary'];
+        $summary = self::mergeCategoryShippingIntoSummary($r['order_summary'], $cartItems);
         self::normalizeOrderSummaryNumericTypes($summary);
         $summary['coupon'] = $r['coupon'];
 

@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class Cart extends Model
 {
-    protected $fillable = ['user_id','product_id','quantity', 'selected_options', 'unit_price'];
+    protected $fillable = ['user_id', 'product_id', 'quantity', 'selected_options', 'unit_price'];
 
     protected $casts = [
         'selected_options' => 'array',
@@ -21,5 +22,118 @@ class Cart extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * @param  array<int|string>|null  $raw
+     * @return array<int>
+     */
+    public static function normalizeSelectedOptionIds(?array $raw): array
+    {
+        return collect($raw ?? [])
+            ->map(fn ($v) => (int) $v)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Resolved per-unit price for checkout (stored unit_price or base + option modifiers).
+     */
+    public function lineUnitPrice(): float
+    {
+        if ($this->unit_price !== null && $this->unit_price >= 0) {
+            return round((float) $this->unit_price, 2);
+        }
+
+        $product = $this->product;
+        if (! $product) {
+            return 0.0;
+        }
+
+        return self::calculateUnitPrice($product, $this->selected_options ?? []);
+    }
+
+    /**
+     * @param  array<int|string>|Collection<int, int>|null  $selectedOptionIds
+     */
+    public static function calculateUnitPrice(Product $product, array|Collection|null $selectedOptionIds = null): float
+    {
+        $base = round((float) $product->price, 2);
+        if (($product->product_type ?? 'simple') !== 'variable') {
+            return $base;
+        }
+
+        $ids = $selectedOptionIds instanceof Collection
+            ? $selectedOptionIds->map(fn ($v) => (int) $v)->all()
+            : self::normalizeSelectedOptionIds(is_array($selectedOptionIds) ? $selectedOptionIds : []);
+
+        if ($ids === []) {
+            return $base;
+        }
+
+        $modifier = (float) ProductOption::whereIn('id', $ids)->sum('price_modifier');
+
+        return max(0, round($base + $modifier, 2));
+    }
+
+    /**
+     * Validate selected options for a variable product. Returns error message or null if OK.
+     *
+     * @param  array<int|string>|Collection<int, int>|null  $selectedOptionIds
+     */
+    public static function validateSelectedOptionsMessage(Product $product, array|Collection|null $selectedOptionIds = null): ?string
+    {
+        if (($product->product_type ?? 'simple') !== 'variable') {
+            return null;
+        }
+
+        if (! $product->relationLoaded('optionGroups')) {
+            $product->load('optionGroups.options');
+        }
+
+        $selected = $selectedOptionIds instanceof Collection
+            ? $selectedOptionIds->map(fn ($v) => (int) $v)->unique()->values()
+            : collect(self::normalizeSelectedOptionIds(is_array($selectedOptionIds) ? $selectedOptionIds : []));
+
+        $productOptionIds = $product->optionGroups
+            ->flatMap(fn ($g) => $g->options->pluck('id'))
+            ->map(fn ($id) => (int) $id);
+
+        $invalid = $selected->diff($productOptionIds);
+        if ($invalid->isNotEmpty()) {
+            return 'Invalid option selected for this product.';
+        }
+
+        foreach ($product->optionGroups as $group) {
+            $groupOptionIds = $group->options->pluck('id')->map(fn ($id) => (int) $id);
+            $selectedInGroup = $selected->intersect($groupOptionIds)->values();
+
+            if ($group->is_required && $selectedInGroup->isEmpty()) {
+                return "Please select required option(s) for {$group->name}.";
+            }
+            if ($group->input_type === 'single' && $selectedInGroup->count() > 1) {
+                return "Only one option can be selected for {$group->name}.";
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Line payload stored on ShopMobileCheckout / Stripe fingerprint.
+     *
+     * @return array{product_id: int, quantity: int, unit_price: float, selected_options: array<int>}
+     */
+    public function checkoutLinePayload(): array
+    {
+        return [
+            'product_id' => (int) $this->product_id,
+            'quantity' => (int) $this->quantity,
+            'unit_price' => $this->lineUnitPrice(),
+            'selected_options' => self::normalizeSelectedOptionIds($this->selected_options),
+        ];
     }
 }

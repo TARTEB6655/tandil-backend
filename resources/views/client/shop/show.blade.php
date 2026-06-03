@@ -40,7 +40,14 @@
                 <p class="text-sm text-gray-500 mb-1">{{ $product->category->name }}</p>
             @endif
             <h1 class="text-2xl font-semibold text-gray-900 mb-2">{{ $product->name }}</h1>
-            <p class="text-2xl font-bold text-indigo-600 mb-4">AED {{ number_format($product->price, 2) }}</p>
+            <p class="text-2xl font-bold text-indigo-600 mb-1">AED {{ number_format($product->price, 2) }}</p>
+            <p class="text-sm text-gray-500 mb-4">
+                Estimated delivery:
+                <span class="font-medium text-gray-700">{{ ($estimatedShipping ?? 0) > 0 ? 'AED ' . number_format($estimatedShipping, 2) : 'Free' }}</span>
+                @if($product->category)
+                    <span class="text-gray-400">({{ $product->category->name }})</span>
+                @endif
+            </p>
             @if($product->description)
                 <p class="text-sm text-gray-600 mb-6">{{ $product->description }}</p>
             @endif

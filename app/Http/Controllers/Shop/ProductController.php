@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Shop\CartController;
+use App\Services\CategoryShippingService;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -212,6 +214,23 @@ class ProductController extends Controller
             }
         }
 
+        $estimatedShipping = $product->category_id
+            ? (CategoryShippingService::shippingAmountForCategoryId((int) $product->category_id)
+                ?? CartController::getEffectiveShippingAmount())
+            : CartController::getEffectiveShippingAmount();
+
+        $categoryPayload = null;
+        if ($product->relationLoaded('category') && $product->category) {
+            $categoryPayload = [
+                'id' => $product->category->id,
+                'name' => $product->category->name,
+                'slug' => $product->category->slug,
+                'shipping_amount' => $product->category->shipping_amount !== null
+                    ? round((float) $product->category->shipping_amount, 2)
+                    : null,
+            ];
+        }
+
         return [
             'id'               => $product->id,
             'name'             => $product->name,
@@ -231,7 +250,8 @@ class ProductController extends Controller
             'image_url'        => ProductImage::buildFullUrl($rootImagePath),
             'main_image'       => $mainImage,
             'gallery_images'   => $galleryImages,
-            'category'         => $product->relationLoaded('category') ? $product->category : null,
+            'category'         => $categoryPayload,
+            'estimated_shipping' => round((float) $estimatedShipping, 2),
             'option_groups'    => $optionGroups,
             'variants'         => $variants,
             'created_at'       => $product->created_at,

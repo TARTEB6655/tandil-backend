@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Shop\CartController as ShopCartController;
+use App\Services\CategoryShippingService;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
@@ -43,7 +45,15 @@ class ShopController extends Controller
             ->where('status', 'active')
             ->findOrFail($id);
 
-        return view('client.shop.show', compact('product'));
+        $estimatedShipping = $product->category_id
+            ? (CategoryShippingService::shippingAmountForCategoryId((int) $product->category_id)
+                ?? ShopCartController::getEffectiveShippingAmount())
+            : ShopCartController::getEffectiveShippingAmount();
+
+        return view('client.shop.show', [
+            'product' => $product,
+            'estimatedShipping' => round((float) $estimatedShipping, 2),
+        ]);
     }
 }
 

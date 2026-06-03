@@ -310,6 +310,31 @@
                     </div>
                 </div>
 
+                <!-- Order totals -->
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <h3 class="text-base font-semibold text-gray-900 mb-4">Order totals</h3>
+                    <dl class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Subtotal</dt>
+                            <dd class="font-medium text-gray-900">AED {{ number_format((float) ($order->subtotal_amount ?? 0), 2) }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Shipping</dt>
+                            <dd class="font-medium text-gray-900">AED {{ number_format((float) ($order->shipping_amount ?? 0), 2) }}</dd>
+                        </div>
+                        @if((float) ($order->tax_amount ?? 0) > 0)
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500">Tax @if($order->tax_percent)({{ $order->tax_percent }}%)@endif</dt>
+                                <dd class="font-medium text-gray-900">AED {{ number_format((float) $order->tax_amount, 2) }}</dd>
+                            </div>
+                        @endif
+                        <div class="flex justify-between border-t border-gray-200 pt-2">
+                            <dt class="font-semibold text-gray-900">Total</dt>
+                            <dd class="font-bold text-gray-900">AED {{ number_format((float) $order->total_amount, 2) }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
                 <!-- Customer Information -->
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                     <div class="flex items-center gap-2 mb-4">

@@ -120,6 +120,7 @@
                             <span class="text-gray-600">Shipping</span>
                             <span class="text-gray-900 font-medium">{{ $shipping > 0 ? 'AED ' . number_format($shipping, 2) : ($shippingLabel ?? 'Free') }}</span>
                         </div>
+                        <x-shop.category-shipping-breakdown :breakdown="$categoryShippingBreakdown ?? []" />
                         <div class="border-t border-gray-200 pt-3">
                             <div class="flex justify-between">
                                 <span class="text-base font-semibold text-gray-900">Total</span>

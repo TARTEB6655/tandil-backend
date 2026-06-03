@@ -7,7 +7,6 @@ use App\Http\Controllers\Shop\CartController as ShopCartController;
 use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\Product;
-use App\Models\ProductOption;
 use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
@@ -31,7 +30,7 @@ class CartController extends Controller
         }), 2);
 
         // Use same order summary as API (admin settings: tax %, shipping)
-        $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+        $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0, $cartItems);
         $tax = $orderSummary['tax'];
         $shipping = $orderSummary['shipping'];
         $total = $orderSummary['total'];
@@ -46,6 +45,7 @@ class CartController extends Controller
             'total' => $total,
             'taxPercent' => $taxPercent,
             'shippingLabel' => $shippingLabel,
+            'categoryShippingBreakdown' => $orderSummary['category_shipping_breakdown'] ?? [],
         ]);
     }
 
@@ -61,55 +61,25 @@ class CartController extends Controller
         $user = Auth::user();
         $product = Product::with('optionGroups.options')->findOrFail($request->product_id);
 
-        $selectedOptionIds = collect($request->input('option_ids', []))
-            ->map(fn ($v) => (int) $v)
-            ->unique()
-            ->values();
-
-        // Validate variable-product required groups and calculate option-based price.
-        $unitPrice = (float) $product->price;
-        if (($product->product_type ?? 'simple') === 'variable') {
-            $productOptionIds = $product->optionGroups
-                ->flatMap(fn ($g) => $g->options->pluck('id'))
-                ->map(fn ($id) => (int) $id)
-                ->values();
-
-            $invalidOptionIds = $selectedOptionIds->diff($productOptionIds);
-            if ($invalidOptionIds->isNotEmpty()) {
-                return back()->with('error', 'Invalid option selected for this product.');
-            }
-
-            foreach ($product->optionGroups as $group) {
-                $groupOptionIds = $group->options->pluck('id')->map(fn ($id) => (int) $id);
-                $selectedInGroup = $selectedOptionIds->intersect($groupOptionIds)->values();
-
-                if ($group->is_required && $selectedInGroup->isEmpty()) {
-                    return back()->with('error', "Please select required option(s) for {$group->name}.");
-                }
-                if ($group->input_type === 'single' && $selectedInGroup->count() > 1) {
-                    return back()->with('error', "Only one option can be selected for {$group->name}.");
-                }
-            }
-
-            if ($selectedOptionIds->isNotEmpty()) {
-                $modifier = (float) ProductOption::whereIn('id', $selectedOptionIds->all())->sum('price_modifier');
-                $unitPrice = max(0, round(((float) $product->price) + $modifier, 2));
-            }
+        $selectedOptionsNormalized = Cart::normalizeSelectedOptionIds($request->input('option_ids', []));
+        $optionError = Cart::validateSelectedOptionsMessage($product, $selectedOptionsNormalized);
+        if ($optionError !== null) {
+            return back()->with('error', $optionError);
         }
+
+        $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
         // Check stock
         if ($product->stock < $request->quantity) {
             return back()->with('error', 'Insufficient stock available.');
         }
 
-        // Check if item already in cart
-        $selectedOptionsNormalized = $selectedOptionIds->sort()->values()->all();
+        // Check if item already in cart (same product + same option set)
         $cartItem = Cart::where('user_id', $user->id)
             ->where('product_id', $request->product_id)
             ->get()
             ->first(function (Cart $row) use ($selectedOptionsNormalized) {
-                $current = collect($row->selected_options ?? [])->map(fn ($v) => (int) $v)->sort()->values()->all();
-                return $current === $selectedOptionsNormalized;
+                return Cart::normalizeSelectedOptionIds($row->selected_options) === $selectedOptionsNormalized;
             });
 
         if ($cartItem) {

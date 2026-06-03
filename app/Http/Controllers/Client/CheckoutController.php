@@ -60,6 +60,7 @@ class CheckoutController extends Controller
                 ->values()
                 ->all();
 
+            $baseShipping = ShopCartController::resolveBaseShippingForCart($cartItems);
             $couponResult = $this->couponService->preview(
                 $couponCode,
                 $subtotal,
@@ -67,13 +68,14 @@ class CheckoutController extends Controller
                 (int) $user->id,
                 $categoryIds,
                 'products',
-                []
+                [],
+                $baseShipping
             );
         }
 
         $orderSummary = (is_array($couponResult) && ($couponResult['ok'] ?? false) && is_array($couponResult['order_summary'] ?? null))
-            ? $couponResult['order_summary']
-            : ShopCartController::buildOrderSummary($subtotal, 0);
+            ? ShopCartController::mergeCategoryShippingIntoSummary($couponResult['order_summary'], $cartItems)
+            : ShopCartController::buildOrderSummary($subtotal, 0, $cartItems);
 
         $tax = $orderSummary['tax'];
         $shipping = $orderSummary['shipping'];
@@ -89,6 +91,8 @@ class CheckoutController extends Controller
 
         $refundPolicy = RefundPolicy::policyForApi();
 
+        $categoryShippingBreakdown = $orderSummary['category_shipping_breakdown'] ?? [];
+
         return view('client.checkout.index', compact(
             'cartItems',
             'subtotal',
@@ -97,6 +101,7 @@ class CheckoutController extends Controller
             'total',
             'taxPercent',
             'shippingLabel',
+            'categoryShippingBreakdown',
             'user',
             'refundPolicy',
             'couponDiscount',
@@ -152,6 +157,7 @@ class CheckoutController extends Controller
                 ->values()
                 ->all();
 
+            $baseShipping = ShopCartController::resolveBaseShippingForCart($cartItems);
             $couponResult = $this->couponService->preview(
                 $couponCode,
                 $subtotal,
@@ -159,7 +165,8 @@ class CheckoutController extends Controller
                 (int) $user->id,
                 $categoryIds,
                 'products',
-                []
+                [],
+                $baseShipping
             );
 
             if (! ($couponResult['ok'] ?? false)) {
@@ -170,10 +177,10 @@ class CheckoutController extends Controller
             $couponCode = (string) ($couponResult['code'] ?? $couponCode);
             $couponDiscount = round((float) ($couponResult['coupon_discount'] ?? 0), 2);
             $orderSummary = is_array($couponResult['order_summary'] ?? null)
-                ? $couponResult['order_summary']
-                : ShopCartController::buildOrderSummary($subtotal, 0);
+                ? ShopCartController::mergeCategoryShippingIntoSummary($couponResult['order_summary'], $cartItems)
+                : ShopCartController::buildOrderSummary($subtotal, 0, $cartItems);
         } else {
-            $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0);
+            $orderSummary = ShopCartController::buildOrderSummary($subtotal, 0, $cartItems);
         }
 
         $tax = $orderSummary['tax'];

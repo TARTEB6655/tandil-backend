@@ -23,6 +23,7 @@ class CategoryRequest extends BaseFormRequest
             'image'        => 'nullable|image|mimes:jpeg,jpg,png,webp',
             'image_remove' => 'nullable|boolean',
             'is_active'    => 'nullable|boolean', // false = show "Coming Soon" on customer app
+            'shipping_amount' => 'nullable|numeric|min:0',
         ];
     }
 }

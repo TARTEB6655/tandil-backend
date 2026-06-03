@@ -53,7 +53,7 @@
                         userManagement: {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'true' : 'false' }},
                         subscriptions: {{ request()->routeIs('admin.subscription-plans.*') || request()->routeIs('admin.subscriptions.*') ? 'true' : 'false' }},
                         operations: {{ request()->routeIs('admin.visits.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.report-management.*') || request()->routeIs('admin.areas.*') || request()->routeIs('admin.zone-assignment.*') || request()->routeIs('admin.recent-activities.*') ? 'true' : 'false' }},
-                        ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') ? 'true' : 'false' }},
+                        ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? 'true' : 'false' }},
                         communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') ? 'true' : 'false' }},
                         management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') ? 'true' : 'false' }}
                     }">
@@ -285,7 +285,7 @@
 
                         <!-- E-COMMERCE -->
                         <div class="mb-2">
-                            <button @click="ecommerce = !ecommerce" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') ? $navSectionActive : $navSectionIdle }}">
+                            <button @click="ecommerce = !ecommerce" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? $navSectionActive : $navSectionIdle }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
@@ -363,6 +363,15 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                         </svg>
                                         {{ __('admin.categories') }}
+                                    </a>
+                                </li>
+                                <li style="padding-left: 0px;">
+                                    <a href="{{ route('admin.shop-settings.index') }}"
+                                       class="{{ $navSubBase }} {{ request()->routeIs('admin.shop-settings.*') ? $navActive : $navIdleSub }}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                        </svg>
+                                        Delivery &amp; tax
                                     </a>
                                 </li>
                                 <li style="padding-left: 0px;">

@@ -10,7 +10,15 @@
                     <span class="text-gray-900 dark:text-gray-100 font-medium">{{ $category->name }}</span>
                 </nav>
                 <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">{{ $category->name }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $products->total() }} product(s) in this category</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{ $products->total() }} product(s) in this category
+                    · Delivery:
+                    @if($category->shipping_amount !== null)
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ number_format($category->shipping_amount, 2) }} AED</span>
+                    @else
+                        <span class="text-gray-400">uses shop default</span>
+                    @endif
+                </p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.categories.edit', $category->id) }}"

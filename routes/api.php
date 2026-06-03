@@ -865,6 +865,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->gro
     Route::put('/payment', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updatePayment']);
     Route::get('/shop', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getShop']);
     Route::put('/shop', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateShop']);
+    Route::get('/shop/category-shipping', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getCategoryShipping']);
+    Route::put('/shop/category-shipping', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateCategoryShipping']);
     Route::get('/legal', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getLegal']);
     Route::post('/export-data', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'exportData']);
 });

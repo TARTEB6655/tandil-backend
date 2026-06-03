@@ -175,7 +175,7 @@ class ShopCouponController extends Controller
         $request->merge(['coupon_code' => $code]);
 
         $user = $request->user();
-        $pack = CartController::checkoutTotalsForRequest($request, $user);
+        $pack = CartController::checkoutTotalsForRequest($request, $user, strictCoupon: true);
         if ($pack['error'] !== null) {
             return ApiResponse::error(
                 $pack['error'],

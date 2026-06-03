@@ -37,11 +37,18 @@ class ShopCheckoutOrderService
         foreach ($items as $item) {
             $p = \App\Models\Product::find($item['product_id'] ?? null);
             if ($p) {
-                $subtotal += (float) $p->price * (int) ($item['qty'] ?? 1);
+                $subtotal += $this->resolveItemUnitPrice($item, $p) * (int) ($item['qty'] ?? 1);
             }
         }
         $subtotal = round($subtotal, 2);
-        $summary = CartController::buildOrderSummary($subtotal);
+        $cartLines = [];
+        foreach ($items as $item) {
+            $pid = $item['product_id'] ?? null;
+            if ($pid) {
+                $cartLines[] = ['product_id' => $pid];
+            }
+        }
+        $summary = CartController::buildOrderSummary($subtotal, 0, $cartLines);
         $total = $summary['total'];
         $shippingAmount = $summary['shipping'];
         $taxAmount = $summary['tax'];
@@ -84,12 +91,14 @@ class ShopCheckoutOrderService
         foreach ($items as $item) {
             $product = \App\Models\Product::find($item['product_id'] ?? null);
             if ($product) {
+                $qty = (int) ($item['qty'] ?? 1);
+                $unit = $this->resolveItemUnitPrice($item, $product);
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
-                    'quantity' => $item['qty'] ?? 1,
-                    'price' => $product->price,
-                    'subtotal' => $product->price * ($item['qty'] ?? 1),
+                    'quantity' => $qty,
+                    'price' => $unit,
+                    'subtotal' => round($unit * $qty, 2),
                 ]);
             }
         }
@@ -128,22 +137,32 @@ class ShopCheckoutOrderService
             if ($validCart->isEmpty()) {
                 return null;
             }
-            $subtotal = round($validCart->sum(fn ($c) => $c->quantity * (float) $c->product->price), 2);
+            $subtotal = round($validCart->sum(fn ($c) => $c->quantity * $c->lineUnitPrice()), 2);
             foreach ($validCart as $c) {
-                $items[] = ['product_id' => $c->product_id, 'qty' => $c->quantity];
+                $items[] = [
+                    'product_id' => $c->product_id,
+                    'qty' => $c->quantity,
+                    'unit_price' => $c->lineUnitPrice(),
+                    'selected_options' => Cart::normalizeSelectedOptionIds($c->selected_options),
+                ];
             }
         } else {
             $subtotal = 0;
             foreach ($items as $item) {
                 $p = \App\Models\Product::find($item['product_id'] ?? null);
                 if ($p) {
-                    $subtotal += (float) $p->price * (int) ($item['qty'] ?? 1);
+                    $subtotal += $this->resolveItemUnitPrice($item, $p) * (int) ($item['qty'] ?? 1);
                 }
             }
             $subtotal = round($subtotal, 2);
         }
 
-        $summary = CartController::buildOrderSummary($subtotal);
+        $summaryCartItems = empty($request->input('items'))
+            ? Cart::where('user_id', $user->id)->with('product')->get()
+            : null;
+        $summary = $summaryCartItems !== null
+            ? CartController::buildOrderSummary($subtotal, 0, $summaryCartItems)
+            : CartController::buildOrderSummary($subtotal, 0, collect($items)->map(fn ($row) => ['product_id' => $row['product_id'] ?? null])->all());
         $total = $summary['total'];
         $shippingAmount = $summary['shipping'];
         $taxAmount = $summary['tax'];
@@ -178,12 +197,14 @@ class ShopCheckoutOrderService
         foreach ($items as $item) {
             $product = \App\Models\Product::find($item['product_id'] ?? null);
             if ($product) {
+                $qty = (int) ($item['qty'] ?? 1);
+                $unit = $this->resolveItemUnitPrice($item, $product);
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
-                    'quantity' => $item['qty'] ?? 1,
-                    'price' => $product->price,
-                    'subtotal' => $product->price * ($item['qty'] ?? 1),
+                    'quantity' => $qty,
+                    'price' => $unit,
+                    'subtotal' => round($unit * $qty, 2),
                 ]);
             }
         }
@@ -193,6 +214,20 @@ class ShopCheckoutOrderService
         }
 
         return $order;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function resolveItemUnitPrice(array $item, \App\Models\Product $product): float
+    {
+        if (isset($item['unit_price'])) {
+            return round((float) $item['unit_price'], 2);
+        }
+
+        $optionIds = $item['selected_options'] ?? $item['option_ids'] ?? [];
+
+        return Cart::calculateUnitPrice($product, $optionIds);
     }
 
     /**

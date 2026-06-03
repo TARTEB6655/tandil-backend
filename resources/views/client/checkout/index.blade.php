@@ -193,6 +193,7 @@
                             <span class="text-gray-600">Shipping</span>
                             <span class="text-gray-900 font-medium">{{ $shipping > 0 ? 'AED ' . number_format($shipping, 2) : ($shippingLabel ?? 'Free') }}</span>
                         </div>
+                        <x-shop.category-shipping-breakdown :breakdown="$categoryShippingBreakdown ?? []" />
                         @if(($couponDiscount ?? 0) > 0)
                             <div class="flex justify-between text-sm">
                                 <span class="text-green-700">Coupon Discount</span>

@@ -33,7 +33,8 @@ final class ShopCouponService
         ?int $userId = null,
         array $cartCategoryIds = [],
         ?string $cartCatalog = null,
-        array $cartServiceIds = []
+        array $cartServiceIds = [],
+        ?float $baseShipping = null
     ): array {
         $code = strtoupper(trim((string) $code));
         if ($code === '') {
@@ -64,7 +65,9 @@ final class ShopCouponService
             $catalogDiscount,
             $couponDiscount,
             $freeShipping,
-            $coupon->code
+            $coupon->code,
+            null,
+            $baseShipping ?? CartController::getEffectiveShippingAmount()
         );
 
         return [
@@ -101,6 +104,10 @@ final class ShopCouponService
 
         if ($type === 'fixed_amount') {
             return [round(min((float) ($coupon->discount_value ?? 0), $afterCatalog), 2), false];
+        }
+
+        if ($type === 'free_shipping') {
+            return [0.0, true];
         }
 
         return [0.0, false];

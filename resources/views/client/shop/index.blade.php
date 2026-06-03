@@ -116,12 +116,21 @@
                             @endif
                             <h3 class="text-sm font-semibold text-gray-900 line-clamp-2 mb-2">{{ $product->name }}</h3>
 
-                            <div class="flex items-center gap-2 mb-3">
+                            <div class="flex items-center gap-2 mb-1">
                                 <p class="text-base font-bold text-indigo-600">AED {{ number_format($product->price, 2) }}</p>
                                 @if($product->compare_at_price && $product->compare_at_price > $product->price)
                                     <p class="text-xs text-gray-400 line-through">AED {{ number_format($product->compare_at_price, 2) }}</p>
                                 @endif
                             </div>
+                            @php
+                                $deliveryFee = $product->category && $product->category->shipping_amount !== null
+                                    ? (float) $product->category->shipping_amount
+                                    : null;
+                            @endphp
+                            <p class="text-xs text-gray-500 mb-3">
+                                Delivery:
+                                {{ $deliveryFee !== null ? 'AED ' . number_format($deliveryFee, 2) : 'from shop default' }}
+                            </p>
 
                             <div class="mt-auto">
                                 <a href="{{ route('client.shop.show', $product->id) }}"

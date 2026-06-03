@@ -18,7 +18,19 @@
             <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">Incomplete</span>
             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">Amount</dt>
+                    <dt class="text-gray-500 dark:text-gray-400">Subtotal</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ number_format((float) ($checkout->subtotal_amount ?? 0), 2) }} {{ $currency }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500 dark:text-gray-400">Shipping</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ number_format((float) ($checkout->shipping_amount ?? 0), 2) }} {{ $currency }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500 dark:text-gray-400">Tax</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ number_format((float) ($checkout->tax_amount ?? 0), 2) }} {{ $currency }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500 dark:text-gray-400">Total</dt>
                     <dd class="font-semibold text-gray-900 dark:text-gray-100">{{ number_format((float) $checkout->total_amount, 2) }} {{ $currency }}</dd>
                 </div>
                 <div>

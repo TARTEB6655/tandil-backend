@@ -16,10 +16,12 @@ class Category extends Model
         'image',
         'icon',
         'is_active',
+        'shipping_amount',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'shipping_amount' => 'float',
     ];
 
 

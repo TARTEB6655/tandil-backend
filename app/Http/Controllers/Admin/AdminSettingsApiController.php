@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\CategoryShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -66,7 +67,41 @@ class AdminSettingsApiController extends Controller
             'shipping_amount' => (float) ($shipping !== null && $shipping !== '' ? $shipping : config('shop.shipping_amount', 0)),
             'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),
             'currency' => config('shop.currency', 'AED'),
+            'category_shipping_rates' => CategoryShippingService::allCategoryRatesForAdmin(),
+            'shipping_note' => 'Set per-category delivery fees below. Categories without a price use the global shipping_amount once per order.',
         ];
+    }
+
+    /**
+     * GET /api/admin/settings/shop/category-shipping
+     * List all categories with optional per-category delivery fee.
+     */
+    public function getCategoryShipping(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'global_shipping_amount' => $this->getShopSummary()['shipping_amount'],
+                'rates' => CategoryShippingService::allCategoryRatesForAdmin(),
+            ],
+        ]);
+    }
+
+    /**
+     * PUT /api/admin/settings/shop/category-shipping
+     * Body: { "rates": [ { "category_id": 1, "shipping_amount": 25 }, { "category_id": 2, "shipping_amount": null } ] }
+     */
+    public function updateCategoryShipping(Request $request): JsonResponse
+    {
+        $request->validate([
+            'rates' => 'required|array',
+            'rates.*.category_id' => 'required|integer|exists:categories,id',
+            'rates.*.shipping_amount' => 'nullable|numeric|min:0',
+        ]);
+
+        CategoryShippingService::syncAdminRates($request->input('rates', []));
+
+        return $this->getCategoryShipping();
     }
 
     /**
