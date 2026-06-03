@@ -467,6 +467,19 @@ Options missing from JSON may be **deleted** by sync.
 | Use create-time `temp_key` (`opt_cut_1`) on update without matching JSON | Image may not attach to correct option |
 | File key `option_images[opt_pack_1]` but JSON `temp_key` is `opt_417` | **Keys must match exactly** |
 | Call **POST `/products`** (no id) instead of **POST `/products/92`** | Creates new product; does not update option 417 |
+| Postman **Cloud Agent** + file **> 2–3 MB** | Error: *Request taking longer than 30 seconds* — use **Desktop Agent** or smaller image |
+
+### Postman: "Request taking longer than 30 seconds" (Cloud Agent)
+
+This is **not** a Laravel/API bug. Postman’s **Cloud Agent** stops requests after **30 seconds**. A **5 MB** image upload often hits that limit before the server responds.
+
+**Fix (pick one):**
+
+1. Postman bottom-right → switch agent from **Cloud** to **Desktop** (Postman must be installed on your PC).
+2. Use a smaller test image (**under 1 MB**, JPG).
+3. Send to your API directly from the machine that can reach the server (Desktop Agent), not through Postman cloud relay.
+
+After the request completes, check `data.option_groups[].options[].image_path` changed to a new `product-options/...` file name.
 | Send old `image_url` in JSON while uploading new file | Avoid; let server set path from file. Use `temp_key` + file only |
 | Send empty `option_groups_json` `[]` expecting clear | Ignored (safe) |
 | PUT multipart on iOS/Android without POST fallback | Files may not arrive — use **POST** |

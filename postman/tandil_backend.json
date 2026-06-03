@@ -10669,7 +10669,7 @@
                                         "{{product_id}}"
                                     ]
                                 },
-                                "description": "Update product at PUT/POST {{base_url}}/api/admin/products/{{product_id}}. Auth: Bearer {{token}}. JSON-only partial update: PUT + application/json (send only changed fields; omit option_groups_json to keep options/images). Multipart with files (main_image, option_images): POST + form-data (recommended). Variable: product_type=variable, option_groups_json (include option id from GET), option_images[opt_{id}]. Response 200: data.option_groups[].options[].image_url, temp_key. Empty option_groups_json [] is ignored (will not wipe options)."
+                                "description": "Update product at POST {{base_url}}/api/admin/products/{{product_id}} (multipart). Auth: Bearer {{token}}. Option image: option_images[opt_{optionId}] + option_groups_json with option id from GET (no image_url in JSON). IMPORTANT: Use Postman Desktop Agent (not Cloud) for file uploads; Cloud Agent times out after 30s on large files (e.g. 5MB). Use images under 1MB for testing. Enable product_type=variable. Response 200: check data.option_groups[].options[].image_path changed."
                             }
                         },
                         {

@@ -303,6 +303,16 @@ class ProductController extends Controller
         \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($relativePath);
     }
 
+    /** Option thumbnails: resize to 1280px max side before compress (faster for large mobile/Postman uploads). */
+    private function compressOptionImageIfNeeded(string $relativePath): void
+    {
+        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath(
+            $relativePath,
+            \App\Services\ImageCompressionService::DEFAULT_MAX_BYTES,
+            1280
+        );
+    }
+
     /**
      * Validation rule for main_image: accept single file or array of files (each image|mimes).
      */
@@ -878,7 +888,7 @@ class ProductController extends Controller
             return null;
         }
 
-        $this->compressProductImageIfNeeded($path);
+        $this->compressOptionImageIfNeeded($path);
 
         return $path;
     }
