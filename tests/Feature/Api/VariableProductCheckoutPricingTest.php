@@ -124,4 +124,54 @@ class VariableProductCheckoutPricingTest extends TestCase
         $response->assertStatus(200);
         $this->assertSame(125.0, (float) $response->json('data.subtotal'));
     }
+
+    public function test_buy_now_summary_accepts_selected_option_ids_alias(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 100,
+            'status' => 'active',
+            'product_type' => 'variable',
+        ]);
+
+        $packaging = ProductOptionGroup::create([
+            'product_id' => $product->id,
+            'name' => 'Packaging type',
+            'input_type' => 'single',
+            'is_required' => true,
+            'sort_order' => 0,
+        ]);
+        $packOpt = ProductOption::create([
+            'product_option_group_id' => $packaging->id,
+            'label' => 'In box',
+            'price_modifier' => 5,
+            'sort_order' => 0,
+        ]);
+
+        $cutting = ProductOptionGroup::create([
+            'product_id' => $product->id,
+            'name' => 'Cutting',
+            'input_type' => 'single',
+            'is_required' => true,
+            'sort_order' => 1,
+        ]);
+        $cutOpt = ProductOption::create([
+            'product_option_group_id' => $cutting->id,
+            'label' => 'Arabic cut',
+            'price_modifier' => 0,
+            'sort_order' => 0,
+        ]);
+
+        $response = $this->postJson('/api/shop/buy-now/summary', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'selected_option_ids' => [$packOpt->id, $cutOpt->id],
+            'use_wallet' => false,
+            'wallet_amount' => 0,
+        ], $this->authHeaders());
+
+        $response->assertOk();
+        $this->assertSame(105.0, (float) $response->json('data.order_summary.subtotal'));
+    }
 }

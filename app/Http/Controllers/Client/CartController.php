@@ -56,12 +56,14 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1|max:100',
             'option_ids' => 'nullable|array',
             'option_ids.*' => 'integer|exists:product_options,id',
+            'selected_option_ids' => 'nullable|array',
+            'selected_option_ids.*' => 'integer|exists:product_options,id',
         ]);
 
         $user = Auth::user();
         $product = Product::with('optionGroups.options')->findOrFail($request->product_id);
 
-        $selectedOptionsNormalized = Cart::normalizeSelectedOptionIds($request->input('option_ids', []));
+        $selectedOptionsNormalized = \App\Http\Controllers\Shop\CartController::selectedOptionIdsFromRequest($request);
         $optionError = Cart::validateSelectedOptionsMessage($product, $selectedOptionsNormalized);
         if ($optionError !== null) {
             return back()->with('error', $optionError);

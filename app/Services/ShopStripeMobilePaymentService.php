@@ -39,7 +39,7 @@ class ShopStripeMobilePaymentService
         $this->mergeNormalizedShipping($request);
         CartController::normalizeCheckoutCouponInput($request);
 
-        $request->validate([
+        $request->validate(array_merge([
             'is_buy_now' => 'sometimes|boolean',
             'product_id' => 'required_if:is_buy_now,true|nullable|exists:products,id',
             'quantity' => 'sometimes|integer|min:1',
@@ -61,9 +61,7 @@ class ShopStripeMobilePaymentService
             'shipping.company' => 'nullable|string|max:255',
             'shipping.email' => 'nullable|email|max:255',
             'special_instructions' => 'nullable|string|max:2000',
-            'option_ids' => 'nullable|array',
-            'option_ids.*' => 'integer|exists:product_options,id',
-        ]);
+        ], CartController::optionIdsValidationRules()));
 
         $isBuyNow = $request->boolean('is_buy_now');
         if ($isBuyNow && ! $request->filled('product_id')) {

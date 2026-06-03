@@ -342,10 +342,33 @@ class CartController extends Controller
     }
 
     /**
+     * Validation rules for variable product option IDs (accepts mobile + legacy keys).
+     *
+     * @return array<string, string>
+     */
+    public static function optionIdsValidationRules(): array
+    {
+        return [
+            'option_ids' => 'nullable|array',
+            'option_ids.*' => 'integer|exists:product_options,id',
+            'selected_option_ids' => 'nullable|array',
+            'selected_option_ids.*' => 'integer|exists:product_options,id',
+        ];
+    }
+
+    /**
      * @return array<int>
      */
     public static function selectedOptionIdsFromRequest(Request $request): array
     {
+        foreach (['option_ids', 'optionIds', 'selected_option_ids', 'selectedOptionIds'] as $key) {
+            if ($request->has($key)) {
+                $raw = $request->input($key);
+
+                return Cart::normalizeSelectedOptionIds(is_array($raw) ? $raw : []);
+            }
+        }
+
         $raw = $request->input('option_ids', $request->input('optionIds', []));
 
         return Cart::normalizeSelectedOptionIds(is_array($raw) ? $raw : []);
@@ -371,12 +394,10 @@ class CartController extends Controller
      */
     public function add(Request $request)
     {
-        $request->validate([
+        $request->validate(array_merge([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1',
-            'option_ids' => 'nullable|array',
-            'option_ids.*' => 'integer|exists:product_options,id',
-        ]);
+        ], self::optionIdsValidationRules()));
 
         $user = $request->user();
         $product = Product::with('optionGroups.options')->findOrFail($request->product_id);
@@ -428,13 +449,11 @@ class CartController extends Controller
     public static function checkoutPreview(Request $request, int $userId): array
     {
         if ($request->filled('product_id')) {
-            $request->validate([
+            $request->validate(array_merge([
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'sometimes|integer|min:1',
                 'qty' => 'sometimes|integer|min:1',
-                'option_ids' => 'nullable|array',
-                'option_ids.*' => 'integer|exists:product_options,id',
-            ]);
+            ], self::optionIdsValidationRules()));
             $qty = self::resolveBuyNowQuantity($request);
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $request->input('product_id'));
@@ -516,14 +535,14 @@ class CartController extends Controller
      */
     public function buyNowSummary(Request $request)
     {
-        $request->validate([
+        $request->validate(array_merge([
             'product_id' => 'sometimes|exists:products,id',
             'quantity' => 'sometimes|integer|min:1',
             'qty' => 'sometimes|integer|min:1',
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'sometimes|numeric|min:0',
             'coupon_code' => 'sometimes|string|max:64',
-        ]);
+        ], self::optionIdsValidationRules()));
 
         $user = $request->user();
         $pack = self::checkoutTotalsForRequest($request, $user);
