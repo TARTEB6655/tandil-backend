@@ -14,25 +14,25 @@
     </div>
 
     @php
-        $jumpNavCatalog = 'inline-flex shrink-0 min-h-[2.25rem] items-center justify-center whitespace-nowrap rounded-lg border px-3 py-2 text-xs sm:text-sm font-semibold leading-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/90 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/55 hover:border-indigo-300 dark:hover:border-indigo-500';
-        $jumpNavSection = 'inline-flex shrink-0 min-h-[2.25rem] items-center justify-center whitespace-nowrap rounded-lg border px-3 py-2 text-xs sm:text-sm font-semibold leading-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-white dark:bg-gray-800/80 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-indigo-50/90 dark:hover:bg-indigo-950/35 hover:text-indigo-900 dark:hover:text-indigo-100';
+        $jumpNavPill = 'inline-flex shrink-0 min-h-[2.25rem] items-center justify-center whitespace-nowrap rounded-lg border px-3 py-2 text-xs sm:text-sm font-semibold leading-tight shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:border-indigo-300 dark:hover:border-indigo-600 hover:text-indigo-800 dark:hover:text-indigo-200';
+        $jumpNavLabel = 'shrink-0 text-[11px] sm:text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400';
     @endphp
     <!-- Jump to Section - Sticky quick navigation (grouped) -->
     <div id="jump-nav" class="sticky top-0 z-20 -mx-3 px-4 py-4 md:-mx-4 md:px-5 lg:-mx-6 lg:px-6 mb-5 md:mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg ring-1 ring-gray-200/50 dark:ring-gray-700/50">
         <p class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider mb-3">{{ __('admin.quick_navigation') }}</p>
         <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex shrink-0 min-h-[2.25rem] items-center rounded-lg bg-slate-100 dark:bg-slate-900/50 px-2.5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('admin.catalog') }}</span>
-            <a href="{{ route('admin.products.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.products') }}</a>
-            <a href="{{ route('admin.categories.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.categories') }}</a>
-            <a href="{{ route('admin.services.index') }}" class="{{ $jumpNavCatalog }}">{{ __('admin.services') }}</a>
-            <span class="hidden h-9 w-px bg-slate-200 dark:bg-slate-600 sm:inline-block self-center" aria-hidden="true"></span>
-            <a href="#key-metrics" class="{{ $jumpNavSection }}">{{ __('admin.key_metrics') }}</a>
-            <a href="#ecommerce" class="{{ $jumpNavSection }}">{{ __('admin.ecommerce_section') }}</a>
-            <a href="#manage-services" class="{{ $jumpNavSection }}">{{ __('admin.manage_services') }}</a>
-            <a href="{{ route('admin.orders.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.orders') }}</a>
-            <a href="{{ route('admin.banners.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.banners') }}</a>
-            <a href="{{ route('admin.packages.index') }}" class="{{ $jumpNavSection }}">{{ __('admin.packages') }}</a>
-            <a href="{{ route('admin.coupons.index') }}" class="{{ $jumpNavSection }}">Coupons</a>
+            <span class="{{ $jumpNavLabel }}">{{ __('admin.catalog') }}</span>
+            <a href="{{ route('admin.products.index') }}" class="{{ $jumpNavPill }}">{{ __('admin.products') }}</a>
+            <a href="{{ route('admin.categories.index') }}" class="{{ $jumpNavPill }}">{{ __('admin.categories') }}</a>
+            <a href="{{ route('admin.services.index') }}" class="{{ $jumpNavPill }}">{{ __('admin.services') }}</a>
+            <span class="hidden h-6 w-px bg-gray-200 dark:bg-gray-600 sm:inline-block self-center mx-0.5" aria-hidden="true"></span>
+            <a href="#key-metrics" class="{{ $jumpNavPill }}">{{ __('admin.key_metrics') }}</a>
+            <a href="#ecommerce" class="{{ $jumpNavPill }}">{{ __('admin.ecommerce_section') }}</a>
+            <a href="#manage-services" class="{{ $jumpNavPill }}">{{ __('admin.manage_services') }}</a>
+            <a href="{{ route('admin.orders.index') }}" class="{{ $jumpNavPill }}">{{ __('admin.orders') }}</a>
+            <a href="{{ route('admin.banners.index') }}" class="{{ $jumpNavPill }}">{{ __('admin.banners') }}</a>
+            <a href="{{ route('admin.packages.index') }}" class="{{ $jumpNavPill }}">{{ __('admin.packages') }}</a>
+            <a href="{{ route('admin.coupons.index') }}" class="{{ $jumpNavPill }}">Coupons</a>
         </div>
     </div>
 
