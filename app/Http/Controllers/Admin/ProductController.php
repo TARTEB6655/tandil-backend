@@ -295,22 +295,16 @@ class ProductController extends Controller
         }
     }
 
-    /**
-     * Compress image if over 5 MB (all image uploads in project).
-     */
+    /** Product main + gallery: max 1920px, ~800 KB (handles very large admin uploads). */
     private function compressProductImageIfNeeded(string $relativePath): void
     {
-        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($relativePath);
+        \App\Services\ImageCompressionService::optimizeProductGalleryFromPublicPath($relativePath);
     }
 
-    /** Option thumbnails: resize to 1280px max side before compress (faster for large mobile/Postman uploads). */
+    /** Option thumbnails: max 800px, ~384 KB. */
     private function compressOptionImageIfNeeded(string $relativePath): void
     {
-        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath(
-            $relativePath,
-            \App\Services\ImageCompressionService::DEFAULT_MAX_BYTES,
-            1280
-        );
+        \App\Services\ImageCompressionService::optimizeProductOptionFromPublicPath($relativePath);
     }
 
     /**

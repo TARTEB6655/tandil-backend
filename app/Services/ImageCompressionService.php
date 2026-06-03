@@ -13,6 +13,16 @@ class ImageCompressionService
 {
     public const DEFAULT_MAX_BYTES = 1 * 1024 * 1024; // 1 MB target
 
+    /** Product main + gallery images (admin upload). */
+    public const PRODUCT_GALLERY_MAX_BYTES = 800 * 1024; // 800 KB
+
+    public const PRODUCT_GALLERY_MAX_DIMENSION = 1920;
+
+    /** Variable product option thumbnails. */
+    public const PRODUCT_OPTION_MAX_BYTES = 384 * 1024; // 384 KB
+
+    public const PRODUCT_OPTION_MAX_DIMENSION = 800;
+
     /** Max size for report/visit photos so uploads and loading are fast. */
     public const VISIT_PHOTO_MAX_BYTES = 512 * 1024; // 512 KB
 
@@ -104,6 +114,30 @@ class ImageCompressionService
             $relativePath,
             self::VISIT_PHOTO_MAX_BYTES,
             self::VISIT_PHOTO_MAX_DIMENSION
+        );
+    }
+
+    /**
+     * Optimize product main/gallery image: resize wide photos + compress (admin/API uploads).
+     */
+    public static function optimizeProductGalleryFromPublicPath(string $relativePath): bool
+    {
+        return self::compressIfNeededFromPublicPath(
+            $relativePath,
+            self::PRODUCT_GALLERY_MAX_BYTES,
+            self::PRODUCT_GALLERY_MAX_DIMENSION
+        );
+    }
+
+    /**
+     * Optimize variable product option thumbnail (smaller dimensions + file size).
+     */
+    public static function optimizeProductOptionFromPublicPath(string $relativePath): bool
+    {
+        return self::compressIfNeededFromPublicPath(
+            $relativePath,
+            self::PRODUCT_OPTION_MAX_BYTES,
+            self::PRODUCT_OPTION_MAX_DIMENSION
         );
     }
 
