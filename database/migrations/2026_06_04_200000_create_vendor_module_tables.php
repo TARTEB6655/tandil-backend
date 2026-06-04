@@ -43,7 +43,7 @@ return new class extends Migration
             $table->string('new_status', 32);
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['vendor_id', 'created_at']);
+            $table->index(['vendor_id', 'created_at'], 'vnd_appr_log_vendor_created_idx');
         });
 
         if (Schema::hasTable('products') && ! Schema::hasColumn('products', 'vendor_id')) {
@@ -60,8 +60,8 @@ return new class extends Migration
             $table->string('status', 32)->default('active')->index();
             $table->timestamps();
             $table->softDeletes();
-            $table->unique(['vendor_id', 'product_id']);
-            $table->unique('product_id');
+            $table->unique(['vendor_id', 'product_id'], 'vnd_prod_vendor_product_uniq');
+            $table->unique('product_id', 'vnd_prod_product_uniq');
         });
 
         Schema::create('vendor_product_prices', function (Blueprint $table) {
@@ -76,7 +76,7 @@ return new class extends Migration
             $table->boolean('is_admin_override')->default(false);
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['vendor_product_id', 'effective_from']);
+            $table->index(['vendor_product_id', 'effective_from'], 'vnd_price_vp_effective_idx');
         });
 
         Schema::create('vendor_inventory', function (Blueprint $table) {
@@ -96,7 +96,7 @@ return new class extends Migration
             $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['vendor_product_id', 'created_at']);
+            $table->index(['vendor_product_id', 'created_at'], 'vnd_inv_log_vp_created_idx');
         });
 
         Schema::create('vendor_order_mappings', function (Blueprint $table) {
@@ -109,18 +109,22 @@ return new class extends Migration
             $table->decimal('shipping_amount', 12, 2)->default(0);
             $table->decimal('total_amount', 12, 2)->default(0);
             $table->timestamps();
-            $table->unique(['order_id', 'vendor_id']);
-            $table->index(['vendor_id', 'status']);
+            $table->unique(['order_id', 'vendor_id'], 'vnd_ord_map_order_vendor_uniq');
+            $table->index(['vendor_id', 'status'], 'vnd_ord_map_vendor_status_idx');
         });
 
         Schema::create('vendor_order_status_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('vendor_order_mapping_id')->constrained('vendor_order_mappings')->cascadeOnDelete();
+            $table->unsignedBigInteger('vendor_order_mapping_id');
             $table->string('status', 32);
             $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('note')->nullable();
             $table->timestamps();
-            $table->index(['vendor_order_mapping_id', 'created_at']);
+            $table->foreign('vendor_order_mapping_id', 'vnd_ord_stlog_map_fk')
+                ->references('id')
+                ->on('vendor_order_mappings')
+                ->cascadeOnDelete();
+            $table->index(['vendor_order_mapping_id', 'created_at'], 'vnd_ord_stlog_map_created_idx');
         });
     }
 
