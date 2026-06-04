@@ -18,13 +18,13 @@ export default {
                 sans: ['Inter', 'Figtree', ...defaultTheme.fontFamily.sans],
             },
             fontSize: {
-                /* 12px html root — default Tailwind sm/xs were ~10px; keep UI readable */
-                xs: ['12px', { lineHeight: '1.35' }],
-                sm: ['12px', { lineHeight: '1.4' }],
-                base: ['12px', { lineHeight: '1.5' }],
-                lg: ['14px', { lineHeight: '1.5' }],
-                xl: ['16px', { lineHeight: '1.5' }],
-                '2xl': ['18px', { lineHeight: '1.4' }],
+                /* 14px html root — keep xs/sm/base readable (not ~10px from default rem scale) */
+                xs: ['14px', { lineHeight: '1.35' }],
+                sm: ['14px', { lineHeight: '1.4' }],
+                base: ['14px', { lineHeight: '1.5' }],
+                lg: ['16px', { lineHeight: '1.5' }],
+                xl: ['18px', { lineHeight: '1.5' }],
+                '2xl': ['20px', { lineHeight: '1.4' }],
             },
             height: {
                 '18': '4.5rem', // 72px

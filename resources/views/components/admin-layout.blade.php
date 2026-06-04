@@ -25,9 +25,9 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* Match app.css 12px base — do not use body * (breaks header SVG sizing). */
+        /* Match app.css 14px base — do not use body * (breaks header SVG sizing). */
         html, body {
-            font-size: 12px !important;
+            font-size: 14px !important;
         }
     </style>
     
