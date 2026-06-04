@@ -25,9 +25,9 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* Scope to text roots only — avoid breaking SVG icon sizing in header flex rows. */
+        /* Match app.css 12px base — do not use body * (breaks header SVG sizing). */
         html, body {
-            font-size: 14px !important;
+            font-size: 12px !important;
         }
     </style>
     

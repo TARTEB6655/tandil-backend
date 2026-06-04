@@ -27,7 +27,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         html, body {
-            font-size: 14px !important;
+            font-size: 12px !important;
         }
     </style>
     

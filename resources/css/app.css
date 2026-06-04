@@ -117,15 +117,20 @@ img.h-16.w-auto {
     width: 100px;
 }
 
-/* Global typography consistency across all dashboards (Tailwind rem-based scaling). */
+/* Global typography: 12px base (see tailwind.config.js fontSize for sm/xs). */
 html {
     font-size: 12px;
 }
 
 body {
     font-size: 12px;
-    line-height: 1.35;
+    line-height: 1.5;
     font-family: 'Inter', sans-serif;
+}
+
+/* Arbitrary 10px utilities → 12px minimum on dashboards */
+.text-\[10px\] {
+    font-size: 12px !important;
 }
 
 /* Admin profile settings: Save CTA — indigo-600 SaaS style (overrides @tailwindcss/forms). */
