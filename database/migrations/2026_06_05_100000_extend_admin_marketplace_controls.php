@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamp('verified_at')->nullable();
             $table->text('admin_notes')->nullable();
             $table->timestamps();
-            $table->index(['vendor_id', 'type']);
+            $table->index(['vendor_id', 'type'], 'vnd_doc_vendor_type_idx');
         });
 
         Schema::table('vendors', function (Blueprint $table) {

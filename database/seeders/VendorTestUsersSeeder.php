@@ -18,6 +18,8 @@ use App\Models\VendorProduct;
 use App\Models\VendorProductPrice;
 use App\Models\VendorProfile;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -33,6 +35,8 @@ class VendorTestUsersSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->assertMarketplaceSchemaReady();
+
         Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
 
         $this->command->info('Creating test vendor users...');
@@ -70,6 +74,30 @@ class VendorTestUsersSeeder extends Seeder
         $this->command->info('  vendor1@test.com / password123 — APPROVED (products + order)');
         $this->command->info('  vendor2@test.com / password123 — PENDING');
         $this->command->info('  vendor3@test.com / password123 — SUSPENDED');
+    }
+
+    private function assertMarketplaceSchemaReady(): void
+    {
+        $missing = [];
+
+        if (! Schema::hasColumn('vendors', 'commission_rate')) {
+            $missing[] = 'vendors.commission_rate';
+        }
+        if (! Schema::hasTable('vendor_documents')) {
+            $missing[] = 'vendor_documents';
+        }
+        if (! Schema::hasColumn('vendor_products', 'approval_status')) {
+            $missing[] = 'vendor_products.approval_status';
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Vendor marketplace schema is incomplete (missing: '.implode(', ', $missing).'). '
+            .'Run pending migrations first: php artisan migrate'
+        );
     }
 
     private function upsertVendor(
