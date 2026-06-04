@@ -2,14 +2,23 @@
     <div class="space-y-6">
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">{{ __('admin.categories_management') }}</h1>
-            <a href="{{ route('admin.categories.create') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                {{ __('admin.create_new_category') }}
-            </a>
+            <div>
+                <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">{{ __('admin.categories_management') }}</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Set bike vs car delivery per category — used at checkout.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('admin.shop-settings.index') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Delivery &amp; tax
+                </a>
+                <a href="{{ route('admin.categories.create') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {{ __('admin.create_new_category') }}
+                </a>
+            </div>
         </div>
 
         @if(session('success'))
@@ -33,7 +42,9 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">{{ __('admin.image') }}</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('admin.name') }}</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">{{ __('admin.slug') }}</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Delivery</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">Shipping Type</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Shipping Cost</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Tax %</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">{{ __('admin.products') }}</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">{{ __('admin.status') }}</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell max-w-[200px]">{{ __('admin.description') }}</th>
@@ -64,10 +75,26 @@
                                     <div class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ $category->slug }}</div>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                    @if($category->shipping_amount !== null)
-                                        {{ number_format($category->shipping_amount, 2) }} AED
+                                    @if($category->shipping_type === 'bike')
+                                        <span class="inline-flex w-fit items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">Bike</span>
+                                    @elseif($category->shipping_type === 'car')
+                                        <span class="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">Car</span>
                                     @else
-                                        <span class="text-gray-400">Default</span>
+                                        <span class="text-gray-400">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                    @if($category->shipping_cost !== null)
+                                        {{ number_format($category->shipping_cost, 2) }} AED
+                                    @else
+                                        <span class="text-gray-400">Shop default</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                    @if($category->tax_percentage !== null)
+                                        {{ number_format($category->tax_percentage, 1) }}%
+                                    @else
+                                        <span class="text-gray-400">Global</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
@@ -100,7 +127,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center">
+                                <td colspan="10" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center">
                                         <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
                                             <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

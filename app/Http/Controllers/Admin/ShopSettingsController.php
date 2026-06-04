@@ -54,17 +54,23 @@ class ShopSettingsController extends Controller
             'rates' => 'required|array',
             'rates.*.category_id' => 'required|integer|exists:categories,id',
             'rates.*.shipping_amount' => 'nullable|numeric|min:0',
+            'rates.*.shipping_cost' => 'nullable|numeric|min:0',
+            'rates.*.shipping_type' => 'nullable|string|in:bike,car',
+            'rates.*.delivery_type' => 'nullable|string|in:bike,car',
+            'rates.*.tax_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $rates = [];
         foreach ($request->input('rates', []) as $row) {
-            $amount = $row['shipping_amount'] ?? null;
+            $amount = $row['shipping_cost'] ?? $row['shipping_amount'] ?? null;
             if ($amount === '' || $amount === null) {
                 $amount = null;
             }
             $rates[] = [
                 'category_id' => (int) $row['category_id'],
-                'shipping_amount' => $amount,
+                'shipping_cost' => $amount,
+                'shipping_type' => $row['shipping_type'] ?? $row['delivery_type'] ?? null,
+                'tax_percentage' => $row['tax_percentage'] ?? null,
             ];
         }
 

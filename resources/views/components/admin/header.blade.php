@@ -300,22 +300,10 @@
                             </div>
                         @endif
 
-                        <x-partials.header-profile-name :user="$user" />
-
-                        <!-- Dropdown Arrow (hidden on mobile, visible on desktop) -->
-                        <svg 
-                            class="hidden lg:block h-[18px] w-[18px] shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200" 
-                            :class="{ 'rotate-180': open }" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            stroke-width="1.25" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round" 
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                        >
-                            <path d="M19 9l-7 7-7-7"></path>
-                        </svg>
+                        <div class="hidden lg:flex items-center gap-1.5 min-w-0">
+                            <x-partials.header-profile-name :user="$user" />
+                            <x-partials.header-profile-chevron />
+                        </div>
                     </button>
 
                     <!-- Dropdown Menu -->

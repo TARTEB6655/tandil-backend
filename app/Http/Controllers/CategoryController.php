@@ -151,7 +151,7 @@ class CategoryController extends Controller
             'image_url' => $this->buildCategoryImageUrl($imagePath),
             'is_active' => $isActive,
             'coming_soon' => ! $isActive,
-            'shipping_amount' => $category->shipping_amount !== null ? round((float) $category->shipping_amount, 2) : null,
+            ...$category->shippingTaxConfigForApi(),
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
         ];
@@ -234,18 +234,13 @@ class CategoryController extends Controller
             $slug = $originalSlug . '-' . $counter;
             $counter++;
         }
-        $shippingAmount = $request->filled('shipping_amount')
-            ? round(max(0, (float) $request->input('shipping_amount')), 2)
-            : null;
-
-        $category = Category::create([
+        $category = Category::create(array_merge([
             'name' => $name,
             'slug' => $slug,
             'description' => $description,
             'image' => $imagePath,
             'is_active' => $isActive,
-            'shipping_amount' => $shippingAmount,
-        ]);
+        ], $this->shippingTaxAttributesFromRequest($request)));
         
         if (request()->expectsJson() || request()->is('api/*')) {
             return ApiResponse::success('Category created successfully.', $this->categoryToApiData($category), 201);
@@ -316,20 +311,13 @@ class CategoryController extends Controller
         $request->validate($request->rules());
         $fillable = array_flip($category->getFillable());
         $updateData = [];
-        foreach (['name', 'slug', 'description', 'is_active', 'shipping_amount'] as $key) {
+        foreach (['name', 'slug', 'description', 'is_active'] as $key) {
             if (! array_key_exists($key, $fillable)) {
                 continue;
             }
             if ($key === 'is_active') {
                 if ($request->has($key)) {
                     $updateData[$key] = $request->boolean($key);
-                }
-                continue;
-            }
-            if ($key === 'shipping_amount') {
-                if ($request->has($key)) {
-                    $raw = $request->input($key);
-                    $updateData[$key] = ($raw === '' || $raw === null) ? null : round(max(0, (float) $raw), 2);
                 }
                 continue;
             }
@@ -377,6 +365,8 @@ class CategoryController extends Controller
                 $this->compressCategoryImageIfNeeded($newImagePath);
             }
         }
+
+        $updateData = array_merge($updateData, $this->shippingTaxUpdateFromRequest($request));
 
         $category->update($updateData);
 
@@ -451,5 +441,46 @@ class CategoryController extends Controller
         }
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category deleted successfully.');
+    }
+
+    /**
+     * @return array{shipping_cost: ?float, shipping_type: ?string, tax_percentage: ?float}
+     */
+    private function shippingTaxAttributesFromRequest(Request $request): array
+    {
+        $cost = $request->input('shipping_cost', $request->input('shipping_amount'));
+        $type = Category::normalizeShippingType($request->input('shipping_type', $request->input('delivery_type')));
+        $tax = $request->input('tax_percentage');
+
+        return [
+            'shipping_cost' => ($cost === null || $cost === '') ? null : round(max(0, (float) $cost), 2),
+            'shipping_type' => $type,
+            'tax_percentage' => ($tax === null || $tax === '') ? null : round(max(0, min(100, (float) $tax)), 2),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $updateData
+     * @return array<string, mixed>
+     */
+    private function shippingTaxUpdateFromRequest(Request $request): array
+    {
+        $patch = [];
+
+        if ($request->has('shipping_cost') || $request->has('shipping_amount')) {
+            $cost = $request->input('shipping_cost', $request->input('shipping_amount'));
+            $patch['shipping_cost'] = ($cost === null || $cost === '') ? null : round(max(0, (float) $cost), 2);
+        }
+        if ($request->has('shipping_type') || $request->has('delivery_type')) {
+            $patch['shipping_type'] = Category::normalizeShippingType(
+                $request->input('shipping_type', $request->input('delivery_type'))
+            );
+        }
+        if ($request->has('tax_percentage')) {
+            $tax = $request->input('tax_percentage');
+            $patch['tax_percentage'] = ($tax === null || $tax === '') ? null : round(max(0, min(100, (float) $tax)), 2);
+        }
+
+        return $patch;
     }
 }

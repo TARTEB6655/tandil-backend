@@ -83,7 +83,7 @@
                             @enderror
                         </div>
 
-                        @include('admin.categories.partials.shipping-amount-field')
+                        @include('admin.categories.partials.delivery-settings')
 
                         <div class="flex items-center gap-3 pt-2">
                             <input type="hidden" name="is_active" value="0">

@@ -68,7 +68,7 @@ class AdminSettingsApiController extends Controller
             'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),
             'currency' => config('shop.currency', 'AED'),
             'category_shipping_rates' => CategoryShippingService::allCategoryRatesForAdmin(),
-            'shipping_note' => 'Set per-category delivery fees below. Categories without a price use the global shipping_amount once per order.',
+            'shipping_note' => 'Set per-category delivery fees (bike for small items, car for large). Checkout adds one fee per category in the cart. Categories without a fee use global shipping_amount once per order.',
         ];
     }
 
@@ -97,6 +97,11 @@ class AdminSettingsApiController extends Controller
             'rates' => 'required|array',
             'rates.*.category_id' => 'required|integer|exists:categories,id',
             'rates.*.shipping_amount' => 'nullable|numeric|min:0',
+            'rates.*.shipping_cost' => 'nullable|numeric|min:0',
+            'rates.*.shipping_type' => 'nullable|string|in:bike,car',
+            'rates.*.delivery_type' => 'nullable|string|in:bike,car',
+            'rates.*.tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'rates.*.delivery_type' => 'nullable|string|in:bike,car',
         ]);
 
         CategoryShippingService::syncAdminRates($request->input('rates', []));

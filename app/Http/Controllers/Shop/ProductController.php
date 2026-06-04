@@ -208,14 +208,12 @@ class ProductController extends Controller
 
         $categoryPayload = null;
         if ($product->relationLoaded('category') && $product->category) {
-            $categoryPayload = [
+            $categoryPayload = array_merge([
                 'id' => $product->category->id,
                 'name' => $product->category->name,
                 'slug' => $product->category->slug,
-                'shipping_amount' => $product->category->shipping_amount !== null
-                    ? round((float) $product->category->shipping_amount, 2)
-                    : null,
-            ];
+                'estimated_shipping' => round((float) $estimatedShipping, 2),
+            ], $product->category->shippingTaxConfigForApi());
         }
 
         return [
@@ -240,6 +238,13 @@ class ProductController extends Controller
             'images'           => $imagesList,
             'category'         => $categoryPayload,
             'estimated_shipping' => round((float) $estimatedShipping, 2),
+            'shipping_cost' => $product->category?->shipping_cost !== null
+                ? round((float) $product->category->shipping_cost, 2)
+                : null,
+            'shipping_type' => $product->category?->shipping_type,
+            'tax_percentage' => $product->category !== null
+                ? $product->category->effectiveTaxPercentage()
+                : CartController::getEffectiveTaxPercent(),
             'option_groups'    => $optionGroups,
             'variants'         => $variants,
             'created_at'       => $product->created_at,

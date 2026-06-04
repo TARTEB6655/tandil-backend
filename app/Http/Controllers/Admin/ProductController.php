@@ -134,7 +134,19 @@ class ProductController extends Controller
             'main_image' => $mainImage,
             'gallery_images' => $galleryImages,
             'images' => $imagesList,
-            'category' => $product->relationLoaded('category') ? $product->category : null,
+            'category' => $product->relationLoaded('category') && $product->category
+                ? array_merge(
+                    $product->category->only(['id', 'name', 'slug']),
+                    $product->category->shippingTaxConfigForApi()
+                )
+                : ($product->relationLoaded('category') ? $product->category : null),
+            'shipping_cost' => $product->category?->shipping_cost !== null
+                ? round((float) $product->category->shipping_cost, 2)
+                : null,
+            'shipping_type' => $product->category?->shipping_type,
+            'tax_percentage' => $product->category !== null
+                ? $product->category->effectiveTaxPercentage()
+                : null,
             'service_ids' => $product->relationLoaded('services') ? $product->services->pluck('id')->values()->all() : $product->services()->pluck('id')->values()->all(),
             'option_groups' => $optionGroups,
             'variants' => $variants,
@@ -1461,7 +1473,7 @@ class ProductController extends Controller
     public function edit($id)
     {
         $product = Product::with(['category', 'services', 'images', 'optionGroups.options'])->findOrFail($id);
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get(['id', 'name', 'shipping_cost', 'shipping_type', 'tax_percentage']);
         $services = Service::with('category')->orderBy('name')->get();
         return view('admin.products.edit', compact('product', 'categories', 'services'));
     }
@@ -1493,7 +1505,7 @@ class ProductController extends Controller
      */
     public function create()
     {
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get(['id', 'name', 'shipping_cost', 'shipping_type', 'tax_percentage']);
         $services = Service::with('category')->orderBy('name')->get();
         return view('admin.products.create', compact('categories', 'services'));
     }

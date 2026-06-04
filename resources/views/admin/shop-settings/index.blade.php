@@ -4,7 +4,8 @@
             <div>
                 <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">Shop delivery &amp; tax</h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Global default shipping, VAT, and per-category delivery (bike vs car pricing).
+                    Set delivery by category: small items on <strong>bike</strong>, large items on <strong>car</strong>.
+                    Fees apply at checkout and on Stripe payment.
                 </p>
             </div>
             <a href="{{ route('admin.categories.index') }}"
@@ -19,10 +20,19 @@
             </div>
         @endif
 
+        <div class="rounded-xl border border-blue-100 bg-blue-50/80 p-4 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+            <p class="font-medium">How checkout calculates delivery</p>
+            <ul class="mt-2 list-disc pl-5 space-y-1 text-blue-800/90 dark:text-blue-200/90">
+                <li>Each <strong>category</strong> in the cart adds its delivery fee once (not per product).</li>
+                <li>Example: 2 small-item products in “Spices” = one bike fee; 1 large item in “Furniture” = one car fee.</li>
+                <li>Categories without a fee use the global default below (once per order).</li>
+            </ul>
+        </div>
+
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Global checkout defaults</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                Used when a category has no custom delivery fee, or for products without a category (once per order).
+                Fallback delivery and VAT when a category has no custom fee.
             </p>
 
             <form method="POST" action="{{ route('admin.shop-settings.update-global') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -52,7 +62,7 @@
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Per-category delivery fees</h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Example: small items (bike) = lower fee, large items (car) = higher fee. Checkout adds one fee per category in the cart.
+                    Assign bike or car delivery and the fee for each category. Mobile admin API: <code class="text-xs bg-gray-100 dark:bg-gray-900 px-1 rounded">PUT /api/admin/settings/shop/category-shipping</code>
                 </p>
             </div>
 
@@ -63,7 +73,9 @@
                         <thead class="bg-gray-50 dark:bg-gray-700/50">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">Delivery fee ({{ $currency }})</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40">Shipping type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40">Shipping cost ({{ $currency }})</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">Tax %</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
@@ -74,15 +86,30 @@
                                         <input type="hidden" name="rates[{{ $i }}][category_id]" value="{{ $rate['category_id'] }}">
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input type="number" name="rates[{{ $i }}][shipping_amount]" step="0.01" min="0"
-                                               value="{{ old('rates.'.$i.'.shipping_amount', $rate['shipping_amount']) }}"
-                                               placeholder="Use global ({{ number_format($globalShipping, 2) }})"
+                                        <select name="rates[{{ $i }}][shipping_type]"
+                                                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                            @php $stype = $rate['shipping_type'] ?? $rate['delivery_type'] ?? ''; @endphp
+                                            <option value="" {{ $stype === '' ? 'selected' : '' }}>—</option>
+                                            <option value="bike" {{ $stype === 'bike' ? 'selected' : '' }}>Bike (small)</option>
+                                            <option value="car" {{ $stype === 'car' ? 'selected' : '' }}>Car (large)</option>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <input type="number" name="rates[{{ $i }}][shipping_cost]" step="0.01" min="0"
+                                               value="{{ old('rates.'.$i.'.shipping_cost', $rate['shipping_cost'] ?? $rate['shipping_amount'] ?? '') }}"
+                                               placeholder="Global ({{ number_format($globalShipping, 2) }})"
+                                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <input type="number" name="rates[{{ $i }}][tax_percentage]" step="0.01" min="0" max="100"
+                                               value="{{ old('rates.'.$i.'.tax_percentage', $rate['tax_percentage'] ?? '') }}"
+                                               placeholder="Global"
                                                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="2" class="px-6 py-10 text-center text-sm text-gray-500">
+                                    <td colspan="4" class="px-6 py-10 text-center text-sm text-gray-500">
                                         No categories yet.
                                         <a href="{{ route('admin.categories.create') }}" class="text-indigo-600 hover:underline">Create a category</a>
                                     </td>

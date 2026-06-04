@@ -397,7 +397,7 @@
                                     <option value="">{{ __('admin.no_category') }}</option>
                                     @foreach($categories as $category)
                                         <option value="{{ $category->id }}" {{ old('category_id', request('category_id')) == $category->id ? 'selected' : '' }}>
-                                            {{ $category->name }}
+                                            {{ $category->name }}@if($category->shipping_type) — {{ \App\Models\Category::shippingTypeShortLabel($category->shipping_type) }}@endif@if($category->shipping_cost !== null) · {{ number_format($category->shipping_cost, 2) }} AED · {{ $category->tax_percentage !== null ? number_format($category->tax_percentage, 0).'% tax' : 'global tax' }}@endif
                                         </option>
                                     @endforeach
                                 </select>

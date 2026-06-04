@@ -83,6 +83,18 @@
     }
 }
 
+/* Profile dropdown chevron — guard against layout font-size rules inflating SVGs */
+header button[aria-label] .header-action-icon,
+header button[aria-label] svg[aria-hidden="true"]:last-child {
+    width: 18px !important;
+    height: 18px !important;
+    max-width: 18px;
+    max-height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+    flex-shrink: 0;
+}
+
 /* Responsive table wrapper */
 .responsive-table-wrapper {
     @apply overflow-x-auto -mx-3 sm:-mx-4 md:-mx-6;

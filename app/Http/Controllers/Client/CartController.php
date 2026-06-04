@@ -64,6 +64,8 @@ class CartController extends Controller
             'taxPercent' => $taxPercent,
             'shippingLabel' => $shippingLabel,
             'categoryShippingBreakdown' => $orderSummary['category_shipping_breakdown'] ?? [],
+            'categoryTaxBreakdown' => $orderSummary['category_tax_breakdown'] ?? [],
+            'usesCategoryTax' => (bool) ($orderSummary['uses_category_tax'] ?? false),
         ]);
     }
 

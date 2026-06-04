@@ -120,9 +120,12 @@
                             <span class="text-gray-900 font-medium">AED {{ number_format($subtotal, 2) }}</span>
                         </div>
                         <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Tax ({{ $taxPercent ?? 5 }}%)</span>
+                            <span class="text-gray-600">
+                                Tax@if(!empty($usesCategoryTax)) (by category)@else ({{ $taxPercent ?? 5 }}%)@endif
+                            </span>
                             <span class="text-gray-900 font-medium">AED {{ number_format($tax ?? 0, 2) }}</span>
                         </div>
+                        <x-shop.category-tax-breakdown :breakdown="$categoryTaxBreakdown ?? []" />
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600">Shipping</span>
                             <span class="text-gray-900 font-medium">{{ $shipping > 0 ? 'AED ' . number_format($shipping, 2) : ($shippingLabel ?? 'Free') }}</span>

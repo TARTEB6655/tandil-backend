@@ -12,6 +12,7 @@ use App\Models\ShopMobileCheckout;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\CategoryShippingService;
+use App\Services\CategoryTaxService;
 use App\Services\ShopCouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -56,6 +57,7 @@ class CartController extends Controller
             : self::getEffectiveShippingAmount();
 
         $summary = self::buildOrderSummaryWithAdjustments($subtotal, $discount, 0, $shippingAmount);
+        $summary = self::applyCategoryTaxToSummary($summary, $cartItems);
 
         return self::mergeCategoryShippingIntoSummary($summary, $cartItems);
     }
@@ -178,7 +180,31 @@ class CartController extends Controller
             $baseShipping
         );
 
+        $summary = self::applyCategoryTaxToSummary($summary, $cartItems);
+
         return self::mergeCategoryShippingIntoSummary($summary, $cartItems);
+    }
+
+    /**
+     * @param  array<string, mixed>  $summary
+     * @param  iterable<int, Cart>|null  $cartItems
+     * @return array<string, mixed>
+     */
+    public static function applyCategoryTaxToSummary(array $summary, ?iterable $cartItems = null): array
+    {
+        if ($cartItems === null) {
+            return $summary;
+        }
+
+        $taxable = round(max(0, (float) $summary['subtotal'] - (float) ($summary['discount'] ?? 0) - (float) ($summary['coupon_discount'] ?? 0)), 2);
+        $taxPack = CategoryTaxService::resolveForCartItems($cartItems, $taxable);
+        $summary['tax'] = $taxPack['amount'];
+        $summary['tax_percent'] = $taxPack['effective_percent'];
+        $summary['category_tax_breakdown'] = $taxPack['breakdown'];
+        $summary['uses_category_tax'] = $taxPack['uses_category_tax'];
+        $summary['total'] = round($taxable + $taxPack['amount'] + (float) $summary['shipping'], 2);
+
+        return $summary;
     }
 
     /**

@@ -87,7 +87,7 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
         Setting::set('shop_shipping_amount', '10', 'text', 'shop');
 
         $user = User::factory()->create(['role' => 'client']);
-        $cat = Category::factory()->create(['shipping_amount' => 35]);
+        $cat = Category::factory()->create(['shipping_cost' => 35, 'tax_percentage' => 0]);
         ['product' => $product, 'premium_option_id' => $optId] = $this->createVariableProduct($cat, 100, 25);
 
         Cart::create([
@@ -115,8 +115,8 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
         Setting::set('shop_shipping_amount', '10', 'text', 'shop');
 
         $user = User::factory()->create(['role' => 'client']);
-        $small = Category::factory()->create(['shipping_amount' => 12]);
-        $large = Category::factory()->create(['shipping_amount' => 40]);
+        $small = Category::factory()->create(['shipping_cost' => 12, 'tax_percentage' => 5]);
+        $large = Category::factory()->create(['shipping_cost' => 40, 'tax_percentage' => 5]);
         $p1 = Product::factory()->create(['category_id' => $small->id, 'price' => 50, 'compare_at_price' => null, 'status' => 'active']);
         $p2 = Product::factory()->create(['category_id' => $large->id, 'price' => 80, 'compare_at_price' => null, 'status' => 'active']);
 
@@ -141,7 +141,7 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
         Setting::set('shop_shipping_amount', '10', 'text', 'shop');
 
         $user = User::factory()->create(['role' => 'client']);
-        $cat = Category::factory()->create(['shipping_amount' => 30]);
+        $cat = Category::factory()->create(['shipping_cost' => 30, 'tax_percentage' => 0]);
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => 200,
@@ -192,7 +192,7 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
         Config::set('payments.paypal.client_id', '');
         Config::set('payments.paypal.secret', '');
 
-        $cat = Category::factory()->create(['shipping_amount' => 22]);
+        $cat = Category::factory()->create(['shipping_cost' => 22, 'tax_percentage' => 0]);
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => 80,
@@ -228,7 +228,7 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
         Config::set('payments.paypal.client_id', '');
         Config::set('payments.paypal.secret', '');
 
-        $cat = Category::factory()->create(['shipping_amount' => 5]);
+        $cat = Category::factory()->create(['shipping_cost' => 5, 'tax_percentage' => 0]);
         ['product' => $product, 'premium_option_id' => $optId] = $this->createVariableProduct($cat, 50, 15);
 
         $response = $this->postJson('/api/shop/checkout/start', [
@@ -262,7 +262,7 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
         Setting::set('shop_shipping_amount', '10', 'text', 'shop');
 
         $user = User::factory()->create(['role' => 'client']);
-        $cat = Category::factory()->create(['shipping_amount' => 40]);
+        $cat = Category::factory()->create(['shipping_cost' => 40, 'tax_percentage' => 0]);
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => 100,
@@ -293,7 +293,7 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
 
     public function test_shop_settings_public_api_lists_category_rates(): void
     {
-        $cat = Category::factory()->create(['name' => 'Sheep', 'shipping_amount' => 18]);
+        $cat = Category::factory()->create(['name' => 'Sheep', 'shipping_cost' => 18]);
 
         $response = $this->getJson('/api/shop/settings', ['Accept' => 'application/json']);
 
@@ -301,6 +301,6 @@ class ShopCheckoutFullFlowSmokeTest extends TestCase
         $rates = $response->json('data.category_shipping_rates');
         $this->assertNotEmpty($rates);
         $match = collect($rates)->firstWhere('category_id', $cat->id);
-        $this->assertSame(18.0, (float) $match['shipping_amount']);
+        $this->assertSame(18.0, (float) ($match['shipping_cost'] ?? $match['shipping_amount']));
     }
 }

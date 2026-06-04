@@ -314,7 +314,9 @@
                                 <select id="category_id" name="category_id" class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
                                     <option value="">No category</option>
                             @foreach($categories as $category)
-                                <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                                <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}@if($category->shipping_type) — {{ \App\Models\Category::shippingTypeShortLabel($category->shipping_type) }}@endif@if($category->shipping_cost !== null) · {{ number_format($category->shipping_cost, 2) }} AED · {{ $category->tax_percentage !== null ? number_format($category->tax_percentage, 0).'% tax' : 'global tax' }}@endif
+                                </option>
                             @endforeach
                         </select>
                             </div>

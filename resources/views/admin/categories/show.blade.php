@@ -12,13 +12,29 @@
                 <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">{{ $category->name }}</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     {{ $products->total() }} product(s) in this category
-                    · Delivery:
-                    @if($category->shipping_amount !== null)
-                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ number_format($category->shipping_amount, 2) }} AED</span>
-                    @else
-                        <span class="text-gray-400">uses shop default</span>
-                    @endif
                 </p>
+                <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    @if($category->shipping_type === 'bike')
+                        <span class="inline-flex items-center rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800">Bike · small items</span>
+                    @elseif($category->shipping_type === 'car')
+                        <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900">Car · large items</span>
+                    @endif
+                    <span class="text-gray-600 dark:text-gray-400">
+                        Shipping:
+                        @if($category->shipping_cost !== null)
+                            <strong class="text-gray-900 dark:text-gray-100">{{ number_format($category->shipping_cost, 2) }} AED</strong>
+                        @else
+                            <span class="text-gray-400">shop default</span>
+                        @endif
+                    </span>
+                    <span class="text-gray-600 dark:text-gray-400">
+                        Tax:
+                        <strong class="text-gray-900 dark:text-gray-100">
+                            {{ $category->tax_percentage !== null ? number_format($category->tax_percentage, 1).'%' : 'global default' }}
+                        </strong>
+                    </span>
+                    <a href="{{ route('admin.shop-settings.index') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline text-xs">All delivery settings</a>
+                </div>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.categories.edit', $category->id) }}"
