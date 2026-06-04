@@ -127,10 +127,10 @@
                 <div class="relative flex-shrink-0" x-data="{ open: false }">
                     <button
                         @click="open = !open"
-                        class="relative p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-200 flex-shrink-0"
+                        class="relative inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-500 dark:hover:text-gray-400 transition-colors duration-200"
                         aria-label="{{ __('admin.notifications') }}"
                     >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <svg class="h-[18px] w-[18px] shrink-0" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                         </svg>
                         <!-- Red dot only when there are new (unread) notifications -->
@@ -300,26 +300,19 @@
                             </div>
                         @endif
 
-                        <!-- User Info (hidden on mobile, visible on desktop) -->
-                        <div class="hidden lg:flex flex-col items-start text-left min-w-0">
-                            <span class="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight truncate max-w-[140px]">
-                                {{ $user->name ?? 'User' }}
-                            </span>
-                            <span class="text-xs text-gray-500 leading-tight truncate max-w-[140px]">
-                                {{ $user->email ?? '' }}
-                            </span>
-                        </div>
+                        <x-partials.header-profile-name :user="$user" />
 
                         <!-- Dropdown Arrow (hidden on mobile, visible on desktop) -->
                         <svg 
-                            class="hidden lg:block w-4 h-4 text-gray-500 transition-transform duration-200 flex-shrink-0" 
+                            class="hidden lg:block h-[18px] w-[18px] shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200" 
                             :class="{ 'rotate-180': open }" 
                             fill="none" 
                             stroke="currentColor" 
-                            stroke-width="2" 
+                            stroke-width="1.25" 
                             stroke-linecap="round" 
                             stroke-linejoin="round" 
                             viewBox="0 0 24 24"
+                            aria-hidden="true"
                         >
                             <path d="M19 9l-7 7-7-7"></path>
                         </svg>
@@ -340,8 +333,7 @@
                     >
                         <!-- User Info Section -->
                         <div class="px-5 py-3.5 border-b border-gray-100 dark:border-gray-600">
-                            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{{ $user->name ?? 'User' }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">{{ $user->email ?? '' }}</p>
+                            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{{ filled($user->name ?? null) ? $user->name : 'User' }}</p>
                         </div>
 
                         <!-- My Profile Link -->
