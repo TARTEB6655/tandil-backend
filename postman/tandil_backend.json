@@ -16533,6 +16533,18 @@
                                             "description": "Optional; 1 = active, 0 = disabled (Coming Soon). Default 1."
                                         },
                                         {
+                                            "key": "shipping_cost",
+                                            "value": "50",
+                                            "type": "text",
+                                            "description": "Required. Delivery fee in AED for this category (0 = free)."
+                                        },
+                                        {
+                                            "key": "tax_percentage",
+                                            "value": "5",
+                                            "type": "text",
+                                            "description": "Required. Tax % applied to product subtotal in this category at checkout."
+                                        },
+                                        {
                                             "key": "image",
                                             "type": "file",
                                             "src": [],
@@ -16551,7 +16563,7 @@
                                         "categories"
                                     ]
                                 },
-                                "description": "Create category (admin). Form-data: name (required), slug (optional), description (optional), is_active (optional; 1 = active, 0 = disabled), image (optional). Response: success, message, data (id, name, slug, description, image, image_url, is_active, coming_soon). Use returned id as category_id in Add Product."
+                                "description": "Create category (admin). Form-data: name (required), shipping_cost (required, AED), tax_percentage (required, e.g. 5), slug/description/is_active/image (optional). Response data includes shipping_cost, tax_percentage, shipping_amount (alias). No shipping_type field. Auth: Bearer {{token}}, admin role."
                             }
                         },
                         {
@@ -16614,6 +16626,18 @@
                                             "key": "description",
                                             "value": "Updated description",
                                             "type": "text"
+                                        },
+                                        {
+                                            "key": "shipping_cost",
+                                            "value": "75",
+                                            "type": "text",
+                                            "description": "Optional on update. Delivery fee AED (0 = free)."
+                                        },
+                                        {
+                                            "key": "tax_percentage",
+                                            "value": "10",
+                                            "type": "text",
+                                            "description": "Optional on update. Tax % at checkout."
                                         },
                                         {
                                             "key": "image",

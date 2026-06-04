@@ -124,16 +124,13 @@
                             </div>
                             @php
                                 $cat = $product->category;
-                                $deliveryFee = $cat && $cat->shipping_amount !== null ? (float) $cat->shipping_amount : null;
-                                $deliveryType = $cat?->delivery_type;
+                                $deliveryFee = $cat && $cat->shipping_cost !== null ? (float) $cat->shipping_cost : null;
                             @endphp
-                            <p class="text-xs text-gray-500 mb-3 flex flex-wrap items-center gap-1">
-                                @if($deliveryType === 'bike')
-                                    <span class="inline-flex rounded bg-sky-50 px-1.5 py-0.5 text-sky-700 font-medium">Bike</span>
-                                @elseif($deliveryType === 'car')
-                                    <span class="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-amber-800 font-medium">Car</span>
+                            <p class="text-xs text-gray-500 mb-3">
+                                Delivery: {{ $deliveryFee !== null ? 'AED ' . number_format($deliveryFee, 2) : 'shop default' }}
+                                @if($cat && $cat->tax_percentage !== null)
+                                    · Tax {{ number_format($cat->tax_percentage, 0) }}%
                                 @endif
-                                <span>Delivery: {{ $deliveryFee !== null ? 'AED ' . number_format($deliveryFee, 2) : 'shop default' }}</span>
                             </p>
 
                             <div class="mt-auto">

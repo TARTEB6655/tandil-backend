@@ -68,8 +68,7 @@ final class CategoryShippingService
                     $catId,
                     $category->name,
                     $amount,
-                    'category',
-                    $category->shipping_type
+                    'category'
                 );
                 $total += $amount;
             } else {
@@ -82,8 +81,7 @@ final class CategoryShippingService
                 null,
                 'Standard delivery',
                 round($global, 2),
-                'global_default',
-                null
+                'global_default'
             );
             $total += $global;
         }
@@ -116,7 +114,7 @@ final class CategoryShippingService
     {
         return Category::query()
             ->orderBy('name')
-            ->get(['id', 'name', 'shipping_cost', 'shipping_type', 'tax_percentage'])
+            ->get(['id', 'name', 'shipping_cost', 'tax_percentage'])
             ->map(fn (Category $c) => self::rateRowForCategory($c))
             ->values()
             ->all();
@@ -135,9 +133,9 @@ final class CategoryShippingService
     }
 
     /**
-     * @return array{category_id: ?int, category_name: string, shipping_amount: float, source: string, delivery_type: ?string, delivery_type_label: string}
+     * @return array{category_id: ?int, category_name: string, shipping_amount: float, shipping_cost: float, source: string}
      */
-    private static function breakdownLine(?int $categoryId, string $name, float $amount, string $source, ?string $deliveryType): array
+    private static function breakdownLine(?int $categoryId, string $name, float $amount, string $source): array
     {
         return [
             'category_id' => $categoryId,
@@ -145,10 +143,6 @@ final class CategoryShippingService
             'shipping_amount' => $amount,
             'shipping_cost' => $amount,
             'source' => $source,
-            'shipping_type' => $deliveryType,
-            'delivery_type' => $deliveryType,
-            'delivery_type_label' => Category::shippingTypeLabel($deliveryType),
-            'shipping_type_label' => Category::shippingTypeLabel($deliveryType),
         ];
     }
 
@@ -173,10 +167,6 @@ final class CategoryShippingService
                 $category->shipping_cost = null;
             } else {
                 $category->shipping_cost = round(max(0, (float) $costRaw), 2);
-            }
-            $typeRaw = $row['shipping_type'] ?? $row['delivery_type'] ?? null;
-            if (array_key_exists('shipping_type', $row) || array_key_exists('delivery_type', $row)) {
-                $category->shipping_type = Category::normalizeShippingType($typeRaw);
             }
             if (array_key_exists('tax_percentage', $row)) {
                 $tax = $row['tax_percentage'];

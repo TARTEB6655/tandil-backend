@@ -14,11 +14,6 @@
                     {{ $products->total() }} product(s) in this category
                 </p>
                 <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                    @if($category->shipping_type === 'bike')
-                        <span class="inline-flex items-center rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800">Bike · small items</span>
-                    @elseif($category->shipping_type === 'car')
-                        <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900">Car · large items</span>
-                    @endif
                     <span class="text-gray-600 dark:text-gray-400">
                         Shipping:
                         @if($category->shipping_cost !== null)

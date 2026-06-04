@@ -4,7 +4,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">{{ __('admin.categories_management') }}</h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Set bike vs car delivery per category — used at checkout.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Shipping cost and tax % per category — used at checkout.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{{ route('admin.shop-settings.index') }}"
@@ -42,7 +42,6 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">{{ __('admin.image') }}</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('admin.name') }}</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">{{ __('admin.slug') }}</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">Shipping Type</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Shipping Cost</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Tax %</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">{{ __('admin.products') }}</th>
@@ -73,15 +72,6 @@
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap hidden md:table-cell">
                                     <div class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ $category->slug }}</div>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                    @if($category->shipping_type === 'bike')
-                                        <span class="inline-flex w-fit items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">Bike</span>
-                                    @elseif($category->shipping_type === 'car')
-                                        <span class="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">Car</span>
-                                    @else
-                                        <span class="text-gray-400">—</span>
-                                    @endif
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                     @if($category->shipping_cost !== null)
@@ -127,7 +117,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-6 py-12 text-center">
+                                <td colspan="9" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center">
                                         <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
                                             <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

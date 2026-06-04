@@ -19,7 +19,6 @@ class CategoryFactory extends Factory
             'slug' => Str::slug($name),
             'description' => $this->faker->sentence(),
             'shipping_cost' => 50,
-            'shipping_type' => Category::SHIPPING_BIKE,
             'tax_percentage' => 5,
         ];
     }
@@ -27,7 +26,6 @@ class CategoryFactory extends Factory
     public function carDelivery(): static
     {
         return $this->state(fn () => [
-            'shipping_type' => Category::SHIPPING_CAR,
             'shipping_cost' => 150,
             'tax_percentage' => 18,
         ]);

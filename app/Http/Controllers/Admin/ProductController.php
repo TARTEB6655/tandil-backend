@@ -143,7 +143,6 @@ class ProductController extends Controller
             'shipping_cost' => $product->category?->shipping_cost !== null
                 ? round((float) $product->category->shipping_cost, 2)
                 : null,
-            'shipping_type' => $product->category?->shipping_type,
             'tax_percentage' => $product->category !== null
                 ? $product->category->effectiveTaxPercentage()
                 : null,
@@ -1473,7 +1472,7 @@ class ProductController extends Controller
     public function edit($id)
     {
         $product = Product::with(['category', 'services', 'images', 'optionGroups.options'])->findOrFail($id);
-        $categories = Category::orderBy('name')->get(['id', 'name', 'shipping_cost', 'shipping_type', 'tax_percentage']);
+        $categories = Category::orderBy('name')->get(['id', 'name', 'shipping_cost', 'tax_percentage']);
         $services = Service::with('category')->orderBy('name')->get();
         return view('admin.products.edit', compact('product', 'categories', 'services'));
     }
@@ -1505,7 +1504,7 @@ class ProductController extends Controller
      */
     public function create()
     {
-        $categories = Category::orderBy('name')->get(['id', 'name', 'shipping_cost', 'shipping_type', 'tax_percentage']);
+        $categories = Category::orderBy('name')->get(['id', 'name', 'shipping_cost', 'tax_percentage']);
         $services = Service::with('category')->orderBy('name')->get();
         return view('admin.products.create', compact('categories', 'services'));
     }

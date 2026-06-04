@@ -38,7 +38,7 @@ class CategoryShippingCheckoutTest extends TestCase
 
     public function test_order_summary_uses_per_category_shipping_fee(): void
     {
-        $small = Category::factory()->create(['shipping_cost' => 15, 'shipping_type' => 'bike', 'tax_percentage' => 0]);
+        $small = Category::factory()->create(['shipping_cost' => 15, 'tax_percentage' => 0]);
         $large = Category::factory()->carDelivery()->create(['shipping_cost' => 45, 'tax_percentage' => 0]);
 
         $p1 = Product::factory()->create([
@@ -69,6 +69,7 @@ class CategoryShippingCheckoutTest extends TestCase
     public function test_buy_now_uses_category_shipping_for_product(): void
     {
         $category = Category::factory()->create(['shipping_cost' => 30, 'tax_percentage' => 0]);
+
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 80,
@@ -97,7 +98,6 @@ class CategoryShippingCheckoutTest extends TestCase
                 [
                     'category_id' => $category->id,
                     'shipping_cost' => 22.5,
-                    'shipping_type' => 'bike',
                     'tax_percentage' => 10,
                 ],
             ],
@@ -108,21 +108,19 @@ class CategoryShippingCheckoutTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('data.rates.0.shipping_cost', 22.5);
-        $response->assertJsonPath('data.rates.0.shipping_type', 'bike');
         $response->assertJsonPath('data.rates.0.tax_percentage', 10);
         $this->assertDatabaseHas('categories', [
             'id' => $category->id,
             'shipping_cost' => 22.5,
-            'shipping_type' => 'bike',
             'tax_percentage' => 10,
         ]);
     }
 
-    public function test_order_summary_breakdown_includes_delivery_type(): void
+    public function test_order_summary_breakdown_lists_category_shipping_cost(): void
     {
-        $bike = Category::factory()->create(['shipping_cost' => 12, 'shipping_type' => 'bike', 'tax_percentage' => 0]);
+        $category = Category::factory()->create(['shipping_cost' => 12, 'tax_percentage' => 0]);
         $product = Product::factory()->create([
-            'category_id' => $bike->id,
+            'category_id' => $category->id,
             'price' => 40,
             'compare_at_price' => null,
             'status' => 'active',
@@ -133,7 +131,7 @@ class CategoryShippingCheckoutTest extends TestCase
         $response = $this->getJson('/api/shop/order-summary', $this->authHeaders());
 
         $response->assertStatus(200);
-        $response->assertJsonPath('data.category_shipping_breakdown.0.shipping_type', 'bike');
+        $response->assertJsonPath('data.category_shipping_breakdown.0.shipping_cost', 12);
         $response->assertJsonPath('data.shipping', 12);
     }
 
@@ -165,7 +163,6 @@ class CategoryShippingCheckoutTest extends TestCase
         $response->assertStatus(200);
         $this->assertSame(200.0, (float) $response->json('data.subtotal'));
         $this->assertSame(30.0, (float) $response->json('data.shipping'));
-        // Tax: 50% of 200 @ 5% = 5, 50% @ 10% = 10 → 15
         $this->assertSame(15.0, (float) $response->json('data.tax'));
         $this->assertTrue((bool) $response->json('data.uses_category_tax'));
         $this->assertSame(245.0, (float) $response->json('data.total'));
@@ -179,7 +176,6 @@ class CategoryShippingCheckoutTest extends TestCase
         $response = $this->postJson('/api/admin/categories', [
             'name' => 'Electronics',
             'shipping_cost' => 150,
-            'shipping_type' => 'car',
             'tax_percentage' => 18,
         ], [
             'Accept' => 'application/json',
@@ -188,7 +184,7 @@ class CategoryShippingCheckoutTest extends TestCase
 
         $response->assertStatus(201);
         $response->assertJsonPath('data.shipping_cost', 150);
-        $response->assertJsonPath('data.shipping_type', 'car');
         $response->assertJsonPath('data.tax_percentage', 18);
+        $this->assertArrayNotHasKey('shipping_type', $response->json('data'));
     }
 }

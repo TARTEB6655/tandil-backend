@@ -444,17 +444,15 @@ class CategoryController extends Controller
     }
 
     /**
-     * @return array{shipping_cost: ?float, shipping_type: ?string, tax_percentage: ?float}
+     * @return array{shipping_cost: ?float, tax_percentage: ?float}
      */
     private function shippingTaxAttributesFromRequest(Request $request): array
     {
         $cost = $request->input('shipping_cost', $request->input('shipping_amount'));
-        $type = Category::normalizeShippingType($request->input('shipping_type', $request->input('delivery_type')));
         $tax = $request->input('tax_percentage');
 
         return [
             'shipping_cost' => ($cost === null || $cost === '') ? null : round(max(0, (float) $cost), 2),
-            'shipping_type' => $type,
             'tax_percentage' => ($tax === null || $tax === '') ? null : round(max(0, min(100, (float) $tax)), 2),
         ];
     }
@@ -470,11 +468,6 @@ class CategoryController extends Controller
         if ($request->has('shipping_cost') || $request->has('shipping_amount')) {
             $cost = $request->input('shipping_cost', $request->input('shipping_amount'));
             $patch['shipping_cost'] = ($cost === null || $cost === '') ? null : round(max(0, (float) $cost), 2);
-        }
-        if ($request->has('shipping_type') || $request->has('delivery_type')) {
-            $patch['shipping_type'] = Category::normalizeShippingType(
-                $request->input('shipping_type', $request->input('delivery_type'))
-            );
         }
         if ($request->has('tax_percentage')) {
             $tax = $request->input('tax_percentage');

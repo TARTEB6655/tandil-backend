@@ -162,18 +162,18 @@ class Category extends Model
     }
 
     /**
-     * @return array{shipping_cost: ?float, shipping_type: ?string, tax_percentage: float, shipping_type_label: string}
+     * @return array{shipping_cost: ?float, tax_percentage: ?float, shipping_amount: ?float}
      */
     public function shippingTaxConfigForApi(): array
     {
+        $cost = $this->shipping_cost !== null ? round((float) $this->shipping_cost, 2) : null;
+
         return [
-            'shipping_cost' => $this->shipping_cost !== null ? round((float) $this->shipping_cost, 2) : null,
-            'shipping_type' => $this->shipping_type,
-            'shipping_type_label' => self::shippingTypeLabel($this->shipping_type),
-            'tax_percentage' => $this->effectiveTaxPercentage(),
-            'shipping_amount' => $this->shipping_amount,
-            'delivery_type' => $this->shipping_type,
-            'delivery_type_label' => self::shippingTypeLabel($this->shipping_type),
+            'shipping_cost' => $cost,
+            'tax_percentage' => $this->tax_percentage !== null
+                ? round((float) $this->tax_percentage, 2)
+                : null,
+            'shipping_amount' => $cost,
         ];
     }
 

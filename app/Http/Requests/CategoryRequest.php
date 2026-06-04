@@ -14,9 +14,6 @@ class CategoryRequest extends BaseFormRequest
         if ($this->has('shipping_amount') && ! $this->has('shipping_cost')) {
             $this->merge(['shipping_cost' => $this->input('shipping_amount')]);
         }
-        if ($this->has('delivery_type') && ! $this->has('shipping_type')) {
-            $this->merge(['shipping_type' => $this->input('delivery_type')]);
-        }
     }
 
     public function rules(): array
@@ -28,10 +25,6 @@ class CategoryRequest extends BaseFormRequest
         $shippingRules = $isUpdate
             ? ['nullable', 'numeric', 'min:0']
             : ['required', 'numeric', 'min:0'];
-
-        $typeRules = $isUpdate
-            ? ['nullable', 'string', 'in:bike,car']
-            : ['required', 'string', 'in:bike,car'];
 
         $taxRules = $isUpdate
             ? ['nullable', 'numeric', 'min:0', 'max:100']
@@ -45,10 +38,8 @@ class CategoryRequest extends BaseFormRequest
             'image_remove' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
             'shipping_cost' => $shippingRules,
-            'shipping_type' => $typeRules,
             'tax_percentage' => $taxRules,
             'shipping_amount' => 'nullable|numeric|min:0',
-            'delivery_type' => 'nullable|string|in:bike,car',
         ];
     }
 }

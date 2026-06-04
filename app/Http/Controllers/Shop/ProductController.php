@@ -241,7 +241,6 @@ class ProductController extends Controller
             'shipping_cost' => $product->category?->shipping_cost !== null
                 ? round((float) $product->category->shipping_cost, 2)
                 : null,
-            'shipping_type' => $product->category?->shipping_type,
             'tax_percentage' => $product->category !== null
                 ? $product->category->effectiveTaxPercentage()
                 : CartController::getEffectiveTaxPercent(),
