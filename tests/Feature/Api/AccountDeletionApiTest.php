@@ -18,32 +18,11 @@ class AccountDeletionApiTest extends TestCase
 
     public function test_delete_account_requires_authentication(): void
     {
-        $this->postJson('/api/user/delete-account', [
-            'confirmation' => 'DELETE',
-            'password' => 'password',
-        ])->assertStatus(401);
+        $this->postJson('/api/user/delete-account')->assertStatus(401);
+        $this->deleteJson('/api/user/account')->assertStatus(401);
     }
 
-    public function test_delete_account_requires_delete_confirmation_and_password(): void
-    {
-        $user = User::factory()->create([
-            'role' => 'client',
-            'password' => Hash::make('SecretPass1'),
-        ]);
-
-        Sanctum::actingAs($user);
-
-        $this->postJson('/api/user/delete-account', [
-            'password' => 'SecretPass1',
-        ])->assertStatus(422);
-
-        $this->postJson('/api/user/delete-account', [
-            'confirmation' => 'DELETE',
-            'password' => 'wrong-password',
-        ])->assertStatus(422);
-    }
-
-    public function test_client_can_delete_account_and_personal_data_is_removed(): void
+    public function test_client_can_delete_account_without_request_body(): void
     {
         $user = User::factory()->create([
             'role' => 'client',
@@ -71,10 +50,7 @@ class AccountDeletionApiTest extends TestCase
 
         $token = $user->createToken('delete-test')->plainTextToken;
 
-        $response = $this->postJson('/api/user/delete-account', [
-            'confirmation' => 'DELETE',
-            'password' => 'SecretPass1',
-        ], [
+        $response = $this->postJson('/api/user/delete-account', [], [
             'Authorization' => 'Bearer '.$token,
             'Accept' => 'application/json',
         ]);
@@ -88,7 +64,7 @@ class AccountDeletionApiTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
-    public function test_social_client_can_delete_with_confirmation_only(): void
+    public function test_delete_account_via_delete_method_without_body(): void
     {
         $user = User::factory()->create([
             'role' => 'client',
@@ -98,9 +74,18 @@ class AccountDeletionApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $this->postJson('/api/user/delete-account', [
-            'confirmation' => 'DELETE',
-        ])->assertOk();
+        $this->deleteJson('/api/user/account')->assertOk();
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
+    public function test_auth_delete_account_alias_works_without_body(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/auth/delete-account')->assertOk();
 
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
@@ -110,10 +95,7 @@ class AccountDeletionApiTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         Sanctum::actingAs($admin);
 
-        $this->postJson('/api/user/delete-account', [
-            'confirmation' => 'DELETE',
-            'password' => 'password',
-        ])->assertStatus(403);
+        $this->postJson('/api/user/delete-account')->assertStatus(403);
     }
 
     public function test_profile_sections_includes_delete_account(): void

@@ -1,6 +1,6 @@
 # Delete Account API (Apple Guideline 5.1.1)
 
-Mobile app **Profile → Delete Account** should call this API after the user confirms deletion.
+Mobile app **Profile → Delete Account** should show a confirmation dialog in the app, then call this API (no request body).
 
 ## Endpoints
 
@@ -12,22 +12,18 @@ Mobile app **Profile → Delete Account** should call this API after the user co
 | `DELETE` | `/api/auth/account` | Alias |
 
 **Auth:** `Authorization: Bearer {token}` (Sanctum)  
-**Role:** `client` only
+**Role:** `client` only  
+**Body:** none — user is identified from the token only
 
-## Request body (JSON)
+## Request
 
-```json
-{
-  "confirmation": "DELETE",
-  "password": "current-password"
-}
+```
+POST /api/user/delete-account
+Authorization: Bearer {token}
+Accept: application/json
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `confirmation` | Yes | Must be exactly `DELETE` |
-| `password` | Email/password accounts | Current password |
-| `password` | Google / Apple sign-in | Omit (confirmation only) |
+No JSON body, no `user_id` parameter.
 
 ## Success (200)
 
@@ -46,7 +42,6 @@ After success: clear local token/session and navigate to login/welcome.
 |------|------|
 | 401 | Missing/invalid token |
 | 403 | Non-client role |
-| 422 | Wrong password, missing `confirmation`, or validation error |
 
 ## What is deleted
 
@@ -72,5 +67,5 @@ After success: clear local token/session and navigate to login/welcome.
 
 1. Login or register  
 2. Profile → **Delete Account**  
-3. Warning + type `DELETE` (+ password if email login)  
-4. Confirm → call API → logout → show logged-out state  
+3. In-app warning + confirm  
+4. Call API (Bearer only) → logout → show logged-out state  

@@ -367,14 +367,32 @@ class CartController extends Controller
         foreach (['option_ids', 'optionIds', 'selected_option_ids', 'selectedOptionIds'] as $key) {
             if ($request->has($key)) {
                 $raw = $request->input($key);
-
-                return Cart::normalizeSelectedOptionIds(is_array($raw) ? $raw : []);
+                $ids = Cart::normalizeSelectedOptionIds(is_array($raw) ? $raw : []);
+                if ($ids !== []) {
+                    return $ids;
+                }
             }
         }
 
-        $raw = $request->input('option_ids', $request->input('optionIds', []));
+        $fromWebForm = [];
+        foreach ($request->all() as $key => $value) {
+            if (! is_string($key) || ! preg_match('/^opt_\d+$/', $key)) {
+                continue;
+            }
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    $fromWebForm[] = (int) $v;
+                }
+            } elseif ($value !== null && $value !== '') {
+                $fromWebForm[] = (int) $value;
+            }
+        }
 
-        return Cart::normalizeSelectedOptionIds(is_array($raw) ? $raw : []);
+        if ($fromWebForm !== []) {
+            return Cart::normalizeSelectedOptionIds($fromWebForm);
+        }
+
+        return [];
     }
 
     /**

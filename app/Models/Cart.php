@@ -80,6 +80,31 @@ class Cart extends Model
     }
 
     /**
+     * Whether this cart line has all required variant selections (for variable products).
+     */
+    public static function cartLineIsComplete(Cart $item): bool
+    {
+        $product = $item->product;
+        if (! $product) {
+            return false;
+        }
+
+        if (($product->product_type ?? 'simple') !== 'variable') {
+            return true;
+        }
+
+        if (! $product->relationLoaded('optionGroups')) {
+            $product->load(['optionGroups.options']);
+        }
+
+        if ($product->optionGroups->isEmpty()) {
+            return true;
+        }
+
+        return self::validateSelectedOptionsMessage($product, $item->selected_options ?? []) === null;
+    }
+
+    /**
      * Validate selected options for a variable product. Returns error message or null if OK.
      *
      * @param  array<int|string>|Collection<int, int>|null  $selectedOptionIds

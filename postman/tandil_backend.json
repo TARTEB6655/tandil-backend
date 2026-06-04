@@ -917,18 +917,10 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
-                        },
                         "url": {
                             "raw": "{{base_url}}/api/auth/delete-account",
                             "host": [
@@ -940,7 +932,7 @@
                                 "delete-account"
                             ]
                         },
-                        "description": "POST /api/auth/delete-account — Permanent **client** account deletion (Apple Guideline 5.1.1). Run **Login** first to set {{token}}. Body: confirmation must be DELETE; password required for email login (omit for Google/Apple). Success: clears account and personal data — app must logout locally. Aliases: DELETE /api/auth/account, POST /api/user/delete-account. See docs/DELETE_ACCOUNT_API.md"
+                        "description": "POST /api/auth/delete-account — Permanent **client** account deletion (Apple 5.1.1). Run **Login** first for {{token}}. **No request body** — user is taken from Bearer token. Success: account and personal data deleted; clear token locally. Aliases: DELETE /api/user/account, POST /api/user/delete-account. See docs/DELETE_ACCOUNT_API.md"
                     }
                 },
                 {
@@ -1190,18 +1182,10 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
-                        },
                         "url": {
                             "raw": "{{base_url}}/api/auth/delete-account",
                             "host": [
@@ -1213,7 +1197,7 @@
                                 "delete-account"
                             ]
                         },
-                        "description": "Profile → Delete Account. POST /api/auth/delete-account (client role). Body: confirmation=DELETE; password for email accounts. Same as folder 2 Authentication → Delete Account. Clears user, cart, addresses, tokens, etc."
+                        "description": "Profile → Delete Account. POST /api/auth/delete-account (client role). **No body** — Bearer token only. Same as Authentication → Delete Account."
                     }
                 },
                 {
@@ -1240,18 +1224,10 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
-                        },
                         "url": {
                             "raw": "{{base_url}}/api/user/account",
                             "host": [
@@ -1263,7 +1239,7 @@
                                 "account"
                             ]
                         },
-                        "description": "DELETE /api/user/account — same handler as POST /api/auth/delete-account."
+                        "description": "DELETE /api/user/account — same handler as POST delete-account. No body; Bearer token only."
                     }
                 },
                 {
@@ -2292,18 +2268,10 @@
                                 "value": "Bearer {{token}}"
                             },
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Accept",
                                 "value": "application/json"
                             }
                         ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"confirmation\": \"DELETE\",\n  \"password\": \"password123\"\n}"
-                        },
                         "url": {
                             "raw": "{{base_url}}/api/user/delete-account",
                             "host": [
@@ -2315,7 +2283,7 @@
                                 "delete-account"
                             ]
                         },
-                        "description": "Profile → Delete Account (Apple 5.1.1). POST /api/user/delete-account. Listed in GET /api/client/settings/sections as delete_account. Google/Apple users: send only confirmation DELETE."
+                        "description": "Profile → Delete Account (Apple 5.1.1). POST /api/user/delete-account. **No request body** — Bearer token identifies the client. Listed in GET /api/client/settings/sections as delete_account."
                     }
                 }
             ],

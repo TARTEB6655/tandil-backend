@@ -22,7 +22,28 @@ class CartController extends Controller
         $cartItems = Cart::where('user_id', $user->id)
             ->with(['product.category', 'product.optionGroups.options'])
             ->get();
-        $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
+
+        $removedNames = [];
+        $validItems = $cartItems->filter(function (Cart $item) use (&$removedNames) {
+            if ($item->product === null) {
+                return false;
+            }
+            if (! Cart::cartLineIsComplete($item)) {
+                $removedNames[] = $item->product->name;
+                $item->delete();
+
+                return false;
+            }
+
+            return true;
+        });
+
+        if ($removedNames !== []) {
+            session()->flash(
+                'error',
+                'Removed from cart (required options missing): '.implode(', ', array_unique($removedNames)).'. Please open the product and select all required options.'
+            );
+        }
 
         $subtotal = round($validItems->sum(fn (Cart $item) => $item->quantity * $item->lineUnitPrice()), 2);
 

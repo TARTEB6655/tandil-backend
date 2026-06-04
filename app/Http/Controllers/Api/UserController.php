@@ -451,11 +451,10 @@ class UserController extends Controller
     }
 
     /**
-     * DELETE /api/user/account — POST /api/user/delete-account
+     * DELETE /api/user/account — POST /api/user/delete-account — POST /api/auth/delete-account
      * Apple App Store: permanent client account deletion (Profile → Delete Account).
      *
-     * Body: { "confirmation": "DELETE", "password": "..." }
-     * Password required for email/password accounts; optional for Google/Apple sign-in.
+     * No request body. Authenticated client only; user id comes from Bearer token.
      */
     public function deleteAccount(Request $request, AccountDeletionService $accountDeletion)
     {
@@ -463,25 +462,6 @@ class UserController extends Controller
 
         if (! $user->hasAppRole('client')) {
             return ApiResponse::error('Account deletion is only available for client accounts.', 403);
-        }
-
-        $usesPasswordLogin = empty($user->google_id) && empty($user->apple_id);
-
-        $rules = [
-            'confirmation' => ['required', 'string', 'in:DELETE'],
-        ];
-        if ($usesPasswordLogin) {
-            $rules['password'] = ['required', 'string'];
-        } else {
-            $rules['password'] = ['sometimes', 'nullable', 'string'];
-        }
-
-        $validated = $request->validate($rules);
-
-        if ($usesPasswordLogin && ! Hash::check((string) $validated['password'], $user->password)) {
-            return ApiResponse::error('Password is incorrect.', 422, [
-                'password' => ['The provided password is incorrect.'],
-            ]);
         }
 
         $accountDeletion->deleteClientAccount($user);
