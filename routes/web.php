@@ -655,7 +655,27 @@ Route::post('/vendor/register', [VendorRegistrationController::class, 'store'])-
 
 Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->group(function () {
     Route::get('/pending', [VendorDashboardController::class, 'pending'])->name('pending');
-    Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');
+
+    Route::middleware('vendor.approved')->group(function () {
+        Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/products', [\App\Http\Controllers\Vendor\ProductController::class, 'index'])->name('products.index');
+        Route::get('/products/create', [\App\Http\Controllers\Vendor\ProductController::class, 'create'])->name('products.create');
+        Route::post('/products', [\App\Http\Controllers\Vendor\ProductController::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit', [\App\Http\Controllers\Vendor\ProductController::class, 'edit'])->name('products.edit');
+        Route::put('/products/{product}', [\App\Http\Controllers\Vendor\ProductController::class, 'update'])->name('products.update');
+        Route::delete('/products/{product}', [\App\Http\Controllers\Vendor\ProductController::class, 'destroy'])->name('products.destroy');
+
+        Route::get('/orders', [\App\Http\Controllers\Vendor\OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{mapping}', [\App\Http\Controllers\Vendor\OrderController::class, 'show'])->name('orders.show');
+        Route::post('/orders/{mapping}/status', [\App\Http\Controllers\Vendor\OrderController::class, 'updateStatus'])->name('orders.update-status');
+
+        Route::get('/inventory', [\App\Http\Controllers\Vendor\InventoryController::class, 'index'])->name('inventory.index');
+        Route::put('/inventory/{vendorProduct}', [\App\Http\Controllers\Vendor\InventoryController::class, 'update'])->name('inventory.update');
+
+        Route::get('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'show'])->name('profile.show');
+        Route::put('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'update'])->name('profile.update');
+    });
 });
 
 // Customer vendor comparison (public)
