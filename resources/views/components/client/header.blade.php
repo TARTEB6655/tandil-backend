@@ -80,7 +80,7 @@
                     aria-label="{{ $cartItemCount > 0 ? 'Shopping cart, '.$cartItemCount.' '.($cartItemCount === 1 ? 'item' : 'items') : 'Shopping cart, empty' }}"
                     title="{{ $cartItemCount > 0 ? 'View cart ('.$cartItemCount.')' : 'View cart' }}"
                 >
-                    <svg class="h-[18px] w-[18px] shrink-0" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg class="header-action-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
                     @if($cartItemCount > 0)
@@ -100,7 +100,7 @@
                         class="relative inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2"
                         aria-label="Notifications"
                     >
-                        <svg class="h-[18px] w-[18px] shrink-0" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                        <svg class="header-action-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"></path>
                         </svg>
                         @if($unreadCount > 0)
@@ -173,7 +173,7 @@
                 <div class="relative flex-shrink-0" x-data="{ open: false }">
                     <button
                         @click="open = !open"
-                        class="flex items-center gap-2 sm:gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                        class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                         aria-label="User menu"
                     >
                         <!-- Avatar: profile picture if set, else initial -->
@@ -185,22 +185,26 @@
                             </div>
                         @endif
 
-                        <x-partials.header-profile-name :user="$user" />
+                        <div class="hidden lg:flex items-center gap-1.5 min-w-0">
+                            <x-partials.header-profile-name :user="$user" />
 
-                        <!-- Dropdown Arrow -->
-                        <svg 
-                            class="hidden lg:block h-[18px] w-[18px] shrink-0 text-gray-400 transition-transform duration-200" 
-                            :class="{ 'rotate-180': open }" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            stroke-width="1.25" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round" 
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                        >
-                            <path d="M19 9l-7 7-7-7"></path>
-                        </svg>
+                            <!-- Dropdown Arrow -->
+                            <svg
+                                class="header-action-icon text-gray-400 transition-transform duration-200"
+                                width="18"
+                                height="18"
+                                :class="{ 'rotate-180': open }"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.25"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
                     </button>
 
                     <!-- Dropdown Menu -->
