@@ -115,6 +115,9 @@ class AppPortalWebController extends Controller
     private function redirectToRoleDashboard(string $portal): RedirectResponse
     {
         return match ($portal) {
+            'vendor' => auth()->user()?->vendor?->isApproved()
+                ? redirect()->route('vendor.dashboard')
+                : redirect()->route('vendor.pending'),
             'admin' => redirect()->route('admin.dashboard'),
             'supervisor' => redirect()->route('supervisor.dashboard'),
             'technician' => redirect()->route('technician.dashboard'),

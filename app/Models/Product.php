@@ -10,7 +10,7 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = [
-        'category_id', 'name', 'vendor', 'type', 'product_type', 'sku', 'barcode', 'description',
+        'category_id', 'vendor_id', 'name', 'vendor', 'type', 'product_type', 'sku', 'barcode', 'description',
         'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured',
         'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
         'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
@@ -40,6 +40,16 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function vendorAccount()
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
+
+    public function vendorProduct()
+    {
+        return $this->hasOne(VendorProduct::class);
     }
 
     /**

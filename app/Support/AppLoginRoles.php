@@ -46,6 +46,11 @@ final class AppLoginRoles
                 'subtitle' => 'Full platform administration, users, settings, and support.',
                 'icon' => 'shield',
             ],
+            'vendor' => [
+                'title' => 'Vendor',
+                'subtitle' => 'Manage your products, inventory, pricing, and orders.',
+                'icon' => 'store',
+            ],
         ];
     }
 

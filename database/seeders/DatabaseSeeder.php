@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             DemoCouponsSeeder::class,
             DummySupervisorAssignedTasksSeeder::class, // Temporary demo data for technician task assignment screens
             LocalizedArticleSeeder::class,
+            VendorTestUsersSeeder::class,
         ]);
 
         $this->command->info('');

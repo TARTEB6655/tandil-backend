@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
             'area_manager',
             'hr',
             'admin',
+            'vendor',
         ];
 
         foreach ($roles as $r) {
@@ -37,6 +38,8 @@ class RolePermissionSeeder extends Seeder
             'manage employees', 'manage areas',
             // admin
             'manage users', 'manage settings',
+            // vendor marketplace
+            'manage vendor products', 'manage vendor inventory', 'manage vendor orders', 'view vendor dashboard',
         ];
 
         foreach ($permissions as $p) {
@@ -50,5 +53,12 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('hr')->givePermissionTo(['manage employees']);
         Role::findByName('area_manager')->givePermissionTo(['manage areas','view visits','view reports']);
         Role::findByName('client')->givePermissionTo(['view subscriptions','create subscriptions','view visits','view reports','view products','create orders']);
+        Role::findByName('vendor')->givePermissionTo([
+            'view vendor dashboard',
+            'manage vendor products',
+            'manage vendor inventory',
+            'manage vendor orders',
+            'view products',
+        ]);
     }
 }

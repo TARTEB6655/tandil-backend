@@ -123,6 +123,11 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function vendor()
+    {
+        return $this->hasOne(Vendor::class);
+    }
+
     public function walletCredits()
     {
         return $this->hasMany(WalletCredit::class);
@@ -180,14 +185,14 @@ class User extends Authenticatable
     */
 
     /** App login / Sanctum: allowed portal slugs (token abilities). */
-    public const LOGIN_PORTALS = ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin'];
+    public const LOGIN_PORTALS = ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'admin', 'vendor'];
 
     /**
      * One portal slug for API token after login (Spatie first, same priority as web dashboard.redirect).
      */
     public function resolvedLoginPortal(): ?string
     {
-        $ordered = ['admin', 'hr', 'area_manager', 'supervisor', 'technician', 'client'];
+        $ordered = ['admin', 'hr', 'area_manager', 'supervisor', 'technician', 'vendor', 'client'];
 
         try {
             $names = $this->getRoleNames();
@@ -271,5 +276,10 @@ class User extends Authenticatable
     public function isClient()
     {
         return $this->hasRole('client');
+    }
+
+    public function isVendor(): bool
+    {
+        return $this->hasAppRole('vendor');
     }
 }

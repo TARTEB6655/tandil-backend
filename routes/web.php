@@ -34,6 +34,15 @@ use App\Http\Controllers\HR\HrDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
 use App\Http\Controllers\Technician\TechnicianDashboardController;
+use App\Http\Controllers\Vendor\VendorDashboardController;
+use App\Http\Controllers\Vendor\VendorRegistrationController;
+use App\Http\Controllers\Admin\Marketplace\MarketplaceDashboardController;
+use App\Http\Controllers\Admin\Marketplace\MarketplaceInventoryController;
+use App\Http\Controllers\Admin\Marketplace\MarketplaceOrderController;
+use App\Http\Controllers\Admin\Marketplace\MarketplaceProductController;
+use App\Http\Controllers\Admin\Marketplace\MarketplaceSettingsController;
+use App\Http\Controllers\Admin\VendorController as AdminVendorController;
+use App\Http\Controllers\Client\VendorComparisonController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -109,7 +118,7 @@ Route::middleware('auth')->get('/dashboard-redirect', function () {
         $user = auth()->user();
         $role = null;
 
-        $ordered = ['admin', 'hr', 'area_manager', 'supervisor', 'technician', 'client'];
+        $ordered = ['admin', 'hr', 'area_manager', 'supervisor', 'technician', 'vendor', 'client'];
         if (method_exists($user, 'getRoleNames')) {
             try {
                 $names = $user->getRoleNames();
@@ -142,6 +151,13 @@ Route::middleware('auth')->get('/dashboard-redirect', function () {
                 return redirect()->route('areamanager.dashboard');
             case 'hr':
                 return redirect()->route('hr.dashboard');
+            case 'vendor':
+                $vendor = $user->vendor;
+                if ($vendor && $vendor->isApproved()) {
+                    return redirect()->route('vendor.dashboard');
+                }
+
+                return redirect()->route('vendor.pending');
             default:
                 auth()->logout();
 
@@ -282,6 +298,37 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::put('packages/{id}', [PackageController::class, 'update'])->name('packages.update');
         Route::resource('tips', TipController::class);
         Route::post('tips/{id}/toggle-status', [TipController::class, 'toggleStatus'])->name('tips.toggle-status');
+
+        Route::prefix('marketplace')->name('marketplace.')->group(function () {
+            Route::get('/', [MarketplaceDashboardController::class, 'index'])->name('dashboard');
+            Route::get('products', [MarketplaceProductController::class, 'index'])->name('products.index');
+            Route::get('products/{vendorProduct}', [MarketplaceProductController::class, 'show'])->name('products.show');
+            Route::get('products/{vendorProduct}/edit', [MarketplaceProductController::class, 'edit'])->name('products.edit');
+            Route::put('products/{vendorProduct}', [MarketplaceProductController::class, 'update'])->name('products.update');
+            Route::post('products/{vendorProduct}/approve', [MarketplaceProductController::class, 'approve'])->name('products.approve');
+            Route::post('products/{vendorProduct}/reject', [MarketplaceProductController::class, 'reject'])->name('products.reject');
+            Route::delete('products/{vendorProduct}', [MarketplaceProductController::class, 'destroy'])->name('products.destroy');
+            Route::get('orders', [MarketplaceOrderController::class, 'index'])->name('orders.index');
+            Route::get('orders/{vendorOrder}', [MarketplaceOrderController::class, 'show'])->name('orders.show');
+            Route::post('orders/{vendorOrder}/status', [MarketplaceOrderController::class, 'updateStatus'])->name('orders.status');
+            Route::post('orders/{vendorOrder}/cancel', [MarketplaceOrderController::class, 'cancel'])->name('orders.cancel');
+            Route::post('orders/{vendorOrder}/dispute', [MarketplaceOrderController::class, 'updateDispute'])->name('orders.dispute');
+            Route::get('inventory', [MarketplaceInventoryController::class, 'index'])->name('inventory.index');
+            Route::get('settings', [MarketplaceSettingsController::class, 'index'])->name('settings');
+            Route::post('settings', [MarketplaceSettingsController::class, 'update'])->name('settings.update');
+            Route::post('settings/vendors/{vendor}/commission', [MarketplaceSettingsController::class, 'updateVendorCommission'])->name('settings.vendor-commission');
+        });
+
+        Route::get('vendors', [AdminVendorController::class, 'index'])->name('vendors.index');
+        Route::get('vendors/{vendor}', [AdminVendorController::class, 'show'])->name('vendors.show');
+        Route::get('vendors/{vendor}/edit', [AdminVendorController::class, 'edit'])->name('vendors.edit');
+        Route::put('vendors/{vendor}', [AdminVendorController::class, 'update'])->name('vendors.update');
+        Route::delete('vendors/{vendor}', [AdminVendorController::class, 'destroy'])->name('vendors.destroy');
+        Route::post('vendors/{vendor}/approve', [AdminVendorController::class, 'approve'])->name('vendors.approve');
+        Route::post('vendors/{vendor}/reject', [AdminVendorController::class, 'reject'])->name('vendors.reject');
+        Route::post('vendors/{vendor}/suspend', [AdminVendorController::class, 'suspend'])->name('vendors.suspend');
+        Route::post('vendors/{vendor}/activate', [AdminVendorController::class, 'activate'])->name('vendors.activate');
+        Route::post('vendors/{vendor}/documents/{document}/verify', [AdminVendorController::class, 'verifyDocument'])->name('vendors.documents.verify');
 
         // Notifications routes (static paths before {id})
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -601,6 +648,18 @@ Route::middleware(['auth', 'role:hr'])
         Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
     });
+
+// Vendor registration (public)
+Route::get('/vendor/register', [VendorRegistrationController::class, 'create'])->name('vendor.register');
+Route::post('/vendor/register', [VendorRegistrationController::class, 'store'])->name('vendor.register.store');
+
+Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->group(function () {
+    Route::get('/pending', [VendorDashboardController::class, 'pending'])->name('pending');
+    Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');
+});
+
+// Customer vendor comparison (public)
+Route::get('/shop/compare/{productId}', [VendorComparisonController::class, 'show'])->name('shop.vendor-compare');
 
 // App portal: role selection → login (same flow as mobile; session + web auth after success)
 Route::prefix('app-portal')->name('app-portal.')->group(function () {

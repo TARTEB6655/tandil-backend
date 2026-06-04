@@ -96,6 +96,11 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function vendorMappings()
+    {
+        return $this->hasMany(VendorOrderMapping::class);
+    }
+
     /**
      * Get all transactions for this order.
      */

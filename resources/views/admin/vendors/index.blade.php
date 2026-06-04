@@ -1,0 +1,55 @@
+<x-admin-layout>
+    <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">Vendor Management</h1>
+                <p class="text-sm text-gray-500 mt-1">Approve, suspend, verify documents, and manage marketplace sellers.</p>
+            </div>
+            <a href="{{ route('admin.marketplace.dashboard') }}" class="text-sm text-indigo-600 hover:underline">Marketplace overview →</a>
+        </div>
+        <x-admin.marketplace-nav />
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            @foreach(['total' => 'Total', 'pending' => 'Pending', 'approved' => 'Approved', 'suspended' => 'Suspended', 'rejected' => 'Rejected'] as $key => $label)
+                <div class="bg-white dark:bg-gray-800 rounded-xl border p-4">
+                    <p class="text-xs text-gray-500 uppercase">{{ $label }}</p>
+                    <p class="text-2xl font-semibold mt-1">{{ $stats[$key] ?? 0 }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <form method="GET" class="flex flex-wrap gap-2">
+            <input name="search" value="{{ request('search') }}" placeholder="Search business or email" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm" />
+            <select name="status" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm">
+                <option value="">All statuses</option>
+                @foreach(['pending','approved','rejected','suspended'] as $s)
+                    <option value="{{ $s }}" @selected(request('status')===$s)>{{ ucfirst($s) }}</option>
+                @endforeach
+            </select>
+            <button class="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg">Filter</button>
+        </form>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl border overflow-hidden">
+            <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-600">
+                <thead class="bg-gray-50 dark:bg-gray-700/50"><tr>
+                    <th class="px-4 py-3 text-left">Business</th><th class="px-4 py-3 text-left">Owner</th><th class="px-4 py-3 text-left">Email</th><th class="px-4 py-3 text-left">Commission</th><th class="px-4 py-3 text-left">Status</th><th class="px-4 py-3 text-right">Actions</th>
+                </tr></thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
+                    @forelse($vendors as $vendor)
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <td class="px-4 py-3 font-medium">{{ $vendor->profile?->business_name }}</td>
+                            <td class="px-4 py-3">{{ $vendor->profile?->owner_name }}</td>
+                            <td class="px-4 py-3">{{ $vendor->profile?->email }}</td>
+                            <td class="px-4 py-3">{{ $vendor->commission_rate !== null ? $vendor->commission_rate.'%' : 'Default' }}</td>
+                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700">{{ ucfirst($vendor->status) }}</span></td>
+                            <td class="px-4 py-3 text-right"><a href="{{ route('admin.vendors.show', $vendor) }}" class="text-indigo-600 hover:underline">Manage</a></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No vendors found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        {{ $vendors->links() }}
+    </div>
+</x-admin-layout>

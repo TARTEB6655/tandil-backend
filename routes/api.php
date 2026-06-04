@@ -906,3 +906,5 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('areas')->group
     Route::put('/{id}', [\App\Http\Controllers\AreaController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\AreaController::class, 'destroy']);
 });
+
+require __DIR__.'/vendor_api.php';

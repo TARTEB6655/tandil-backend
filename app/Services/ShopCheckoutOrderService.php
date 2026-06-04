@@ -103,6 +103,8 @@ class ShopCheckoutOrderService
             }
         }
 
+        app(\App\Services\Vendor\VendorOrderSyncService::class)->syncFromOrder($order->fresh('items.product'));
+
         return $order;
     }
 
@@ -212,6 +214,8 @@ class ShopCheckoutOrderService
         if (empty($request->input('items'))) {
             Cart::where('user_id', $user->id)->delete();
         }
+
+        app(\App\Services\Vendor\VendorOrderSyncService::class)->syncFromOrder($order->fresh('items.product'));
 
         return $order;
     }
