@@ -8,19 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vendor_documents', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('vendor_id')->constrained()->cascadeOnDelete();
-            $table->string('type', 64);
-            $table->string('file_path');
-            $table->string('original_name')->nullable();
-            $table->string('verification_status', 32)->default('pending')->index();
-            $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('verified_at')->nullable();
-            $table->text('admin_notes')->nullable();
-            $table->timestamps();
-            $table->index(['vendor_id', 'type'], 'vnd_doc_vendor_type_idx');
-        });
+        if (! Schema::hasTable('vendor_documents')) {
+            Schema::create('vendor_documents', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('vendor_id')->constrained()->cascadeOnDelete();
+                $table->string('type', 64);
+                $table->string('file_path');
+                $table->string('original_name')->nullable();
+                $table->string('verification_status', 32)->default('pending')->index();
+                $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamp('verified_at')->nullable();
+                $table->text('admin_notes')->nullable();
+                $table->timestamps();
+                $table->index(['vendor_id', 'type'], 'vnd_doc_vendor_type_idx');
+            });
+        }
 
         Schema::table('vendors', function (Blueprint $table) {
             if (! Schema::hasColumn('vendors', 'commission_rate')) {
