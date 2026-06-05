@@ -61,8 +61,9 @@
     </div>
     <div class="sm:col-span-2">
         <label class="text-sm font-medium text-gray-700">Google Maps Location *</label>
-        <input type="text" id="google_maps_location_input" name="google_maps_location" value="{{ old('google_maps_location', $profile?->google_maps_location) }}" placeholder="Google Maps URL or latitude,longitude" class="mt-1 w-full rounded-lg border-gray-300" required />
-        <p class="mt-1 text-xs text-gray-500">Paste a Google Maps link or type coordinates as <code>latitude,longitude</code>. You can also click the map or drag the pin to set the exact location.</p>
+        <input type="text" id="google_maps_location_input" name="google_maps_location" value="{{ old('google_maps_location', $profile?->google_maps_location) }}" placeholder="Address, Google Maps URL, or latitude,longitude" class="mt-1 w-full rounded-lg border-gray-300" required />
+        <p class="mt-1 text-xs text-gray-500">Type an <strong>address / place name</strong>, paste a Google Maps link, or enter <code>latitude,longitude</code>. You can also click the map or drag the pin to set the exact location.</p>
+        <p id="vendor-location-status" class="mt-1 hidden text-xs"></p>
         <div id="vendor-location-map" class="mt-3 w-full overflow-hidden rounded-lg border border-gray-200" style="height: 16rem;"></div>
     </div>
 
@@ -173,6 +174,7 @@
             function initMap() {
                 var mapEl = document.getElementById('vendor-location-map');
                 var input = document.getElementById('google_maps_location_input');
+                var statusEl = document.getElementById('vendor-location-status');
                 if (!mapEl || !input || typeof L === 'undefined' || mapEl._leaflet_id) {
                     return;
                 }
@@ -188,34 +190,95 @@
                 }).addTo(map);
 
                 var marker = L.marker(center, { draggable: true }).addTo(map);
+                var geocodeController = null;
+
+                function setStatus(message, type) {
+                    if (!statusEl) return;
+                    if (!message) {
+                        statusEl.classList.add('hidden');
+                        statusEl.textContent = '';
+                        return;
+                    }
+                    statusEl.classList.remove('hidden');
+                    statusEl.textContent = message;
+                    statusEl.className = 'mt-1 text-xs ' + (
+                        type === 'error' ? 'text-red-500' :
+                        type === 'success' ? 'text-green-600' : 'text-gray-500'
+                    );
+                }
 
                 function setInputFromLatLng(lat, lng) {
                     input.value = lat.toFixed(6) + ',' + lng.toFixed(6);
+                }
+
+                function placePin(lat, lng) {
+                    marker.setLatLng([lat, lng]);
+                    map.setView([lat, lng], FOCUS_ZOOM);
+                }
+
+                // Geocode a free-text address/place via OpenStreetMap Nominatim.
+                function geocodeAddress(query) {
+                    if (geocodeController) {
+                        geocodeController.abort();
+                    }
+                    geocodeController = new AbortController();
+                    setStatus('Locating address…', 'info');
+
+                    var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query);
+                    fetch(url, {
+                        signal: geocodeController.signal,
+                        headers: { 'Accept': 'application/json' }
+                    })
+                        .then(function (res) { return res.ok ? res.json() : []; })
+                        .then(function (results) {
+                            if (results && results.length) {
+                                var lat = parseFloat(results[0].lat);
+                                var lng = parseFloat(results[0].lon);
+                                placePin(lat, lng);
+                                setStatus('Location found on map.', 'success');
+                            } else {
+                                setStatus('Location not found — try a more specific address or drop the pin manually.', 'error');
+                            }
+                        })
+                        .catch(function (err) {
+                            if (err && err.name === 'AbortError') return;
+                            setStatus('Could not search this address. Click the map to set the pin manually.', 'error');
+                        });
                 }
 
                 // Map click -> move pin + fill input
                 map.on('click', function (e) {
                     marker.setLatLng(e.latlng);
                     setInputFromLatLng(e.latlng.lat, e.latlng.lng);
+                    setStatus('Pin set manually.', 'success');
                 });
 
                 // Drag pin -> fill input
                 marker.on('dragend', function () {
                     var pos = marker.getLatLng();
                     setInputFromLatLng(pos.lat, pos.lng);
+                    setStatus('Pin set manually.', 'success');
                 });
 
-                // Typing/pasting -> move pin (debounced)
+                // Typing/pasting -> move pin (debounced).
+                // Coordinates/URLs resolve instantly; free-text addresses are geocoded.
                 var debounce;
                 input.addEventListener('input', function () {
                     clearTimeout(debounce);
+                    var value = input.value.trim();
                     debounce = setTimeout(function () {
-                        var coords = parseLatLng(input.value);
-                        if (coords) {
-                            marker.setLatLng([coords.lat, coords.lng]);
-                            map.setView([coords.lat, coords.lng], FOCUS_ZOOM);
+                        if (!value) {
+                            setStatus('', null);
+                            return;
                         }
-                    }, 400);
+                        var coords = parseLatLng(value);
+                        if (coords) {
+                            placePin(coords.lat, coords.lng);
+                            setStatus('', null);
+                        } else if (value.length >= 3) {
+                            geocodeAddress(value);
+                        }
+                    }, 700);
                 });
 
                 // Fix tiles when container becomes visible / after layout settles.
