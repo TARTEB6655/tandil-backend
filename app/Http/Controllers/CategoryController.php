@@ -191,7 +191,8 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         $isApi = $request->expectsJson() || $request->is('api/*');
-        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        // Cap raised to 500 so the drag-and-drop reorder UI can load all categories (e.g. per_page=200).
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 500);
         
         // Optimized: skip products count for API if not needed. Ordered by sort_order ASC for reorder UI.
         $query = $isApi ? Category::query() : Category::withCount('products');
