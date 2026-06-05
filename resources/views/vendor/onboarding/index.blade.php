@@ -150,13 +150,20 @@
                 <svg class="h-5 w-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Status timeline
             </h2>
-            <ol class="relative max-h-80 space-y-5 overflow-y-auto border-l-2 border-gray-100 pl-5">
+            <ol class="max-h-80 space-y-5 overflow-y-auto">
                 @forelse($application['approval_logs'] as $log)
-                    <li class="relative">
-                        <span class="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white shadow" style="background-image: linear-gradient(135deg, #6366f1, #9333ea);"></span>
-                        <p class="text-sm font-semibold text-gray-900">{{ ucfirst(str_replace('_', ' ', $log['action'])) }}</p>
-                        <p class="text-xs text-gray-400">{{ $log['created_at'] ? \Carbon\Carbon::parse($log['created_at'])->format('M d, Y H:i') : '' }}</p>
-                        @if($log['notes'])<p class="mt-1 text-xs text-gray-600">{{ $log['notes'] }}</p>@endif
+                    <li class="flex gap-3">
+                        <div class="flex flex-col items-center">
+                            <span class="mt-1 h-3 w-3 flex-shrink-0 rounded-full border-2 border-white shadow ring-1 ring-gray-200" style="background-image: linear-gradient(135deg, #6366f1, #9333ea);"></span>
+                            @unless($loop->last)
+                                <span class="mt-1 w-px flex-1 bg-gray-200"></span>
+                            @endunless
+                        </div>
+                        <div class="min-w-0 flex-1 pb-1">
+                            <p class="text-sm font-semibold text-gray-900">{{ ucfirst(str_replace('_', ' ', $log['action'])) }}</p>
+                            <p class="text-xs text-gray-400">{{ $log['created_at'] ? \Carbon\Carbon::parse($log['created_at'])->format('M d, Y H:i') : '' }}</p>
+                            @if($log['notes'])<p class="mt-1 text-xs text-gray-600">{{ $log['notes'] }}</p>@endif
+                        </div>
                     </li>
                 @empty
                     <li class="text-sm text-gray-500">No activity yet.</li>
