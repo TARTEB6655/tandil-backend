@@ -157,7 +157,7 @@ Route::middleware('auth')->get('/dashboard-redirect', function () {
                     return redirect()->route('vendor.dashboard');
                 }
 
-                return redirect()->route('vendor.pending');
+                return redirect()->route('vendor.application.status');
             default:
                 auth()->logout();
 
@@ -328,6 +328,8 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('vendors/{vendor}/reject', [AdminVendorController::class, 'reject'])->name('vendors.reject');
         Route::post('vendors/{vendor}/suspend', [AdminVendorController::class, 'suspend'])->name('vendors.suspend');
         Route::post('vendors/{vendor}/activate', [AdminVendorController::class, 'activate'])->name('vendors.activate');
+        Route::post('vendors/{vendor}/under-review', [AdminVendorController::class, 'underReview'])->name('vendors.under-review');
+        Route::post('vendors/{vendor}/disable', [AdminVendorController::class, 'disable'])->name('vendors.disable');
         Route::post('vendors/{vendor}/documents/{document}/verify', [AdminVendorController::class, 'verifyDocument'])->name('vendors.documents.verify');
 
         // Notifications routes (static paths before {id})
@@ -653,8 +655,24 @@ Route::middleware(['auth', 'role:hr'])
 Route::get('/vendor/register', [VendorRegistrationController::class, 'create'])->name('vendor.register');
 Route::post('/vendor/register', [VendorRegistrationController::class, 'store'])->name('vendor.register.store');
 
-Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->group(function () {
-    Route::get('/pending', [VendorDashboardController::class, 'pending'])->name('pending');
+Route::middleware(['auth', 'role:vendor', 'vendor.account'])->prefix('vendor')->name('vendor.')->group(function () {
+    Route::get('/pending', fn () => redirect()->route('vendor.application.status'))->name('pending');
+    Route::get('/application', [\App\Http\Controllers\Vendor\ApplicationController::class, 'status'])->name('application.status');
+    Route::post('/application/resubmit', [\App\Http\Controllers\Vendor\ApplicationController::class, 'resubmit'])->name('application.resubmit');
+    Route::post('/application/submit', [\App\Http\Controllers\Vendor\ApplicationController::class, 'submit'])->name('application.submit');
+
+    Route::get('/onboarding', [\App\Http\Controllers\Vendor\OnboardingController::class, 'index'])->name('onboarding.index');
+    Route::get('/onboarding/profile', [\App\Http\Controllers\Vendor\OnboardingController::class, 'profile'])->name('onboarding.profile');
+    Route::put('/onboarding/profile', [\App\Http\Controllers\Vendor\OnboardingController::class, 'updateProfile'])->name('onboarding.profile.update');
+    Route::get('/onboarding/categories', [\App\Http\Controllers\Vendor\OnboardingController::class, 'categories'])->name('onboarding.categories');
+    Route::put('/onboarding/categories', [\App\Http\Controllers\Vendor\OnboardingController::class, 'updateCategories'])->name('onboarding.categories.update');
+
+    Route::get('/documents', [\App\Http\Controllers\Vendor\DocumentController::class, 'index'])->name('documents.index');
+    Route::post('/documents', [\App\Http\Controllers\Vendor\DocumentController::class, 'store'])->name('documents.store');
+    Route::delete('/documents/{document}', [\App\Http\Controllers\Vendor\DocumentController::class, 'destroy'])->name('documents.destroy');
+
+    Route::get('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'update'])->name('profile.update');
 
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');
@@ -672,9 +690,6 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->g
 
         Route::get('/inventory', [\App\Http\Controllers\Vendor\InventoryController::class, 'index'])->name('inventory.index');
         Route::put('/inventory/{vendorProduct}', [\App\Http\Controllers\Vendor\InventoryController::class, 'update'])->name('inventory.update');
-
-        Route::get('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'show'])->name('profile.show');
-        Route::put('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'update'])->name('profile.update');
     });
 });
 

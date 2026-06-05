@@ -5,18 +5,33 @@ namespace App\Enums;
 enum VendorStatus: string
 {
     case Pending = 'pending';
+    case UnderReview = 'under_review';
     case Approved = 'approved';
     case Rejected = 'rejected';
     case Suspended = 'suspended';
+    case Disabled = 'disabled';
 
     public function label(): string
     {
         return match ($this) {
-            self::Pending => 'Pending',
+            self::Pending => 'Pending Review',
+            self::UnderReview => 'Under Review',
             self::Approved => 'Approved',
             self::Rejected => 'Rejected',
             self::Suspended => 'Suspended',
+            self::Disabled => 'Disabled',
         };
+    }
+
+    /** Statuses where vendor may complete onboarding (profile, documents). */
+    public function canCompleteOnboarding(): bool
+    {
+        return in_array($this, [self::Pending, self::Rejected, self::UnderReview], true);
+    }
+
+    public function canSell(): bool
+    {
+        return $this === self::Approved;
     }
 
     /** @return list<string> */

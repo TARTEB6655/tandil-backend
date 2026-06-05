@@ -2,6 +2,7 @@
 
 namespace App\Services\Vendor;
 
+use App\Enums\VendorDocumentType;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorDocument;
@@ -10,8 +11,19 @@ use Illuminate\Support\Facades\Storage;
 
 class VendorDocumentService
 {
-    public function upload(Vendor $vendor, string $type, UploadedFile $file): VendorDocument
+    public function upload(Vendor $vendor, string $type, UploadedFile $file, bool $replace = true): VendorDocument
     {
+        if (! in_array($type, VendorDocumentType::values(), true)) {
+            throw new \InvalidArgumentException('Invalid document type.');
+        }
+
+        if ($replace) {
+            $existing = $vendor->documents()->where('type', $type)->first();
+            if ($existing) {
+                $this->delete($existing);
+            }
+        }
+
         $path = $file->store("vendors/{$vendor->id}/documents", 'public');
 
         return VendorDocument::create([

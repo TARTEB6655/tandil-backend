@@ -1,6 +1,8 @@
 @auth
     @if(auth()->user()->role === 'vendor')
         @php
+            $vendorAccount = auth()->user()->vendor;
+            $vendorApproved = $vendorAccount?->isApproved() ?? false;
             $linkClass = fn (bool $active) => 'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors'
                 .($active ? ' bg-gray-100 font-semibold' : '');
         @endphp
@@ -22,7 +24,7 @@
                 :class="$store.sidebar.open ? 'translate-x-0 shadow-lg min-[992px]:shadow-none' : '-translate-x-full'"
             >
                 <div class="flex flex-shrink-0 items-center justify-between px-3 py-6 sm:px-4 sm:py-8">
-                    <a href="{{ route('vendor.dashboard') }}" class="flex flex-1 items-center justify-center">
+                    <a href="{{ $vendorApproved ? route('vendor.dashboard') : route('vendor.onboarding.index') }}" class="flex flex-1 items-center justify-center">
                         <img src="{{ asset('images/logo.png') }}" alt="Tandil" class="h-20 w-auto md:h-24" style="max-width: 160px; object-fit: contain;" onerror="this.style.display='none'" />
                     </a>
                     <button type="button" @click="$store.sidebar.toggle()" class="min-[992px]:hidden flex-shrink-0 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700" aria-label="Close sidebar">
@@ -32,6 +34,31 @@
 
                 <div class="sidebar-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
                     <nav class="flex-1 px-3 py-2">
+                        @unless($vendorApproved)
+                            <p class="px-3 py-1 text-xs font-normal uppercase tracking-wider text-gray-500">Onboarding</p>
+                            <div class="mb-2">
+                                <a href="{{ route('vendor.application.status') }}" class="{{ $linkClass(request()->routeIs('vendor.application.*')) }}">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    Application
+                                </a>
+                            </div>
+                            <div class="mb-2">
+                                <a href="{{ route('vendor.onboarding.index') }}" class="{{ $linkClass(request()->routeIs('vendor.onboarding.*')) }}">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                    Onboarding
+                                </a>
+                            </div>
+                            <div class="mb-2">
+                                <a href="{{ route('vendor.documents.index') }}" class="{{ $linkClass(request()->routeIs('vendor.documents.*')) }}">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                    Documents
+                                </a>
+                            </div>
+                            <div class="mb-4 border-t border-gray-200 pt-4">
+                                <p class="px-3 py-1 text-xs font-normal uppercase tracking-wider text-gray-500">Account</p>
+                            </div>
+                        @endunless
+                        @if($vendorApproved)
                         <div class="mb-2">
                             <a href="{{ route('vendor.dashboard') }}" class="{{ $linkClass(request()->routeIs('vendor.dashboard')) }}">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -62,6 +89,7 @@
                                 Business Profile
                             </a>
                         </div>
+                        @endif
 
                         <div class="mt-4 border-t border-gray-200 pt-4">
                             <p class="px-3 py-1 text-xs font-normal uppercase tracking-wider text-gray-500">{{ __('admin.account') }}</p>

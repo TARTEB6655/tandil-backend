@@ -65,6 +65,11 @@ class Vendor extends Model
         return $this->hasMany(VendorDocument::class);
     }
 
+    public function categories(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'category_vendor')->withTimestamps();
+    }
+
     public function statusEnum(): VendorStatus
     {
         return VendorStatus::tryFrom($this->status) ?? VendorStatus::Pending;

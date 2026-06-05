@@ -31,7 +31,7 @@ class EnsureApprovedVendor
                 ], 403);
             }
 
-            return redirect()->route('vendor.pending');
+            return redirect()->route('vendor.application.status');
         }
 
         $request->attributes->set('vendor', $vendor);

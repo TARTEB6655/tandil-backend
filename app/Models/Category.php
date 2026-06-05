@@ -26,6 +26,7 @@ class Category extends Model
         'image',
         'icon',
         'is_active',
+        'sort_order',
         'shipping_cost',
         'shipping_type',
         'tax_percentage',
@@ -33,9 +34,26 @@ class Category extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'sort_order' => 'integer',
         'shipping_cost' => 'float',
         'tax_percentage' => 'float',
     ];
+
+    /**
+     * Order categories for display (drag-and-drop sort_order, then name as tie-breaker).
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
+     * Next available sort_order value (places new categories at the end).
+     */
+    public static function nextSortOrder(): int
+    {
+        return ((int) static::max('sort_order')) + 1;
+    }
 
     protected $appends = ['image_url', 'coming_soon'];
 

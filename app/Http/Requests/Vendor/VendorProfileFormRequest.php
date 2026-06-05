@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Http\Requests\Vendor;
+
+use App\Enums\VendorType;
+use App\Models\VendorProfile;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+abstract class VendorProfileFormRequest extends FormRequest
+{
+    /**
+     * Shared Business Profile field rules.
+     *
+     * @param  bool  $required  When true, core fields are required; otherwise they are optional (partial update).
+     * @return array<string, mixed>
+     */
+    protected function businessProfileRules(bool $required): array
+    {
+        $presence = $required ? 'required' : 'sometimes';
+
+        return [
+            'business_name' => [$presence, 'string', 'max:255'],
+            'owner_name' => [$presence, 'string', 'max:255'],
+            'phone' => [$presence, 'string', 'max:32'],
+            'trade_license_number' => [$presence, 'string', 'max:100'],
+            'address' => [$presence, 'string', 'max:2000'],
+            'vendor_type' => [$presence, Rule::in(VendorType::values())],
+            'emirate' => [$presence, 'string', 'max:100', Rule::in(VendorProfile::emirates())],
+            'city' => [$presence, 'string', 'max:100'],
+            'google_maps_location' => [$presence, 'string', 'max:500'],
+            'bank_name' => [$presence, 'string', 'max:191'],
+            'iban' => [$presence, 'string', 'max:64'],
+            'account_holder_name' => [$presence, 'string', 'max:191'],
+            'delivery_radius' => [$presence, 'numeric', 'min:0', 'max:10000'],
+            'operating_hours' => [$presence, 'string', 'max:500'],
+            'minimum_order_amount' => [$presence, 'numeric', 'min:0', 'max:1000000'],
+
+            // Optional everywhere
+            'vat_number' => ['nullable', 'string', 'max:64'],
+            'tax_vat_number' => ['nullable', 'string', 'max:64'],
+            'description' => ['nullable', 'string', 'max:5000'],
+            'years_in_business' => ['nullable', 'integer', 'min:0', 'max:100'],
+        ];
+    }
+
+    /**
+     * Validation messages shared across vendor profile forms.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'vendor_type.in' => 'Please select a valid vendor type.',
+            'emirate.in' => 'Please select a valid emirate.',
+            'terms_accepted.accepted' => 'You must accept the Terms & Conditions to continue.',
+        ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        // Accept "vat_number" as an alias for the stored tax_vat_number column.
+        if ($this->filled('vat_number') && ! $this->filled('tax_vat_number')) {
+            $this->merge(['tax_vat_number' => $this->input('vat_number')]);
+        }
+    }
+}

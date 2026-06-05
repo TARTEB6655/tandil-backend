@@ -151,6 +151,7 @@ class CategoryController extends Controller
             'image_url' => $this->buildCategoryImageUrl($imagePath),
             'is_active' => $isActive,
             'coming_soon' => ! $isActive,
+            'sort_order' => (int) ($category->sort_order ?? 0),
             ...$category->shippingTaxConfigForApi(),
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
@@ -192,9 +193,9 @@ class CategoryController extends Controller
         $isApi = $request->expectsJson() || $request->is('api/*');
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         
-        // Optimized: skip products count for API if not needed, use orderByDesc for index scan
+        // Optimized: skip products count for API if not needed. Ordered by sort_order ASC for reorder UI.
         $query = $isApi ? Category::query() : Category::withCount('products');
-        $categories = $query->orderByDesc('id')->paginate($perPage);
+        $categories = $query->ordered()->paginate($perPage);
 
         if ($isApi) {
             $data = array_map(fn (Category $c) => $this->categoryToApiData($c), $categories->items());
@@ -234,12 +235,17 @@ class CategoryController extends Controller
             $slug = $originalSlug . '-' . $counter;
             $counter++;
         }
+        $sortOrder = $request->filled('sort_order')
+            ? max(1, (int) $request->input('sort_order'))
+            : Category::nextSortOrder();
+
         $category = Category::create(array_merge([
             'name' => $name,
             'slug' => $slug,
             'description' => $description,
             'image' => $imagePath,
             'is_active' => $isActive,
+            'sort_order' => $sortOrder,
         ], $this->shippingTaxAttributesFromRequest($request)));
         
         if (request()->expectsJson() || request()->is('api/*')) {
@@ -328,6 +334,11 @@ class CategoryController extends Controller
             if (is_string($value) || is_numeric($value)) {
                 $updateData[$key] = $value;
             }
+        }
+
+        // Drag-and-drop reorder: persist sort_order when provided (reorder-only saves are allowed).
+        if ($request->has('sort_order') && $request->input('sort_order') !== null && $request->input('sort_order') !== '') {
+            $updateData['sort_order'] = max(1, (int) $request->input('sort_order'));
         }
 
         // Auto-generate slug from name when name is present and slug is empty

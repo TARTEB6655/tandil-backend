@@ -117,7 +117,7 @@ class AppPortalWebController extends Controller
         return match ($portal) {
             'vendor' => auth()->user()?->vendor?->isApproved()
                 ? redirect()->route('vendor.dashboard')
-                : redirect()->route('vendor.pending'),
+                : redirect()->route('vendor.application.status'),
             'admin' => redirect()->route('admin.dashboard'),
             'supervisor' => redirect()->route('supervisor.dashboard'),
             'technician' => redirect()->route('technician.dashboard'),

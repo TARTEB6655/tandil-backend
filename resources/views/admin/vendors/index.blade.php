@@ -9,8 +9,16 @@
         </div>
         <x-admin.marketplace-nav />
 
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-            @foreach(['total' => 'Total', 'pending' => 'Pending', 'approved' => 'Approved', 'suspended' => 'Suspended', 'rejected' => 'Rejected'] as $key => $label)
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            @foreach([
+                'total' => 'Total',
+                'pending' => 'Pending',
+                'under_review' => 'Under review',
+                'approved' => 'Approved',
+                'suspended' => 'Suspended',
+                'rejected' => 'Rejected',
+                'disabled' => 'Disabled',
+            ] as $key => $label)
                 <div class="bg-white dark:bg-gray-800 rounded-xl border p-4">
                     <p class="text-xs text-gray-500 uppercase">{{ $label }}</p>
                     <p class="text-2xl font-semibold mt-1">{{ $stats[$key] ?? 0 }}</p>
@@ -22,9 +30,14 @@
             <input name="search" value="{{ request('search') }}" placeholder="Search business or email" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm" />
             <select name="status" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm">
                 <option value="">All statuses</option>
-                @foreach(['pending','approved','rejected','suspended'] as $s)
-                    <option value="{{ $s }}" @selected(request('status')===$s)>{{ ucfirst($s) }}</option>
+                @foreach(\App\Enums\VendorStatus::cases() as $status)
+                    <option value="{{ $status->value }}" @selected(request('status')===$status->value)>{{ $status->label() }}</option>
                 @endforeach
+            </select>
+            <select name="sort" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm">
+                <option value="newest" @selected(($sort ?? 'newest') === 'newest')>Newest</option>
+                <option value="oldest" @selected(($sort ?? '') === 'oldest')>Oldest</option>
+                <option value="business" @selected(($sort ?? '') === 'business')>Business name</option>
             </select>
             <button class="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg">Filter</button>
         </form>
@@ -41,7 +54,7 @@
                             <td class="px-4 py-3">{{ $vendor->profile?->owner_name }}</td>
                             <td class="px-4 py-3">{{ $vendor->profile?->email }}</td>
                             <td class="px-4 py-3">{{ $vendor->commission_rate !== null ? $vendor->commission_rate.'%' : 'Default' }}</td>
-                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700">{{ ucfirst($vendor->status) }}</span></td>
+                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700">{{ $vendor->statusEnum()->label() }}</span></td>
                             <td class="px-4 py-3 text-right"><a href="{{ route('admin.vendors.show', $vendor) }}" class="text-indigo-600 hover:underline">Manage</a></td>
                         </tr>
                     @empty

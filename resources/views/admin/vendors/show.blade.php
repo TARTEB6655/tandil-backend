@@ -5,31 +5,103 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ $vendor->profile?->business_name }}</h1>
-                <p class="text-sm text-gray-500 mt-1">Status: <strong>{{ ucfirst($vendor->status) }}</strong> · Commission: {{ $vendor->commission_rate !== null ? $vendor->commission_rate.'%' : 'Platform default' }}</p>
+                <p class="text-sm text-gray-500 mt-1">Status: <strong>{{ $vendor->statusEnum()->label() }}</strong> · Onboarding: {{ $application['completion_percent'] ?? 0 }}% · Commission: {{ $vendor->commission_rate !== null ? $vendor->commission_rate.'%' : 'Platform default' }}</p>
             </div>
             <a href="{{ route('admin.vendors.edit', $vendor) }}" class="px-4 py-2 text-sm border rounded-lg">Edit profile</a>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-xl border p-6 grid sm:grid-cols-2 gap-4 text-sm">
-            <div><span class="text-gray-500">Owner</span><p class="font-medium">{{ $vendor->profile?->owner_name }}</p></div>
-            <div><span class="text-gray-500">Email</span><p>{{ $vendor->profile?->email }}</p></div>
-            <div><span class="text-gray-500">Phone</span><p>{{ $vendor->profile?->phone ?? '—' }}</p></div>
-            <div><span class="text-gray-500">Tax/VAT</span><p>{{ $vendor->profile?->tax_vat_number ?? '—' }}</p></div>
-            <div class="sm:col-span-2"><span class="text-gray-500">Address</span><p>{{ $vendor->profile?->address ?? '—' }}</p></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            @foreach([
+                ['label' => 'Products', 'value' => $statistics['total_products'] ?? 0],
+                ['label' => 'Active products', 'value' => $statistics['active_products'] ?? 0],
+                ['label' => 'Orders', 'value' => $statistics['total_orders'] ?? 0],
+                ['label' => 'Revenue', 'value' => number_format($statistics['revenue'] ?? 0, 2)],
+            ] as $card)
+                <div class="bg-white dark:bg-gray-800 rounded-xl border p-4">
+                    <p class="text-xs text-gray-500 uppercase">{{ $card['label'] }}</p>
+                    <p class="text-xl font-semibold mt-1">{{ $card['value'] }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        @if(!empty($application))
+            <div class="bg-white dark:bg-gray-800 rounded-xl border p-6 text-sm">
+                <h2 class="font-medium mb-3">Application checklist</h2>
+                <div class="flex flex-wrap gap-4">
+                    <span>Profile: {{ ($application['profile_complete'] ?? false) ? '✓' : '—' }}</span>
+                    <span>Categories: {{ ($application['categories_complete'] ?? false) ? '✓' : '—' }}</span>
+                    <span>Documents: {{ ($application['documents_complete'] ?? false) ? '✓' : '—' }}</span>
+                    <span>Terms: {{ ($application['terms_accepted'] ?? false) ? '✓' : '—' }}</span>
+                    @if($vendor->categories->isNotEmpty())
+                        <span>Selected: {{ $vendor->categories->pluck('name')->join(', ') }}</span>
+                    @endif
+                </div>
+                @if(!empty($application['missing_profile_fields']))
+                    <p class="mt-3 text-xs text-amber-600">Missing fields: {{ implode(', ', $application['missing_profile_fields']) }}</p>
+                @endif
+            </div>
+        @endif
+
+        @php $p = $vendor->profile; @endphp
+        <div class="bg-white dark:bg-gray-800 rounded-xl border p-6 space-y-6 text-sm">
+            <div>
+                <h2 class="font-medium mb-3">Business information</h2>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div><span class="text-gray-500">Company Name</span><p class="font-medium">{{ $p?->business_name ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Authorized Person</span><p class="font-medium">{{ $p?->owner_name ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Vendor Type</span><p>{{ $p?->vendor_type_label ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Email</span><p>{{ $p?->email ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Phone</span><p>{{ $p?->phone ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Trade License No.</span><p>{{ $p?->trade_license_number ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">VAT Number</span><p>{{ $p?->tax_vat_number ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Emirate</span><p>{{ $p?->emirate ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">City</span><p>{{ $p?->city ?? '—' }}</p></div>
+                    <div class="sm:col-span-2 lg:col-span-3"><span class="text-gray-500">Address</span><p>{{ $p?->address ?? '—' }}</p></div>
+                    <div class="sm:col-span-2 lg:col-span-3"><span class="text-gray-500">Google Maps Location</span>
+                        <p>@if($p?->google_maps_location)<a href="{{ \Illuminate\Support\Str::startsWith($p->google_maps_location, 'http') ? $p->google_maps_location : 'https://maps.google.com/?q='.urlencode($p->google_maps_location) }}" target="_blank" class="text-indigo-600 hover:underline">{{ $p->google_maps_location }}</a>@else — @endif</p>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+                <h2 class="font-medium mb-3">Bank details</h2>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div><span class="text-gray-500">Bank Name</span><p>{{ $p?->bank_name ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">IBAN</span><p>{{ $p?->iban ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Account Holder</span><p>{{ $p?->account_holder_name ?? '—' }}</p></div>
+                </div>
+            </div>
+            <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+                <h2 class="font-medium mb-3">Operations</h2>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div><span class="text-gray-500">Delivery Radius</span><p>{{ $p?->delivery_radius !== null ? $p->delivery_radius.' km' : '—' }}</p></div>
+                    <div><span class="text-gray-500">Min. Order Amount</span><p>{{ $p?->minimum_order_amount !== null ? number_format((float) $p->minimum_order_amount, 2).' AED' : '—' }}</p></div>
+                    <div><span class="text-gray-500">Operating Hours</span><p>{{ $p?->operating_hours ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Terms Accepted</span><p>{{ $p?->terms_accepted_at ? $p->terms_accepted_at->format('Y-m-d H:i') : 'No' }}</p></div>
+                </div>
+            </div>
+            @if($p?->description)
+                <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+                    <span class="text-gray-500">Description</span><p class="mt-1">{{ $p->description }}</p>
+                </div>
+            @endif
         </div>
 
         <div class="flex flex-wrap gap-2">
-            @if($vendor->status === 'pending')
+            @if(in_array($vendor->status, ['pending', 'under_review']))
                 <form method="POST" action="{{ route('admin.vendors.approve', $vendor) }}">@csrf<button class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg">Approve</button></form>
                 <form method="POST" action="{{ route('admin.vendors.reject', $vendor) }}" class="inline-flex gap-2">@csrf
                     <input name="reason" required placeholder="Rejection reason" class="rounded-lg border-gray-300 text-sm" />
                     <button class="px-4 py-2 bg-red-600 text-white text-sm rounded-lg">Reject</button>
                 </form>
             @endif
+            @if($vendor->status === 'pending')
+                <form method="POST" action="{{ route('admin.vendors.under-review', $vendor) }}">@csrf<button class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg">Mark under review</button></form>
+            @endif
             @if($vendor->status === 'approved')
                 <form method="POST" action="{{ route('admin.vendors.suspend', $vendor) }}">@csrf<button class="px-4 py-2 bg-amber-600 text-white text-sm rounded-lg">Suspend</button></form>
+                <form method="POST" action="{{ route('admin.vendors.disable', $vendor) }}">@csrf<button class="px-4 py-2 bg-gray-700 text-white text-sm rounded-lg">Disable</button></form>
             @endif
-            @if(in_array($vendor->status, ['suspended', 'rejected']))
+            @if(in_array($vendor->status, ['suspended', 'rejected', 'disabled']))
                 <form method="POST" action="{{ route('admin.vendors.activate', $vendor) }}">@csrf<button class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg">Reactivate</button></form>
             @endif
             <a href="{{ route('admin.marketplace.products.index', ['vendor_id' => $vendor->id]) }}" class="px-4 py-2 border text-sm rounded-lg">View products</a>

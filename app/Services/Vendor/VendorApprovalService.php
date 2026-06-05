@@ -28,7 +28,8 @@ class VendorApprovalService
                     'rejection_reason' => $rejectionReason,
                 ]),
                 VendorStatus::Suspended => $vendor->fill(['suspended_at' => now()]),
-                VendorStatus::Pending => $vendor->fill([
+                VendorStatus::Disabled => $vendor->fill(['suspended_at' => now()]),
+                VendorStatus::Pending, VendorStatus::UnderReview => $vendor->fill([
                     'approved_at' => null,
                     'rejected_at' => null,
                     'suspended_at' => null,
@@ -36,6 +37,13 @@ class VendorApprovalService
             };
 
             $vendor->save();
+
+            if ($newStatus === VendorStatus::Disabled && $vendor->user) {
+                $vendor->user->update(['status' => 'inactive']);
+            }
+            if ($newStatus === VendorStatus::Approved && $vendor->user) {
+                $vendor->user->update(['status' => 'active']);
+            }
 
             VendorApprovalLog::create([
                 'vendor_id' => $vendor->id,
@@ -65,6 +73,16 @@ class VendorApprovalService
         return $this->transition($vendor, VendorStatus::Suspended, $admin, $notes);
     }
 
+    public function underReview(Vendor $vendor, User $admin, ?string $notes = null): Vendor
+    {
+        return $this->transition($vendor, VendorStatus::UnderReview, $admin, $notes);
+    }
+
+    public function disable(Vendor $vendor, User $admin, ?string $notes = null): Vendor
+    {
+        return $this->transition($vendor, VendorStatus::Disabled, $admin, $notes);
+    }
+
     public function activate(Vendor $vendor, User $admin, ?string $notes = null): Vendor
     {
         return $this->transition($vendor, VendorStatus::Approved, $admin, $notes ?? 'Reactivated by admin.');
@@ -89,6 +107,7 @@ class VendorApprovalService
             $vendor->documents()->each(function ($doc) {
                 app(VendorDocumentService::class)->delete($doc);
             });
+            $vendor->categories()->detach();
             $vendor->forceDelete();
             if ($user) {
                 $user->tokens()->delete();

@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'set.request.locale' => \App\Http\Middleware\SetRequestLocale::class,
             'locale' => \App\Http\Middleware\SetRequestLocale::class,
             'vendor.approved' => \App\Http\Middleware\EnsureApprovedVendor::class,
+            'vendor.account' => \App\Http\Middleware\EnsureVendorAccount::class,
         ]);
 
         $middleware->web(prepend: [

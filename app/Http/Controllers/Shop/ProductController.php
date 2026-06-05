@@ -294,7 +294,7 @@ class ProductController extends Controller
             $categories = \App\Models\Category::withCount(['products' => function ($query) {
                 $query->where('status', 'active');
             }])
-                ->orderBy('name')
+                ->ordered()
                 ->get();
 
             return response()->json([

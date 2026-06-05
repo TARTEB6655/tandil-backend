@@ -32,8 +32,8 @@ class VendorDashboardController extends Controller
         ]);
     }
 
-    public function pending(): View
+    public function pending()
     {
-        return view('vendor.pending');
+        return redirect()->route('vendor.application.status');
     }
 }

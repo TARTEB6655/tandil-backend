@@ -51,6 +51,7 @@ class CategoryController extends Controller
             'image_url' => $category->image_url,
             'is_active' => $isActive,
             'coming_soon' => ! $isActive,
+            'sort_order' => (int) ($category->sort_order ?? 0),
             'created_at' => $category->created_at,
             'updated_at' => $category->updated_at,
         ], $extra);
@@ -70,7 +71,7 @@ class CategoryController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->take(3);
             }])
-            ->orderBy('name')
+            ->ordered()
             ->get();
 
         $data = $categories->map(fn (Category $c) => $this->categoryToApiData($c, [

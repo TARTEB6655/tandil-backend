@@ -29,12 +29,20 @@ Route::prefix('vendor')->group(function () {
 | Vendor module — authenticated vendor
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'role:vendor'])->prefix('vendor')->group(function () {
+Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('vendor')->group(function () {
     Route::post('/auth/logout', [VendorAuthController::class, 'logout']);
 
     Route::get('/profile', [VendorProfileController::class, 'show']);
     Route::put('/profile', [VendorProfileController::class, 'update']);
     Route::post('/profile', [VendorProfileController::class, 'update']);
+
+    Route::get('/application', [\App\Http\Controllers\Api\Vendor\VendorApplicationController::class, 'show']);
+    Route::post('/application/submit', [\App\Http\Controllers\Api\Vendor\VendorApplicationController::class, 'submit']);
+    Route::post('/application/resubmit', [\App\Http\Controllers\Api\Vendor\VendorApplicationController::class, 'resubmit']);
+
+    Route::get('/documents', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'index']);
+    Route::post('/documents', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'store']);
+    Route::delete('/documents/{id}', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'destroy']);
 
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard/stats', [VendorDashboardController::class, 'stats']);
@@ -64,6 +72,7 @@ Route::middleware(['auth:sanctum', 'role:vendor'])->prefix('vendor')->group(func
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->group(function () {
     Route::get('/stats', [VendorManagementController::class, 'stats']);
     Route::get('/', [VendorManagementController::class, 'index']);
+    Route::get('/{id}/analytics', [VendorManagementController::class, 'analytics']);
     Route::get('/{id}', [VendorManagementController::class, 'show']);
     Route::put('/{id}', [VendorManagementController::class, 'update']);
     Route::post('/{id}', [VendorManagementController::class, 'update']);
@@ -71,6 +80,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::post('/{id}/reject', [VendorManagementController::class, 'reject']);
     Route::post('/{id}/suspend', [VendorManagementController::class, 'suspend']);
     Route::post('/{id}/activate', [VendorManagementController::class, 'activate']);
+    Route::post('/{id}/under-review', [VendorManagementController::class, 'underReview']);
+    Route::post('/{id}/disable', [VendorManagementController::class, 'disable']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'destroyVendor']);
 });
 

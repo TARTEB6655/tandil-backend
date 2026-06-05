@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers\Api\Vendor;
 
+use App\Enums\VendorType;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Vendor\UpdateVendorProfileRequest;
+use App\Models\VendorProfile;
+use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorRegistrationService;
 use App\Support\VendorContext;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +16,8 @@ use Illuminate\Http\Request;
 class VendorProfileController extends Controller
 {
     public function __construct(
-        private readonly VendorRegistrationService $registration
+        private readonly VendorRegistrationService $registration,
+        private readonly VendorApplicationService $application
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -21,33 +26,26 @@ class VendorProfileController extends Controller
 
         return ApiResponse::success('Vendor profile retrieved.', [
             'vendor' => $this->vendorPayload($vendor),
+            'options' => [
+                'vendor_types' => VendorType::options(),
+                'emirates' => VendorProfile::emirates(),
+            ],
         ]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(UpdateVendorProfileRequest $request): JsonResponse
     {
         $vendor = VendorContext::vendorForUser($request->user());
         if ($vendor === null) {
             return ApiResponse::error('Vendor not found.', 404);
         }
 
-        $data = $request->validate([
-            'business_name' => 'sometimes|string|max:255',
-            'owner_name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255',
-            'phone' => 'nullable|string|max:32',
-            'address' => 'nullable|string|max:2000',
-            'tax_vat_number' => 'nullable|string|max:64',
-            'description' => 'nullable|string|max:5000',
-            'logo' => 'nullable|image|max:5120',
-            'logo_remove' => 'nullable|boolean',
-        ]);
-
         $vendor = $this->registration->updateProfile(
             $vendor,
-            $data,
+            $request->validated(),
             $request->file('logo'),
-            $request->boolean('logo_remove')
+            $request->boolean('logo_remove'),
+            VendorRegistrationService::documentFilesFromRequest($request)
         );
 
         return ApiResponse::success('Profile updated.', ['vendor' => $this->vendorPayload($vendor)]);
@@ -61,13 +59,16 @@ class VendorProfileController extends Controller
         if ($vendor === null) {
             return null;
         }
-        $vendor->loadMissing('profile', 'user', 'approvalLogs');
+        $vendor->loadMissing('profile', 'user', 'approvalLogs', 'documents', 'categories');
 
         return [
             'id' => $vendor->id,
             'status' => $vendor->status,
+            'status_label' => $vendor->statusEnum()->label(),
+            'rejection_reason' => $vendor->rejection_reason,
             'logo_url' => $vendor->logo_url,
             'profile' => $vendor->profile,
+            'application' => $this->application->applicationPayload($vendor),
             'user' => [
                 'id' => $vendor->user->id,
                 'name' => $vendor->user->name,
