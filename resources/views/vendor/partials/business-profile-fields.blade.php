@@ -61,7 +61,9 @@
     </div>
     <div class="sm:col-span-2">
         <label class="text-sm font-medium text-gray-700">Google Maps Location *</label>
-        <input type="text" name="google_maps_location" value="{{ old('google_maps_location', $profile?->google_maps_location) }}" placeholder="Google Maps URL or latitude,longitude" class="mt-1 w-full rounded-lg border-gray-300" required />
+        <input type="text" id="google_maps_location_input" name="google_maps_location" value="{{ old('google_maps_location', $profile?->google_maps_location) }}" placeholder="Google Maps URL or latitude,longitude" class="mt-1 w-full rounded-lg border-gray-300" required />
+        <p class="mt-1 text-xs text-gray-500">Paste a Google Maps link or type coordinates as <code>latitude,longitude</code>. You can also click the map or drag the pin to set the exact location.</p>
+        <div id="vendor-location-map" class="mt-3 w-full overflow-hidden rounded-lg border border-gray-200" style="height: 16rem;"></div>
     </div>
 
     <div class="sm:col-span-2 mt-2 border-t border-gray-100 pt-4">
@@ -125,3 +127,125 @@
         <textarea name="description" rows="3" class="mt-1 w-full rounded-lg border-gray-300">{{ old('description', $profile?->description) }}</textarea>
     </div>
 </div>
+
+@once
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script>
+        (function () {
+            // Default center: Dubai, UAE.
+            var DEFAULT_CENTER = [25.2048, 55.2708];
+            var DEFAULT_ZOOM = 10;
+            var FOCUS_ZOOM = 15;
+
+            function parseLatLng(value) {
+                if (!value) return null;
+                value = String(value).trim();
+
+                // 1) Plain "lat,lng"
+                var plain = value.match(/^\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+                if (plain) {
+                    return validate(parseFloat(plain[1]), parseFloat(plain[2]));
+                }
+
+                // 2) Common Google Maps URL patterns
+                var patterns = [
+                    /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,        // .../@25.20,55.27,15z
+                    /[?&]q=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,   // ?q=25.20,55.27
+                    /[?&]ll=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,  // ?ll=25.20,55.27
+                    /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/     // !3d25.20!4d55.27
+                ];
+                for (var i = 0; i < patterns.length; i++) {
+                    var m = value.match(patterns[i]);
+                    if (m) {
+                        return validate(parseFloat(m[1]), parseFloat(m[2]));
+                    }
+                }
+                return null;
+            }
+
+            function validate(lat, lng) {
+                if (isNaN(lat) || isNaN(lng)) return null;
+                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+                return { lat: lat, lng: lng };
+            }
+
+            function initMap() {
+                var mapEl = document.getElementById('vendor-location-map');
+                var input = document.getElementById('google_maps_location_input');
+                if (!mapEl || !input || typeof L === 'undefined' || mapEl._leaflet_id) {
+                    return;
+                }
+
+                var initial = parseLatLng(input.value);
+                var center = initial ? [initial.lat, initial.lng] : DEFAULT_CENTER;
+                var zoom = initial ? FOCUS_ZOOM : DEFAULT_ZOOM;
+
+                var map = L.map(mapEl).setView(center, zoom);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                var marker = L.marker(center, { draggable: true }).addTo(map);
+
+                function setInputFromLatLng(lat, lng) {
+                    input.value = lat.toFixed(6) + ',' + lng.toFixed(6);
+                }
+
+                // Map click -> move pin + fill input
+                map.on('click', function (e) {
+                    marker.setLatLng(e.latlng);
+                    setInputFromLatLng(e.latlng.lat, e.latlng.lng);
+                });
+
+                // Drag pin -> fill input
+                marker.on('dragend', function () {
+                    var pos = marker.getLatLng();
+                    setInputFromLatLng(pos.lat, pos.lng);
+                });
+
+                // Typing/pasting -> move pin (debounced)
+                var debounce;
+                input.addEventListener('input', function () {
+                    clearTimeout(debounce);
+                    debounce = setTimeout(function () {
+                        var coords = parseLatLng(input.value);
+                        if (coords) {
+                            marker.setLatLng([coords.lat, coords.lng]);
+                            map.setView([coords.lat, coords.lng], FOCUS_ZOOM);
+                        }
+                    }, 400);
+                });
+
+                // Fix tiles when container becomes visible / after layout settles.
+                setTimeout(function () { map.invalidateSize(); }, 300);
+            }
+
+            function loadLeafletThenInit() {
+                if (typeof L !== 'undefined') {
+                    initMap();
+                    return;
+                }
+                var existing = document.getElementById('leaflet-js');
+                if (existing) {
+                    existing.addEventListener('load', initMap);
+                    return;
+                }
+                var script = document.createElement('script');
+                script.id = 'leaflet-js';
+                script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+                script.crossOrigin = '';
+                script.onload = initMap;
+                document.head.appendChild(script);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', loadLeafletThenInit);
+            } else {
+                loadLeafletThenInit();
+            }
+        })();
+    </script>
+@endonce
