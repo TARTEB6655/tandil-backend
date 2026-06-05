@@ -54,9 +54,6 @@
                                     Documents
                                 </a>
                             </div>
-                            <div class="mb-4 border-t border-gray-200 pt-4">
-                                <p class="px-3 py-1 text-xs font-normal uppercase tracking-wider text-gray-500">Account</p>
-                            </div>
                         @endunless
                         @if($vendorApproved)
                         <div class="mb-2">
