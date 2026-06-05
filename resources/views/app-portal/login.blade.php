@@ -60,10 +60,18 @@
 
                 <button type="submit" class="portal-btn">{{ __('Log in') }}</button>
 
-                @if (Route::has('register'))
+                @php
+                    // Send each portal to its role-correct registration so the new account
+                    // is created with the right role (vendor sign-up must set the vendor role).
+                    $registerUrl = match ($portal) {
+                        'vendor' => Route::has('vendor.register') ? route('vendor.register') : (Route::has('register') ? route('register') : null),
+                        default => Route::has('register') ? route('register') : null,
+                    };
+                @endphp
+                @if ($registerUrl)
                     <div class="portal-divider portal-muted">
                         {{ __('Not registered?') }}
-                        <a class="portal-link" href="{{ route('register') }}">{{ __('Register here') }}</a>
+                        <a class="portal-link" href="{{ $registerUrl }}">{{ __('Register here') }}</a>
                     </div>
                 @endif
             </form>
