@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Vendor;
 use App\Http\Controllers\Controller;
 use App\Services\Vendor\VendorDashboardService;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class VendorDashboardController extends Controller
 {
@@ -15,26 +16,23 @@ class VendorDashboardController extends Controller
         $this->middleware('vendor.approved')->only('index');
     }
 
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $vendor = $request->attributes->get('vendor');
-        $stats = $this->dashboard->stats($vendor);
+        $overview = $this->dashboard->overview($vendor);
+        $stats = $overview;
+        $analytics = $overview['analytics'];
 
-        $statCards = [
-            ['label' => 'Total Products', 'value' => $stats['total_products'] ?? 0],
-            ['label' => 'Active Products', 'value' => $stats['active_products'] ?? 0],
-            ['label' => 'Out of Stock', 'value' => $stats['out_of_stock_products'] ?? 0],
-            ['label' => 'Low Stock', 'value' => $stats['low_stock_products'] ?? 0],
-            ['label' => 'Total Orders', 'value' => $stats['total_orders'] ?? 0],
-            ['label' => 'Pending Orders', 'value' => $stats['pending_orders'] ?? 0],
-            ['label' => 'Completed', 'value' => $stats['completed_orders'] ?? 0],
-            ['label' => 'Revenue (AED)', 'value' => number_format((float) ($stats['revenue'] ?? 0), 2)],
-        ];
-
-        return view('vendor.dashboard', compact('stats', 'vendor', 'statCards'));
+        return view('vendor.dashboard', [
+            'vendor' => $vendor->load('profile'),
+            'stats' => $stats,
+            'analytics' => $analytics,
+            'dashboardTitle' => 'Vendor Dashboard',
+            'dashboardSubtitle' => 'Welcome back, '.($vendor->profile?->business_name ?? $request->user()->name).'. Here is your store performance overview.',
+        ]);
     }
 
-    public function pending()
+    public function pending(): View
     {
         return view('vendor.pending');
     }

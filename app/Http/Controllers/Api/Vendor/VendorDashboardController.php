@@ -18,6 +18,6 @@ class VendorDashboardController extends Controller
     {
         $vendor = $request->attributes->get('vendor');
 
-        return ApiResponse::success('Dashboard statistics.', $this->dashboard->stats($vendor));
+        return ApiResponse::success('Dashboard statistics.', $this->dashboard->overview($vendor));
     }
 }

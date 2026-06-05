@@ -60,7 +60,27 @@ class VendorMarketplaceE2ETest extends TestCase
         $this->withToken($token)
             ->getJson('/api/vendor/dashboard/stats')
             ->assertOk()
-            ->assertJsonPath('success', true);
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'total_products',
+                    'revenue',
+                    'analytics' => [
+                        'orders_by_status',
+                        'monthly_revenue',
+                        'top_products',
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_approved_vendor_can_view_web_dashboard(): void
+    {
+        $this->actingAs($this->vendorApproved)
+            ->get(route('vendor.dashboard'))
+            ->assertOk()
+            ->assertSee('Vendor Dashboard', false)
+            ->assertSee('Sales Overview', false);
     }
 
     public function test_pending_vendor_blocked_from_approved_routes(): void

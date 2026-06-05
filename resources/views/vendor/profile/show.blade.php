@@ -1,8 +1,5 @@
 <x-vendor-layout>
-    <div class="mb-6">
-        <h1 class="text-xl font-semibold text-gray-900">Business Profile</h1>
-        <p class="mt-1 text-sm text-gray-500">Your store information visible to customers and admins.</p>
-    </div>
+    <x-dashboard.page-header title="Business Profile" subtitle="Your store information visible to customers and admins." />
 
     @php $profile = $vendor?->profile; @endphp
 

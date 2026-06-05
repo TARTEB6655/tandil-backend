@@ -1,8 +1,5 @@
 <x-vendor-layout>
-    <div class="mb-6">
-        <h1 class="text-xl font-semibold text-gray-900">Orders</h1>
-        <p class="mt-1 text-sm text-gray-500">Orders assigned to your store.</p>
-    </div>
+    <x-dashboard.page-header title="Orders" subtitle="Orders assigned to your store." />
 
     <form method="GET" class="mb-4 flex flex-wrap gap-2">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Order ID or customer..." class="rounded-lg border-gray-300 text-sm" />
