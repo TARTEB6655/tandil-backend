@@ -10,6 +10,23 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
     }
 
     /**
+     * Simple sign-up collects a single "Name". Use it to seed the required
+     * business_name and owner_name, which the vendor refines later in the
+     * dashboard Business Profile.
+     */
+    protected function prepareForValidation(): void
+    {
+        $name = trim((string) $this->input('name'));
+
+        if ($name !== '') {
+            $this->merge([
+                'business_name' => $this->input('business_name') ?: $name,
+                'owner_name' => $this->input('owner_name') ?: $name,
+            ]);
+        }
+    }
+
+    /**
      * Registration captures account essentials; remaining Business Profile fields are
      * validated when supplied and fully enforced at the submit-for-approval gate.
      *
