@@ -62,7 +62,6 @@
     <div class="sm:col-span-2">
         <label class="text-sm font-medium text-gray-700">Google Maps Location *</label>
         <input type="text" id="google_maps_location_input" name="google_maps_location" value="{{ old('google_maps_location', $profile?->google_maps_location) }}" placeholder="Address, Google Maps URL, or latitude,longitude" class="mt-1 w-full rounded-lg border-gray-300" required />
-        <p class="mt-1 text-xs text-gray-500">Type an <strong>address / place name</strong>, paste a Google Maps link, or enter <code>latitude,longitude</code>. You can also click the map or drag the pin to set the exact location.</p>
         <p id="vendor-location-status" class="mt-1 hidden text-xs"></p>
         <div id="vendor-location-map" class="mt-3 w-full overflow-hidden rounded-lg border border-gray-200" style="height: 16rem;"></div>
     </div>
