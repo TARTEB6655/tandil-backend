@@ -9,7 +9,7 @@
 <body class="min-h-screen bg-gray-50 py-10 px-4">
     <div class="max-w-3xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8">
         <h1 class="text-xl font-semibold text-gray-900">Become a vendor</h1>
-        <p class="text-sm text-gray-500 mt-1">Create your business account. You can upload documents now or during onboarding — all required fields and documents must be completed before you can submit for admin approval.</p>
+        <p class="text-sm text-gray-500 mt-1">Create your account to get started. You'll complete your business profile, documents and categories inside your dashboard before submitting for admin approval.</p>
         @if(session('success'))
             <div class="mt-4 p-3 bg-green-50 text-green-800 text-sm rounded-lg">{{ session('success') }}</div>
         @endif
@@ -18,28 +18,34 @@
                 <ul class="list-disc pl-4">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
             </div>
         @endif
-        <form method="POST" action="{{ route('vendor.register.store') }}" enctype="multipart/form-data" class="mt-6 space-y-4">
+        <form method="POST" action="{{ route('vendor.register.store') }}" class="mt-6 space-y-4">
             @csrf
 
-            @include('vendor.partials.business-profile-fields', ['profile' => null, 'vendorTypes' => $vendorTypes, 'emirates' => $emirates, 'requireLogo' => true])
-
-            @if($categories->isNotEmpty())
-                <div class="border-t border-gray-200 pt-4">
-                    <p class="text-sm font-medium text-gray-700 mb-2">Categories <span class="text-gray-400">(optional now — required before submission)</span></p>
-                    <div class="grid gap-2 sm:grid-cols-2">
-                        @foreach($categories as $category)
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" name="category_ids[]" value="{{ $category->id }}" @checked(in_array($category->id, old('category_ids', []))) class="rounded border-gray-300" />
-                                {{ $category->name }}
-                            </label>
-                        @endforeach
-                    </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Company Name *</label>
+                    <input type="text" name="business_name" value="{{ old('business_name') }}" required class="mt-1 w-full rounded-lg border-gray-300" />
                 </div>
-            @endif
-
-            <div class="grid gap-4 sm:grid-cols-2 border-t border-gray-200 pt-4">
-                <div><label class="block text-sm font-medium text-gray-700">Password *</label><input type="password" name="password" required class="mt-1 w-full rounded-lg border-gray-300" /></div>
-                <div><label class="block text-sm font-medium text-gray-700">Confirm Password *</label><input type="password" name="password_confirmation" required class="mt-1 w-full rounded-lg border-gray-300" /></div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Authorized Person Name *</label>
+                    <input type="text" name="owner_name" value="{{ old('owner_name') }}" required class="mt-1 w-full rounded-lg border-gray-300" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input type="text" name="phone" value="{{ old('phone') }}" class="mt-1 w-full rounded-lg border-gray-300" />
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Email *</label>
+                    <input type="email" name="email" value="{{ old('email') }}" required class="mt-1 w-full rounded-lg border-gray-300" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Password *</label>
+                    <input type="password" name="password" required class="mt-1 w-full rounded-lg border-gray-300" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Confirm Password *</label>
+                    <input type="password" name="password_confirmation" required class="mt-1 w-full rounded-lg border-gray-300" />
+                </div>
             </div>
 
             <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -50,6 +56,10 @@
             </div>
 
             <button type="submit" class="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800">Create account</button>
+
+            <p class="text-center text-sm text-gray-500">Already have an account?
+                <a href="{{ route('app-portal.login', ['portal' => 'vendor']) }}" class="text-indigo-600 underline">Log in</a>
+            </p>
         </form>
     </div>
 </body>
