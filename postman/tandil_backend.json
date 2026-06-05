@@ -1094,9 +1094,102 @@
                         },
                         "description": "POST /api/auth/register-technician. Required: name, email, phone, password, password_confirmation, and either service_area (any free-text / map / worldwide address) OR area_id. Optional: if text matches a supervised zone, area_id is stored for routing; otherwise area_id is null and the raw location is saved. Supervisor sees null-area requests too; on approve they attach to one of their zones."
                     }
+                },
+                {
+                    "name": "Register Vendor (multipart)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {"key": "business_name", "value": "Green Farms LLC", "type": "text", "description": "Company Name. Required."},
+                                {"key": "owner_name", "value": "Ali Vendor", "type": "text", "description": "Authorized Person Name. Required."},
+                                {"key": "email", "value": "vendor@example.com", "type": "text", "description": "Required. Unique across users + vendor profiles."},
+                                {"key": "phone", "value": "+971500000000", "type": "text", "description": "Phone Number."},
+                                {"key": "password", "value": "secret12", "type": "text", "description": "Required (min 6)."},
+                                {"key": "password_confirmation", "value": "secret12", "type": "text", "description": "Required, must match password."},
+                                {"key": "terms_accepted", "value": "1", "type": "text", "description": "Terms & Conditions acceptance (1 = accepted)."},
+                                {"key": "trade_license_number", "value": "TL-12345", "type": "text", "description": "Trade License Number."},
+                                {"key": "vendor_type", "value": "fruits", "type": "text", "description": "One of: fruits, vegetables, poultry, seafood, meat, honey, nuts, restaurant, other."},
+                                {"key": "emirate", "value": "Dubai", "type": "text", "description": "One of the 7 UAE emirates."},
+                                {"key": "city", "value": "Dubai", "type": "text", "description": "City."},
+                                {"key": "address", "value": "Industrial Area 1, Warehouse 5", "type": "text", "description": "Address."},
+                                {"key": "google_maps_location", "value": "25.2048,55.2708", "type": "text", "description": "Google Maps URL or latitude,longitude."},
+                                {"key": "bank_name", "value": "Emirates NBD", "type": "text", "description": "Bank Name."},
+                                {"key": "iban", "value": "AE070331234567890123456", "type": "text", "description": "IBAN."},
+                                {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text", "description": "Account Holder Name."},
+                                {"key": "delivery_radius", "value": "15", "type": "text", "description": "Delivery Radius in km."},
+                                {"key": "operating_hours", "value": "Mon-Sun 9AM-9PM", "type": "text", "description": "Operating Hours."},
+                                {"key": "minimum_order_amount", "value": "50", "type": "text", "description": "Minimum Order Amount (AED)."},
+                                {"key": "vat_number", "value": "TRN123456789", "type": "text", "description": "Optional VAT Number."},
+                                {"key": "description", "value": "Fresh local produce supplier.", "type": "text", "description": "Optional business description."},
+                                {"key": "logo", "type": "file", "src": [], "description": "Company Logo (image)."},
+                                {"key": "trade_license", "type": "file", "src": [], "description": "Trade License Upload (pdf/jpg/png/webp). Optional at signup; required before submitting for approval."},
+                                {"key": "emirates_id", "type": "file", "src": [], "description": "Emirates ID Upload of Authorized Person (pdf/jpg/png/webp). Optional at signup; required before submitting for approval."},
+                                {"key": "category_ids[]", "value": "1", "type": "text", "description": "Optional. Repeat for multiple categories."}
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/vendor/auth/register",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "vendor", "auth", "register"]
+                        },
+                        "description": "Public. Creates the user + vendor (status = pending) + business profile. Account essentials (business_name, owner_name, email, password) are required here; the remaining Business Profile fields and documents are validated when supplied and fully enforced at the Submit-for-approval step. Response: vendor_id, status, profile."
+                    }
+                },
+                {
+                    "name": "Login Vendor",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var d = pm.response.json();",
+                                    "    var t = d.data && (d.data.token || d.data.access_token);",
+                                    "    if (t) { pm.environment.set('token', t); }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {"mode": "raw", "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"vendor\"\n}"},
+                        "url": {
+                            "raw": "{{base_url}}/api/vendor/auth/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "vendor", "auth", "login"]
+                        },
+                        "description": "Login as vendor. Saves token to {{token}}. (Alias of POST /api/auth/login with roles: vendor.)"
+                    }
+                },
+                {
+                    "name": "Logout Vendor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/vendor/auth/logout",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "vendor", "auth", "logout"]
+                        },
+                        "description": "Revoke the current vendor access token."
+                    }
                 }
             ],
-            "description": "Authentication endpoints - Register, Login, Google/Apple sign-in, Delete Account (after login)"
+            "description": "Authentication endpoints - Register, Login, Google/Apple sign-in, Delete Account (after login). Vendor auth (Register/Login/Logout) is also here; vendor account deletion uses the common Delete Account endpoint."
         },
         {
             "name": "3. Client Dashboard – Profile",
@@ -18738,106 +18831,8 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Vendor marketplace module — complete flow, step by step.\n\nFlow: A. Register → B. Login → C. Business Profile (complete all required fields) → D. Documents (Trade License + Emirates ID) → E. Application (submit for admin approval) → wait for admin approval → F. Dashboard / G. Products / H. Inventory / I. Orders.\n\nA vendor CANNOT access selling features (dashboard, products, inventory, orders) until the admin approves the account. A vendor CANNOT submit for approval until every required Business Profile field, both documents, the company logo, and Terms acceptance are complete.\n\nAuth: Bearer {{token}} (login as a vendor to populate it). Admin endpoints are under folder J/K and need an admin token.\n\nEnv: base_url, token, vendor_id, vendor_product_id, vendor_order_mapping_id, vendor_document_id, product_id.",
+            "description": "Vendor marketplace module — complete flow, step by step.\n\nVendor Auth (Register / Login / Logout) lives in folder '2. Authentication' (Register Vendor, Login Vendor, Logout Vendor). Vendor account deletion uses the common Delete Account endpoint there too.\n\nFlow: Register Vendor + Login Vendor (folder 2) → B. Business Profile (complete all required fields) → C. Application & Onboarding (submit for admin approval) → D. Documents (Trade License + Emirates ID) → wait for admin approval → E. Dashboard / F. Products / G. Inventory / H. Orders.\n\nA vendor CANNOT access selling features (dashboard, products, inventory, orders) until the admin approves the account. A vendor CANNOT submit for approval until every required Business Profile field, both documents, the company logo, and Terms acceptance are complete.\n\nAuth: Bearer {{token}} (login as a vendor in folder 2 to populate it). Admin endpoints are under folder J/K and need an admin token.\n\nEnv: base_url, token, vendor_id, vendor_product_id, vendor_order_mapping_id, vendor_document_id, product_id.",
             "item": [
-                {
-                    "name": "A. Auth",
-                    "item": [
-                        {
-                            "name": "1. Register vendor (multipart)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {"key": "Accept", "value": "application/json"}
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "business_name", "value": "Green Farms LLC", "type": "text", "description": "Company Name. Required."},
-                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text", "description": "Authorized Person Name. Required."},
-                                        {"key": "email", "value": "vendor@example.com", "type": "text", "description": "Required. Unique across users + vendor profiles."},
-                                        {"key": "phone", "value": "+971500000000", "type": "text", "description": "Phone Number."},
-                                        {"key": "password", "value": "secret12", "type": "text", "description": "Required (min 6)."},
-                                        {"key": "password_confirmation", "value": "secret12", "type": "text", "description": "Required, must match password."},
-                                        {"key": "terms_accepted", "value": "1", "type": "text", "description": "Terms & Conditions acceptance (1 = accepted)."},
-                                        {"key": "trade_license_number", "value": "TL-12345", "type": "text", "description": "Trade License Number."},
-                                        {"key": "vendor_type", "value": "fruits", "type": "text", "description": "One of: fruits, vegetables, poultry, seafood, meat, honey, nuts, restaurant, other."},
-                                        {"key": "emirate", "value": "Dubai", "type": "text", "description": "One of the 7 UAE emirates."},
-                                        {"key": "city", "value": "Dubai", "type": "text", "description": "City."},
-                                        {"key": "address", "value": "Industrial Area 1, Warehouse 5", "type": "text", "description": "Address."},
-                                        {"key": "google_maps_location", "value": "25.2048,55.2708", "type": "text", "description": "Google Maps URL or latitude,longitude."},
-                                        {"key": "bank_name", "value": "Emirates NBD", "type": "text", "description": "Bank Name."},
-                                        {"key": "iban", "value": "AE070331234567890123456", "type": "text", "description": "IBAN."},
-                                        {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text", "description": "Account Holder Name."},
-                                        {"key": "delivery_radius", "value": "15", "type": "text", "description": "Delivery Radius in km."},
-                                        {"key": "operating_hours", "value": "Mon-Sun 9AM-9PM", "type": "text", "description": "Operating Hours."},
-                                        {"key": "minimum_order_amount", "value": "50", "type": "text", "description": "Minimum Order Amount (AED)."},
-                                        {"key": "vat_number", "value": "TRN123456789", "type": "text", "description": "Optional VAT Number."},
-                                        {"key": "description", "value": "Fresh local produce supplier.", "type": "text", "description": "Optional business description."},
-                                        {"key": "logo", "type": "file", "src": [], "description": "Company Logo (image)."},
-                                        {"key": "trade_license", "type": "file", "src": [], "description": "Trade License Upload (pdf/jpg/png/webp). Optional at signup; required before submitting for approval."},
-                                        {"key": "emirates_id", "type": "file", "src": [], "description": "Emirates ID Upload of Authorized Person (pdf/jpg/png/webp). Optional at signup; required before submitting for approval."},
-                                        {"key": "category_ids[]", "value": "1", "type": "text", "description": "Optional. Repeat for multiple categories."}
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/vendor/auth/register",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "auth", "register"]
-                                },
-                                "description": "Public. Creates the user + vendor (status = pending) + business profile. Account essentials (business_name, owner_name, email, password) are required here; the remaining Business Profile fields and documents are validated when supplied and fully enforced at the Submit-for-approval step. Response: vendor_id, status, profile."
-                            }
-                        },
-                        {
-                            "name": "2. Login vendor",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "type": "text/javascript",
-                                        "exec": [
-                                            "if (pm.response.code === 200) {",
-                                            "    var d = pm.response.json();",
-                                            "    var t = d.data && (d.data.token || d.data.access_token);",
-                                            "    if (t) { pm.environment.set('token', t); }",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {"key": "Accept", "value": "application/json"},
-                                    {"key": "Content-Type", "value": "application/json"}
-                                ],
-                                "body": {"mode": "raw", "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"vendor\"\n}"},
-                                "url": {
-                                    "raw": "{{base_url}}/api/vendor/auth/login",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "auth", "login"]
-                                },
-                                "description": "Login as vendor. Saves token to {{token}}. (Alias of POST /api/auth/login with roles: vendor.)"
-                            }
-                        },
-                        {
-                            "name": "3. Logout",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {"key": "Authorization", "value": "Bearer {{token}}"},
-                                    {"key": "Accept", "value": "application/json"}
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/vendor/auth/logout",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "auth", "logout"]
-                                },
-                                "description": "Revoke the current access token."
-                            }
-                        }
-                    ]
-                },
                 {
                     "name": "B. Business Profile",
                     "item": [
