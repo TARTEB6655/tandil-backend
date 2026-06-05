@@ -37,15 +37,9 @@
                         @unless($vendorApproved)
                             <p class="px-3 py-1 text-xs font-normal uppercase tracking-wider text-gray-500">Onboarding</p>
                             <div class="mb-2">
-                                <a href="{{ route('vendor.application.status') }}" class="{{ $linkClass(request()->routeIs('vendor.application.*')) }}">
+                                <a href="{{ route('vendor.onboarding.index') }}" class="{{ $linkClass(request()->routeIs('vendor.onboarding.*') || request()->routeIs('vendor.application.*')) }}">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     Application
-                                </a>
-                            </div>
-                            <div class="mb-2">
-                                <a href="{{ route('vendor.onboarding.index') }}" class="{{ $linkClass(request()->routeIs('vendor.onboarding.*')) }}">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                    Onboarding
                                 </a>
                             </div>
                             <div class="mb-2">

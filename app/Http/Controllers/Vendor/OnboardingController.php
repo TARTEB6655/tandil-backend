@@ -53,7 +53,7 @@ class OnboardingController extends Controller
     {
         $vendor = $request->attributes->get('vendor');
         if (! $vendor->statusEnum()->canCompleteOnboarding()) {
-            return redirect()->route('vendor.application.status')->with('error', 'Profile cannot be edited in current status.');
+            return redirect()->route('vendor.onboarding.index')->with('error', 'Profile cannot be edited in current status.');
         }
 
         $this->registration->updateProfile(

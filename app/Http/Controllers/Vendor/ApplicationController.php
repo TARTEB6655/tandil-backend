@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\Vendor\VendorApplicationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class ApplicationController extends Controller
 {
@@ -16,17 +15,14 @@ class ApplicationController extends Controller
         $this->middleware(['auth', 'role:vendor', 'vendor.account']);
     }
 
-    public function status(Request $request): View|RedirectResponse
+    public function status(Request $request): RedirectResponse
     {
-        $vendor = $request->attributes->get('vendor');
-
-        if ($vendor->isApproved()) {
+        // Application & onboarding are now a single unified page.
+        if ($request->attributes->get('vendor')->isApproved()) {
             return redirect()->route('vendor.dashboard');
         }
 
-        $application = $this->application->applicationPayload($vendor);
-
-        return view('vendor.application.status', compact('vendor', 'application'));
+        return redirect()->route('vendor.onboarding.index');
     }
 
     public function resubmit(Request $request): RedirectResponse
@@ -39,7 +35,7 @@ class ApplicationController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('vendor.application.status')->with('success', 'Application resubmitted for admin review.');
+        return redirect()->route('vendor.onboarding.index')->with('success', 'Application resubmitted for admin review.');
     }
 
     public function submit(Request $request): RedirectResponse
@@ -52,6 +48,6 @@ class ApplicationController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('vendor.application.status')->with('success', 'Application submitted for review.');
+        return redirect()->route('vendor.onboarding.index')->with('success', 'Application submitted for review.');
     }
 }
