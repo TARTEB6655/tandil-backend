@@ -11,7 +11,7 @@ class Product extends Model
 
     protected $fillable = [
         'category_id', 'vendor_id', 'name', 'vendor', 'type', 'product_type', 'sku', 'barcode', 'description',
-        'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured',
+        'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured', 'sort_order',
         'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
         'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
         'estimated_arrival', 'job_duration',
@@ -29,10 +29,34 @@ class Product extends Model
         'requires_shipping' => 'boolean',
         'taxable' => 'boolean',
         'stock' => 'integer',
+        'sort_order' => 'integer',
         'price' => 'float',
         'compare_at_price' => 'float',
         'cost_per_item' => 'float',
     ];
+
+    /**
+     * Order products for display by the admin-defined drag-and-drop position
+     * (sort_order ASC), then newest first as a tie-breaker.
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('sort_order')->orderByDesc('id');
+    }
+
+    /**
+     * Next available sort_order value. Scoped to a category when given so new
+     * products are placed at the end of their category list.
+     */
+    public static function nextSortOrder(?int $categoryId = null): int
+    {
+        $query = static::query();
+        if ($categoryId !== null) {
+            $query->where('category_id', $categoryId);
+        }
+
+        return ((int) $query->max('sort_order')) + 1;
+    }
 
     // Optimized: Only append image_url (primary_image loaded via relation)
     protected $appends = ['image_url'];

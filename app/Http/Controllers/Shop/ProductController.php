@@ -94,9 +94,14 @@ class ProductController extends Controller
                 }
             }
 
-            // Sorting
-            if (in_array($sortBy, ['name', 'price', 'created_at', 'stock'])) {
+            // Sorting. Default honours the admin-defined drag-and-drop order
+            // (sort_order). Explicit sort_by overrides it.
+            if ($sortBy === 'sort_order') {
+                $query->ordered();
+            } elseif (in_array($sortBy, ['name', 'price', 'created_at', 'stock'])) {
                 $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
+            } else {
+                $query->ordered();
             }
 
             $products = $query->paginate($perPage > 0 ? $perPage : 12);
@@ -225,6 +230,7 @@ class ProductController extends Controller
             'stock'            => $product->stock,
             'status'           => $product->status,
             'is_featured'      => (bool) ($product->is_featured ?? false),
+            'sort_order'       => (int) $product->sort_order,
             'category_id'      => $product->category_id,
             'weight_unit'      => $product->weight_unit,
             'sku'              => $product->sku,
@@ -330,6 +336,7 @@ class ProductController extends Controller
             $products = Product::where('category_id', $category->id)
                 ->where('status', 'active')
                 ->with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
+                ->ordered()
                 ->paginate(12);
 
             return response()->json([

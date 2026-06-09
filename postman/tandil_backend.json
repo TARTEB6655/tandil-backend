@@ -10830,6 +10830,43 @@
                             }
                         },
                         {
+                            "name": "Reorder Products (drag-and-drop)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"products\": [\n    { \"id\": 1, \"sort_order\": 1 },\n    { \"id\": 2, \"sort_order\": 2 },\n    { \"id\": 3, \"sort_order\": 3 }\n  ]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products/reorder",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products",
+                                        "reorder"
+                                    ]
+                                },
+                                "description": "Reorder products for drag-and-drop. Body: products (array of { id, sort_order }), where sort_order 1 = first. Persists each product's position. Returns the updated products sorted by sort_order. The new order is reflected in admin list (GET /api/admin/products), client list (GET /api/shop/products?sort_by=sort_order) and category products (GET /api/shop/products/category/{id})."
+                            }
+                        },
+                        {
                             "name": "Bulk Delete",
                             "request": {
                                 "method": "POST",

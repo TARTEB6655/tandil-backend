@@ -441,6 +441,7 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/products', [\App\Http\Controllers\Admin\ProductController::class, 'index']);
     Route::post('/products', [\App\Http\Controllers\Admin\ProductController::class, 'store']);
     // Bulk operations must come before {id} route to avoid route conflicts
+    Route::post('/products/reorder', [\App\Http\Controllers\Admin\ProductController::class, 'reorder']);
     Route::post('/products/bulk-delete', [\App\Http\Controllers\Admin\ProductController::class, 'bulkDelete']);
     Route::post('/products/bulk-update-status', [\App\Http\Controllers\Admin\ProductController::class, 'bulkUpdateStatus']);
     Route::post('/products/bulk-update-stock', [\App\Http\Controllers\Admin\ProductController::class, 'bulkUpdateStock']);

@@ -21,7 +21,7 @@ class ProductController extends Controller
 {
     /** Product API allowed fields for create/update payload (plus images handled separately). */
     private const PRODUCT_API_FIELDS = [
-        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle', 'product_type',
+        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'sort_order', 'category_id', 'weight_unit', 'sku', 'handle', 'product_type',
         'estimated_arrival', 'job_duration',
     ];
 
@@ -123,6 +123,7 @@ class ProductController extends Controller
             'stock' => $product->stock,
             'status' => $product->status,
             'is_featured' => (bool) ($product->is_featured ?? false),
+            'sort_order' => (int) $product->sort_order,
             'category_id' => $product->category_id,
             'weight_unit' => $product->weight_unit,
             'sku' => $product->sku,
@@ -458,7 +459,7 @@ class ProductController extends Controller
         }
 
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
-        $products = $query->orderByDesc('id')->paginate($perPage);
+        $products = $query->ordered()->paginate($perPage);
 
         if ($isApi) {
             return response()->json([
@@ -476,6 +477,46 @@ class ProductController extends Controller
 
         $categories = Category::select('id', 'name')->get();
         return view('admin.products.index', compact('products', 'categories'));
+    }
+
+    /**
+     * Reorder products (drag-and-drop). Accepts a list of products with their new
+     * positions and persists each sort_order. 1 = first.
+     *
+     * Body (JSON):
+     * {
+     *   "products": [
+     *     { "id": 12, "sort_order": 1 },
+     *     { "id": 7,  "sort_order": 2 }
+     *   ]
+     * }
+     */
+    public function reorder(Request $request)
+    {
+        $validated = $request->validate([
+            'products'              => 'required|array|min:1',
+            'products.*.id'         => 'required|integer|exists:products,id',
+            'products.*.sort_order' => 'required|integer|min:0',
+        ]);
+
+        \DB::transaction(function () use ($validated) {
+            foreach ($validated['products'] as $item) {
+                Product::where('id', $item['id'])->update(['sort_order' => (int) $item['sort_order']]);
+            }
+        });
+
+        $ids = array_column($validated['products'], 'id');
+        $products = Product::with([
+            'category:id,name,slug',
+            'primaryImage:id,product_id,image_path,is_primary',
+            'firstImage:id,product_id,image_path,sort_order',
+        ])->whereIn('id', $ids)->ordered()->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Product order updated successfully.',
+            'data' => $products->map(fn (Product $p) => $this->productToApiData($p))->all(),
+        ]);
     }
 
     /**
@@ -1256,6 +1297,7 @@ class ProductController extends Controller
             'stock'       => 'nullable|integer|min:0',
             'status'      => 'nullable|in:draft,active,archived',
             'is_featured' => 'nullable|boolean',
+            'sort_order'  => 'nullable|integer|min:0',
             'category_id' => 'nullable|integer',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku',
@@ -1300,6 +1342,11 @@ class ProductController extends Controller
         $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
         $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
         $createData['product_type'] = $request->input('product_type', 'simple');
+        if (! isset($createData['sort_order']) || $createData['sort_order'] === '') {
+            $createData['sort_order'] = Product::nextSortOrder();
+        } else {
+            $createData['sort_order'] = (int) $createData['sort_order'];
+        }
         if (empty($createData['handle']) && ! empty($createData['name'])) {
             $createData['handle'] = Str::slug($createData['name']);
             $counter = 1;
@@ -1566,6 +1613,7 @@ class ProductController extends Controller
             'stock'       => 'nullable|integer|min:0',
             'status'      => 'nullable|in:draft,active,archived',
             'is_featured' => 'nullable|boolean',
+            'sort_order'  => 'nullable|integer|min:0',
             'category_id' => 'nullable|integer',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,
