@@ -480,11 +480,13 @@ class ProductController extends Controller
     }
 
     /**
-     * Reorder products (drag-and-drop). Accepts a list of products with their new
-     * positions and persists each sort_order. 1 = first.
+     * Reorder products within a category (drag-and-drop). Accepts the category and
+     * the list of products with their new positions, then persists each sort_order.
+     * sort_order 1 = first.
      *
      * Body (JSON):
      * {
+     *   "category_id": 6,
      *   "products": [
      *     { "id": 12, "sort_order": 1 },
      *     { "id": 7,  "sort_order": 2 }
@@ -494,27 +496,48 @@ class ProductController extends Controller
     public function reorder(Request $request)
     {
         $validated = $request->validate([
+            'category_id'           => 'required|integer|exists:categories,id',
             'products'              => 'required|array|min:1',
             'products.*.id'         => 'required|integer|exists:products,id',
             'products.*.sort_order' => 'required|integer|min:0',
         ]);
 
-        \DB::transaction(function () use ($validated) {
+        $categoryId = (int) $validated['category_id'];
+        $ids = array_column($validated['products'], 'id');
+
+        // Ensure every product actually belongs to the given category before reordering.
+        $belonging = Product::whereIn('id', $ids)
+            ->where('category_id', $categoryId)
+            ->pluck('id')
+            ->all();
+        $invalid = array_values(array_diff($ids, $belonging));
+        if ($invalid !== []) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Some products do not belong to category ' . $categoryId . '.',
+                'invalid_product_ids' => $invalid,
+            ], 422);
+        }
+
+        \DB::transaction(function () use ($validated, $categoryId) {
             foreach ($validated['products'] as $item) {
-                Product::where('id', $item['id'])->update(['sort_order' => (int) $item['sort_order']]);
+                Product::where('id', $item['id'])
+                    ->where('category_id', $categoryId)
+                    ->update(['sort_order' => (int) $item['sort_order']]);
             }
         });
 
-        $ids = array_column($validated['products'], 'id');
+        // Return the full, freshly ordered product list for this category.
         $products = Product::with([
             'category:id,name,slug',
             'primaryImage:id,product_id,image_path,is_primary',
             'firstImage:id,product_id,image_path,sort_order',
-        ])->whereIn('id', $ids)->ordered()->get();
+        ])->where('category_id', $categoryId)->ordered()->get();
 
         return response()->json([
             'status' => true,
             'message' => 'Product order updated successfully.',
+            'category_id' => $categoryId,
             'data' => $products->map(fn (Product $p) => $this->productToApiData($p))->all(),
         ]);
     }
@@ -1342,11 +1365,6 @@ class ProductController extends Controller
         $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
         $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
         $createData['product_type'] = $request->input('product_type', 'simple');
-        if (! isset($createData['sort_order']) || $createData['sort_order'] === '') {
-            $createData['sort_order'] = Product::nextSortOrder();
-        } else {
-            $createData['sort_order'] = (int) $createData['sort_order'];
-        }
         if (empty($createData['handle']) && ! empty($createData['name'])) {
             $createData['handle'] = Str::slug($createData['name']);
             $counter = 1;
@@ -1378,6 +1396,14 @@ class ProductController extends Controller
                 );
                 $createData['category_id'] = $uncategorized->id;
             }
+        }
+
+        // Place new product at the end of its category list unless an explicit
+        // sort_order was provided.
+        if (! isset($createData['sort_order']) || $createData['sort_order'] === '') {
+            $createData['sort_order'] = Product::nextSortOrder($createData['category_id'] ?? null);
+        } else {
+            $createData['sort_order'] = (int) $createData['sort_order'];
         }
 
         try {
