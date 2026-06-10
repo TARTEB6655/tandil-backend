@@ -128,12 +128,22 @@ class CheckoutOrderSummaryCalculationTest extends TestCase
         $this->assertSame(0.0, (float) $removedSummary['coupon_discount']);
         $this->assertArrayNotHasKey('coupon_code', $removedSummary);
 
-        // 7) use_wallet=0 must NOT ghost-reapply coupon (was the production bug)
+        // 7) use_wallet=0 must NOT ghost-reapply coupon
         $walletOff = $this->getJson('/api/shop/order-summary?use_wallet=0', $headers)->assertOk()->json('data');
         $this->assertSummaryMath($walletOff);
         $this->assertSame($fullTotal, (float) $walletOff['total']);
         $this->assertSame(0.0, (float) $walletOff['coupon_discount']);
         $this->assertNull($walletOff['coupon_code'] ?? null);
         $this->assertSame(71.93, (float) $walletOff['tax']);
+
+        // 8) Wallet ON after coupon removed must not re-apply coupon
+        $this->postJson('/api/shop/coupons/apply', ['code' => 'SAVE10'], $headers)->assertOk();
+        $this->postJson('/api/shop/coupons/remove', [], $headers)->assertOk();
+        $walletAfterRemove = $this->getJson('/api/shop/order-summary?use_wallet=1', $headers)->assertOk()->json('data');
+        $this->assertSummaryMath($walletAfterRemove);
+        $this->assertSame($fullTotal, (float) $walletAfterRemove['total']);
+        $this->assertSame(0.0, (float) $walletAfterRemove['coupon_discount']);
+        $this->assertNull($walletAfterRemove['coupon_code'] ?? null);
+        $this->assertSame(1493.41, (float) $walletAfterRemove['amount_due']);
     }
 }

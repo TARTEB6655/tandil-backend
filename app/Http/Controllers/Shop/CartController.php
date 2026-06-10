@@ -735,6 +735,8 @@ class CartController extends Controller
         $cartItems = $cartPreview['items'];
 
         if ($code === '') {
+            self::setCheckoutCouponOptIn((int) $user->id, false);
+
             $summary = self::buildOrderSummaryWithCouponForCart($subtotal, $catalogDiscount, 0, false, null, null, $cartItems);
             self::finalizeOrderSummaryCouponState($summary, null);
             self::normalizeOrderSummaryNumericTypes($summary);
@@ -848,12 +850,15 @@ class CartController extends Controller
             'fingerprint' => $fingerprint,
             'coupon_id' => $couponId,
         ], now()->addHours(4));
+
+        self::setCheckoutCouponOptIn($userId, true);
     }
 
     public static function clearAppliedCheckoutCoupon(int $userId): void
     {
         ShopAppliedCheckoutCoupon::query()->where('user_id', $userId)->delete();
         Cache::forget(self::checkoutCouponCacheKey($userId));
+        self::setCheckoutCouponOptIn($userId, false);
         ShopMobileCheckout::query()
             ->where('user_id', $userId)
             ->whereNull('consumed_at')
@@ -870,8 +875,8 @@ class CartController extends Controller
      *
      * When the client sends coupon_code explicitly, that value wins (empty clears storage).
      * When omitted on a plain summary refresh, no coupon is applied (full total).
-     * When omitted during a wallet toggle refresh (use_wallet=1), restore the last applied
-     * coupon for the same cart so wallet + coupon totals stay correct.
+     * When omitted during a wallet toggle (use_wallet=1) and the user still wants a coupon
+     * (opt-in after apply / explicit coupon_code), restore the stored coupon for this cart.
      *
      * @param  array<string, mixed>  $cartPreview
      */
@@ -897,7 +902,7 @@ class CartController extends Controller
             return strtoupper($code);
         }
 
-        if (! self::shouldRestoreStoredCoupon($request)) {
+        if (! self::shouldRestoreStoredCoupon($request, (int) $user->id)) {
             return '';
         }
 
@@ -907,12 +912,32 @@ class CartController extends Controller
     }
 
     /**
-     * Only restore a stored coupon when the client is turning wallet ON (wallet toggle refresh).
-     * use_wallet=0 must NOT re-apply a removed coupon — that caused ghost discounts on checkout.
+     * Restore stored coupon on wallet toggle only when the user still opted in (applied coupon
+     * and did not remove it or refresh a plain no-coupon summary).
      */
-    public static function shouldRestoreStoredCoupon(Request $request): bool
+    public static function shouldRestoreStoredCoupon(Request $request, int $userId): bool
     {
-        return $request->boolean('use_wallet');
+        return $request->boolean('use_wallet') && self::isCheckoutCouponOptIn($userId);
+    }
+
+    public static function setCheckoutCouponOptIn(int $userId, bool $optIn): void
+    {
+        $key = self::checkoutCouponOptInCacheKey($userId);
+        if ($optIn) {
+            Cache::put($key, true, now()->addHours(4));
+        } else {
+            Cache::forget($key);
+        }
+    }
+
+    public static function isCheckoutCouponOptIn(int $userId): bool
+    {
+        return Cache::get(self::checkoutCouponOptInCacheKey($userId), false) === true;
+    }
+
+    private static function checkoutCouponOptInCacheKey(int $userId): string
+    {
+        return 'shop_checkout_coupon_opt_in:'.$userId;
     }
 
     /**

@@ -440,6 +440,100 @@ class ShopCouponApplyApiTest extends TestCase
         $this->assertNull($plain->json('data.coupon_code'));
     }
 
+    public function test_wallet_on_after_coupon_removed_does_not_reapply_coupon(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Setting::set('shop_shipping_amount', '120', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $client = User::factory()->create(['role' => 'client', 'wallet_balance' => 137.02]);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'SAVE10',
+            'title' => '10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create(['shipping_cost' => null]);
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 1438.50,
+            'status' => 'active',
+            'type' => 'physical',
+        ]);
+
+        $headers = $this->clientHeaders($client);
+        $this->postJson('/api/shop/cart/add', ['product_id' => $product->id, 'quantity' => 1], $headers)->assertStatus(201);
+        $this->postJson('/api/shop/coupons/apply', ['code' => 'SAVE10'], $headers)->assertOk();
+        $this->postJson('/api/shop/coupons/remove', [], $headers)->assertOk();
+
+        $walletOn = $this->getJson('/api/shop/order-summary?use_wallet=1', $headers)->assertOk()->json('data');
+
+        $this->assertSame(0.0, (float) $walletOn['coupon_discount']);
+        $this->assertNull($walletOn['coupon_code'] ?? null);
+        $this->assertSame(1630.43, (float) $walletOn['total']);
+        $this->assertSame(71.93, (float) $walletOn['tax']);
+        $this->assertSame(137.02, (float) $walletOn['wallet_amount_applied']);
+        $this->assertSame(1493.41, (float) $walletOn['amount_due']);
+    }
+
+    public function test_wallet_on_after_plain_summary_does_not_reapply_removed_coupon(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Setting::set('shop_shipping_amount', '120', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $client = User::factory()->create(['role' => 'client', 'wallet_balance' => 50]);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'SAVE10',
+            'title' => '10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create(['shipping_cost' => null]);
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 1438.50,
+            'status' => 'active',
+            'type' => 'physical',
+        ]);
+
+        $headers = $this->clientHeaders($client);
+        $this->postJson('/api/shop/cart/add', ['product_id' => $product->id, 'quantity' => 1], $headers)->assertStatus(201);
+        $this->postJson('/api/shop/coupons/apply', ['code' => 'SAVE10'], $headers)->assertOk();
+
+        // User viewed checkout without coupon (full total) — must opt out of auto-restore on wallet toggle.
+        $this->getJson('/api/shop/order-summary', $headers)->assertOk()
+            ->assertJsonPath('data.coupon_discount', 0);
+
+        $walletOn = $this->getJson('/api/shop/order-summary?use_wallet=1', $headers)->assertOk()->json('data');
+
+        $this->assertSame(0.0, (float) $walletOn['coupon_discount']);
+        $this->assertNull($walletOn['coupon_code'] ?? null);
+        $this->assertSame(1630.43, (float) $walletOn['total']);
+        $this->assertSame(50.0, (float) $walletOn['wallet_amount_applied']);
+        $this->assertSame(1580.43, (float) $walletOn['amount_due']);
+    }
+
     public function test_remove_coupon_api_clears_discount_and_returns_full_total(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
