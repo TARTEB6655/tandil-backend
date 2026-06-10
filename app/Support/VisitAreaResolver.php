@@ -6,6 +6,7 @@ use App\Models\Area;
 use App\Services\NominatimForwardGeocoder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Resolves an operational {@see Area} + supervisor from visit/location payloads.
@@ -58,11 +59,7 @@ final class VisitAreaResolver
         $lat = self::nullableCoordinate($payload['latitude'] ?? null);
         $lng = self::nullableCoordinate($payload['longitude'] ?? null);
 
-        $areas = Area::with('supervisors')
-            ->where('is_active', true)
-            ->get()
-            ->filter(fn (Area $a) => $a->supervisors->isNotEmpty())
-            ->values();
+        $areas = self::operationalAreas();
 
         if ($areas->isEmpty()) {
             return null;
@@ -97,7 +94,9 @@ final class VisitAreaResolver
             ];
         }
 
-        if ($lat === null || $lng === null) {
+        // Last resort: forward-geocode typed address (cached; short HTTP timeout).
+        // Skip when there is nothing meaningful to geocode beyond country alone.
+        if (($lat === null || $lng === null) && self::hasGeocodableAddress($city, $state, $streetAddress, $zipCode)) {
             $geo = NominatimForwardGeocoder::firstLatLngFromAddressLines(
                 (string) ($payload['street_address'] ?? ''),
                 (string) ($payload['city'] ?? ''),
@@ -114,6 +113,42 @@ final class VisitAreaResolver
         }
 
         return null;
+    }
+
+    /**
+     * Active areas that have at least one mapped supervisor (cached for fast checkout lookups).
+     *
+     * @return Collection<int, Area>
+     */
+    private static function operationalAreas(): Collection
+    {
+        return Cache::remember('visit_area_resolver:operational_areas', 300, function () {
+            return Area::query()
+                ->select([
+                    'id', 'name', 'description', 'location', 'country',
+                    'is_active', 'priority', 'latitude', 'longitude', 'service_radius_km',
+                ])
+                ->where('is_active', true)
+                ->whereHas('supervisors')
+                ->with(['supervisors:id'])
+                ->orderBy('priority')
+                ->get()
+                ->values();
+        });
+    }
+
+    private static function hasGeocodableAddress(
+        string $city,
+        string $state,
+        string $streetAddress,
+        string $zipCode
+    ): bool {
+        return $city !== '' || $state !== '' || $streetAddress !== '' || $zipCode !== '';
+    }
+
+    public static function clearOperationalAreasCache(): void
+    {
+        Cache::forget('visit_area_resolver:operational_areas');
     }
 
     /**

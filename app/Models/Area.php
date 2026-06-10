@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\VisitAreaResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -29,6 +30,12 @@ class Area extends Model
         'longitude' => 'float',
         'service_radius_km' => 'float',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => VisitAreaResolver::clearOperationalAreasCache());
+        static::deleted(fn () => VisitAreaResolver::clearOperationalAreasCache());
+    }
 
     /*
     |--------------------------------------------------------------------------

@@ -49,7 +49,9 @@ return [
     'nominatim' => [
         'forward_geocode_enabled' => filter_var(env('NOMINATIM_FORWARD_GEOCODE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'base_url' => rtrim((string) env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org'), '/'),
-        'timeout' => (int) env('NOMINATIM_TIMEOUT', 10),
+        // Keep below mobile client timeouts (often 15s) — geocode is a last resort only.
+        'timeout' => (int) env('NOMINATIM_TIMEOUT', 4),
+        'connect_timeout' => (int) env('NOMINATIM_CONNECT_TIMEOUT', 2),
         'user_agent' => env('NOMINATIM_USER_AGENT'),
     ],
 
