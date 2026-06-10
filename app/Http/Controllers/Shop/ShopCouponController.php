@@ -230,4 +230,57 @@ class ShopCouponController extends Controller
 
         return ApiResponse::success('Coupon applied.', $data);
     }
+
+    /**
+     * POST /api/shop/coupons/remove
+     * Clear an applied promo and return checkout totals without coupon discount.
+     */
+    public function removeCode(Request $request, ShopStripeMobilePaymentService $stripeCheckout)
+    {
+        $request->validate([
+            'use_wallet' => 'sometimes|boolean',
+            'wallet_amount' => 'sometimes|numeric|min:0',
+            'payment_intent_id' => 'sometimes|string|max:255',
+            'paymentIntentId' => 'sometimes|string|max:255',
+        ]);
+
+        if (! $request->filled('payment_intent_id') && $request->filled('paymentIntentId')) {
+            $request->merge(['payment_intent_id' => $request->input('paymentIntentId')]);
+        }
+
+        $user = $request->user();
+        CartController::clearAppliedCheckoutCoupon((int) $user->id);
+        $request->merge(['clear_coupon' => true]);
+
+        $pack = CartController::checkoutTotalsForRequest($request, $user);
+        if ($pack['error'] !== null) {
+            return ApiResponse::error($pack['error'], 422, is_array($pack['error_details'] ?? null) ? $pack['error_details'] : []);
+        }
+
+        $orderSummary = CartController::mergeWalletPreviewIntoOrderSummary($pack['order_summary'], $request, $user);
+        CartController::addCheckoutUiAliases($orderSummary);
+
+        $data = [
+            'coupon_id' => null,
+            'code' => null,
+            'coupon_discount' => 0.0,
+            'free_shipping' => false,
+            'order_summary' => $orderSummary,
+            'payment' => null,
+        ];
+
+        if ($request->filled('payment_intent_id')) {
+            $payment = $stripeCheckout->syncPaymentIntentAfterCoupon($request, $user, $pack, $orderSummary);
+            if (! ($payment['ok'] ?? false)) {
+                return ApiResponse::error($payment['message'] ?? 'Could not update payment.', $payment['status'] ?? 422);
+            }
+            $data['payment'] = $payment['data'] ?? null;
+            if (is_array($data['payment'])) {
+                $data['stripe_amount_minor'] = $data['payment']['amount_minor'] ?? null;
+                $data['reinitialize_payment_sheet'] = true;
+            }
+        }
+
+        return ApiResponse::success('Coupon removed.', $data);
+    }
 }

@@ -391,4 +391,98 @@ class ShopCouponApplyApiTest extends TestCase
         $this->assertSame(round($withCouponTotal - 137.02, 2), (float) $summary['amount_due']);
         $this->assertLessThan($withCouponTotal, (float) $summary['amount_due']);
     }
+
+    public function test_plain_order_summary_after_apply_does_not_silently_keep_coupon(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Setting::set('shop_shipping_amount', '120', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'SAVE10',
+            'title' => '10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 1438.50,
+            'status' => 'active',
+            'type' => 'physical',
+        ]);
+
+        $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], $this->clientHeaders($client))->assertStatus(201);
+
+        $discounted = (float) $this->postJson('/api/shop/coupons/apply', ['code' => 'SAVE10'], $this->clientHeaders($client))
+            ->assertOk()
+            ->json('data.order_summary.total');
+
+        $plain = $this->getJson('/api/shop/order-summary', $this->clientHeaders($client))->assertOk();
+        $fullTotal = (float) $plain->json('data.total');
+
+        $this->assertGreaterThan($discounted, $fullTotal);
+        $this->assertSame(0.0, (float) $plain->json('data.coupon_discount'));
+        $this->assertNull($plain->json('data.coupon_code'));
+    }
+
+    public function test_remove_coupon_api_clears_discount_and_returns_full_total(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Setting::set('shop_shipping_amount', '120', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'SAVE10',
+            'title' => '10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 1438.50,
+            'status' => 'active',
+            'type' => 'physical',
+        ]);
+
+        $headers = $this->clientHeaders($client);
+        $this->postJson('/api/shop/cart/add', ['product_id' => $product->id, 'quantity' => 1], $headers)->assertStatus(201);
+        $this->postJson('/api/shop/coupons/apply', ['code' => 'SAVE10'], $headers)->assertOk();
+
+        $remove = $this->postJson('/api/shop/coupons/remove', [], $headers)->assertOk();
+        $summary = $remove->json('data.order_summary');
+
+        $this->assertSame(0.0, (float) $summary['coupon_discount']);
+        $this->assertArrayNotHasKey('coupon_code', $summary);
+        $this->assertDatabaseMissing('shop_applied_checkout_coupons', ['user_id' => $client->id]);
+
+        $plain = $this->getJson('/api/shop/order-summary', $headers)->assertOk();
+        $this->assertSame((float) $summary['total'], (float) $plain->json('data.total'));
+    }
 }

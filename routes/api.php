@@ -589,6 +589,7 @@ Route::prefix('shop')->group(function () {
         Route::post('/coupons/checkout-offers', [\App\Http\Controllers\Shop\ShopCouponController::class, 'checkoutOffers']);
         Route::post('/coupons/validate', [\App\Http\Controllers\Shop\ShopCouponController::class, 'validateCode']);
         Route::post('/coupons/apply', [\App\Http\Controllers\Shop\ShopCouponController::class, 'applyCode']);
+        Route::post('/coupons/remove', [\App\Http\Controllers\Shop\ShopCouponController::class, 'removeCode']);
         Route::put('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::patch('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'update']);
         Route::delete('/cart/{id}', [\App\Http\Controllers\Shop\CartController::class, 'remove']);

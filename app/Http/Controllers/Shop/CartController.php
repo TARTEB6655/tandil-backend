@@ -867,8 +867,9 @@ class CartController extends Controller
      * Resolve coupon for checkout totals.
      *
      * When the client sends coupon_code explicitly, that value wins (empty clears storage).
-     * When omitted (e.g. wallet toggle refresh), restore the last applied coupon only if the
-     * cart fingerprint still matches — so wallet/coupon together do not drop the discount.
+     * When omitted on a plain summary refresh, no coupon is applied (full total).
+     * When omitted during a wallet toggle refresh (use_wallet / wallet_amount sent), restore
+     * the last applied coupon for the same cart so wallet + coupon totals stay correct.
      *
      * @param  array<string, mixed>  $cartPreview
      */
@@ -894,9 +895,29 @@ class CartController extends Controller
             return strtoupper($code);
         }
 
+        if (! self::shouldRestoreStoredCoupon($request)) {
+            return '';
+        }
+
         $stored = self::storedCheckoutCouponForCurrentCart((int) $user->id, $request, $cartPreview);
 
         return $stored ?? '';
+    }
+
+    /**
+     * Wallet-toggle refreshes omit coupon_code; other refreshes should not silently re-apply a coupon.
+     */
+    public static function shouldRestoreStoredCoupon(Request $request): bool
+    {
+        if ($request->has('use_wallet') || $request->query->has('use_wallet')) {
+            return true;
+        }
+
+        if ($request->filled('wallet_amount') || $request->query->has('wallet_amount')) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
