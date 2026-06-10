@@ -864,9 +864,11 @@ class CartController extends Controller
     }
 
     /**
-     * Coupon applies only when the client sends coupon_code (or Apply merged it into the request).
-     * We do not auto-apply a remembered coupon when the field is omitted — that caused summary/Stripe
-     * to show a discount (e.g. 850) while the user had not applied a code on this checkout (expected 871).
+     * Resolve coupon for checkout totals.
+     *
+     * When the client sends coupon_code explicitly, that value wins (empty clears storage).
+     * When omitted (e.g. wallet toggle refresh), restore the last applied coupon only if the
+     * cart fingerprint still matches — so wallet/coupon together do not drop the discount.
      *
      * @param  array<string, mixed>  $cartPreview
      */
@@ -879,20 +881,50 @@ class CartController extends Controller
         }
 
         $explicit = $request->has('coupon_code') || $request->query->has('coupon_code');
-        if (! $explicit) {
-            return '';
+        if ($explicit) {
+            $rawCoupon = $request->input('coupon_code', $request->query('coupon_code'));
+            $code = is_string($rawCoupon) ? trim($rawCoupon) : '';
+
+            if ($code === '') {
+                self::clearAppliedCheckoutCoupon((int) $user->id);
+
+                return '';
+            }
+
+            return strtoupper($code);
         }
 
-        $rawCoupon = $request->input('coupon_code', $request->query('coupon_code'));
-        $code = is_string($rawCoupon) ? trim($rawCoupon) : '';
+        $stored = self::storedCheckoutCouponForCurrentCart((int) $user->id, $request, $cartPreview);
 
-        if ($code === '') {
-            self::clearAppliedCheckoutCoupon((int) $user->id);
+        return $stored ?? '';
+    }
 
-            return '';
+    /**
+     * Last coupon the user applied for this exact cart (wallet toggle / checkout refresh).
+     *
+     * @param  array<string, mixed>  $cartPreview
+     */
+    public static function storedCheckoutCouponForCurrentCart(int $userId, Request $request, array $cartPreview): ?string
+    {
+        $fingerprint = self::checkoutCartFingerprint($request, $cartPreview);
+
+        $cached = Cache::get(self::checkoutCouponCacheKey($userId));
+        if (is_array($cached) && ($cached['fingerprint'] ?? '') === $fingerprint) {
+            $code = trim((string) ($cached['code'] ?? ''));
+            if ($code !== '') {
+                return strtoupper($code);
+            }
         }
 
-        return strtoupper($code);
+        $row = ShopAppliedCheckoutCoupon::query()->where('user_id', $userId)->first();
+        if ($row !== null && (string) $row->cart_fingerprint === $fingerprint) {
+            $code = trim((string) $row->coupon_code);
+            if ($code !== '') {
+                return strtoupper($code);
+            }
+        }
+
+        return null;
     }
 
     /**

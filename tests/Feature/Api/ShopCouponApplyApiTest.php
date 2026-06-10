@@ -331,4 +331,64 @@ class ShopCouponApplyApiTest extends TestCase
         ], $this->clientHeaders($client))
             ->assertStatus(422);
     }
+
+    public function test_order_summary_wallet_toggle_keeps_applied_coupon_when_code_omitted(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Setting::set('shop_shipping_amount', '120', 'number', 'shop');
+        Setting::set('shop_tax_percent', '5', 'number', 'shop');
+
+        $client = User::factory()->create(['role' => 'client', 'wallet_balance' => 137.02]);
+        $client->assignRole('client');
+
+        Coupon::create([
+            'code' => 'SAVE10',
+            'title' => '10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'min_order_amount' => 0,
+            'max_discount_amount' => null,
+            'is_active' => true,
+            'applies_to' => 'all',
+            'catalog_scope' => 'products',
+        ]);
+
+        $cat = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $cat->id,
+            'price' => 1438.50,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'type' => 'physical',
+        ]);
+
+        $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], $this->clientHeaders($client))->assertStatus(201);
+
+        $apply = $this->postJson('/api/shop/coupons/apply', [
+            'code' => 'SAVE10',
+        ], $this->clientHeaders($client))->assertOk();
+
+        $appliedSummary = $apply->json('data.order_summary');
+        $withCouponTotal = (float) $appliedSummary['total'];
+        $couponDiscount = (float) $appliedSummary['coupon_discount'];
+        $this->assertGreaterThan(0, $couponDiscount);
+
+        // App often refreshes summary with use_wallet only (no coupon_code) when wallet is toggled on.
+        $walletRefresh = $this->getJson('/api/shop/order-summary?use_wallet=1', $this->clientHeaders($client))
+            ->assertOk();
+
+        $summary = $walletRefresh->json('data');
+        $this->assertSame($withCouponTotal, (float) $summary['total']);
+        $this->assertSame($couponDiscount, (float) $summary['coupon_discount']);
+        $this->assertSame('SAVE10', $summary['coupon_code']);
+        $this->assertSame(137.02, (float) $summary['wallet_amount_applied']);
+        $this->assertSame(round($withCouponTotal - 137.02, 2), (float) $summary['amount_due']);
+        $this->assertLessThan($withCouponTotal, (float) $summary['amount_due']);
+    }
 }
