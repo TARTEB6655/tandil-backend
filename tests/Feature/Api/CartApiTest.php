@@ -483,7 +483,7 @@ class CartApiTest extends TestCase
 
         $this->user->update(['wallet_balance' => 80]);
 
-        $category = Category::factory()->create();
+        $category = Category::factory()->create(['shipping_cost' => null, 'tax_percentage' => null]);
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 100,

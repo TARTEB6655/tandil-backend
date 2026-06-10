@@ -18,7 +18,7 @@ class CategoryFactory extends Factory
             'name' => $name,
             'slug' => Str::slug($name),
             'description' => $this->faker->sentence(),
-            'shipping_cost' => 50,
+            'shipping_cost' => null,
             'tax_percentage' => 5,
         ];
     }

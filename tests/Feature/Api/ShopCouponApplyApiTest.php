@@ -356,7 +356,7 @@ class ShopCouponApplyApiTest extends TestCase
             'catalog_scope' => 'products',
         ]);
 
-        $cat = Category::factory()->create();
+        $cat = Category::factory()->create(['shipping_cost' => null]);
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => 1438.50,
@@ -415,7 +415,7 @@ class ShopCouponApplyApiTest extends TestCase
             'catalog_scope' => 'products',
         ]);
 
-        $cat = Category::factory()->create();
+        $cat = Category::factory()->create(['shipping_cost' => null]);
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => 1438.50,
@@ -463,7 +463,7 @@ class ShopCouponApplyApiTest extends TestCase
             'catalog_scope' => 'products',
         ]);
 
-        $cat = Category::factory()->create();
+        $cat = Category::factory()->create(['shipping_cost' => null]);
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => 1438.50,

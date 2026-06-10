@@ -572,6 +572,7 @@ class CartController extends Controller
 
         $orderSummary = $pack['order_summary'];
         $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
+        self::addCheckoutUiAliases($orderSummary);
 
         return ApiResponse::success('Order summary retrieved.', $orderSummary);
     }
@@ -735,6 +736,7 @@ class CartController extends Controller
 
         if ($code === '') {
             $summary = self::buildOrderSummaryWithCouponForCart($subtotal, $catalogDiscount, 0, false, null, null, $cartItems);
+            self::finalizeOrderSummaryCouponState($summary, null);
             self::normalizeOrderSummaryNumericTypes($summary);
 
             return [
@@ -868,8 +870,8 @@ class CartController extends Controller
      *
      * When the client sends coupon_code explicitly, that value wins (empty clears storage).
      * When omitted on a plain summary refresh, no coupon is applied (full total).
-     * When omitted during a wallet toggle refresh (use_wallet / wallet_amount sent), restore
-     * the last applied coupon for the same cart so wallet + coupon totals stay correct.
+     * When omitted during a wallet toggle refresh (use_wallet=1), restore the last applied
+     * coupon for the same cart so wallet + coupon totals stay correct.
      *
      * @param  array<string, mixed>  $cartPreview
      */
@@ -905,19 +907,12 @@ class CartController extends Controller
     }
 
     /**
-     * Wallet-toggle refreshes omit coupon_code; other refreshes should not silently re-apply a coupon.
+     * Only restore a stored coupon when the client is turning wallet ON (wallet toggle refresh).
+     * use_wallet=0 must NOT re-apply a removed coupon — that caused ghost discounts on checkout.
      */
     public static function shouldRestoreStoredCoupon(Request $request): bool
     {
-        if ($request->has('use_wallet') || $request->query->has('use_wallet')) {
-            return true;
-        }
-
-        if ($request->filled('wallet_amount') || $request->query->has('wallet_amount')) {
-            return true;
-        }
-
-        return false;
+        return $request->boolean('use_wallet');
     }
 
     /**
@@ -1023,8 +1018,8 @@ class CartController extends Controller
             }
 
             $summary = self::buildOrderSummaryWithCouponForCart($subtotal, $catalogDiscount, 0, false, null, null, $cartItems);
+            self::finalizeOrderSummaryCouponState($summary, null);
             self::normalizeOrderSummaryNumericTypes($summary);
-            unset($summary['coupon_code']);
 
             return [
                 'cart_preview' => $cartPreview,
@@ -1039,6 +1034,7 @@ class CartController extends Controller
         }
 
         $summary = self::mergeCategoryShippingIntoSummary($r['order_summary'], $cartItems);
+        self::finalizeOrderSummaryCouponState($summary, $r['code'] ?? null);
         self::normalizeOrderSummaryNumericTypes($summary);
         $summary['coupon'] = $r['coupon'];
 
@@ -1087,6 +1083,59 @@ class CartController extends Controller
         self::normalizeOrderSummaryNumericTypes($summary);
         $summary['vat'] = (float) ($summary['tax'] ?? 0);
         $summary['vat_percent'] = (float) ($summary['tax_percent'] ?? 0);
+    }
+
+    /**
+     * Ensure order summary fields are consistent: no coupon line items when no coupon is active.
+     *
+     * @param  array<string, mixed>  $summary
+     */
+    public static function finalizeOrderSummaryCouponState(array &$summary, ?string $couponCode): void
+    {
+        $couponDiscount = round((float) ($summary['coupon_discount'] ?? 0), 2);
+        $code = is_string($couponCode) ? strtoupper(trim($couponCode)) : '';
+
+        if ($code !== '' && $couponDiscount > 0) {
+            $summary['coupon_code'] = $code;
+            $summary['coupon_applied'] = true;
+
+            return;
+        }
+
+        $summary['coupon_discount'] = 0.0;
+        $summary['coupon_applied'] = false;
+        unset($summary['coupon_code'], $summary['coupon'], $summary['discount_label']);
+    }
+
+    /**
+     * Verify checkout math: total = taxable merchandise + tax + shipping (after discounts).
+     *
+     * @param  array<string, mixed>  $summary
+     */
+    public static function assertOrderSummaryMath(array $summary): void
+    {
+        $subtotal = round((float) ($summary['subtotal'] ?? 0), 2);
+        $catalogDiscount = round((float) ($summary['discount'] ?? 0), 2);
+        $couponDiscount = round((float) ($summary['coupon_discount'] ?? 0), 2);
+        $shipping = round((float) ($summary['shipping'] ?? 0), 2);
+        $tax = round((float) ($summary['tax'] ?? 0), 2);
+        $total = round((float) ($summary['total'] ?? 0), 2);
+
+        $taxable = round(max(0, $subtotal - $catalogDiscount - $couponDiscount), 2);
+        $expected = round($taxable + $tax + $shipping, 2);
+
+        if (abs($expected - $total) > 0.02) {
+            throw new \InvalidArgumentException(sprintf(
+                'Order summary math mismatch: expected total %.2f, got %.2f (subtotal=%.2f, catalog=%.2f, coupon=%.2f, tax=%.2f, shipping=%.2f)',
+                $expected,
+                $total,
+                $subtotal,
+                $catalogDiscount,
+                $couponDiscount,
+                $tax,
+                $shipping
+            ));
+        }
     }
 
     /**

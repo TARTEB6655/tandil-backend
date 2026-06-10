@@ -47,7 +47,7 @@ class CheckoutStripeTotalsSmokeTest extends TestCase
 
     private function seedCart(User $user, float $price = 820.0): Product
     {
-        $cat = Category::factory()->create();
+        $cat = Category::factory()->create(['shipping_cost' => null]);
         $product = Product::factory()->create([
             'category_id' => $cat->id,
             'price' => $price,
