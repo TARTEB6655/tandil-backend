@@ -100,16 +100,19 @@ class SocialClientAuthService
             return ApiResponse::error('Invalid login credentials.', 401);
         }
 
-        $token = $user->createToken('api_'.$portal, [$portal])->plainTextToken;
+        $user->loadMissing(['roles:id,name']);
+
+        $loginService = app(LoginService::class);
+        $payload = $loginService->success($user, $portal);
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
             'data' => [
-                'token' => $token,
-                'role' => $user->role,
-                'slug' => $portal,
-                'user' => $user,
+                'token' => $payload['token'],
+                'role' => $payload['role'],
+                'slug' => $payload['slug'],
+                'user' => $payload['user'],
             ],
         ]);
     }

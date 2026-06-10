@@ -12,7 +12,8 @@ class GoogleIdTokenVerifier
      */
     public function verify(string $idToken): array
     {
-        $response = Http::timeout(10)
+        $response = Http::connectTimeout(2)
+            ->timeout(4)
             ->acceptJson()
             ->get('https://oauth2.googleapis.com/tokeninfo', [
                 'id_token' => $idToken,

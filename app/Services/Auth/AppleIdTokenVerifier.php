@@ -146,7 +146,7 @@ class AppleIdTokenVerifier
     private function applePublicKeys(): array
     {
         return Cache::remember('apple_sign_in_jwks', 3600, function () {
-            $response = Http::timeout(15)->acceptJson()->get(self::KEYS_URL);
+            $response = Http::connectTimeout(2)->timeout(5)->acceptJson()->get(self::KEYS_URL);
             if (! $response->successful()) {
                 throw new RuntimeException('Unable to fetch Apple public keys.');
             }

@@ -9,6 +9,7 @@ use App\Models\TechnicianSignupRequest;
 use App\Models\User;
 use App\Services\Auth\AppleIdTokenVerifier;
 use App\Services\Auth\GoogleIdTokenVerifier;
+use App\Services\Auth\LoginService;
 use App\Services\Auth\SocialClientAuthService;
 use App\Support\AppLoginRoles;
 use Illuminate\Http\JsonResponse;
@@ -188,7 +189,7 @@ class AuthController extends Controller
      * Body: email, password, and required `roles` (single slug from GET /api/auth/app-roles, e.g. "client").
      * The account must have that role (Spatie / column); token is scoped to that slug only.
      */
-    public function login(Request $request)
+    public function login(Request $request, LoginService $loginService)
     {
         $validated = $request->validate([
             'email' => ['required', 'email'],
@@ -207,34 +208,24 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::where('email', $validated['email'])->first();
+        $result = $loginService->attemptPasswordLogin(
+            $validated['email'],
+            $validated['password'],
+            $rolesChosen
+        );
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            return ApiResponse::error('Invalid login credentials.', 401);
+        if (! ($result['ok'] ?? false)) {
+            return ApiResponse::error($result['error'] ?? 'Invalid login credentials.', $result['status'] ?? 401);
         }
-
-        if ($user->status !== 'active') {
-            return ApiResponse::error('Account is not active. Please contact admin.', 403);
-        }
-
-        if (! $user->matchesLoginPortal($rolesChosen)) {
-            return ApiResponse::error('Invalid login credentials.', 401);
-        }
-
-        $portal = $rolesChosen;
-
-        $tokenName = 'api_'.$portal;
-        $abilities = [$portal];
-        $token = $user->createToken($tokenName, $abilities)->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
             'data' => [
-                'token' => $token,
-                'role' => $user->role,
-                'slug' => $portal,
-                'user' => $user,
+                'token' => $result['token'],
+                'role' => $result['role'],
+                'slug' => $result['slug'],
+                'user' => $result['user'],
             ],
         ]);
     }

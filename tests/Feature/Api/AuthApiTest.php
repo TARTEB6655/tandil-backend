@@ -229,14 +229,112 @@ class AuthApiTest extends TestCase
 
         $rows = $response->json('data');
         $this->assertIsArray($rows);
-        $this->assertCount(6, $rows);
+        $this->assertCount(count(User::LOGIN_PORTALS), $rows);
         $this->assertSame('client', $rows[0]['slug']);
         $this->assertSame('Client (Customer)', $rows[0]['role']);
         $this->assertSame('Client (Customer)', $rows[0]['title']);
         $this->assertStringContainsString('Subscribe to plans', $rows[0]['description']);
         $this->assertSame($rows[0]['description'], $rows[0]['subtitle']);
         $this->assertArrayHasKey('icon', $rows[0]);
-        $this->assertSame('admin', $rows[5]['slug']);
+        $this->assertSame('vendor', $rows[6]['slug']);
+    }
+
+    /**
+     * @dataProvider loginPortalProvider
+     */
+    public function test_login_succeeds_for_each_portal_role(string $portal): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Role::firstOrCreate(['name' => $portal, 'guard_name' => 'web']);
+
+        $email = $portal.'-login@example.com';
+        $user = User::factory()->create([
+            'email' => $email,
+            'password' => 'password',
+            'role' => $portal,
+            'status' => 'active',
+        ]);
+        $user->syncRoles([$portal]);
+
+        $this->postJson('/api/auth/login', [
+            'email' => $email,
+            'password' => 'password',
+            'roles' => $portal,
+        ])->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.slug', $portal)
+            ->assertJsonPath('data.user.email', $email)
+            ->assertJsonStructure(['data' => ['token', 'user' => ['id', 'name', 'email', 'role']]]);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function loginPortalProvider(): array
+    {
+        $cases = [];
+        foreach (User::LOGIN_PORTALS as $portal) {
+            $cases[$portal] = [$portal];
+        }
+
+        return $cases;
+    }
+
+    public function test_login_replaces_previous_portal_token_instead_of_accumulating(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $user = User::factory()->create([
+            'email' => 'token-prune@example.com',
+            'password' => 'password',
+            'role' => 'client',
+            'status' => 'active',
+        ]);
+        $user->syncRoles(['client']);
+
+        $payload = [
+            'email' => 'token-prune@example.com',
+            'password' => 'password',
+            'roles' => 'client',
+        ];
+
+        $this->postJson('/api/auth/login', $payload)->assertStatus(200);
+        $this->postJson('/api/auth/login', $payload)->assertStatus(200);
+        $this->postJson('/api/auth/login', $payload)->assertStatus(200);
+
+        $this->assertSame(
+            1,
+            $user->fresh()->tokens()->where('name', 'api_client')->count()
+        );
+    }
+
+    public function test_vendor_login_route_uses_same_auth_controller(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
+
+        $user = User::factory()->create([
+            'email' => 'vendor.route@example.com',
+            'password' => 'password',
+            'role' => 'vendor',
+            'status' => 'active',
+        ]);
+        $user->syncRoles(['vendor']);
+
+        $this->postJson('/api/vendor/auth/login', [
+            'email' => 'vendor.route@example.com',
+            'password' => 'password',
+            'roles' => 'vendor',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.slug', 'vendor');
     }
 
     public function test_login_succeeds_with_roles_slug(): void

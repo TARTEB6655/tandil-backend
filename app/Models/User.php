@@ -242,7 +242,9 @@ class User extends Authenticatable
     public function matchesLoginPortal(string $portal): bool
     {
         try {
-            $names = $this->getRoleNames();
+            $names = $this->relationLoaded('roles')
+                ? $this->roles->pluck('name')
+                : $this->getRoleNames();
             if ($names->isNotEmpty()) {
                 return $names->contains($portal);
             }
@@ -251,6 +253,29 @@ class User extends Authenticatable
         }
 
         return ($this->role ?? '') === $portal;
+    }
+
+    /**
+     * Lean payload for login / social auth responses (avoids serializing the full model).
+     *
+     * @return array<string, mixed>
+     */
+    public function toLoginArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'google_id' => $this->google_id,
+            'apple_id' => $this->apple_id,
+            'phone' => $this->phone,
+            'role' => $this->role,
+            'status' => $this->status,
+            'profile_picture_url' => $this->profile_picture_url,
+            'preferred_locale' => $this->preferred_locale,
+            'wallet_balance' => $this->wallet_balance,
+            'email_verified_at' => $this->email_verified_at,
+        ];
     }
 
     public function isTechnician()
