@@ -337,6 +337,28 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('data.slug', 'vendor');
     }
 
+    public function test_login_accepts_role_field_alias(): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        $user = User::factory()->create([
+            'email' => 'role-alias@example.com',
+            'password' => 'password',
+            'role' => 'client',
+            'status' => 'active',
+        ]);
+        $user->syncRoles(['client']);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'role-alias@example.com',
+            'password' => 'password',
+            'role' => 'client',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.slug', 'client');
+    }
+
     public function test_login_succeeds_with_roles_slug(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {

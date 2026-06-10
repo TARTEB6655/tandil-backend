@@ -242,14 +242,12 @@ class User extends Authenticatable
     public function matchesLoginPortal(string $portal): bool
     {
         try {
-            $names = $this->relationLoaded('roles')
-                ? $this->roles->pluck('name')
-                : $this->getRoleNames();
+            $names = $this->getRoleNames();
             if ($names->isNotEmpty()) {
                 return $names->contains($portal);
             }
         } catch (\Throwable $e) {
-            // fall through to users.role
+            // fall through to users.role when Spatie tables are unavailable
         }
 
         return ($this->role ?? '') === $portal;

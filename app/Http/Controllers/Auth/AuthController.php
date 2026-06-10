@@ -191,6 +191,8 @@ class AuthController extends Controller
      */
     public function login(Request $request, LoginService $loginService)
     {
+        $this->normalizeLoginRequest($request);
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
@@ -364,6 +366,25 @@ class AuthController extends Controller
     {
         // TODO: Implement password reset
         return ApiResponse::error('Password reset feature not implemented yet', 501);
+    }
+
+    /**
+     * Mobile clients sometimes send role / slug instead of roles.
+     */
+    private function normalizeLoginRequest(Request $request): void
+    {
+        if ($request->filled('roles')) {
+            return;
+        }
+
+        foreach (['role', 'slug', 'portal'] as $key) {
+            $value = $request->input($key, $request->query($key));
+            if (is_string($value) && trim($value) !== '') {
+                $request->merge(['roles' => trim($value)]);
+
+                return;
+            }
+        }
     }
 
     /**

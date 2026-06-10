@@ -21,11 +21,10 @@ class LoginService
     public function attemptPasswordLogin(string $email, string $password, string $portal): array
     {
         $user = User::query()
-            ->where('email', $email)
-            ->with(['roles:id,name'])
+            ->whereRaw('LOWER(email) = ?', [strtolower(trim($email))])
             ->first();
 
-        if (! $user || ! Hash::check($password, $user->getAuthPassword())) {
+        if (! $user || ! $this->passwordMatches($user, $password)) {
             return $this->failure('Invalid login credentials.', 401);
         }
 
@@ -37,7 +36,31 @@ class LoginService
             return $this->failure('Invalid login credentials.', 401);
         }
 
-        return $this->success($user, $portal);
+        try {
+            return $this->success($user, $portal);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->failure('Could not complete login. Please try again.', 503);
+        }
+    }
+
+    private function passwordMatches(User $user, string $password): bool
+    {
+        if ($password === '') {
+            return false;
+        }
+
+        $hash = $user->getRawOriginal('password');
+        if (is_string($hash) && $hash !== '' && Hash::check($password, $hash)) {
+            return true;
+        }
+
+        try {
+            return Hash::check($password, (string) $user->password);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
