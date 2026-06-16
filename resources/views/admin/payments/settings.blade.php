@@ -17,6 +17,13 @@
         @if(session('success'))
             <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-lg">
                 <p class="text-sm text-green-800 dark:text-green-200">{{ session('success') }}</p>
+                @if(session('stripe_save_details'))
+                    <ul class="mt-2 space-y-1 text-xs text-green-700 dark:text-green-300">
+                        @foreach(session('stripe_save_details') as $detail)
+                            <li>• {{ $detail }}</li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
         @endif
 
@@ -101,9 +108,23 @@
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Publishable key</label>
                                                 <input type="text" name="test_public_key" value="{{ old('test_public_key', $stripeTest['public_key'] ?? '') }}" placeholder="pk_test_..." autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                             </div>
-                                            <div>
+                                            <div x-data="{ editing: @json((bool) old('test_secret_key') || !($stripeTest['has_secret'] ?? false)) }">
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secret key</label>
-                                                <input type="text" name="test_secret_key" value="{{ old('test_secret_key', '') }}" placeholder="{{ ($stripeTest['has_secret'] ?? false) ? 'Leave blank to keep saved test secret' : 'sk_test_...' }}" autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                @if($stripeTest['has_secret'] ?? false)
+                                                    <div x-show="!editing" class="mb-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
+                                                        <div class="flex flex-wrap items-center justify-between gap-2">
+                                                            <p class="text-sm text-emerald-800 dark:text-emerald-200">
+                                                                <span class="font-medium">Saved securely</span>
+                                                                <span class="font-mono text-xs">({{ $stripeTest['secret_prefix'] }})</span>
+                                                            </p>
+                                                            <button type="button" @click="editing = true" class="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Replace secret</button>
+                                                        </div>
+                                                        <p class="mt-1 text-xs text-emerald-700 dark:text-emerald-300">The field is empty on purpose — your key is stored in the database. Click Replace only when changing it.</p>
+                                                    </div>
+                                                @endif
+                                                <div x-show="editing" x-cloak>
+                                                    <input type="text" name="test_secret_key" value="{{ old('test_secret_key', '') }}" placeholder="{{ ($stripeTest['has_secret'] ?? false) ? 'Paste new sk_test_... to replace' : 'sk_test_...' }}" autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                </div>
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Webhook secret (optional)</label>
@@ -124,9 +145,23 @@
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Publishable key</label>
                                                 <input type="text" name="live_public_key" value="{{ old('live_public_key', $stripeLive['public_key'] ?? '') }}" placeholder="pk_live_..." autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                             </div>
-                                            <div>
+                                            <div x-data="{ editing: @json((bool) old('live_secret_key') || !($stripeLive['has_secret'] ?? false)) }">
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secret key</label>
-                                                <input type="text" name="live_secret_key" value="{{ old('live_secret_key', '') }}" placeholder="{{ ($stripeLive['has_secret'] ?? false) ? 'Leave blank to keep saved live secret' : 'sk_live_...' }}" autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                @if($stripeLive['has_secret'] ?? false)
+                                                    <div x-show="!editing" class="mb-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
+                                                        <div class="flex flex-wrap items-center justify-between gap-2">
+                                                            <p class="text-sm text-emerald-800 dark:text-emerald-200">
+                                                                <span class="font-medium">Saved securely</span>
+                                                                <span class="font-mono text-xs">({{ $stripeLive['secret_prefix'] }})</span>
+                                                            </p>
+                                                            <button type="button" @click="editing = true" class="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Replace secret</button>
+                                                        </div>
+                                                        <p class="mt-1 text-xs text-emerald-700 dark:text-emerald-300">The field is empty on purpose — your key is stored in the database. Click Replace only when changing it.</p>
+                                                    </div>
+                                                @endif
+                                                <div x-show="editing" x-cloak>
+                                                    <input type="text" name="live_secret_key" value="{{ old('live_secret_key', '') }}" placeholder="{{ ($stripeLive['has_secret'] ?? false) ? 'Paste new sk_live_... to replace' : 'sk_live_...' }}" autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                </div>
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Webhook secret (optional)</label>

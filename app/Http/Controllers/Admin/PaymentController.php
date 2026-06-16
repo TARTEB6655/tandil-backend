@@ -276,6 +276,25 @@ class PaymentController extends Controller
             ShopMobileCheckout::query()
                 ->whereNull('consumed_at')
                 ->delete();
+
+            $saveDetails = ['Active checkout mode: '.ucfirst($activeMode).'.'];
+            if ($pending['test']['secret_input'] !== '') {
+                $saveDetails[] = 'Test secret key updated and stored securely.';
+            }
+            if ($pending['live']['secret_input'] !== '') {
+                $saveDetails[] = 'Live secret key updated and stored securely.';
+            }
+            if ($pending['test']['public_input'] !== '') {
+                $saveDetails[] = 'Test publishable key updated.';
+            }
+            if ($pending['live']['public_input'] !== '') {
+                $saveDetails[] = 'Live publishable key updated.';
+            }
+
+            return redirect()
+                ->route('admin.payments.settings')
+                ->with('success', 'Stripe settings updated successfully.')
+                ->with('stripe_save_details', $saveDetails);
         } elseif ($gateway === 'paypal') {
             $request->validate([
                 'client_id' => 'nullable|string',
