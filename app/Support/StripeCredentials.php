@@ -59,4 +59,26 @@ final class StripeCredentials
 
         return true;
     }
+
+    /** @return 'live'|'test'|'unknown' */
+    public static function mode(): string
+    {
+        $secret = self::secretKey();
+        if (str_starts_with($secret, 'sk_live_')) {
+            return 'live';
+        }
+        if (str_starts_with($secret, 'sk_test_')) {
+            return 'test';
+        }
+
+        return 'unknown';
+    }
+
+    /**
+     * Changes when admin swaps Stripe accounts or switches test/live keys.
+     */
+    public static function accountFingerprint(): string
+    {
+        return hash('sha256', self::secretKey().'|'.self::publishableKey());
+    }
 }

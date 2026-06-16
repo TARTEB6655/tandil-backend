@@ -206,6 +206,7 @@ class ShopStripeMobilePaymentService
 
         $secret = StripeCredentials::secretKey();
         $this->cancelLongAbandonedMobileCheckouts($user, $secret, 15);
+        $this->purgeStaleMobileCheckouts($user, $secret);
 
         $fingerprint = hash('sha256', json_encode([
             'lines' => $lines,
@@ -368,6 +369,7 @@ class ShopStripeMobilePaymentService
             'fingerprint' => $fingerprint,
             'checkout_ref' => $checkoutRef,
             'stripe_payment_intent_id' => $piId,
+            'stripe_account_fingerprint' => StripeCredentials::accountFingerprint(),
             'coupon_id' => $couponId,
             'coupon_code' => $couponCodeStored,
             'coupon_merchandise_discount' => $couponMerchDisc,
@@ -461,6 +463,8 @@ class ShopStripeMobilePaymentService
         if ($stripeMatches && $rowMatches) {
             $clientSecret = $this->fetchPaymentIntentClientSecret($secret, $piId);
             if ($clientSecret === null) {
+                $this->discardMobileCheckoutRow($secret, $row);
+
                 return null;
             }
 
@@ -503,17 +507,23 @@ class ShopStripeMobilePaymentService
                 'pi' => $piId,
                 'amount_minor' => $amountMinor,
             ]);
-            $this->cancelStripePaymentIntent($secret, $piId);
-            $row->delete();
+            $this->discardMobileCheckoutRow($secret, $row);
 
             return null;
         }
 
         $syncData = is_array($synced['data'] ?? null) ? $synced['data'] : [];
+        $clientSecret = (string) ($syncData['client_secret'] ?? '');
+        $resolvedPiId = (string) ($syncData['payment_intent_id'] ?? $piId);
+        if ($clientSecret === '' || $resolvedPiId === '') {
+            $this->discardMobileCheckoutRow($secret, $row);
+
+            return null;
+        }
 
         return $this->formatPaymentIntentApiResponse(
-            (string) ($syncData['client_secret'] ?? ''),
-            (string) ($syncData['payment_intent_id'] ?? $piId),
+            $clientSecret,
+            $resolvedPiId,
             $summary,
             $total,
             $cardTotal,
@@ -587,7 +597,7 @@ class ShopStripeMobilePaymentService
                 'client_secret' => $clientSecret,
                 'payment_intent_id' => $paymentIntentId,
                 'publishable_key' => StripeCredentials::publishableKey(),
-                'stripe_mode' => str_starts_with(StripeCredentials::secretKey(), 'sk_live_') ? 'live' : 'test',
+                'stripe_mode' => StripeCredentials::mode(),
                 'shipping_country_iso' => $countryCode,
                 'order_total' => $total,
                 'amount_due' => $cardTotal,
@@ -1142,15 +1152,98 @@ class ShopStripeMobilePaymentService
      */
     public function findActivePaymentIntentIdForUser(int $userId): ?string
     {
-        $piId = ShopMobileCheckout::query()
+        if (! StripeCredentials::isStripeUsableForCheckout()) {
+            return null;
+        }
+
+        $secret = StripeCredentials::secretKey();
+        $fingerprint = StripeCredentials::accountFingerprint();
+
+        $rows = ShopMobileCheckout::query()
             ->where('user_id', $userId)
             ->whereNull('consumed_at')
             ->whereNotNull('stripe_payment_intent_id')
             ->where('created_at', '>=', now()->subDay())
             ->orderByDesc('id')
-            ->value('stripe_payment_intent_id');
+            ->limit(10)
+            ->get();
 
-        return is_string($piId) && $piId !== '' && str_starts_with($piId, 'pi_') ? $piId : null;
+        foreach ($rows as $row) {
+            $piId = $row->stripe_payment_intent_id;
+            if (! is_string($piId) || $piId === '' || ! str_starts_with($piId, 'pi_')) {
+                $row->delete();
+
+                continue;
+            }
+
+            $storedFingerprint = (string) ($row->stripe_account_fingerprint ?? '');
+            if ($storedFingerprint !== '' && $storedFingerprint !== $fingerprint) {
+                $this->discardMobileCheckoutRow($secret, $row);
+
+                continue;
+            }
+
+            if ($this->paymentIntentIsPayable($secret, $piId)) {
+                return $piId;
+            }
+
+            $this->discardMobileCheckoutRow($secret, $row);
+        }
+
+        return null;
+    }
+
+    /**
+     * Drop mobile checkout rows whose PaymentIntent is missing on the current Stripe account
+     * (e.g. after switching test ↔ live keys in admin).
+     */
+    protected function purgeStaleMobileCheckouts(User $user, string $secret): void
+    {
+        $fingerprint = StripeCredentials::accountFingerprint();
+
+        $rows = ShopMobileCheckout::query()
+            ->where('user_id', $user->id)
+            ->whereNull('consumed_at')
+            ->whereNotNull('stripe_payment_intent_id')
+            ->orderByDesc('id')
+            ->limit(25)
+            ->get();
+
+        foreach ($rows as $row) {
+            $storedFingerprint = (string) ($row->stripe_account_fingerprint ?? '');
+            if ($storedFingerprint !== '' && $storedFingerprint !== $fingerprint) {
+                $this->discardMobileCheckoutRow($secret, $row);
+
+                continue;
+            }
+
+            $piId = (string) ($row->stripe_payment_intent_id ?? '');
+            if ($piId === '' || ! $this->paymentIntentIsPayable($secret, $piId)) {
+                $this->discardMobileCheckoutRow($secret, $row);
+            }
+        }
+    }
+
+    protected function discardMobileCheckoutRow(string $secret, ShopMobileCheckout $row): void
+    {
+        $piId = (string) ($row->stripe_payment_intent_id ?? '');
+        if ($piId !== '' && str_starts_with($piId, 'pi_')) {
+            $this->cancelStripePaymentIntent($secret, $piId);
+        }
+
+        $row->delete();
+    }
+
+    protected function paymentIntentIsPayable(string $secret, string $piId): bool
+    {
+        $resp = Http::withToken($secret)->get('https://api.stripe.com/v1/payment_intents/'.$piId);
+        if (! $resp->successful()) {
+            return false;
+        }
+
+        $status = (string) ($resp->json('status') ?? '');
+
+        return in_array($status, ['requires_payment_method', 'requires_confirmation', 'requires_action'], true);
     }
 
     /**
@@ -1351,6 +1444,7 @@ class ShopStripeMobilePaymentService
         $row->update([
             'fingerprint' => $fingerprint,
             'stripe_payment_intent_id' => $piId,
+            'stripe_account_fingerprint' => StripeCredentials::accountFingerprint(),
             'coupon_id' => $pack['coupon_id'] ?? null,
             'coupon_code' => $couponCode,
             'coupon_merchandise_discount' => (float) ($pack['coupon_merchandise_discount'] ?? 0),

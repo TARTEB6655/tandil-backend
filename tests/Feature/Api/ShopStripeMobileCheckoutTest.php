@@ -562,4 +562,86 @@ class ShopStripeMobileCheckoutTest extends TestCase
                 && (int) ($request->data()['amount'] ?? 0) === 87100;
         });
     }
+
+    public function test_payment_intent_discards_stale_live_pi_when_test_keys_are_active(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Config::set('services.stripe.key', 'pk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create(['shipping_cost' => null]);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 820,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        ShopMobileCheckout::create([
+            'user_id' => $user->id,
+            'fingerprint' => 'stale-live',
+            'checkout_ref' => 'stale-live-ref',
+            'stripe_payment_intent_id' => 'pi_3TipOMP3hJZSveSo00ENImrD',
+            'stripe_account_fingerprint' => hash('sha256', 'sk_live_old|pk_live_old'),
+            'source' => 'cart',
+            'currency' => 'aed',
+            'amount_minor' => 87100,
+            'lines_json' => [],
+            'shipping_json' => $this->shippingPayload(),
+            'subtotal_amount' => 820,
+            'tax_amount' => 41,
+            'tax_percent' => 5,
+            'shipping_amount' => 10,
+            'total_amount' => 871,
+        ]);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            $url = $request->url();
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_fresh'], 200);
+            }
+            if ($request->method() === 'GET' && str_contains($url, 'payment_intents/pi_3TipOMP3hJZSveSo00ENImrD')) {
+                return Http::response([
+                    'error' => [
+                        'code' => 'resource_missing',
+                        'message' => "No such payment_intent: 'pi_3TipOMP3hJZSveSo00ENImrD'",
+                    ],
+                ], 404);
+            }
+            if ($request->method() === 'POST' && str_contains($url, 'payment_intents') && ! str_contains($url, '/cancel')) {
+                return Http::response([
+                    'id' => 'pi_test_fresh',
+                    'client_secret' => 'pi_test_fresh_secret',
+                    'status' => 'requires_payment_method',
+                    'amount' => 87100,
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected '.$url]], 500);
+        });
+
+        $headers = $this->authHeaders($user);
+        $pi = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+        ], $headers);
+
+        $pi->assertOk()
+            ->assertJsonPath('data.payment_intent_id', 'pi_test_fresh')
+            ->assertJsonPath('data.client_secret', 'pi_test_fresh_secret')
+            ->assertJsonPath('data.stripe_mode', 'test');
+
+        $this->assertDatabaseMissing('shop_mobile_checkouts', [
+            'stripe_payment_intent_id' => 'pi_3TipOMP3hJZSveSo00ENImrD',
+        ]);
+        $this->assertDatabaseHas('shop_mobile_checkouts', [
+            'stripe_payment_intent_id' => 'pi_test_fresh',
+            'user_id' => $user->id,
+        ]);
+    }
 }

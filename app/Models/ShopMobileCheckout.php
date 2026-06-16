@@ -16,6 +16,7 @@ class ShopMobileCheckout extends Model
         'fingerprint',
         'checkout_ref',
         'stripe_payment_intent_id',
+        'stripe_account_fingerprint',
         'source',
         'currency',
         'amount_minor',
