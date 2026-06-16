@@ -36,7 +36,7 @@ class ShopStripeMobilePaymentService
             return $this->err('Stripe is not enabled or not configured.', 422);
         }
 
-        $stripeIssues = StripeCredentials::configurationIssues();
+        $stripeIssues = StripeCredentials::blockingConfigurationIssues();
         if ($stripeIssues !== []) {
             return $this->err(implode(' ', $stripeIssues), 422);
         }
@@ -646,7 +646,8 @@ class ShopStripeMobilePaymentService
             'publishable_key_source' => StripeCredentials::publishableKeySource(),
             'secret_key_prefix' => StripeCredentials::maskedSecretPrefix(),
             'publishable_key_prefix' => StripeCredentials::maskedPublishablePrefix(),
-            'configuration_issues' => StripeCredentials::configurationIssues(),
+            'configuration_issues' => StripeCredentials::blockingConfigurationIssues(),
+            'configuration_notes' => StripeCredentials::configurationNotes(),
         ];
 
         return $payload;
@@ -658,7 +659,7 @@ class ShopStripeMobilePaymentService
             return $this->err('Stripe is not enabled or not configured.', 422);
         }
 
-        $issues = StripeCredentials::configurationIssues();
+        $issues = StripeCredentials::blockingConfigurationIssues();
         if ($issues !== []) {
             return $this->err(implode(' ', $issues), 422);
         }
@@ -676,6 +677,7 @@ class ShopStripeMobilePaymentService
                     'secret_key_prefix' => StripeCredentials::maskedSecretPrefix(),
                     'publishable_key_prefix' => StripeCredentials::maskedPublishablePrefix(),
                     'configuration_issues' => [],
+                    'configuration_notes' => StripeCredentials::configurationNotes(),
                 ],
             ],
         ];

@@ -50,6 +50,48 @@ class ShopStripeMobileCheckoutTest extends TestCase
         ];
     }
 
+    public function test_payment_intent_proceeds_when_admin_keys_override_env(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_env_only');
+        Config::set('services.stripe.key', 'pk_test_env_only');
+        Setting::set('stripe_secret_key', 'sk_test_admin');
+        Setting::set('stripe_public_key', 'pk_test_admin');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create(['shipping_cost' => null]);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 820,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if ($request->method() === 'POST' && str_contains($request->url(), '/v1/customers')) {
+                return Http::response(['id' => 'cus_admin_keys'], 200);
+            }
+            if (str_contains($request->url(), 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_admin_keys',
+                    'client_secret' => 'pi_admin_keys_secret',
+                    'status' => 'requires_payment_method',
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected']], 500);
+        });
+
+        $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+        ], $this->authHeaders($user))
+            ->assertOk()
+            ->assertJsonPath('data.stripe_diagnostics.configuration_notes.0', 'Admin dashboard Stripe keys override .env. Updating .env alone has no effect while Admin keys are saved.');
+    }
+
     public function test_payment_intent_returns_422_when_stripe_keys_mode_mismatch(): void
     {
         Config::set('services.stripe.secret', 'sk_test_dummy');

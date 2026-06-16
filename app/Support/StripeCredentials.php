@@ -114,9 +114,11 @@ final class StripeCredentials
     }
 
     /**
-     * @return list<string> Empty when configuration looks usable.
+     * Hard failures — checkout must not proceed.
+     *
+     * @return list<string>
      */
-    public static function configurationIssues(): array
+    public static function blockingConfigurationIssues(): array
     {
         $issues = [];
         $secret = self::secretKey();
@@ -135,11 +137,34 @@ final class StripeCredentials
             $issues[] = "Stripe key mode mismatch: secret is {$secretMode} but publishable is {$publishableMode}. Both must be test or both live, from the same Stripe account.";
         }
 
+        return $issues;
+    }
+
+    /**
+     * Informational notes for diagnostics only (do not block checkout).
+     *
+     * @return list<string>
+     */
+    public static function configurationNotes(): array
+    {
+        $notes = [];
+
         if (self::secretKeySource() === 'database' && trim((string) config('services.stripe.secret', '')) !== '') {
-            $issues[] = 'Admin dashboard Stripe keys override .env. Updating .env alone has no effect while Admin keys are saved.';
+            $notes[] = 'Admin dashboard Stripe keys override .env. Updating .env alone has no effect while Admin keys are saved.';
         }
 
-        return $issues;
+        return $notes;
+    }
+
+    /**
+     * @return list<string> Blocking issues + informational notes (for API diagnostics).
+     */
+    public static function configurationIssues(): array
+    {
+        return array_values(array_merge(
+            self::blockingConfigurationIssues(),
+            self::configurationNotes()
+        ));
     }
 
     /**
