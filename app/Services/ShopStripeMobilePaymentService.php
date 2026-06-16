@@ -212,6 +212,7 @@ class ShopStripeMobilePaymentService
         $secret = StripeCredentials::secretKey();
         $this->cancelLongAbandonedMobileCheckouts($user, $secret, 15);
         $purgedStale = $this->purgeStaleMobileCheckouts($user, $secret);
+        $this->discardClientPaymentIntentIfStale($request, $user, $secret);
 
         $fingerprint = hash('sha256', json_encode([
             'lines' => $lines,
@@ -723,10 +724,20 @@ class ShopStripeMobilePaymentService
             $stripeMessage = (string) ($stripeError['message'] ?? '');
 
             if ($stripeCode === 'resource_missing' || str_contains(strtolower($stripeMessage), 'no such payment_intent')) {
-                $mode = str_starts_with($secret, 'sk_live_') ? 'live' : 'test';
+                $activeMode = StripeCredentials::activeMode();
+                $pkPrefix = StripeCredentials::maskedPublishablePrefix() ?? 'unknown';
+
+                ShopMobileCheckout::query()
+                    ->where('user_id', $user->id)
+                    ->where('stripe_payment_intent_id', $paymentIntentId)
+                    ->whereNull('consumed_at')
+                    ->each(fn (ShopMobileCheckout $row) => $this->discardMobileCheckoutRow($secret, $row));
 
                 return $this->err(
-                    "Payment intent not found on Stripe {$mode} mode. Create a fresh payment intent and make sure app publishable key mode matches backend secret key mode.",
+                    "Payment intent not found for Stripe {$activeMode} mode ({$pkPrefix}). "
+                    .'Call POST /api/shop/checkout/stripe/payment-intent again with force_new_payment_intent=true, '
+                    .'then open a new Payment Sheet using publishable_key from that response. '
+                    .'If you switched test/live in Admin, save settings and clear any cached Stripe keys in the app.',
                     409
                 );
             }
@@ -1256,6 +1267,10 @@ class ShopStripeMobilePaymentService
                 continue;
             }
 
+            if ($storedFingerprint === '' && $this->paymentIntentIsPayable($secret, $piId)) {
+                $row->update(['stripe_account_fingerprint' => $fingerprint]);
+            }
+
             if ($this->paymentIntentIsPayable($secret, $piId)) {
                 return $piId;
             }
@@ -1304,6 +1319,29 @@ class ShopStripeMobilePaymentService
         return $purged;
     }
 
+    /**
+     * Mobile apps sometimes retry an old payment_intent_id after admin switches test/live.
+     */
+    protected function discardClientPaymentIntentIfStale(Request $request, User $user, string $secret): void
+    {
+        $clientPi = trim((string) $request->input('payment_intent_id', ''));
+        if ($clientPi === '' || ! str_starts_with($clientPi, 'pi_')) {
+            return;
+        }
+
+        if ($this->paymentIntentIsPayable($secret, $clientPi)) {
+            return;
+        }
+
+        ShopMobileCheckout::query()
+            ->where('user_id', $user->id)
+            ->where('stripe_payment_intent_id', $clientPi)
+            ->whereNull('consumed_at')
+            ->orderByDesc('id')
+            ->get()
+            ->each(fn (ShopMobileCheckout $row) => $this->discardMobileCheckoutRow($secret, $row));
+    }
+
     protected function discardMobileCheckoutRow(string $secret, ShopMobileCheckout $row): void
     {
         $piId = (string) ($row->stripe_payment_intent_id ?? '');
@@ -1322,8 +1360,14 @@ class ShopStripeMobilePaymentService
         }
 
         $status = (string) ($resp->json('status') ?? '');
+        if (! in_array($status, ['requires_payment_method', 'requires_confirmation', 'requires_action'], true)) {
+            return false;
+        }
 
-        return in_array($status, ['requires_payment_method', 'requires_confirmation', 'requires_action'], true);
+        $livemode = filter_var($resp->json('livemode'), FILTER_VALIDATE_BOOLEAN);
+        $wantLive = StripeCredentials::activeMode() === 'live';
+
+        return $livemode === $wantLive;
     }
 
     /**
