@@ -277,24 +277,7 @@ class PaymentController extends Controller
                 ->whereNull('consumed_at')
                 ->delete();
 
-            $saveDetails = ['Active checkout mode: '.ucfirst($activeMode).'.'];
-            if ($pending['test']['secret_input'] !== '') {
-                $saveDetails[] = 'Test secret key updated and stored securely.';
-            }
-            if ($pending['live']['secret_input'] !== '') {
-                $saveDetails[] = 'Live secret key updated and stored securely.';
-            }
-            if ($pending['test']['public_input'] !== '') {
-                $saveDetails[] = 'Test publishable key updated.';
-            }
-            if ($pending['live']['public_input'] !== '') {
-                $saveDetails[] = 'Live publishable key updated.';
-            }
-
-            return redirect()
-                ->route('admin.payments.settings')
-                ->with('success', 'Stripe settings updated successfully.')
-                ->with('stripe_save_details', $saveDetails);
+            return redirect()->route('admin.payments.settings');
         } elseif ($gateway === 'paypal') {
             $request->validate([
                 'client_id' => 'nullable|string',
@@ -306,7 +289,7 @@ class PaymentController extends Controller
             Setting::set('paypal_mode', $request->mode ?? 'sandbox', 'text', 'payment');
         }
 
-        return redirect()->route('admin.payments.settings')->with('success', ucfirst($gateway).' settings updated successfully.');
+        return redirect()->route('admin.payments.settings');
     }
 
     public function updateRefundPolicy(Request $request)
