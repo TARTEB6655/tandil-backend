@@ -225,7 +225,7 @@ class ShopStripeMobilePaymentService
             'coupon_ship' => round($couponShipDisc, 2),
         ], JSON_THROW_ON_ERROR));
 
-        if ($request->boolean('force_new_payment_intent')) {
+        if ($request->boolean('force_new_payment_intent', true)) {
             $reconciled = null;
         } else {
             $reconciled = $this->reconcileActivePaymentIntentWithCheckout(

@@ -363,9 +363,18 @@ final class StripeCredentials
     {
         return [
             'enabled' => self::isStripeUsableForCheckout(),
+            'active_checkout_mode' => self::activeMode(),
             'publishable_key' => self::publishableKey(),
             'stripe_mode' => self::mode(),
             'keys_version' => self::keysVersion(),
+            'test_mode_ready' => self::validateKeyPair(
+                self::keysForMode('test')['secret'],
+                self::keysForMode('test')['public']
+            ) === [],
+            'live_mode_ready' => self::validateKeyPair(
+                self::keysForMode('live')['secret'],
+                self::keysForMode('live')['public']
+            ) === [],
             'secret_key_prefix' => self::maskedSecretPrefix(),
             'publishable_key_prefix' => self::maskedPublishablePrefix(),
             'configuration_issues' => self::blockingConfigurationIssues(),
