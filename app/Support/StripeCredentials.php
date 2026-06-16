@@ -81,4 +81,94 @@ final class StripeCredentials
     {
         return hash('sha256', self::secretKey().'|'.self::publishableKey());
     }
+
+    /** @return 'database'|'env'|'none' */
+    public static function secretKeySource(): string
+    {
+        $fromDb = trim((string) Setting::get('stripe_secret_key', ''));
+
+        return $fromDb !== '' ? 'database' : (trim((string) config('services.stripe.secret', '')) !== '' ? 'env' : 'none');
+    }
+
+    /** @return 'database'|'env'|'none' */
+    public static function publishableKeySource(): string
+    {
+        $fromDb = trim((string) Setting::get('stripe_public_key', ''));
+
+        return $fromDb !== '' ? 'database' : (trim((string) config('services.stripe.key', '')) !== '' ? 'env' : 'none');
+    }
+
+    public static function keyMode(?string $key): ?string
+    {
+        if (! is_string($key) || $key === '') {
+            return null;
+        }
+        if (str_starts_with($key, 'sk_live_') || str_starts_with($key, 'pk_live_')) {
+            return 'live';
+        }
+        if (str_starts_with($key, 'sk_test_') || str_starts_with($key, 'pk_test_')) {
+            return 'test';
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string> Empty when configuration looks usable.
+     */
+    public static function configurationIssues(): array
+    {
+        $issues = [];
+        $secret = self::secretKey();
+        $publishable = self::publishableKey();
+
+        if ($secret === '') {
+            $issues[] = 'Stripe secret key is missing. Set it in Admin → Payments or STRIPE_SECRET_KEY in .env.';
+        }
+        if ($publishable === '') {
+            $issues[] = 'Stripe publishable key is missing. Set it in Admin → Payments or STRIPE_PUBLISHABLE_KEY in .env.';
+        }
+
+        $secretMode = self::keyMode($secret);
+        $publishableMode = self::keyMode($publishable);
+        if ($secretMode !== null && $publishableMode !== null && $secretMode !== $publishableMode) {
+            $issues[] = "Stripe key mode mismatch: secret is {$secretMode} but publishable is {$publishableMode}. Both must be test or both live, from the same Stripe account.";
+        }
+
+        if (self::secretKeySource() === 'database' && trim((string) config('services.stripe.secret', '')) !== '') {
+            $issues[] = 'Admin dashboard Stripe keys override .env. Updating .env alone has no effect while Admin keys are saved.';
+        }
+
+        return $issues;
+    }
+
+    /**
+     * Safe prefix for API diagnostics (never expose full secret).
+     */
+    public static function maskedSecretPrefix(): ?string
+    {
+        $secret = self::secretKey();
+        if ($secret === '') {
+            return null;
+        }
+
+        return substr($secret, 0, 12).'…';
+    }
+
+    public static function maskedPublishablePrefix(): ?string
+    {
+        $key = self::publishableKey();
+        if ($key === '') {
+            return null;
+        }
+
+        return substr($key, 0, 12).'…';
+    }
+
+    public static function forgetCachedSettings(): void
+    {
+        foreach (['stripe_secret_key', 'stripe_public_key', 'stripe_webhook_secret', 'stripe_enabled'] as $key) {
+            \Illuminate\Support\Facades\Cache::forget('setting:'.$key);
+        }
+    }
 }

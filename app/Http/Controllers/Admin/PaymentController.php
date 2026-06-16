@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\ShopMobileCheckout;
 use App\Models\Transaction;
 use App\Support\RefundPolicy;
+use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -190,9 +191,25 @@ class PaymentController extends Controller
                 'secret_key' => 'nullable|string',
                 'webhook_secret' => 'nullable|string',
             ]);
-            Setting::set('stripe_public_key', $request->public_key ?? '', 'text', 'payment');
-            Setting::set('stripe_secret_key', $request->secret_key ?? '', 'text', 'payment');
-            Setting::set('stripe_webhook_secret', $request->webhook_secret ?? '', 'text', 'payment');
+
+            $publicKey = trim((string) $request->input('public_key', ''));
+            $secretKey = trim((string) $request->input('secret_key', ''));
+            $webhookSecret = trim((string) $request->input('webhook_secret', ''));
+
+            if ($publicKey !== '') {
+                Setting::set('stripe_public_key', $publicKey, 'text', 'payment');
+            }
+            if ($secretKey !== '') {
+                Setting::set('stripe_secret_key', $secretKey, 'text', 'payment');
+            }
+            if ($webhookSecret !== '') {
+                Setting::set('stripe_webhook_secret', $webhookSecret, 'text', 'payment');
+            }
+
+            StripeCredentials::forgetCachedSettings();
+            \App\Models\ShopMobileCheckout::query()
+                ->whereNull('consumed_at')
+                ->delete();
         } elseif ($gateway === 'paypal') {
             $request->validate([
                 'client_id' => 'nullable|string',

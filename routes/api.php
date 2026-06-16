@@ -596,6 +596,7 @@ Route::prefix('shop')->group(function () {
 
         Route::get('/checkout/payment-methods', [\App\Http\Controllers\Shop\CheckoutController::class, 'paymentMethods']);
         Route::post('/checkout/stripe/payment-intent', [\App\Http\Controllers\Shop\ShopStripeMobileCheckoutController::class, 'paymentIntent']);
+        Route::get('/checkout/stripe/config', [\App\Http\Controllers\Shop\ShopStripeMobileCheckoutController::class, 'stripeConfig']);
         Route::post('/checkout/confirm', [\App\Http\Controllers\Shop\ShopStripeMobileCheckoutController::class, 'confirm']);
         Route::get('/checkout/review', [\App\Http\Controllers\Shop\CheckoutController::class, 'review']);
         Route::get('/orders', [\App\Http\Controllers\Shop\OrderController::class, 'index']);

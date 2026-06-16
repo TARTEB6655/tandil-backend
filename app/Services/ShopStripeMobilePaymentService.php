@@ -36,6 +36,11 @@ class ShopStripeMobilePaymentService
             return $this->err('Stripe is not enabled or not configured.', 422);
         }
 
+        $stripeIssues = StripeCredentials::configurationIssues();
+        if ($stripeIssues !== []) {
+            return $this->err(implode(' ', $stripeIssues), 422);
+        }
+
         $this->mergeNormalizedShipping($request);
         CartController::normalizeCheckoutCouponInput($request);
 
@@ -206,7 +211,7 @@ class ShopStripeMobilePaymentService
 
         $secret = StripeCredentials::secretKey();
         $this->cancelLongAbandonedMobileCheckouts($user, $secret, 15);
-        $this->purgeStaleMobileCheckouts($user, $secret);
+        $purgedStale = $this->purgeStaleMobileCheckouts($user, $secret);
 
         $fingerprint = hash('sha256', json_encode([
             'lines' => $lines,
@@ -219,23 +224,33 @@ class ShopStripeMobilePaymentService
             'coupon_ship' => round($couponShipDisc, 2),
         ], JSON_THROW_ON_ERROR));
 
-        $reconciled = $this->reconcileActivePaymentIntentWithCheckout(
-            $request,
-            $user,
-            $pack,
-            $summary,
-            $amountMinor,
-            $total,
-            $cardTotal,
-            $walletApplied,
-            $currency,
-            $preview,
-            $isBuyNow,
-            $secret,
-            $couponId,
-            $couponCodeStored
-        );
+        if ($request->boolean('force_new_payment_intent')) {
+            $reconciled = null;
+        } else {
+            $reconciled = $this->reconcileActivePaymentIntentWithCheckout(
+                $request,
+                $user,
+                $pack,
+                $summary,
+                $amountMinor,
+                $total,
+                $cardTotal,
+                $walletApplied,
+                $currency,
+                $preview,
+                $isBuyNow,
+                $secret,
+                $couponId,
+                $couponCodeStored
+            );
+        }
         if ($reconciled !== null) {
+            if ($purgedStale && is_array($reconciled['data'] ?? null)) {
+                $reconciled['data']['reinitialize_payment_sheet'] = true;
+                $reconciled['data']['stale_payment_intents_cleared'] = true;
+            }
+            $reconciled = $this->attachStripeDiagnostics($reconciled);
+
             return $reconciled;
         }
 
@@ -399,7 +414,7 @@ class ShopStripeMobilePaymentService
             ShopMobileCheckout::create($checkoutPayload);
         }
 
-        return $this->formatPaymentIntentApiResponse(
+        return $this->attachStripeDiagnostics($this->formatPaymentIntentApiResponse(
             $clientSecret,
             $piId,
             $summary,
@@ -411,8 +426,9 @@ class ShopStripeMobilePaymentService
             $preview,
             $request,
             $isBuyNow,
-            'Payment intent created.'
-        );
+            'Payment intent created.',
+            $purgedStale
+        ));
     }
 
     /**
@@ -609,6 +625,58 @@ class ShopStripeMobilePaymentService
                 'preview_quantity' => $previewQty,
                 'checkout_source' => $request->filled('product_id') ? 'product_buy_now' : ($isBuyNow ? 'buy_now' : 'cart'),
                 'reinitialize_payment_sheet' => $reinitializePaymentSheet,
+                'stale_payment_intents_cleared' => $reinitializePaymentSheet,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array{ok: true, message: string, data: array<string, mixed>}  $payload
+     * @return array{ok: true, message: string, data: array<string, mixed>}
+     */
+    private function attachStripeDiagnostics(array $payload): array
+    {
+        if (! ($payload['ok'] ?? false)) {
+            return $payload;
+        }
+
+        $payload['data']['stripe_diagnostics'] = [
+            'mode' => StripeCredentials::mode(),
+            'secret_key_source' => StripeCredentials::secretKeySource(),
+            'publishable_key_source' => StripeCredentials::publishableKeySource(),
+            'secret_key_prefix' => StripeCredentials::maskedSecretPrefix(),
+            'publishable_key_prefix' => StripeCredentials::maskedPublishablePrefix(),
+            'configuration_issues' => StripeCredentials::configurationIssues(),
+        ];
+
+        return $payload;
+    }
+
+    public function stripeConfigForMobile(): array
+    {
+        if (! StripeCredentials::isStripeUsableForCheckout()) {
+            return $this->err('Stripe is not enabled or not configured.', 422);
+        }
+
+        $issues = StripeCredentials::configurationIssues();
+        if ($issues !== []) {
+            return $this->err(implode(' ', $issues), 422);
+        }
+
+        return [
+            'ok' => true,
+            'message' => 'Stripe configuration loaded.',
+            'data' => [
+                'publishable_key' => StripeCredentials::publishableKey(),
+                'stripe_mode' => StripeCredentials::mode(),
+                'stripe_diagnostics' => [
+                    'mode' => StripeCredentials::mode(),
+                    'secret_key_source' => StripeCredentials::secretKeySource(),
+                    'publishable_key_source' => StripeCredentials::publishableKeySource(),
+                    'secret_key_prefix' => StripeCredentials::maskedSecretPrefix(),
+                    'publishable_key_prefix' => StripeCredentials::maskedPublishablePrefix(),
+                    'configuration_issues' => [],
+                ],
             ],
         ];
     }
@@ -1196,10 +1264,13 @@ class ShopStripeMobilePaymentService
     /**
      * Drop mobile checkout rows whose PaymentIntent is missing on the current Stripe account
      * (e.g. after switching test ↔ live keys in admin).
+     *
+     * @return bool True when at least one stale row was removed.
      */
-    protected function purgeStaleMobileCheckouts(User $user, string $secret): void
+    protected function purgeStaleMobileCheckouts(User $user, string $secret): bool
     {
         $fingerprint = StripeCredentials::accountFingerprint();
+        $purged = false;
 
         $rows = ShopMobileCheckout::query()
             ->where('user_id', $user->id)
@@ -1213,6 +1284,7 @@ class ShopStripeMobilePaymentService
             $storedFingerprint = (string) ($row->stripe_account_fingerprint ?? '');
             if ($storedFingerprint !== '' && $storedFingerprint !== $fingerprint) {
                 $this->discardMobileCheckoutRow($secret, $row);
+                $purged = true;
 
                 continue;
             }
@@ -1220,8 +1292,11 @@ class ShopStripeMobilePaymentService
             $piId = (string) ($row->stripe_payment_intent_id ?? '');
             if ($piId === '' || ! $this->paymentIntentIsPayable($secret, $piId)) {
                 $this->discardMobileCheckoutRow($secret, $row);
+                $purged = true;
             }
         }
+
+        return $purged;
     }
 
     protected function discardMobileCheckoutRow(string $secret, ShopMobileCheckout $row): void

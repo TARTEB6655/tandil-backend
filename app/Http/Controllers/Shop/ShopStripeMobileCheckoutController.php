@@ -29,6 +29,20 @@ class ShopStripeMobileCheckoutController extends Controller
         return ApiResponse::success($result['message'], $result['data']);
     }
 
+    /**
+     * GET /api/shop/checkout/stripe/config
+     * Which publishable key + mode the mobile app must use (diagnose test/live mismatches).
+     */
+    public function stripeConfig(Request $request)
+    {
+        $result = $this->mobileCheckout->stripeConfigForMobile();
+        if (! ($result['ok'] ?? false)) {
+            return ApiResponse::error($result['message'], $result['status'] ?? 400);
+        }
+
+        return ApiResponse::success($result['message'], $result['data']);
+    }
+
     public function confirm(Request $request)
     {
         if (! $request->filled('payment_intent_id') && $request->filled('paymentIntentId')) {

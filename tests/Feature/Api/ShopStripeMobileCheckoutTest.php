@@ -50,6 +50,32 @@ class ShopStripeMobileCheckoutTest extends TestCase
         ];
     }
 
+    public function test_payment_intent_returns_422_when_stripe_keys_mode_mismatch(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Config::set('services.stripe.key', 'pk_live_dummy');
+        $user = User::factory()->create(['role' => 'client']);
+
+        $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+        ], $this->authHeaders($user))
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_stripe_config_endpoint_returns_publishable_key_and_mode(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Config::set('services.stripe.key', 'pk_test_dummy');
+        $user = User::factory()->create(['role' => 'client']);
+
+        $this->getJson('/api/shop/checkout/stripe/config', $this->authHeaders($user))
+            ->assertOk()
+            ->assertJsonPath('data.stripe_mode', 'test')
+            ->assertJsonPath('data.publishable_key', 'pk_test_dummy')
+            ->assertJsonPath('data.stripe_diagnostics.secret_key_prefix', 'sk_test_dumm…');
+    }
+
     public function test_payment_intent_returns_422_when_stripe_not_configured(): void
     {
         Config::set('services.stripe.secret', '');
