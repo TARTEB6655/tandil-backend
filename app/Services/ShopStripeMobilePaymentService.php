@@ -594,6 +594,7 @@ class ShopStripeMobilePaymentService
         string $message,
         bool $reinitializePaymentSheet = false
     ): array {
+        $reinitializePaymentSheet = true;
         $previewQty = 0;
         $firstLine = $preview['items']->first();
         if ($firstLine !== null) {
@@ -614,6 +615,7 @@ class ShopStripeMobilePaymentService
                 'payment_intent_id' => $paymentIntentId,
                 'publishable_key' => StripeCredentials::publishableKey(),
                 'stripe_mode' => StripeCredentials::mode(),
+                'stripe_keys_version' => StripeCredentials::keysVersion(),
                 'shipping_country_iso' => $countryCode,
                 'order_total' => $total,
                 'amount_due' => $cardTotal,
@@ -670,6 +672,7 @@ class ShopStripeMobilePaymentService
             'data' => [
                 'publishable_key' => StripeCredentials::publishableKey(),
                 'stripe_mode' => StripeCredentials::mode(),
+                'stripe_keys_version' => StripeCredentials::keysVersion(),
                 'stripe_diagnostics' => [
                     'mode' => StripeCredentials::mode(),
                     'secret_key_source' => StripeCredentials::secretKeySource(),

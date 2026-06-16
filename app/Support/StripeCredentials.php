@@ -11,23 +11,63 @@ final class StripeCredentials
 {
     public static function secretKey(): string
     {
-        $fromDb = trim((string) Setting::get('stripe_secret_key', ''));
+        $fromDb = self::normalizeKey((string) Setting::get('stripe_secret_key', ''));
 
-        return $fromDb !== '' ? $fromDb : trim((string) config('services.stripe.secret', ''));
+        return $fromDb !== '' ? $fromDb : self::normalizeKey((string) config('services.stripe.secret', ''));
     }
 
     public static function publishableKey(): string
     {
-        $fromDb = trim((string) Setting::get('stripe_public_key', ''));
+        $fromDb = self::normalizeKey((string) Setting::get('stripe_public_key', ''));
 
-        return $fromDb !== '' ? $fromDb : trim((string) config('services.stripe.key', ''));
+        return $fromDb !== '' ? $fromDb : self::normalizeKey((string) config('services.stripe.key', ''));
     }
 
     public static function webhookSecret(): string
     {
-        $fromDb = trim((string) Setting::get('stripe_webhook_secret', ''));
+        $fromDb = self::normalizeKey((string) Setting::get('stripe_webhook_secret', ''));
 
-        return $fromDb !== '' ? $fromDb : trim((string) config('services.stripe.webhook_secret', ''));
+        return $fromDb !== '' ? $fromDb : self::normalizeKey((string) config('services.stripe.webhook_secret', ''));
+    }
+
+    public static function normalizeKey(string $key): string
+    {
+        $key = trim($key);
+        $key = trim($key, " \t\n\r\0\x0B\"'");
+
+        return $key;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function validateKeyPair(?string $secret, ?string $publishable): array
+    {
+        $secret = self::normalizeKey((string) $secret);
+        $publishable = self::normalizeKey((string) $publishable);
+        $issues = [];
+
+        if ($secret === '') {
+            $issues[] = 'Stripe secret key is required.';
+        }
+        if ($publishable === '') {
+            $issues[] = 'Stripe publishable key is required.';
+        }
+
+        $secretMode = self::keyMode($secret);
+        $publishableMode = self::keyMode($publishable);
+
+        if ($secret !== '' && $secretMode === null) {
+            $issues[] = 'Stripe secret key must start with sk_test_ or sk_live_.';
+        }
+        if ($publishable !== '' && $publishableMode === null) {
+            $issues[] = 'Stripe publishable key must start with pk_test_ or pk_live_.';
+        }
+        if ($secretMode !== null && $publishableMode !== null && $secretMode !== $publishableMode) {
+            $issues[] = "Stripe keys must both be {$secretMode} or both be {$publishableMode}. You cannot mix test and live keys.";
+        }
+
+        return $issues;
     }
 
     public static function adminStripeEnabled(): bool
@@ -120,24 +160,7 @@ final class StripeCredentials
      */
     public static function blockingConfigurationIssues(): array
     {
-        $issues = [];
-        $secret = self::secretKey();
-        $publishable = self::publishableKey();
-
-        if ($secret === '') {
-            $issues[] = 'Stripe secret key is missing. Set it in Admin → Payments or STRIPE_SECRET_KEY in .env.';
-        }
-        if ($publishable === '') {
-            $issues[] = 'Stripe publishable key is missing. Set it in Admin → Payments or STRIPE_PUBLISHABLE_KEY in .env.';
-        }
-
-        $secretMode = self::keyMode($secret);
-        $publishableMode = self::keyMode($publishable);
-        if ($secretMode !== null && $publishableMode !== null && $secretMode !== $publishableMode) {
-            $issues[] = "Stripe key mode mismatch: secret is {$secretMode} but publishable is {$publishableMode}. Both must be test or both live, from the same Stripe account.";
-        }
-
-        return $issues;
+        return self::validateKeyPair(self::secretKey(), self::publishableKey());
     }
 
     /**
@@ -190,9 +213,31 @@ final class StripeCredentials
         return substr($key, 0, 12).'…';
     }
 
+    public static function keysVersion(): int
+    {
+        return (int) Setting::get('stripe_keys_version', 0);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function mobileStripeConfig(): array
+    {
+        return [
+            'enabled' => self::isStripeUsableForCheckout(),
+            'publishable_key' => self::publishableKey(),
+            'stripe_mode' => self::mode(),
+            'keys_version' => self::keysVersion(),
+            'secret_key_prefix' => self::maskedSecretPrefix(),
+            'publishable_key_prefix' => self::maskedPublishablePrefix(),
+            'configuration_issues' => self::blockingConfigurationIssues(),
+            'configuration_notes' => self::configurationNotes(),
+        ];
+    }
+
     public static function forgetCachedSettings(): void
     {
-        foreach (['stripe_secret_key', 'stripe_public_key', 'stripe_webhook_secret', 'stripe_enabled'] as $key) {
+        foreach (['stripe_secret_key', 'stripe_public_key', 'stripe_webhook_secret', 'stripe_enabled', 'stripe_keys_version'] as $key) {
             \Illuminate\Support\Facades\Cache::forget('setting:'.$key);
         }
     }

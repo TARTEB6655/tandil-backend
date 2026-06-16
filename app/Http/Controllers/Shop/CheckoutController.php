@@ -45,6 +45,7 @@ class CheckoutController extends Controller
         return ApiResponse::success('Payment methods retrieved.', [
             'methods' => $methods,
             'saved_paypal_methods' => $savedPayPal,
+            'stripe' => StripeCredentials::mobileStripeConfig(),
         ]);
     }
 
@@ -119,14 +120,20 @@ class CheckoutController extends Controller
      */
     protected function stripePayPalMethods(): array
     {
+        $stripe = [
+            'id' => 'stripe',
+            'type' => 'stripe',
+            'label' => 'Stripe',
+            'name' => 'Stripe',
+            'enabled' => StripeCredentials::isStripeUsableForCheckout(),
+        ];
+
+        if ($stripe['enabled']) {
+            $stripe = array_merge($stripe, StripeCredentials::mobileStripeConfig());
+        }
+
         return [
-            [
-                'id' => 'stripe',
-                'type' => 'stripe',
-                'label' => 'Stripe',
-                'name' => 'Stripe',
-                'enabled' => StripeCredentials::isStripeUsableForCheckout(),
-            ],
+            $stripe,
             [
                 'id' => 'paypal',
                 'type' => 'paypal',

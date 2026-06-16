@@ -20,6 +20,12 @@
             </div>
         @endif
 
+        @if($errors->has('stripe_keys'))
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
+                <p class="text-sm text-red-800 dark:text-red-200">{{ $errors->first('stripe_keys') }}</p>
+            </div>
+        @endif
+
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">Payment gateway configuration</h2>
 
@@ -50,19 +56,56 @@
                             <input type="hidden" name="enabled" value="{{ $gateways[$gateway]['enabled'] ? '1' : '0' }}">
 
                             @if($gateway === 'stripe')
+                                @php
+                                    $stripeMode = $stripeDiagnostics['mode'] ?? 'unknown';
+                                    $modeLabel = $stripeMode === 'live' ? 'Live' : ($stripeMode === 'test' ? 'Test' : 'Unknown');
+                                    $modeClass = $stripeMode === 'live'
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200'
+                                        : ($stripeMode === 'test'
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200');
+                                @endphp
+                                <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 font-medium {{ $modeClass }}">
+                                        {{ $modeLabel }} mode
+                                    </span>
+                                    @if(!empty($stripeDiagnostics['secret_key_prefix']))
+                                        <span class="text-gray-500 dark:text-gray-400">Secret: {{ $stripeDiagnostics['secret_key_prefix'] }}</span>
+                                    @endif
+                                    @if(!empty($stripeDiagnostics['publishable_key_prefix']))
+                                        <span class="text-gray-500 dark:text-gray-400">Publishable: {{ $stripeDiagnostics['publishable_key_prefix'] }}</span>
+                                    @endif
+                                </div>
+                                @if(!empty($stripeDiagnostics['configuration_issues']))
+                                    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
+                                        {{ implode(' ', $stripeDiagnostics['configuration_issues']) }}
+                                    </div>
+                                @endif
+                                @if(!empty($stripeDiagnostics['configuration_notes']))
+                                    <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
+                                        {{ implode(' ', $stripeDiagnostics['configuration_notes']) }}
+                                    </div>
+                                @endif
+                                <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                                    Both keys must be from the same Stripe mode (<code class="text-xs">sk_test_</code> + <code class="text-xs">pk_test_</code>, or <code class="text-xs">sk_live_</code> + <code class="text-xs">pk_live_</code>).
+                                    When switching test/live, paste <strong>both</strong> keys and save together.
+                                </p>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Public Key</label>
                                         <input type="text"
                                                name="public_key"
-                                               value="{{ $gateways[$gateway]['public_key'] }}"
+                                               value="{{ old('public_key', $gateways[$gateway]['public_key']) }}"
+                                               placeholder="pk_test_... or pk_live_..."
                                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Secret Key</label>
                                         <input type="password"
                                                name="secret_key"
-                                               value="{{ $gateways[$gateway]['secret_key'] }}"
+                                               value=""
+                                               placeholder="{{ $gateways[$gateway]['secret_key'] !== '' ? 'Leave blank to keep current secret' : 'sk_test_... or sk_live_...' }}"
+                                               autocomplete="new-password"
                                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     </div>
                                     <div class="md:col-span-2">

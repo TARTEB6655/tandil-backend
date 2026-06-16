@@ -115,7 +115,21 @@ class ShopStripeMobileCheckoutTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.stripe_mode', 'test')
             ->assertJsonPath('data.publishable_key', 'pk_test_dummy')
+            ->assertJsonPath('data.stripe_keys_version', 0)
             ->assertJsonPath('data.stripe_diagnostics.secret_key_prefix', 'sk_test_dumm…');
+    }
+
+    public function test_payment_methods_includes_stripe_publishable_key_for_mobile(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_mobile');
+        Config::set('services.stripe.key', 'pk_test_mobile');
+        $user = User::factory()->create(['role' => 'client']);
+
+        $this->getJson('/api/shop/checkout/payment-methods', $this->authHeaders($user))
+            ->assertOk()
+            ->assertJsonPath('data.stripe.publishable_key', 'pk_test_mobile')
+            ->assertJsonPath('data.stripe.stripe_mode', 'test')
+            ->assertJsonPath('data.methods.0.publishable_key', 'pk_test_mobile');
     }
 
     public function test_payment_intent_returns_422_when_stripe_not_configured(): void

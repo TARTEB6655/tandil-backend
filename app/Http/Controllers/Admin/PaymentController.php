@@ -133,6 +133,13 @@ class PaymentController extends Controller
     {
         return view('admin.payments.settings', [
             'gateways' => $this->gatewaySettings(),
+            'stripeDiagnostics' => [
+                'mode' => StripeCredentials::mode(),
+                'configuration_issues' => StripeCredentials::blockingConfigurationIssues(),
+                'configuration_notes' => StripeCredentials::configurationNotes(),
+                'secret_key_prefix' => StripeCredentials::maskedSecretPrefix(),
+                'publishable_key_prefix' => StripeCredentials::maskedPublishablePrefix(),
+            ],
             'refundPolicy' => [
                 'grace_minutes' => RefundPolicy::graceMinutes(),
                 'partial_refund_percent' => RefundPolicy::partialRefundPercent(),
@@ -192,9 +199,24 @@ class PaymentController extends Controller
                 'webhook_secret' => 'nullable|string',
             ]);
 
-            $publicKey = trim((string) $request->input('public_key', ''));
-            $secretKey = trim((string) $request->input('secret_key', ''));
-            $webhookSecret = trim((string) $request->input('webhook_secret', ''));
+            $publicKey = StripeCredentials::normalizeKey((string) $request->input('public_key', ''));
+            $secretKey = StripeCredentials::normalizeKey((string) $request->input('secret_key', ''));
+            $webhookSecret = StripeCredentials::normalizeKey((string) $request->input('webhook_secret', ''));
+
+            $effectivePublic = $publicKey !== ''
+                ? $publicKey
+                : StripeCredentials::normalizeKey((string) Setting::get('stripe_public_key', ''));
+            $effectiveSecret = $secretKey !== ''
+                ? $secretKey
+                : StripeCredentials::normalizeKey((string) Setting::get('stripe_secret_key', ''));
+
+            $pairIssues = StripeCredentials::validateKeyPair($effectiveSecret, $effectivePublic);
+            if ($pairIssues !== []) {
+                return redirect()
+                    ->route('admin.payments.settings')
+                    ->withInput()
+                    ->withErrors(['stripe_keys' => implode(' ', $pairIssues)]);
+            }
 
             if ($publicKey !== '') {
                 Setting::set('stripe_public_key', $publicKey, 'text', 'payment');
@@ -205,6 +227,8 @@ class PaymentController extends Controller
             if ($webhookSecret !== '') {
                 Setting::set('stripe_webhook_secret', $webhookSecret, 'text', 'payment');
             }
+
+            Setting::set('stripe_keys_version', (string) ((int) Setting::get('stripe_keys_version', 0) + 1), 'number', 'payment');
 
             StripeCredentials::forgetCachedSettings();
             \App\Models\ShopMobileCheckout::query()
