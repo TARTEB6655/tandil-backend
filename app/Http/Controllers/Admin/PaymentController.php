@@ -194,44 +194,86 @@ class PaymentController extends Controller
 
         if ($gateway === 'stripe') {
             $request->validate([
-                'public_key' => 'nullable|string',
-                'secret_key' => 'nullable|string',
-                'webhook_secret' => 'nullable|string',
+                'stripe_mode' => 'required|in:live,test',
+                'test_public_key' => 'nullable|string',
+                'test_secret_key' => 'nullable|string',
+                'live_public_key' => 'nullable|string',
+                'live_secret_key' => 'nullable|string',
+                'test_webhook_secret' => 'nullable|string',
+                'live_webhook_secret' => 'nullable|string',
             ]);
 
-            $publicKey = StripeCredentials::normalizeKey((string) $request->input('public_key', ''));
-            $secretKey = StripeCredentials::normalizeKey((string) $request->input('secret_key', ''));
-            $webhookSecret = StripeCredentials::normalizeKey((string) $request->input('webhook_secret', ''));
+            $activeMode = (string) $request->input('stripe_mode', 'test');
+            $errors = [];
+            $pending = [];
 
-            $effectivePublic = $publicKey !== ''
-                ? $publicKey
-                : StripeCredentials::normalizeKey((string) Setting::get('stripe_public_key', ''));
-            $effectiveSecret = $secretKey !== ''
-                ? $secretKey
-                : StripeCredentials::normalizeKey((string) Setting::get('stripe_secret_key', ''));
+            foreach (['test', 'live'] as $slotMode) {
+                $publicInput = StripeCredentials::normalizeKey((string) $request->input("{$slotMode}_public_key", ''));
+                $secretInput = StripeCredentials::normalizeKey((string) $request->input("{$slotMode}_secret_key", ''));
+                $effectivePublic = $publicInput !== ''
+                    ? $publicInput
+                    : StripeCredentials::storedPublicForMode($slotMode);
+                $effectiveSecret = $secretInput !== ''
+                    ? $secretInput
+                    : StripeCredentials::storedSecretForMode($slotMode);
 
-            $pairIssues = StripeCredentials::validateKeyPair($effectiveSecret, $effectivePublic);
-            if ($pairIssues !== []) {
+                $slotIssues = StripeCredentials::validateModeSlot($slotMode, $effectiveSecret, $effectivePublic);
+                if ($slotIssues !== []) {
+                    $errors[] = ucfirst($slotMode).' keys: '.implode(' ', $slotIssues);
+                }
+
+                $pending[$slotMode] = [
+                    'public_input' => $publicInput,
+                    'secret_input' => $secretInput,
+                ];
+            }
+
+            $activeKeys = [
+                'public' => StripeCredentials::storedPublicForMode($activeMode),
+                'secret' => StripeCredentials::storedSecretForMode($activeMode),
+            ];
+            if ($pending[$activeMode]['public_input'] !== '') {
+                $activeKeys['public'] = $pending[$activeMode]['public_input'];
+            }
+            if ($pending[$activeMode]['secret_input'] !== '') {
+                $activeKeys['secret'] = $pending[$activeMode]['secret_input'];
+            }
+
+            $activeIssues = StripeCredentials::validateKeyPair($activeKeys['secret'], $activeKeys['public']);
+            if ($activeIssues !== []) {
+                $errors[] = 'Active '.ucfirst($activeMode).' mode: '.implode(' ', $activeIssues);
+            }
+
+            if ($errors !== []) {
                 return redirect()
                     ->route('admin.payments.settings')
                     ->withInput()
-                    ->withErrors(['stripe_keys' => implode(' ', $pairIssues)]);
+                    ->withErrors(['stripe_keys' => implode(' ', $errors)]);
             }
 
-            if ($publicKey !== '') {
-                Setting::set('stripe_public_key', $publicKey, 'text', 'payment');
+            foreach (['test', 'live'] as $slotMode) {
+                StripeCredentials::applyModeKeyUpdates(
+                    $slotMode,
+                    $pending[$slotMode]['public_input'],
+                    $pending[$slotMode]['secret_input']
+                );
             }
-            if ($secretKey !== '') {
-                Setting::set('stripe_secret_key', $secretKey, 'text', 'payment');
+
+            Setting::set('stripe_mode', $activeMode, 'text', 'payment');
+
+            $testWebhook = StripeCredentials::normalizeKey((string) $request->input('test_webhook_secret', ''));
+            $liveWebhook = StripeCredentials::normalizeKey((string) $request->input('live_webhook_secret', ''));
+            if ($testWebhook !== '') {
+                Setting::set('stripe_test_webhook_secret', $testWebhook, 'text', 'payment');
             }
-            if ($webhookSecret !== '') {
-                Setting::set('stripe_webhook_secret', $webhookSecret, 'text', 'payment');
+            if ($liveWebhook !== '') {
+                Setting::set('stripe_live_webhook_secret', $liveWebhook, 'text', 'payment');
             }
 
             Setting::set('stripe_keys_version', (string) ((int) Setting::get('stripe_keys_version', 0) + 1), 'number', 'payment');
 
             StripeCredentials::forgetCachedSettings();
-            \App\Models\ShopMobileCheckout::query()
+            ShopMobileCheckout::query()
                 ->whereNull('consumed_at')
                 ->delete();
         } elseif ($gateway === 'paypal') {
@@ -270,9 +312,9 @@ class PaymentController extends Controller
         return [
             'stripe' => [
                 'enabled' => Setting::get('stripe_enabled', false),
-                'public_key' => Setting::get('stripe_public_key', ''),
-                'secret_key' => Setting::get('stripe_secret_key', ''),
-                'webhook_secret' => Setting::get('stripe_webhook_secret', ''),
+                'mode' => StripeCredentials::activeMode(),
+                'test' => StripeCredentials::adminModeSettings('test'),
+                'live' => StripeCredentials::adminModeSettings('live'),
             ],
             'paypal' => [
                 'enabled' => Setting::get('paypal_enabled', false),

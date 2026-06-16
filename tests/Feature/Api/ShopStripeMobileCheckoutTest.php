@@ -54,8 +54,9 @@ class ShopStripeMobileCheckoutTest extends TestCase
     {
         Config::set('services.stripe.secret', 'sk_test_env_only');
         Config::set('services.stripe.key', 'pk_test_env_only');
-        Setting::set('stripe_secret_key', 'sk_test_admin');
-        Setting::set('stripe_public_key', 'pk_test_admin');
+        Setting::set('stripe_test_secret_key', 'sk_test_admin');
+        Setting::set('stripe_test_public_key', 'pk_test_admin');
+        Setting::set('stripe_mode', 'test', 'text', 'payment');
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create(['shipping_cost' => null]);
@@ -89,7 +90,7 @@ class ShopStripeMobileCheckoutTest extends TestCase
             'shipping' => $this->shippingPayload(),
         ], $this->authHeaders($user))
             ->assertOk()
-            ->assertJsonPath('data.stripe_diagnostics.configuration_notes.0', 'Admin dashboard Stripe keys override .env. Updating .env alone has no effect while Admin keys are saved.');
+            ->assertJsonPath('data.stripe_diagnostics.configuration_notes.0', 'Admin dashboard Stripe keys override .env. Use the Test/Live mode toggle here; .env keys are only a fallback when admin keys are empty.');
     }
 
     public function test_payment_intent_returns_422_when_stripe_keys_mode_mismatch(): void
