@@ -41,7 +41,15 @@
                     <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 capitalize">{{ $gateway }}</h3>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 capitalize">{{ $gateway }}</h3>
+                                    @if($gateway === 'stripe')
+                                        @php $headerStripeMode = old('stripe_mode', $gateways['stripe']['mode'] ?? 'test'); @endphp
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $headerStripeMode === 'live' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' }}">
+                                            Checkout: {{ $headerStripeMode === 'live' ? 'LIVE' : 'TEST' }}
+                                        </span>
+                                    @endif
+                                </div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure {{ ucfirst($gateway) }} payment gateway</p>
                             </div>
                             <form method="POST" action="{{ route('admin.payments.update-gateway', $gateway) }}" class="inline">
@@ -69,6 +77,62 @@
                                     $stripeLive = $gateways['stripe']['live'] ?? [];
                                 @endphp
 
+                                <div x-data="{ stripeMode: @js($stripeActiveMode) }" class="space-y-4">
+                                <div class="rounded-xl border-2 p-4 transition-colors"
+                                     :class="stripeMode === 'live' ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20' : 'border-amber-400 bg-amber-50 dark:border-amber-500 dark:bg-amber-900/20'">
+                                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p class="text-xs font-semibold uppercase tracking-wide"
+                                               :class="stripeMode === 'live' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'">
+                                                Currently active for mobile checkout
+                                            </p>
+                                            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="stripeMode === 'live' ? 'LIVE MODE' : 'TEST MODE'">
+                                                {{ $stripeActiveMode === 'live' ? 'LIVE MODE' : 'TEST MODE' }}
+                                            </p>
+                                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                                                @if(!empty($stripeDiagnostics['publishable_key_prefix']))
+                                                    Saved mode uses {{ $stripeDiagnostics['publishable_key_prefix'] }}
+                                                @else
+                                                    No publishable key configured for the saved mode yet.
+                                                @endif
+                                            </p>
+                                        </div>
+
+                                        <div class="shrink-0">
+                                            <p class="mb-2 text-center text-xs font-medium text-gray-600 dark:text-gray-300 sm:text-right">Switch checkout mode</p>
+                                            <div class="inline-flex w-full rounded-xl border border-gray-300 bg-white p-1 shadow-sm dark:border-gray-600 dark:bg-gray-800 sm:w-auto">
+                                                <label class="flex-1 cursor-pointer sm:flex-none">
+                                                    <input type="radio"
+                                                           name="stripe_mode"
+                                                           value="test"
+                                                           class="sr-only"
+                                                           x-model="stripeMode"
+                                                           {{ $stripeActiveMode === 'test' ? 'checked' : '' }}>
+                                                    <span class="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
+                                                          :class="stripeMode === 'test' ? 'bg-amber-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'">
+                                                        <span class="inline-block h-2 w-2 rounded-full" :class="stripeMode === 'test' ? 'bg-white' : 'bg-amber-400'"></span>
+                                                        Test
+                                                    </span>
+                                                </label>
+                                                <label class="flex-1 cursor-pointer sm:flex-none">
+                                                    <input type="radio"
+                                                           name="stripe_mode"
+                                                           value="live"
+                                                           class="sr-only"
+                                                           x-model="stripeMode"
+                                                           {{ $stripeActiveMode === 'live' ? 'checked' : '' }}>
+                                                    <span class="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
+                                                          :class="stripeMode === 'live' ? 'bg-emerald-600 text-white shadow' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'">
+                                                        <span class="inline-block h-2 w-2 rounded-full" :class="stripeMode === 'live' ? 'bg-white' : 'bg-emerald-500'"></span>
+                                                        Live
+                                                    </span>
+                                                </label>
+                                            </div>
+                                            <p class="mt-2 text-center text-xs text-gray-500 dark:text-gray-400 sm:text-right">Click Live or Test, then Save below.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 @if(!empty($stripeDiagnostics['configuration_issues']))
                                     <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
                                         {{ implode(' ', $stripeDiagnostics['configuration_issues']) }}
@@ -80,23 +144,10 @@
                                     </div>
                                 @endif
 
-                                <div class="mb-6">
-                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Active mode for checkout</p>
-                                    <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-gray-600 dark:bg-gray-900">
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="stripe_mode" value="test" class="peer sr-only" {{ $stripeActiveMode === 'test' ? 'checked' : '' }}>
-                                            <span class="block rounded-lg px-5 py-2.5 text-sm font-medium text-gray-600 transition peer-checked:bg-amber-500 peer-checked:text-white peer-checked:shadow-sm dark:text-gray-300">Test mode</span>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="stripe_mode" value="live" class="peer sr-only" {{ $stripeActiveMode === 'live' ? 'checked' : '' }}>
-                                            <span class="block rounded-lg px-5 py-2.5 text-sm font-medium text-gray-600 transition peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:shadow-sm dark:text-gray-300">Live mode</span>
-                                        </label>
-                                    </div>
-                                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Save both test and live keys once. Toggle active mode when switching — no need to re-paste secrets.</p>
-                                </div>
-
                                 <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                                    <div class="rounded-xl border p-4 {{ $stripeActiveMode === 'test' ? 'border-amber-400 bg-amber-50/40 dark:border-amber-600 dark:bg-amber-900/10' : 'border-gray-200 dark:border-gray-600' }}">
+                                    <div class="relative rounded-xl border p-4 transition-all"
+                                         :class="stripeMode === 'test' ? 'border-amber-400 bg-amber-50/40 ring-2 ring-amber-300 dark:border-amber-600 dark:bg-amber-900/10 dark:ring-amber-700' : 'border-gray-200 dark:border-gray-600'">
+                                        <span x-show="stripeMode === 'test'" x-cloak class="absolute -top-3 left-4 inline-flex rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white">Active</span>
                                         <div class="mb-3 flex items-center justify-between gap-2">
                                             <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Test keys</h4>
                                             @if($stripeTest['has_secret'] ?? false)
@@ -133,7 +184,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="rounded-xl border p-4 {{ $stripeActiveMode === 'live' ? 'border-emerald-500 bg-emerald-50/40 dark:border-emerald-600 dark:bg-emerald-900/10' : 'border-gray-200 dark:border-gray-600' }}">
+                                    <div class="relative rounded-xl border p-4 transition-all"
+                                         :class="stripeMode === 'live' ? 'border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-400 dark:border-emerald-600 dark:bg-emerald-900/10 dark:ring-emerald-700' : 'border-gray-200 dark:border-gray-600'">
+                                        <span x-show="stripeMode === 'live'" x-cloak class="absolute -top-3 left-4 inline-flex rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white">Active</span>
                                         <div class="mb-3 flex items-center justify-between gap-2">
                                             <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Live keys</h4>
                                             @if($stripeLive['has_secret'] ?? false)
@@ -169,6 +222,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                </div>
                                 </div>
                             @elseif($gateway === 'paypal')
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
