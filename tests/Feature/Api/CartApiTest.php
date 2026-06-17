@@ -574,4 +574,54 @@ class CartApiTest extends TestCase
         $response->assertJsonPath('data.order_summary.total', 113.95);
     }
 
+    public function test_cart_add_works_when_role_column_uses_legacy_capital_casing(): void
+    {
+        $user = User::factory()->create(['role' => 'Client']);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonPath('success', true);
+    }
+
+    public function test_cart_add_honors_client_portal_token_after_role_drift(): void
+    {
+        $user = User::factory()->create(['role' => 'technician']);
+        if (method_exists($user, 'syncRoles')) {
+            $user->syncRoles([]);
+        }
+
+        $token = app(\App\Services\Auth\LoginService::class)->issuePortalToken($user, 'client');
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonPath('success', true);
+    }
+
 }

@@ -4,22 +4,24 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
     /**
      * Handle an incoming request.
-     * Checks both Spatie Permission roles and the role field in users table
+     * Checks Spatie roles, users.role (case-insensitive), and portal-scoped API tokens.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
             }
+
             return redirect()->route('login');
         }
 
@@ -30,29 +32,50 @@ class CheckRole
         foreach ($roles as $role) {
             $allRoles = array_merge($allRoles, array_map('trim', explode('|', $role)));
         }
-        $roles = array_unique($allRoles);
+        $roles = array_values(array_unique(array_filter($allRoles)));
 
-        // Check if user has any of the required roles via Spatie Permission OR role field
         foreach ($roles as $role) {
-            // First check the role field (faster and more reliable)
-            if ($user->role === $role) {
+            if ($user->hasAppRole($role)) {
                 return $next($request);
-            }
-            
-            // Then check Spatie Permission (with error handling)
-            try {
-                if ($user->hasRole($role)) {
-                    return $next($request);
-                }
-            } catch (\Exception $e) {
-                // If Spatie role check fails, continue to next check
-                // The role field check above should handle most cases
-                continue;
             }
         }
 
-        // User doesn't have required role - redirect to login or show 403
+        $token = $user->currentAccessToken();
+        if ($this->portalTokenGrantsAnyRole($token, $roles)) {
+            return $next($request);
+        }
+
         abort(403, 'Unauthorized access. You do not have the required role.');
     }
-}
 
+    /**
+     * Honor login portal tokens (api_client, api_technician, …) scoped to a single role ability.
+     * Legacy generic tokens (api_token with wildcard abilities) still rely on hasAppRole().
+     *
+     * @param  list<string>  $roles
+     */
+    private function portalTokenGrantsAnyRole(?PersonalAccessToken $token, array $roles): bool
+    {
+        if (! $token instanceof PersonalAccessToken) {
+            return false;
+        }
+
+        $name = $token->name;
+        if (! is_string($name) || ! str_starts_with($name, 'api_')) {
+            return false;
+        }
+
+        $abilities = $token->abilities ?? [];
+        if ($abilities === [] || in_array('*', $abilities, true)) {
+            return false;
+        }
+
+        foreach ($roles as $role) {
+            if ($token->can($role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}

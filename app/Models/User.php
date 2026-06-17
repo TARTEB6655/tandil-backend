@@ -218,17 +218,40 @@ class User extends Authenticatable
     }
 
     /**
+     * Normalized users.role slug (lowercase), or null when missing/unknown.
+     */
+    public function normalizedAppRoleColumn(): ?string
+    {
+        $role = $this->role;
+        if (! is_string($role) || trim($role) === '') {
+            return null;
+        }
+
+        $normalized = strtolower(trim($role));
+
+        return in_array($normalized, self::LOGIN_PORTALS, true) ? $normalized : null;
+    }
+
+    /**
      * Whether this user is the given app role (users.role column or Spatie role).
      * Matches logic used by web login redirects and CheckRole middleware.
      */
     public function hasAppRole(string $roleName): bool
     {
-        if ($this->role === $roleName) {
+        $roleName = strtolower(trim($roleName));
+
+        if ($this->normalizedAppRoleColumn() === $roleName) {
             return true;
         }
 
         try {
-            return $this->hasRole($roleName);
+            if ($this->hasRole($roleName)) {
+                return true;
+            }
+
+            return $this->getRoleNames()
+                ->map(static fn ($name) => strtolower((string) $name))
+                ->contains($roleName);
         } catch (\Exception $e) {
             return false;
         }
@@ -241,16 +264,20 @@ class User extends Authenticatable
      */
     public function matchesLoginPortal(string $portal): bool
     {
+        $portal = strtolower(trim($portal));
+
         try {
             $names = $this->getRoleNames();
             if ($names->isNotEmpty()) {
-                return $names->contains($portal);
+                return $names
+                    ->map(static fn ($name) => strtolower((string) $name))
+                    ->contains($portal);
             }
         } catch (\Throwable $e) {
             // fall through to users.role when Spatie tables are unavailable
         }
 
-        return ($this->role ?? '') === $portal;
+        return $this->normalizedAppRoleColumn() === $portal;
     }
 
     /**
