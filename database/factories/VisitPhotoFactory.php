@@ -13,8 +13,9 @@ class VisitPhotoFactory extends Factory
     {
         return [
             'visit_id' => null,
-            'type' => $this->faker->randomElement(['before','after']),
-            'photo_path' => $this->faker->imageUrl(640, 480, 'nature'),
+            'type' => $this->faker->randomElement(['before', 'during', 'after']),
+            'photo_path' => 'visit_photos/'.fake()->uuid().'.jpg',
+            'show_on_client_app' => true,
         ];
     }
 }

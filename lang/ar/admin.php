@@ -38,6 +38,7 @@ return [
     'technicians' => 'الفنيون',
     'audit_logs' => 'سجلات التدقيق',
     'banners' => 'اللافتات',
+    'maintenance_photos' => 'صور الصيانة',
     'settings' => 'الإعدادات',
     'settings_dashboard' => 'لوحة الإعدادات',
     'all_settings' => 'جميع الإعدادات',

@@ -38,6 +38,7 @@ return [
     'technicians' => 'ٹیکنیشنز',
     'audit_logs' => 'آڈٹ لاگز',
     'banners' => 'بینرز',
+    'maintenance_photos' => 'مینٹیننس فوٹوز',
     'settings' => 'ترتیبات',
     'settings_dashboard' => 'ڈیش بورڈ',
     'all_settings' => 'تمام ترتیبات',

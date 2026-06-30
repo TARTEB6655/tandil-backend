@@ -1330,6 +1330,7 @@ class TechnicianDashboardController extends Controller
                 'visit_id' => $visit->id,
                 'photo_path' => $path,
                 'type' => $type,
+                'show_on_client_app' => false,
             ]);
         }
 
@@ -1415,6 +1416,7 @@ class TechnicianDashboardController extends Controller
                 'visit_id' => $visit->id,
                 'photo_path' => $path,
                 'type' => $type,
+                'show_on_client_app' => false,
             ]);
         }
 

@@ -167,9 +167,6 @@ Route::middleware(['auth:sanctum', 'role:technician|supervisor|area_manager|clie
     Route::post('/', [\App\Http\Controllers\Visit\VisitController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'update']);
-    Route::put('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
-    Route::post('/{id}/upload-photo', [\App\Http\Controllers\Visit\VisitController::class, 'uploadPhoto']);
-    Route::delete('/{id}/photos/{photoId}', [\App\Http\Controllers\Visit\VisitController::class, 'deletePhoto']);
 });
 
 /*
@@ -182,8 +179,6 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('tech')->group(fu
     Route::post('/visits/{id}/accept', [\App\Http\Controllers\Technician\TechnicianController::class, 'accept']);
     Route::post('/visits/{id}/start', [\App\Http\Controllers\Technician\TechnicianController::class, 'start']);
     Route::post('/visits/{id}/complete', [\App\Http\Controllers\Technician\TechnicianController::class, 'complete']);
-    Route::put('/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
-    Route::post('/visits/{id}/photos', [\App\Http\Controllers\Technician\TechnicianController::class, 'uploadPhoto']);
 });
 
 /*
@@ -473,6 +468,13 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/wallet/overview', [\App\Http\Controllers\Api\Admin\WalletController::class, 'overview']);
     Route::get('/wallet/credits', [\App\Http\Controllers\Api\Admin\WalletController::class, 'credits']);
     Route::get('/wallet/users/{user}', [\App\Http\Controllers\Api\Admin\WalletController::class, 'userDetail'])->whereNumber('user');
+
+    // Maintenance photos (admin upload/update/delete — client app is read-only)
+    Route::get('/maintenance-photos', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'index']);
+    Route::post('/maintenance-photos', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'store']);
+    Route::put('/maintenance-photos/{id}', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'update']);
+    Route::post('/maintenance-photos/{id}', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'update']);
+    Route::delete('/maintenance-photos/{id}', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'destroy']);
 });
 
 /*
@@ -630,7 +632,7 @@ Route::prefix('services')->group(function () {
 | MAINTENANCE PHOTOS (Client app – home screen "Maintenance Photos" section)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('maintenance-photos')->group(function () {
+Route::middleware(['auth:sanctum', 'role:client'])->prefix('maintenance-photos')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'index']);
     Route::get('/visit/{visitId}', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'byVisit']);
 });

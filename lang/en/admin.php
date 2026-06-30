@@ -39,6 +39,7 @@ return [
     'technicians' => 'Technicians',
     'audit_logs' => 'Audit Logs',
     'banners' => 'Banners',
+    'maintenance_photos' => 'Maintenance Photos',
     'settings' => 'Settings',
     'settings_dashboard' => 'Dashboard',
     'all_settings' => 'All Settings',

@@ -8,7 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class VisitPhoto extends Model
 {
     use HasFactory;
-    protected $fillable = ['visit_id','type','photo_path'];
+    protected $fillable = ['visit_id', 'type', 'photo_path', 'show_on_client_app'];
+
+    protected $casts = [
+        'show_on_client_app' => 'boolean',
+    ];
 
     public function visit()
     {

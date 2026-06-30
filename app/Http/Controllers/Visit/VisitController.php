@@ -3,21 +3,17 @@
 namespace App\Http\Controllers\Visit;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\Traits\ParsesMultipartPhoto;
 use Illuminate\Http\Request;
 use App\Models\Area;
 use App\Models\Visit;
-use App\Models\VisitPhoto;
 use App\Support\VisitAreaResolver;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Services\VisitOfferService;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
 {
-    use ParsesMultipartPhoto;
 
     public function __construct()
     {
@@ -364,118 +360,6 @@ class VisitController extends Controller
         }
 
         return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
-    }
-
-    /**
-     * Upload a photo (admin, assigned technician, or client for own visits).
-     * Supports POST and PUT with multipart/form-data (same as category image update) so image upload works
-     * when PHP does not populate $_FILES (e.g. PUT requests or some proxies). Field name: "photo"; optional: "type" (before|after).
-     */
-    public function uploadPhoto(Request $request, $id)
-    {
-        $visit = Visit::with('subscription')->find($id);
-        if (!$visit) {
-            return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
-        }
-
-        $user = $request->user();
-
-        // Authorization: admin, assigned technician, or client (own subscription)
-        $isAuthorized = false;
-
-        if ($user->hasRole('admin')) {
-            $isAuthorized = true;
-        } elseif ($user->hasRole('technician') && $visit->technician_id == $user->id) {
-            // Technician can upload if assigned to the visit
-            $isAuthorized = true;
-        } elseif ($user->hasRole('client') && $visit->subscription && $visit->subscription->client_id === $user->id) {
-            // Client can upload photos for their own visits
-            $isAuthorized = true;
-        }
-
-        if (!$isAuthorized) {
-            return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
-        }
-
-        // Parse multipart body for PUT/POST so "photo" file is available (same as category image update)
-        $contentType = $request->header('Content-Type', '');
-        if (str_contains($contentType, 'multipart/form-data') && ($request->isMethod('PUT') || $request->isMethod('POST'))) {
-            $this->parseMultipartIntoRequest($request, 'photo');
-        }
-
-        // Validation
-        $validator = Validator::make($request->all(), [
-            'photo' => 'required|image',
-            'type'  => 'nullable|string|in:before,after',
-        ], [
-            'photo.required' => 'Please select an image file to upload.',
-            'photo.image' => 'The uploaded file must be an image.',
-            'photo.max' => 'The image size must not exceed 5MB.',
-            'type.in' => 'The type must be either "before" or "after".',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
-        }
-
-        // Upload
-        $path = $request->file('photo')->store('visit_photos', 'public');
-        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($path);
-
-        $photo = VisitPhoto::create([
-            'visit_id'   => $visit->id,
-            'type'       => $request->input('type', 'before'),
-            'photo_path' => $path,
-        ]);
-
-        // Response shape aligned with category image update: include photo_url for client use
-        $photoUrl = $path ? (request()->getSchemeAndHttpHost() ? rtrim(request()->getSchemeAndHttpHost(), '/') . '/storage/' . $path : asset('storage/' . $path)) : null;
-        $data = $photo->toArray();
-        $data['photo_url'] = $photoUrl;
-
-        return response()->json(['status' => true, 'data' => $data], 201);
-    }
-
-    /**
-     * Delete a maintenance/visit photo.
-     * Who can delete:
-     * - Admin: can delete any photo.
-     * - Technician: can delete only photos of visits assigned to them.
-     * - Client: can delete only photos of their own visits (their subscription).
-     */
-    public function deletePhoto(Request $request, $visitId, $photoId)
-    {
-        $visit = Visit::with('subscription')->find($visitId);
-        if (! $visit) {
-            return response()->json(['status' => false, 'message' => 'Visit not found'], 404);
-        }
-
-        $photo = VisitPhoto::where('visit_id', $visitId)->where('id', $photoId)->first();
-        if (! $photo) {
-            return response()->json(['status' => false, 'message' => 'Photo not found'], 404);
-        }
-
-        $user = $request->user();
-        $isAuthorized = false;
-
-        if ($user->hasRole('admin')) {
-            $isAuthorized = true;
-        } elseif ($user->hasRole('technician') && $visit->technician_id == $user->id) {
-            $isAuthorized = true;
-        } elseif ($user->hasRole('client') && $visit->subscription && $visit->subscription->client_id === $user->id) {
-            $isAuthorized = true;
-        }
-
-        if (! $isAuthorized) {
-            return response()->json(['status' => false, 'message' => 'You are not allowed to delete this photo'], 403);
-        }
-
-        if ($photo->photo_path && Storage::disk('public')->exists($photo->photo_path)) {
-            Storage::disk('public')->delete($photo->photo_path);
-        }
-        $photo->delete();
-
-        return response()->json(['status' => true, 'message' => 'Photo deleted successfully'], 200);
     }
 
     /**

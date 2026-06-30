@@ -291,6 +291,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
         Route::resource('banners', BannerController::class);
+        Route::resource('maintenance-photos', \App\Http\Controllers\Admin\MaintenancePhotoController::class)->except(['show']);
         Route::post('coupons/{id}/toggle-status', [CouponController::class, 'toggleStatus'])->name('coupons.toggle-status');
         Route::resource('coupons', CouponController::class)->except(['show']);
         Route::get('packages', [PackageController::class, 'index'])->name('packages.index');
@@ -442,7 +443,6 @@ Route::middleware(['auth', 'role:technician'])
         Route::post('/visits/{id}/start', [\App\Http\Controllers\Technician\VisitController::class, 'start'])->name('visits.start');
         Route::post('/visits/{id}/complete', [\App\Http\Controllers\Technician\VisitController::class, 'complete'])->name('visits.complete');
         Route::post('/visits/{id}/update-notes', [\App\Http\Controllers\Technician\VisitController::class, 'updateNotes'])->name('visits.update-notes');
-        Route::post('/visits/{id}/photos', [\App\Http\Controllers\Technician\VisitController::class, 'uploadPhoto'])->name('visits.upload-photo');
 
         // Reports
         Route::get('/reports', [\App\Http\Controllers\Technician\ReportController::class, 'index'])->name('reports.index');
