@@ -3743,6 +3743,262 @@
             ]
         },
         {
+            "name": "5g. Admin Dashboard – Maintenance Photos",
+            "description": "Admin only — upload, update, delete maintenance photos for the client app home screen. Client folder **8b** is read-only (GET). Auth: Bearer **admin** token. Create/update use **form-data** (not raw JSON).",
+            "item": [
+                {
+                    "name": "1. List maintenance photos (GET)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var j = pm.response.json();",
+                                    "    var rows = j.data && j.data.data ? j.data.data : (j.data || []);",
+                                    "    if (rows.length) {",
+                                    "        pm.environment.set('maintenance_photo_id', rows[0].id);",
+                                    "        if (rows[0].visit_id) pm.environment.set('visit_id', rows[0].visit_id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/maintenance-photos?per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "maintenance-photos"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "visit_id",
+                                    "value": "{{visit_id}}",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "client_id",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "GET /api/admin/maintenance-photos — List all maintenance photos. Optional query: per_page, visit_id, client_id, show_on_client_app. Sets maintenance_photo_id in env from first row."
+                    }
+                },
+                {
+                    "name": "2. Upload maintenance photo (form-data POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "visit_id",
+                                    "value": "{{visit_id}}",
+                                    "type": "text",
+                                    "description": "Required. Visit this photo belongs to (client sees it on their app)."
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "",
+                                    "description": "Required image file"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "after",
+                                    "type": "text",
+                                    "description": "before | during | after"
+                                },
+                                {
+                                    "key": "show_on_client_app",
+                                    "value": "1",
+                                    "type": "text",
+                                    "description": "1 = visible on client app, 0 = hidden"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/maintenance-photos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "maintenance-photos"
+                            ]
+                        },
+                        "description": "POST /api/admin/maintenance-photos — Admin upload. form-data: visit_id (required), photo (file, required), type (optional), show_on_client_app (optional, default 1). Response 201 with photo_url."
+                    }
+                },
+                {
+                    "name": "3. Update maintenance photo (form-data PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "",
+                                    "description": "Optional — replace image"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "after",
+                                    "type": "text",
+                                    "description": "before | during | after"
+                                },
+                                {
+                                    "key": "show_on_client_app",
+                                    "value": "1",
+                                    "type": "text",
+                                    "description": "1 = visible on client app, 0 = hidden"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/maintenance-photos/{{maintenance_photo_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "maintenance-photos",
+                                "{{maintenance_photo_id}}"
+                            ]
+                        },
+                        "description": "PUT /api/admin/maintenance-photos/{id} — Replace photo and/or type and visibility. form-data. Set maintenance_photo_id from list response."
+                    }
+                },
+                {
+                    "name": "4. Update maintenance photo (form-data POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "",
+                                    "description": "Optional — replace image"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "after",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "show_on_client_app",
+                                    "value": "1",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/maintenance-photos/{{maintenance_photo_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "maintenance-photos",
+                                "{{maintenance_photo_id}}"
+                            ]
+                        },
+                        "description": "POST /api/admin/maintenance-photos/{id} — Same as PUT; use when your client sends multipart via POST."
+                    }
+                },
+                {
+                    "name": "5. Delete maintenance photo (DELETE)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/maintenance-photos/{{maintenance_photo_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "maintenance-photos",
+                                "{{maintenance_photo_id}}"
+                            ]
+                        },
+                        "description": "DELETE /api/admin/maintenance-photos/{id} — Remove photo file and record. Admin only."
+                    }
+                }
+            ]
+        },
+        {
             "name": "6. Client Dashboard – Visits",
             "item": [
                 {
@@ -4141,85 +4397,9 @@
                         },
                         "description": "Update visit (job) details. Use **form-data** body. Set **visit_id** in path.\n\n**Updatable fields:** scheduled_date, notes, price, status, technician_id, supervisor_id, area_id (all optional). Admin/Client can assign technician_id, supervisor_id, area_id; role-based status rules apply."
                     }
-                },
-                {
-                    "name": "Upload Visit Photo",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "photo",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "Image file (required). Same as category image: POST or PUT with multipart."
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "before",
-                                    "type": "text",
-                                    "description": "Optional: before | after"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/visits/{{visit_id}}/upload-photo",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "visits",
-                                "{{visit_id}}",
-                                "upload-photo"
-                            ]
-                        },
-                        "description": "Upload maintenance/visit photo. POST or PUT with multipart/form-data (same as category image update). Body: photo (file, required), type (optional: before|after). Auth: admin, assigned technician, or client (own visit). Response: status, data (id, visit_id, type, photo_path, photo_url, created_at). Set visit_id in env."
-                    }
-                },
-                {
-                    "name": "Delete Visit Photo (Maintenance Photo)",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/visits/{{visit_id}}/photos/{{photo_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "visits",
-                                "{{visit_id}}",
-                                "photos",
-                                "{{photo_id}}"
-                            ]
-                        },
-                        "description": "Delete one maintenance/visit photo. Who can delete: Admin (any), Technician (photos of visits assigned to them), Client (photos of their own visits). Set visit_id and photo_id in env. Response: status, message."
-                    }
                 }
             ],
-            "description": "Visit management – list, create, show, update. Upload photo: POST/PUT /api/visits/{id}/upload-photo (Admin, Technician assigned, Client own). Delete photo: DELETE /api/visits/{id}/photos/{photoId} (Admin, Technician assigned, Client own). Set visit_id, photo_id."
+            "description": "Visit management – list, create, show, update. Maintenance photos for the client app are managed by admin only (folder **5g**). Client views photos in folder **8b**."
         },
         {
             "name": "7. Client Dashboard – Reports",
@@ -6273,7 +6453,25 @@
             "name": "8b. Client Dashboard – Maintenance Photos",
             "item": [
                 {
-                    "name": "List Maintenance Photos",
+                    "name": "1. List Maintenance Photos (GET)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var j = pm.response.json();",
+                                    "    var rows = j.data && j.data.data ? j.data.data : [];",
+                                    "    if (rows.length) {",
+                                    "        pm.environment.set('maintenance_photo_id', rows[0].id);",
+                                    "        if (rows[0].visit_id) pm.environment.set('visit_id', rows[0].visit_id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6307,11 +6505,11 @@
                                 }
                             ]
                         },
-                        "description": "List maintenance photos for the authenticated client (from their visits). Optional: per_page (1-100), visit_id to filter by one visit. Response: data[].id, photo_url, type, visit_id, visit (scheduled_date, status) for \"View Order\" link."
+                        "description": "GET /api/maintenance-photos — **Client read-only.** Lists admin-published photos from the client's visits (show_on_client_app=true). Optional: per_page (1-100), visit_id. Auth: Bearer client token."
                     }
                 },
                 {
-                    "name": "Get Maintenance Photos by Visit",
+                    "name": "2. Get Maintenance Photos by Visit (GET)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -6336,86 +6534,11 @@
                                 "{{visit_id}}"
                             ]
                         },
-                        "description": "Get all maintenance photos for a specific visit. Client must own the visit. Response: visit (summary), photos[] with id, photo_url, type, created_at."
-                    }
-                },
-                {
-                    "name": "Upload Maintenance Photo",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "photo",
-                                    "type": "file",
-                                    "src": "",
-                                    "description": "Image file (required)"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "after",
-                                    "description": "Optional: before | during | after"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/visits/{{visit_id}}/upload-photo",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "visits",
-                                "{{visit_id}}",
-                                "upload-photo"
-                            ]
-                        },
-                        "description": "Upload a maintenance/visit photo. POST or PUT with form-data: photo (file, required), type (optional: before|during|after). Who can upload: Admin (any visit), Technician (assigned visit), Client (own visit). Set visit_id in env. Response: data (id, visit_id, type, photo_path, photo_url, created_at)."
-                    }
-                },
-                {
-                    "name": "Delete Maintenance Photo",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/visits/{{visit_id}}/photos/{{photo_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "visits",
-                                "{{visit_id}}",
-                                "photos",
-                                "{{photo_id}}"
-                            ]
-                        },
-                        "description": "Delete one maintenance photo. Client can delete only photos of their own visits. Set visit_id and photo_id (from List or Get by Visit). Who can delete: Admin (any), Technician (assigned visits), Client (own visits)."
+                        "description": "GET /api/maintenance-photos/visit/{visit_id} — **Client read-only.** Photos for one visit the client owns. Response: visit summary + photos[]."
                     }
                 }
             ],
-            "description": "Client app Home – Maintenance Photos. List, get by visit, upload, delete. Upload: POST/PUT /api/visits/{id}/upload-photo (form-data: photo, type). Who can upload/delete: Admin, Technician (assigned visit), Client (own visit). Set visit_id, photo_id. Auth: Bearer."
+            "description": "Client app home — Maintenance Photos (**read-only**). Upload/update/delete: admin folder **5g** (`/api/admin/maintenance-photos`). Auth: Bearer **client** token. Set visit_id."
         },
         {
             "name": "9. Technician Dashboard – All APIs",
@@ -7093,82 +7216,6 @@
                                     ]
                                 },
                                 "description": "Returns status-wise counts for quick action tiles (accepted, in_progress, rejected, completed, pending, cancelled). **Period**: week = last 7 days; month = last 30 days; year = year to date."
-                            }
-                        },
-                        {
-                            "name": "POST Technician – Upload job photo",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "photo",
-                                            "type": "file",
-                                            "src": []
-                                        },
-                                        {
-                                            "key": "type",
-                                            "value": "before",
-                                            "type": "text",
-                                            "description": "before | during | after"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/tech/visits/{{visit_id}}/photos",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "tech",
-                                        "visits",
-                                        "{{visit_id}}",
-                                        "photos"
-                                    ]
-                                },
-                                "description": "Upload before/after image for the selected job. Technician uploads photos; returned in Job Details before_after_photos."
-                            }
-                        },
-                        {
-                            "name": "Technician - Delete Photo",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/visits/{{visit_id}}/photos/{{photo_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "visits",
-                                        "{{visit_id}}",
-                                        "photos",
-                                        "{{photo_id}}"
-                                    ]
-                                },
-                                "description": "Delete a maintenance/visit photo. Technician can delete only photos of visits assigned to them. Set visit_id and photo_id."
                             }
                         }
                     ]
@@ -17840,53 +17887,6 @@
                                 },
                                 "description": "Alternative path: Complete visit (same as /api/tech/visits/{id}/complete)"
                             }
-                        },
-                        {
-                            "name": "Tech - Upload Photo (Auth)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "photo",
-                                            "type": "file",
-                                            "src": []
-                                        },
-                                        {
-                                            "key": "type",
-                                            "value": "after",
-                                            "type": "text",
-                                            "description": "Optional: before | during | after"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/auth/tech/visits/{{visit_id}}/photos",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "auth",
-                                        "tech",
-                                        "visits",
-                                        "{{visit_id}}",
-                                        "photos"
-                                    ]
-                                },
-                                "description": "Alternative path: Upload photo (same as /api/tech/visits/{id}/photos). POST or PUT, multipart: photo (file), type (before|during|after). Response: data.photo_url."
-                            }
                         }
                     ],
                     "description": "Alternative technician routes under /api/auth/tech (duplicate of /api/tech routes)"
@@ -19166,6 +19166,11 @@
         },
         {
             "key": "visit_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "maintenance_photo_id",
             "value": "1",
             "type": "string"
         },
