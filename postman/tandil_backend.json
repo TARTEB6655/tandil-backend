@@ -3753,9 +3753,18 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
+                                    "pm.test('Status is 200 OK', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('List response shape is valid', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    pm.expect(j.success).to.eql(true);",
+                                    "    pm.expect(j.data).to.have.property('data');",
+                                    "    pm.expect(j.data).to.have.property('pagination');",
+                                    "});",
                                     "if (pm.response.code === 200) {",
                                     "    var j = pm.response.json();",
-                                    "    var rows = j.data && j.data.data ? j.data.data : (j.data || []);",
+                                    "    var rows = j.data && j.data.data ? j.data.data : [];",
                                     "    if (rows.length) {",
                                     "        pm.environment.set('maintenance_photo_id', rows[0].id);",
                                     "        if (rows[0].visit_id) pm.environment.set('visit_id', rows[0].visit_id);",
@@ -3810,6 +3819,27 @@
                 },
                 {
                     "name": "2. Upload maintenance photo (form-data POST)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201 Created', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Upload response is successful', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    pm.expect(j.success).to.eql(true);",
+                                    "    pm.expect(j.data).to.have.property('id');",
+                                    "    pm.expect(j.data).to.have.property('photo_url');",
+                                    "    pm.environment.set('maintenance_photo_id', j.data.id);",
+                                    "    if (j.data.visit_id) pm.environment.set('visit_id', j.data.visit_id);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -3867,6 +3897,24 @@
                 },
                 {
                     "name": "3. Update maintenance photo (form-data PUT)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 OK', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Update response is successful', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    pm.expect(j.success).to.eql(true);",
+                                    "    pm.expect(j.data).to.have.property('id');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -3969,6 +4017,23 @@
                 },
                 {
                     "name": "5. Delete maintenance photo (DELETE)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 OK', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Delete response is successful', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    pm.expect(j.success).to.eql(true);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "DELETE",
                         "header": [
@@ -6459,6 +6524,14 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
+                                    "pm.test('Status is 200 OK', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Client list response is successful', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    pm.expect(j.success).to.eql(true);",
+                                    "    pm.expect(j.data).to.have.property('data');",
+                                    "});",
                                     "if (pm.response.code === 200) {",
                                     "    var j = pm.response.json();",
                                     "    var rows = j.data && j.data.data ? j.data.data : [];",
@@ -6510,6 +6583,25 @@
                 },
                 {
                     "name": "2. Get Maintenance Photos by Visit (GET)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 OK', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Visit photos response is successful', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    pm.expect(j.success).to.eql(true);",
+                                    "    pm.expect(j.data).to.have.property('visit');",
+                                    "    pm.expect(j.data).to.have.property('photos');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "GET",
                         "header": [
