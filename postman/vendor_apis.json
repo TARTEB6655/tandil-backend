@@ -20,24 +20,41 @@
                     "name": "Auth",
                     "item": [
                         {
-                            "name": "Register vendor",
+                            "name": "Register vendor (full signup)",
                             "request": {
                                 "method": "POST",
                                 "header": [{"key": "Accept", "value": "application/json"}],
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {"key": "business_name", "value": "Green Farms", "type": "text"},
-                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text"},
+                                        {"key": "company_name", "value": "Green Farms LLC", "type": "text"},
+                                        {"key": "authorized_person_name", "value": "Ali Vendor", "type": "text"},
                                         {"key": "email", "value": "vendor@example.com", "type": "text"},
                                         {"key": "phone", "value": "+971500000000", "type": "text"},
+                                        {"key": "trade_license_number", "value": "TL-12345", "type": "text"},
+                                        {"key": "trade_license", "type": "file", "src": []},
+                                        {"key": "address", "value": "Industrial Area 1", "type": "text"},
                                         {"key": "password", "value": "secret12", "type": "text"},
                                         {"key": "password_confirmation", "value": "secret12", "type": "text"},
-                                        {"key": "tax_vat_number", "value": "TRN123", "type": "text"}
+                                        {"key": "logo", "type": "file", "src": []},
+                                        {"key": "vat_number", "value": "TRN123456789", "type": "text"},
+                                        {"key": "emirates_id", "type": "file", "src": []},
+                                        {"key": "vendor_type", "value": "fruits", "type": "text"},
+                                        {"key": "emirate", "value": "Dubai", "type": "text"},
+                                        {"key": "city", "value": "Dubai", "type": "text"},
+                                        {"key": "google_maps_location", "value": "25.2048,55.2708", "type": "text"},
+                                        {"key": "bank_name", "value": "Emirates NBD", "type": "text"},
+                                        {"key": "iban", "value": "AE070331234567890123456", "type": "text"},
+                                        {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text"},
+                                        {"key": "delivery_radius", "value": "25", "type": "text"},
+                                        {"key": "opens_at", "value": "08:00", "type": "text"},
+                                        {"key": "closes_at", "value": "22:00", "type": "text"},
+                                        {"key": "minimum_order_amount", "value": "50", "type": "text"},
+                                        {"key": "terms_accepted", "value": "1", "type": "text"}
                                     ]
                                 },
                                 "url": "{{base_url}}/api/vendor/auth/register",
-                                "description": "Public. Creates user + vendor (pending) + profile."
+                                "description": "Public multipart signup — matches mobile Vendor Registration wizard. trade_license + emirates_id required."
                             }
                         },
                         {

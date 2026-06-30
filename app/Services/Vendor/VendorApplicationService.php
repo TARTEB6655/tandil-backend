@@ -87,7 +87,6 @@ class VendorApplicationService
             'address' => 'Address',
             'vendor_type' => 'Vendor Type',
             'emirate' => 'Emirate',
-            'city' => 'City',
             'google_maps_location' => 'Google Maps Location',
             'bank_name' => 'Bank Name',
             'iban' => 'IBAN',

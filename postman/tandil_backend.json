@@ -1096,7 +1096,27 @@
                     }
                 },
                 {
-                    "name": "Register Vendor (multipart)",
+                    "name": "Register Vendor (form-data – full signup)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201 Created', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Vendor registration succeeded', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    pm.expect(j.success).to.eql(true);",
+                                    "    pm.expect(j.data).to.have.property('vendor_id');",
+                                    "    pm.expect(j.data.status).to.eql('pending');",
+                                    "    if (j.data.vendor_id) pm.environment.set('vendor_id', j.data.vendor_id);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1105,31 +1125,30 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {"key": "business_name", "value": "Green Farms LLC", "type": "text", "description": "Company Name. Required."},
-                                {"key": "owner_name", "value": "Ali Vendor", "type": "text", "description": "Authorized Person Name. Required."},
-                                {"key": "email", "value": "vendor@example.com", "type": "text", "description": "Required. Unique across users + vendor profiles."},
-                                {"key": "phone", "value": "+971500000000", "type": "text", "description": "Phone Number."},
+                                {"key": "company_name", "value": "Green Farms LLC", "type": "text", "description": "Company & account — Company name (alias: business_name). Required."},
+                                {"key": "authorized_person_name", "value": "Ali Vendor", "type": "text", "description": "Authorized person name (alias: owner_name). Required."},
+                                {"key": "email", "value": "vendor@example.com", "type": "text", "description": "Required. Unique."},
+                                {"key": "phone", "value": "+971500000000", "type": "text", "description": "Phone number. Required."},
+                                {"key": "trade_license_number", "value": "TL-12345", "type": "text", "description": "Trade license number. Required."},
+                                {"key": "trade_license", "type": "file", "src": [], "description": "Trade license upload (PDF or image). Required."},
+                                {"key": "address", "value": "Industrial Area 1, Warehouse 5", "type": "text", "description": "Address. Required."},
                                 {"key": "password", "value": "secret12", "type": "text", "description": "Required (min 6)."},
-                                {"key": "password_confirmation", "value": "secret12", "type": "text", "description": "Required, must match password."},
-                                {"key": "terms_accepted", "value": "1", "type": "text", "description": "Terms & Conditions acceptance (1 = accepted)."},
-                                {"key": "trade_license_number", "value": "TL-12345", "type": "text", "description": "Trade License Number."},
-                                {"key": "vendor_type", "value": "fruits", "type": "text", "description": "One of: fruits, vegetables, poultry, seafood, meat, honey, nuts, restaurant, other."},
-                                {"key": "emirate", "value": "Dubai", "type": "text", "description": "One of the 7 UAE emirates."},
-                                {"key": "city", "value": "Dubai", "type": "text", "description": "City."},
-                                {"key": "address", "value": "Industrial Area 1, Warehouse 5", "type": "text", "description": "Address."},
-                                {"key": "google_maps_location", "value": "25.2048,55.2708", "type": "text", "description": "Google Maps URL or latitude,longitude."},
-                                {"key": "bank_name", "value": "Emirates NBD", "type": "text", "description": "Bank Name."},
-                                {"key": "iban", "value": "AE070331234567890123456", "type": "text", "description": "IBAN."},
-                                {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text", "description": "Account Holder Name."},
-                                {"key": "delivery_radius", "value": "15", "type": "text", "description": "Delivery Radius in km."},
-                                {"key": "operating_hours", "value": "Mon-Sun 9AM-9PM", "type": "text", "description": "Operating Hours."},
-                                {"key": "minimum_order_amount", "value": "50", "type": "text", "description": "Minimum Order Amount (AED)."},
-                                {"key": "vat_number", "value": "TRN123456789", "type": "text", "description": "Optional VAT Number."},
-                                {"key": "description", "value": "Fresh local produce supplier.", "type": "text", "description": "Optional business description."},
-                                {"key": "logo", "type": "file", "src": [], "description": "Company Logo (image)."},
-                                {"key": "trade_license", "type": "file", "src": [], "description": "Trade License Upload (pdf/jpg/png/webp). Optional at signup; required before submitting for approval."},
-                                {"key": "emirates_id", "type": "file", "src": [], "description": "Emirates ID Upload of Authorized Person (pdf/jpg/png/webp). Optional at signup; required before submitting for approval."},
-                                {"key": "category_ids[]", "value": "1", "type": "text", "description": "Optional. Repeat for multiple categories."}
+                                {"key": "password_confirmation", "value": "secret12", "type": "text", "description": "Required."},
+                                {"key": "logo", "type": "file", "src": [], "description": "Company logo (optional image)."},
+                                {"key": "vat_number", "value": "TRN123456789", "type": "text", "description": "VAT / TRN number (optional)."},
+                                {"key": "emirates_id", "type": "file", "src": [], "description": "Emirates ID of authorized person (PDF or image). Required."},
+                                {"key": "vendor_type", "value": "fruits", "type": "text", "description": "Required. fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other"},
+                                {"key": "emirate", "value": "Dubai", "type": "text", "description": "Required. Abu Dhabi|Dubai|Sharjah|Ajman|Umm Al Quwain|Ras Al Khaimah|Fujairah"},
+                                {"key": "city", "value": "Dubai", "type": "text", "description": "City or area (optional)."},
+                                {"key": "google_maps_location", "value": "25.2048,55.2708", "type": "text", "description": "Required. lat,lng or Google Maps URL."},
+                                {"key": "bank_name", "value": "Emirates NBD", "type": "text", "description": "Bank details — bank name. Required."},
+                                {"key": "iban", "value": "AE070331234567890123456", "type": "text", "description": "IBAN. Required."},
+                                {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text", "description": "Account holder name. Required."},
+                                {"key": "delivery_radius", "value": "25", "type": "text", "description": "Operations — delivery radius in km. Required."},
+                                {"key": "opens_at", "value": "08:00", "type": "text", "description": "Opens at (HH:MM). Required unless operating_hours sent."},
+                                {"key": "closes_at", "value": "22:00", "type": "text", "description": "Closes at (HH:MM). Required unless operating_hours sent."},
+                                {"key": "minimum_order_amount", "value": "50", "type": "text", "description": "Minimum order amount (AED). Required."},
+                                {"key": "terms_accepted", "value": "1", "type": "text", "description": "Required. 1 = accept Terms & Conditions."}
                             ]
                         },
                         "url": {
@@ -1137,7 +1156,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "vendor", "auth", "register"]
                         },
-                        "description": "Public. Creates the user + vendor (status = pending) + business profile. Account essentials (business_name, owner_name, email, password) are required here; the remaining Business Profile fields and documents are validated when supplied and fully enforced at the Submit-for-approval step. Response: vendor_id, status, profile."
+                        "description": "Public multipart sign-up matching the mobile Vendor Registration wizard. One request creates user + vendor (pending) + full business profile + trade license & Emirates ID uploads. Use form-data (files required). Field aliases: company_name, authorized_person_name. Times: opens_at + closes_at (stored as operating_hours). Response: vendor_id, status, profile, documents, completion_percent."
                     }
                 },
                 {
@@ -18960,7 +18979,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Vendor marketplace module — complete flow, step by step.\n\nVendor Auth (Register / Login / Logout) lives in folder '2. Authentication' (Register Vendor, Login Vendor, Logout Vendor). Vendor account deletion uses the common Delete Account endpoint there too.\n\nFlow: Register Vendor + Login Vendor (folder 2) → B. Business Profile (complete all required fields) → C. Application & Onboarding (submit for admin approval) → D. Documents (Trade License + Emirates ID) → wait for admin approval → E. Dashboard / F. Products / G. Inventory / H. Orders.\n\nA vendor CANNOT access selling features (dashboard, products, inventory, orders) until the admin approves the account. A vendor CANNOT submit for approval until every required Business Profile field, both documents, the company logo, and Terms acceptance are complete.\n\nAuth: Bearer {{token}} (login as a vendor in folder 2 to populate it). Admin endpoints are under folder J/K and need an admin token.\n\nEnv: base_url, token, vendor_id, vendor_product_id, vendor_order_mapping_id, vendor_document_id, product_id.",
+            "description": "Vendor marketplace module — complete flow, step by step.\n\nVendor Auth (Register / Login / Logout) lives in folder **2. Authentication** — **Register Vendor (form-data – full signup)** matches the mobile registration wizard in one multipart request.\n\nFlow: Register Vendor + Login Vendor (folder 2) → optional profile edits (B) → C. Application & Onboarding (submit for admin approval if not complete at signup) → wait for admin approval → E. Dashboard / F. Products / G. Inventory / H. Orders.\n\nA vendor CANNOT access selling features until admin approves. Signup now requires trade license + Emirates ID uploads and all Business Profile fields from the mobile form.\n\nAuth: Bearer {{token}}. Admin endpoints: folders J/K.",
             "item": [
                 {
                     "name": "B. Business Profile",
@@ -19006,7 +19025,8 @@
                                         {"key": "iban", "value": "AE070331234567890123456", "type": "text"},
                                         {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text"},
                                         {"key": "delivery_radius", "value": "15", "type": "text"},
-                                        {"key": "operating_hours", "value": "Mon-Sun 9AM-9PM", "type": "text"},
+                                        {"key": "opens_at", "value": "08:00", "type": "text", "description": "Or send operating_hours instead."},
+                                        {"key": "closes_at", "value": "22:00", "type": "text"},
                                         {"key": "minimum_order_amount", "value": "50", "type": "text"},
                                         {"key": "vat_number", "value": "TRN123456789", "type": "text", "description": "Optional VAT number."},
                                         {"key": "description", "value": "Fresh local produce supplier.", "type": "text"},

@@ -27,13 +27,15 @@ abstract class VendorProfileFormRequest extends FormRequest
             'address' => [$presence, 'string', 'max:2000'],
             'vendor_type' => [$presence, Rule::in(VendorType::values())],
             'emirate' => [$presence, 'string', 'max:100', Rule::in(VendorProfile::emirates())],
-            'city' => [$presence, 'string', 'max:100'],
+            'city' => ['nullable', 'string', 'max:100'],
             'google_maps_location' => [$presence, 'string', 'max:500'],
             'bank_name' => [$presence, 'string', 'max:191'],
             'iban' => [$presence, 'string', 'max:64'],
             'account_holder_name' => [$presence, 'string', 'max:191'],
             'delivery_radius' => [$presence, 'numeric', 'min:0', 'max:10000'],
             'operating_hours' => [$presence, 'string', 'max:500'],
+            'opens_at' => ['nullable', 'date_format:H:i'],
+            'closes_at' => ['nullable', 'date_format:H:i'],
             'minimum_order_amount' => [$presence, 'numeric', 'min:0', 'max:1000000'],
 
             // Optional everywhere
@@ -63,6 +65,39 @@ abstract class VendorProfileFormRequest extends FormRequest
         // Accept "vat_number" as an alias for the stored tax_vat_number column.
         if ($this->filled('vat_number') && ! $this->filled('tax_vat_number')) {
             $this->merge(['tax_vat_number' => $this->input('vat_number')]);
+        }
+
+        $this->normalizeVendorFieldAliases();
+        $this->normalizeOperatingHoursFromTimes();
+    }
+
+    protected function normalizeVendorFieldAliases(): void
+    {
+        $aliases = [
+            'company_name' => 'business_name',
+            'authorized_person_name' => 'owner_name',
+        ];
+
+        foreach ($aliases as $from => $to) {
+            if ($this->filled($from) && ! $this->filled($to)) {
+                $this->merge([$to => $this->input($from)]);
+            }
+        }
+    }
+
+    protected function normalizeOperatingHoursFromTimes(): void
+    {
+        if ($this->filled('operating_hours')) {
+            return;
+        }
+
+        $opensAt = trim((string) $this->input('opens_at'));
+        $closesAt = trim((string) $this->input('closes_at'));
+
+        if ($opensAt !== '' && $closesAt !== '') {
+            $this->merge([
+                'operating_hours' => $opensAt.' - '.$closesAt,
+            ]);
         }
     }
 }

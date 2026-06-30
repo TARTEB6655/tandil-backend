@@ -23,10 +23,12 @@ class VendorAuthController extends Controller
             VendorRegistrationService::documentFilesFromRequest($request)
         );
 
-        return ApiResponse::success('Vendor registration submitted. Complete onboarding while pending review.', [
+        return ApiResponse::success('Vendor registration submitted. Your application is pending admin review.', [
             'vendor_id' => $vendor->id,
             'status' => $vendor->status,
             'profile' => $vendor->profile,
+            'documents' => $vendor->documents,
+            'completion_percent' => app(\App\Services\Vendor\VendorApplicationService::class)->completionPercent($vendor),
         ], 201);
     }
 

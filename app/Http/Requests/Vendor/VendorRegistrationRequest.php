@@ -10,14 +10,15 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
     }
 
     /**
-     * Simple sign-up collects a single "Name". Use it to seed the required
-     * business_name and owner_name, which the vendor refines later in the
-     * dashboard Business Profile.
+     * Mobile app sends company_name / authorized_person_name; map to stored columns.
+     * Accept opens_at + closes_at (HH:MM) and build operating_hours for storage.
      */
     protected function prepareForValidation(): void
     {
-        $name = trim((string) $this->input('name'));
+        $this->normalizeVendorFieldAliases();
+        $this->normalizeOperatingHoursFromTimes();
 
+        $name = trim((string) $this->input('name'));
         if ($name !== '') {
             $this->merge([
                 'business_name' => $this->input('business_name') ?: $name,
@@ -27,25 +28,32 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
     }
 
     /**
-     * Registration captures account essentials; remaining Business Profile fields are
-     * validated when supplied and fully enforced at the submit-for-approval gate.
+     * Full vendor sign-up matches the mobile registration wizard (one multipart submit).
      *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
-        return array_merge($this->businessProfileRules(false), [
-            'business_name' => ['required', 'string', 'max:255'],
-            'owner_name' => ['required', 'string', 'max:255'],
+        $shared = $this->businessProfileRules(true);
+
+        // City is optional on the mobile form.
+        $shared['city'] = ['nullable', 'string', 'max:100'];
+
+        return array_merge($shared, [
+            'company_name' => ['sometimes', 'string', 'max:255'],
+            'authorized_person_name' => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email', 'unique:vendor_profiles,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
-            'terms_accepted' => ['sometimes', 'accepted'],
+            'terms_accepted' => ['required', 'accepted'],
 
             'logo' => ['nullable', 'image', 'max:5120'],
 
-            // Document uploads (optional at signup, enforced before approval submission)
-            'trade_license' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
-            'emirates_id' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+            'trade_license' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+            'emirates_id' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+
+            'opens_at' => ['nullable', 'date_format:H:i'],
+            'closes_at' => ['nullable', 'date_format:H:i'],
 
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
