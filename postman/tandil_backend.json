@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin folder **5g** — list + **GET detail** (`/api/admin/maintenance-photos/{id}` for edit screen) + CRUD. Image URLs use `/media/` path (not `/storage/`). Client folder **8b** — `GET /api/maintenance-photos` (read-only, active entries by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18** (dashboard, categories, services, products, orders, admin approve). Signup status = `under_review` until admin approves.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18** (dashboard, categories, services, products, orders, admin approve). Signup status = `under_review` until admin approves.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.47"
+        "version": "3.3.48"
     },
     "item": [
         {
@@ -3771,7 +3771,7 @@
         },
         {
             "name": "5g. Admin Dashboard – Maintenance Photos",
-            "description": "Admin only — before/after maintenance showcase for client app. **Body fields only:** title, before_image, after_image, priority, active. Client folder **8b** is read-only GET. Auth: Bearer **admin** token. form-data.",
+            "description": "Admin only — before/after maintenance showcase for client app.\n\n**Flow:** 1 List → 2 Get detail (edit screen) → 3 Add / 4–5 Update → 6 Delete.\n\n**Fields only:** title, before_image, after_image, priority, active.\n\n**Image URLs** in responses use `/media/` (e.g. `.../media/maintenance_photos/before/xxx.jpg`).\n\nClient read-only: folder **8b**. Auth: Bearer **admin** token. Use form-data for uploads.",
             "item": [
                 {
                     "name": "1. List maintenance photos (GET)",
@@ -3788,6 +3788,14 @@
                                     "    pm.expect(j.success).to.eql(true);",
                                     "    pm.expect(j.data).to.have.property('data');",
                                     "    pm.expect(j.data).to.have.property('pagination');",
+                                    "});",
+                                    "pm.test('List items use /media/ image URLs', function () {",
+                                    "    var j = pm.response.json();",
+                                    "    var rows = j.data && j.data.data ? j.data.data : [];",
+                                    "    if (rows.length && rows[0].before_image_url) {",
+                                    "        pm.expect(rows[0].before_image_url).to.include('/media/');",
+                                    "        pm.expect(rows[0].after_image_url).to.include('/media/');",
+                                    "    }",
                                     "});",
                                     "if (pm.response.code === 200) {",
                                     "    var j = pm.response.json();",
@@ -3869,7 +3877,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["api", "admin", "maintenance-photos", "{{maintenance_photo_id}}"]
                         },
-                        "description": "GET /api/admin/maintenance-photos/{id} — Load single entry for edit screen. Returns title, before_image_url, after_image_url, priority, active."
+                        "description": "GET /api/admin/maintenance-photos/{id} — **Edit screen:** load one entry by id.\n\n**Response `data`:** id, title, before_image_url, after_image_url, priority, active, created_at, updated_at.\n\n**Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 5,\n    \"title\": \"Shoe restoration\",\n    \"before_image_url\": \"https://your-domain.com/media/maintenance_photos/before/abc.jpg\",\n    \"after_image_url\": \"https://your-domain.com/media/maintenance_photos/after/xyz.jpg\",\n    \"priority\": 0,\n    \"active\": true\n  }\n}\n```\n\nSet `{{maintenance_photo_id}}` from List or Add response."
                     }
                 },
                 {
@@ -3888,6 +3896,8 @@
                                     "    pm.expect(j.data).to.have.property('id');",
                                     "    pm.expect(j.data).to.have.property('before_image_url');",
                                     "    pm.expect(j.data).to.have.property('after_image_url');",
+                                    "    pm.expect(j.data.before_image_url).to.include('/media/');",
+                                    "    pm.expect(j.data.after_image_url).to.include('/media/');",
                                     "    pm.environment.set('maintenance_photo_id', j.data.id);",
                                     "});"
                                 ],
@@ -3945,6 +3955,7 @@
                                     "    var j = pm.response.json();",
                                     "    pm.expect(j.success).to.eql(true);",
                                     "    pm.expect(j.data).to.have.property('id');",
+                                    "    if (j.data.before_image_url) pm.expect(j.data.before_image_url).to.include('/media/');",
                                     "});"
                                 ],
                                 "type": "text/javascript"
@@ -6591,11 +6602,11 @@
                                 }
                             ]
                         },
-                        "description": "GET /api/maintenance-photos — **Client read-only.** Active entries only, ordered by priority. Optional: per_page (1-100). Auth: Bearer client token."
+                        "description": "GET /api/maintenance-photos — **Client read-only.** Active entries only, ordered by priority. Optional: per_page (1-100). Auth: Bearer client token. Image URLs: .../media/maintenance_photos/..."
                     }
                 }
             ],
-            "description": "Client app home — Maintenance Photos (**read-only**). Upload/update/delete: admin folder **5g**. Response fields: id, title, before_image_url, after_image_url, priority, active."
+            "description": "Client app home — Maintenance Photos (**read-only**). Upload/update/delete: admin folder **5g**.\n\n**GET** `/api/maintenance-photos` — active entries only, ordered by priority.\n\n**Response fields:** id, title, before_image_url, after_image_url, priority, active.\n\n**Image URLs** use `/media/` path."
         },
         {
             "name": "9. Technician Dashboard – All APIs",
@@ -19269,7 +19280,8 @@
         {
             "key": "maintenance_photo_id",
             "value": "1",
-            "type": "string"
+            "type": "string",
+            "description": "Set from 5g List or Add response. Used for GET detail (edit), Update, Delete."
         },
         {
             "key": "report_id",
