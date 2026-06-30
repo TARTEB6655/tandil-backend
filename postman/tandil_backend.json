@@ -18979,7 +18979,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Vendor marketplace module — complete flow, step by step.\n\nVendor Auth (Register / Login / Logout) lives in folder **2. Authentication** — **Register Vendor (form-data – full signup)** matches the mobile registration wizard in one multipart request.\n\nFlow: Register Vendor + Login Vendor (folder 2) → optional profile edits (B) → C. Application & Onboarding (submit for admin approval if not complete at signup) → wait for admin approval → E. Dashboard / F. Products / G. Inventory / H. Orders.\n\nA vendor CANNOT access selling features until admin approves. Signup now requires trade license + Emirates ID uploads and all Business Profile fields from the mobile form.\n\nAuth: Bearer {{token}}. Admin endpoints: folders J/K.",
+            "description": "Vendor marketplace module — complete flow.\n\n**Signup:** Register Vendor (folder 2) → status `under_review` → admin approves/rejects (folder J or `/admin/vendors` web).\n\n**After approval:** Dashboard summary/stats, Products, Categories, Services, Inventory, Orders.\n\nLogin response includes `data.vendor` (status, is_approved) for mobile routing.\n\nAuth: Bearer {{token}}.",
             "item": [
                 {
                     "name": "B. Business Profile",
@@ -19179,14 +19179,50 @@
                                 },
                                 "description": "Requires an APPROVED vendor (vendor.approved middleware). Returns 403 with the account status otherwise."
                             }
+                        },
+                        {
+                            "name": "2. Dashboard summary (mobile cards)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/dashboard/summary",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "dashboard", "summary"]
+                                },
+                                "description": "Lightweight mobile home screen: currency AED, revenue, pending_orders, products, active, low_stock, total_orders, delivered_orders."
+                            }
                         }
+                    ]
+                },
+                {
+                    "name": "F1. Categories (approved only)",
+                    "item": [
+                        {"name": "1. List categories", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories"]}}},
+                        {"name": "2. Create category", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Fresh Produce", "type": "text"}, {"key": "shipping_cost", "value": "10", "type": "text"}, {"key": "tax_percentage", "value": "5", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories"]}}},
+                        {"name": "3. Get category", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "1"]}}},
+                        {"name": "4. Update category", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Category", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/categories/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "1"]}}},
+                        {"name": "5. Delete category", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "1"]}}}
+                    ]
+                },
+                {
+                    "name": "F2. Services (approved only)",
+                    "item": [
+                        {"name": "1. List services", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}}},
+                        {"name": "2. Create service", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Home Delivery", "type": "text"}, {"key": "category_id", "value": "1", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}}},
+                        {"name": "3. Get service", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "1"]}}},
+                        {"name": "4. Update service", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Express Delivery", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/services/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "1"]}}},
+                        {"name": "5. Delete service", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "1"]}}}
                     ]
                 },
                 {
                     "name": "F. Products (approved only)",
                     "item": [
                         {"name": "1. List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]}}},
-                        {"name": "2. Create product", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Organic Tomatoes", "type": "text"}, {"key": "price", "value": "25", "type": "text"}, {"key": "stock", "value": "100", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]}}},
+                        {"name": "2. Create product", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Organic Tomatoes", "type": "text"}, {"key": "category_id", "value": "1", "type": "text"}, {"key": "price", "value": "25", "type": "text"}, {"key": "stock", "value": "100", "type": "text"}, {"key": "service_ids[]", "value": "1", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]}}},
                         {"name": "3. Get product", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]}}},
                         {"name": "4. Update product", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "price", "value": "30", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]}}},
                         {"name": "5. Delete product", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]}}}
@@ -19219,7 +19255,7 @@
                     "description": "Admin review & approval workflow. Use an ADMIN Bearer token (login as admin). Set {{vendor_id}} from List vendors.",
                     "item": [
                         {"name": "1. Vendor stats", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/admin/vendors/stats", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors", "stats"]}}},
-                        {"name": "2. List vendors", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/admin/vendors?status=pending&per_page=15", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors"], "query": [{"key": "status", "value": "pending", "description": "pending|under_review|approved|rejected|suspended|disabled"}, {"key": "per_page", "value": "15"}, {"key": "search", "value": "", "disabled": true}, {"key": "sort", "value": "newest", "disabled": true}]}, "description": "Paginated vendor list with profile + user. Filter by status/search; sort newest|oldest|business."}},
+                        {"name": "2. List vendors", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/admin/vendors?status=under_review&per_page=15", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors"], "query": [{"key": "status", "value": "under_review", "description": "pending|under_review|approved|rejected|suspended|disabled"}, {"key": "per_page", "value": "15"}, {"key": "search", "value": "", "disabled": true}, {"key": "sort", "value": "newest", "disabled": true}]}, "description": "New signups land in under_review. Paginated list with profile + user."}},
                         {"name": "3. Vendor details (all fields + documents)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors", "{{vendor_id}}"]}, "description": "Full vendor: profile (all Business Profile fields), documents, categories, application checklist, statistics, analytics."}},
                         {"name": "4. Vendor analytics", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/analytics", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors", "{{vendor_id}}", "analytics"]}}},
                         {"name": "5. Update vendor (multipart)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "business_name", "value": "Green Farms LLC", "type": "text"}, {"key": "vendor_type", "value": "fruits", "type": "text"}, {"key": "emirate", "value": "Dubai", "type": "text"}, {"key": "city", "value": "Dubai", "type": "text"}, {"key": "trade_license_number", "value": "TL-12345", "type": "text"}, {"key": "bank_name", "value": "Emirates NBD", "type": "text"}, {"key": "iban", "value": "AE070331234567890123456", "type": "text"}, {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text"}, {"key": "delivery_radius", "value": "15", "type": "text"}, {"key": "operating_hours", "value": "Mon-Sun 9AM-9PM", "type": "text"}, {"key": "minimum_order_amount", "value": "50", "type": "text"}, {"key": "logo", "type": "file", "src": []}]}, "url": {"raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors", "{{vendor_id}}"]}, "description": "Admin edit of any Business Profile field. PUT or POST (use POST with form-data for logo)."}},

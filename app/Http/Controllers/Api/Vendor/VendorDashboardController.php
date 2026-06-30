@@ -20,4 +20,11 @@ class VendorDashboardController extends Controller
 
         return ApiResponse::success('Dashboard statistics.', $this->dashboard->overview($vendor));
     }
+
+    public function summary(Request $request): JsonResponse
+    {
+        $vendor = $request->attributes->get('vendor');
+
+        return ApiResponse::success('Dashboard summary.', $this->dashboard->mobileSummary($vendor));
+    }
 }

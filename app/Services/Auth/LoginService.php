@@ -96,6 +96,32 @@ class LoginService
     }
 
     /**
+     * Vendor portal context returned on login so mobile can route pending vs approved vendors.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function vendorPortalPayloadForUser(?User $user): ?array
+    {
+        if ($user === null || ! $user->hasAppRole('vendor')) {
+            return null;
+        }
+
+        $vendor = $user->vendor()->with('profile')->first();
+        if ($vendor === null) {
+            return null;
+        }
+
+        return [
+            'vendor_id' => $vendor->id,
+            'status' => $vendor->status,
+            'is_approved' => $vendor->isApproved(),
+            'business_name' => $vendor->profile?->business_name,
+            'rejection_reason' => $vendor->rejection_reason,
+            'onboarding_completed_at' => $vendor->profile?->onboarding_completed_at?->toIso8601String(),
+        ];
+    }
+
+    /**
      * @return array{ok: false, error: string, status: int}
      */
     private function failure(string $error, int $status): array

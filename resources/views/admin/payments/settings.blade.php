@@ -29,7 +29,7 @@
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 capitalize">{{ $gateway }}</h3>
+                                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 capitalize">{{ $gateway }}</h3>
                                     @if($gateway === 'stripe')
                                         @php $headerStripeMode = old('stripe_mode', $gateways['stripe']['mode'] ?? 'test'); @endphp
                                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $headerStripeMode === 'live' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' }}">
@@ -68,7 +68,7 @@
                                 <div class="rounded-xl border-2 p-4 transition-colors"
                                      :class="stripeMode === 'live' ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20' : 'border-amber-400 bg-amber-50 dark:border-amber-500 dark:bg-amber-900/20'">
                                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                        <div>
+                                    <div>
                                             <p class="text-xs font-semibold uppercase tracking-wide"
                                                :class="stripeMode === 'live' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'">
                                                 Currently active for mobile checkout
@@ -163,8 +163,8 @@
                                                 <div x-show="editing" x-cloak>
                                                     <input type="text" name="test_secret_key" value="{{ old('test_secret_key', '') }}" placeholder="{{ ($stripeTest['has_secret'] ?? false) ? 'Paste new sk_test_... to replace' : 'sk_test_...' }}" autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                                 </div>
-                                            </div>
-                                            <div>
+                                    </div>
+                                    <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Webhook secret (optional)</label>
                                                 <input type="text" name="test_webhook_secret" value="{{ old('test_webhook_secret', $stripeTest['webhook_secret'] ?? '') }}" placeholder="whsec_..." autocomplete="off" spellcheck="false" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                             </div>
@@ -209,7 +209,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                    </div>
                                 </div>
                             @elseif($gateway === 'paypal')
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

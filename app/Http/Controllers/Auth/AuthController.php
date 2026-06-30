@@ -220,15 +220,26 @@ class AuthController extends Controller
             return ApiResponse::error($result['error'] ?? 'Invalid login credentials.', $result['status'] ?? 401);
         }
 
+        $data = [
+            'token' => $result['token'],
+            'role' => $result['role'],
+            'slug' => $result['slug'],
+            'user' => $result['user'],
+        ];
+
+        if ($rolesChosen === 'vendor') {
+            $vendorExtras = $loginService->vendorPortalPayloadForUser(
+                User::query()->whereRaw('LOWER(email) = ?', [strtolower(trim($validated['email']))])->first()
+            );
+            if ($vendorExtras !== null) {
+                $data['vendor'] = $vendorExtras;
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
-            'data' => [
-                'token' => $result['token'],
-                'role' => $result['role'],
-                'slug' => $result['slug'],
-                'user' => $result['user'],
-            ],
+            'data' => $data,
         ]);
     }
 

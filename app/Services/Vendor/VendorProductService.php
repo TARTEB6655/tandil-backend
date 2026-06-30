@@ -4,6 +4,7 @@ namespace App\Services\Vendor;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorInventory;
@@ -26,7 +27,15 @@ class VendorProductService
             $approvalStatus = AdminVendorProductService::initialApprovalStatus();
             $productActive = $approvalStatus === 'approved' ? ($data['status'] ?? 'active') : 'draft';
 
-            $categoryId = $data['category_id'] ?? Category::query()->value('id');
+            $categoryId = $data['category_id'] ?? null;
+            if ($categoryId !== null) {
+                $allowed = Category::forVendorCatalog($vendor->id)->where('id', $categoryId)->exists();
+                if (! $allowed) {
+                    throw new \InvalidArgumentException('Invalid category for your store.');
+                }
+            } else {
+                $categoryId = Category::forVendorCatalog($vendor->id)->value('id');
+            }
 
             $product = Product::create([
                 'vendor_id' => $vendor->id,
@@ -58,7 +67,9 @@ class VendorProductService
                 'low_stock_threshold' => (int) ($data['low_stock_threshold'] ?? 5),
             ]);
 
-            return $vendorProduct->load(['product.category', 'inventory', 'currentPrice']);
+            $this->syncServices($product, $vendor, $data);
+
+            return $vendorProduct->load(['product.category', 'product.services', 'inventory', 'currentPrice']);
         });
     }
 
@@ -113,7 +124,9 @@ class VendorProductService
                 $product->update(['stock' => $inv->quantity]);
             }
 
-            return $vendorProduct->fresh(['product.category', 'inventory', 'currentPrice']);
+            $this->syncServices($product, $vendorProduct->vendor, $data);
+
+            return $vendorProduct->fresh(['product.category', 'product.services', 'inventory', 'currentPrice']);
         });
     }
 
@@ -143,9 +156,35 @@ class VendorProductService
 
     public function findForVendor(Vendor $vendor, int $vendorProductId): ?VendorProduct
     {
-        return VendorProduct::with(['product.category', 'inventory', 'currentPrice'])
+        return VendorProduct::with(['product.category', 'product.services', 'inventory', 'currentPrice'])
             ->where('vendor_id', $vendor->id)
             ->where('id', $vendorProductId)
             ->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function syncServices(Product $product, Vendor $vendor, array $data): void
+    {
+        if (! array_key_exists('service_ids', $data) && ! array_key_exists('service_id', $data)) {
+            return;
+        }
+
+        $serviceIds = [];
+        if (! empty($data['service_id'])) {
+            $serviceIds = [(int) $data['service_id']];
+        } elseif (isset($data['service_ids']) && is_array($data['service_ids'])) {
+            $serviceIds = array_values(array_filter(array_map('intval', $data['service_ids'])));
+        }
+
+        if ($serviceIds === []) {
+            $product->services()->sync([]);
+
+            return;
+        }
+
+        $allowed = Service::forVendorCatalog($vendor->id)->whereIn('id', $serviceIds)->pluck('id')->all();
+        $product->services()->sync($allowed);
     }
 }

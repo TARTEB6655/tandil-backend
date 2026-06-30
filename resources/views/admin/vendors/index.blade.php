@@ -9,6 +9,13 @@
         </div>
         <x-admin.marketplace-nav />
 
+        @if(($stats['under_review'] ?? 0) > 0)
+            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <strong>{{ $stats['under_review'] }}</strong> vendor application(s) awaiting your review.
+                <a href="{{ route('admin.vendors.index', ['status' => 'under_review']) }}" class="ml-2 font-medium text-amber-800 underline">Review now →</a>
+            </div>
+        @endif
+
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             @foreach([
                 'total' => 'Total',

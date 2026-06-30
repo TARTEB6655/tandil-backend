@@ -10,6 +10,7 @@ class Service extends Model
     use HasFactory;
 
     protected $fillable = [
+        'vendor_id',
         'name',
         'slug',
         'description',
@@ -46,6 +47,21 @@ class Service extends Model
             return rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path;
         }
         return asset('media/' . $path);
+    }
+
+    public function scopeForVendorCatalog($query, ?int $vendorId)
+    {
+        return $query->where(function ($q) use ($vendorId) {
+            $q->whereNull('vendor_id');
+            if ($vendorId !== null) {
+                $q->orWhere('vendor_id', $vendorId);
+            }
+        });
+    }
+
+    public function vendorAccount()
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
     }
 
     public function category()

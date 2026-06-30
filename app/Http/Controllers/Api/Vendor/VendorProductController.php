@@ -53,9 +53,16 @@ class VendorProductController extends Controller
             'status' => 'nullable|in:active,draft,archived',
             'sku' => 'nullable|string|max:100',
             'image' => 'nullable|image|max:5120',
+            'service_id' => 'nullable|integer|exists:services,id',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
         ]);
 
-        $vp = $this->products->create($vendor, $data, $request->file('image'));
+        try {
+            $vp = $this->products->create($vendor, $data, $request->file('image'));
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
 
         return ApiResponse::success('Product created.', ['vendor_product' => $vp], 201);
     }
@@ -91,9 +98,16 @@ class VendorProductController extends Controller
             'vendor_product_status' => 'nullable|in:active,inactive',
             'sku' => 'nullable|string|max:100',
             'image' => 'nullable|image|max:5120',
+            'service_id' => 'nullable|integer|exists:services,id',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
         ]);
 
-        $vp = $this->products->update($vp, $data, $request->file('image'), false, $request->user()->id);
+        try {
+            $vp = $this->products->update($vp, $data, $request->file('image'), false, $request->user()->id);
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
 
         return ApiResponse::success('Product updated.', ['vendor_product' => $vp]);
     }

@@ -38,7 +38,7 @@ class VendorRegistrationService
 
             $vendor = Vendor::create([
                 'user_id' => $user->id,
-                'status' => VendorStatus::Pending->value,
+                'status' => VendorStatus::UnderReview->value,
             ]);
 
             $logoPath = $logo ? $logo->store('vendors/logos', 'public') : null;
@@ -51,6 +51,7 @@ class VendorRegistrationService
                     'owner_name' => $data['owner_name'],
                     'email' => $data['email'],
                     'logo_path' => $logoPath,
+                    'onboarding_completed_at' => now(),
                 ]
             );
 
@@ -73,10 +74,10 @@ class VendorRegistrationService
             VendorApprovalLog::create([
                 'vendor_id' => $vendor->id,
                 'performed_by' => null,
-                'action' => 'registered',
+                'action' => 'submitted_for_review',
                 'old_status' => null,
-                'new_status' => VendorStatus::Pending->value,
-                'notes' => 'Vendor registration submitted.',
+                'new_status' => VendorStatus::UnderReview->value,
+                'notes' => 'Vendor registration submitted for admin review.',
             ]);
 
             return $vendor->load(['profile', 'user', 'documents', 'categories']);

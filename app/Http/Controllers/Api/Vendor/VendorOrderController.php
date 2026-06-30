@@ -23,6 +23,7 @@ class VendorOrderController extends Controller
         $paginator = $this->orders->listForVendor($vendor, $request->only(['status', 'search']), (int) $request->query('per_page', 15));
 
         return ApiResponse::success('Orders retrieved.', [
+            'summary' => $this->orders->statusSummary($vendor),
             'items' => $paginator->items(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),

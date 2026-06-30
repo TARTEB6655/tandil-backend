@@ -58,17 +58,18 @@ class VendorModuleTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status', VendorStatus::Pending->value)
+            ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
             ->assertJsonPath('data.profile.business_name', 'Green Farms LLC')
             ->assertJsonPath('data.profile.owner_name', 'Ali Vendor')
             ->assertJsonPath('data.profile.operating_hours', '08:00 - 22:00');
 
-        $this->assertDatabaseHas('vendors', ['status' => 'pending']);
+        $this->assertDatabaseHas('vendors', ['status' => 'under_review']);
         $this->assertDatabaseHas('vendor_profiles', [
             'business_name' => 'Green Farms LLC',
             'trade_license_number' => 'TL-12345',
             'tax_vat_number' => 'TRN123456789',
         ]);
+        $this->assertNotNull(VendorProfile::where('business_name', 'Green Farms LLC')->value('onboarding_completed_at'));
         $this->assertDatabaseHas('vendor_documents', ['type' => 'trade_license']);
         $this->assertDatabaseHas('vendor_documents', ['type' => 'emirates_id']);
     }

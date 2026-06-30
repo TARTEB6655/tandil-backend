@@ -684,6 +684,20 @@ Route::middleware(['auth', 'role:vendor', 'vendor.account'])->prefix('vendor')->
         Route::put('/products/{product}', [\App\Http\Controllers\Vendor\ProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{product}', [\App\Http\Controllers\Vendor\ProductController::class, 'destroy'])->name('products.destroy');
 
+        Route::get('/categories', [\App\Http\Controllers\Vendor\CategoryController::class, 'index'])->name('categories.index');
+        Route::get('/categories/create', [\App\Http\Controllers\Vendor\CategoryController::class, 'create'])->name('categories.create');
+        Route::post('/categories', [\App\Http\Controllers\Vendor\CategoryController::class, 'store'])->name('categories.store');
+        Route::get('/categories/{category}/edit', [\App\Http\Controllers\Vendor\CategoryController::class, 'edit'])->name('categories.edit');
+        Route::put('/categories/{category}', [\App\Http\Controllers\Vendor\CategoryController::class, 'update'])->name('categories.update');
+        Route::delete('/categories/{category}', [\App\Http\Controllers\Vendor\CategoryController::class, 'destroy'])->name('categories.destroy');
+
+        Route::get('/services', [\App\Http\Controllers\Vendor\ServiceController::class, 'index'])->name('services.index');
+        Route::get('/services/create', [\App\Http\Controllers\Vendor\ServiceController::class, 'create'])->name('services.create');
+        Route::post('/services', [\App\Http\Controllers\Vendor\ServiceController::class, 'store'])->name('services.store');
+        Route::get('/services/{service}/edit', [\App\Http\Controllers\Vendor\ServiceController::class, 'edit'])->name('services.edit');
+        Route::put('/services/{service}', [\App\Http\Controllers\Vendor\ServiceController::class, 'update'])->name('services.update');
+        Route::delete('/services/{service}', [\App\Http\Controllers\Vendor\ServiceController::class, 'destroy'])->name('services.destroy');
+
         Route::get('/orders', [\App\Http\Controllers\Vendor\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{mapping}', [\App\Http\Controllers\Vendor\OrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{mapping}/status', [\App\Http\Controllers\Vendor\OrderController::class, 'updateStatus'])->name('orders.update-status');

@@ -99,6 +99,27 @@ class VendorDashboardService
     }
 
     /**
+     * Lightweight mobile home-screen payload (matches Vendor Portal dashboard cards).
+     *
+     * @return array<string, mixed>
+     */
+    public function mobileSummary(Vendor $vendor): array
+    {
+        $stats = $this->stats($vendor);
+
+        return [
+            'currency' => 'AED',
+            'revenue' => $stats['revenue'],
+            'pending_orders' => $stats['pending_orders'],
+            'products' => $stats['total_products'],
+            'active' => $stats['active_products'],
+            'low_stock' => $stats['low_stock_products'],
+            'total_orders' => $stats['total_orders'],
+            'delivered_orders' => $stats['completed_orders'],
+        ];
+    }
+
+    /**
      * Chart and trend data for vendor dashboard (also exposed via API).
      *
      * @return array<string, mixed>

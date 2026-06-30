@@ -50,6 +50,16 @@
             </select>
         </div>
     @endif
+    @if(!empty($services))
+    <div class="sm:col-span-2">
+        <label class="text-sm font-medium text-gray-700">Services (optional)</label>
+        <select name="service_ids[]" multiple class="mt-1 w-full rounded-lg border-gray-300">
+            @foreach($services as $service)
+                <option value="{{ $service->id }}" @selected(collect(old('service_ids', $p?->services?->pluck('id') ?? []))->contains($service->id))>{{ $service->name }}</option>
+            @endforeach
+        </select>
+    </div>
+    @endif
     <div class="sm:col-span-2">
         <label class="text-sm font-medium text-gray-700">Description</label>
         <textarea name="description" rows="4" class="mt-1 w-full rounded-lg border-gray-300">{{ old('description', $p?->description) }}</textarea>

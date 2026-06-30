@@ -6,8 +6,10 @@ use App\Http\Controllers\Api\Vendor\VendorComparisonController;
 use App\Http\Controllers\Api\Vendor\VendorDashboardController;
 use App\Http\Controllers\Api\Vendor\VendorInventoryController;
 use App\Http\Controllers\Api\Vendor\VendorOrderController;
+use App\Http\Controllers\Api\Vendor\VendorCategoryController;
 use App\Http\Controllers\Api\Vendor\VendorProductController;
 use App\Http\Controllers\Api\Vendor\VendorProfileController;
+use App\Http\Controllers\Api\Vendor\VendorServiceController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +48,21 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
 
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard/stats', [VendorDashboardController::class, 'stats']);
+        Route::get('/dashboard/summary', [VendorDashboardController::class, 'summary']);
+
+        Route::get('/categories', [VendorCategoryController::class, 'index']);
+        Route::post('/categories', [VendorCategoryController::class, 'store']);
+        Route::get('/categories/{id}', [VendorCategoryController::class, 'show']);
+        Route::put('/categories/{id}', [VendorCategoryController::class, 'update']);
+        Route::post('/categories/{id}', [VendorCategoryController::class, 'update']);
+        Route::delete('/categories/{id}', [VendorCategoryController::class, 'destroy']);
+
+        Route::get('/services', [VendorServiceController::class, 'index']);
+        Route::post('/services', [VendorServiceController::class, 'store']);
+        Route::get('/services/{id}', [VendorServiceController::class, 'show']);
+        Route::put('/services/{id}', [VendorServiceController::class, 'update']);
+        Route::post('/services/{id}', [VendorServiceController::class, 'update']);
+        Route::delete('/services/{id}', [VendorServiceController::class, 'destroy']);
 
         Route::get('/products', [VendorProductController::class, 'index']);
         Route::post('/products', [VendorProductController::class, 'store']);

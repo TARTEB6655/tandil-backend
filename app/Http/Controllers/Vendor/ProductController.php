@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Service;
 use App\Models\Vendor;
 use App\Models\VendorProduct;
 use App\Services\Vendor\VendorProductService;
@@ -36,11 +37,13 @@ class ProductController extends Controller
         return view('vendor.products.index', compact('products', 'vendor'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        $vendor = $this->vendor($request);
+        $categories = Category::forVendorCatalog($vendor->id)->ordered()->get(['id', 'name']);
+        $services = Service::forVendorCatalog($vendor->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
-        return view('vendor.products.create', compact('categories'));
+        return view('vendor.products.create', compact('categories', 'services'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -57,9 +60,15 @@ class ProductController extends Controller
             'status' => 'nullable|in:active,draft,archived',
             'sku' => 'nullable|string|max:100',
             'image' => 'nullable|image|max:5120',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
         ]);
 
-        $this->products->create($vendor, $data, $request->file('image'));
+        try {
+            $this->products->create($vendor, $data, $request->file('image'));
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['category_id' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('vendor.products.index')->with('success', 'Product created successfully.');
     }
@@ -72,11 +81,13 @@ class ProductController extends Controller
             return redirect()->route('vendor.products.index')->with('error', 'Product not found.');
         }
 
-        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        $categories = Category::forVendorCatalog($vendor->id)->ordered()->get(['id', 'name']);
+        $services = Service::forVendorCatalog($vendor->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return view('vendor.products.edit', [
-            'vendorProduct' => $vendorProduct->load(['product.category', 'inventory', 'currentPrice']),
+            'vendorProduct' => $vendorProduct->load(['product.category', 'product.services', 'inventory', 'currentPrice']),
             'categories' => $categories,
+            'services' => $services,
         ]);
     }
 
@@ -100,9 +111,15 @@ class ProductController extends Controller
             'vendor_product_status' => 'nullable|in:active,inactive',
             'sku' => 'nullable|string|max:100',
             'image' => 'nullable|image|max:5120',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
         ]);
 
-        $this->products->update($vendorProduct, $data, $request->file('image'), false, $request->user()->id);
+        try {
+            $this->products->update($vendorProduct, $data, $request->file('image'), false, $request->user()->id);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['category_id' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('vendor.products.index')->with('success', 'Product updated successfully.');
     }
@@ -122,6 +139,6 @@ class ProductController extends Controller
 
     private function vendor(Request $request): Vendor
     {
-        return $request->attributes->get('vendor');
+        return $request->attributes->get('vendor') ?? $request->user()->vendor;
     }
 }

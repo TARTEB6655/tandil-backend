@@ -20,6 +20,7 @@ class Category extends Model
     public const DELIVERY_CAR = self::SHIPPING_CAR;
 
     protected $fillable = [
+        'vendor_id',
         'name',
         'slug',
         'description',
@@ -42,6 +43,21 @@ class Category extends Model
     /**
      * Order categories for display (drag-and-drop sort_order, then name as tie-breaker).
      */
+    public function scopeForVendorCatalog($query, ?int $vendorId)
+    {
+        return $query->where(function ($q) use ($vendorId) {
+            $q->whereNull('vendor_id');
+            if ($vendorId !== null) {
+                $q->orWhere('vendor_id', $vendorId);
+            }
+        });
+    }
+
+    public function vendorAccount()
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
+
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order')->orderBy('name');
