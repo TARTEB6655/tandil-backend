@@ -3,107 +3,87 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Visit;
-use App\Models\VisitPhoto;
-use App\Services\VisitPhotoService;
+use App\Models\MaintenancePhoto;
+use App\Services\MaintenancePhotoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MaintenancePhotoController extends Controller
 {
-    public function __construct(private readonly VisitPhotoService $visitPhotoService)
+    public function __construct(private readonly MaintenancePhotoService $photos)
     {
         $this->middleware('role:admin');
     }
 
-    public function index(Request $request): View
+    public function index(): View
     {
-        $query = VisitPhoto::query()
-            ->with([
-                'visit:id,subscription_id,scheduled_date,status',
-                'visit.subscription.client:id,name,email',
-            ])
-            ->orderByDesc('created_at');
+        $photos = MaintenancePhoto::query()
+            ->orderBy('priority')
+            ->orderByDesc('id')
+            ->paginate(20);
 
-        if ($request->filled('visit_id')) {
-            $query->where('visit_id', (int) $request->visit_id);
-        }
-
-        if ($request->filled('client_id')) {
-            $clientId = (int) $request->client_id;
-            $query->whereHas('visit.subscription', fn ($q) => $q->where('client_id', $clientId));
-        }
-
-        $photos = $query->paginate(20)->withQueryString();
-
-        $visits = Visit::query()
-            ->with(['subscription.client:id,name,email'])
-            ->orderByDesc('scheduled_date')
-            ->limit(200)
-            ->get(['id', 'subscription_id', 'scheduled_date', 'status']);
-
-        return view('admin.maintenance-photos.index', compact('photos', 'visits'));
+        return view('admin.maintenance-photos.index', compact('photos'));
     }
 
     public function create(): View
     {
-        $visits = Visit::query()
-            ->with(['subscription.client:id,name,email'])
-            ->orderByDesc('scheduled_date')
-            ->limit(200)
-            ->get(['id', 'subscription_id', 'scheduled_date', 'status']);
-
-        return view('admin.maintenance-photos.create', compact('visits'));
+        return view('admin.maintenance-photos.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'visit_id' => ['required', 'integer', 'exists:visits,id'],
-            'photo' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
-            'type' => ['nullable', 'string', 'in:before,during,after'],
-            'show_on_client_app' => ['nullable', 'boolean'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'before_image' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'after_image' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'priority' => ['nullable', 'integer', 'min:0'],
+            'active' => ['nullable', 'boolean'],
         ]);
 
-        $visit = Visit::findOrFail((int) $validated['visit_id']);
-
-        $this->visitPhotoService->storeForVisit(
-            $visit,
-            $request->file('photo'),
-            $validated['type'] ?? 'after',
-            $request->boolean('show_on_client_app', true),
+        $this->photos->store(
+            $request->file('before_image'),
+            $request->file('after_image'),
+            [
+                'title' => $validated['title'] ?? null,
+                'priority' => (int) ($validated['priority'] ?? 0),
+                'active' => $request->boolean('active', true),
+            ]
         );
 
         return redirect()
             ->route('admin.maintenance-photos.index')
-            ->with('success', 'Maintenance photo uploaded. It will appear on the client app when visible is enabled.');
+            ->with('success', 'Maintenance photo saved.');
     }
 
     public function edit(int $id): View
     {
-        $photo = VisitPhoto::with([
-            'visit.subscription.client:id,name,email',
-        ])->findOrFail($id);
+        $photo = MaintenancePhoto::findOrFail($id);
 
         return view('admin.maintenance-photos.edit', compact('photo'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
     {
-        $photo = VisitPhoto::findOrFail($id);
+        $photo = MaintenancePhoto::findOrFail($id);
 
         $validated = $request->validate([
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
-            'type' => ['required', 'string', 'in:before,during,after'],
-            'show_on_client_app' => ['nullable', 'boolean'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'before_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'after_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'priority' => ['nullable', 'integer', 'min:0'],
+            'active' => ['nullable', 'boolean'],
         ]);
 
-        $this->visitPhotoService->updatePhoto(
+        $this->photos->update(
             $photo,
-            $request->file('photo'),
-            $validated['type'],
-            $request->boolean('show_on_client_app', true),
+            $request->file('before_image'),
+            $request->file('after_image'),
+            [
+                'title' => $validated['title'] ?? $photo->title,
+                'priority' => array_key_exists('priority', $validated) ? (int) $validated['priority'] : $photo->priority,
+                'active' => $request->boolean('active'),
+            ]
         );
 
         return redirect()
@@ -113,8 +93,8 @@ class MaintenancePhotoController extends Controller
 
     public function destroy(int $id): RedirectResponse
     {
-        $photo = VisitPhoto::findOrFail($id);
-        $this->visitPhotoService->deletePhoto($photo);
+        $photo = MaintenancePhoto::findOrFail($id);
+        $this->photos->delete($photo);
 
         return redirect()
             ->route('admin.maintenance-photos.index')

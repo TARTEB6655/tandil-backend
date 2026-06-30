@@ -634,7 +634,6 @@ Route::prefix('services')->group(function () {
 */
 Route::middleware(['auth:sanctum', 'role:client'])->prefix('maintenance-photos')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'index']);
-    Route::get('/visit/{visitId}', [\App\Http\Controllers\Api\MaintenancePhotosController::class, 'byVisit']);
 });
 
 /*

@@ -3763,7 +3763,7 @@
         },
         {
             "name": "5g. Admin Dashboard – Maintenance Photos",
-            "description": "Admin only — upload, update, delete maintenance photos for the client app home screen. Client folder **8b** is read-only (GET). Auth: Bearer **admin** token. Create/update use **form-data** (not raw JSON).",
+            "description": "Admin only — before/after maintenance showcase for client app. **Body fields only:** title, before_image, after_image, priority, active. Client folder **8b** is read-only GET. Auth: Bearer **admin** token. form-data.",
             "item": [
                 {
                     "name": "1. List maintenance photos (GET)",
@@ -3833,7 +3833,7 @@
                                 }
                             ]
                         },
-                        "description": "GET /api/admin/maintenance-photos — List all maintenance photos. Optional query: per_page, visit_id, client_id, show_on_client_app. Sets maintenance_photo_id in env from first row."
+                        "description": "GET /api/admin/maintenance-photos — List all entries. Optional query: per_page. Ordered by priority (lower first)."
                     }
                 },
                 {
@@ -3850,9 +3850,9 @@
                                     "    var j = pm.response.json();",
                                     "    pm.expect(j.success).to.eql(true);",
                                     "    pm.expect(j.data).to.have.property('id');",
-                                    "    pm.expect(j.data).to.have.property('photo_url');",
+                                    "    pm.expect(j.data).to.have.property('before_image_url');",
+                                    "    pm.expect(j.data).to.have.property('after_image_url');",
                                     "    pm.environment.set('maintenance_photo_id', j.data.id);",
-                                    "    if (j.data.visit_id) pm.environment.set('visit_id', j.data.visit_id);",
                                     "});"
                                 ],
                                 "type": "text/javascript"
@@ -3874,30 +3874,11 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {
-                                    "key": "visit_id",
-                                    "value": "{{visit_id}}",
-                                    "type": "text",
-                                    "description": "Required. Visit this photo belongs to (client sees it on their app)."
-                                },
-                                {
-                                    "key": "photo",
-                                    "type": "file",
-                                    "src": "",
-                                    "description": "Required image file"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "after",
-                                    "type": "text",
-                                    "description": "before | during | after"
-                                },
-                                {
-                                    "key": "show_on_client_app",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "1 = visible on client app, 0 = hidden"
-                                }
+                                {"key": "title", "value": "Shoe restoration", "type": "text", "description": "Optional"},
+                                {"key": "before_image", "type": "file", "src": [], "description": "Required — before image"},
+                                {"key": "after_image", "type": "file", "src": [], "description": "Required — after image"},
+                                {"key": "priority", "value": "0", "type": "text", "description": "Lower shows first"},
+                                {"key": "active", "value": "1", "type": "text", "description": "1 = active on client app"}
                             ]
                         },
                         "url": {
@@ -3911,7 +3892,7 @@
                                 "maintenance-photos"
                             ]
                         },
-                        "description": "POST /api/admin/maintenance-photos — Admin upload. form-data: visit_id (required), photo (file, required), type (optional), show_on_client_app (optional, default 1). Response 201 with photo_url."
+                        "description": "POST /api/admin/maintenance-photos — Create. form-data only: title (optional), before_image (required), after_image (required), priority, active."
                     }
                 },
                 {
@@ -3949,24 +3930,11 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {
-                                    "key": "photo",
-                                    "type": "file",
-                                    "src": "",
-                                    "description": "Optional — replace image"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "after",
-                                    "type": "text",
-                                    "description": "before | during | after"
-                                },
-                                {
-                                    "key": "show_on_client_app",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "1 = visible on client app, 0 = hidden"
-                                }
+                                {"key": "title", "value": "Shoe restoration", "type": "text"},
+                                {"key": "before_image", "type": "file", "src": [], "description": "Optional on update"},
+                                {"key": "after_image", "type": "file", "src": [], "description": "Optional on update"},
+                                {"key": "priority", "value": "0", "type": "text"},
+                                {"key": "active", "value": "1", "type": "text"}
                             ]
                         },
                         "url": {
@@ -3981,7 +3949,7 @@
                                 "{{maintenance_photo_id}}"
                             ]
                         },
-                        "description": "PUT /api/admin/maintenance-photos/{id} — Replace photo and/or type and visibility. form-data. Set maintenance_photo_id from list response."
+                        "description": "PUT /api/admin/maintenance-photos/{id} — Update title, images, priority, active only."
                     }
                 },
                 {
@@ -4001,22 +3969,11 @@
                         "body": {
                             "mode": "formdata",
                             "formdata": [
-                                {
-                                    "key": "photo",
-                                    "type": "file",
-                                    "src": "",
-                                    "description": "Optional — replace image"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "after",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "show_on_client_app",
-                                    "value": "1",
-                                    "type": "text"
-                                }
+                                {"key": "title", "value": "Shoe restoration", "type": "text"},
+                                {"key": "before_image", "type": "file", "src": []},
+                                {"key": "after_image", "type": "file", "src": []},
+                                {"key": "priority", "value": "0", "type": "text"},
+                                {"key": "active", "value": "1", "type": "text"}
                             ]
                         },
                         "url": {
@@ -4031,7 +3988,7 @@
                                 "{{maintenance_photo_id}}"
                             ]
                         },
-                        "description": "POST /api/admin/maintenance-photos/{id} — Same as PUT; use when your client sends multipart via POST."
+                        "description": "POST /api/admin/maintenance-photos/{id} — Same as PUT for multipart clients."
                     }
                 },
                 {
@@ -6597,59 +6554,11 @@
                                 }
                             ]
                         },
-                        "description": "GET /api/maintenance-photos — **Client read-only.** Lists admin-published photos from the client's visits (show_on_client_app=true). Optional: per_page (1-100), visit_id. Auth: Bearer client token."
-                    }
-                },
-                {
-                    "name": "2. Get Maintenance Photos by Visit (GET)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status is 200 OK', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "pm.test('Visit photos response is successful', function () {",
-                                    "    var j = pm.response.json();",
-                                    "    pm.expect(j.success).to.eql(true);",
-                                    "    pm.expect(j.data).to.have.property('visit');",
-                                    "    pm.expect(j.data).to.have.property('photos');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/maintenance-photos/visit/{{visit_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "maintenance-photos",
-                                "visit",
-                                "{{visit_id}}"
-                            ]
-                        },
-                        "description": "GET /api/maintenance-photos/visit/{visit_id} — **Client read-only.** Photos for one visit the client owns. Response: visit summary + photos[]."
+                        "description": "GET /api/maintenance-photos — **Client read-only.** Active entries only, ordered by priority. Optional: per_page (1-100). Auth: Bearer client token."
                     }
                 }
             ],
-            "description": "Client app home — Maintenance Photos (**read-only**). Upload/update/delete: admin folder **5g** (`/api/admin/maintenance-photos`). Auth: Bearer **client** token. Set visit_id."
+            "description": "Client app home — Maintenance Photos (**read-only**). Upload/update/delete: admin folder **5g**. Response fields: id, title, before_image_url, after_image_url, priority, active."
         },
         {
             "name": "9. Technician Dashboard – All APIs",

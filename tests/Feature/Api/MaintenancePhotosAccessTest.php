@@ -2,10 +2,8 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Subscription;
+use App\Models\MaintenancePhoto;
 use App\Models\User;
-use App\Models\Visit;
-use App\Models\VisitPhoto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -26,23 +24,19 @@ class MaintenancePhotosAccessTest extends TestCase
         Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
     }
 
-    public function test_client_can_list_only_admin_published_maintenance_photos(): void
+    public function test_client_can_list_only_active_maintenance_photos(): void
     {
         $client = User::factory()->create(['role' => 'client']);
         $client->syncRoles(['client']);
 
-        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
-        $visit = Visit::factory()->create(['subscription_id' => $subscription->id]);
-
-        VisitPhoto::factory()->create([
-            'visit_id' => $visit->id,
-            'show_on_client_app' => true,
-            'photo_path' => 'visit_photos/visible.jpg',
+        MaintenancePhoto::factory()->create([
+            'title' => 'Visible',
+            'priority' => 1,
+            'is_active' => true,
         ]);
-        VisitPhoto::factory()->create([
-            'visit_id' => $visit->id,
-            'show_on_client_app' => false,
-            'photo_path' => 'visit_photos/hidden.jpg',
+        MaintenancePhoto::factory()->inactive()->create([
+            'title' => 'Hidden',
+            'priority' => 0,
         ]);
 
         $token = $client->createToken('api_client', ['client'])->plainTextToken;
@@ -51,54 +45,37 @@ class MaintenancePhotosAccessTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk();
-        $response->assertJsonPath('success', true);
-        $response->assertJsonCount(1, 'data.data');
-        $response->assertJsonPath('data.data.0.show_on_client_app', true);
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath('data.data.0.title', 'Visible')
+            ->assertJsonPath('data.data.0.active', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'data' => [
+                        ['id', 'title', 'before_image_url', 'after_image_url', 'priority', 'active'],
+                    ],
+                ],
+            ]);
     }
 
-    public function test_client_can_get_maintenance_photos_by_visit(): void
+    public function test_client_list_orders_by_priority(): void
     {
         $client = User::factory()->create(['role' => 'client']);
         $client->syncRoles(['client']);
 
-        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
-        $visit = Visit::factory()->create(['subscription_id' => $subscription->id]);
-
-        VisitPhoto::factory()->create([
-            'visit_id' => $visit->id,
-            'show_on_client_app' => true,
-            'type' => 'before',
-        ]);
+        MaintenancePhoto::factory()->create(['title' => 'Second', 'priority' => 5, 'is_active' => true]);
+        MaintenancePhoto::factory()->create(['title' => 'First', 'priority' => 1, 'is_active' => true]);
 
         $token = $client->createToken('api_client', ['client'])->plainTextToken;
 
-        $response = $this->getJson('/api/maintenance-photos/visit/'.$visit->id, [
+        $response = $this->getJson('/api/maintenance-photos', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('success', true);
-        $response->assertJsonPath('data.visit.id', $visit->id);
-        $response->assertJsonCount(1, 'data.photos');
-    }
-
-    public function test_client_cannot_upload_visit_maintenance_photo(): void
-    {
-        $client = User::factory()->create(['role' => 'client']);
-        $client->syncRoles(['client']);
-
-        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
-        $visit = Visit::factory()->create(['subscription_id' => $subscription->id]);
-        $token = $client->createToken('api_client', ['client'])->plainTextToken;
-
-        $response = $this->postJson('/api/visits/'.$visit->id.'/upload-photo', [
-            'type' => 'after',
-        ], [
-            'Authorization' => 'Bearer '.$token,
-        ]);
-
-        $response->assertStatus(404);
+        $response->assertJsonPath('data.data.0.title', 'First');
+        $response->assertJsonPath('data.data.1.title', 'Second');
     }
 
     public function test_technician_cannot_upload_via_admin_maintenance_photos_api(): void
@@ -106,17 +83,14 @@ class MaintenancePhotosAccessTest extends TestCase
         $technician = User::factory()->create(['role' => 'technician']);
         $technician->syncRoles(['technician']);
 
-        $subscription = Subscription::factory()->create([
-            'client_id' => User::factory()->create(['role' => 'client'])->id,
-        ]);
-        $visit = Visit::factory()->create(['subscription_id' => $subscription->id]);
-
         $token = $technician->createToken('api_technician', ['technician'])->plainTextToken;
 
         $response = $this->post('/api/admin/maintenance-photos', [
-            'visit_id' => $visit->id,
-            'type' => 'after',
-            'photo' => UploadedFile::fake()->image('maintenance.jpg'),
+            'title' => 'Test',
+            'priority' => 0,
+            'active' => 1,
+            'before_image' => UploadedFile::fake()->image('before.jpg'),
+            'after_image' => UploadedFile::fake()->image('after.jpg'),
         ], [
             'Authorization' => 'Bearer '.$token,
             'Accept' => 'application/json',
@@ -125,15 +99,13 @@ class MaintenancePhotosAccessTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_maintenance_photos_crud_flow(): void
+    public function test_admin_maintenance_photos_crud_flow_with_screenshot_fields_only(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $admin->syncRoles(['admin']);
 
         $client = User::factory()->create(['role' => 'client']);
         $client->syncRoles(['client']);
-        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
-        $visit = Visit::factory()->create(['subscription_id' => $subscription->id]);
 
         $token = $admin->createToken('api_admin', ['admin'])->plainTextToken;
         $headers = [
@@ -142,69 +114,97 @@ class MaintenancePhotosAccessTest extends TestCase
         ];
 
         $upload = $this->post('/api/admin/maintenance-photos', [
-            'visit_id' => $visit->id,
-            'type' => 'after',
-            'show_on_client_app' => 1,
-            'photo' => UploadedFile::fake()->image('maintenance.jpg'),
+            'title' => 'Shoe restoration',
+            'priority' => 2,
+            'active' => 1,
+            'before_image' => UploadedFile::fake()->image('before.jpg'),
+            'after_image' => UploadedFile::fake()->image('after.jpg'),
         ], $headers);
 
-        $upload->assertCreated();
-        $upload->assertJsonPath('success', true);
+        $upload->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.title', 'Shoe restoration')
+            ->assertJsonPath('data.priority', 2)
+            ->assertJsonPath('data.active', true)
+            ->assertJsonPath('data.before_image_url', fn ($url) => is_string($url) && $url !== '')
+            ->assertJsonPath('data.after_image_url', fn ($url) => is_string($url) && $url !== '');
+
         $photoId = $upload->json('data.id');
         $this->assertNotNull($photoId);
 
-        $list = $this->getJson('/api/admin/maintenance-photos?visit_id='.$visit->id, $headers);
+        $list = $this->getJson('/api/admin/maintenance-photos', $headers);
         $list->assertOk();
         $list->assertJsonPath('data.pagination.total', 1);
 
-        $update = $this->put('/api/admin/maintenance-photos/'.$photoId, [
-            'type' => 'before',
-            'show_on_client_app' => 1,
+        $update = $this->post('/api/admin/maintenance-photos/'.$photoId, [
+            'title' => 'Updated title',
+            'priority' => 0,
+            'active' => 0,
         ], $headers);
-        $update->assertOk();
-        $update->assertJsonPath('data.type', 'before');
+        $update->assertOk()
+            ->assertJsonPath('data.title', 'Updated title')
+            ->assertJsonPath('data.priority', 0)
+            ->assertJsonPath('data.active', false);
 
-        $this->flushSession();
         Sanctum::actingAs($client, ['client']);
         $clientView = $this->getJson('/api/maintenance-photos');
         $clientView->assertOk();
-        $clientView->assertJsonCount(1, 'data.data');
-        $clientView->assertJsonPath('data.data.0.type', 'before');
+        $clientView->assertJsonCount(0, 'data.data');
 
-        $this->flushSession();
         Sanctum::actingAs($admin, ['admin']);
         $delete = $this->deleteJson('/api/admin/maintenance-photos/'.$photoId);
         $delete->assertOk();
-        $delete->assertJsonPath('success', true);
 
-        $this->assertDatabaseMissing('visit_photos', ['id' => $photoId]);
+        $this->assertDatabaseMissing('maintenance_photos', ['id' => $photoId]);
     }
 
-    public function test_admin_can_upload_maintenance_photo_via_admin_api(): void
+    public function test_admin_store_requires_before_and_after_images(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $admin->syncRoles(['admin']);
 
-        $client = User::factory()->create(['role' => 'client']);
-        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
-        $visit = Visit::factory()->create(['subscription_id' => $subscription->id]);
+        $token = $admin->createToken('api_admin', ['admin'])->plainTextToken;
+
+        $response = $this->postJson('/api/admin/maintenance-photos', [
+            'title' => 'Incomplete',
+            'priority' => 0,
+            'active' => 1,
+        ], [
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['before_image', 'after_image']);
+    }
+
+    public function test_admin_store_rejects_extra_fields_only_accepts_five_params(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->syncRoles(['admin']);
 
         $token = $admin->createToken('api_admin', ['admin'])->plainTextToken;
 
         $response = $this->post('/api/admin/maintenance-photos', [
-            'visit_id' => $visit->id,
-            'type' => 'after',
+            'title' => 'Test',
+            'priority' => 0,
+            'active' => 1,
+            'before_image' => UploadedFile::fake()->image('before.jpg'),
+            'after_image' => UploadedFile::fake()->image('after.jpg'),
+            'visit_id' => 999,
+            'photo' => UploadedFile::fake()->image('extra.jpg'),
+            'type' => 'before',
             'show_on_client_app' => 1,
-            'photo' => UploadedFile::fake()->image('maintenance.jpg'),
         ], [
             'Authorization' => 'Bearer '.$token,
             'Accept' => 'application/json',
         ]);
 
         $response->assertCreated();
-        $this->assertDatabaseHas('visit_photos', [
-            'visit_id' => $visit->id,
-            'show_on_client_app' => 1,
+        $this->assertDatabaseHas('maintenance_photos', [
+            'title' => 'Test',
+            'priority' => 0,
+            'is_active' => 1,
         ]);
+        $this->assertDatabaseMissing('visit_photos', ['visit_id' => 999]);
     }
 }
