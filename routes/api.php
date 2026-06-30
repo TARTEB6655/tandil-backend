@@ -471,6 +471,7 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
 
     // Maintenance photos (admin upload/update/delete — client app is read-only)
     Route::get('/maintenance-photos', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'index']);
+    Route::get('/maintenance-photos/{id}', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'show'])->whereNumber('id');
     Route::post('/maintenance-photos', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'store']);
     Route::put('/maintenance-photos/{id}', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'update']);
     Route::post('/maintenance-photos/{id}', [\App\Http\Controllers\Api\Admin\MaintenancePhotoController::class, 'update']);

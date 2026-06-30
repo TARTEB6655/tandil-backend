@@ -20,8 +20,8 @@
                     @foreach($photos as $photo)
                         <div class="p-4 flex flex-col sm:flex-row gap-4 sm:items-center">
                             <div class="flex gap-2">
-                                <img src="{{ asset('storage/' . $photo->before_image_path) }}" alt="Before" class="w-24 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600">
-                                <img src="{{ asset('storage/' . $photo->after_image_path) }}" alt="After" class="w-24 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600">
+                                <img src="{{ $photo->before_image_url }}" alt="Before" class="w-24 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600" loading="lazy">
+                                <img src="{{ $photo->after_image_url }}" alt="After" class="w-24 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600" loading="lazy">
                             </div>
                             <div class="flex-1 min-w-0 text-sm">
                                 <p class="font-medium text-gray-900 dark:text-gray-100">{{ $photo->title ?: 'Untitled' }}</p>

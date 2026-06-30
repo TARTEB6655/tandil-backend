@@ -19,11 +19,9 @@ class MaintenancePhotoService
             return $path;
         }
 
-        if (function_exists('request') && request() && request()->getHttpHost()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/').'/storage/'.$path;
-        }
+        $base = rtrim(request()->getSchemeAndHttpHost() ?: config('app.url', ''), '/');
 
-        return asset('storage/'.$path);
+        return $base ? ($base.'/media/'.$path) : asset('media/'.$path);
     }
 
     /**
@@ -103,7 +101,7 @@ class MaintenancePhotoService
     private function storeImage(UploadedFile $file, string $prefix): string
     {
         $path = $file->store('maintenance_photos/'.$prefix, 'public');
-        ImageCompressionService::compressIfNeededFromPublicPath($path);
+        ImageCompressionService::compressMaintenancePhotoFromPublicPath($path);
 
         return $path;
     }

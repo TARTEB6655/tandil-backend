@@ -44,6 +44,16 @@ class MaintenancePhotoController extends Controller
         ]);
     }
 
+    public function show(int $id): JsonResponse
+    {
+        $photo = MaintenancePhoto::find($id);
+        if ($photo === null) {
+            return ApiResponse::error('Photo not found.', 404);
+        }
+
+        return ApiResponse::success('Maintenance photo retrieved.', $this->photos->toApiItem($photo));
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), $this->storeRules());

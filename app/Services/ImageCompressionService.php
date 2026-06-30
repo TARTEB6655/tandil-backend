@@ -29,6 +29,11 @@ class ImageCompressionService
     /** Max longest side in pixels for report/visit photos. */
     public const VISIT_PHOTO_MAX_DIMENSION = 1280;
 
+    /** Max size for maintenance before/after showcase images. */
+    public const MAINTENANCE_PHOTO_MAX_BYTES = 512 * 1024; // 512 KB
+
+    public const MAINTENANCE_PHOTO_MAX_DIMENSION = 1280;
+
     /**
      * Compress image at the given path in place if it exceeds maxBytes.
      * Optionally resize to maxDimension (longest side) first for faster compression and smaller files.
@@ -123,6 +128,18 @@ class ImageCompressionService
             $relativePath,
             self::VISIT_PHOTO_MAX_BYTES,
             self::VISIT_PHOTO_MAX_DIMENSION
+        );
+    }
+
+    /**
+     * Compress maintenance showcase photos for fast list loading on mobile.
+     */
+    public static function compressMaintenancePhotoFromPublicPath(string $relativePath): bool
+    {
+        return self::compressIfNeededFromPublicPath(
+            $relativePath,
+            self::MAINTENANCE_PHOTO_MAX_BYTES,
+            self::MAINTENANCE_PHOTO_MAX_DIMENSION
         );
     }
 

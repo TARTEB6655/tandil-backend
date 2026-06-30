@@ -126,11 +126,19 @@ class MaintenancePhotosAccessTest extends TestCase
             ->assertJsonPath('data.title', 'Shoe restoration')
             ->assertJsonPath('data.priority', 2)
             ->assertJsonPath('data.active', true)
-            ->assertJsonPath('data.before_image_url', fn ($url) => is_string($url) && $url !== '')
-            ->assertJsonPath('data.after_image_url', fn ($url) => is_string($url) && $url !== '');
+            ->assertJsonPath('data.before_image_url', fn ($url) => is_string($url) && str_contains($url, '/media/'))
+            ->assertJsonPath('data.after_image_url', fn ($url) => is_string($url) && str_contains($url, '/media/'));
 
         $photoId = $upload->json('data.id');
         $this->assertNotNull($photoId);
+
+        $show = $this->getJson('/api/admin/maintenance-photos/'.$photoId, $headers);
+        $show->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $photoId)
+            ->assertJsonPath('data.title', 'Shoe restoration')
+            ->assertJsonPath('data.before_image_url', fn ($url) => is_string($url) && str_contains($url, '/media/'))
+            ->assertJsonPath('data.after_image_url', fn ($url) => is_string($url) && str_contains($url, '/media/'));
 
         $list = $this->getJson('/api/admin/maintenance-photos', $headers);
         $list->assertOk();

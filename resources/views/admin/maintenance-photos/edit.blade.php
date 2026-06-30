@@ -18,11 +18,11 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Current before</p>
-                        <img src="{{ asset('storage/' . $photo->before_image_path) }}" alt="Before" class="w-full rounded-lg border border-gray-200 dark:border-gray-600">
+                        <img src="{{ $photo->before_image_url }}" alt="Before" class="w-full rounded-lg border border-gray-200 dark:border-gray-600">
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Current after</p>
-                        <img src="{{ asset('storage/' . $photo->after_image_path) }}" alt="After" class="w-full rounded-lg border border-gray-200 dark:border-gray-600">
+                        <img src="{{ $photo->after_image_url }}" alt="After" class="w-full rounded-lg border border-gray-200 dark:border-gray-600">
                     </div>
                 </div>
 
