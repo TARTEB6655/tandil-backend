@@ -113,6 +113,13 @@ class NotificationController extends Controller
         if ($notification->read_at === null) {
             $notification->markAsRead();
         }
+
+        $data = $notification->data ?? [];
+        $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        if (($meta['entity'] ?? null) === 'vendor' && ! empty($meta['vendor_id'])) {
+            return redirect()->route('admin.vendors.show', $meta['vendor_id']);
+        }
+
         $backUrl = request()->query('from') === 'stats'
             ? route('admin.notifications.statistics')
             : route('admin.notifications.index');

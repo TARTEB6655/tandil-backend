@@ -7,7 +7,16 @@
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ $vendor->profile?->business_name }}</h1>
                 <p class="text-sm text-gray-500 mt-1">Status: <strong>{{ $vendor->statusEnum()->label() }}</strong> · Onboarding: {{ $application['completion_percent'] ?? 0 }}% · Commission: {{ $vendor->commission_rate !== null ? $vendor->commission_rate.'%' : 'Platform default' }}</p>
             </div>
-            <a href="{{ route('admin.vendors.edit', $vendor) }}" class="px-4 py-2 text-sm border rounded-lg">Edit profile</a>
+            <div class="flex flex-wrap gap-2">
+                @if(in_array($vendor->status, ['pending', 'under_review']))
+                    <form method="POST" action="{{ route('admin.vendors.approve', $vendor) }}">@csrf<button type="submit" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium">Approve vendor</button></form>
+                    <form method="POST" action="{{ route('admin.vendors.reject', $vendor) }}" class="inline-flex flex-wrap gap-2 items-center">@csrf
+                        <input name="reason" required placeholder="Rejection reason" class="rounded-lg border-gray-300 text-sm min-w-[200px]" />
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm rounded-lg font-medium">Reject vendor</button>
+                    </form>
+                @endif
+                <a href="{{ route('admin.vendors.edit', $vendor) }}" class="px-4 py-2 text-sm border rounded-lg">Edit profile</a>
+            </div>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -44,6 +53,15 @@
 
         @php $p = $vendor->profile; @endphp
         <div class="bg-white dark:bg-gray-800 rounded-xl border p-6 space-y-6 text-sm">
+            @if($vendor->logo_url)
+                <div class="flex items-center gap-4 border-b border-gray-100 dark:border-gray-700 pb-4">
+                    <img src="{{ $vendor->logo_url }}" alt="Company logo" class="h-16 w-16 rounded-lg border object-cover" />
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase">Company Logo</p>
+                        <a href="{{ $vendor->logo_url }}" target="_blank" class="text-sm text-indigo-600 hover:underline">View full size</a>
+                    </div>
+                </div>
+            @endif
             <div>
                 <h2 class="font-medium mb-3">Business information</h2>
                 <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -76,6 +94,7 @@
                     <div><span class="text-gray-500">Delivery Radius</span><p>{{ $p?->delivery_radius !== null ? $p->delivery_radius.' km' : '—' }}</p></div>
                     <div><span class="text-gray-500">Min. Order Amount</span><p>{{ $p?->minimum_order_amount !== null ? number_format((float) $p->minimum_order_amount, 2).' AED' : '—' }}</p></div>
                     <div><span class="text-gray-500">Operating Hours</span><p>{{ $p?->operating_hours ?? '—' }}</p></div>
+                    <div><span class="text-gray-500">Years in Business</span><p>{{ $p?->years_in_business ?? '—' }}</p></div>
                     <div><span class="text-gray-500">Terms Accepted</span><p>{{ $p?->terms_accepted_at ? $p->terms_accepted_at->format('Y-m-d H:i') : 'No' }}</p></div>
                 </div>
             </div>

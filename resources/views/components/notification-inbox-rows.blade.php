@@ -105,6 +105,12 @@
                                 @if(is_array($data) && isset($data['employee_id']))
                                     <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Employee ID: #{{ $data['employee_id'] }}</p>
                                 @endif
+                                @php
+                                    $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+                                @endphp
+                                @if(($meta['entity'] ?? null) === 'vendor' && ! empty($meta['vendor_id']))
+                                    <p class="text-xs text-indigo-600 dark:text-indigo-400 mb-1 font-medium">Vendor application — open to review profile, documents, approve or reject</p>
+                                @endif
                             </a>
                             <div class="flex items-center gap-3 flex-shrink-0">
                                 <div class="text-right">
