@@ -106,13 +106,14 @@
                                     <span class="px-2 py-0.5 text-xs font-medium text-gray-600 bg-gray-200 rounded-full">{{ $unreadCount }}</span>
                                 @endif
                             </div>
+                            <a href="{{ route('vendor.notifications.index') }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">View all</a>
                         </div>
 
                         <!-- Notifications List -->
                         <div class="flex-1 overflow-y-auto">
                             @forelse($unreadNotifications as $notification)
                                 <a 
-                                    href="#" 
+                                    href="{{ route('vendor.notifications.show', $notification->id) }}" 
                                     class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150"
                                     @click.stop="open = false"
                                 >

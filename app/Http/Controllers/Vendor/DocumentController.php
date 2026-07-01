@@ -23,14 +23,12 @@ class DocumentController extends Controller
     public function index(Request $request): View|RedirectResponse
     {
         $vendor = $request->attributes->get('vendor')->load('documents');
-        if ($vendor->isApproved()) {
-            return redirect()->route('vendor.dashboard');
-        }
 
         return view('vendor.documents.index', [
             'vendor' => $vendor,
             'documentTypes' => VendorDocumentType::cases(),
             'application' => $this->application->applicationPayload($vendor),
+            'canManageDocuments' => $vendor->statusEnum()->canCompleteOnboarding(),
         ]);
     }
 

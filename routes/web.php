@@ -674,6 +674,19 @@ Route::middleware(['auth', 'role:vendor', 'vendor.account'])->prefix('vendor')->
     Route::get('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [\App\Http\Controllers\Vendor\ProfileController::class, 'update'])->name('profile.update');
 
+    Route::get('/notifications', [\App\Http\Controllers\Vendor\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{id}', [\App\Http\Controllers\Vendor\NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Vendor\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Vendor\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Vendor\NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::post('/notifications/delete-selected', [\App\Http\Controllers\Vendor\NotificationController::class, 'destroyBulk'])->name('notifications.destroy-bulk');
+    Route::post('/notifications/delete-all', [\App\Http\Controllers\Vendor\NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
+
+    Route::get('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'index'])->name('help-support.index');
+    Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
+    Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
+    Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
+
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');
 

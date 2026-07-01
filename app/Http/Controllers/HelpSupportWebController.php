@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Help & Support (tickets + chat) for Technician, Supervisor, Area Manager, HR.
+ * Help & Support (tickets + chat) for Technician, Supervisor, Area Manager, HR, and Vendor.
  * Same behaviour as API: list my tickets, submit ticket, view ticket with replies, reply.
  * Client uses Client\HelpSupportController; admin uses Admin\SupportTicketWebController.
  */
@@ -20,7 +20,7 @@ class HelpSupportWebController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', 'role:technician|supervisor|area_manager|hr']);
+        $this->middleware(['auth', 'role:technician|supervisor|area_manager|hr|vendor']);
     }
 
     /** Route and view prefix: area_manager -> areamanager to match web routes. */
