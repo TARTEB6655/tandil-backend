@@ -43,6 +43,7 @@ class VendorProfile extends Model
 
     protected $appends = [
         'vendor_type_label',
+        'logo_url',
     ];
 
     public function vendor(): BelongsTo
@@ -57,6 +58,23 @@ class VendorProfile extends Model
         }
 
         return VendorType::tryFrom($this->vendor_type)?->label() ?? ucfirst($this->vendor_type);
+    }
+
+    /** Full URL for logo (stored under storage/app/public, served via /media/). */
+    public function getLogoUrlAttribute(): ?string
+    {
+        $path = $this->logo_path;
+        if (empty($path)) {
+            return null;
+        }
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+
+        return request()->getSchemeAndHttpHost()
+            ? rtrim(request()->getSchemeAndHttpHost(), '/').'/media/'.$path
+            : asset('media/'.$path);
     }
 
     /** @return list<string> UAE emirates. */

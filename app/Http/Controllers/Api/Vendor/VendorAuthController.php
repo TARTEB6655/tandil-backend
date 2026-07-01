@@ -26,6 +26,7 @@ class VendorAuthController extends Controller
         return ApiResponse::success('Vendor registration submitted. Admin will review your application before you can sell.', [
             'vendor_id' => $vendor->id,
             'status' => $vendor->status,
+            'logo_url' => $vendor->logo_url,
             'profile' => $vendor->profile,
             'documents' => $vendor->documents,
             'completion_percent' => app(\App\Services\Vendor\VendorApplicationService::class)->completionPercent($vendor),

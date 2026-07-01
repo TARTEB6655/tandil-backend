@@ -22,6 +22,10 @@ class VendorDocument extends Model
         'verified_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'file_url',
+    ];
+
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);

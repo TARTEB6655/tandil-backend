@@ -61,7 +61,10 @@ class VendorModuleTest extends TestCase
             ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
             ->assertJsonPath('data.profile.business_name', 'Green Farms LLC')
             ->assertJsonPath('data.profile.owner_name', 'Ali Vendor')
-            ->assertJsonPath('data.profile.operating_hours', '08:00 - 22:00');
+            ->assertJsonPath('data.profile.operating_hours', '08:00 - 22:00')
+            ->assertJsonPath('data.logo_url', fn ($url) => is_string($url) && str_contains($url, '/media/vendors/logos/'))
+            ->assertJsonPath('data.profile.logo_url', fn ($url) => is_string($url) && str_contains($url, '/media/vendors/logos/'))
+            ->assertJsonPath('data.documents.0.file_url', fn ($url) => is_string($url) && str_contains($url, '/media/vendors/'));
 
         $this->assertDatabaseHas('vendors', ['status' => 'under_review']);
         $this->assertDatabaseHas('vendor_profiles', [
