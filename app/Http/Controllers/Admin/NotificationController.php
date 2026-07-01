@@ -139,6 +139,8 @@ class NotificationController extends Controller
         $url = route('admin.notifications.index');
         if (($meta['entity'] ?? null) === 'support_ticket' && ! empty($meta['ticket_id'] ?? null)) {
             $url = route('admin.support-tickets.show', $meta['ticket_id']);
+        } elseif (($meta['entity'] ?? null) === 'vendor' && ! empty($meta['vendor_id'] ?? null)) {
+            $url = route('admin.vendors.show', $meta['vendor_id']);
         }
         return redirect($url);
     }

@@ -6,9 +6,11 @@ use App\Enums\VendorStatus;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Notifications\AdminNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -75,6 +77,46 @@ class VendorModuleTest extends TestCase
         $this->assertNotNull(VendorProfile::where('business_name', 'Green Farms LLC')->value('onboarding_completed_at'));
         $this->assertDatabaseHas('vendor_documents', ['type' => 'trade_license']);
         $this->assertDatabaseHas('vendor_documents', ['type' => 'emirates_id']);
+    }
+
+    public function test_vendor_registration_notifies_admins(): void
+    {
+        Notification::fake();
+
+        $admin = User::factory()->create(['role' => 'admin', 'email' => 'admin-vendor-notify@test.com']);
+        $admin->assignRole('admin');
+
+        $this->post('/api/vendor/auth/register', [
+            'company_name' => 'Notify Test LLC',
+            'authorized_person_name' => 'Notify Vendor',
+            'email' => 'notify-vendor@test.com',
+            'phone' => '+971500000099',
+            'password' => 'secret12',
+            'password_confirmation' => 'secret12',
+            'address' => 'Warehouse 9',
+            'trade_license_number' => 'TL-NOTIFY',
+            'vendor_type' => 'fruits',
+            'emirate' => 'Dubai',
+            'google_maps_location' => '25.2048,55.2708',
+            'bank_name' => 'Emirates NBD',
+            'iban' => 'AE070331234567890123456',
+            'account_holder_name' => 'Notify Test LLC',
+            'delivery_radius' => 10,
+            'opens_at' => '08:00',
+            'closes_at' => '22:00',
+            'minimum_order_amount' => 0,
+            'terms_accepted' => 1,
+            'logo' => UploadedFile::fake()->image('logo.png'),
+            'trade_license' => UploadedFile::fake()->create('trade-license.pdf', 100, 'application/pdf'),
+            'emirates_id' => UploadedFile::fake()->create('emirates-id.pdf', 100, 'application/pdf'),
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        Notification::assertSentTo(
+            $admin,
+            AdminNotification::class,
+            fn (AdminNotification $notification) => ($notification->toArray($admin)['title'] ?? null) === 'New Vendor Registration'
+                && ($notification->toArray($admin)['meta']['entity'] ?? null) === 'vendor'
+        );
     }
 
     public function test_vendor_signup_requires_trade_license_and_emirates_id_files(): void

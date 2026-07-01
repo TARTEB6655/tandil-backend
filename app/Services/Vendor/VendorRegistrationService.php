@@ -25,7 +25,7 @@ class VendorRegistrationService
      */
     public function register(array $data, ?UploadedFile $logo = null, array $documentFiles = []): Vendor
     {
-        return DB::transaction(function () use ($data, $logo, $documentFiles) {
+        $vendor = DB::transaction(function () use ($data, $logo, $documentFiles) {
             $user = User::create([
                 'name' => $data['owner_name'],
                 'email' => $data['email'],
@@ -82,6 +82,10 @@ class VendorRegistrationService
 
             return $vendor->load(['profile', 'user', 'documents', 'categories']);
         });
+
+        app(VendorAdminNotifier::class)->newRegistration($vendor);
+
+        return $vendor;
     }
 
     /**

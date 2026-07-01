@@ -164,6 +164,7 @@ class VendorApplicationService
 
     public function markOnboardingSubmitted(Vendor $vendor): Vendor
     {
+        $previousStatus = $vendor->status;
         $vendor->profile?->update(['onboarding_completed_at' => now()]);
 
         if ($vendor->status === VendorStatus::Rejected->value) {
@@ -186,7 +187,13 @@ class VendorApplicationService
             ]);
         }
 
-        return $vendor->fresh(['profile', 'documents', 'categories']);
+        $vendor = $vendor->fresh(['profile', 'documents', 'categories']);
+
+        if ($previousStatus === VendorStatus::Pending->value) {
+            app(VendorAdminNotifier::class)->applicationSubmitted($vendor);
+        }
+
+        return $vendor;
     }
 
     public function resubmit(Vendor $vendor): Vendor
@@ -205,11 +212,15 @@ class VendorApplicationService
 
         $vendor->profile?->update(['onboarding_completed_at' => now()]);
 
-        return $this->approval->transition(
+        $vendor = $this->approval->transition(
             $vendor,
             VendorStatus::Pending,
             null,
             'Application resubmitted by vendor after rejection.'
         );
+
+        app(VendorAdminNotifier::class)->applicationResubmitted($vendor);
+
+        return $vendor;
     }
 }
