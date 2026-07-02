@@ -10,9 +10,13 @@ use Illuminate\Support\Facades\DB;
 
 class VendorApprovalService
 {
+    public function __construct(
+        private readonly VendorVendorNotifier $vendorNotifier
+    ) {}
+
     public function transition(Vendor $vendor, VendorStatus $newStatus, ?User $admin, ?string $notes = null, ?string $rejectionReason = null): Vendor
     {
-        return DB::transaction(function () use ($vendor, $newStatus, $admin, $notes, $rejectionReason) {
+        $vendor = DB::transaction(function () use ($vendor, $newStatus, $admin, $notes, $rejectionReason) {
             $old = $vendor->status;
             $vendor->status = $newStatus->value;
             $vendor->rejection_reason = null;
@@ -56,6 +60,14 @@ class VendorApprovalService
 
             return $vendor->fresh(['profile', 'user', 'approvalLogs']);
         });
+
+        if ($newStatus === VendorStatus::Approved) {
+            $this->vendorNotifier->approved($vendor, $notes);
+        } elseif ($newStatus === VendorStatus::Rejected) {
+            $this->vendorNotifier->rejected($vendor, $rejectionReason ?? 'Not specified.', $notes);
+        }
+
+        return $vendor;
     }
 
     public function approve(Vendor $vendor, User $admin, ?string $notes = null): Vendor

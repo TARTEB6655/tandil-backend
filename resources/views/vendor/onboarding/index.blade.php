@@ -1,11 +1,26 @@
 <x-vendor-layout>
     <x-dashboard.page-header title="Vendor Application" subtitle="Complete every step, then submit your application for admin approval." />
 
+    @if(session('success'))
+        <div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{{ session('error') }}</div>
+    @endif
+
     @php
         $pct = (int) ($application['completion_percent'] ?? 0);
     @endphp
 
-    @unless($application['onboarding_complete'])
+    @if($application['onboarding_complete'] && in_array($vendor->status, ['under_review', 'pending']))
+        <div class="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+                <p class="font-semibold">Application under admin review</p>
+                <p class="mt-1">Your registration has been submitted. An administrator will approve or reject your application. You cannot access the vendor dashboard until approved — we will notify you here when a decision is made.</p>
+            </div>
+        </div>
+    @elseif(!$application['onboarding_complete'])
         <!-- Instruction banner -->
         <div class="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
             <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

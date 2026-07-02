@@ -55,7 +55,7 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'opens_at' => ['nullable', 'date_format:H:i'],
             'closes_at' => ['nullable', 'date_format:H:i'],
 
-            'category_ids' => ['nullable', 'array'],
+            'category_ids' => ['required', 'array', 'min:1'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
         ]);
     }

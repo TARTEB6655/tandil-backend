@@ -26,7 +26,7 @@ class AppPortalWebController extends Controller
         $ordered = [];
 
         // App portal UX requirement: keep Admin first on role picker.
-        foreach (['admin', 'client', 'technician', 'supervisor', 'area_manager', 'hr'] as $slug) {
+        foreach (['admin', 'client', 'vendor', 'technician', 'supervisor', 'area_manager', 'hr'] as $slug) {
             if (isset($meta[$slug])) {
                 $ordered[$slug] = $meta[$slug];
             }

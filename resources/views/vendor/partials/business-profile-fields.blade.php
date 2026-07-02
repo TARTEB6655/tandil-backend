@@ -17,10 +17,12 @@
         <label class="text-sm font-medium text-gray-700">Authorized Person Name *</label>
         <input type="text" name="owner_name" value="{{ old('owner_name', $profile?->owner_name) }}" class="mt-1 w-full rounded-lg border-gray-300" required />
     </div>
+    @unless($hideAccountFields ?? false)
     <div>
         <label class="text-sm font-medium text-gray-700">Email *</label>
         <input type="email" name="email" value="{{ old('email', $profile?->email) }}" class="mt-1 w-full rounded-lg border-gray-300" required />
     </div>
+    @endunless
     <div>
         <label class="text-sm font-medium text-gray-700">Phone Number *</label>
         <input type="text" name="phone" value="{{ old('phone', $profile?->phone) }}" class="mt-1 w-full rounded-lg border-gray-300" required />
@@ -94,8 +96,22 @@
         <input type="number" step="0.01" min="0" name="minimum_order_amount" value="{{ old('minimum_order_amount', $profile?->minimum_order_amount) }}" class="mt-1 w-full rounded-lg border-gray-300" required />
     </div>
     <div class="sm:col-span-2">
-        <label class="text-sm font-medium text-gray-700">Operating Hours *</label>
-        <input type="text" name="operating_hours" value="{{ old('operating_hours', $profile?->operating_hours) }}" placeholder="e.g. Mon–Sun, 9:00 AM – 9:00 PM" class="mt-1 w-full rounded-lg border-gray-300" required />
+        @if($useOpensClosesTimes ?? false)
+            <h3 class="text-sm font-semibold text-gray-800 mb-2">Operating Hours *</h3>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Opens at *</label>
+                    <input type="time" name="opens_at" value="{{ old('opens_at', '08:00') }}" class="mt-1 w-full rounded-lg border-gray-300" required />
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Closes at *</label>
+                    <input type="time" name="closes_at" value="{{ old('closes_at', '22:00') }}" class="mt-1 w-full rounded-lg border-gray-300" required />
+                </div>
+            </div>
+        @else
+            <label class="text-sm font-medium text-gray-700">Operating Hours *</label>
+            <input type="text" name="operating_hours" value="{{ old('operating_hours', $profile?->operating_hours) }}" placeholder="e.g. Mon–Sun, 9:00 AM – 9:00 PM" class="mt-1 w-full rounded-lg border-gray-300" required />
+        @endif
     </div>
 
     <div class="sm:col-span-2 mt-2 border-t border-gray-100 pt-4">
@@ -113,14 +129,14 @@
         @if($tradeLicenseDoc)
             <p class="text-xs text-green-600">Uploaded: <a href="{{ $tradeLicenseDoc->file_url }}" target="_blank" class="underline">{{ $tradeLicenseDoc->original_name }}</a> ({{ ucfirst($tradeLicenseDoc->verification_status) }})</p>
         @endif
-        <input type="file" name="trade_license" accept=".pdf,image/*" class="mt-1 w-full text-sm" />
+        <input type="file" name="trade_license" accept=".pdf,image/*" class="mt-1 w-full text-sm" @if($requireDocuments ?? false) required @endif />
     </div>
     <div>
         <label class="text-sm font-medium text-gray-700">Emirates ID Upload @if(!$emiratesIdDoc)*@endif</label>
         @if($emiratesIdDoc)
             <p class="text-xs text-green-600">Uploaded: <a href="{{ $emiratesIdDoc->file_url }}" target="_blank" class="underline">{{ $emiratesIdDoc->original_name }}</a> ({{ ucfirst($emiratesIdDoc->verification_status) }})</p>
         @endif
-        <input type="file" name="emirates_id" accept=".pdf,image/*" class="mt-1 w-full text-sm" />
+        <input type="file" name="emirates_id" accept=".pdf,image/*" class="mt-1 w-full text-sm" @if($requireDocuments ?? false) required @endif />
     </div>
     <div class="sm:col-span-2">
         <label class="text-sm font-medium text-gray-700">Business Description</label>

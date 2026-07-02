@@ -6,7 +6,9 @@ use App\Enums\VendorStatus;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Models\Category;
 use App\Notifications\AdminNotification;
+use App\Notifications\VendorApplicationStatusNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +33,8 @@ class VendorModuleTest extends TestCase
 
     public function test_vendor_can_register_via_api_with_full_mobile_signup_payload(): void
     {
+        $category = Category::factory()->create(['is_active' => true]);
+
         $response = $this->post('/api/vendor/auth/register', [
             'company_name' => 'Green Farms LLC',
             'authorized_person_name' => 'Ali Vendor',
@@ -53,6 +57,7 @@ class VendorModuleTest extends TestCase
             'minimum_order_amount' => 50,
             'vat_number' => 'TRN123456789',
             'terms_accepted' => 1,
+            'category_ids' => [$category->id],
             'logo' => UploadedFile::fake()->image('logo.png'),
             'trade_license' => UploadedFile::fake()->create('trade-license.pdf', 100, 'application/pdf'),
             'emirates_id' => UploadedFile::fake()->create('emirates-id.pdf', 100, 'application/pdf'),
@@ -83,6 +88,8 @@ class VendorModuleTest extends TestCase
     {
         Notification::fake();
 
+        $category = Category::factory()->create(['is_active' => true]);
+
         $admin = User::factory()->create(['role' => 'admin', 'email' => 'admin-vendor-notify@test.com']);
         $admin->assignRole('admin');
 
@@ -106,6 +113,7 @@ class VendorModuleTest extends TestCase
             'closes_at' => '22:00',
             'minimum_order_amount' => 0,
             'terms_accepted' => 1,
+            'category_ids' => [$category->id],
             'logo' => UploadedFile::fake()->image('logo.png'),
             'trade_license' => UploadedFile::fake()->create('trade-license.pdf', 100, 'application/pdf'),
             'emirates_id' => UploadedFile::fake()->create('emirates-id.pdf', 100, 'application/pdf'),
@@ -121,6 +129,8 @@ class VendorModuleTest extends TestCase
 
     public function test_vendor_signup_requires_trade_license_and_emirates_id_files(): void
     {
+        $category = Category::factory()->create(['is_active' => true]);
+
         $response = $this->postJson('/api/vendor/auth/register', [
             'business_name' => 'Green Farms',
             'owner_name' => 'Ali Vendor',
@@ -141,6 +151,8 @@ class VendorModuleTest extends TestCase
             'closes_at' => '22:00',
             'minimum_order_amount' => 0,
             'terms_accepted' => 1,
+            'category_ids' => [$category->id],
+            'logo' => UploadedFile::fake()->image('logo.png'),
         ]);
 
         $response->assertStatus(422)
@@ -149,6 +161,8 @@ class VendorModuleTest extends TestCase
 
     public function test_admin_can_approve_vendor(): void
     {
+        Notification::fake();
+
         $admin = User::factory()->create(['role' => 'admin', 'password' => Hash::make('password')]);
         $admin->assignRole('admin');
 
@@ -169,6 +183,8 @@ class VendorModuleTest extends TestCase
         ]);
 
         $response->assertOk()->assertJsonPath('data.vendor.status', VendorStatus::Approved->value);
+
+        Notification::assertSentTo($user, VendorApplicationStatusNotification::class);
     }
 
     public function test_approved_vendor_cannot_access_other_vendor_product(): void

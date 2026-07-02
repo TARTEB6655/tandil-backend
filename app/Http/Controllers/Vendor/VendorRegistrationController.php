@@ -37,6 +37,9 @@ class VendorRegistrationController extends Controller
 
         Auth::login($vendor->user);
 
-        return redirect()->route('vendor.onboarding.index')->with('success', 'Account created. Complete onboarding to submit your application.');
+        return redirect()->route('vendor.onboarding.index')->with(
+            'success',
+            'Registration submitted successfully. Our team will review your application — you cannot access the vendor dashboard until approved.'
+        );
     }
 }
