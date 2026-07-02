@@ -57,8 +57,8 @@
                 ])
 
                 <div class="mt-6 border-t border-slate-200 pt-6">
-                    <h2 class="text-base font-semibold text-slate-800 mb-3">{{ __('Business categories') }} *</h2>
-                    <p class="text-sm text-slate-500 mb-3">{{ __('Select at least one category you sell in.') }}</p>
+                    <h2 class="text-base font-semibold text-slate-800 mb-3">{{ __('Business categories') }}</h2>
+                    <p class="text-sm text-slate-500 mb-3">{{ __('Optional at signup — you can also choose categories later in onboarding before admin review.') }}</p>
                     @php $selectedCategories = old('category_ids', []); @endphp
                     <div class="grid gap-2 sm:grid-cols-2">
                         @forelse($categories as $category)
