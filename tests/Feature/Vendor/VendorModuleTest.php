@@ -222,6 +222,61 @@ class VendorModuleTest extends TestCase
             ]);
     }
 
+    public function test_admin_vendor_application_detail_api(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'password' => Hash::make('password')]);
+        $admin->assignRole('admin');
+
+        $user = User::factory()->create(['role' => 'vendor', 'email' => 'detail-vendor@test.com', 'phone' => '+971501234567']);
+        $user->assignRole('vendor');
+        $vendor = Vendor::create(['user_id' => $user->id, 'status' => VendorStatus::UnderReview->value]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Green Farms LLC',
+            'owner_name' => 'Ali Vendor',
+            'email' => 'detail-vendor@test.com',
+            'phone' => '+971501234567',
+            'trade_license_number' => 'TL-12345',
+            'vendor_type' => 'fruits',
+            'emirate' => 'Dubai',
+            'address' => 'Industrial Area 1',
+            'bank_name' => 'Emirates NBD',
+            'iban' => 'AE070331234567890123456',
+            'account_holder_name' => 'Green Farms LLC',
+            'delivery_radius' => 25,
+            'operating_hours' => '08:00 - 22:00',
+            'minimum_order_amount' => 50,
+        ]);
+
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $response = $this->withToken($token)->getJson("/api/admin/vendors/{$vendor->id}/application-detail");
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.title', 'Vendor application')
+            ->assertJsonPath('data.summary.business_name', 'Green Farms LLC')
+            ->assertJsonPath('data.summary.owner_name', 'Ali Vendor')
+            ->assertJsonPath('data.summary.display_status', 'PENDING')
+            ->assertJsonPath('data.contact.email', 'detail-vendor@test.com')
+            ->assertJsonPath('data.contact.authorized_person_name', 'Ali Vendor')
+            ->assertJsonPath('data.business_details.trade_license_number', 'TL-12345')
+            ->assertJsonPath('data.bank_details.bank_name', 'Emirates NBD')
+            ->assertJsonPath('data.actions.can_approve', true)
+            ->assertJsonPath('data.actions.can_reject', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'summary' => ['business_name', 'logo_url', 'status', 'submitted_at_formatted'],
+                    'contact' => ['email', 'phone', 'authorized_person_name'],
+                    'business_details' => ['vendor_type', 'trade_license_number', 'emirate', 'categories'],
+                    'bank_details' => ['bank_name', 'iban', 'account_holder_name'],
+                    'documents',
+                    'application',
+                    'actions',
+                ],
+            ]);
+    }
+
     public function test_approved_vendor_cannot_access_other_vendor_product(): void
     {
         $v1User = User::factory()->create(['role' => 'vendor']);

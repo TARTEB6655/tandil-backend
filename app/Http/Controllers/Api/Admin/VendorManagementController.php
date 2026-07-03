@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\VendorStatus;
+use App\Enums\VendorDocumentType;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Vendor;
@@ -120,7 +121,7 @@ class VendorManagementController extends Controller
                 ],
                 'detail' => [
                     'method' => 'GET',
-                    'endpoint' => "/api/admin/vendors/{$vendor->id}",
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/application-detail",
                 ],
             ],
         ];
@@ -144,11 +145,112 @@ class VendorManagementController extends Controller
         $vendor = Vendor::with(['profile', 'user', 'approvalLogs.performer', 'documents', 'categories'])->findOrFail($id);
 
         return ApiResponse::success('Vendor retrieved.', [
+            'detail' => $this->buildApplicationDetail($vendor),
             'vendor' => $vendor,
             'application' => $this->application->applicationPayload($vendor),
             'statistics' => $this->dashboard->stats($vendor),
             'analytics' => $this->dashboard->analytics($vendor),
         ]);
+    }
+
+    /**
+     * Mobile admin — full vendor application screen (Contact, Business details, Documents, Approve/Reject).
+     */
+    public function applicationDetail(int $id): JsonResponse
+    {
+        $vendor = Vendor::with(['profile', 'user', 'approvalLogs.performer', 'documents', 'categories'])->findOrFail($id);
+
+        return ApiResponse::success('Vendor application retrieved.', $this->buildApplicationDetail($vendor));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildApplicationDetail(Vendor $vendor): array
+    {
+        $vendor->loadMissing(['profile', 'user', 'documents', 'categories', 'approvalLogs.performer']);
+        $profile = $vendor->profile;
+        $application = $this->application->applicationPayload($vendor);
+
+        $submittedAt = $vendor->approvalLogs
+            ->firstWhere('action', 'submitted_for_review')
+            ?->created_at
+            ?? $profile?->onboarding_completed_at
+            ?? $vendor->created_at;
+
+        $pendingStatuses = [VendorStatus::Pending->value, VendorStatus::UnderReview->value];
+        $canReview = in_array($vendor->status, $pendingStatuses, true);
+
+        return [
+            'vendor_id' => $vendor->id,
+            'title' => 'Vendor application',
+            'summary' => [
+                'business_name' => $profile?->business_name,
+                'owner_name' => $profile?->owner_name,
+                'logo_url' => $profile?->logo_url,
+                'status' => $vendor->status,
+                'status_label' => $vendor->statusEnum()->label(),
+                'display_status' => in_array($vendor->status, $pendingStatuses, true) ? 'PENDING' : strtoupper($vendor->status),
+                'rejection_reason' => $vendor->rejection_reason,
+                'submitted_at' => $submittedAt?->toIso8601String(),
+                'submitted_at_formatted' => $submittedAt?->format('j M Y \a\t g:i A'),
+                'completion_percent' => $application['completion_percent'] ?? 0,
+            ],
+            'contact' => [
+                'email' => $profile?->email ?? $vendor->user?->email,
+                'phone' => $profile?->phone ?? $vendor->user?->phone,
+                'authorized_person_name' => $profile?->owner_name,
+            ],
+            'business_details' => [
+                'vendor_type' => $profile?->vendor_type,
+                'vendor_type_label' => $profile?->vendor_type_label,
+                'trade_license_number' => $profile?->trade_license_number,
+                'tax_vat_number' => $profile?->tax_vat_number,
+                'emirate' => $profile?->emirate,
+                'city' => $profile?->city,
+                'address' => $profile?->address,
+                'google_maps_location' => $profile?->google_maps_location,
+                'delivery_radius' => $profile?->delivery_radius,
+                'operating_hours' => $profile?->operating_hours,
+                'minimum_order_amount' => $profile?->minimum_order_amount,
+                'years_in_business' => $profile?->years_in_business,
+                'description' => $profile?->description,
+                'categories' => $vendor->categories->map(fn ($cat) => [
+                    'id' => $cat->id,
+                    'name' => $cat->name,
+                ])->values()->all(),
+                'category_ids' => $vendor->categories->pluck('id')->values()->all(),
+            ],
+            'bank_details' => [
+                'bank_name' => $profile?->bank_name,
+                'iban' => $profile?->iban,
+                'account_holder_name' => $profile?->account_holder_name,
+            ],
+            'documents' => $vendor->documents->map(fn ($doc) => [
+                'id' => $doc->id,
+                'type' => $doc->type,
+                'label' => VendorDocumentType::tryFrom($doc->type)?->label() ?? ucfirst(str_replace('_', ' ', $doc->type)),
+                'original_name' => $doc->original_name,
+                'file_url' => $doc->file_url,
+                'verification_status' => $doc->verification_status,
+                'admin_notes' => $doc->admin_notes,
+                'verified_at' => $doc->verified_at?->toIso8601String(),
+            ])->values()->all(),
+            'application' => $application,
+            'approval_logs' => $application['approval_logs'] ?? [],
+            'actions' => [
+                'can_approve' => $canReview,
+                'can_reject' => $canReview,
+                'approve' => [
+                    'method' => 'POST',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/approve",
+                ],
+                'reject' => [
+                    'method' => 'POST',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/reject",
+                ],
+            ],
+        ];
     }
 
     public function analytics(int $id): JsonResponse
