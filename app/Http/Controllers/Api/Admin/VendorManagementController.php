@@ -26,7 +26,15 @@ class VendorManagementController extends Controller
     {
         $sort = $request->query('sort', 'newest');
         $q = Vendor::with(['profile', 'user'])
-            ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
+            ->when($request->query('status'), function ($query, $status) {
+                if (str_contains((string) $status, ',')) {
+                    $statuses = array_values(array_filter(array_map('trim', explode(',', (string) $status))));
+
+                    return $query->whereIn('status', $statuses);
+                }
+
+                return $query->where('status', $status);
+            })
             ->when($request->query('search'), function ($query, $search) {
                 $query->whereHas('profile', function ($pq) use ($search) {
                     $pq->where('business_name', 'like', "%{$search}%")
@@ -49,6 +57,73 @@ class VendorManagementController extends Controller
                 'total' => $paginator->total(),
             ],
         ]);
+    }
+
+    /**
+     * Mobile admin home — "Recent Vendor Requests" widget (pending + under_review).
+     */
+    public function recentRequests(Request $request): JsonResponse
+    {
+        $limit = min(max((int) $request->query('limit', 5), 1), 20);
+        $pendingStatuses = [VendorStatus::Pending->value, VendorStatus::UnderReview->value];
+
+        $totalPending = Vendor::whereIn('status', $pendingStatuses)->count();
+
+        $vendors = Vendor::with(['profile', 'user'])
+            ->whereIn('status', $pendingStatuses)
+            ->latest()
+            ->limit($limit)
+            ->get();
+
+        $items = $vendors->map(fn (Vendor $vendor) => $this->toRecentRequestCard($vendor))->values()->all();
+
+        return ApiResponse::success('Recent vendor requests retrieved.', [
+            'items' => $items,
+            'total_pending' => $totalPending,
+            'has_more' => $totalPending > count($items),
+            'view_all' => [
+                'endpoint' => '/api/admin/vendors',
+                'query' => [
+                    'status' => implode(',', $pendingStatuses),
+                    'sort' => 'newest',
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function toRecentRequestCard(Vendor $vendor): array
+    {
+        $vendor->loadMissing(['profile', 'user']);
+
+        return [
+            'vendor_id' => $vendor->id,
+            'business_name' => $vendor->profile?->business_name,
+            'owner_name' => $vendor->profile?->owner_name,
+            'email' => $vendor->profile?->email ?? $vendor->user?->email,
+            'phone' => $vendor->profile?->phone ?? $vendor->user?->phone,
+            'logo_url' => $vendor->profile?->logo_url,
+            'status' => $vendor->status,
+            'status_label' => $vendor->statusEnum()->label(),
+            'display_status' => 'PENDING',
+            'created_at' => $vendor->created_at?->toIso8601String(),
+            'actions' => [
+                'approve' => [
+                    'method' => 'POST',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/approve",
+                ],
+                'reject' => [
+                    'method' => 'POST',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/reject",
+                ],
+                'detail' => [
+                    'method' => 'GET',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}",
+                ],
+            ],
+        ];
     }
 
     public function stats(): JsonResponse

@@ -176,6 +176,52 @@ class VendorModuleTest extends TestCase
         Notification::assertSentTo($user, VendorApplicationStatusNotification::class);
     }
 
+    public function test_admin_recent_vendor_requests_api(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'password' => Hash::make('password')]);
+        $admin->assignRole('admin');
+
+        $user1 = User::factory()->create(['role' => 'vendor', 'email' => 'recent1@test.com']);
+        $user1->assignRole('vendor');
+        Vendor::create(['user_id' => $user1->id, 'status' => VendorStatus::UnderReview->value]);
+        VendorProfile::create([
+            'vendor_id' => Vendor::where('user_id', $user1->id)->value('id'),
+            'business_name' => 'Green Farms LLC',
+            'owner_name' => 'Ali',
+            'email' => 'recent1@test.com',
+        ]);
+
+        $user2 = User::factory()->create(['role' => 'vendor', 'email' => 'recent2@test.com']);
+        $user2->assignRole('vendor');
+        Vendor::create(['user_id' => $user2->id, 'status' => VendorStatus::Pending->value]);
+        VendorProfile::create([
+            'vendor_id' => Vendor::where('user_id', $user2->id)->value('id'),
+            'business_name' => 'Fresh Harvest',
+            'owner_name' => 'Khalid',
+            'email' => 'recent2@test.com',
+        ]);
+
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $response = $this->withToken($token)->getJson('/api/admin/vendors/recent-requests?limit=5');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_pending', 2)
+            ->assertJsonCount(2, 'data.items')
+            ->assertJsonPath('data.items.0.display_status', 'PENDING')
+            ->assertJsonStructure([
+                'data' => [
+                    'items' => [
+                        ['vendor_id', 'business_name', 'email', 'status', 'display_status', 'actions'],
+                    ],
+                    'total_pending',
+                    'has_more',
+                    'view_all',
+                ],
+            ]);
+    }
+
     public function test_approved_vendor_cannot_access_other_vendor_product(): void
     {
         $v1User = User::factory()->create(['role' => 'vendor']);
