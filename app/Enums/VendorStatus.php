@@ -34,6 +34,19 @@ enum VendorStatus: string
         return $this === self::Approved;
     }
 
+    /** Uppercase label for mobile admin widgets. */
+    public function displayStatus(): string
+    {
+        return match ($this) {
+            self::Pending => 'PENDING',
+            self::UnderReview => 'UNDER REVIEW',
+            self::Approved => 'APPROVED',
+            self::Rejected => 'REJECTED',
+            self::Suspended => 'SUSPENDED',
+            self::Disabled => 'DISABLED',
+        };
+    }
+
     /** @return list<string> */
     public static function values(): array
     {

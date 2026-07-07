@@ -176,6 +176,45 @@ class VendorModuleTest extends TestCase
         Notification::assertSentTo($user, VendorApplicationStatusNotification::class);
     }
 
+    public function test_application_detail_shows_approved_status_after_admin_approves(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'password' => Hash::make('password')]);
+        $admin->assignRole('admin');
+
+        $user = User::factory()->create(['role' => 'vendor', 'password' => Hash::make('password')]);
+        $user->assignRole('vendor');
+        $vendor = Vendor::create(['user_id' => $user->id, 'status' => VendorStatus::Pending->value]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Status Test Co',
+            'owner_name' => 'Owner',
+            'email' => $user->email,
+        ]);
+
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/approve", ['notes' => 'OK'])
+            ->assertOk()
+            ->assertJsonPath('data.vendor.status', VendorStatus::Approved->value)
+            ->assertJsonPath('data.detail.summary.display_status', 'APPROVED')
+            ->assertJsonPath('data.detail.summary.status', VendorStatus::Approved->value)
+            ->assertJsonPath('data.detail.actions.can_approve', false);
+
+        $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/application-detail")
+            ->assertOk()
+            ->assertJsonPath('data.summary.display_status', 'APPROVED')
+            ->assertJsonPath('data.summary.status', VendorStatus::Approved->value)
+            ->assertJsonPath('data.actions.can_approve', false);
+
+        $this->withToken($token)
+            ->getJson('/api/admin/vendors/recent-requests?limit=5')
+            ->assertOk()
+            ->assertJsonPath('data.total_pending', 0)
+            ->assertJsonCount(0, 'data.items');
+    }
+
     public function test_admin_recent_vendor_requests_api(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'password' => Hash::make('password')]);
@@ -302,7 +341,7 @@ class VendorModuleTest extends TestCase
             ->assertJsonPath('data.title', 'Vendor application')
             ->assertJsonPath('data.summary.business_name', 'Green Farms LLC')
             ->assertJsonPath('data.summary.owner_name', 'Ali Vendor')
-            ->assertJsonPath('data.summary.display_status', 'PENDING')
+            ->assertJsonPath('data.summary.display_status', 'UNDER REVIEW')
             ->assertJsonPath('data.contact.email', 'detail-vendor@test.com')
             ->assertJsonPath('data.contact.authorized_person_name', 'Ali Vendor')
             ->assertJsonPath('data.business_details.trade_license_number', 'TL-12345')

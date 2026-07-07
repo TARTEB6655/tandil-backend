@@ -116,7 +116,7 @@ class VendorManagementController extends Controller
             'logo_url' => $profile?->logo_url,
             'status' => $vendor->status,
             'status_label' => $vendor->statusEnum()->label(),
-            'display_status' => 'PENDING',
+            'display_status' => $vendor->statusEnum()->displayStatus(),
             'completion_percent' => $application['completion_percent'] ?? 0,
             'submitted_at' => $submittedAt?->toIso8601String(),
             'submitted_at_formatted' => $submittedAt?->format('j M Y \a\t g:i A'),
@@ -215,7 +215,7 @@ class VendorManagementController extends Controller
                 'logo_url' => $profile?->logo_url,
                 'status' => $vendor->status,
                 'status_label' => $vendor->statusEnum()->label(),
-                'display_status' => in_array($vendor->status, $pendingStatuses, true) ? 'PENDING' : strtoupper($vendor->status),
+                'display_status' => $vendor->statusEnum()->displayStatus(),
                 'rejection_reason' => $vendor->rejection_reason,
                 'submitted_at' => $submittedAt?->toIso8601String(),
                 'submitted_at_formatted' => $submittedAt?->format('j M Y \a\t g:i A'),
@@ -364,7 +364,10 @@ class VendorManagementController extends Controller
         $data = $request->validate(['notes' => 'nullable|string|max:500']);
         $vendor = $this->approval->approve($vendor, $request->user(), $data['notes'] ?? null);
 
-        return ApiResponse::success('Vendor approved.', ['vendor' => $vendor]);
+        return ApiResponse::success('Vendor approved.', [
+            'vendor' => $vendor,
+            'detail' => $this->buildApplicationDetail($vendor),
+        ]);
     }
 
     public function reject(Request $request, int $id): JsonResponse
@@ -376,7 +379,10 @@ class VendorManagementController extends Controller
         ]);
         $vendor = $this->approval->reject($vendor, $request->user(), $data['reason'], $data['notes'] ?? null);
 
-        return ApiResponse::success('Vendor rejected.', ['vendor' => $vendor]);
+        return ApiResponse::success('Vendor rejected.', [
+            'vendor' => $vendor,
+            'detail' => $this->buildApplicationDetail($vendor),
+        ]);
     }
 
     public function suspend(Request $request, int $id): JsonResponse
