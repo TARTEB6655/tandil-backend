@@ -107,10 +107,6 @@ class MarketplaceAdminController extends Controller
 
     public function destroyVendor(Request $request, int $id): JsonResponse
     {
-        $request->validate(['confirm' => 'required|in:DELETE']);
-        $vendor = \App\Models\Vendor::findOrFail($id);
-        $this->approval->permanentlyDelete($vendor, $request->user(), $request->input('notes'));
-
-        return ApiResponse::success('Vendor permanently deleted.');
+        return app(\App\Http\Controllers\Api\Admin\VendorManagementController::class)->destroy($request, $id);
     }
 }

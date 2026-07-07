@@ -420,4 +420,22 @@ class VendorManagementController extends Controller
 
         return ApiResponse::success('Vendor disabled.', ['vendor' => $vendor]);
     }
+
+    /**
+     * Permanently delete vendor account and linked marketplace data.
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $vendor = Vendor::findOrFail($id);
+        $this->approval->permanentlyDelete($vendor, $request->user(), $data['notes'] ?? null);
+
+        return ApiResponse::success('Vendor permanently deleted.', [
+            'vendor_id' => $id,
+            'deleted' => true,
+        ]);
+    }
 }

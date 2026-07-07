@@ -101,7 +101,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::post('/{id}/activate', [VendorManagementController::class, 'activate']);
     Route::post('/{id}/under-review', [VendorManagementController::class, 'underReview']);
     Route::post('/{id}/disable', [VendorManagementController::class, 'disable']);
-    Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'destroyVendor']);
+    Route::post('/{id}/delete', [VendorManagementController::class, 'destroy']);
+    Route::delete('/{id}', [VendorManagementController::class, 'destroy']);
 });
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/marketplace')->group(function () {

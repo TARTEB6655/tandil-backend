@@ -3,9 +3,17 @@
 namespace App\Services\Vendor;
 
 use App\Enums\VendorStatus;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorApprovalLog;
+use App\Models\VendorInventory;
+use App\Models\VendorOrderMapping;
+use App\Models\VendorProduct;
+use App\Models\VendorProductPrice;
+use App\Services\Vendor\VendorDocumentService;
 use Illuminate\Support\Facades\DB;
 
 class VendorApprovalService
@@ -115,11 +123,37 @@ class VendorApprovalService
                 'notes' => $notes ?? 'Permanently deleted by admin.',
             ]);
 
-            $user = $vendor->user;
             $vendor->documents()->each(function ($doc) {
                 app(VendorDocumentService::class)->delete($doc);
             });
+
+            $vendorProductIds = VendorProduct::withTrashed()
+                ->where('vendor_id', $vendor->id)
+                ->pluck('id');
+
+            if ($vendorProductIds->isNotEmpty()) {
+                VendorProductPrice::whereIn('vendor_product_id', $vendorProductIds)->delete();
+                VendorInventory::whereIn('vendor_product_id', $vendorProductIds)->delete();
+                VendorProduct::withTrashed()->where('vendor_id', $vendor->id)->forceDelete();
+            }
+
+            VendorOrderMapping::where('vendor_id', $vendor->id)->delete();
+
+            $productIds = Product::where('vendor_id', $vendor->id)->pluck('id');
+            if ($productIds->isNotEmpty()) {
+                $orderIds = OrderItem::whereIn('product_id', $productIds)->pluck('order_id')->unique();
+                OrderItem::whereIn('product_id', $productIds)->delete();
+                foreach ($orderIds as $orderId) {
+                    if (OrderItem::where('order_id', $orderId)->count() === 0) {
+                        Order::where('id', $orderId)->delete();
+                    }
+                }
+                Product::whereIn('id', $productIds)->delete();
+            }
+
             $vendor->categories()->detach();
+
+            $user = $vendor->user;
             $vendor->forceDelete();
             if ($user) {
                 $user->tokens()->delete();

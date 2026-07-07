@@ -176,10 +176,9 @@
         <div class="border border-red-200 dark:border-red-900 rounded-xl p-6 bg-red-50/50 dark:bg-red-900/10">
             <h2 class="font-medium text-red-800 dark:text-red-300 mb-2">Permanent delete</h2>
             <p class="text-sm text-red-700 dark:text-red-400 mb-4">Removes vendor, user account, and documents. Cannot be undone.</p>
-            <form method="POST" action="{{ route('admin.vendors.destroy', $vendor) }}" class="flex flex-wrap gap-2" onsubmit="return confirm('Permanently delete this vendor?')">
+            <form method="POST" action="{{ route('admin.vendors.destroy', $vendor) }}" class="flex flex-wrap gap-2">
                 @csrf @method('DELETE')
-                <input name="confirm" required placeholder="Type DELETE" class="rounded-lg border-gray-300 text-sm" />
-                <button class="px-4 py-2 bg-red-700 text-white text-sm rounded-lg">Delete permanently</button>
+                <button type="submit" class="px-4 py-2 bg-red-700 text-white text-sm rounded-lg">Delete permanently</button>
             </form>
         </div>
     </div>

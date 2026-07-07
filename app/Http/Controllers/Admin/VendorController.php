@@ -166,7 +166,6 @@ class VendorController extends Controller
     public function destroy(Request $request, Vendor $vendor)
     {
         $request->validate([
-            'confirm' => 'required|in:DELETE',
             'notes' => 'nullable|string|max:500',
         ]);
 
