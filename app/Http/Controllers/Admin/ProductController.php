@@ -1540,6 +1540,24 @@ class ProductController extends Controller
     }
 
     /**
+     * Public bridge for vendor product APIs (variable options + images).
+     */
+    public function syncOptionGroupsForProduct(Product $product, Request $request): void
+    {
+        $this->syncProductOptionGroupsFromRequest($product, $request);
+    }
+
+    /**
+     * Public bridge for vendor product API responses.
+     *
+     * @return array<string, mixed>
+     */
+    public function serializeProductForApi(Product $product): array
+    {
+        return $this->productToApiData($product);
+    }
+
+    /**
      * Show form for editing product.
      */
     public function edit($id)

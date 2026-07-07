@@ -19156,34 +19156,93 @@
                     ]
                 },
                 {
-                    "name": "F1. Categories (approved only)",
-                    "description": "Vendor-owned categories + platform catalog (read). POST form-data: name, shipping_cost, tax_percentage, image (optional).",
+                    "name": "F1. Categories (approved only – read-only)",
+                    "description": "Platform (admin) categories only. Vendors cannot create/update/delete — use these IDs in product create (category_id). GET F1.1 first, then copy id to {{category_id}}.",
                     "item": [
-                        {"name": "1. List categories", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories"]}}},
-                        {"name": "2. Create category", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Fresh Produce", "type": "text"}, {"key": "shipping_cost", "value": "10", "type": "text"}, {"key": "tax_percentage", "value": "5", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories"]}}},
-                        {"name": "3. Get category", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "1"]}}},
-                        {"name": "4. Update category", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Updated Category", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/categories/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "1"]}}},
-                        {"name": "5. Delete category", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "1"]}}}
+                        {"name": "1. List platform categories", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories"]}, "description": "Returns admin platform categories (is_platform: true). Use id in product create."}},
+                        {"name": "2. Get platform category", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "{{category_id}}"]}}},
+                        {"name": "3. Create category (blocked)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Blocked", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories"]}, "description": "403 — vendors cannot create categories."}}
                     ]
                 },
                 {
-                    "name": "F2. Services (approved only)",
-                    "description": "Vendor-owned services + platform catalog (read). POST form-data: name, category_id (optional), image (optional).",
+                    "name": "F2. Services (approved only – read-only)",
+                    "description": "Platform (admin) services only. Vendors cannot create/update/delete — use service_id or service_ids[] when adding products. GET F2.1 first.",
                     "item": [
-                        {"name": "1. List services", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}}},
-                        {"name": "2. Create service", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Home Delivery", "type": "text"}, {"key": "category_id", "value": "1", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}}},
-                        {"name": "3. Get service", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "1"]}}},
-                        {"name": "4. Update service", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Express Delivery", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/services/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "1"]}}},
-                        {"name": "5. Delete service", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services/1", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "1"]}}}
+                        {"name": "1. List platform services", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}, "description": "Returns admin platform services. Use id as service_id when creating products."}},
+                        {"name": "2. Get platform service", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "{{service_id}}"]}}},
+                        {"name": "3. Create service (blocked)", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Blocked", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}, "description": "403 — vendors cannot create services."}}
                     ]
                 },
                 {
                     "name": "F. Products (approved only)",
+                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls, compare_at_price, low_stock_threshold. category_id + service_id must be platform (admin) IDs from F1/F2.",
                     "item": [
                         {"name": "1. List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]}}},
-                        {"name": "2. Create product", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Organic Tomatoes", "type": "text"}, {"key": "category_id", "value": "1", "type": "text"}, {"key": "price", "value": "25", "type": "text"}, {"key": "stock", "value": "100", "type": "text"}, {"key": "service_ids[]", "value": "1", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]}}},
-                        {"name": "3. Get product", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]}}},
-                        {"name": "4. Update product", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "price", "value": "30", "type": "text"}]}, "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]}}},
+                        {
+                            "name": "2. Create product (multipart – same as Admin)",
+                            "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 201) {", "    var j = pm.response.json();", "    var id = j.data && j.data.vendor_product && j.data.vendor_product.id;", "    if (id) { pm.collectionVariables.set('vendor_product_id', String(id)); pm.environment.set('vendor_product_id', String(id)); }", "}"]}}],
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "name", "value": "Vendor Test Product", "type": "text"},
+                                        {"key": "description", "value": "Description here", "type": "text"},
+                                        {"key": "price", "value": "99.99", "type": "text"},
+                                        {"key": "compare_at_price", "value": "119.99", "type": "text", "description": "Optional vendor compare-at price."},
+                                        {"key": "stock", "value": "10", "type": "text"},
+                                        {"key": "low_stock_threshold", "value": "5", "type": "text"},
+                                        {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "is_featured", "value": "0", "type": "text"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required. Platform category ID from F1.1."},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Platform service ID from F2.1."},
+                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "sku", "value": "VENDOR-SKU-001", "type": "text"},
+                                        {"key": "handle", "value": "vendor-test-product", "type": "text"},
+                                        {"key": "estimated_arrival", "value": "", "type": "text", "disabled": true},
+                                        {"key": "job_duration", "value": "", "type": "text", "disabled": true},
+                                        {"key": "product_type", "value": "simple", "type": "text", "description": "simple | variable"},
+                                        {"key": "option_groups_json", "value": "[{\"name\":\"Packaging type\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_pack_1\",\"label\":\"In bag\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]", "type": "text", "description": "For product_type=variable only."},
+                                        {"key": "image_urls", "value": "", "type": "text"},
+                                        {"key": "main_image", "type": "file", "src": [], "description": "Main product image (or use image)."},
+                                        {"key": "images[]", "type": "file", "src": [], "description": "Extra gallery images."},
+                                        {"key": "option_images[opt_pack_1]", "type": "file", "src": [], "description": "Variable product option image; temp_key must match option_groups_json."}
+                                    ]
+                                },
+                                "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]},
+                                "description": "POST multipart — same body fields as Admin Add Product. Response: data.vendor_product with full product object (images, service_ids, option_groups). Auto-sets {{vendor_product_id}}."
+                            }
+                        },
+                        {"name": "3. Get product", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]}, "description": "Full product detail — same shape as admin (main_image, gallery_images, service_ids, option_groups)."}},
+                        {
+                            "name": "4. Update product (multipart – same as Admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "name", "value": "Updated Vendor Product", "type": "text"},
+                                        {"key": "description", "value": "Updated description", "type": "text"},
+                                        {"key": "price", "value": "149.99", "type": "text"},
+                                        {"key": "stock", "value": "20", "type": "text"},
+                                        {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text"},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text"},
+                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "sku", "value": "VENDOR-SKU-UPD", "type": "text"},
+                                        {"key": "handle", "value": "vendor-test-product-upd", "type": "text"},
+                                        {"key": "product_type", "value": "variable", "type": "text"},
+                                        {"key": "option_groups_json", "value": "", "type": "text", "description": "From GET product: use real group/option ids."},
+                                        {"key": "main_image", "type": "file", "src": []},
+                                        {"key": "images[]", "type": "file", "src": []}
+                                    ]
+                                },
+                                "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]},
+                                "description": "POST multipart partial update — same fields as admin product update."
+                            }
+                        },
                         {"name": "5. Delete product", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products", "{{vendor_product_id}}"]}}}
                     ]
                 },

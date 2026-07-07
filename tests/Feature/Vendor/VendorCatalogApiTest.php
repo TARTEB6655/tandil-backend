@@ -50,48 +50,50 @@ class VendorCatalogApiTest extends TestCase
         $this->withToken($token)->getJson('/api/vendor/orders')->assertForbidden();
     }
 
-    public function test_vendor_category_crud_api(): void
+    public function test_vendor_can_list_platform_categories_but_not_create(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
 
-        $create = $this->withToken($token)->post('/api/vendor/categories', [
-            'name' => 'Vendor Produce',
-            'description' => 'Fresh items',
+        $platform = Category::create([
+            'name' => 'Platform Produce',
+            'slug' => 'platform-produce',
+            'is_active' => true,
             'shipping_cost' => 12.5,
             'tax_percentage' => 5,
-            'is_active' => 1,
-            'image' => UploadedFile::fake()->image('cat.jpg'),
-        ], ['Accept' => 'application/json']);
+        ]);
 
-        $create->assertCreated()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.category.name', 'Vendor Produce')
-            ->assertJsonPath('data.category.vendor_id', $vendor->id)
-            ->assertJsonPath('data.category.is_platform', false);
-
-        $categoryId = $create->json('data.category.id');
+        Category::create([
+            'vendor_id' => $vendor->id,
+            'name' => 'Vendor Only Category',
+            'slug' => 'vendor-only-category',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
 
         $this->withToken($token)->getJson('/api/vendor/categories')
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['items', 'pagination']]);
+            ->assertJsonPath('data.items.0.id', $platform->id)
+            ->assertJsonPath('data.items.0.is_platform', true)
+            ->assertJsonCount(1, 'data.items');
 
-        $this->withToken($token)->getJson("/api/vendor/categories/{$categoryId}")
+        $this->withToken($token)->getJson("/api/vendor/categories/{$platform->id}")
             ->assertOk()
-            ->assertJsonPath('data.category.id', $categoryId);
+            ->assertJsonPath('data.category.id', $platform->id);
 
-        $this->withToken($token)->post("/api/vendor/categories/{$categoryId}", [
-            'name' => 'Vendor Produce Updated',
-            'shipping_cost' => 15,
-            'tax_percentage' => 7,
-        ], ['Accept' => 'application/json'])
-            ->assertOk()
-            ->assertJsonPath('data.category.name', 'Vendor Produce Updated');
+        $this->withToken($token)->post('/api/vendor/categories', [
+            'name' => 'Vendor Produce',
+            'shipping_cost' => 12.5,
+            'tax_percentage' => 5,
+        ], ['Accept' => 'application/json'])->assertForbidden();
 
-        $this->withToken($token)->deleteJson("/api/vendor/categories/{$categoryId}")
-            ->assertOk();
+        $this->withToken($token)->post("/api/vendor/categories/{$platform->id}", [
+            'name' => 'Hacked',
+        ], ['Accept' => 'application/json'])->assertForbidden();
 
-        $this->assertDatabaseMissing('categories', ['id' => $categoryId]);
+        $this->withToken($token)->deleteJson("/api/vendor/categories/{$platform->id}")
+            ->assertForbidden();
     }
 
     public function test_vendor_cannot_mutate_platform_category(): void
@@ -118,48 +120,50 @@ class VendorCatalogApiTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_vendor_service_crud_api(): void
+    public function test_vendor_can_list_platform_services_but_not_create(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
 
         $category = Category::create([
-            'vendor_id' => $vendor->id,
-            'name' => 'My Category',
-            'slug' => 'my-category',
+            'name' => 'Platform Category',
+            'slug' => 'platform-category-services',
             'is_active' => true,
             'shipping_cost' => 0,
             'tax_percentage' => 0,
         ]);
 
-        $create = $this->withToken($token)->post('/api/vendor/services', [
+        $platformService = Service::create([
             'name' => 'Home Delivery',
-            'description' => 'Same-day delivery',
+            'slug' => 'home-delivery',
+            'is_active' => true,
             'category_id' => $category->id,
-            'is_active' => 1,
-            'image' => UploadedFile::fake()->image('service.jpg'),
-        ], ['Accept' => 'application/json']);
+        ]);
 
-        $create->assertCreated()
-            ->assertJsonPath('data.service.name', 'Home Delivery')
-            ->assertJsonPath('data.service.vendor_id', $vendor->id)
-            ->assertJsonPath('data.service.category.id', $category->id);
-
-        $serviceId = $create->json('data.service.id');
+        Service::create([
+            'vendor_id' => $vendor->id,
+            'name' => 'Vendor Delivery',
+            'slug' => 'vendor-delivery',
+            'is_active' => true,
+            'category_id' => $category->id,
+        ]);
 
         $this->withToken($token)->getJson('/api/vendor/services')
             ->assertOk()
-            ->assertJsonStructure(['data' => ['items', 'pagination']]);
+            ->assertJsonPath('data.items.0.id', $platformService->id)
+            ->assertJsonPath('data.items.0.is_platform', true)
+            ->assertJsonCount(1, 'data.items');
 
-        $this->withToken($token)->post("/api/vendor/services/{$serviceId}", [
-            'name' => 'Express Delivery',
-        ], ['Accept' => 'application/json'])
-            ->assertOk()
-            ->assertJsonPath('data.service.name', 'Express Delivery');
+        $this->withToken($token)->post('/api/vendor/services', [
+            'name' => 'Blocked Service',
+            'category_id' => $category->id,
+        ], ['Accept' => 'application/json'])->assertForbidden();
 
-        $this->withToken($token)->deleteJson("/api/vendor/services/{$serviceId}")
-            ->assertOk();
+        $this->withToken($token)->post("/api/vendor/services/{$platformService->id}", [
+            'name' => 'Hacked',
+        ], ['Accept' => 'application/json'])->assertForbidden();
 
-        $this->assertDatabaseMissing('services', ['id' => $serviceId]);
+        $this->withToken($token)->deleteJson("/api/vendor/services/{$platformService->id}")
+            ->assertForbidden();
     }
 
     public function test_dashboard_summary_returns_mobile_card_fields(): void
@@ -240,7 +244,6 @@ class VendorCatalogApiTest extends TestCase
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
 
         $category = Category::create([
-            'vendor_id' => $vendor->id,
             'name' => 'Fruits',
             'slug' => 'fruits',
             'is_active' => true,
@@ -248,7 +251,6 @@ class VendorCatalogApiTest extends TestCase
             'tax_percentage' => 0,
         ]);
         $service = Service::create([
-            'vendor_id' => $vendor->id,
             'name' => 'Delivery',
             'slug' => 'delivery',
             'is_active' => true,
@@ -272,6 +274,36 @@ class VendorCatalogApiTest extends TestCase
             'product_id' => $productId,
             'service_id' => $service->id,
         ]);
+    }
+
+    public function test_vendor_product_rejects_vendor_owned_category_and_service(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
+
+        $vendorCategory = Category::create([
+            'vendor_id' => $vendor->id,
+            'name' => 'Vendor Fruits',
+            'slug' => 'vendor-fruits',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+        $vendorService = Service::create([
+            'vendor_id' => $vendor->id,
+            'name' => 'Vendor Delivery',
+            'slug' => 'vendor-delivery',
+            'is_active' => true,
+            'category_id' => $vendorCategory->id,
+        ]);
+
+        $this->withToken($token)->post('/api/vendor/products', [
+            'name' => 'Blocked Product',
+            'category_id' => $vendorCategory->id,
+            'price' => 25,
+            'service_ids' => [$vendorService->id],
+        ], ['Accept' => 'application/json'])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
     }
 
     public function test_vendor_orders_list_includes_status_summary(): void

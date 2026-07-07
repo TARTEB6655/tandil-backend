@@ -4,129 +4,160 @@ namespace App\Services\Vendor;
 
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\Service;
-use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorInventory;
 use App\Models\VendorProduct;
 use App\Models\VendorProductPrice;
-use Illuminate\Http\UploadedFile;
+use App\Services\Product\ProductCatalogWriter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class VendorProductService
 {
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    public function create(Vendor $vendor, array $data, ?UploadedFile $image = null): VendorProduct
+    public function __construct(
+        private readonly ProductCatalogWriter $catalog
+    ) {}
+
+    public function createFromRequest(Vendor $vendor, Request $request): VendorProduct
     {
-        return DB::transaction(function () use ($vendor, $data, $image) {
-            $imagePath = $image ? $image->store('products', 'public') : null;
+        $this->catalog->prepareRequest($request);
+        $validated = $request->validate(
+            $this->catalog->storeRules(),
+            [
+                'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
+                'sku.unique' => 'The SKU has already been taken. Please use a unique SKU.',
+            ]
+        );
 
+        return DB::transaction(function () use ($vendor, $request, $validated) {
             $approvalStatus = AdminVendorProductService::initialApprovalStatus();
-            $productActive = $approvalStatus === 'approved' ? ($data['status'] ?? 'active') : 'draft';
+            $productActive = $approvalStatus === 'approved' ? ($validated['status'] ?? 'active') : 'draft';
 
-            $categoryId = $data['category_id'] ?? null;
-            if ($categoryId !== null) {
-                $allowed = Category::forVendorCatalog($vendor->id)->where('id', $categoryId)->exists();
-                if (! $allowed) {
-                    throw new \InvalidArgumentException('Invalid category for your store.');
-                }
-            } else {
-                $categoryId = Category::forVendorCatalog($vendor->id)->value('id');
-            }
-
-            $product = Product::create([
+            $createData = $this->catalog->buildCreateData($request, $validated, [
                 'vendor_id' => $vendor->id,
-                'category_id' => $categoryId,
-                'name' => $data['name'],
-                'description' => $data['description'] ?? null,
-                'price' => $data['price'],
-                'compare_at_price' => $data['compare_at_price'] ?? null,
-                'stock' => $data['stock'] ?? 0,
                 'status' => $productActive,
-                'product_type' => $data['product_type'] ?? Product::TYPE_SIMPLE,
-                'sku' => $data['sku'] ?? null,
-                'image' => $imagePath,
                 'track_quantity' => true,
             ]);
+
+            $this->catalog->assertCategoryAllowed(
+                isset($createData['category_id']) ? (int) $createData['category_id'] : null,
+                fn (int $id) => Category::platformCatalog()->where('id', $id)->where('is_active', true)->exists()
+            );
+
+            try {
+                $product = Product::create($createData);
+            } catch (\Illuminate\Database\QueryException $e) {
+                $this->rethrowUniqueProductErrors($e, $createData);
+            }
 
             $vendorProduct = VendorProduct::create([
                 'vendor_id' => $vendor->id,
                 'product_id' => $product->id,
-                'status' => $data['vendor_product_status'] ?? ($approvalStatus === 'approved' ? 'active' : 'inactive'),
+                'status' => $validated['vendor_product_status'] ?? ($approvalStatus === 'approved' ? 'active' : 'inactive'),
                 'approval_status' => $approvalStatus,
             ]);
 
-            $this->recordPrice($vendorProduct, (float) $data['price'], isset($data['compare_at_price']) ? (float) $data['compare_at_price'] : null, $vendor->user_id, false);
+            $this->recordPrice(
+                $vendorProduct,
+                (float) $validated['price'],
+                isset($validated['compare_at_price']) ? (float) $validated['compare_at_price'] : null,
+                $vendor->user_id,
+                false
+            );
 
             VendorInventory::create([
                 'vendor_product_id' => $vendorProduct->id,
-                'quantity' => (int) ($data['stock'] ?? 0),
-                'low_stock_threshold' => (int) ($data['low_stock_threshold'] ?? 5),
+                'quantity' => (int) ($validated['stock'] ?? 0),
+                'low_stock_threshold' => (int) ($validated['low_stock_threshold'] ?? 5),
             ]);
 
-            $this->syncServices($product, $vendor, $data);
+            $this->catalog->persistImages($product, $request);
+            $this->syncServicesFromRequest($product, $request);
+            $this->catalog->persistOptionGroups($product, $request);
 
-            return $vendorProduct->load(['product.category', 'product.services', 'inventory', 'currentPrice']);
+            return $vendorProduct->load([
+                'product.category',
+                'product.services',
+                'product.images',
+                'product.primaryImage',
+                'product.optionGroups.options',
+                'product.variants.options',
+                'inventory',
+                'currentPrice',
+            ]);
         });
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    public function update(VendorProduct $vendorProduct, array $data, ?UploadedFile $image = null, bool $adminOverride = false, ?int $setByUserId = null): VendorProduct
+    public function updateFromRequest(VendorProduct $vendorProduct, Request $request, ?int $setByUserId = null): VendorProduct
     {
-        return DB::transaction(function () use ($vendorProduct, $data, $image, $adminOverride, $setByUserId) {
+        $this->catalog->prepareRequest($request);
+        $productId = $vendorProduct->product_id;
+        $validated = $request->validate(
+            $this->catalog->storeRules($productId),
+            [
+                'handle.unique' => 'The handle has already been taken.',
+                'sku.unique' => 'The SKU has already been taken.',
+            ]
+        );
+
+        return DB::transaction(function () use ($vendorProduct, $request, $validated, $setByUserId) {
             $product = $vendorProduct->product;
 
-            $productUpdates = array_filter([
-                'category_id' => $data['category_id'] ?? null,
-                'name' => $data['name'] ?? null,
-                'description' => $data['description'] ?? null,
-                'status' => $data['status'] ?? null,
-                'sku' => $data['sku'] ?? null,
-            ], fn ($v) => $v !== null);
-
-            if ($image) {
-                if ($product->image) {
-                    Storage::disk('public')->delete($product->image);
-                }
-                $productUpdates['image'] = $image->store('products', 'public');
-            }
-
-            if (isset($data['price'])) {
-                $productUpdates['price'] = $data['price'];
-                $this->recordPrice(
-                    $vendorProduct,
-                    (float) $data['price'],
-                    isset($data['compare_at_price']) ? (float) $data['compare_at_price'] : null,
-                    $setByUserId,
-                    $adminOverride
+            $updateData = $this->catalog->buildUpdateData($request, $validated);
+            if (array_key_exists('category_id', $updateData) && $updateData['category_id'] !== null) {
+                $this->catalog->assertCategoryAllowed(
+                    (int) $updateData['category_id'],
+                    fn (int $id) => Category::platformCatalog()->where('id', $id)->where('is_active', true)->exists()
                 );
             }
 
-            if ($productUpdates !== []) {
-                $product->update($productUpdates);
+            if (isset($validated['price'])) {
+                $updateData['price'] = $validated['price'];
+                $this->recordPrice(
+                    $vendorProduct,
+                    (float) $validated['price'],
+                    isset($validated['compare_at_price']) ? (float) $validated['compare_at_price'] : null,
+                    $setByUserId,
+                    false
+                );
             }
 
-            if (isset($data['vendor_product_status'])) {
-                $vendorProduct->update(['status' => $data['vendor_product_status']]);
+            if ($updateData !== []) {
+                try {
+                    $product->update($updateData);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    $this->rethrowUniqueProductErrors($e, $updateData);
+                }
             }
 
-            if (isset($data['stock']) || isset($data['low_stock_threshold'])) {
+            if (isset($validated['vendor_product_status'])) {
+                $vendorProduct->update(['status' => $validated['vendor_product_status']]);
+            }
+
+            if (isset($validated['stock']) || isset($validated['low_stock_threshold'])) {
                 $inv = $vendorProduct->inventory ?? VendorInventory::create(['vendor_product_id' => $vendorProduct->id]);
                 $inv->update(array_filter([
-                    'quantity' => isset($data['stock']) ? (int) $data['stock'] : null,
-                    'low_stock_threshold' => isset($data['low_stock_threshold']) ? (int) $data['low_stock_threshold'] : null,
+                    'quantity' => isset($validated['stock']) ? (int) $validated['stock'] : null,
+                    'low_stock_threshold' => isset($validated['low_stock_threshold']) ? (int) $validated['low_stock_threshold'] : null,
                 ], fn ($v) => $v !== null));
                 $product->update(['stock' => $inv->quantity]);
             }
 
-            $this->syncServices($product, $vendorProduct->vendor, $data);
+            $this->catalog->persistImages($product, $request);
+            $this->syncServicesFromRequest($product, $request);
+            $this->catalog->persistOptionGroups($product, $request);
 
-            return $vendorProduct->fresh(['product.category', 'product.services', 'inventory', 'currentPrice']);
+            return $vendorProduct->fresh([
+                'product.category',
+                'product.services',
+                'product.images',
+                'product.primaryImage',
+                'product.optionGroups.options',
+                'product.variants.options',
+                'inventory',
+                'currentPrice',
+            ]);
         });
     }
 
@@ -136,6 +167,61 @@ class VendorProductService
             $vendorProduct->delete();
             $vendorProduct->product?->update(['status' => 'archived']);
         });
+    }
+
+    public function findForVendor(Vendor $vendor, int $vendorProductId): ?VendorProduct
+    {
+        return VendorProduct::with([
+            'product.category',
+            'product.services',
+            'product.images',
+            'product.primaryImage',
+            'product.optionGroups.options',
+            'product.variants.options',
+            'inventory',
+            'currentPrice',
+        ])
+            ->where('vendor_id', $vendor->id)
+            ->where('id', $vendorProductId)
+            ->first();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function formatApiResponse(VendorProduct $vendorProduct): array
+    {
+        $product = $vendorProduct->product;
+        $productData = $product ? $this->catalog->productToApiData($product) : null;
+
+        return [
+            'id' => $vendorProduct->id,
+            'vendor_id' => $vendorProduct->vendor_id,
+            'product_id' => $vendorProduct->product_id,
+            'status' => $vendorProduct->status,
+            'approval_status' => $vendorProduct->approval_status,
+            'rejection_reason' => $vendorProduct->rejection_reason,
+            'approved_at' => $vendorProduct->approved_at?->toIso8601String(),
+            'inventory' => $vendorProduct->inventory,
+            'current_price' => $vendorProduct->currentPrice,
+            'product' => $productData,
+        ];
+    }
+
+    private function syncServicesFromRequest(Product $product, Request $request): void
+    {
+        if (! $request->has('service_ids') && ! $request->filled('service_id')) {
+            return;
+        }
+
+        $serviceIds = $this->catalog->resolveServiceIds($request);
+        if ($serviceIds === []) {
+            $product->services()->sync([]);
+
+            return;
+        }
+
+        $product->services()->sync($this->catalog->filterPlatformServiceIds($serviceIds));
     }
 
     private function recordPrice(VendorProduct $vp, float $price, ?float $compareAt, ?int $userId, bool $adminOverride): void
@@ -154,37 +240,27 @@ class VendorProductService
         ]);
     }
 
-    public function findForVendor(Vendor $vendor, int $vendorProductId): ?VendorProduct
-    {
-        return VendorProduct::with(['product.category', 'product.services', 'inventory', 'currentPrice'])
-            ->where('vendor_id', $vendor->id)
-            ->where('id', $vendorProductId)
-            ->first();
-    }
-
     /**
-     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $payload
      */
-    private function syncServices(Product $product, Vendor $vendor, array $data): void
+    private function rethrowUniqueProductErrors(\Illuminate\Database\QueryException $e, array $payload): void
     {
-        if (! array_key_exists('service_ids', $data) && ! array_key_exists('service_id', $data)) {
-            return;
+        $msg = strtolower($e->getMessage());
+        if (! str_contains($msg, 'unique')) {
+            throw $e;
         }
 
-        $serviceIds = [];
-        if (! empty($data['service_id'])) {
-            $serviceIds = [(int) $data['service_id']];
-        } elseif (isset($data['service_ids']) && is_array($data['service_ids'])) {
-            $serviceIds = array_values(array_filter(array_map('intval', $data['service_ids'])));
+        $errors = [];
+        if (str_contains($msg, 'handle') || (! empty($payload['handle']) && Product::where('handle', $payload['handle'])->exists())) {
+            $errors['handle'] = ['The handle has already been taken.'];
+        }
+        if (str_contains($msg, 'sku') || (! empty($payload['sku']) && Product::where('sku', $payload['sku'])->exists())) {
+            $errors['sku'] = ['The SKU has already been taken.'];
+        }
+        if ($errors === []) {
+            $errors['handle'] = ['A product with this handle or SKU already exists.'];
         }
 
-        if ($serviceIds === []) {
-            $product->services()->sync([]);
-
-            return;
-        }
-
-        $allowed = Service::forVendorCatalog($vendor->id)->whereIn('id', $serviceIds)->pluck('id')->all();
-        $product->services()->sync($allowed);
+        throw ValidationException::withMessages($errors);
     }
 }

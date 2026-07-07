@@ -8,6 +8,7 @@ use App\Models\VendorProduct;
 use App\Services\Vendor\VendorProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class VendorProductController extends Controller
 {
@@ -29,7 +30,7 @@ class VendorProductController extends Controller
             ->paginate(min((int) $request->query('per_page', 15), 100));
 
         return ApiResponse::success('Products retrieved.', [
-            'items' => $items->items(),
+            'items' => collect($items->items())->map(fn (VendorProduct $vp) => $this->products->formatApiResponse($vp))->all(),
             'pagination' => [
                 'current_page' => $items->currentPage(),
                 'last_page' => $items->lastPage(),
@@ -42,29 +43,18 @@ class VendorProductController extends Controller
     public function store(Request $request): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'compare_at_price' => 'nullable|numeric|min:0',
-            'stock' => 'nullable|integer|min:0',
-            'low_stock_threshold' => 'nullable|integer|min:0',
-            'status' => 'nullable|in:active,draft,archived',
-            'sku' => 'nullable|string|max:100',
-            'image' => 'nullable|image|max:5120',
-            'service_id' => 'nullable|integer|exists:services,id',
-            'service_ids' => 'nullable|array',
-            'service_ids.*' => 'integer|exists:services,id',
-        ]);
 
         try {
-            $vp = $this->products->create($vendor, $data, $request->file('image'));
+            $vp = $this->products->createFromRequest($vendor, $request);
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
+        } catch (ValidationException $e) {
+            return ApiResponse::error($e->getMessage(), 422, $e->errors());
         }
 
-        return ApiResponse::success('Product created.', ['vendor_product' => $vp], 201);
+        return ApiResponse::success('Product created.', [
+            'vendor_product' => $this->products->formatApiResponse($vp),
+        ], 201);
     }
 
     public function show(Request $request, int $id): JsonResponse
@@ -75,7 +65,9 @@ class VendorProductController extends Controller
             return ApiResponse::error('Product not found.', 404);
         }
 
-        return ApiResponse::success('Product retrieved.', ['vendor_product' => $vp]);
+        return ApiResponse::success('Product retrieved.', [
+            'vendor_product' => $this->products->formatApiResponse($vp),
+        ]);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -86,30 +78,17 @@ class VendorProductController extends Controller
             return ApiResponse::error('Product not found.', 404);
         }
 
-        $data = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
-            'description' => 'nullable|string',
-            'price' => 'sometimes|numeric|min:0',
-            'compare_at_price' => 'nullable|numeric|min:0',
-            'stock' => 'nullable|integer|min:0',
-            'low_stock_threshold' => 'nullable|integer|min:0',
-            'status' => 'nullable|in:active,draft,archived',
-            'vendor_product_status' => 'nullable|in:active,inactive',
-            'sku' => 'nullable|string|max:100',
-            'image' => 'nullable|image|max:5120',
-            'service_id' => 'nullable|integer|exists:services,id',
-            'service_ids' => 'nullable|array',
-            'service_ids.*' => 'integer|exists:services,id',
-        ]);
-
         try {
-            $vp = $this->products->update($vp, $data, $request->file('image'), false, $request->user()->id);
+            $vp = $this->products->updateFromRequest($vp, $request, $request->user()->id);
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
+        } catch (ValidationException $e) {
+            return ApiResponse::error($e->getMessage(), 422, $e->errors());
         }
 
-        return ApiResponse::success('Product updated.', ['vendor_product' => $vp]);
+        return ApiResponse::success('Product updated.', [
+            'vendor_product' => $this->products->formatApiResponse($vp),
+        ]);
     }
 
     public function destroy(Request $request, int $id): JsonResponse

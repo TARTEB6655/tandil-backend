@@ -9,6 +9,8 @@
         {"key": "token", "value": ""},
         {"key": "vendor_id", "value": "1"},
         {"key": "vendor_product_id", "value": "1"},
+        {"key": "category_id", "value": "1"},
+        {"key": "service_id", "value": "1"},
         {"key": "vendor_order_mapping_id", "value": "1"},
         {"key": "product_id", "value": "1"}
     ],
@@ -114,12 +116,77 @@
                     ]
                 },
                 {
-                    "name": "Products",
+                    "name": "Categories (platform – read only)",
                     "item": [
-                        {"name": "List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/products"}},
-                        {"name": "Create product", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "formdata", "formdata": [{"key": "name", "value": "Organic Tomatoes", "type": "text"}, {"key": "price", "value": "25", "type": "text"}, {"key": "stock", "value": "100", "type": "text"}]}, "url": "{{base_url}}/api/vendor/products"}},
+                        {"name": "List platform categories", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/categories", "description": "Admin categories for product category_id. Vendors cannot create categories."}},
+                        {"name": "Get platform category", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/categories/{{category_id}}"}}
+                    ]
+                },
+                {
+                    "name": "Services (platform – read only)",
+                    "item": [
+                        {"name": "List platform services", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/services", "description": "Admin services for product service_id. Vendors cannot create services."}},
+                        {"name": "Get platform service", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/services/{{service_id}}"}}
+                    ]
+                },
+                {
+                    "name": "Products",
+                    "description": "Same multipart body as Admin POST /api/admin/products. Required: name, price, category_id (platform).",
+                    "item": [
+                        {"name": "List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/products"}},
+                        {
+                            "name": "Create product (full – same as admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "name", "value": "Vendor Test Product", "type": "text"},
+                                        {"key": "description", "value": "Description here", "type": "text"},
+                                        {"key": "price", "value": "99.99", "type": "text"},
+                                        {"key": "compare_at_price", "value": "119.99", "type": "text"},
+                                        {"key": "stock", "value": "10", "type": "text"},
+                                        {"key": "low_stock_threshold", "value": "5", "type": "text"},
+                                        {"key": "status", "value": "active", "type": "text"},
+                                        {"key": "is_featured", "value": "0", "type": "text"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required platform category ID"},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional platform service ID"},
+                                        {"key": "weight_unit", "value": "kg", "type": "text"},
+                                        {"key": "sku", "value": "VENDOR-SKU-001", "type": "text"},
+                                        {"key": "handle", "value": "vendor-test-product", "type": "text"},
+                                        {"key": "product_type", "value": "simple", "type": "text"},
+                                        {"key": "option_groups_json", "value": "[{\"name\":\"Packaging type\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_pack_1\",\"label\":\"In bag\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]", "type": "text"},
+                                        {"key": "image_urls", "value": "", "type": "text"},
+                                        {"key": "main_image", "type": "file", "src": []},
+                                        {"key": "images[]", "type": "file", "src": []},
+                                        {"key": "option_images[opt_pack_1]", "type": "file", "src": []}
+                                    ]
+                                },
+                                "url": "{{base_url}}/api/vendor/products",
+                                "description": "Multipart — identical fields to admin Add Product. category_id + service_id must be platform IDs."
+                            }
+                        },
                         {"name": "Get product", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/products/{{vendor_product_id}}"}},
-                        {"name": "Update product", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "body": {"mode": "formdata", "formdata": [{"key": "price", "value": "30", "type": "text"}]}, "url": "{{base_url}}/api/vendor/products/{{vendor_product_id}}"}},
+                        {
+                            "name": "Update product (full – same as admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "name", "value": "Updated Vendor Product", "type": "text"},
+                                        {"key": "price", "value": "149.99", "type": "text"},
+                                        {"key": "stock", "value": "20", "type": "text"},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text"},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text"},
+                                        {"key": "main_image", "type": "file", "src": []}
+                                    ]
+                                },
+                                "url": "{{base_url}}/api/vendor/products/{{vendor_product_id}}"
+                            }
+                        },
                         {"name": "Delete product", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/products/{{vendor_product_id}}"}}
                     ]
                 },

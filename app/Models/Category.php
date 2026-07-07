@@ -53,6 +53,14 @@ class Category extends Model
         });
     }
 
+    /**
+     * Admin-managed categories vendors may assign to products.
+     */
+    public function scopePlatformCatalog($query)
+    {
+        return $query->whereNull('vendor_id');
+    }
+
     public function vendorAccount()
     {
         return $this->belongsTo(Vendor::class, 'vendor_id');
