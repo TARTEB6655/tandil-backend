@@ -20,13 +20,16 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::with(['roles', 'supervisedAreas:id,name', 'assignedAreas:id,name']);
+        $this->withoutVendors($query);
 
         // Search
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where('name', 'LIKE', "%{$search}%")
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
                   ->orWhere('email', 'LIKE', "%{$search}%")
                   ->orWhere('phone', 'LIKE', "%{$search}%");
+            });
         }
 
         // Filter by role (use same logic as statistics so list and count match)
@@ -144,7 +147,7 @@ class UserController extends Controller
      */
     public function statistics(Request $request)
     {
-        $allUsers = User::count();
+        $allUsers = $this->withoutVendors(User::query())->count();
         $workers = $this->usersByRoleQuery('technician')->count();
         $supervisors = $this->usersByRoleQuery('supervisor')->count();
         $managers = $this->usersByRoleQuery('area_manager')->count();
@@ -160,6 +163,18 @@ class UserController extends Controller
                 'clients' => $clients,
             ]
         ]);
+    }
+
+    /**
+     * Vendors are managed under Marketplace → Vendor Management, not User Management.
+     */
+    private function withoutVendors($query)
+    {
+        return $query->where(function ($q) {
+            $q->where(function ($inner) {
+                $inner->whereNull('role')->orWhere('role', '!=', 'vendor');
+            })->whereDoesntHave('roles', fn ($r) => $r->where('name', 'vendor'));
+        });
     }
 
     /** Users that have this role in users.role column OR via Spatie (so list and statistics match). */
