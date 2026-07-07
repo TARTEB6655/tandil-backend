@@ -276,6 +276,18 @@ class VendorCatalogApiTest extends TestCase
         ]);
     }
 
+    public function test_vendor_product_requires_platform_category_id(): void
+    {
+        ['token' => $token] = $this->makeVendorUser(VendorStatus::Approved);
+
+        $this->withToken($token)->postJson('/api/vendor/products', [
+            'name' => 'No Category Product',
+            'price' => 25,
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
     public function test_vendor_product_rejects_vendor_owned_category_and_service(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);

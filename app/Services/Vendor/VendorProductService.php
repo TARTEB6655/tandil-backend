@@ -24,10 +24,7 @@ class VendorProductService
         $this->catalog->prepareRequest($request);
         $validated = $request->validate(
             $this->catalog->storeRules(),
-            [
-                'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
-                'sku.unique' => 'The SKU has already been taken. Please use a unique SKU.',
-            ]
+            $this->catalog->validationMessages()
         );
 
         return DB::transaction(function () use ($vendor, $request, $validated) {
@@ -40,10 +37,12 @@ class VendorProductService
                 'track_quantity' => true,
             ]);
 
+            $categoryId = $this->catalog->resolveCategoryId($request, $validated);
             $this->catalog->assertCategoryAllowed(
-                isset($createData['category_id']) ? (int) $createData['category_id'] : null,
+                $categoryId,
                 fn (int $id) => Category::platformCatalog()->where('id', $id)->where('is_active', true)->exists()
             );
+            $createData['category_id'] = $categoryId;
 
             try {
                 $product = Product::create($createData);
@@ -95,10 +94,7 @@ class VendorProductService
         $productId = $vendorProduct->product_id;
         $validated = $request->validate(
             $this->catalog->storeRules($productId),
-            [
-                'handle.unique' => 'The handle has already been taken.',
-                'sku.unique' => 'The SKU has already been taken.',
-            ]
+            $this->catalog->validationMessages()
         );
 
         return DB::transaction(function () use ($vendorProduct, $request, $validated, $setByUserId) {

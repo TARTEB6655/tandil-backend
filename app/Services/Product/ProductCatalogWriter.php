@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ProductCatalogWriter
 {
@@ -25,7 +26,9 @@ class ProductCatalogWriter
 
     public function prepareRequest(Request $request): void
     {
-        $categoryIdRaw = $request->input('category_id') ?? $request->request->get('category_id');
+        $categoryIdRaw = $request->input('category_id')
+            ?? $request->request->get('category_id')
+            ?? ($_POST['category_id'] ?? null);
         if ($categoryIdRaw !== null && $categoryIdRaw !== '') {
             $request->merge(['category_id' => is_array($categoryIdRaw) ? ($categoryIdRaw[0] ?? null) : $categoryIdRaw]);
         } elseif ($request->has('category_id') && $request->category_id === '') {
@@ -62,6 +65,10 @@ class ProductCatalogWriter
             ? 'nullable|string|max:255|unique:products,handle,'.$existingProductId
             : 'nullable|string|max:255|unique:products,handle';
 
+        $platformCategoryRule = Rule::exists('categories', 'id')->where(
+            fn ($query) => $query->whereNull('vendor_id')->where('is_active', true)
+        );
+
         return [
             'name' => $existingProductId ? 'nullable|string|max:255' : 'required|string|max:255',
             'description' => 'nullable|string',
@@ -73,7 +80,9 @@ class ProductCatalogWriter
             'vendor_product_status' => 'nullable|in:active,inactive',
             'is_featured' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
-            'category_id' => $existingProductId ? 'nullable|integer' : 'required|integer',
+            'category_id' => $existingProductId
+                ? ['nullable', 'integer', $platformCategoryRule]
+                : ['required', 'integer', $platformCategoryRule],
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku' => $skuRule,
             'handle' => $handleRule,
@@ -131,19 +140,11 @@ class ProductCatalogWriter
             }
         }
 
-        $rawCategoryId = $request->input('category_id') ?? $request->request->get('category_id') ?? ($validated['category_id'] ?? null);
-        if (is_array($rawCategoryId)) {
-            $rawCategoryId = $rawCategoryId[0] ?? null;
-        }
-        if ($rawCategoryId !== null && $rawCategoryId !== '' && is_numeric($rawCategoryId)) {
-            $cid = (int) $rawCategoryId;
-            $createData['category_id'] = Category::find($cid) ? $cid : null;
-        } else {
-            $createData['category_id'] = null;
-        }
-
-        if ($createData['category_id'] === null && Schema::getConnection()->getDriverName() === 'sqlite') {
-            $firstCategory = Category::orderBy('id')->first();
+        $rawCategoryId = $this->resolveCategoryId($request, $validated);
+        if ($rawCategoryId !== null) {
+            $createData['category_id'] = $rawCategoryId;
+        } elseif (Schema::getConnection()->getDriverName() === 'sqlite') {
+            $firstCategory = Category::platformCatalog()->where('is_active', true)->orderBy('id')->first();
             if ($firstCategory) {
                 $createData['category_id'] = $firstCategory->id;
             }
@@ -186,17 +187,10 @@ class ProductCatalogWriter
             $updateData['is_featured'] = $request->boolean('is_featured');
         }
 
-        if (array_key_exists('category_id', $updateData)) {
-            $rawCategoryId = $updateData['category_id'];
-            if (is_array($rawCategoryId)) {
-                $rawCategoryId = $rawCategoryId[0] ?? null;
-            }
-            if ($rawCategoryId !== null && $rawCategoryId !== '' && is_numeric($rawCategoryId)) {
-                $cid = (int) $rawCategoryId;
-                $updateData['category_id'] = Category::find($cid) ? $cid : null;
-            } else {
-                $updateData['category_id'] = null;
-            }
+        if (array_key_exists('category_id', $validated)) {
+            $updateData['category_id'] = $this->resolveCategoryId($request, $validated);
+        } elseif (array_key_exists('category_id', $updateData)) {
+            $updateData['category_id'] = $this->resolveCategoryId($request, ['category_id' => $updateData['category_id']]);
         }
 
         return array_filter($updateData, fn ($v) => $v !== null);
@@ -281,12 +275,51 @@ class ProductCatalogWriter
      */
     public function assertCategoryAllowed(?int $categoryId, callable $categoryValidator): void
     {
-        if ($categoryId === null) {
-            throw new \InvalidArgumentException('A platform category is required.');
+        if ($categoryId === null || $categoryId < 1) {
+            throw new \InvalidArgumentException(
+                'category_id is required. Call GET /api/vendor/categories and send an active platform category id in the request body.'
+            );
         }
         if (! $categoryValidator($categoryId)) {
-            throw new \InvalidArgumentException('Invalid platform category.');
+            throw new \InvalidArgumentException(
+                'Invalid platform category. Use an active admin category id from GET /api/vendor/categories (not a vendor-owned category).'
+            );
         }
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $validated
+     */
+    public function resolveCategoryId(Request $request, ?array $validated = null): ?int
+    {
+        $raw = $request->input('category_id')
+            ?? $request->request->get('category_id')
+            ?? ($validated['category_id'] ?? null)
+            ?? ($_POST['category_id'] ?? null);
+
+        if (is_array($raw)) {
+            $raw = $raw[0] ?? null;
+        }
+
+        if ($raw === null || $raw === '' || ! is_numeric($raw)) {
+            return null;
+        }
+
+        return (int) $raw;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function validationMessages(): array
+    {
+        return [
+            'category_id.required' => 'category_id is required. List platform categories: GET /api/vendor/categories',
+            'category_id.integer' => 'category_id must be a numeric platform category id.',
+            'category_id.exists' => 'Invalid platform category. Use an active admin category id from GET /api/vendor/categories.',
+            'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
+            'sku.unique' => 'The SKU has already been taken. Please use a unique SKU.',
+        ];
     }
 
     /**
