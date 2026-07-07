@@ -38,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // All routes in routes/api.php use the api middleware group (prefix /api/).
         // Force JSON for every API; ensure no API ever returns HTML or raw error.
         $middleware->api(prepend: [
+            \App\Http\Middleware\ResolveAuthorizationHeader::class,
             \Illuminate\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\SetRequestLocale::class,
             \App\Http\Middleware\ForceJsonResponse::class,

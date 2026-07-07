@@ -17,15 +17,14 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (! auth()->check()) {
+        $user = $request->user();
+        if ($user === null) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
             }
 
             return redirect()->route('login');
         }
-
-        $user = auth()->user();
 
         // Support pipe-separated roles (e.g. role:client|admin)
         $allRoles = [];

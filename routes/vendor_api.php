@@ -33,6 +33,7 @@ Route::prefix('vendor')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('vendor')->group(function () {
+    Route::get('/auth/me', [VendorAuthController::class, 'me']);
     Route::post('/auth/logout', [VendorAuthController::class, 'logout']);
 
     Route::get('/profile', [VendorProfileController::class, 'show']);

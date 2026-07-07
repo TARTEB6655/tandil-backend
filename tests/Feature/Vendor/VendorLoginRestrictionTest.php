@@ -77,6 +77,53 @@ class VendorLoginRestrictionTest extends TestCase
             ->assertJsonPath('data.vendor.is_approved', true);
     }
 
+    public function test_vendor_login_token_persists_for_products_and_survives_relogin(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'vendor',
+            'email' => 'persist-vendor@test.com',
+            'password' => Hash::make('secret12'),
+            'status' => 'active',
+        ]);
+        $user->assignRole('vendor');
+        Vendor::create([
+            'user_id' => $user->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $vendor = $user->fresh('vendor')->vendor;
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Persist Co',
+            'owner_name' => 'Owner',
+            'email' => $user->email,
+        ]);
+
+        $payload = [
+            'email' => 'persist-vendor@test.com',
+            'password' => 'secret12',
+            'roles' => 'vendor',
+        ];
+
+        $firstLogin = $this->postJson('/api/vendor/auth/login', $payload)->assertOk();
+        $token = $firstLogin->json('data.token');
+        $this->assertNotEmpty($token);
+
+        $this->withToken($token)->getJson('/api/vendor/products')->assertOk();
+        $this->withToken($token)->getJson('/api/vendor/auth/me')->assertOk();
+
+        $this->postJson('/api/vendor/auth/login', $payload)->assertOk();
+
+        $this->withToken($token)->getJson('/api/vendor/products')->assertOk();
+    }
+
+    public function test_products_requires_authorization_header(): void
+    {
+        $this->getJson('/api/vendor/products')
+            ->assertUnauthorized()
+            ->assertJsonPath('message', 'Unauthenticated.');
+    }
+
     public function test_pending_vendor_token_cannot_access_vendor_profile_api(): void
     {
         $user = User::factory()->create(['role' => 'vendor', 'status' => 'active']);

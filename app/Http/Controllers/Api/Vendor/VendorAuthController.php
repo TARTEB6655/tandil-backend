@@ -39,4 +39,23 @@ class VendorAuthController extends Controller
 
         return ApiResponse::success('Logged out successfully.');
     }
+
+    /**
+     * Validate the current Bearer token and return vendor session context.
+     */
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $vendor = $request->attributes->get('vendor') ?? $user?->vendor?->loadMissing('profile');
+
+        return ApiResponse::success('Authenticated.', [
+            'user' => $user?->toLoginArray(),
+            'vendor' => $vendor ? [
+                'vendor_id' => $vendor->id,
+                'status' => $vendor->status,
+                'is_approved' => $vendor->isApproved(),
+                'business_name' => $vendor->profile?->business_name,
+            ] : null,
+        ]);
+    }
 }
