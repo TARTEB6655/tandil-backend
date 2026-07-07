@@ -119,7 +119,7 @@
                     "name": "Product form options",
                     "item": [
                         {"name": "Get categories (id + name)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/product-options/categories", "description": "Add Product dropdown — platform categories only."}},
-                        {"name": "Get services (id + name)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/product-options/services?category_id={{category_id}}", "description": "Add Product dropdown — platform services. Optional category_id filter."}}
+                        {"name": "Get services (id + name)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/product-options/services", "description": "Add Product dropdown — all platform services. Optional ?category_id= includes that category + global services."}}
                     ]
                 },
                 {
@@ -140,7 +140,7 @@
                     "name": "Products",
                     "description": "Same multipart body as Admin POST /api/admin/products. Required: name, price, category_id (platform).",
                     "item": [
-                        {"name": "List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/products"}},
+                        {"name": "List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/products?category_id={{category_id}}", "description": "Only this vendor's products. Optional category_id — admin shop products never included."}},
                         {
                             "name": "Create product (full – same as admin)",
                             "request": {

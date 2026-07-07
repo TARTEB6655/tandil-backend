@@ -26,6 +26,10 @@ class ProductController extends Controller
         $products = VendorProduct::with(['product.category', 'inventory', 'currentPrice'])
             ->where('vendor_id', $vendor->id)
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
+            ->when($request->filled('category_id'), function ($q) use ($request) {
+                $categoryId = (int) $request->query('category_id');
+                $q->whereHas('product', fn ($pq) => $pq->where('category_id', $categoryId));
+            })
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->query('search');
                 $q->whereHas('product', fn ($pq) => $pq->where('name', 'like', "%{$search}%"));

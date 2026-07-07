@@ -235,6 +235,12 @@ class VendorApiIntegrationTest extends TestCase
             'is_active' => true,
             'category_id' => $category->id,
         ]);
+        $globalService = Service::create([
+            'name' => 'Standard Delivery',
+            'slug' => 'standard-delivery',
+            'is_active' => true,
+            'category_id' => null,
+        ]);
 
         $this->withToken($token)->getJson('/api/vendor/product-options/categories')
             ->assertOk()
@@ -246,15 +252,17 @@ class VendorApiIntegrationTest extends TestCase
         $this->withToken($token)->getJson('/api/vendor/product-options/services')
             ->assertOk()
             ->assertJsonPath('data.items.0', ['id' => $service->id, 'name' => 'Home Delivery'])
-            ->assertJsonCount(1, 'data.items');
+            ->assertJsonPath('data.items.1', ['id' => $globalService->id, 'name' => 'Standard Delivery'])
+            ->assertJsonCount(2, 'data.items');
 
         $this->withToken($token)->getJson('/api/vendor/product-options/services?category_id='.$category->id)
             ->assertOk()
-            ->assertJsonCount(1, 'data.items');
+            ->assertJsonCount(2, 'data.items');
 
         $this->withToken($token)->getJson('/api/vendor/product-options/services?category_id='.$otherCategory->id)
             ->assertOk()
-            ->assertJsonCount(0, 'data.items');
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.id', $globalService->id);
     }
 
     public function test_product_form_options_blocked_for_unapproved_vendor(): void
@@ -263,6 +271,59 @@ class VendorApiIntegrationTest extends TestCase
 
         $this->withToken($token)->getJson('/api/vendor/product-options/categories')->assertForbidden();
         $this->withToken($token)->getJson('/api/vendor/product-options/services')->assertForbidden();
+    }
+
+    public function test_vendor_products_by_category_exclude_admin_products(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
+
+        $category = Category::create([
+            'name' => 'Groceries',
+            'slug' => 'groceries-filter',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+        $otherCategory = Category::create([
+            'name' => 'Bakery',
+            'slug' => 'bakery-filter',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+
+        $adminProduct = \App\Models\Product::create([
+            'name' => 'Admin Shop Item',
+            'category_id' => $category->id,
+            'price' => 50,
+            'stock' => 10,
+            'status' => 'active',
+            'sku' => 'ADMIN-SKU-1',
+            'handle' => 'admin-shop-item',
+        ]);
+
+        $vendorCreate = $this->withToken($token)->postJson('/api/vendor/products', [
+            'name' => 'Vendor Groceries Item',
+            'price' => 20,
+            'category_id' => $category->id,
+            'stock' => 5,
+            'status' => 'active',
+        ]);
+        $vendorCreate->assertCreated();
+        $vendorProductId = $vendorCreate->json('data.vendor_product.id');
+
+        $this->withToken($token)->getJson('/api/vendor/products?category_id='.$category->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.id', $vendorProductId)
+            ->assertJsonPath('data.items.0.product.name', 'Vendor Groceries Item');
+
+        $this->withToken($token)->getJson('/api/vendor/products?category_id='.$otherCategory->id)
+            ->assertOk()
+            ->assertJsonCount(0, 'data.items');
+
+        $this->assertNull($adminProduct->vendor_id);
+        $this->assertDatabaseMissing('vendor_products', ['product_id' => $adminProduct->id, 'vendor_id' => $vendor->id]);
     }
 
     public function test_product_create_ignores_compare_at_price_and_low_stock_threshold(): void

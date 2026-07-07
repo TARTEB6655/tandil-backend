@@ -18936,7 +18936,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Vendor marketplace module — complete flow.\n\n**Vendor signup:** `2. Authentication` → Register Vendor → status `under_review`. `category_ids` optional at signup (choose in onboarding).\n\n**Admin mobile review (folder J):** Login admin → Recent requests → Application detail → Approve / Reject.\n\n**After approval:** Dashboard, Products, Categories, Services, Inventory, Orders.\n\nAuth: Bearer {{token}}. Variables: {{vendor_id}}, {{vendor_product_id}}.",
+            "description": "Vendor marketplace module — complete flow.\n\n**Vendor signup:** `2. Authentication` → Register Vendor → status `under_review`. `category_ids` optional at signup (choose in onboarding).\n\n**Admin mobile review (folder J):** Login admin → Recent requests → Application detail → Approve / Reject.\n\n**After approval:** Dashboard → **F0** (Add Product dropdowns) → **F** Products → Inventory → Orders.\n\n**Mobile Add Product:** F0.1 categories → F0.2 services → F create product. When user taps a category to see their listings, use F0.3 or F → List products with `?category_id=` (vendor products only — never admin shop).\n\nAuth: Bearer {{token}}. Variables: {{vendor_id}}, {{vendor_product_id}}, {{category_id}}, {{service_id}}.",
             "item": [
                 {
                     "name": "B. Business Profile",
@@ -19157,7 +19157,7 @@
                 },
                 {
                     "name": "F0. Add Product – Dropdown options",
-                    "description": "Mobile Add Product screen dropdowns. Returns only id + name for Category and Service pickers. Auth: Bearer {{token}} (approved vendor).",
+                    "description": "Mobile Add Product screen dropdowns. Returns only id + name for Category and Service pickers. Auth: Bearer {{token}} (approved vendor).\n\n**Flow:** F0.1 categories → F0.2 services → F → Create product.\n\nWhen user taps a category to view their products (not admin catalog), use F0.3 with `?category_id=` from F0.1.",
                     "item": [
                         {
                             "name": "1. Get categories (id + name)",
@@ -19175,8 +19175,17 @@
                             "request": {
                                 "method": "GET",
                                 "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                                "url": {"raw": "{{base_url}}/api/vendor/product-options/services?category_id={{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "product-options", "services"], "query": [{"key": "category_id", "value": "{{category_id}}", "description": "Optional filter by selected category"}]},
-                                "description": "GET platform services for Add Product dropdown. Response: data.items = [{ id, name }, ...]. Optional ?category_id= to filter. Auto-sets {{service_id}} from first item."
+                                "url": {"raw": "{{base_url}}/api/vendor/product-options/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "product-options", "services"], "query": [{"key": "category_id", "value": "{{category_id}}", "disabled": true, "description": "Optional — includes services for this category plus global services (no category_id)"}]},
+                                "description": "GET platform services for Add Product dropdown. Response: data.items = [{ id, name }, ...]. Omit category_id to list all platform services. With category_id: returns matching category + global services. Auto-sets {{service_id}} from first item."
+                            }
+                        },
+                        {
+                            "name": "3. List my products by category",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "url": {"raw": "{{base_url}}/api/vendor/products?category_id={{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"], "query": [{"key": "category_id", "value": "{{category_id}}", "description": "Platform category id from F0.1 — returns only this vendor's products"}, {"key": "status", "value": "", "disabled": true}, {"key": "search", "value": "", "disabled": true}]},
+                                "description": "When user taps a category — lists only the logged-in vendor's products in that category. Admin shop products are never included. Do not use public GET /api/products/category/{id}."
                             }
                         }
                     ]
@@ -19201,9 +19210,9 @@
                 },
                 {
                     "name": "F. Products (approved only)",
-                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls. category_id + service_id must be platform (admin) IDs from F1/F2. Use inventory API for low_stock_threshold.",
+                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls.\n\nUse **F0** for mobile dropdown ids (id+name only) or **F1/F2** for full platform catalog. category_id + service_id must be platform (admin) IDs. Use inventory API for low_stock_threshold.\n\nList/filter: `?category_id=` returns only this vendor's products (admin products excluded).",
                     "item": [
-                        {"name": "1. List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]}}},
+                        {"name": "1. List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products?category_id={{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"], "query": [{"key": "category_id", "value": "{{category_id}}", "description": "Optional — only this vendor's products in that platform category (admin products excluded)"}, {"key": "status", "value": "", "disabled": true}, {"key": "search", "value": "", "disabled": true}]}, "description": "Lists only the logged-in vendor's products. Optional ?category_id= filters by platform category. Never returns admin shop products."}},
                         {
                             "name": "2. Create product (multipart – same as Admin)",
                             "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 201) {", "    var j = pm.response.json();", "    var id = j.data && j.data.vendor_product && j.data.vendor_product.id;", "    if (id) { pm.collectionVariables.set('vendor_product_id', String(id)); pm.environment.set('vendor_product_id', String(id)); }", "}"]}}],
@@ -19219,8 +19228,8 @@
                                         {"key": "stock", "value": "10", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "is_featured", "value": "0", "type": "text"},
-                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required. Platform category ID from F1.1."},
-                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Platform service ID from F2.1."},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required. Platform category ID from F0.1 or F1.1."},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Platform service ID from F0.2 or F2.1."},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "VENDOR-SKU-001", "type": "text"},
                                         {"key": "handle", "value": "vendor-test-product", "type": "text"},

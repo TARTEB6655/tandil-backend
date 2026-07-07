@@ -13,10 +13,11 @@ class VendorServiceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        $categoryId = $request->filled('category_id') ? (int) $request->query('category_id') : null;
 
         $services = Service::with('category')
             ->vendorAssignable()
-            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->category_id))
+            ->forProductCategory($categoryId)
             ->orderBy('sort_order')
             ->orderByDesc('id')
             ->paginate($perPage);

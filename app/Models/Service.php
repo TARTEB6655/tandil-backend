@@ -77,6 +77,22 @@ class Service extends Model
         });
     }
 
+    /**
+     * Optional product-category filter for vendor dropdowns.
+     * Includes services linked to the category plus global services (category_id null).
+     */
+    public function scopeForProductCategory($query, ?int $categoryId)
+    {
+        if ($categoryId === null || $categoryId < 1) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($categoryId) {
+            $q->where('category_id', $categoryId)
+                ->orWhereNull('category_id');
+        });
+    }
+
     public function vendorAccount()
     {
         return $this->belongsTo(Vendor::class, 'vendor_id');

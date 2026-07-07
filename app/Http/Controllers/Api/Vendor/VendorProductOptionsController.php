@@ -13,6 +13,7 @@ class VendorProductOptionsController extends Controller
 {
     /**
      * Platform categories for the Add Product dropdown (id + name only).
+     * For listing this vendor's products by category use GET /api/vendor/products?category_id=
      */
     public function categories(Request $request): JsonResponse
     {
@@ -35,9 +36,11 @@ class VendorProductOptionsController extends Controller
      */
     public function services(Request $request): JsonResponse
     {
+        $categoryId = $request->filled('category_id') ? (int) $request->query('category_id') : null;
+
         $items = Service::query()
             ->vendorAssignable()
-            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', (int) $request->query('category_id')))
+            ->forProductCategory($categoryId)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name'])
