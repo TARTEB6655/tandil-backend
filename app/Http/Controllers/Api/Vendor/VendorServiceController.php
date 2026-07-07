@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Vendor;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ServiceRequest;
 use App\Models\Service;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,9 +15,8 @@ class VendorServiceController extends Controller
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
 
         $services = Service::with('category')
-            ->platformCatalog()
+            ->vendorAssignable()
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->category_id))
-            ->when($request->boolean('active_only', false), fn ($q) => $q->where('is_active', true))
             ->orderBy('sort_order')
             ->orderByDesc('id')
             ->paginate($perPage);
@@ -34,14 +32,14 @@ class VendorServiceController extends Controller
         ]);
     }
 
-    public function store(ServiceRequest $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         return ApiResponse::error('Vendors cannot create services. Use platform services when adding products.', 403);
     }
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $service = Service::with('category')->platformCatalog()->where('id', $id)->first();
+        $service = Service::with('category')->vendorAssignable()->where('id', $id)->first();
         if ($service === null) {
             return ApiResponse::error('Service not found.', 404);
         }
@@ -49,7 +47,7 @@ class VendorServiceController extends Controller
         return ApiResponse::success('Service retrieved.', ['service' => $this->toArray($service)]);
     }
 
-    public function update(ServiceRequest $request, int $id): JsonResponse
+    public function update(Request $request, int $id): JsonResponse
     {
         return ApiResponse::error('Vendors cannot update services. Use platform services when adding products.', 403);
     }

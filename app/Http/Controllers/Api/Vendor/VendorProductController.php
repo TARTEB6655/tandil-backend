@@ -49,7 +49,11 @@ class VendorProductController extends Controller
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         } catch (ValidationException $e) {
-            return ApiResponse::error($e->getMessage(), 422, $e->errors());
+            return ApiResponse::error(
+                $this->firstValidationMessage($e),
+                422,
+                $e->errors()
+            );
         }
 
         return ApiResponse::success('Product created.', [
@@ -83,7 +87,11 @@ class VendorProductController extends Controller
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         } catch (ValidationException $e) {
-            return ApiResponse::error($e->getMessage(), 422, $e->errors());
+            return ApiResponse::error(
+                $this->firstValidationMessage($e),
+                422,
+                $e->errors()
+            );
         }
 
         return ApiResponse::success('Product updated.', [
@@ -102,5 +110,23 @@ class VendorProductController extends Controller
         $this->products->delete($vp);
 
         return ApiResponse::success('Product deleted.');
+    }
+
+    private function firstValidationMessage(ValidationException $e): string
+    {
+        $errors = $e->errors();
+        foreach (['category_id', 'service_id', 'service_ids', 'name', 'price'] as $field) {
+            if (! empty($errors[$field][0])) {
+                return (string) $errors[$field][0];
+            }
+        }
+
+        foreach ($errors as $messages) {
+            if (! empty($messages[0])) {
+                return (string) $messages[0];
+            }
+        }
+
+        return $e->getMessage();
     }
 }

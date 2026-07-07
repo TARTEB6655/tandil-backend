@@ -40,7 +40,7 @@ class VendorProductService
             $categoryId = $this->catalog->resolveCategoryId($request, $validated);
             $this->catalog->assertCategoryAllowed(
                 $categoryId,
-                fn (int $id) => Category::platformCatalog()->where('id', $id)->where('is_active', true)->exists()
+                fn (int $id) => Category::vendorAssignable()->where('id', $id)->exists()
             );
             $createData['category_id'] = $categoryId;
 
@@ -104,7 +104,7 @@ class VendorProductService
             if (array_key_exists('category_id', $updateData) && $updateData['category_id'] !== null) {
                 $this->catalog->assertCategoryAllowed(
                     (int) $updateData['category_id'],
-                    fn (int $id) => Category::platformCatalog()->where('id', $id)->where('is_active', true)->exists()
+                    fn (int $id) => Category::vendorAssignable()->where('id', $id)->exists()
                 );
             }
 

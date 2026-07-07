@@ -40,8 +40,8 @@ class ProductController extends Controller
     public function create(Request $request): View
     {
         $vendor = $this->vendor($request);
-        $categories = Category::platformCatalog()->where('is_active', true)->ordered()->get(['id', 'name']);
-        $services = Service::platformCatalog()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $categories = Category::vendorAssignable()->ordered()->get(['id', 'name']);
+        $services = Service::vendorAssignable()->orderBy('name')->get(['id', 'name']);
 
         return view('vendor.products.create', compact('categories', 'services'));
     }
@@ -69,8 +69,8 @@ class ProductController extends Controller
             return redirect()->route('vendor.products.index')->with('error', 'Product not found.');
         }
 
-        $categories = Category::platformCatalog()->where('is_active', true)->ordered()->get(['id', 'name']);
-        $services = Service::platformCatalog()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $categories = Category::vendorAssignable()->ordered()->get(['id', 'name']);
+        $services = Service::vendorAssignable()->orderBy('name')->get(['id', 'name']);
 
         return view('vendor.products.edit', [
             'vendorProduct' => $vendorProduct->load(['product.category', 'product.services', 'inventory', 'currentPrice']),

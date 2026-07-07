@@ -67,6 +67,16 @@ class Service extends Model
         return $query->whereNull('vendor_id');
     }
 
+    /**
+     * Platform services vendors can link to products (matches GET /api/vendor/services).
+     */
+    public function scopeVendorAssignable($query)
+    {
+        return $query->platformCatalog()->where(function ($q) {
+            $q->where('is_active', true)->orWhereNull('is_active');
+        });
+    }
+
     public function vendorAccount()
     {
         return $this->belongsTo(Vendor::class, 'vendor_id');

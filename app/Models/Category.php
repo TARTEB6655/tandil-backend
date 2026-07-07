@@ -61,6 +61,16 @@ class Category extends Model
         return $query->whereNull('vendor_id');
     }
 
+    /**
+     * Platform categories vendors can pick when creating products (matches GET /api/vendor/categories).
+     */
+    public function scopeVendorAssignable($query)
+    {
+        return $query->platformCatalog()->where(function ($q) {
+            $q->where('is_active', true)->orWhereNull('is_active');
+        });
+    }
+
     public function vendorAccount()
     {
         return $this->belongsTo(Vendor::class, 'vendor_id');

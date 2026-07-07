@@ -7,11 +7,12 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Service;
+use App\Rules\AssignablePlatformCategoryId;
+use App\Rules\AssignablePlatformServiceId;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class ProductCatalogWriter
 {
@@ -65,9 +66,8 @@ class ProductCatalogWriter
             ? 'nullable|string|max:255|unique:products,handle,'.$existingProductId
             : 'nullable|string|max:255|unique:products,handle';
 
-        $platformCategoryRule = Rule::exists('categories', 'id')->where(
-            fn ($query) => $query->whereNull('vendor_id')->where('is_active', true)
-        );
+        $categoryRule = new AssignablePlatformCategoryId;
+        $serviceRule = new AssignablePlatformServiceId;
 
         return [
             'name' => $existingProductId ? 'nullable|string|max:255' : 'required|string|max:255',
@@ -81,8 +81,8 @@ class ProductCatalogWriter
             'is_featured' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
             'category_id' => $existingProductId
-                ? ['nullable', 'integer', $platformCategoryRule]
-                : ['required', 'integer', $platformCategoryRule],
+                ? ['nullable', 'integer', $categoryRule]
+                : ['required', 'integer', $categoryRule],
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku' => $skuRule,
             'handle' => $handleRule,
@@ -94,8 +94,8 @@ class ProductCatalogWriter
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'nullable|string|url',
             'service_ids' => 'nullable|array',
-            'service_ids.*' => 'integer|exists:services,id',
-            'service_id' => 'nullable|integer|exists:services,id',
+            'service_ids.*' => ['integer', $serviceRule],
+            'service_id' => ['nullable', 'integer', $serviceRule],
             'estimated_arrival' => 'nullable|string|max:255',
             'job_duration' => 'nullable|string|max:255',
             'product_type' => 'nullable|in:simple,variable',
@@ -144,7 +144,7 @@ class ProductCatalogWriter
         if ($rawCategoryId !== null) {
             $createData['category_id'] = $rawCategoryId;
         } elseif (Schema::getConnection()->getDriverName() === 'sqlite') {
-            $firstCategory = Category::platformCatalog()->where('is_active', true)->orderBy('id')->first();
+            $firstCategory = Category::vendorAssignable()->orderBy('id')->first();
             if ($firstCategory) {
                 $createData['category_id'] = $firstCategory->id;
             }
@@ -347,7 +347,7 @@ class ProductCatalogWriter
             return [];
         }
 
-        $allowed = Service::platformCatalog()->whereIn('id', $serviceIds)->pluck('id')->all();
+        $allowed = Service::vendorAssignable()->whereIn('id', $serviceIds)->pluck('id')->all();
         if (count($allowed) !== count($serviceIds)) {
             throw new \InvalidArgumentException('One or more services are not available on the platform.');
         }
