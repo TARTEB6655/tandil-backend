@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Api;
 
+use App\Enums\VendorStatus;
 use App\Models\Area;
 use App\Models\User;
+use App\Models\Vendor;
+use App\Models\VendorProfile;
 use App\Services\Auth\AppleIdTokenVerifier;
 use App\Services\Auth\GoogleIdTokenVerifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -259,6 +262,20 @@ class AuthApiTest extends TestCase
         ]);
         $user->syncRoles([$portal]);
 
+        if ($portal === 'vendor') {
+            $vendor = Vendor::create([
+                'user_id' => $user->id,
+                'status' => VendorStatus::Approved->value,
+                'approved_at' => now(),
+            ]);
+            VendorProfile::create([
+                'vendor_id' => $vendor->id,
+                'business_name' => 'Login Test',
+                'owner_name' => $user->name,
+                'email' => $user->email,
+            ]);
+        }
+
         $this->postJson('/api/auth/login', [
             'email' => $email,
             'password' => 'password',
@@ -328,6 +345,18 @@ class AuthApiTest extends TestCase
             'status' => 'active',
         ]);
         $user->syncRoles(['vendor']);
+
+        $vendor = Vendor::create([
+            'user_id' => $user->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Route Test',
+            'owner_name' => 'Owner',
+            'email' => $user->email,
+        ]);
 
         $this->postJson('/api/vendor/auth/login', [
             'email' => 'vendor.route@example.com',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Support\AppLoginRoles;
+use App\Support\VendorLoginGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -101,6 +102,15 @@ class AppPortalWebController extends Controller
                     'email' => __('These credentials do not match this sign-in path. Go back and choose the role that matches your account, or contact support.'),
                 ])
                 ->onlyInput('email');
+        }
+
+        if ($portal === 'vendor') {
+            $blocked = VendorLoginGate::blockedMessageForUser($user);
+            if ($blocked !== null) {
+                return back()
+                    ->withErrors(['email' => $blocked])
+                    ->onlyInput('email');
+            }
         }
 
         Auth::login($user, $request->boolean('remember'));

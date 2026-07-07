@@ -8,7 +8,6 @@ use App\Http\Requests\Vendor\VendorRegistrationRequest;
 use App\Models\Category;
 use App\Models\VendorProfile;
 use App\Services\Vendor\VendorRegistrationService;
-use Illuminate\Support\Facades\Auth;
 
 class VendorRegistrationController extends Controller
 {
@@ -29,17 +28,15 @@ class VendorRegistrationController extends Controller
 
     public function store(VendorRegistrationRequest $request)
     {
-        $vendor = $this->registration->register(
+        $this->registration->register(
             $request->validated(),
             $request->file('logo'),
             VendorRegistrationService::documentFilesFromRequest($request)
         );
 
-        Auth::login($vendor->user);
-
-        return redirect()->route('vendor.onboarding.index')->with(
+        return redirect()->route('app-portal.login', ['portal' => 'vendor'])->with(
             'success',
-            'Registration submitted successfully. Our team will review your application — you cannot access the vendor dashboard until approved.'
+            'Registration submitted successfully. You can sign in after admin approves your vendor account.'
         );
     }
 }

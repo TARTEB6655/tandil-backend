@@ -36,6 +36,8 @@ class VendorCatalogApiTest extends TestCase
     {
         ['token' => $token] = $this->makeVendorUser(VendorStatus::UnderReview);
 
+        $this->withToken($token)->getJson('/api/vendor/profile')->assertForbidden();
+        $this->withToken($token)->getJson('/api/vendor/application')->assertForbidden();
         $this->withToken($token)->getJson('/api/vendor/dashboard/summary')->assertForbidden();
         $this->withToken($token)->getJson('/api/vendor/dashboard/stats')->assertForbidden();
         $this->withToken($token)->getJson('/api/vendor/categories')->assertForbidden();
@@ -308,7 +310,8 @@ class VendorCatalogApiTest extends TestCase
         $user->assignRole('vendor');
         $vendor = Vendor::create([
             'user_id' => $user->id,
-            'status' => VendorStatus::UnderReview->value,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
         ]);
         VendorProfile::create([
             'vendor_id' => $vendor->id,
@@ -324,8 +327,8 @@ class VendorCatalogApiTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('data.vendor.vendor_id', $vendor->id)
-            ->assertJsonPath('data.vendor.status', VendorStatus::UnderReview->value)
-            ->assertJsonPath('data.vendor.is_approved', false)
+            ->assertJsonPath('data.vendor.status', VendorStatus::Approved->value)
+            ->assertJsonPath('data.vendor.is_approved', true)
             ->assertJsonPath('data.vendor.business_name', 'Login Test Co');
     }
 

@@ -32,7 +32,7 @@ class VendorDocumentController extends Controller
     {
         $vendor = $request->attributes->get('vendor');
 
-        if (! $vendor->statusEnum()->canCompleteOnboarding()) {
+        if (! $vendor->isApproved() && ! $vendor->statusEnum()->canCompleteOnboarding()) {
             return ApiResponse::error('Documents cannot be updated in the current account status.', 403);
         }
 
@@ -50,7 +50,7 @@ class VendorDocumentController extends Controller
     {
         $vendor = $request->attributes->get('vendor');
 
-        if (! $vendor->statusEnum()->canCompleteOnboarding()) {
+        if (! $vendor->isApproved() && ! $vendor->statusEnum()->canCompleteOnboarding()) {
             return ApiResponse::error('Documents cannot be updated in the current account status.', 403);
         }
 

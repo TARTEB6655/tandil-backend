@@ -3,6 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
+use App\Support\VendorLoginGate;
 use Illuminate\Support\Facades\Hash;
 
 class LoginService
@@ -34,6 +35,13 @@ class LoginService
 
         if (! $user->matchesLoginPortal($portal)) {
             return $this->failure('Invalid login credentials.', 401);
+        }
+
+        if ($portal === 'vendor') {
+            $blocked = VendorLoginGate::blockedMessageForUser($user);
+            if ($blocked !== null) {
+                return $this->failure($blocked, 403);
+            }
         }
 
         try {
