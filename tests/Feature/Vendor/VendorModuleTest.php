@@ -189,6 +189,18 @@ class VendorModuleTest extends TestCase
             'business_name' => 'Green Farms LLC',
             'owner_name' => 'Ali',
             'email' => 'recent1@test.com',
+            'phone' => '+971501111111',
+            'trade_license_number' => 'TL-RECENT-1',
+            'vendor_type' => 'fruits',
+            'emirate' => 'Dubai',
+            'city' => 'Dubai',
+            'address' => 'Industrial Area 1',
+            'bank_name' => 'Emirates NBD',
+            'iban' => 'AE070331234567890123456',
+            'account_holder_name' => 'Green Farms LLC',
+            'delivery_radius' => 20,
+            'operating_hours' => '08:00 - 22:00',
+            'minimum_order_amount' => 50,
         ]);
 
         $user2 = User::factory()->create(['role' => 'vendor', 'email' => 'recent2@test.com']);
@@ -209,11 +221,44 @@ class VendorModuleTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.total_pending', 2)
             ->assertJsonCount(2, 'data.items')
-            ->assertJsonPath('data.items.0.display_status', 'PENDING')
-            ->assertJsonStructure([
+            ->assertJsonPath('data.items.0.display_status', 'PENDING');
+
+        $greenFarms = collect($response->json('data.items'))->firstWhere('business_name', 'Green Farms LLC');
+        $this->assertNotNull($greenFarms);
+        $this->assertSame('fruits', $greenFarms['business_details']['vendor_type']);
+        $this->assertSame('TL-RECENT-1', $greenFarms['business_details']['trade_license_number']);
+        $this->assertSame('Dubai', $greenFarms['business_details']['emirate']);
+        $this->assertSame('Emirates NBD', $greenFarms['bank_details']['bank_name']);
+        $this->assertSame('Ali', $greenFarms['contact']['authorized_person_name']);
+
+        $response->assertJsonStructure([
                 'data' => [
                     'items' => [
-                        ['vendor_id', 'business_name', 'email', 'status', 'display_status', 'actions'],
+                        [
+                            'vendor_id',
+                            'business_name',
+                            'email',
+                            'status',
+                            'display_status',
+                            'completion_percent',
+                            'contact' => ['email', 'phone', 'authorized_person_name'],
+                            'business_details' => [
+                                'vendor_type',
+                                'vendor_type_label',
+                                'trade_license_number',
+                                'emirate',
+                                'city',
+                                'address',
+                                'delivery_radius',
+                                'operating_hours',
+                                'minimum_order_amount',
+                                'categories',
+                            ],
+                            'bank_details' => ['bank_name', 'iban', 'account_holder_name'],
+                            'documents',
+                            'application',
+                            'actions',
+                        ],
                     ],
                     'total_pending',
                     'has_more',

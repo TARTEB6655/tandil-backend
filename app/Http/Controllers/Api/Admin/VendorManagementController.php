@@ -70,7 +70,7 @@ class VendorManagementController extends Controller
 
         $totalPending = Vendor::whereIn('status', $pendingStatuses)->count();
 
-        $vendors = Vendor::with(['profile', 'user'])
+        $vendors = Vendor::with(['profile', 'user', 'documents', 'categories'])
             ->whereIn('status', $pendingStatuses)
             ->latest()
             ->limit($limit)
@@ -97,19 +97,44 @@ class VendorManagementController extends Controller
      */
     private function toRecentRequestCard(Vendor $vendor): array
     {
-        $vendor->loadMissing(['profile', 'user']);
+        $vendor->loadMissing(['profile', 'user', 'documents', 'categories', 'approvalLogs.performer']);
+        $profile = $vendor->profile;
+        $application = $this->application->applicationPayload($vendor);
+
+        $submittedAt = $vendor->approvalLogs
+            ->firstWhere('action', 'submitted_for_review')
+            ?->created_at
+            ?? $profile?->onboarding_completed_at
+            ?? $vendor->created_at;
 
         return [
             'vendor_id' => $vendor->id,
-            'business_name' => $vendor->profile?->business_name,
-            'owner_name' => $vendor->profile?->owner_name,
-            'email' => $vendor->profile?->email ?? $vendor->user?->email,
-            'phone' => $vendor->profile?->phone ?? $vendor->user?->phone,
-            'logo_url' => $vendor->profile?->logo_url,
+            'business_name' => $profile?->business_name,
+            'owner_name' => $profile?->owner_name,
+            'email' => $profile?->email ?? $vendor->user?->email,
+            'phone' => $profile?->phone ?? $vendor->user?->phone,
+            'logo_url' => $profile?->logo_url,
             'status' => $vendor->status,
             'status_label' => $vendor->statusEnum()->label(),
             'display_status' => 'PENDING',
+            'completion_percent' => $application['completion_percent'] ?? 0,
+            'submitted_at' => $submittedAt?->toIso8601String(),
+            'submitted_at_formatted' => $submittedAt?->format('j M Y \a\t g:i A'),
             'created_at' => $vendor->created_at?->toIso8601String(),
+            'contact' => $this->buildContactSection($vendor),
+            'business_details' => $this->buildBusinessDetailsSection($vendor),
+            'bank_details' => $this->buildBankDetailsSection($vendor),
+            'documents' => $this->buildDocumentsSection($vendor),
+            'application' => [
+                'completion_percent' => $application['completion_percent'] ?? 0,
+                'profile_complete' => $application['profile_complete'] ?? false,
+                'documents_complete' => $application['documents_complete'] ?? false,
+                'categories_complete' => $application['categories_complete'] ?? false,
+                'terms_accepted' => $application['terms_accepted'] ?? false,
+                'onboarding_complete' => $application['onboarding_complete'] ?? false,
+                'missing_profile_fields' => $application['missing_profile_fields'] ?? [],
+                'required_documents' => $application['required_documents'] ?? [],
+            ],
             'actions' => [
                 'approve' => [
                     'method' => 'POST',
@@ -196,46 +221,10 @@ class VendorManagementController extends Controller
                 'submitted_at_formatted' => $submittedAt?->format('j M Y \a\t g:i A'),
                 'completion_percent' => $application['completion_percent'] ?? 0,
             ],
-            'contact' => [
-                'email' => $profile?->email ?? $vendor->user?->email,
-                'phone' => $profile?->phone ?? $vendor->user?->phone,
-                'authorized_person_name' => $profile?->owner_name,
-            ],
-            'business_details' => [
-                'vendor_type' => $profile?->vendor_type,
-                'vendor_type_label' => $profile?->vendor_type_label,
-                'trade_license_number' => $profile?->trade_license_number,
-                'tax_vat_number' => $profile?->tax_vat_number,
-                'emirate' => $profile?->emirate,
-                'city' => $profile?->city,
-                'address' => $profile?->address,
-                'google_maps_location' => $profile?->google_maps_location,
-                'delivery_radius' => $profile?->delivery_radius,
-                'operating_hours' => $profile?->operating_hours,
-                'minimum_order_amount' => $profile?->minimum_order_amount,
-                'years_in_business' => $profile?->years_in_business,
-                'description' => $profile?->description,
-                'categories' => $vendor->categories->map(fn ($cat) => [
-                    'id' => $cat->id,
-                    'name' => $cat->name,
-                ])->values()->all(),
-                'category_ids' => $vendor->categories->pluck('id')->values()->all(),
-            ],
-            'bank_details' => [
-                'bank_name' => $profile?->bank_name,
-                'iban' => $profile?->iban,
-                'account_holder_name' => $profile?->account_holder_name,
-            ],
-            'documents' => $vendor->documents->map(fn ($doc) => [
-                'id' => $doc->id,
-                'type' => $doc->type,
-                'label' => VendorDocumentType::tryFrom($doc->type)?->label() ?? ucfirst(str_replace('_', ' ', $doc->type)),
-                'original_name' => $doc->original_name,
-                'file_url' => $doc->file_url,
-                'verification_status' => $doc->verification_status,
-                'admin_notes' => $doc->admin_notes,
-                'verified_at' => $doc->verified_at?->toIso8601String(),
-            ])->values()->all(),
+            'contact' => $this->buildContactSection($vendor),
+            'business_details' => $this->buildBusinessDetailsSection($vendor),
+            'bank_details' => $this->buildBankDetailsSection($vendor),
+            'documents' => $this->buildDocumentsSection($vendor),
             'application' => $application,
             'approval_logs' => $application['approval_logs'] ?? [],
             'actions' => [
@@ -251,6 +240,81 @@ class VendorManagementController extends Controller
                 ],
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildContactSection(Vendor $vendor): array
+    {
+        $profile = $vendor->profile;
+
+        return [
+            'email' => $profile?->email ?? $vendor->user?->email,
+            'phone' => $profile?->phone ?? $vendor->user?->phone,
+            'authorized_person_name' => $profile?->owner_name,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildBusinessDetailsSection(Vendor $vendor): array
+    {
+        $profile = $vendor->profile;
+
+        return [
+            'vendor_type' => $profile?->vendor_type,
+            'vendor_type_label' => $profile?->vendor_type_label,
+            'trade_license_number' => $profile?->trade_license_number,
+            'tax_vat_number' => $profile?->tax_vat_number,
+            'emirate' => $profile?->emirate,
+            'city' => $profile?->city,
+            'address' => $profile?->address,
+            'google_maps_location' => $profile?->google_maps_location,
+            'delivery_radius' => $profile?->delivery_radius,
+            'operating_hours' => $profile?->operating_hours,
+            'minimum_order_amount' => $profile?->minimum_order_amount,
+            'years_in_business' => $profile?->years_in_business,
+            'description' => $profile?->description,
+            'terms_accepted_at' => $profile?->terms_accepted_at?->toIso8601String(),
+            'categories' => $vendor->categories->map(fn ($cat) => [
+                'id' => $cat->id,
+                'name' => $cat->name,
+            ])->values()->all(),
+            'category_ids' => $vendor->categories->pluck('id')->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildBankDetailsSection(Vendor $vendor): array
+    {
+        $profile = $vendor->profile;
+
+        return [
+            'bank_name' => $profile?->bank_name,
+            'iban' => $profile?->iban,
+            'account_holder_name' => $profile?->account_holder_name,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildDocumentsSection(Vendor $vendor): array
+    {
+        return $vendor->documents->map(fn ($doc) => [
+            'id' => $doc->id,
+            'type' => $doc->type,
+            'label' => VendorDocumentType::tryFrom($doc->type)?->label() ?? ucfirst(str_replace('_', ' ', $doc->type)),
+            'original_name' => $doc->original_name,
+            'file_url' => $doc->file_url,
+            'verification_status' => $doc->verification_status,
+            'admin_notes' => $doc->admin_notes,
+            'verified_at' => $doc->verified_at?->toIso8601String(),
+        ])->values()->all();
     }
 
     public function analytics(int $id): JsonResponse
