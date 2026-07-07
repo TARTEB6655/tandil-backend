@@ -60,7 +60,7 @@ class VendorProductService
             $this->recordPrice(
                 $vendorProduct,
                 (float) $validated['price'],
-                isset($validated['compare_at_price']) ? (float) $validated['compare_at_price'] : null,
+                null,
                 $vendor->user_id,
                 false
             );
@@ -68,7 +68,7 @@ class VendorProductService
             VendorInventory::create([
                 'vendor_product_id' => $vendorProduct->id,
                 'quantity' => (int) ($validated['stock'] ?? 0),
-                'low_stock_threshold' => (int) ($validated['low_stock_threshold'] ?? 5),
+                'low_stock_threshold' => 5,
             ]);
 
             $this->catalog->persistImages($product, $request);
@@ -113,7 +113,7 @@ class VendorProductService
                 $this->recordPrice(
                     $vendorProduct,
                     (float) $validated['price'],
-                    isset($validated['compare_at_price']) ? (float) $validated['compare_at_price'] : null,
+                    null,
                     $setByUserId,
                     false
                 );
@@ -131,12 +131,9 @@ class VendorProductService
                 $vendorProduct->update(['status' => $validated['vendor_product_status']]);
             }
 
-            if (isset($validated['stock']) || isset($validated['low_stock_threshold'])) {
+            if (isset($validated['stock'])) {
                 $inv = $vendorProduct->inventory ?? VendorInventory::create(['vendor_product_id' => $vendorProduct->id]);
-                $inv->update(array_filter([
-                    'quantity' => isset($validated['stock']) ? (int) $validated['stock'] : null,
-                    'low_stock_threshold' => isset($validated['low_stock_threshold']) ? (int) $validated['low_stock_threshold'] : null,
-                ], fn ($v) => $v !== null));
+                $inv->update(['quantity' => (int) $validated['stock']]);
                 $product->update(['stock' => $inv->quantity]);
             }
 

@@ -19175,7 +19175,7 @@
                 },
                 {
                     "name": "F. Products (approved only)",
-                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls, compare_at_price, low_stock_threshold. category_id + service_id must be platform (admin) IDs from F1/F2.",
+                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls. category_id + service_id must be platform (admin) IDs from F1/F2. Use inventory API for low_stock_threshold.",
                     "item": [
                         {"name": "1. List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"]}}},
                         {
@@ -19190,9 +19190,7 @@
                                         {"key": "name", "value": "Vendor Test Product", "type": "text"},
                                         {"key": "description", "value": "Description here", "type": "text"},
                                         {"key": "price", "value": "99.99", "type": "text"},
-                                        {"key": "compare_at_price", "value": "119.99", "type": "text", "description": "Optional vendor compare-at price."},
                                         {"key": "stock", "value": "10", "type": "text"},
-                                        {"key": "low_stock_threshold", "value": "5", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "is_featured", "value": "0", "type": "text"},
                                         {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required. Platform category ID from F1.1."},

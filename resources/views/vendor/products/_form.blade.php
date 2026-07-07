@@ -22,16 +22,8 @@
         <input type="number" step="0.01" min="0" name="price" value="{{ old('price', $vendorProduct->currentPrice?->price ?? $p?->price) }}" required class="mt-1 w-full rounded-lg border-gray-300" />
     </div>
     <div>
-        <label class="text-sm font-medium text-gray-700">Compare at price</label>
-        <input type="number" step="0.01" min="0" name="compare_at_price" value="{{ old('compare_at_price', $vendorProduct->currentPrice?->compare_at_price ?? $p?->compare_at_price) }}" class="mt-1 w-full rounded-lg border-gray-300" />
-    </div>
-    <div>
         <label class="text-sm font-medium text-gray-700">Stock</label>
         <input type="number" min="0" name="stock" value="{{ old('stock', $vendorProduct->inventory?->quantity ?? $p?->stock ?? 0) }}" class="mt-1 w-full rounded-lg border-gray-300" />
-    </div>
-    <div>
-        <label class="text-sm font-medium text-gray-700">Low stock threshold</label>
-        <input type="number" min="0" name="low_stock_threshold" value="{{ old('low_stock_threshold', $vendorProduct->inventory?->low_stock_threshold ?? 5) }}" class="mt-1 w-full rounded-lg border-gray-300" />
     </div>
     <div>
         <label class="text-sm font-medium text-gray-700">Product status</label>

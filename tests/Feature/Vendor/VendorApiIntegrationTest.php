@@ -204,6 +204,38 @@ class VendorApiIntegrationTest extends TestCase
         ])->assertOk();
     }
 
+    public function test_product_create_ignores_compare_at_price_and_low_stock_threshold(): void
+    {
+        ['token' => $token] = $this->makeVendorUser(VendorStatus::Approved);
+
+        $category = Category::create([
+            'name' => 'Clean Params Category',
+            'slug' => 'clean-params-category',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+
+        $response = $this->withToken($token)->postJson('/api/vendor/products', [
+            'name' => 'Clean Params Product',
+            'price' => 40,
+            'category_id' => $category->id,
+            'compare_at_price' => 99,
+            'low_stock_threshold' => 2,
+        ])->assertCreated();
+
+        $vendorProductId = $response->json('data.vendor_product.id');
+        $this->assertDatabaseHas('vendor_product_prices', [
+            'vendor_product_id' => $vendorProductId,
+            'price' => 40,
+            'compare_at_price' => null,
+        ]);
+        $this->assertDatabaseHas('vendor_inventory', [
+            'vendor_product_id' => $vendorProductId,
+            'low_stock_threshold' => 5,
+        ]);
+    }
+
     public function test_product_create_with_multipart_form_data(): void
     {
         ['token' => $token] = $this->makeVendorUser(VendorStatus::Approved);
