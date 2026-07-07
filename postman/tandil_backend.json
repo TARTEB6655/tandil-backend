@@ -18936,7 +18936,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Vendor marketplace module — complete flow.\n\n**Vendor signup:** `2. Authentication` → Register Vendor → status `under_review`. `category_ids` optional at signup (choose in onboarding).\n\n**Admin mobile review (folder J):** Login admin → Recent requests → Application detail → Approve / Reject.\n\n**After approval:** Dashboard → **F0** (Add Product dropdowns) → **F** Products → Inventory → Orders.\n\n**Mobile Add Product:** F0.1 categories → F0.2 services → F create product. When user taps a category to see their listings, use F0.3 or F → List products with `?category_id=` (vendor products only — never admin shop).\n\nAuth: Bearer {{token}}. Variables: {{vendor_id}}, {{vendor_product_id}}, {{category_id}}, {{service_id}}.",
+            "description": "Vendor marketplace module — complete flow.\n\n**Vendor signup:** `2. Authentication` → Register Vendor → status `under_review`. `category_ids` optional at signup (choose in onboarding).\n\n**Admin mobile review (folder J):** Login admin → Recent requests → Application detail → Approve / Reject.\n\n**After approval:** Dashboard → **F0** (Add Product dropdowns) → **F** Products → Inventory → Orders.\n\n**Mobile Add Product:** F0.1 categories (for product) → F0.2 all admin services (no category filter) → F create product. Category tap for vendor listings: F0.3 or F → List products `?category_id=`.\n\nAuth: Bearer {{token}}. Variables: {{vendor_id}}, {{vendor_product_id}}, {{category_id}}, {{service_id}}.",
             "item": [
                 {
                     "name": "B. Business Profile",
@@ -19157,7 +19157,7 @@
                 },
                 {
                     "name": "F0. Add Product – Dropdown options",
-                    "description": "Mobile Add Product screen dropdowns. Returns only id + name for Category and Service pickers. Auth: Bearer {{token}} (approved vendor).\n\n**Flow:** F0.1 categories → F0.2 services → F → Create product.\n\nWhen user taps a category to view their products (not admin catalog), use F0.3 with `?category_id=` from F0.1.",
+                    "description": "Mobile Add Product screen dropdowns. Returns only id + name. Auth: Bearer {{token}} (approved vendor).\n\n| Step | API | Notes |\n|------|-----|-------|\n| F0.1 | GET product-options/categories | Platform categories for product `category_id` |\n| F0.2 | GET product-options/services | **All** admin services — not filtered by category |\n| F0.3 | GET products?category_id= | Vendor's own products when category tapped |\n\nThen **F → Create product** with `category_id` + optional `service_id`.",
                     "item": [
                         {
                             "name": "1. Get categories (id + name)",
@@ -19170,13 +19170,13 @@
                             }
                         },
                         {
-                            "name": "2. Get services (id + name)",
+                            "name": "2. Get all services (id + name)",
                             "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var j = pm.response.json();", "    var items = (j.data && j.data.items) || [];", "    if (items.length && items[0].id) {", "        pm.collectionVariables.set('service_id', String(items[0].id));", "        pm.environment.set('service_id', String(items[0].id));", "    }", "}"]}}],
                             "request": {
                                 "method": "GET",
                                 "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                                "url": {"raw": "{{base_url}}/api/vendor/product-options/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "product-options", "services"], "query": [{"key": "category_id", "value": "{{category_id}}", "disabled": true, "description": "Optional — includes services for this category plus global services (no category_id)"}]},
-                                "description": "GET platform services for Add Product dropdown. Response: data.items = [{ id, name }, ...]. Omit category_id to list all platform services. With category_id: returns matching category + global services. Auto-sets {{service_id}} from first item."
+                                "url": {"raw": "{{base_url}}/api/vendor/product-options/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "product-options", "services"]},
+                                "description": "GET all admin platform services for Add Product dropdown. Response: data.items = [{ id, name }, ...]. Not filtered by category — every platform service is returned. Auto-sets {{service_id}} from first item."
                             }
                         },
                         {
@@ -19201,7 +19201,7 @@
                 },
                 {
                     "name": "F2. Services (approved only – read-only)",
-                    "description": "Platform (admin) services only. Vendors cannot create/update/delete — use service_id or service_ids[] when adding products. GET F2.1 first.",
+                    "description": "Full platform services catalog (admin). Vendors cannot create/update/delete.\n\n**Mobile Add Product dropdown:** use **F0.2** instead (id + name only, all services, no category filter).\n\nUse `service_id` from F0.2 or F2.1 when creating products.",
                     "item": [
                         {"name": "1. List platform services", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}, "description": "Returns admin platform services. Use id as service_id when creating products."}},
                         {"name": "2. Get platform service", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "{{service_id}}"]}}},

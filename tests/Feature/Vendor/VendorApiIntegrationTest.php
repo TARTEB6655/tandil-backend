@@ -254,15 +254,6 @@ class VendorApiIntegrationTest extends TestCase
             ->assertJsonPath('data.items.0', ['id' => $service->id, 'name' => 'Home Delivery'])
             ->assertJsonPath('data.items.1', ['id' => $globalService->id, 'name' => 'Standard Delivery'])
             ->assertJsonCount(2, 'data.items');
-
-        $this->withToken($token)->getJson('/api/vendor/product-options/services?category_id='.$category->id)
-            ->assertOk()
-            ->assertJsonCount(2, 'data.items');
-
-        $this->withToken($token)->getJson('/api/vendor/product-options/services?category_id='.$otherCategory->id)
-            ->assertOk()
-            ->assertJsonCount(1, 'data.items')
-            ->assertJsonPath('data.items.0.id', $globalService->id);
     }
 
     public function test_product_form_options_blocked_for_unapproved_vendor(): void

@@ -32,15 +32,13 @@ class VendorProductOptionsController extends Controller
     }
 
     /**
-     * Platform services for the Add Product dropdown (id + name only).
+     * All platform services for the Add Product dropdown (id + name only).
+     * Not filtered by product category — returns every admin-managed service.
      */
     public function services(Request $request): JsonResponse
     {
-        $categoryId = $request->filled('category_id') ? (int) $request->query('category_id') : null;
-
         $items = Service::query()
             ->vendorAssignable()
-            ->forProductCategory($categoryId)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name'])
