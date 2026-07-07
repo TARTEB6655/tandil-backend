@@ -204,6 +204,67 @@ class VendorApiIntegrationTest extends TestCase
         ])->assertOk();
     }
 
+    public function test_product_form_options_return_id_and_name_only(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
+
+        $category = Category::create([
+            'name' => 'Fruits',
+            'slug' => 'form-fruits',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+        $otherCategory = Category::create([
+            'name' => 'Vegetables',
+            'slug' => 'form-vegetables',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+        $service = Service::create([
+            'name' => 'Home Delivery',
+            'slug' => 'form-home-delivery',
+            'is_active' => true,
+            'category_id' => $category->id,
+        ]);
+        Service::create([
+            'vendor_id' => $vendor->id,
+            'name' => 'Vendor Service',
+            'slug' => 'vendor-service',
+            'is_active' => true,
+            'category_id' => $category->id,
+        ]);
+
+        $this->withToken($token)->getJson('/api/vendor/product-options/categories')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.items.0', ['id' => $category->id, 'name' => 'Fruits'])
+            ->assertJsonPath('data.items.1', ['id' => $otherCategory->id, 'name' => 'Vegetables'])
+            ->assertJsonCount(2, 'data.items');
+
+        $this->withToken($token)->getJson('/api/vendor/product-options/services')
+            ->assertOk()
+            ->assertJsonPath('data.items.0', ['id' => $service->id, 'name' => 'Home Delivery'])
+            ->assertJsonCount(1, 'data.items');
+
+        $this->withToken($token)->getJson('/api/vendor/product-options/services?category_id='.$category->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.items');
+
+        $this->withToken($token)->getJson('/api/vendor/product-options/services?category_id='.$otherCategory->id)
+            ->assertOk()
+            ->assertJsonCount(0, 'data.items');
+    }
+
+    public function test_product_form_options_blocked_for_unapproved_vendor(): void
+    {
+        ['token' => $token] = $this->makeVendorUser(VendorStatus::UnderReview);
+
+        $this->withToken($token)->getJson('/api/vendor/product-options/categories')->assertForbidden();
+        $this->withToken($token)->getJson('/api/vendor/product-options/services')->assertForbidden();
+    }
+
     public function test_product_create_ignores_compare_at_price_and_low_stock_threshold(): void
     {
         ['token' => $token] = $this->makeVendorUser(VendorStatus::Approved);

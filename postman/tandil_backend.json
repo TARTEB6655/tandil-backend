@@ -19156,6 +19156,32 @@
                     ]
                 },
                 {
+                    "name": "F0. Add Product – Dropdown options",
+                    "description": "Mobile Add Product screen dropdowns. Returns only id + name for Category and Service pickers. Auth: Bearer {{token}} (approved vendor).",
+                    "item": [
+                        {
+                            "name": "1. Get categories (id + name)",
+                            "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var j = pm.response.json();", "    var items = (j.data && j.data.items) || [];", "    if (items.length && items[0].id) {", "        pm.collectionVariables.set('category_id', String(items[0].id));", "        pm.environment.set('category_id', String(items[0].id));", "    }", "}"]}}],
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "url": {"raw": "{{base_url}}/api/vendor/product-options/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "product-options", "categories"]},
+                                "description": "GET platform categories for Add Product dropdown. Response: data.items = [{ id, name }, ...]. Auto-sets {{category_id}} from first item."
+                            }
+                        },
+                        {
+                            "name": "2. Get services (id + name)",
+                            "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var j = pm.response.json();", "    var items = (j.data && j.data.items) || [];", "    if (items.length && items[0].id) {", "        pm.collectionVariables.set('service_id', String(items[0].id));", "        pm.environment.set('service_id', String(items[0].id));", "    }", "}"]}}],
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                                "url": {"raw": "{{base_url}}/api/vendor/product-options/services?category_id={{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "product-options", "services"], "query": [{"key": "category_id", "value": "{{category_id}}", "description": "Optional filter by selected category"}]},
+                                "description": "GET platform services for Add Product dropdown. Response: data.items = [{ id, name }, ...]. Optional ?category_id= to filter. Auto-sets {{service_id}} from first item."
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "F1. Categories (approved only – read-only)",
                     "description": "Platform (admin) categories only. Vendors cannot create/update/delete — use these IDs in product create (category_id). GET F1.1 first, then copy id to {{category_id}}.",
                     "item": [

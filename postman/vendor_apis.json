@@ -116,6 +116,13 @@
                     ]
                 },
                 {
+                    "name": "Product form options",
+                    "item": [
+                        {"name": "Get categories (id + name)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/product-options/categories", "description": "Add Product dropdown — platform categories only."}},
+                        {"name": "Get services (id + name)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/product-options/services?category_id={{category_id}}", "description": "Add Product dropdown — platform services. Optional category_id filter."}}
+                    ]
+                },
+                {
                     "name": "Categories (platform – read only)",
                     "item": [
                         {"name": "List platform categories", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/categories", "description": "Admin categories for product category_id. Vendors cannot create categories."}},

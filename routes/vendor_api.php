@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Vendor\VendorInventoryController;
 use App\Http\Controllers\Api\Vendor\VendorOrderController;
 use App\Http\Controllers\Api\Vendor\VendorCategoryController;
 use App\Http\Controllers\Api\Vendor\VendorProductController;
+use App\Http\Controllers\Api\Vendor\VendorProductOptionsController;
 use App\Http\Controllers\Api\Vendor\VendorProfileController;
 use App\Http\Controllers\Api\Vendor\VendorServiceController;
 use App\Http\Controllers\Auth\AuthController;
@@ -49,6 +50,9 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard/stats', [VendorDashboardController::class, 'stats']);
         Route::get('/dashboard/summary', [VendorDashboardController::class, 'summary']);
+
+        Route::get('/product-options/categories', [VendorProductOptionsController::class, 'categories']);
+        Route::get('/product-options/services', [VendorProductOptionsController::class, 'services']);
 
         Route::get('/categories', [VendorCategoryController::class, 'index']);
         Route::post('/categories', [VendorCategoryController::class, 'store']);
