@@ -97,8 +97,16 @@ class LoginService
     {
         $tokenName = 'api_'.$portal;
 
-        // Drop stale portal tokens so personal_access_tokens does not grow without bound (slow logins).
-        $user->tokens()->where('name', $tokenName)->delete();
+        // Do not revoke existing tokens on login — mobile/Postman sessions stay valid.
+        // Cap growth: keep only the 9 most recent tokens per portal before issuing another.
+        $existingIds = $user->tokens()
+            ->where('name', $tokenName)
+            ->orderByDesc('id')
+            ->pluck('id');
+
+        if ($existingIds->count() >= 10) {
+            $user->tokens()->whereIn('id', $existingIds->slice(9)->values()->all())->delete();
+        }
 
         return $user->createToken($tokenName, [$portal])->plainTextToken;
     }

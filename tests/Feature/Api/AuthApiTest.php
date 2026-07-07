@@ -300,7 +300,7 @@ class AuthApiTest extends TestCase
         return $cases;
     }
 
-    public function test_login_replaces_previous_portal_token_instead_of_accumulating(): void
+    public function test_login_keeps_previous_portal_tokens_valid(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
             $this->markTestSkipped('Spatie permission tables unavailable.');
@@ -320,12 +320,17 @@ class AuthApiTest extends TestCase
             'roles' => 'client',
         ];
 
-        $this->postJson('/api/auth/login', $payload)->assertStatus(200);
-        $this->postJson('/api/auth/login', $payload)->assertStatus(200);
+        $first = $this->postJson('/api/auth/login', $payload)->assertStatus(200);
+        $firstToken = $first->json('data.token');
+
         $this->postJson('/api/auth/login', $payload)->assertStatus(200);
 
-        $this->assertSame(
-            1,
+        $this->withToken($firstToken)
+            ->getJson('/api/user/profile')
+            ->assertOk();
+
+        $this->assertGreaterThanOrEqual(
+            2,
             $user->fresh()->tokens()->where('name', 'api_client')->count()
         );
     }
