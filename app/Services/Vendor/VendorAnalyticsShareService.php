@@ -14,7 +14,7 @@ class VendorAnalyticsShareService
     ) {}
 
     /**
-     * Create or refresh a public share link for vendor analytics (CSV + browser view).
+     * Create or refresh a public share link for vendor analytics PDF.
      *
      * @return array<string, mixed>
      */
@@ -33,8 +33,8 @@ class VendorAnalyticsShareService
         }
 
         $token = Str::lower(Str::random(48));
-        $relativePath = 'shared/vendor-analytics/'.$token.'.csv';
-        Storage::disk('public')->put($relativePath, $this->analytics->buildCsvString($vendor, $period));
+        $relativePath = 'shared/vendor-analytics/'.$token.'.pdf';
+        Storage::disk('public')->put($relativePath, $this->analytics->buildPdfBinary($vendor, $period));
 
         $share = VendorAnalyticsShare::updateOrCreate(
             ['vendor_id' => $vendor->id, 'period' => $period],
@@ -74,11 +74,9 @@ class VendorAnalyticsShareService
         $base = rtrim(request()->getSchemeAndHttpHost() ?: config('app.url', ''), '/');
 
         return [
-            'token' => $share->token,
             'period' => $share->period,
             'share_url' => $base.'/shared/analytics/'.$share->token,
-            'view_url' => $base.'/shared/analytics/'.$share->token,
-            'file_url' => $base.'/shared/analytics/'.$share->token.'/download',
+            'download_url' => $base.'/shared/analytics/'.$share->token.'/download',
             'expires_at' => $share->expires_at?->toIso8601String(),
             'expires_in_days' => $share->expires_at
                 ? max(0, (int) now()->diffInDays($share->expires_at, false))

@@ -64,8 +64,8 @@ Route::get('/app-storage/{path}', function (string $path) {
 Route::get('/media/{path}', function (string $path) {
     $path = str_replace(['..', '\\'], ['', '/'], $path);
 
-    // Shared analytics CSV links should open formatted report in browser, not raw text.
-    if (preg_match('#^shared/vendor-analytics/([a-z0-9]+)\.csv$#i', $path, $matches)) {
+    // Shared analytics PDF links open formatted report in browser (legacy .csv redirects too).
+    if (preg_match('#^shared/vendor-analytics/([a-z0-9]+)\.(csv|pdf)$#i', $path, $matches)) {
         return redirect()->route('shared.vendor-analytics', ['token' => $matches[1]]);
     }
 

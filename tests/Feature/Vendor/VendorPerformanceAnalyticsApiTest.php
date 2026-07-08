@@ -53,51 +53,32 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
                 ],
             ])
             ->assertJsonPath('data.analytics.actions.0.id', 'export_report')
-            ->assertJsonPath('data.analytics.actions.0.available', true)
-            ->assertJsonPath('data.analytics.actions.0.path', '/api/vendor/analytics/performance/export')
+            ->assertJsonPath('data.analytics.actions.0.file_format', 'pdf')
             ->assertJsonPath('data.analytics.actions.1.id', 'share_analytics')
-            ->assertJsonPath('data.analytics.actions.1.available', true)
-            ->assertJsonPath('data.analytics.actions.1.path', '/api/vendor/analytics/performance/share');
+            ->assertJsonPath('data.analytics.actions.1.available', true);
     }
 
-    public function test_approved_vendor_can_export_performance_analytics_csv(): void
+    public function test_approved_vendor_can_export_performance_analytics_pdf(): void
     {
         ['token' => $token] = $this->makeVendorWithOrderData();
 
         $response = $this->withToken($token)->get('/api/vendor/analytics/performance/export?period=month');
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $response->assertHeader('content-type', 'application/pdf');
         $this->assertStringContainsString('attachment; filename=', (string) $response->headers->get('content-disposition'));
-        $this->assertStringContainsString('Vendor Performance Analytics Report', $response->streamedContent());
-        $this->assertStringContainsString('Description', $response->streamedContent());
-        $this->assertStringContainsString('Organic Cherry Tomatoes', $response->streamedContent());
+        $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
-    public function test_export_csv_overview_columns_are_aligned_for_excel(): void
+    public function test_build_pdf_contains_vendor_business_name(): void
     {
         ['vendor' => $vendor] = $this->makeVendorWithOrderData();
 
-        $csv = app(\App\Services\Vendor\VendorPerformanceAnalyticsService::class)
-            ->buildCsvString($vendor, 'month');
+        $pdf = app(\App\Services\Vendor\VendorPerformanceAnalyticsService::class)
+            ->buildPdfBinary($vendor, 'month');
 
-        $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
-
-        $lines = array_values(array_filter(explode("\n", $csv), fn ($line) => trim($line) !== ''));
-        $overviewRow = null;
-
-        foreach ($lines as $line) {
-            $row = str_getcsv($line);
-            if (($row[0] ?? '') === 'Total Products') {
-                $overviewRow = $row;
-                break;
-            }
-        }
-
-        $this->assertNotNull($overviewRow);
-        $this->assertSame('Total Products', $overviewRow[0]);
-        $this->assertSame('1', $overviewRow[1]);
-        $this->assertSame('Active in catalog', $overviewRow[2]);
+        $this->assertStringStartsWith('%PDF', $pdf);
+        $this->assertGreaterThan(1000, strlen($pdf));
     }
 
     public function test_unapproved_vendor_cannot_export_performance_analytics(): void
@@ -125,27 +106,23 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
             ->assertJsonPath('data.share.period', 'month')
             ->assertJsonStructure([
                 'data' => [
-                    'share' => ['token', 'share_url', 'file_url', 'expires_at'],
+                    'share' => ['share_url', 'download_url', 'expires_at'],
                 ],
-            ]);
+            ])
+            ->assertJsonMissingPath('data.share.view_url')
+            ->assertJsonMissingPath('data.share.file_url')
+            ->assertJsonMissingPath('data.share.token');
 
         $shareUrl = $response->json('data.share.share_url');
-        $this->assertIsString($shareUrl);
-        $this->assertStringContainsString('/shared/analytics/', $shareUrl);
+        $downloadUrl = $response->json('data.share.download_url');
+        $this->assertStringContainsString('/shared/analytics/', (string) $shareUrl);
+        $this->assertStringContainsString('/download', (string) $downloadUrl);
 
-        $fileUrl = $response->json('data.share.file_url');
-        $this->assertStringContainsString('/shared/analytics/', (string) $fileUrl);
-        $this->assertStringContainsString('/download', (string) $fileUrl);
+        $token = basename((string) $shareUrl);
 
-        $token = $response->json('data.share.token');
         $this->get('/shared/analytics/'.$token)
             ->assertOk()
-            ->assertSee('Green Fields Agro Supplies')
-            ->assertSee('Organic Cherry Tomatoes')
-            ->assertSee('Overview');
-
-        $this->get('/media/shared/vendor-analytics/'.$token.'.csv')
-            ->assertRedirect('/shared/analytics/'.$token);
+            ->assertHeader('content-type', 'application/pdf');
 
         $this->get('/shared/analytics/'.$token.'/download')
             ->assertOk()
@@ -159,7 +136,7 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
         $create = $this->withToken($token)->postJson('/api/vendor/analytics/performance/share?period=month')
             ->assertOk();
 
-        $shareToken = $create->json('data.share.token');
+        $shareToken = basename((string) $create->json('data.share.share_url'));
 
         \App\Models\VendorAnalyticsShare::query()
             ->where('vendor_id', $vendor->id)

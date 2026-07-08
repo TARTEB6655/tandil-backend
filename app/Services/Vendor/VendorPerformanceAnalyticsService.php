@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -153,7 +154,7 @@ class VendorPerformanceAnalyticsService
                     'method' => 'GET',
                     'path' => '/api/vendor/analytics/performance/export',
                     'query_params' => ['period' => $period],
-                    'file_format' => 'csv',
+                    'file_format' => 'pdf',
                 ],
                 [
                     'id' => 'share_analytics',
@@ -168,188 +169,24 @@ class VendorPerformanceAnalyticsService
         ];
     }
 
-    /**
-     * CSV rows for analytics export (Excel-compatible).
-     *
-     * @return list<list<string>>
-     */
-    public function buildCsvRows(Vendor $vendor, string $period = 'month'): array
+    public function buildPdfBinary(Vendor $vendor, string $period = 'month'): string
     {
         $period = $this->normalizePeriod($period);
+        $vendor->loadMissing('profile');
         $analytics = $this->build($vendor, $period);
-        $businessName = $vendor->profile?->business_name ?? 'Vendor';
 
-        $rows = [
-            ['Vendor Performance Analytics Report'],
-            ['Business Name', $businessName],
-            ['Report Period', $analytics['period_label']],
-            ['Generated On', now()->format('Y-m-d H:i:s')],
-            [],
-            ['Overview'],
-            ['Metric', 'Value', 'Description', 'Growth %'],
-        ];
-
-        foreach ([
-            'total_products' => 'Total Products',
-            'total_orders' => 'Total Orders',
-            'total_revenue' => 'Total Revenue',
-            'total_views' => 'Total Views',
-        ] as $key => $label) {
-            $item = $analytics['overview'][$key];
-            $rows[] = [
-                $label,
-                $this->overviewMetricValue($item),
-                (string) ($item['subtitle'] ?? ''),
-                (string) ($item['growth_display'] ?? '—'),
-            ];
-        }
-
-        $rows[] = [];
-        $rows[] = ['Performance Metrics'];
-        $rows[] = ['Metric', 'Value', 'Description'];
-        foreach ([
-            'conversion_rate' => 'Conversion Rate',
-            'avg_order_value' => 'Average Order Value',
-            'satisfaction' => 'Customer Satisfaction',
-            'return_rate' => 'Return Rate',
-        ] as $key => $label) {
-            $metric = $analytics['performance_metrics'][$key];
-            $rows[] = [
-                $label,
-                $this->metricDisplayValue($metric),
-                (string) ($metric['subtitle'] ?? ''),
-            ];
-        }
-
-        $rows[] = [];
-        $rows[] = ['Top Products'];
-        $rows[] = ['Rank', 'Product Name', 'Orders', 'Revenue', 'Growth %'];
-        if ($analytics['top_products'] === []) {
-            $rows[] = ['—', 'No product sales in this period', '0', 'AED 0', '—'];
-        } else {
-            foreach ($analytics['top_products'] as $product) {
-                $rows[] = [
-                    (string) $product['rank'],
-                    (string) $product['name'],
-                    (string) $product['orders'],
-                    (string) $product['revenue_display'],
-                    (string) $product['growth_display'],
-                ];
-            }
-        }
-
-        $rows[] = [];
-        $rows[] = ['Recent Activity'];
-        $rows[] = ['Activity Type', 'Title', 'Value', 'Time'];
-        if ($analytics['recent_activity'] === []) {
-            $rows[] = ['—', 'No recent activity in this period', '—', '—'];
-        } else {
-            foreach ($analytics['recent_activity'] as $activity) {
-                $rows[] = [
-                    ucfirst((string) $activity['type']),
-                    (string) $activity['title'],
-                    (string) $activity['value'],
-                    (string) $activity['time_ago'],
-                ];
-            }
-        }
-
-        $rows[] = [];
-        $rows[] = ['Daily Performance (Last 7 Days)'];
-        $rows[] = ['Day', 'Orders', 'Revenue (AED)'];
-        foreach ($analytics['trends']['daily_performance']['data_points'] as $point) {
-            $rows[] = [
-                (string) $point['label'],
-                (string) $point['orders'],
-                $this->formatAed((float) $point['revenue']),
-            ];
-        }
-
-        $rows[] = [];
-        $rows[] = ['Weekly Revenue (Last 7 Weeks)'];
-        $rows[] = ['Week', 'Revenue (AED)'];
-        foreach ($analytics['trends']['weekly_revenue']['data_points'] as $point) {
-            $rows[] = [
-                (string) $point['label'],
-                $this->formatAed((float) $point['revenue']),
-            ];
-        }
-
-        return $rows;
-    }
-
-    public function buildCsvString(Vendor $vendor, string $period = 'month'): string
-    {
-        return $this->prependUtf8Bom($this->rowsToCsv($this->buildCsvRows($vendor, $period)));
-    }
-
-    /**
-     * @param  list<list<string>>  $rows
-     */
-    private function rowsToCsv(array $rows): string
-    {
-        $handle = fopen('php://temp', 'r+');
-        foreach ($rows as $row) {
-            fputcsv($handle, $row);
-        }
-        rewind($handle);
-        $csv = stream_get_contents($handle) ?: '';
-        fclose($handle);
-
-        return $csv;
-    }
-
-    private function prependUtf8Bom(string $csv): string
-    {
-        return "\xEF\xBB\xBF".$csv;
-    }
-
-    /**
-     * @param  array<string, mixed>  $item
-     */
-    private function overviewMetricValue(array $item): string
-    {
-        if (! empty($item['display'])) {
-            return (string) $item['display'];
-        }
-
-        $value = $item['value'] ?? 0;
-
-        if (($item['currency'] ?? null) === 'AED') {
-            return $this->formatAed((float) $value);
-        }
-
-        return (string) $value;
-    }
-
-    /**
-     * @param  array<string, mixed>  $metric
-     */
-    private function metricDisplayValue(array $metric): string
-    {
-        if (! empty($metric['display'])) {
-            return (string) $metric['display'];
-        }
-
-        $value = $metric['value'] ?? 0;
-        $unit = $metric['unit'] ?? null;
-
-        if ($unit === '%') {
-            return number_format((float) $value, 1).'%';
-        }
-
-        if (($metric['currency'] ?? null) === 'AED') {
-            return $this->formatAed((float) $value);
-        }
-
-        return (string) $value;
+        return Pdf::loadView('shared.vendor-analytics-pdf', [
+            'businessName' => $vendor->profile?->business_name ?? 'Vendor',
+            'generatedAt' => now()->format('d M Y, H:i'),
+            'analytics' => $analytics,
+        ])->setPaper('a4', 'portrait')->output();
     }
 
     public function exportFilename(string $period = 'month'): string
     {
         $period = $this->normalizePeriod($period);
 
-        return 'vendor_analytics_'.$period.'_'.now()->format('Y-m-d_His').'.csv';
+        return 'vendor_analytics_'.$period.'_'.now()->format('Y-m-d_His').'.pdf';
     }
 
     public function normalizePeriod(string $period): string

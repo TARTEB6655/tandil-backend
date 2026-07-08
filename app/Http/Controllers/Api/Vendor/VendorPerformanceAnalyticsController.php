@@ -8,7 +8,7 @@ use App\Services\Vendor\VendorAnalyticsShareService;
 use App\Services\Vendor\VendorPerformanceAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Http\Response;
 
 class VendorPerformanceAnalyticsController extends Controller
 {
@@ -27,16 +27,14 @@ class VendorPerformanceAnalyticsController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): Response
     {
         $vendor = $request->attributes->get('vendor');
         $period = $this->analytics->normalizePeriod((string) $request->query('period', 'month'));
         $filename = $this->analytics->exportFilename($period);
 
-        return response()->streamDownload(function () use ($vendor, $period) {
-            echo $this->analytics->buildCsvString($vendor, $period);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        return response($this->analytics->buildPdfBinary($vendor, $period), 200, [
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
