@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. Profile **B** (Edit Profile). **F** Performance Analytics: `GET /api/vendor/analytics/performance?period=week|month|quarter|year`. Auth: `{{vendor_token}}`, approved vendor.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.70"
+        "version": "3.3.72"
     },
     "item": [
         {
@@ -19336,7 +19336,7 @@
                 },
                 {
                     "name": "F. Performance Analytics (approved only)",
-                    "description": "Profile → Partnership → Performance Analytics.\n\n| # | API | Screen |\n|---|-----|--------|\n| 1 | GET performance | Analytics dashboard data |\n| 2 | GET performance/export | **Export Report** button — downloads CSV file |",
+                    "description": "Profile → Partnership → Performance Analytics.\n\n| # | API | Screen |\n|---|-----|--------|\n| 1 | GET performance | Analytics dashboard data |\n| 2 | GET performance/export | **Export Report** — CSV download |\n| 3 | POST performance/share | **Share Analytics** — public browser link |",
                     "item": [
                         {
                             "name": "1. Get performance analytics",
@@ -19387,7 +19387,40 @@
                                     "path": ["api", "vendor", "analytics", "performance", "export"],
                                     "query": [{"key": "period", "value": "month", "description": "week | month | quarter | year"}]
                                 },
-                                "description": "GET `/api/vendor/analytics/performance/export?period=month` — **Export Report** button. Returns CSV file download (Excel-compatible). Same period filter as request 1. Mobile: save response as file on device."
+                                "description": "GET `/api/vendor/analytics/performance/export?period=month` — **Export Report** (CSV file).\n\n**Postman mein file download:** Send ▼ → **Send and Download**, ya **Save Response** → **Save to a file**.\n\nRaw body mein CSV text dikhna normal hai. Mobile app file save karegi."
+                            }
+                        },
+                        {
+                            "name": "3. Share performance analytics (public link)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Share link created', function () {",
+                                            "    var s = pm.response.json().data.share;",
+                                            "    pm.expect(s).to.have.property('share_url');",
+                                            "    pm.expect(s).to.have.property('file_url');",
+                                            "    pm.collectionVariables.set('analytics_share_url', s.share_url);",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/analytics/performance/share?period=month",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "analytics", "performance", "share"],
+                                    "query": [{"key": "period", "value": "month", "description": "week | month | quarter | year"}]
+                                },
+                                "description": "POST `/api/vendor/analytics/performance/share?period=month` — **Share Analytics** button.\n\nReturns public URLs (no login):\n- `share_url` — open in any browser (formatted HTML report)\n- `file_url` — direct CSV download link\n\nLink expires in 30 days. Mobile: native share sheet mein `share_url` bhejo."
                             }
                         }
                     ]

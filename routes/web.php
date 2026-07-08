@@ -72,6 +72,11 @@ Route::get('/media/{path}', function (string $path) {
     return response()->file($fullPath, ['Content-Type' => $mime]);
 })->where('path', '.*')->name('storage.serve');
 
+// Public shared vendor analytics (no login) — Share Analytics button
+Route::get('/shared/analytics/{token}', [\App\Http\Controllers\SharedVendorAnalyticsController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]+')
+    ->name('shared.vendor-analytics');
+
 // Public legal pages (no authentication — App Store / website)
 Route::get('/privacy-policy', [LegalPageController::class, 'privacyPolicy'])->name('legal.privacy-policy');
 Route::redirect('/privacy', '/privacy-policy', 301);

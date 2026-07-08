@@ -155,7 +155,15 @@ class VendorPerformanceAnalyticsService
                     'query_params' => ['period' => $period],
                     'file_format' => 'csv',
                 ],
-                ['id' => 'share_analytics', 'label' => 'Share Analytics', 'available' => true],
+                [
+                    'id' => 'share_analytics',
+                    'label' => 'Share Analytics',
+                    'available' => true,
+                    'type' => 'share',
+                    'method' => 'POST',
+                    'path' => '/api/vendor/analytics/performance/share',
+                    'query_params' => ['period' => $period],
+                ],
             ],
         ];
     }

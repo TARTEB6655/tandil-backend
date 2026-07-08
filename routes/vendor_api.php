@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
         Route::get('/dashboard/summary', [VendorDashboardController::class, 'summary']);
         Route::get('/analytics/performance', [VendorPerformanceAnalyticsController::class, 'show']);
         Route::get('/analytics/performance/export', [VendorPerformanceAnalyticsController::class, 'export']);
+        Route::post('/analytics/performance/share', [VendorPerformanceAnalyticsController::class, 'share']);
 
         Route::get('/product-options/categories', [VendorProductOptionsController::class, 'categories']);
         Route::get('/product-options/services', [VendorProductOptionsController::class, 'services']);

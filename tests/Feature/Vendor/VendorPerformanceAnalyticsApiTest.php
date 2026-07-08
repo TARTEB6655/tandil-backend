@@ -54,7 +54,10 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
             ])
             ->assertJsonPath('data.analytics.actions.0.id', 'export_report')
             ->assertJsonPath('data.analytics.actions.0.available', true)
-            ->assertJsonPath('data.analytics.actions.0.path', '/api/vendor/analytics/performance/export');
+            ->assertJsonPath('data.analytics.actions.0.path', '/api/vendor/analytics/performance/export')
+            ->assertJsonPath('data.analytics.actions.1.id', 'share_analytics')
+            ->assertJsonPath('data.analytics.actions.1.available', true)
+            ->assertJsonPath('data.analytics.actions.1.path', '/api/vendor/analytics/performance/share');
     }
 
     public function test_approved_vendor_can_export_performance_analytics_csv(): void
@@ -84,6 +87,46 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
 
         $this->withToken($token)->getJson('/api/vendor/analytics/performance')
             ->assertForbidden();
+    }
+
+    public function test_approved_vendor_can_create_public_share_link(): void
+    {
+        ['token' => $token] = $this->makeVendorWithOrderData();
+
+        $response = $this->withToken($token)->postJson('/api/vendor/analytics/performance/share?period=month')
+            ->assertOk()
+            ->assertJsonPath('data.share.period', 'month')
+            ->assertJsonStructure([
+                'data' => [
+                    'share' => ['token', 'share_url', 'file_url', 'expires_at'],
+                ],
+            ]);
+
+        $shareUrl = $response->json('data.share.share_url');
+        $this->assertIsString($shareUrl);
+        $this->assertStringContainsString('/shared/analytics/', $shareUrl);
+
+        $token = $response->json('data.share.token');
+        $this->get('/shared/analytics/'.$token)
+            ->assertOk()
+            ->assertSee('Green Fields Agro Supplies')
+            ->assertSee('Organic Cherry Tomatoes');
+    }
+
+    public function test_expired_share_link_returns_not_found(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorWithOrderData();
+
+        $create = $this->withToken($token)->postJson('/api/vendor/analytics/performance/share?period=month')
+            ->assertOk();
+
+        $shareToken = $create->json('data.share.token');
+
+        \App\Models\VendorAnalyticsShare::query()
+            ->where('vendor_id', $vendor->id)
+            ->update(['expires_at' => now()->subDay()]);
+
+        $this->get('/shared/analytics/'.$shareToken)->assertNotFound();
     }
 
     public function test_invalid_period_defaults_to_month(): void

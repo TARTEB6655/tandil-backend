@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Vendor;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Services\Vendor\VendorAnalyticsShareService;
 use App\Services\Vendor\VendorPerformanceAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class VendorPerformanceAnalyticsController extends Controller
 {
     public function __construct(
-        private readonly VendorPerformanceAnalyticsService $analytics
+        private readonly VendorPerformanceAnalyticsService $analytics,
+        private readonly VendorAnalyticsShareService $shares
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -40,6 +42,17 @@ class VendorPerformanceAnalyticsController extends Controller
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    public function share(Request $request): JsonResponse
+    {
+        $vendor = $request->attributes->get('vendor');
+        $period = $this->analytics->normalizePeriod((string) $request->query('period', 'month'));
+        $share = $this->shares->createShare($vendor, $period);
+
+        return ApiResponse::success('Analytics share link created.', [
+            'share' => $share,
         ]);
     }
 }
