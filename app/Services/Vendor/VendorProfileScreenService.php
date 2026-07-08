@@ -61,8 +61,14 @@ class VendorProfileScreenService
             ],
             'account_settings' => [
                 ['id' => 'edit_profile', 'title' => 'Edit Profile', 'icon' => 'person'],
+                ['id' => 'business_information', 'title' => 'Business Information', 'icon' => 'business'],
+                ['id' => 'location_address', 'title' => 'Location & Address', 'icon' => 'location'],
+                ['id' => 'payment_methods', 'title' => 'Payment Methods', 'icon' => 'payment'],
             ],
             'edit_profile' => $this->editProfileForm($vendor, $profile, $user, $opensAt, $closesAt),
+            'business_information' => $this->businessInformation($profile, $opensAt, $closesAt),
+            'location_address' => $this->locationAddress($profile, $locationParts),
+            'payment_methods' => $this->paymentMethods($profile),
             'read_only' => [
                 'vendor_id' => $vendor->id,
                 'status' => $vendor->status,
@@ -121,6 +127,69 @@ class VendorProfileScreenService
                 'locked' => true,
                 'note' => 'These fields are set during registration. Contact support to request changes.',
             ],
+        ];
+    }
+
+    /**
+     * Business Information screen — read-only (GET display only).
+     *
+     * @return array<string, mixed>
+     */
+    private function businessInformation($profile, ?string $opensAt, ?string $closesAt): array
+    {
+        return [
+            'title' => 'Business Information',
+            'read_only' => true,
+            'business_name' => $profile?->business_name,
+            'vendor_type' => $profile?->vendor_type,
+            'vendor_type_label' => $profile?->vendor_type_label,
+            'trade_license_number' => $profile?->trade_license_number,
+            'tax_vat_number' => $profile?->tax_vat_number,
+            'years_in_business' => $profile?->years_in_business,
+            'operating_hours' => $profile?->operating_hours,
+            'opens_at' => $opensAt,
+            'closes_at' => $closesAt,
+            'minimum_order_amount' => $profile?->minimum_order_amount !== null
+                ? (float) $profile->minimum_order_amount
+                : null,
+        ];
+    }
+
+    /**
+     * Location & Address screen — read-only (GET display only).
+     *
+     * @param  list<string>  $locationParts
+     * @return array<string, mixed>
+     */
+    private function locationAddress($profile, array $locationParts): array
+    {
+        return [
+            'title' => 'Location & Address',
+            'read_only' => true,
+            'emirate' => $profile?->emirate,
+            'city' => $profile?->city,
+            'address' => $profile?->address,
+            'google_maps_location' => $profile?->google_maps_location,
+            'delivery_radius' => $profile?->delivery_radius !== null
+                ? (float) $profile->delivery_radius
+                : null,
+            'location_display' => implode(', ', $locationParts) ?: null,
+        ];
+    }
+
+    /**
+     * Payment Methods screen — read-only (GET display only).
+     *
+     * @return array<string, mixed>
+     */
+    private function paymentMethods($profile): array
+    {
+        return [
+            'title' => 'Payment Methods',
+            'read_only' => true,
+            'bank_name' => $profile?->bank_name,
+            'iban' => $profile?->iban,
+            'account_holder_name' => $profile?->account_holder_name,
         ];
     }
 

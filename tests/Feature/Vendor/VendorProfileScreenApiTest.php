@@ -45,10 +45,12 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.edit_profile.editable.bank_name', 'Emirates NBD')
             ->assertJsonPath('data.profile.edit_profile.verified_by_admin.emirate', 'Abu Dhabi')
             ->assertJsonPath('data.profile.edit_profile.verified_by_admin.locked', true)
-            ->assertJsonPath('data.profile.read_only.vendor_id', $vendor->id)
-            ->assertJsonMissingPath('data.profile.business_information')
-            ->assertJsonMissingPath('data.profile.location_address')
-            ->assertJsonMissingPath('data.profile.payment_methods');
+            ->assertJsonPath('data.profile.business_information.read_only', true)
+            ->assertJsonPath('data.profile.business_information.business_name', 'Green Fields Agro Supplies')
+            ->assertJsonPath('data.profile.business_information.vendor_type_label', 'Fruits')
+            ->assertJsonPath('data.profile.location_address.city', 'Al Ain')
+            ->assertJsonPath('data.profile.payment_methods.bank_name', 'Emirates NBD')
+            ->assertJsonPath('data.profile.read_only.vendor_id', $vendor->id);
     }
 
     public function test_post_profile_returns_same_edit_profile_shape_as_get(): void
@@ -77,7 +79,7 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.edit_profile.editable.delivery_radius', 30)
             ->assertJsonPath('data.profile.edit_profile.editable.minimum_order_amount', 75)
             ->assertJsonPath('data.profile.edit_profile.store_branding.logo_url', fn ($url) => is_string($url) && $url !== '')
-            ->assertJsonMissingPath('data.profile.business_information');
+            ->assertJsonPath('data.profile.business_information.business_name', 'Updated Business');
     }
 
     public function test_vendor_cannot_update_restricted_profile_fields(): void
