@@ -19,8 +19,8 @@ class UpdateVendorProfileApiRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'logo' => ['sometimes', 'nullable', 'image', 'max:5120'],
-            'profile_picture' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'logo' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:512000'],
+            'profile_picture' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:512000'],
             'business_name' => ['sometimes', 'string', 'max:255'],
             'contact_person' => ['sometimes', 'string', 'max:255'],
             'phone' => ['sometimes', 'string', 'max:32'],

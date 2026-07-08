@@ -47,7 +47,7 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'terms_accepted' => ['required', 'accepted'],
 
-            'logo' => ['nullable', 'image', 'max:5120'],
+            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:512000'],
 
             'trade_license' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
             'emirates_id' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],

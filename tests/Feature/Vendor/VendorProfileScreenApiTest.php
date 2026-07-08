@@ -40,7 +40,7 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.stats.products', 1)
             ->assertJsonPath('data.profile.edit_profile.title', 'Edit Profile')
             ->assertJsonPath('data.profile.edit_profile.subtitle', 'Update contact and store operations')
-            ->assertJsonPath('data.profile.edit_profile.store_branding.hint', 'Update your business profile logo.')
+            ->assertJsonPath('data.profile.edit_profile.store_branding.hint', 'Upload any image size (up to 500 MB). Server auto-compresses for fast loading.')
             ->assertJsonPath('data.profile.edit_profile.business_contact.business_name', 'Green Fields Agro Supplies')
             ->assertJsonPath('data.profile.edit_profile.business_contact.contact_person', 'Ali Vendor')
             ->assertJsonPath('data.profile.edit_profile.business_contact.city', 'Al Ain')
@@ -96,6 +96,37 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.profile.edit_profile.store_branding.profile_picture_url', fn ($url) => is_string($url) && $url !== '')
             ->assertJsonPath('data.profile.summary.profile_picture_url', fn ($url) => is_string($url) && $url !== '');
+    }
+
+    public function test_post_profile_compresses_large_profile_picture(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+
+        $large = $this->makeLargeJpegUpload('large-profile.jpg', 2000, 1600);
+
+        $this->withToken($token)->post('/api/vendor/profile', [
+            'profile_picture' => $large,
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.profile.edit_profile.store_branding.profile_picture_url', fn ($url) => is_string($url) && $url !== '');
+
+        $vendor->refresh()->load('profile');
+        $this->assertNotNull($vendor->profile->logo_path);
+        Storage::disk('public')->assertExists($vendor->profile->logo_path);
+    }
+
+    private function makeLargeJpegUpload(string $name, int $width, int $height): UploadedFile
+    {
+        $img = imagecreatetruecolor($width, $height);
+        for ($i = 0; $i < 200; $i++) {
+            $color = imagecolorallocate($img, random_int(0, 255), random_int(0, 255), random_int(0, 255));
+            imagefilledrectangle($img, random_int(0, $width - 1), random_int(0, $height - 1), random_int(0, $width - 1), random_int(0, $height - 1), $color);
+        }
+        $tmp = tempnam(sys_get_temp_dir(), 'vendor_logo_');
+        imagejpeg($img, $tmp, 100);
+        imagedestroy($img);
+
+        return new UploadedFile($tmp, $name, 'image/jpeg', null, true);
     }
 
     public function test_vendor_cannot_update_extra_profile_fields(): void

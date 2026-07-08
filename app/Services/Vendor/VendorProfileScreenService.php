@@ -104,7 +104,7 @@ class VendorProfileScreenService
             'store_branding' => [
                 'profile_picture_url' => $this->brandingImageUrl($vendor, $user),
                 'logo_url' => $this->brandingImageUrl($vendor, $user),
-                'hint' => 'Update your business profile logo.',
+                'hint' => 'Upload any image size (up to 500 MB). Server auto-compresses for fast loading.',
                 'upload_field' => 'profile_picture',
             ],
             'business_contact' => [

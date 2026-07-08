@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorApprovalLog;
 use App\Models\VendorProfile;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -41,7 +42,7 @@ class VendorRegistrationService
                 'status' => VendorStatus::UnderReview->value,
             ]);
 
-            $logoPath = $logo ? $logo->store('vendors/logos', 'public') : null;
+            $logoPath = $logo ? $this->storeAndOptimizeLogo($logo) : null;
 
             $profileData = array_merge(
                 $this->mapProfileFields($data),
@@ -116,7 +117,7 @@ class VendorRegistrationService
                 if ($profile->logo_path) {
                     Storage::disk('public')->delete($profile->logo_path);
                 }
-                $updates['logo_path'] = $logo->store('vendors/logos', 'public');
+                $updates['logo_path'] = $this->storeAndOptimizeLogo($logo);
             }
 
             if (! empty($updates)) {
@@ -180,7 +181,7 @@ class VendorRegistrationService
                 if ($profile->logo_path) {
                     Storage::disk('public')->delete($profile->logo_path);
                 }
-                $updates['logo_path'] = $logo->store('vendors/logos', 'public');
+                $updates['logo_path'] = $this->storeAndOptimizeLogo($logo);
             }
 
             if (! empty($updates)) {
@@ -200,6 +201,14 @@ class VendorRegistrationService
 
             return $vendor->fresh(['profile', 'user']);
         });
+    }
+
+    private function storeAndOptimizeLogo(UploadedFile $logo): string
+    {
+        $path = $logo->store('vendors/logos', 'public');
+        ImageCompressionService::optimizeVendorProfilePictureFromPublicPath($path);
+
+        return $path;
     }
 
     /**

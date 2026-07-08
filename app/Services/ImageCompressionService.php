@@ -29,6 +29,11 @@ class ImageCompressionService
     /** Max longest side in pixels for report/visit photos. */
     public const VISIT_PHOTO_MAX_DIMENSION = 1280;
 
+    /** Vendor store logo / profile picture (mobile Edit Profile). */
+    public const VENDOR_PROFILE_PICTURE_MAX_BYTES = 1024 * 1024; // 1 MB
+
+    public const VENDOR_PROFILE_PICTURE_MAX_DIMENSION = 1024;
+
     /** Max size for maintenance before/after showcase images. */
     public const MAINTENANCE_PHOTO_MAX_BYTES = 512 * 1024; // 512 KB
 
@@ -152,6 +157,19 @@ class ImageCompressionService
             $relativePath,
             self::PRODUCT_GALLERY_MAX_BYTES,
             self::PRODUCT_GALLERY_MAX_DIMENSION
+        );
+    }
+
+    /**
+     * Optimize vendor profile picture / store logo for fast mobile loading.
+     * Accepts large uploads; resizes and compresses to ~1 MB max (same target as user profiles).
+     */
+    public static function optimizeVendorProfilePictureFromPublicPath(string $relativePath): bool
+    {
+        return self::compressIfNeededFromPublicPath(
+            $relativePath,
+            self::VENDOR_PROFILE_PICTURE_MAX_BYTES,
+            self::VENDOR_PROFILE_PICTURE_MAX_DIMENSION
         );
     }
 
