@@ -2,11 +2,7 @@
 
 namespace App\Http\Requests\Vendor;
 
-use App\Models\Vendor;
-use App\Models\VendorProfile;
-use App\Support\VendorContext;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateVendorProfileApiRequest extends FormRequest
 {
@@ -20,31 +16,25 @@ class UpdateVendorProfileApiRequest extends FormRequest
      */
     public function rules(): array
     {
-        $vendor = $this->resolveVendor();
-        $profileId = $vendor?->profile?->id;
-        $userId = $vendor?->user_id;
-
         return [
             'owner_name' => ['sometimes', 'string', 'max:255'],
             'authorized_person_name' => ['sometimes', 'string', 'max:255'],
             'email' => [
-                'sometimes',
-                'email',
-                'max:255',
-                Rule::unique('vendor_profiles', 'email')->ignore($profileId),
-                Rule::unique('users', 'email')->ignore($userId),
+                'prohibited',
             ],
             'phone' => ['sometimes', 'string', 'max:32'],
             'business_name' => ['sometimes', 'string', 'max:255'],
             'company_name' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'address' => ['sometimes', 'string', 'max:2000'],
-            'emirate' => ['sometimes', 'string', 'max:100', Rule::in(VendorProfile::emirates())],
+            'emirate' => ['prohibited'],
             'city' => ['sometimes', 'nullable', 'string', 'max:100'],
             'google_maps_location' => ['sometimes', 'nullable', 'string', 'max:500'],
             'operating_hours' => ['sometimes', 'nullable', 'string', 'max:500'],
             'opens_at' => ['sometimes', 'nullable', 'date_format:H:i'],
             'closes_at' => ['sometimes', 'nullable', 'date_format:H:i'],
+            'delivery_radius' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:10000'],
+            'minimum_order_amount' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:1000000'],
             'bank_name' => ['sometimes', 'string', 'max:191'],
             'iban' => ['sometimes', 'string', 'max:64'],
             'account_holder_name' => ['sometimes', 'string', 'max:191'],
@@ -69,8 +59,6 @@ class UpdateVendorProfileApiRequest extends FormRequest
             'tax_vat_number' => ['prohibited'],
             'vat_number' => ['prohibited'],
             'years_in_business' => ['prohibited'],
-            'minimum_order_amount' => ['prohibited'],
-            'delivery_radius' => ['prohibited'],
             'terms_accepted' => ['prohibited'],
             'category_ids' => ['prohibited'],
             'trade_license' => ['prohibited'],
@@ -84,6 +72,7 @@ class UpdateVendorProfileApiRequest extends FormRequest
         $aliases = [
             'company_name' => 'business_name',
             'authorized_person_name' => 'owner_name',
+            'contact_person_name' => 'owner_name',
         ];
 
         foreach ($aliases as $from => $to) {
@@ -104,12 +93,5 @@ class UpdateVendorProfileApiRequest extends FormRequest
                 'operating_hours' => $opensAt.' - '.$closesAt,
             ]);
         }
-    }
-
-    protected function resolveVendor(): ?Vendor
-    {
-        $user = $this->user();
-
-        return $user ? VendorContext::vendorForUser($user) : null;
     }
 }

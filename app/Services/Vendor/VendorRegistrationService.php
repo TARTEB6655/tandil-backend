@@ -161,14 +161,14 @@ class VendorRegistrationService
             foreach ([
                 'business_name',
                 'owner_name',
-                'email',
                 'phone',
                 'description',
                 'address',
-                'emirate',
                 'city',
                 'google_maps_location',
                 'operating_hours',
+                'delivery_radius',
+                'minimum_order_amount',
                 'bank_name',
                 'iban',
                 'account_holder_name',
@@ -224,9 +224,6 @@ class VendorRegistrationService
             $userUpdates = [];
             if (array_key_exists('owner_name', $data) && $data['owner_name'] !== null && $data['owner_name'] !== '') {
                 $userUpdates['name'] = $data['owner_name'];
-            }
-            if (array_key_exists('email', $data) && $data['email'] !== null && $data['email'] !== '') {
-                $userUpdates['email'] = $data['email'];
             }
             if (array_key_exists('phone', $data)) {
                 $userUpdates['phone'] = $data['phone'] === '' ? null : $data['phone'];
