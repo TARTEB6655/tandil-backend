@@ -70,7 +70,34 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
         $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
         $this->assertStringContainsString('attachment; filename=', (string) $response->headers->get('content-disposition'));
         $this->assertStringContainsString('Vendor Performance Analytics Report', $response->streamedContent());
+        $this->assertStringContainsString('Description', $response->streamedContent());
         $this->assertStringContainsString('Organic Cherry Tomatoes', $response->streamedContent());
+    }
+
+    public function test_export_csv_overview_columns_are_aligned_for_excel(): void
+    {
+        ['vendor' => $vendor] = $this->makeVendorWithOrderData();
+
+        $csv = app(\App\Services\Vendor\VendorPerformanceAnalyticsService::class)
+            ->buildCsvString($vendor, 'month');
+
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
+
+        $lines = array_values(array_filter(explode("\n", $csv), fn ($line) => trim($line) !== ''));
+        $overviewRow = null;
+
+        foreach ($lines as $line) {
+            $row = str_getcsv($line);
+            if (($row[0] ?? '') === 'Total Products') {
+                $overviewRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($overviewRow);
+        $this->assertSame('Total Products', $overviewRow[0]);
+        $this->assertSame('1', $overviewRow[1]);
+        $this->assertSame('Active in catalog', $overviewRow[2]);
     }
 
     public function test_unapproved_vendor_cannot_export_performance_analytics(): void

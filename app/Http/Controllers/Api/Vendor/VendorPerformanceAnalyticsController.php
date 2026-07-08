@@ -34,11 +34,7 @@ class VendorPerformanceAnalyticsController extends Controller
         $filename = $this->analytics->exportFilename($period);
 
         return response()->streamDownload(function () use ($vendor, $period) {
-            $handle = fopen('php://output', 'w');
-            foreach ($this->analytics->buildCsvRows($vendor, $period) as $row) {
-                fputcsv($handle, $row);
-            }
-            fclose($handle);
+            echo $this->analytics->buildCsvString($vendor, $period);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',

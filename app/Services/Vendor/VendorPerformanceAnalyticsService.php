@@ -181,12 +181,12 @@ class VendorPerformanceAnalyticsService
 
         $rows = [
             ['Vendor Performance Analytics Report'],
-            ['Business', $businessName],
-            ['Period', $analytics['period_label']],
-            ['Generated At', now()->toDateTimeString()],
+            ['Business Name', $businessName],
+            ['Report Period', $analytics['period_label']],
+            ['Generated On', now()->format('Y-m-d H:i:s')],
             [],
             ['Overview'],
-            ['Metric', 'Value', 'Subtitle', 'Growth'],
+            ['Metric', 'Value', 'Description', 'Growth %'],
         ];
 
         foreach ([
@@ -198,15 +198,15 @@ class VendorPerformanceAnalyticsService
             $item = $analytics['overview'][$key];
             $rows[] = [
                 $label,
-                (string) ($item['display'] ?? $item['value']),
+                $this->overviewMetricValue($item),
                 (string) ($item['subtitle'] ?? ''),
-                (string) ($item['growth_display'] ?? ''),
+                (string) ($item['growth_display'] ?? '—'),
             ];
         }
 
         $rows[] = [];
         $rows[] = ['Performance Metrics'];
-        $rows[] = ['Metric', 'Value', 'Subtitle'];
+        $rows[] = ['Metric', 'Value', 'Description'];
         foreach ([
             'conversion_rate' => 'Conversion Rate',
             'avg_order_value' => 'Average Order Value',
@@ -216,34 +216,42 @@ class VendorPerformanceAnalyticsService
             $metric = $analytics['performance_metrics'][$key];
             $rows[] = [
                 $label,
-                (string) ($metric['display'] ?? $metric['value']),
+                $this->metricDisplayValue($metric),
                 (string) ($metric['subtitle'] ?? ''),
             ];
         }
 
         $rows[] = [];
         $rows[] = ['Top Products'];
-        $rows[] = ['Rank', 'Product', 'Orders', 'Revenue', 'Growth'];
-        foreach ($analytics['top_products'] as $product) {
-            $rows[] = [
-                (string) $product['rank'],
-                (string) $product['name'],
-                (string) $product['orders'],
-                (string) $product['revenue_display'],
-                (string) $product['growth_display'],
-            ];
+        $rows[] = ['Rank', 'Product Name', 'Orders', 'Revenue', 'Growth %'];
+        if ($analytics['top_products'] === []) {
+            $rows[] = ['—', 'No product sales in this period', '0', 'AED 0', '—'];
+        } else {
+            foreach ($analytics['top_products'] as $product) {
+                $rows[] = [
+                    (string) $product['rank'],
+                    (string) $product['name'],
+                    (string) $product['orders'],
+                    (string) $product['revenue_display'],
+                    (string) $product['growth_display'],
+                ];
+            }
         }
 
         $rows[] = [];
         $rows[] = ['Recent Activity'];
-        $rows[] = ['Type', 'Title', 'Value', 'Time'];
-        foreach ($analytics['recent_activity'] as $activity) {
-            $rows[] = [
-                (string) $activity['type'],
-                (string) $activity['title'],
-                (string) $activity['value'],
-                (string) $activity['time_ago'],
-            ];
+        $rows[] = ['Activity Type', 'Title', 'Value', 'Time'];
+        if ($analytics['recent_activity'] === []) {
+            $rows[] = ['—', 'No recent activity in this period', '—', '—'];
+        } else {
+            foreach ($analytics['recent_activity'] as $activity) {
+                $rows[] = [
+                    ucfirst((string) $activity['type']),
+                    (string) $activity['title'],
+                    (string) $activity['value'],
+                    (string) $activity['time_ago'],
+                ];
+            }
         }
 
         $rows[] = [];
@@ -253,7 +261,7 @@ class VendorPerformanceAnalyticsService
             $rows[] = [
                 (string) $point['label'],
                 (string) $point['orders'],
-                (string) $point['revenue'],
+                $this->formatAed((float) $point['revenue']),
             ];
         }
 
@@ -263,11 +271,78 @@ class VendorPerformanceAnalyticsService
         foreach ($analytics['trends']['weekly_revenue']['data_points'] as $point) {
             $rows[] = [
                 (string) $point['label'],
-                (string) $point['revenue'],
+                $this->formatAed((float) $point['revenue']),
             ];
         }
 
         return $rows;
+    }
+
+    public function buildCsvString(Vendor $vendor, string $period = 'month'): string
+    {
+        return $this->prependUtf8Bom($this->rowsToCsv($this->buildCsvRows($vendor, $period)));
+    }
+
+    /**
+     * @param  list<list<string>>  $rows
+     */
+    private function rowsToCsv(array $rows): string
+    {
+        $handle = fopen('php://temp', 'r+');
+        foreach ($rows as $row) {
+            fputcsv($handle, $row);
+        }
+        rewind($handle);
+        $csv = stream_get_contents($handle) ?: '';
+        fclose($handle);
+
+        return $csv;
+    }
+
+    private function prependUtf8Bom(string $csv): string
+    {
+        return "\xEF\xBB\xBF".$csv;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function overviewMetricValue(array $item): string
+    {
+        if (! empty($item['display'])) {
+            return (string) $item['display'];
+        }
+
+        $value = $item['value'] ?? 0;
+
+        if (($item['currency'] ?? null) === 'AED') {
+            return $this->formatAed((float) $value);
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metric
+     */
+    private function metricDisplayValue(array $metric): string
+    {
+        if (! empty($metric['display'])) {
+            return (string) $metric['display'];
+        }
+
+        $value = $metric['value'] ?? 0;
+        $unit = $metric['unit'] ?? null;
+
+        if ($unit === '%') {
+            return number_format((float) $value, 1).'%';
+        }
+
+        if (($metric['currency'] ?? null) === 'AED') {
+            return $this->formatAed((float) $value);
+        }
+
+        return (string) $value;
     }
 
     public function exportFilename(string $period = 'month'): string

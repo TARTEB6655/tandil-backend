@@ -34,8 +34,7 @@ class VendorAnalyticsShareService
 
         $token = Str::lower(Str::random(48));
         $relativePath = 'shared/vendor-analytics/'.$token.'.csv';
-        $csv = $this->buildCsvString($vendor, $period);
-        Storage::disk('public')->put($relativePath, $csv);
+        Storage::disk('public')->put($relativePath, $this->analytics->buildCsvString($vendor, $period));
 
         $share = VendorAnalyticsShare::updateOrCreate(
             ['vendor_id' => $vendor->id, 'period' => $period],
@@ -85,18 +84,5 @@ class VendorAnalyticsShareService
                 ? max(0, (int) now()->diffInDays($share->expires_at, false))
                 : null,
         ];
-    }
-
-    private function buildCsvString(Vendor $vendor, string $period): string
-    {
-        $handle = fopen('php://temp', 'r+');
-        foreach ($this->analytics->buildCsvRows($vendor, $period) as $row) {
-            fputcsv($handle, $row);
-        }
-        rewind($handle);
-        $csv = stream_get_contents($handle) ?: '';
-        fclose($handle);
-
-        return $csv;
     }
 }
