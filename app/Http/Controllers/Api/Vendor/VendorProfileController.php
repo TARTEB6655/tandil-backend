@@ -7,7 +7,7 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendor\UpdateVendorProfileRequest;
 use App\Models\VendorProfile;
-use App\Services\Vendor\VendorApplicationService;
+use App\Services\Vendor\VendorProfileScreenService;
 use App\Services\Vendor\VendorRegistrationService;
 use App\Support\VendorContext;
 use Illuminate\Http\JsonResponse;
@@ -17,20 +17,26 @@ class VendorProfileController extends Controller
 {
     public function __construct(
         private readonly VendorRegistrationService $registration,
-        private readonly VendorApplicationService $application
+        private readonly VendorProfileScreenService $profileScreen
     ) {}
 
     public function show(Request $request): JsonResponse
     {
         $vendor = VendorContext::vendorForUser($request->user());
+        $sections = $this->profileScreen->normalizeSections($this->requestedSections($request));
 
-        return ApiResponse::success('Vendor profile retrieved.', [
-            'vendor' => $this->vendorPayload($vendor),
-            'options' => [
+        $payload = [
+            'profile' => $this->profileScreen->build($vendor, $sections),
+        ];
+
+        if ($request->boolean('options')) {
+            $payload['options'] = [
                 'vendor_types' => VendorType::options(),
                 'emirates' => VendorProfile::emirates(),
-            ],
-        ]);
+            ];
+        }
+
+        return ApiResponse::success('Vendor profile retrieved.', $payload);
     }
 
     public function update(UpdateVendorProfileRequest $request): JsonResponse
@@ -48,33 +54,33 @@ class VendorProfileController extends Controller
             VendorRegistrationService::documentFilesFromRequest($request)
         );
 
-        return ApiResponse::success('Profile updated.', ['vendor' => $this->vendorPayload($vendor)]);
+        return ApiResponse::success('Profile updated.', [
+            'profile' => $this->profileScreen->buildAfterUpdate($vendor->fresh(['profile', 'user'])),
+        ]);
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return list<string>
      */
-    private function vendorPayload(?\App\Models\Vendor $vendor): ?array
+    private function requestedSections(Request $request): array
     {
-        if ($vendor === null) {
-            return null;
-        }
-        $vendor->loadMissing('profile', 'user', 'approvalLogs', 'documents', 'categories');
+        $sections = [];
 
-        return [
-            'id' => $vendor->id,
-            'status' => $vendor->status,
-            'status_label' => $vendor->statusEnum()->label(),
-            'rejection_reason' => $vendor->rejection_reason,
-            'logo_url' => $vendor->logo_url,
-            'profile' => $vendor->profile,
-            'application' => $this->application->applicationPayload($vendor),
-            'user' => [
-                'id' => $vendor->user->id,
-                'name' => $vendor->user->name,
-                'email' => $vendor->user->email,
-            ],
-            'approval_logs' => $vendor->approvalLogs->take(20),
-        ];
+        if ($request->filled('section')) {
+            $sections[] = (string) $request->query('section');
+        }
+
+        if ($request->filled('sections')) {
+            $raw = $request->query('sections');
+            if (is_array($raw)) {
+                $sections = array_merge($sections, $raw);
+            } else {
+                foreach (explode(',', (string) $raw) as $part) {
+                    $sections[] = trim($part);
+                }
+            }
+        }
+
+        return $sections;
     }
 }

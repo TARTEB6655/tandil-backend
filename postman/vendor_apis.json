@@ -81,12 +81,16 @@
                 },
                 {
                     "name": "Profile",
+                    "description": "Vendor Portal Profile tab — GET returns data.profile (header, summary, stats, account_settings). Login first: 2. Authentication → Login Vendor.",
                     "item": [
                         {
                             "name": "Get profile",
                             "request": {
                                 "method": "GET",
-                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
                                 "url": "{{base_url}}/api/vendor/profile"
                             }
                         },
