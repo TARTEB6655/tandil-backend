@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. Profile **B** (Edit Profile). **F** Performance Analytics: `GET /api/vendor/analytics/performance?period=week|month|quarter|year`. Auth: `{{vendor_token}}`, approved vendor.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.75"
+        "version": "3.3.76"
     },
     "item": [
         {
@@ -15170,6 +15170,125 @@
             ]
         },
         {
+            "name": "15b. Admin – Support Live Chat",
+            "description": "Vendor live chat sessions (Support & Help → Live Chat). Admin can list vendor chats, open session, reply, and close/resolve.\n\nPoll: GET `.../sessions/{id}/messages?after_id=` every ~3s.",
+            "item": [
+                {
+                    "name": "1. List live chat sessions",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var rows = pm.response.json().data.data || [];",
+                                    "    if (rows.length && rows[0].id) {",
+                                    "        pm.collectionVariables.set('support_chat_session_id', String(rows[0].id));",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-chat/sessions?user_role=vendor&per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-chat", "sessions"],
+                            "query": [
+                                {"key": "user_role", "value": "vendor"},
+                                {"key": "status", "value": "", "disabled": true, "description": "open | in_progress | resolved | closed"},
+                                {"key": "search", "value": "", "disabled": true},
+                                {"key": "per_page", "value": "20"}
+                            ]
+                        },
+                        "description": "GET `/api/admin/support-chat/sessions?user_role=vendor` — list vendor live chats. Auto-sets `{{support_chat_session_id}}`."
+                    }
+                },
+                {
+                    "name": "2. Get session with messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-chat/sessions/{{support_chat_session_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-chat", "sessions", "{{support_chat_session_id}}"]
+                        },
+                        "description": "GET `/api/admin/support-chat/sessions/{id}` — full thread + polling info."
+                    }
+                },
+                {
+                    "name": "3. Poll new messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-chat/sessions/{{support_chat_session_id}}/messages?after_id=0",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-chat", "sessions", "{{support_chat_session_id}}", "messages"],
+                            "query": [{"key": "after_id", "value": "0"}]
+                        },
+                        "description": "GET `/api/admin/support-chat/sessions/{id}/messages?after_id=` — poll for new vendor/admin messages."
+                    }
+                },
+                {
+                    "name": "4. Reply to vendor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"message\": \"Hi! How can we help you today?\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-chat/sessions/{{support_chat_session_id}}/messages",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-chat", "sessions", "{{support_chat_session_id}}", "messages"]
+                        },
+                        "description": "POST `/api/admin/support-chat/sessions/{id}/messages` — admin reply. Vendor gets push notification."
+                    }
+                },
+                {
+                    "name": "5. Update chat status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"resolved\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/support-chat/sessions/{{support_chat_session_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "support-chat", "sessions", "{{support_chat_session_id}}", "status"]
+                        },
+                        "description": "PUT `/api/admin/support-chat/sessions/{id}/status` — status: open | in_progress | resolved | closed."
+                    }
+                }
+            ]
+        },
+        {
             "name": "16. Admin Dashboard – Settings (Mobile)",
             "item": [
                 {
@@ -18960,7 +19079,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Login: `2. Authentication` → Login Vendor.\n\n**B. Business Profile** (`GET /api/vendor/profile`):\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab + `edit_profile` form |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\n**Edit Profile POST fields:** `profile_picture` (personal photo → `profile_picture_url`), `logo` (business logo → `logo_url`, separate), `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
+            "description": "Login: `2. Authentication` → Login Vendor.\n\n**B. Business Profile** (`GET /api/vendor/profile`):\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab + `edit_profile` form |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\n**G. Support & Live Chat** — Profile → Support & Help → Live Chat (`GET/POST /api/vendor/support/chat`).\n\n**Edit Profile POST fields:** `profile_picture` (personal photo → `profile_picture_url`), `logo` (business logo → `logo_url`, separate), `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
             "event": [
                 {
                     "listen": "prerequest",
@@ -19427,6 +19546,82 @@
                     ]
                 },
                 {
+                    "name": "G. Support & Live Chat",
+                    "description": "Profile → Support & Help → **Live Chat** (vendor ↔ admin).\n\n| # | API | Screen |\n|---|-----|--------|\n| 1 | GET support/chat | Open chat — session + all messages |\n| 2 | GET support/chat/messages?after_id= | Poll new messages (~3s) |\n| 3 | POST support/chat/messages | Send message to admin |\n\nAuth: `{{vendor_token}}` (`vendor.account` — pending vendors OK). Admin replies via folder **15. Admin – Support Live Chat**.",
+                    "item": [
+                        {
+                            "name": "1. Open live chat",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var chat = pm.response.json().data.chat;",
+                                            "    if (chat && chat.session && chat.session.id) {",
+                                            "        pm.collectionVariables.set('support_chat_session_id', String(chat.session.id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/support/chat",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "support", "chat"]
+                                },
+                                "description": "GET `/api/vendor/support/chat` — creates session if none open. Returns `data.chat.session`, `data.chat.messages`, `data.chat.polling` (poll every 3s with `after_id`)."
+                            }
+                        },
+                        {
+                            "name": "2. Poll new messages",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/support/chat/messages?after_id=0",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "support", "chat", "messages"],
+                                    "query": [{"key": "after_id", "value": "0", "description": "Last message id on screen — only newer messages returned"}]
+                                },
+                                "description": "GET `/api/vendor/support/chat/messages?after_id={id}` — mobile polls every ~3 seconds."
+                            }
+                        },
+                        {
+                            "name": "3. Send message",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"},
+                                    {"key": "Content-Type", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"message\": \"Hello, I need help with my vendor account.\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/support/chat/messages",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "support", "chat", "messages"]
+                                },
+                                "description": "POST `/api/vendor/support/chat/messages` — body: `message` (required, max 5000). Admin gets push notification."
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "F0. Add Product – Dropdown options",
                     "description": "Mobile Add Product screen dropdowns. Returns only id + name. Auth: Bearer {{vendor_token}} (approved vendor).\n\n| Step | API | Notes |\n|------|-----|-------|\n| F0.1 | GET product-options/categories | Platform categories for product `category_id` |\n| F0.2 | GET product-options/services | **All** admin services — not filtered by category |\n| F0.3 | GET products?category_id= | Vendor's own products when category tapped |\n\nThen **F → Create product** with `category_id` + optional `service_id`.",
                     "item": [
@@ -19653,6 +19848,12 @@
             "value": "",
             "type": "string",
             "description": "Set by 2. Authentication → Login Vendor. Persists vendor session; folder 18 auto-uses this for /api/vendor/* calls."
+        },
+        {
+            "key": "support_chat_session_id",
+            "value": "1",
+            "type": "string",
+            "description": "Set from Vendor G.1 Open live chat or Admin 15b.1 List sessions."
         },
         {
             "key": "user_id",

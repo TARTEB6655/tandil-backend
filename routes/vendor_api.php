@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Vendor\VendorProductController;
 use App\Http\Controllers\Api\Vendor\VendorProductOptionsController;
 use App\Http\Controllers\Api\Vendor\VendorProfileController;
 use App\Http\Controllers\Api\Vendor\VendorServiceController;
+use App\Http\Controllers\Api\Vendor\VendorSupportChatController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,10 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
     Route::get('/profile', [VendorProfileController::class, 'show']);
     Route::put('/profile', [VendorProfileController::class, 'update']);
     Route::post('/profile', [VendorProfileController::class, 'update']);
+
+    Route::get('/support/chat', [VendorSupportChatController::class, 'show']);
+    Route::get('/support/chat/messages', [VendorSupportChatController::class, 'messages']);
+    Route::post('/support/chat/messages', [VendorSupportChatController::class, 'sendMessage']);
 
     Route::get('/application', [\App\Http\Controllers\Api\Vendor\VendorApplicationController::class, 'show']);
     Route::post('/application/submit', [\App\Http\Controllers\Api\Vendor\VendorApplicationController::class, 'submit']);

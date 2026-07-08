@@ -822,6 +822,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/support-tickets
     Route::put('/{id}/status', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'updateStatus']);
 });
 
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/support-chat')->group(function () {
+    Route::get('/sessions', [\App\Http\Controllers\Api\Admin\AdminSupportChatController::class, 'index']);
+    Route::get('/sessions/by-token/{token}', [\App\Http\Controllers\Api\Admin\AdminSupportChatController::class, 'showByToken']);
+    Route::get('/sessions/{id}', [\App\Http\Controllers\Api\Admin\AdminSupportChatController::class, 'show']);
+    Route::get('/sessions/{id}/messages', [\App\Http\Controllers\Api\Admin\AdminSupportChatController::class, 'messages']);
+    Route::post('/sessions/{id}/messages', [\App\Http\Controllers\Api\Admin\AdminSupportChatController::class, 'sendMessage']);
+    Route::put('/sessions/{id}/status', [\App\Http\Controllers\Api\Admin\AdminSupportChatController::class, 'updateStatus']);
+});
+
 /*
 |--------------------------------------------------------------------------
 | ADMIN REPORTS MANAGEMENT
