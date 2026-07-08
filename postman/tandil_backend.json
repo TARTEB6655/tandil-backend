@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18** (profile screen **B**, dashboard **E**, products **F0/F**, orders **H**, admin approve **J**). Signup status = `under_review` until admin approves. **Profile tab:** `18 → B → 1. Get profile` — mobile-shaped `data.profile` (header, summary, stats, account_settings).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.55"
+        "version": "3.3.56"
     },
     "item": [
         {
@@ -18981,7 +18981,7 @@
             "item": [
                 {
                     "name": "B. Business Profile",
-                    "description": "Vendor Portal mobile **Profile** tab + Account Settings screens.\n\n| # | Request | Endpoint | Mobile screen |\n|---|---------|----------|---------------|\n| 1 | Get profile | `GET /api/vendor/profile` | Profile tab (header, stats, settings list) |\n| 2 | Update profile (full) | `POST /api/vendor/profile` | Onboarding / save all fields (`require_all=true`) |\n| 3 | Edit Profile | `POST /api/vendor/profile` | Account Settings → **Edit Profile** (`require_all=false`) |\n| 4 | Business Information | `POST /api/vendor/profile` | Account Settings → **Business Information** |\n| 5 | Location & Address | `POST /api/vendor/profile` | Account Settings → **Location & Address** |\n| 6 | Payment Methods | `POST /api/vendor/profile` | Account Settings → **Payment Methods** |\n\nAll updates use the **same endpoint**; send only the fields for that screen + `require_all=false`. Response: `data.profile` (full mobile shape).",
+                    "description": "Vendor profile — **2 APIs only**.\n\n| # | Method | Endpoint |\n|---|--------|----------|\n| 1 | GET | `/api/vendor/profile` — complete profile + business data |\n| 2 | POST | `/api/vendor/profile` — vendor-editable fields only (no password, no status/commission) |\n\nOnboarding/documents: folder **C** (`/api/vendor/application`, `/api/vendor/documents`).",
                     "item": [
                         {
                             "name": "1. Get profile",
@@ -18991,14 +18991,13 @@
                                     "script": {
                                         "type": "text/javascript",
                                         "exec": [
-                                            "pm.test('Profile tab shape', function () {",
+                                            "pm.test('Complete profile shape', function () {",
                                             "    var d = pm.response.json();",
-                                            "    pm.expect(d.data).to.have.property('profile');",
                                             "    pm.expect(d.data.profile).to.have.property('header');",
-                                            "    pm.expect(d.data.profile).to.have.property('summary');",
                                             "    pm.expect(d.data.profile).to.have.property('stats');",
-                                            "    pm.expect(d.data.profile).to.have.property('account_settings');",
-                                            "    pm.expect(d.data.profile.account_settings).to.be.an('array').with.lengthOf(4);",
+                                            "    pm.expect(d.data.profile).to.have.property('edit_profile');",
+                                            "    pm.expect(d.data.profile).to.have.property('business_information');",
+                                            "    pm.expect(d.data.profile).to.have.property('read_only');",
                                             "});"
                                         ]
                                     }
@@ -19015,79 +19014,11 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "**Vendor Portal → Profile tab (slim response)**\n\n`GET {{base_url}}/api/vendor/profile`\n\nReturns **only** what the Profile screen shows — no `data.vendor`, no `application`, no `approval_logs`, no `options` by default.\n\n**`data.profile` fields:**\n- `header` — name, subtitle\n- `summary` — profile_image_url, professional_category, partnership_badge, member_since\n- `stats` — products, delivered, rating, reviews\n- `account_settings` — 4 menu items\n\n**Edit screens (load on tap):**\n- `?section=edit_profile`\n- `?section=business_information&options=1` (dropdowns)\n- `?section=location_address&options=1`\n- `?section=payment_methods`\n- `?sections=all` — all edit blocks\n\n**Onboarding / documents:** use `GET /api/vendor/application` (folder C), not profile."
-                            },
-                            "response": [
-                                {
-                                    "name": "200 - Profile tab (example)",
-                                    "originalRequest": {
-                                        "method": "GET",
-                                        "header": [
-                                            {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
-                                            {"key": "Accept", "value": "application/json"}
-                                        ],
-                                        "url": {
-                                            "raw": "{{base_url}}/api/vendor/profile",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "vendor", "profile"]
-                                        }
-                                    },
-                                    "status": "OK",
-                                    "code": 200,
-                                    "_postman_previewlanguage": "json",
-                                    "header": [{"key": "Content-Type", "value": "application/json"}],
-                                    "body": "{\n  \"success\": true,\n  \"message\": \"Vendor profile retrieved.\",\n  \"data\": {\n    \"profile\": {\n      \"header\": {\n        \"name\": \"Ali Vendor\",\n        \"subtitle\": \"Green Fields Agro Supplies · Al Ain, Abu Dhabi, UAE\"\n      },\n      \"summary\": {\n        \"profile_image_url\": \"https://example.com/media/vendors/logos/logo.png\",\n        \"professional_category\": \"Fruits\",\n        \"partnership_badge\": { \"label\": \"Silver Partner\", \"tier\": \"silver\" },\n        \"member_since\": \"March 2024\",\n        \"member_since_iso\": \"2024-03-15T00:00:00+00:00\"\n      },\n      \"stats\": {\n        \"products\": 38,\n        \"delivered\": 412,\n        \"rating\": 0,\n        \"reviews\": 0,\n        \"rating_available\": false\n      },\n      \"account_settings\": [\n        { \"id\": \"edit_profile\", \"title\": \"Edit Profile\", \"icon\": \"person\" },\n        { \"id\": \"business_information\", \"title\": \"Business Information\", \"icon\": \"business\" },\n        { \"id\": \"location_address\", \"title\": \"Location & Address\", \"icon\": \"location\" },\n        { \"id\": \"payment_methods\", \"title\": \"Payment Methods\", \"icon\": \"payment\" }\n      ]\n    }\n  }\n}"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "2. Update profile (multipart, all fields)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
-                                    {"key": "Accept", "value": "application/json"}
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "business_name", "value": "Green Farms LLC", "type": "text", "description": "Company Name."},
-                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text", "description": "Authorized Person Name."},
-                                        {"key": "email", "value": "vendor@example.com", "type": "text"},
-                                        {"key": "phone", "value": "+971500000000", "type": "text"},
-                                        {"key": "trade_license_number", "value": "TL-12345", "type": "text"},
-                                        {"key": "vendor_type", "value": "fruits", "type": "text", "description": "fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other"},
-                                        {"key": "emirate", "value": "Dubai", "type": "text"},
-                                        {"key": "city", "value": "Dubai", "type": "text"},
-                                        {"key": "address", "value": "Industrial Area 1, Warehouse 5", "type": "text"},
-                                        {"key": "google_maps_location", "value": "25.2048,55.2708", "type": "text"},
-                                        {"key": "bank_name", "value": "Emirates NBD", "type": "text"},
-                                        {"key": "iban", "value": "AE070331234567890123456", "type": "text"},
-                                        {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text"},
-                                        {"key": "delivery_radius", "value": "15", "type": "text"},
-                                        {"key": "opens_at", "value": "08:00", "type": "text", "description": "Or send operating_hours instead."},
-                                        {"key": "closes_at", "value": "22:00", "type": "text"},
-                                        {"key": "minimum_order_amount", "value": "50", "type": "text"},
-                                        {"key": "vat_number", "value": "TRN123456789", "type": "text", "description": "Optional VAT number."},
-                                        {"key": "description", "value": "Fresh local produce supplier.", "type": "text"},
-                                        {"key": "terms_accepted", "value": "1", "type": "text", "description": "Set 1 to accept Terms & Conditions."},
-                                        {"key": "logo", "type": "file", "src": [], "description": "Company Logo (image). Optional."},
-                                        {"key": "logo_remove", "value": "false", "type": "text", "description": "Set true to clear the logo."},
-                                        {"key": "trade_license", "type": "file", "src": [], "description": "Trade License Upload (replaces existing)."},
-                                        {"key": "emirates_id", "type": "file", "src": [], "description": "Emirates ID Upload (replaces existing)."},
-                                        {"key": "require_all", "value": "true", "type": "text", "description": "Default true = validate the full required set. Send false for partial edits."}
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/vendor/profile",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "profile"]
-                                },
-                                "description": "Create/update vendor profile (multipart). PUT also supported; use POST for file uploads.\n\n**Full save (onboarding):** send all required fields + `require_all=true` (default).\n\n**Response:** same mobile shape as Get profile — `data.profile` with `header`, `summary`, `stats`, `account_settings`, section details.\n\nFor single-screen edits use requests **3–6** below (`require_all=false`)."
+                                "description": "**GET complete vendor profile**\n\nReturns `data.profile` with:\n- `header`, `summary`, `stats`, `account_settings` (Profile tab UI)\n- `edit_profile`, `business_information`, `location_address`, `payment_methods` (all business data for edit screens)\n- `read_only` — vendor_id, status, commission_rate, registered_at (cannot be changed by vendor)\n\n`data.options.emirates` for address dropdown.\n\nNo `application`, `approval_logs`, or password fields."
                             }
                         },
                         {
-                            "name": "3. Edit Profile (partial)",
+                            "name": "2. Update profile",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19097,95 +19028,28 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {"key": "require_all", "value": "false", "type": "text", "description": "Required for partial screen save — only sent fields are validated."},
-                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text", "description": "Authorized person / display name → data.profile.edit_profile.owner_name"},
+                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text", "description": "Contact person name."},
                                         {"key": "email", "value": "vendor@example.com", "type": "text"},
                                         {"key": "phone", "value": "+971500000001", "type": "text"},
-                                        {"key": "description", "value": "Fresh local produce supplier.", "type": "text", "description": "Optional bio."},
-                                        {"key": "logo", "type": "file", "src": [], "description": "Company logo / profile image. Optional."},
-                                        {"key": "logo_remove", "value": "false", "type": "text", "description": "Set true to remove logo."}
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/vendor/profile",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "profile"]
-                                },
-                                "description": "**Account Settings → Edit Profile**\n\n`GET {{base_url}}/api/vendor/profile?section=edit_profile` — pre-fill form\n\n`POST {{base_url}}/api/vendor/profile` — save (fields below + `require_all=false`)"
-                            }
-                        },
-                        {
-                            "name": "4. Business Information (partial)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
-                                    {"key": "Accept", "value": "application/json"}
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "require_all", "value": "false", "type": "text"},
                                         {"key": "business_name", "value": "Green Fields Agro Supplies", "type": "text"},
-                                        {"key": "vendor_type", "value": "fruits", "type": "text", "description": "fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other"},
-                                        {"key": "trade_license_number", "value": "TL-12345", "type": "text"},
-                                        {"key": "vat_number", "value": "TRN123456789", "type": "text", "description": "Alias for tax_vat_number."},
-                                        {"key": "years_in_business", "value": "5", "type": "text"},
-                                        {"key": "opens_at", "value": "08:00", "type": "text"},
-                                        {"key": "closes_at", "value": "22:00", "type": "text"},
-                                        {"key": "minimum_order_amount", "value": "50", "type": "text"}
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/vendor/profile",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "profile"]
-                                },
-                                "description": "**Account Settings → Business Information**\n\nPre-fill from `data.profile.business_information`. Fields: business_name, vendor_type, trade_license_number, vat_number, years_in_business, opens_at/closes_at (or operating_hours), minimum_order_amount."
-                            }
-                        },
-                        {
-                            "name": "5. Location & Address (partial)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
-                                    {"key": "Accept", "value": "application/json"}
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "require_all", "value": "false", "type": "text"},
+                                        {"key": "description", "value": "Fresh local produce supplier.", "type": "text", "description": "Store description."},
+                                        {"key": "address", "value": "Industrial Area 1", "type": "text"},
                                         {"key": "emirate", "value": "Abu Dhabi", "type": "text"},
                                         {"key": "city", "value": "Al Ain", "type": "text"},
-                                        {"key": "address", "value": "Industrial Area 1", "type": "text"},
                                         {"key": "google_maps_location", "value": "24.2075,55.7447", "type": "text"},
-                                        {"key": "delivery_radius", "value": "15", "type": "text"}
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/vendor/profile",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "profile"]
-                                },
-                                "description": "**Account Settings → Location & Address**\n\nPre-fill from `data.profile.location_address`. Fields: emirate, city, address, google_maps_location, delivery_radius."
-                            }
-                        },
-                        {
-                            "name": "6. Payment Methods (partial)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
-                                    {"key": "Accept", "value": "application/json"}
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "require_all", "value": "false", "type": "text"},
+                                        {"key": "opens_at", "value": "08:00", "type": "text"},
+                                        {"key": "closes_at", "value": "22:00", "type": "text"},
                                         {"key": "bank_name", "value": "Emirates NBD", "type": "text"},
                                         {"key": "iban", "value": "AE070331234567890123456", "type": "text"},
-                                        {"key": "account_holder_name", "value": "Green Fields Agro Supplies", "type": "text"}
+                                        {"key": "account_holder_name", "value": "Green Fields Agro Supplies", "type": "text"},
+                                        {"key": "facebook_url", "value": "https://facebook.com/vendor", "type": "text"},
+                                        {"key": "instagram_url", "value": "https://instagram.com/vendor", "type": "text"},
+                                        {"key": "twitter_url", "value": "", "type": "text", "disabled": true},
+                                        {"key": "website_url", "value": "https://vendor.example.com", "type": "text"},
+                                        {"key": "logo", "type": "file", "src": [], "description": "Profile / store logo."},
+                                        {"key": "logo_remove", "value": "false", "type": "text"},
+                                        {"key": "banner", "type": "file", "src": [], "description": "Store banner image."},
+                                        {"key": "banner_remove", "value": "false", "type": "text"}
                                     ]
                                 },
                                 "url": {
@@ -19193,7 +19057,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "**Account Settings → Payment Methods**\n\nPre-fill from `data.profile.payment_methods`. Fields: bank_name, iban, account_holder_name."
+                                "description": "**POST vendor-editable profile fields only** (multipart). PUT also works without files.\n\n**Allowed:** owner_name, email, phone, business_name, description, address, emirate, city, google_maps_location, opens_at/closes_at, bank_name, iban, account_holder_name, social URLs, logo, banner.\n\n**Blocked (422):** password, status, commission_rate, trade_license_number, vendor_type, vat_number, terms, documents.\n\nSend only fields you want to change. Response: full `data.profile` like GET."
                             }
                         }
                     ]

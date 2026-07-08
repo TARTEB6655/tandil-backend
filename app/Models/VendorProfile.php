@@ -28,7 +28,9 @@ class VendorProfile extends Model
         'minimum_order_amount',
         'tax_vat_number',
         'logo_path',
+        'banner_path',
         'description',
+        'social_links',
         'years_in_business',
         'terms_accepted_at',
         'onboarding_completed_at',
@@ -39,11 +41,13 @@ class VendorProfile extends Model
         'minimum_order_amount' => 'decimal:2',
         'terms_accepted_at' => 'datetime',
         'onboarding_completed_at' => 'datetime',
+        'social_links' => 'array',
     ];
 
     protected $appends = [
         'vendor_type_label',
         'logo_url',
+        'banner_url',
     ];
 
     public function vendor(): BelongsTo
@@ -60,10 +64,31 @@ class VendorProfile extends Model
         return VendorType::tryFrom($this->vendor_type)?->label() ?? ucfirst($this->vendor_type);
     }
 
-    /** Full URL for logo (stored under storage/app/public, served via /media/). */
     public function getLogoUrlAttribute(): ?string
     {
-        $path = $this->logo_path;
+        return $this->mediaUrl($this->logo_path);
+    }
+
+    public function getBannerUrlAttribute(): ?string
+    {
+        return $this->mediaUrl($this->banner_path);
+    }
+
+    /** @return array{facebook: ?string, instagram: ?string, twitter: ?string, website: ?string} */
+    public function normalizedSocialLinks(): array
+    {
+        $links = is_array($this->social_links) ? $this->social_links : [];
+
+        return [
+            'facebook' => $links['facebook'] ?? null,
+            'instagram' => $links['instagram'] ?? null,
+            'twitter' => $links['twitter'] ?? null,
+            'website' => $links['website'] ?? null,
+        ];
+    }
+
+    private function mediaUrl(?string $path): ?string
+    {
         if (empty($path)) {
             return null;
         }

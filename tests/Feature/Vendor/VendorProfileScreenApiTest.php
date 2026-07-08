@@ -13,7 +13,9 @@ use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
 use App\Models\VendorProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -24,50 +26,86 @@ class VendorProfileScreenApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('public');
         Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
     }
 
-    public function test_profile_tab_returns_only_screen_fields(): void
+    public function test_get_profile_returns_complete_mobile_profile_with_business_data(): void
     {
-        ['token' => $token] = $this->makeVendorUser(withStats: true);
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(withStats: true);
 
-        $response = $this->withToken($token)->getJson('/api/vendor/profile');
-
-        $response->assertOk()
+        $this->withToken($token)->getJson('/api/vendor/profile')
+            ->assertOk()
             ->assertJsonPath('data.profile.header.name', 'Ali Vendor')
-            ->assertJsonPath('data.profile.header.subtitle', 'Green Fields Agro Supplies · Al Ain, Abu Dhabi, UAE')
-            ->assertJsonPath('data.profile.summary.professional_category', 'Fruits')
             ->assertJsonPath('data.profile.summary.partnership_badge.tier', 'bronze')
             ->assertJsonPath('data.profile.stats.products', 1)
-            ->assertJsonPath('data.profile.stats.delivered', 1)
-            ->assertJsonPath('data.profile.account_settings.0.id', 'edit_profile')
-            ->assertJsonPath('data.profile.account_settings.3.title', 'Payment Methods')
-            ->assertJsonMissingPath('data.vendor')
-            ->assertJsonMissingPath('data.profile.application')
-            ->assertJsonMissingPath('data.profile.edit_profile')
-            ->assertJsonMissingPath('data.options');
-    }
-
-    public function test_profile_section_query_returns_edit_form_block(): void
-    {
-        ['token' => $token] = $this->makeVendorUser();
-
-        $this->withToken($token)->getJson('/api/vendor/profile?section=edit_profile')
-            ->assertOk()
             ->assertJsonPath('data.profile.edit_profile.owner_name', 'Ali Vendor')
-            ->assertJsonPath('data.profile.edit_profile.email', 'vendor-profile-screen@test.com')
-            ->assertJsonMissingPath('data.profile.business_information')
-            ->assertJsonMissingPath('data.options');
+            ->assertJsonPath('data.profile.business_information.business_name', 'Green Fields Agro Supplies')
+            ->assertJsonPath('data.profile.location_address.city', 'Al Ain')
+            ->assertJsonPath('data.profile.payment_methods.bank_name', 'Emirates NBD')
+            ->assertJsonPath('data.profile.read_only.vendor_id', $vendor->id)
+            ->assertJsonPath('data.profile.read_only.status', VendorStatus::Approved->value)
+            ->assertJsonStructure(['data' => ['options' => ['emirates']]])
+            ->assertJsonMissingPath('data.vendor')
+            ->assertJsonMissingPath('data.profile.application');
     }
 
-    public function test_profile_options_query_returns_dropdowns_only_when_requested(): void
+    public function test_vendor_can_update_only_allowed_profile_fields(): void
     {
         ['token' => $token] = $this->makeVendorUser();
 
-        $this->withToken($token)->getJson('/api/vendor/profile?section=business_information&options=1')
+        $this->withToken($token)->post('/api/vendor/profile', [
+            'owner_name' => 'Updated Vendor',
+            'phone' => '+971500000099',
+            'description' => 'Updated store description',
+            'business_name' => 'Updated Business',
+            'address' => 'New Address',
+            'emirate' => 'Dubai',
+            'city' => 'Dubai',
+            'opens_at' => '09:00',
+            'closes_at' => '21:00',
+            'bank_name' => 'ADCB',
+            'iban' => 'AE123456789012345678901',
+            'account_holder_name' => 'Updated Business',
+            'facebook_url' => 'https://facebook.com/vendor',
+            'website_url' => 'https://vendor.example.com',
+            'logo' => UploadedFile::fake()->image('logo.png'),
+        ], ['Accept' => 'application/json'])
             ->assertOk()
-            ->assertJsonPath('data.profile.business_information.business_name', 'Green Fields Agro Supplies')
-            ->assertJsonStructure(['data' => ['options' => ['vendor_types', 'emirates']]]);
+            ->assertJsonPath('data.profile.edit_profile.owner_name', 'Updated Vendor')
+            ->assertJsonPath('data.profile.business_information.business_name', 'Updated Business')
+            ->assertJsonPath('data.profile.business_information.operating_hours', '09:00 - 21:00')
+            ->assertJsonPath('data.profile.edit_profile.social_links.facebook', 'https://facebook.com/vendor')
+            ->assertJsonPath('data.profile.payment_methods.bank_name', 'ADCB');
+
+        $this->assertDatabaseHas('vendor_profiles', [
+            'owner_name' => 'Updated Vendor',
+            'business_name' => 'Updated Business',
+            'description' => 'Updated store description',
+        ]);
+    }
+
+    public function test_vendor_cannot_update_restricted_profile_fields(): void
+    {
+        ['token' => $token] = $this->makeVendorUser();
+
+        $this->withToken($token)->postJson('/api/vendor/profile', [
+            'status' => 'approved',
+            'commission_rate' => 5,
+            'trade_license_number' => 'HACKED',
+            'vendor_type' => 'meat',
+            'password' => 'newpass123',
+            'password_confirmation' => 'newpass123',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'status',
+                'commission_rate',
+                'trade_license_number',
+                'vendor_type',
+                'password',
+                'password_confirmation',
+            ]);
     }
 
     /**
@@ -88,6 +126,7 @@ class VendorProfileScreenApiTest extends TestCase
             'user_id' => $user->id,
             'status' => VendorStatus::Approved->value,
             'approved_at' => now()->setDate(2024, 3, 15),
+            'commission_rate' => 12.5,
         ]);
 
         VendorProfile::create([
@@ -97,6 +136,7 @@ class VendorProfileScreenApiTest extends TestCase
             'email' => $user->email,
             'phone' => '+971500000001',
             'vendor_type' => 'fruits',
+            'trade_license_number' => 'TL-ORIGINAL',
             'emirate' => 'Abu Dhabi',
             'city' => 'Al Ain',
             'address' => 'Industrial Area 1',

@@ -6,36 +6,16 @@ use App\Models\Vendor;
 
 class VendorProfileScreenService
 {
-    public const SECTION_EDIT_PROFILE = 'edit_profile';
-
-    public const SECTION_BUSINESS_INFORMATION = 'business_information';
-
-    public const SECTION_LOCATION_ADDRESS = 'location_address';
-
-    public const SECTION_PAYMENT_METHODS = 'payment_methods';
-
-    /** @var list<string> */
-    public const ALL_SECTIONS = [
-        self::SECTION_EDIT_PROFILE,
-        self::SECTION_BUSINESS_INFORMATION,
-        self::SECTION_LOCATION_ADDRESS,
-        self::SECTION_PAYMENT_METHODS,
-    ];
-
     public function __construct(
         private readonly VendorDashboardService $dashboard
     ) {}
 
     /**
-     * Mobile Vendor Portal profile payload.
+     * Complete vendor profile for mobile Profile tab + edit forms.
      *
-     * Default (no sections): Profile tab only — header, summary, stats, account_settings.
-     * With sections: include edit-form blocks for Account Settings sub-screens.
-     *
-     * @param  list<string>  $sections
      * @return array<string, mixed>|null
      */
-    public function build(?Vendor $vendor, array $sections = []): ?array
+    public function build(?Vendor $vendor): ?array
     {
         if ($vendor === null) {
             return null;
@@ -57,13 +37,16 @@ class VendorProfileScreenService
             ($profile?->city || $profile?->emirate) ? 'UAE' : null,
         ]));
 
-        $payload = [
+        [$opensAt, $closesAt] = $this->parseOperatingHours($profile?->operating_hours);
+
+        return [
             'header' => [
                 'name' => $profile?->owner_name ?: $user?->name,
                 'subtitle' => $this->headerSubtitle($profile?->business_name, $locationParts),
             ],
             'summary' => [
                 'profile_image_url' => $vendor->logo_url ?: $user?->profile_picture_url,
+                'banner_url' => $profile?->banner_url,
                 'professional_category' => $profile?->vendor_type_label,
                 'partnership_badge' => $partnership,
                 'member_since' => $memberSince ? $memberSince->format('F Y') : null,
@@ -77,72 +60,22 @@ class VendorProfileScreenService
                 'rating_available' => false,
             ],
             'account_settings' => [
-                ['id' => self::SECTION_EDIT_PROFILE, 'title' => 'Edit Profile', 'icon' => 'person'],
-                ['id' => self::SECTION_BUSINESS_INFORMATION, 'title' => 'Business Information', 'icon' => 'business'],
-                ['id' => self::SECTION_LOCATION_ADDRESS, 'title' => 'Location & Address', 'icon' => 'location'],
-                ['id' => self::SECTION_PAYMENT_METHODS, 'title' => 'Payment Methods', 'icon' => 'payment'],
+                ['id' => 'edit_profile', 'title' => 'Edit Profile', 'icon' => 'person'],
+                ['id' => 'business_information', 'title' => 'Business Information', 'icon' => 'business'],
+                ['id' => 'location_address', 'title' => 'Location & Address', 'icon' => 'location'],
+                ['id' => 'payment_methods', 'title' => 'Payment Methods', 'icon' => 'payment'],
             ],
-        ];
-
-        foreach ($this->normalizeSections($sections) as $section) {
-            $payload[$section] = $this->sectionPayload($section, $vendor, $profile, $user, $locationParts);
-        }
-
-        return $payload;
-    }
-
-    /**
-     * After save — tab fields plus all edit sections (no application / logs).
-     *
-     * @return array<string, mixed>|null
-     */
-    public function buildAfterUpdate(?Vendor $vendor): ?array
-    {
-        return $this->build($vendor, self::ALL_SECTIONS);
-    }
-
-    /**
-     * @param  list<string>  $sections
-     * @return list<string>
-     */
-    public function normalizeSections(array $sections): array
-    {
-        $normalized = [];
-
-        foreach ($sections as $section) {
-            $key = strtolower(trim($section));
-            if ($key === 'all') {
-                return self::ALL_SECTIONS;
-            }
-            if (in_array($key, self::ALL_SECTIONS, true)) {
-                $normalized[] = $key;
-            }
-        }
-
-        return array_values(array_unique($normalized));
-    }
-
-    /**
-     * @param  list<string>  $locationParts
-     * @return array<string, mixed>
-     */
-    private function sectionPayload(
-        string $section,
-        Vendor $vendor,
-        $profile,
-        $user,
-        array $locationParts
-    ): array {
-        return match ($section) {
-            self::SECTION_EDIT_PROFILE => [
+            'edit_profile' => [
                 'owner_name' => $profile?->owner_name,
                 'email' => $profile?->email ?: $user?->email,
                 'phone' => $profile?->phone ?: $user?->phone,
                 'description' => $profile?->description,
                 'logo_url' => $vendor->logo_url,
+                'banner_url' => $profile?->banner_url,
                 'profile_picture_url' => $user?->profile_picture_url,
+                'social_links' => $profile?->normalizedSocialLinks(),
             ],
-            self::SECTION_BUSINESS_INFORMATION => [
+            'business_information' => [
                 'business_name' => $profile?->business_name,
                 'vendor_type' => $profile?->vendor_type,
                 'vendor_type_label' => $profile?->vendor_type_label,
@@ -150,11 +83,13 @@ class VendorProfileScreenService
                 'tax_vat_number' => $profile?->tax_vat_number,
                 'years_in_business' => $profile?->years_in_business,
                 'operating_hours' => $profile?->operating_hours,
+                'opens_at' => $opensAt,
+                'closes_at' => $closesAt,
                 'minimum_order_amount' => $profile?->minimum_order_amount !== null
                     ? (float) $profile->minimum_order_amount
                     : null,
             ],
-            self::SECTION_LOCATION_ADDRESS => [
+            'location_address' => [
                 'emirate' => $profile?->emirate,
                 'city' => $profile?->city,
                 'address' => $profile?->address,
@@ -164,13 +99,25 @@ class VendorProfileScreenService
                     : null,
                 'location_display' => implode(', ', $locationParts) ?: null,
             ],
-            self::SECTION_PAYMENT_METHODS => [
+            'payment_methods' => [
                 'bank_name' => $profile?->bank_name,
                 'iban' => $profile?->iban,
                 'account_holder_name' => $profile?->account_holder_name,
             ],
-            default => [],
-        };
+            'read_only' => [
+                'vendor_id' => $vendor->id,
+                'status' => $vendor->status,
+                'status_label' => $vendor->statusEnum()->label(),
+                'is_approved' => $vendor->isApproved(),
+                'rejection_reason' => $vendor->rejection_reason,
+                'commission_rate' => $vendor->commission_rate !== null
+                    ? (float) $vendor->commission_rate
+                    : null,
+                'registered_at' => $vendor->created_at?->toIso8601String(),
+                'approved_at' => $vendor->approved_at?->toIso8601String(),
+                'role' => $user?->role,
+            ],
+        ];
     }
 
     /**
@@ -184,6 +131,22 @@ class VendorProfileScreenService
         }
 
         return $businessName ?: ($location !== '' ? $location : null);
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function parseOperatingHours(?string $operatingHours): array
+    {
+        if ($operatingHours === null || trim($operatingHours) === '') {
+            return [null, null];
+        }
+
+        if (preg_match('/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/', trim($operatingHours), $matches)) {
+            return [$matches[1], $matches[2]];
+        }
+
+        return [null, null];
     }
 
     /**

@@ -142,6 +142,104 @@ class VendorRegistrationService
     }
 
     /**
+     * Vendor self-service profile update (API) — only vendor-editable fields.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function updateEditableProfile(
+        Vendor $vendor,
+        array $data,
+        ?UploadedFile $logo = null,
+        bool $removeLogo = false,
+        ?UploadedFile $banner = null,
+        bool $removeBanner = false
+    ): Vendor {
+        return DB::transaction(function () use ($vendor, $data, $logo, $removeLogo, $banner, $removeBanner) {
+            $profile = $vendor->profile;
+            $updates = [];
+
+            foreach ([
+                'business_name',
+                'owner_name',
+                'email',
+                'phone',
+                'description',
+                'address',
+                'emirate',
+                'city',
+                'google_maps_location',
+                'operating_hours',
+                'bank_name',
+                'iban',
+                'account_holder_name',
+            ] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $updates[$field] = $data[$field] === '' ? null : $data[$field];
+                }
+            }
+
+            $socialLinks = $profile->normalizedSocialLinks();
+            $socialChanged = false;
+            foreach ([
+                'facebook' => 'facebook_url',
+                'instagram' => 'instagram_url',
+                'twitter' => 'twitter_url',
+                'website' => 'website_url',
+            ] as $key => $input) {
+                if (array_key_exists($input, $data)) {
+                    $socialLinks[$key] = $data[$input] === '' ? null : $data[$input];
+                    $socialChanged = true;
+                }
+            }
+            if ($socialChanged) {
+                $updates['social_links'] = $socialLinks;
+            }
+
+            if ($removeLogo && $profile->logo_path) {
+                Storage::disk('public')->delete($profile->logo_path);
+                $updates['logo_path'] = null;
+            }
+            if ($logo) {
+                if ($profile->logo_path) {
+                    Storage::disk('public')->delete($profile->logo_path);
+                }
+                $updates['logo_path'] = $logo->store('vendors/logos', 'public');
+            }
+
+            if ($removeBanner && $profile->banner_path) {
+                Storage::disk('public')->delete($profile->banner_path);
+                $updates['banner_path'] = null;
+            }
+            if ($banner) {
+                if ($profile->banner_path) {
+                    Storage::disk('public')->delete($profile->banner_path);
+                }
+                $updates['banner_path'] = $banner->store('vendors/banners', 'public');
+            }
+
+            if (! empty($updates)) {
+                $profile->update($updates);
+            }
+
+            $userUpdates = [];
+            if (array_key_exists('owner_name', $data) && $data['owner_name'] !== null && $data['owner_name'] !== '') {
+                $userUpdates['name'] = $data['owner_name'];
+            }
+            if (array_key_exists('email', $data) && $data['email'] !== null && $data['email'] !== '') {
+                $userUpdates['email'] = $data['email'];
+            }
+            if (array_key_exists('phone', $data)) {
+                $userUpdates['phone'] = $data['phone'] === '' ? null : $data['phone'];
+            }
+            if ($userUpdates !== []) {
+                $vendor->user->update($userUpdates);
+            }
+
+            return $vendor->fresh(['profile', 'user']);
+        });
+    }
+
+    /**
      * Map incoming request data to vendor_profiles columns, keeping only provided keys.
      *
      * @param  array<string, mixed>  $data

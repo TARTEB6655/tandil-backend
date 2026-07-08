@@ -1,87 +1,15 @@
 {
     "info": {
         "name": "Tandil Vendor APIs",
-        "description": "Vendor marketplace module — Auth, Profile, Dashboard, Products, Inventory, Orders, Comparison, Admin Vendor Management.\n\nBase: {{base_url}}/api\n\nEnv: base_url, token (admin or vendor), vendor_id\n\n## Test accounts (after php artisan db:seed --class=VendorTestUsersSeeder)\n| Email | Password | Status |\n| vendor1@test.com | password123 | Approved |\n| vendor2@test.com | password123 | Pending |\n| vendor3@test.com | password123 | Suspended |\n| admin@tandil.com | password123 | Admin |\n\nLogin: POST /api/auth/login with roles: vendor or admin",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+        "description": "Vendor profile: GET + POST /api/vendor/profile only. Login via main collection folder 2."
     },
-    "variable": [
-        {"key": "base_url", "value": "https://phpstack-1180784-6050385.cloudwaysapps.com"},
-        {"key": "token", "value": ""},
-        {"key": "vendor_id", "value": "1"},
-        {"key": "vendor_product_id", "value": "1"},
-        {"key": "category_id", "value": "1"},
-        {"key": "service_id", "value": "1"},
-        {"key": "vendor_order_mapping_id", "value": "1"},
-        {"key": "product_id", "value": "1"}
-    ],
     "item": [
         {
-            "name": "Vendor APIs",
+            "name": "Vendor",
             "item": [
                 {
-                    "name": "Auth",
-                    "item": [
-                        {
-                            "name": "Register vendor (full signup)",
-                            "request": {
-                                "method": "POST",
-                                "header": [{"key": "Accept", "value": "application/json"}],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "company_name", "value": "Green Farms LLC", "type": "text"},
-                                        {"key": "authorized_person_name", "value": "Ali Vendor", "type": "text"},
-                                        {"key": "email", "value": "vendor@example.com", "type": "text"},
-                                        {"key": "phone", "value": "+971500000000", "type": "text"},
-                                        {"key": "trade_license_number", "value": "TL-12345", "type": "text"},
-                                        {"key": "trade_license", "type": "file", "src": []},
-                                        {"key": "address", "value": "Industrial Area 1", "type": "text"},
-                                        {"key": "password", "value": "secret12", "type": "text"},
-                                        {"key": "password_confirmation", "value": "secret12", "type": "text"},
-                                        {"key": "logo", "type": "file", "src": []},
-                                        {"key": "vat_number", "value": "TRN123456789", "type": "text"},
-                                        {"key": "emirates_id", "type": "file", "src": []},
-                                        {"key": "vendor_type", "value": "fruits", "type": "text"},
-                                        {"key": "emirate", "value": "Dubai", "type": "text"},
-                                        {"key": "city", "value": "Dubai", "type": "text"},
-                                        {"key": "google_maps_location", "value": "25.2048,55.2708", "type": "text"},
-                                        {"key": "bank_name", "value": "Emirates NBD", "type": "text"},
-                                        {"key": "iban", "value": "AE070331234567890123456", "type": "text"},
-                                        {"key": "account_holder_name", "value": "Green Farms LLC", "type": "text"},
-                                        {"key": "delivery_radius", "value": "25", "type": "text"},
-                                        {"key": "opens_at", "value": "08:00", "type": "text"},
-                                        {"key": "closes_at", "value": "22:00", "type": "text"},
-                                        {"key": "minimum_order_amount", "value": "50", "type": "text"},
-                                        {"key": "terms_accepted", "value": "1", "type": "text"}
-                                    ]
-                                },
-                                "url": "{{base_url}}/api/vendor/auth/register",
-                                "description": "Public multipart signup — matches mobile Vendor Registration wizard. trade_license + emirates_id required."
-                            }
-                        },
-                        {
-                            "name": "Login vendor",
-                            "request": {
-                                "method": "POST",
-                                "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
-                                "body": {"mode": "raw", "raw": "{\n  \"email\": \"vendor1@test.com\",\n  \"password\": \"password123\",\n  \"roles\": \"vendor\"\n}"},
-                                "url": "{{base_url}}/api/auth/login",
-                                "description": "Use POST /api/auth/login with roles: vendor. Save token to {{token}}."
-                            }
-                        },
-                        {
-                            "name": "Logout",
-                            "request": {
-                                "method": "POST",
-                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                                "url": "{{base_url}}/api/vendor/auth/logout"
-                            }
-                        }
-                    ]
-                },
-                {
                     "name": "Profile",
-                    "description": "Vendor Portal Profile tab — GET returns data.profile (header, summary, stats, account_settings). Login first: 2. Authentication → Login Vendor.",
+                    "description": "GET = complete profile. POST = vendor-editable fields only (no password/status/commission).",
                     "item": [
                         {
                             "name": "Get profile",
@@ -98,152 +26,23 @@
                             "name": "Update profile",
                             "request": {
                                 "method": "POST",
-                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-                                "body": {"mode": "formdata", "formdata": [{"key": "business_name", "value": "Updated Name", "type": "text"}]},
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text"},
+                                        {"key": "phone", "value": "+971500000001", "type": "text"},
+                                        {"key": "business_name", "value": "Green Fields Agro Supplies", "type": "text"},
+                                        {"key": "description", "value": "Updated description", "type": "text"},
+                                        {"key": "logo", "type": "file", "src": []}
+                                    ]
+                                },
                                 "url": "{{base_url}}/api/vendor/profile"
                             }
                         }
-                    ]
-                },
-                {
-                    "name": "Dashboard",
-                    "item": [
-                        {
-                            "name": "Dashboard stats",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-                                "url": "{{base_url}}/api/vendor/dashboard/stats",
-                                "description": "Requires approved vendor (vendor.approved middleware)."
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Product form options",
-                    "item": [
-                        {"name": "Get categories (id + name)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/product-options/categories", "description": "Add Product dropdown — platform categories only."}},
-                        {"name": "Get services (id + name)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/product-options/services", "description": "Add Product dropdown — all admin platform services (not filtered by category)."}}
-                    ]
-                },
-                {
-                    "name": "Categories (platform – read only)",
-                    "item": [
-                        {"name": "List platform categories", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/categories", "description": "Admin categories for product category_id. Vendors cannot create categories."}},
-                        {"name": "Get platform category", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/categories/{{category_id}}"}}
-                    ]
-                },
-                {
-                    "name": "Services (platform – read only)",
-                    "item": [
-                        {"name": "List platform services", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/services", "description": "Admin services for product service_id. Vendors cannot create services."}},
-                        {"name": "Get platform service", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/services/{{service_id}}"}}
-                    ]
-                },
-                {
-                    "name": "Products",
-                    "description": "Same multipart body as Admin POST /api/admin/products. Required: name, price, category_id (platform).",
-                    "item": [
-                        {"name": "List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/vendor/products?category_id={{category_id}}", "description": "Only this vendor's products. Optional category_id — admin shop products never included."}},
-                        {
-                            "name": "Create product (full – same as admin)",
-                            "request": {
-                                "method": "POST",
-                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "name", "value": "Vendor Test Product", "type": "text"},
-                                        {"key": "description", "value": "Description here", "type": "text"},
-                                        {"key": "price", "value": "99.99", "type": "text"},
-                                        {"key": "stock", "value": "10", "type": "text"},
-                                        {"key": "status", "value": "active", "type": "text"},
-                                        {"key": "is_featured", "value": "0", "type": "text"},
-                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required platform category ID"},
-                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional platform service ID"},
-                                        {"key": "weight_unit", "value": "kg", "type": "text"},
-                                        {"key": "sku", "value": "VENDOR-SKU-001", "type": "text"},
-                                        {"key": "handle", "value": "vendor-test-product", "type": "text"},
-                                        {"key": "product_type", "value": "simple", "type": "text"},
-                                        {"key": "option_groups_json", "value": "[{\"name\":\"Packaging type\",\"subtitle\":\"Required - Select one\",\"input_type\":\"single\",\"is_required\":true,\"options\":[{\"temp_key\":\"opt_pack_1\",\"label\":\"In bag\",\"subtitle\":\"Free\",\"price_modifier\":0}]}]", "type": "text"},
-                                        {"key": "image_urls", "value": "", "type": "text"},
-                                        {"key": "main_image", "type": "file", "src": []},
-                                        {"key": "images[]", "type": "file", "src": []},
-                                        {"key": "option_images[opt_pack_1]", "type": "file", "src": []}
-                                    ]
-                                },
-                                "url": "{{base_url}}/api/vendor/products",
-                                "description": "Multipart — identical fields to admin Add Product. category_id + service_id must be platform IDs."
-                            }
-                        },
-                        {"name": "Get product", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/products/{{vendor_product_id}}"}},
-                        {
-                            "name": "Update product (full – same as admin)",
-                            "request": {
-                                "method": "POST",
-                                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {"key": "name", "value": "Updated Vendor Product", "type": "text"},
-                                        {"key": "price", "value": "149.99", "type": "text"},
-                                        {"key": "stock", "value": "20", "type": "text"},
-                                        {"key": "category_id", "value": "{{category_id}}", "type": "text"},
-                                        {"key": "service_id", "value": "{{service_id}}", "type": "text"},
-                                        {"key": "main_image", "type": "file", "src": []}
-                                    ]
-                                },
-                                "url": "{{base_url}}/api/vendor/products/{{vendor_product_id}}"
-                            }
-                        },
-                        {"name": "Delete product", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/products/{{vendor_product_id}}"}}
-                    ]
-                },
-                {
-                    "name": "Inventory",
-                    "item": [
-                        {"name": "Get inventory", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/inventory/{{vendor_product_id}}"}},
-                        {"name": "Update inventory", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"quantity\": 50,\n  \"low_stock_threshold\": 5,\n  \"notes\": \"Restocked\"\n}"}, "url": "{{base_url}}/api/vendor/inventory/{{vendor_product_id}}"}}
-                    ]
-                },
-                {
-                    "name": "Orders",
-                    "item": [
-                        {"name": "List orders", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/orders"}},
-                        {"name": "Order details", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}"}},
-                        {"name": "Update order status", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"status\": \"confirmed\",\n  \"note\": \"Accepted\"\n}"}, "url": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/status"}}
-                    ]
-                },
-                {
-                    "name": "Comparison",
-                    "item": [
-                        {"name": "Compare by product id", "request": {"method": "GET", "url": "{{base_url}}/api/vendor/compare/products/{{product_id}}", "description": "Public — no auth."}},
-                        {"name": "Compare product ids", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"product_ids\": [1, 2, 3]\n}"}, "url": "{{base_url}}/api/vendor/compare/products"}}
-                    ]
-                },
-                {
-                    "name": "Admin Vendor Management",
-                    "item": [
-                        {"name": "Vendor stats", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/vendors/stats", "description": "Admin Bearer token."}},
-                        {"name": "Recent vendor requests (mobile home)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/admin/vendors/recent-requests?limit=5", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors", "recent-requests"], "query": [{"key": "limit", "value": "5", "description": "Max cards on admin home (1-20, default 5)"}]}, "description": "Admin home widget: Recent Vendor Requests. Returns pending + under_review vendors with business_name, email, logo_url, display_status PENDING, and approve/reject/detail action endpoints. Use view_all from response for full list."}},
-                        {"name": "List vendors", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "{{base_url}}/api/admin/vendors?status=pending,under_review&per_page=15&sort=newest", "host": ["{{base_url}}"], "path": ["api", "admin", "vendors"], "query": [{"key": "status", "value": "pending,under_review", "description": "Single status or comma-separated"}, {"key": "per_page", "value": "15"}, {"key": "sort", "value": "newest"}]}, "description": "View All — paginated vendor requests. status supports comma-separated values."}},
-                        {"name": "Vendor details", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/api/admin/vendors/{{vendor_id}}/application-detail", "description": "Mobile Vendor application screen — summary, contact, business_details, bank_details, documents, categories, approve/reject actions."}},
-                        {"name": "Vendor details (full + stats)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/vendors/{{vendor_id}}"}},
-                        {"name": "Approve vendor", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/vendors/{{vendor_id}}/approve"}},
-                        {"name": "Reject vendor", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"reason\": \"Incomplete documents\"\n}"}, "url": "{{base_url}}/api/admin/vendors/{{vendor_id}}/reject"}},
-                        {"name": "Suspend vendor", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/vendors/{{vendor_id}}/suspend"}},
-                        {"name": "Activate vendor", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/vendors/{{vendor_id}}/activate"}},
-                        {"name": "Login admin", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\",\n  \"roles\": \"admin\"\n}"}, "url": "{{base_url}}/api/auth/login"}}
-                    ]
-                },
-                {
-                    "name": "Admin Marketplace",
-                    "item": [
-                        {"name": "Analytics overview", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/marketplace/analytics"}},
-                        {"name": "Marketplace settings GET", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/marketplace/settings"}},
-                        {"name": "Marketplace settings PUT", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"commission_percent\": 10,\n  \"product_approval_required\": true\n}"}, "url": "{{base_url}}/api/admin/marketplace/settings"}},
-                        {"name": "List vendor products (admin)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/marketplace/products?approval_status=pending"}},
-                        {"name": "List vendor orders (admin)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/api/admin/marketplace/orders"}}
                     ]
                 }
             ]
