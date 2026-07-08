@@ -20,6 +20,7 @@ class UpdateVendorProfileApiRequest extends FormRequest
     {
         return [
             'logo' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'profile_picture' => ['sometimes', 'nullable', 'image', 'max:5120'],
             'business_name' => ['sometimes', 'string', 'max:255'],
             'contact_person' => ['sometimes', 'string', 'max:255'],
             'phone' => ['sometimes', 'string', 'max:32'],

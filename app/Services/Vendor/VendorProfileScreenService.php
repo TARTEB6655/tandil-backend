@@ -45,7 +45,8 @@ class VendorProfileScreenService
                 'subtitle' => $this->headerSubtitle($profile?->business_name, $locationParts),
             ],
             'summary' => [
-                'profile_image_url' => $vendor->logo_url ?: $user?->profile_picture_url,
+                'profile_image_url' => $this->brandingImageUrl($vendor, $user),
+                'profile_picture_url' => $this->brandingImageUrl($vendor, $user),
                 'professional_category' => $profile?->vendor_type_label,
                 'partnership_badge' => $partnership,
                 'member_since' => $memberSince ? $memberSince->format('F Y') : null,
@@ -101,8 +102,10 @@ class VendorProfileScreenService
             'title' => 'Edit Profile',
             'subtitle' => 'Update contact and store operations',
             'store_branding' => [
-                'logo_url' => $vendor->logo_url,
+                'profile_picture_url' => $this->brandingImageUrl($vendor, $user),
+                'logo_url' => $this->brandingImageUrl($vendor, $user),
                 'hint' => 'Update your business profile logo.',
+                'upload_field' => 'profile_picture',
             ],
             'business_contact' => [
                 'business_name' => $profile?->business_name,
@@ -206,6 +209,11 @@ class VendorProfileScreenService
         }
 
         return $businessName ?: ($location !== '' ? $location : null);
+    }
+
+    private function brandingImageUrl(Vendor $vendor, $user): ?string
+    {
+        return $vendor->logo_url ?: $user?->profile_picture_url;
     }
 
     /**

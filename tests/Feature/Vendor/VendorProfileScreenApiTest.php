@@ -52,7 +52,8 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.read_only.vendor_id', $vendor->id)
             ->assertJsonMissingPath('data.profile.edit_profile.editable')
             ->assertJsonMissingPath('data.profile.edit_profile.verified_by_admin')
-            ->assertJsonMissingPath('data.profile.summary.banner_url');
+            ->assertJsonPath('data.profile.edit_profile.store_branding.profile_picture_url', fn ($url) => $url === null || is_string($url))
+            ->assertJsonPath('data.profile.summary.profile_picture_url', fn ($url) => $url === null || is_string($url));
     }
 
     public function test_post_profile_returns_same_edit_profile_shape_as_get(): void
@@ -82,6 +83,19 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.edit_profile.business_hours.minimum_order_amount', 75)
             ->assertJsonPath('data.profile.edit_profile.store_branding.logo_url', fn ($url) => is_string($url) && $url !== '')
             ->assertJsonPath('data.profile.business_information.business_name', 'Updated Business');
+    }
+
+    public function test_post_profile_accepts_profile_picture_upload(): void
+    {
+        ['token' => $token] = $this->makeVendorUser();
+
+        $this->withToken($token)->post('/api/vendor/profile', [
+            'contact_person' => 'Ali Vendor',
+            'profile_picture' => UploadedFile::fake()->image('profile.png'),
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.profile.edit_profile.store_branding.profile_picture_url', fn ($url) => is_string($url) && $url !== '')
+            ->assertJsonPath('data.profile.summary.profile_picture_url', fn ($url) => is_string($url) && $url !== '');
     }
 
     public function test_vendor_cannot_update_extra_profile_fields(): void
