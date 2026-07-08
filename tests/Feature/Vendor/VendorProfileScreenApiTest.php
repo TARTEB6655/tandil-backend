@@ -40,7 +40,7 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.stats.products', 1)
             ->assertJsonPath('data.profile.edit_profile.title', 'Edit Profile')
             ->assertJsonPath('data.profile.edit_profile.subtitle', 'Update contact and store operations')
-            ->assertJsonPath('data.profile.edit_profile.store_branding.hint', 'Upload any image size (up to 500 MB). Server auto-compresses for fast loading.')
+            ->assertJsonPath('data.profile.edit_profile.store_branding.hint', fn ($hint) => is_string($hint) && str_contains($hint, 'Business logo is separate'))
             ->assertJsonPath('data.profile.edit_profile.business_contact.business_name', 'Green Fields Agro Supplies')
             ->assertJsonPath('data.profile.edit_profile.business_contact.contact_person', 'Ali Vendor')
             ->assertJsonPath('data.profile.edit_profile.business_contact.city', 'Al Ain')
@@ -87,15 +87,53 @@ class VendorProfileScreenApiTest extends TestCase
 
     public function test_post_profile_accepts_profile_picture_upload(): void
     {
-        ['token' => $token] = $this->makeVendorUser();
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
 
-        $this->withToken($token)->post('/api/vendor/profile', [
+        $vendor->profile->update(['logo_path' => 'vendors/logos/existing-logo.jpg']);
+        Storage::disk('public')->put('vendors/logos/existing-logo.jpg', 'logo-bytes');
+
+        $response = $this->withToken($token)->post('/api/vendor/profile', [
             'contact_person' => 'Ali Vendor',
             'profile_picture' => UploadedFile::fake()->image('profile.png'),
         ], ['Accept' => 'application/json'])
-            ->assertOk()
-            ->assertJsonPath('data.profile.edit_profile.store_branding.profile_picture_url', fn ($url) => is_string($url) && $url !== '')
-            ->assertJsonPath('data.profile.summary.profile_picture_url', fn ($url) => is_string($url) && $url !== '');
+            ->assertOk();
+
+        $logoUrl = $response->json('data.profile.edit_profile.store_branding.logo_url');
+        $profileUrl = $response->json('data.profile.edit_profile.store_branding.profile_picture_url');
+
+        $this->assertIsString($profileUrl);
+        $this->assertNotSame('', $profileUrl);
+        $this->assertIsString($logoUrl);
+        $this->assertStringContainsString('existing-logo.jpg', $logoUrl);
+        $this->assertNotSame($logoUrl, $profileUrl);
+
+        $vendor->refresh()->load('profile');
+        $this->assertNotNull($vendor->profile->profile_picture_path);
+        $this->assertSame('vendors/logos/existing-logo.jpg', $vendor->profile->logo_path);
+    }
+
+    public function test_post_profile_logo_upload_does_not_change_profile_picture(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+
+        $vendor->profile->update(['profile_picture_path' => 'vendors/profile-pictures/existing-profile.jpg']);
+        Storage::disk('public')->put('vendors/profile-pictures/existing-profile.jpg', 'profile-bytes');
+
+        $response = $this->withToken($token)->post('/api/vendor/profile', [
+            'logo' => UploadedFile::fake()->image('new-logo.png'),
+        ], ['Accept' => 'application/json'])
+            ->assertOk();
+
+        $logoUrl = $response->json('data.profile.edit_profile.store_branding.logo_url');
+        $profileUrl = $response->json('data.profile.edit_profile.store_branding.profile_picture_url');
+
+        $this->assertStringContainsString('existing-profile.jpg', (string) $profileUrl);
+        $this->assertNotSame($profileUrl, $logoUrl);
+
+        $vendor->refresh()->load('profile');
+        $this->assertSame('vendors/profile-pictures/existing-profile.jpg', $vendor->profile->profile_picture_path);
+        $this->assertNotNull($vendor->profile->logo_path);
+        $this->assertNotSame('vendors/profile-pictures/existing-profile.jpg', $vendor->profile->logo_path);
     }
 
     public function test_post_profile_compresses_large_profile_picture(): void
@@ -111,8 +149,8 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.edit_profile.store_branding.profile_picture_url', fn ($url) => is_string($url) && $url !== '');
 
         $vendor->refresh()->load('profile');
-        $this->assertNotNull($vendor->profile->logo_path);
-        Storage::disk('public')->assertExists($vendor->profile->logo_path);
+        $this->assertNotNull($vendor->profile->profile_picture_path);
+        Storage::disk('public')->assertExists($vendor->profile->profile_picture_path);
     }
 
     private function makeLargeJpegUpload(string $name, int $width, int $height): UploadedFile

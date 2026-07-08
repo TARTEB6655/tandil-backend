@@ -28,6 +28,7 @@ class VendorProfile extends Model
         'minimum_order_amount',
         'tax_vat_number',
         'logo_path',
+        'profile_picture_path',
         'banner_path',
         'description',
         'social_links',
@@ -47,6 +48,7 @@ class VendorProfile extends Model
     protected $appends = [
         'vendor_type_label',
         'logo_url',
+        'profile_picture_url',
         'banner_url',
     ];
 
@@ -67,6 +69,11 @@ class VendorProfile extends Model
     public function getLogoUrlAttribute(): ?string
     {
         return $this->mediaUrl($this->logo_path);
+    }
+
+    public function getProfilePictureUrlAttribute(): ?string
+    {
+        return $this->mediaUrl($this->profile_picture_path);
     }
 
     public function getBannerUrlAttribute(): ?string

@@ -41,7 +41,8 @@ class VendorProfileController extends Controller
         $vendor = $this->registration->updateEditableProfile(
             $vendor,
             $request->validated(),
-            $request->file('profile_picture') ?? $request->file('logo')
+            $request->file('profile_picture'),
+            $request->file('logo')
         );
 
         return ApiResponse::success('Profile updated.', [

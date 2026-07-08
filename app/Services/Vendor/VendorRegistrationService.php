@@ -42,7 +42,7 @@ class VendorRegistrationService
                 'status' => VendorStatus::UnderReview->value,
             ]);
 
-            $logoPath = $logo ? $this->storeAndOptimizeLogo($logo) : null;
+            $logoPath = $logo ? $this->storeAndOptimizeImage($logo, 'vendors/logos') : null;
 
             $profileData = array_merge(
                 $this->mapProfileFields($data),
@@ -117,7 +117,7 @@ class VendorRegistrationService
                 if ($profile->logo_path) {
                     Storage::disk('public')->delete($profile->logo_path);
                 }
-                $updates['logo_path'] = $this->storeAndOptimizeLogo($logo);
+                $updates['logo_path'] = $this->storeAndOptimizeImage($logo, 'vendors/logos');
             }
 
             if (! empty($updates)) {
@@ -150,11 +150,12 @@ class VendorRegistrationService
     public function updateEditableProfile(
         Vendor $vendor,
         array $data,
+        ?UploadedFile $profilePicture = null,
         ?UploadedFile $logo = null
     ): Vendor {
         $data = $this->mapEditProfileInput($data);
 
-        return DB::transaction(function () use ($vendor, $data, $logo) {
+        return DB::transaction(function () use ($vendor, $data, $profilePicture, $logo) {
             $profile = $vendor->profile;
             $updates = [];
 
@@ -177,11 +178,21 @@ class VendorRegistrationService
                 }
             }
 
+            if ($profilePicture) {
+                if ($profile->profile_picture_path) {
+                    Storage::disk('public')->delete($profile->profile_picture_path);
+                }
+                $updates['profile_picture_path'] = $this->storeAndOptimizeImage(
+                    $profilePicture,
+                    'vendors/profile-pictures'
+                );
+            }
+
             if ($logo) {
                 if ($profile->logo_path) {
                     Storage::disk('public')->delete($profile->logo_path);
                 }
-                $updates['logo_path'] = $this->storeAndOptimizeLogo($logo);
+                $updates['logo_path'] = $this->storeAndOptimizeImage($logo, 'vendors/logos');
             }
 
             if (! empty($updates)) {
@@ -203,9 +214,9 @@ class VendorRegistrationService
         });
     }
 
-    private function storeAndOptimizeLogo(UploadedFile $logo): string
+    private function storeAndOptimizeImage(UploadedFile $file, string $directory): string
     {
-        $path = $logo->store('vendors/logos', 'public');
+        $path = $file->store($directory, 'public');
         ImageCompressionService::optimizeVendorProfilePictureFromPublicPath($path);
 
         return $path;

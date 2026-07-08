@@ -3,6 +3,7 @@
 namespace App\Services\Vendor;
 
 use App\Models\Vendor;
+use App\Services\ProfilePictureUploadService;
 
 class VendorProfileScreenService
 {
@@ -45,8 +46,8 @@ class VendorProfileScreenService
                 'subtitle' => $this->headerSubtitle($profile?->business_name, $locationParts),
             ],
             'summary' => [
-                'profile_image_url' => $this->brandingImageUrl($vendor, $user),
-                'profile_picture_url' => $this->brandingImageUrl($vendor, $user),
+                'profile_image_url' => $this->profilePictureUrl($vendor, $user),
+                'profile_picture_url' => $this->profilePictureUrl($vendor, $user),
                 'professional_category' => $profile?->vendor_type_label,
                 'partnership_badge' => $partnership,
                 'member_since' => $memberSince ? $memberSince->format('F Y') : null,
@@ -102,10 +103,11 @@ class VendorProfileScreenService
             'title' => 'Edit Profile',
             'subtitle' => 'Update contact and store operations',
             'store_branding' => [
-                'profile_picture_url' => $this->brandingImageUrl($vendor, $user),
-                'logo_url' => $this->brandingImageUrl($vendor, $user),
-                'hint' => 'Upload any image size (up to 500 MB). Server auto-compresses for fast loading.',
+                'profile_picture_url' => $this->profilePictureUrl($vendor, $user),
+                'logo_url' => $profile?->logo_url,
+                'hint' => 'Profile picture is your personal photo (upload_field: profile_picture). Business logo is separate (logo_url). Any size up to 500 MB — auto-compressed on upload.',
                 'upload_field' => 'profile_picture',
+                'logo_upload_field' => 'logo',
             ],
             'business_contact' => [
                 'business_name' => $profile?->business_name,
@@ -211,9 +213,14 @@ class VendorProfileScreenService
         return $businessName ?: ($location !== '' ? $location : null);
     }
 
-    private function brandingImageUrl(Vendor $vendor, $user): ?string
+    private function profilePictureUrl(Vendor $vendor, $user): ?string
     {
-        return $vendor->logo_url ?: $user?->profile_picture_url;
+        $vendorPicture = $vendor->profile?->profile_picture_url;
+        if ($vendorPicture !== null) {
+            return $vendorPicture;
+        }
+
+        return ProfilePictureUploadService::fullUrl($user?->profile_picture);
     }
 
     /**
