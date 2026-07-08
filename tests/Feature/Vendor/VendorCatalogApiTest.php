@@ -40,6 +40,7 @@ class VendorCatalogApiTest extends TestCase
         $this->withToken($token)->getJson('/api/vendor/application')->assertForbidden();
         $this->withToken($token)->getJson('/api/vendor/dashboard/summary')->assertForbidden();
         $this->withToken($token)->getJson('/api/vendor/dashboard/stats')->assertForbidden();
+        $this->withToken($token)->getJson('/api/vendor/analytics/performance')->assertForbidden();
         $this->withToken($token)->getJson('/api/vendor/categories')->assertForbidden();
         $this->withToken($token)->postJson('/api/vendor/categories', [
             'name' => 'Blocked',

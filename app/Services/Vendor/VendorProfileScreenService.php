@@ -64,6 +64,12 @@ class VendorProfileScreenService
                 ['id' => 'location_address', 'title' => 'Location & Address', 'icon' => 'location'],
                 ['id' => 'payment_methods', 'title' => 'Payment Methods', 'icon' => 'payment'],
             ],
+            'partnership' => [
+                ['id' => 'partnership_status', 'title' => 'Partnership Status', 'icon' => 'diamond'],
+                ['id' => 'performance_analytics', 'title' => 'Performance Analytics', 'icon' => 'analytics'],
+                ['id' => 'partnership_documents', 'title' => 'Partnership Documents', 'icon' => 'document'],
+                ['id' => 'support_team', 'title' => 'Support Team', 'icon' => 'support'],
+            ],
             'edit_profile' => $this->editProfileForm($vendor, $profile, $user, $opensAt, $closesAt),
             'business_information' => $this->businessInformation($profile, $opensAt, $closesAt),
             'location_address' => $this->locationAddress($profile, $locationParts),

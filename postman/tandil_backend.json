@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18**. Profile **B**: `1` Get profile · `2` Update profile (POST, Edit Profile only) · `3–5` Business Information / Location & Address / Payment Methods (**GET only**, same endpoint). Auth: `{{vendor_token}}`.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. Profile **B** (Edit Profile). **F** Performance Analytics: `GET /api/vendor/analytics/performance?period=week|month|quarter|year`. Auth: `{{vendor_token}}`, approved vendor.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.64"
+        "version": "3.3.66"
     },
     "item": [
         {
@@ -18960,7 +18960,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Vendor marketplace — login: `2. Authentication` → Login Vendor (`{{vendor_token}}`).\n\n**B. Business Profile:**\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\nRequests 1, 3, 4, 5 use `GET /api/vendor/profile`. Onboarding: folder **C**.",
+            "description": "Login: `2. Authentication` → Login Vendor.\n\n**B. Business Profile** (`GET /api/vendor/profile`):\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab + `edit_profile` form |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\n**Edit Profile POST fields:** `logo`, `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
             "event": [
                 {
                     "listen": "prerequest",
@@ -18984,7 +18984,7 @@
             "item": [
                 {
                     "name": "B. Business Profile",
-                    "description": "GET `/api/vendor/profile` — 1 Get profile, 3–5 read-only screens. POST sirf 2 Update profile.",
+                    "description": "`edit_profile`: store_branding · business_contact · business_hours · bank_account. POST sirf request 2.",
                     "item": [
                         {
                             "name": "1. Get profile",
@@ -19006,7 +19006,9 @@
                                             "    pm.expect(p.edit_profile).to.have.property('business_contact');",
                                             "    pm.expect(p.edit_profile).to.have.property('business_hours');",
                                             "    pm.expect(p.edit_profile).to.have.property('bank_account');",
-                                            "    pm.expect(p.edit_profile.business_contact).to.have.property('contact_person');",
+                                            "    pm.expect(p.edit_profile.title).to.eql('Edit Profile');",
+                                            "    pm.expect(p.edit_profile.business_contact).to.have.property('store_description');",
+                                            "    pm.expect(p.edit_profile.bank_account).to.have.property('subtitle');",
                                             "    pm.expect(p.edit_profile.business_hours).to.have.property('delivery_radius_km');",
                                             "    pm.expect(p.business_information).to.have.property('read_only', true);",
                                             "    pm.expect(p.business_information).to.have.property('business_name');",
@@ -19026,7 +19028,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "GET `/api/vendor/profile`"
+                                "description": "GET `/api/vendor/profile` — bind `data.profile.edit_profile` (store_branding, business_contact, business_hours, bank_account)"
                             }
                         },
                         {
@@ -19077,7 +19079,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "POST `/api/vendor/profile` — Edit Profile save"
+                                "description": "POST `/api/vendor/profile` — logo, business_name, contact_person, phone, address, city, store_description, opens_at, closes_at, delivery_radius_km, minimum_order_amount, bank_name, iban, account_holder_name"
                             }
                         },
                         {
@@ -19126,7 +19128,7 @@
                                             "    pm.expect(l.read_only).to.eql(true);",
                                             "    pm.expect(l).to.have.property('emirate');",
                                             "    pm.expect(l).to.have.property('city');",
-                                            "    pm.expect(l).to.have.property('address');",
+                                            "    pm.expect(l).to.have.property('delivery_radius_km');",
                                             "});"
                                         ]
                                     }
@@ -19327,6 +19329,47 @@
                                     "path": ["api", "vendor", "dashboard", "summary"]
                                 },
                                 "description": "Lightweight mobile home screen: currency AED, revenue, pending_orders, products, active, low_stock, total_orders, delivered_orders."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "F. Performance Analytics (approved only)",
+                    "description": "Profile → Partnership → Performance Analytics.",
+                    "item": [
+                        {
+                            "name": "1. Get performance analytics",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Performance analytics shape', function () {",
+                                            "    var a = pm.response.json().data.analytics;",
+                                            "    pm.expect(a.title).to.eql('Analytics');",
+                                            "    pm.expect(a).to.have.property('overview');",
+                                            "    pm.expect(a).to.have.property('performance_metrics');",
+                                            "    pm.expect(a).to.have.property('trends');",
+                                            "    pm.expect(a.filters).to.be.an('array').with.lengthOf(4);",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/analytics/performance?period=month",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "analytics", "performance"],
+                                    "query": [{"key": "period", "value": "month"}]
+                                },
+                                "description": "GET `/api/vendor/analytics/performance?period=month` — week | month | quarter | year"
                             }
                         }
                     ]
