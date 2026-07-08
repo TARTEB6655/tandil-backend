@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18**. Profile: `18 → B` — `GET/POST /api/vendor/profile` returns `data.profile.edit_profile.editable` + `verified_by_admin` (same shape on GET and POST). Auth: `{{vendor_token}}`.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18**. Profile **B**: `1` Get profile · `2` Update profile (POST, Edit Profile only) · `3–5` Business Information / Location & Address / Payment Methods (**GET only**, same endpoint). Auth: `{{vendor_token}}`.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.62"
+        "version": "3.3.63"
     },
     "item": [
         {
@@ -18960,7 +18960,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Vendor marketplace module — complete flow.\n\n**Login once:** `2. Authentication` → **Login Vendor** — saves `{{vendor_token}}` (and `{{token}}`). All vendor APIs in this folder use `vendor_token` automatically so admin/client logins elsewhere do not break vendor testing.\n\n**Vendor signup:** Register Vendor → status `under_review`. Admin approves in folder **J**.\n\n**Mobile Profile tab:** folder **B. Business Profile** → `GET /api/vendor/profile` (works with token even before approval; pending vendors get 403 on catalog/dashboard).\n\n**After approval:** E Dashboard → F0 → F Products → G Inventory → H Orders.\n\nAuth: Bearer `{{vendor_token}}` (auto on `/api/vendor/*`). Variables: {{vendor_id}}, {{vendor_product_id}}, {{category_id}}, {{service_id}}.",
+            "description": "Vendor marketplace — login: `2. Authentication` → Login Vendor (`{{vendor_token}}`).\n\n**B. Business Profile:**\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\nRequests 1, 3, 4, 5 use `GET /api/vendor/profile`. Onboarding: folder **C**.",
             "event": [
                 {
                     "listen": "prerequest",
@@ -18984,7 +18984,7 @@
             "item": [
                 {
                     "name": "B. Business Profile",
-                    "description": "1 Get profile + 3–5 read-only screens (GET). Sirf 2 Update profile POST hai.",
+                    "description": "GET `/api/vendor/profile` — 1 Get profile, 3–5 read-only screens. POST sirf 2 Update profile.",
                     "item": [
                         {
                             "name": "1. Get profile",
@@ -19000,6 +19000,8 @@
                                             "    pm.expect(p).to.have.property('header');",
                                             "    pm.expect(p).to.have.property('summary');",
                                             "    pm.expect(p).to.have.property('stats');",
+                                            "    pm.expect(p).to.have.property('account_settings');",
+                                            "    pm.expect(p.account_settings).to.be.an('array').with.lengthOf(4);",
                                             "    pm.expect(p.edit_profile).to.have.property('editable');",
                                             "    pm.expect(p.edit_profile).to.have.property('verified_by_admin');",
                                             "    pm.expect(p.edit_profile.editable).to.have.property('business_name');",
@@ -19024,7 +19026,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "GET `/api/vendor/profile` — Auth: Bearer {{vendor_token}}"
+                                "description": "GET `/api/vendor/profile`"
                             }
                         },
                         {
@@ -19081,7 +19083,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "POST `/api/vendor/profile` — Edit Profile save only. Auth: Bearer {{vendor_token}}"
+                                "description": "POST `/api/vendor/profile` — Edit Profile save"
                             }
                         },
                         {
@@ -19114,7 +19116,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "GET only — read `data.profile.business_information` (no POST)."
+                                "description": "GET — `data.profile.business_information`"
                             }
                         },
                         {
@@ -19147,7 +19149,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "GET only — read `data.profile.location_address` (no POST)."
+                                "description": "GET — `data.profile.location_address`"
                             }
                         },
                         {
@@ -19180,7 +19182,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "GET only — read `data.profile.payment_methods` (no POST)."
+                                "description": "GET — `data.profile.payment_methods`"
                             }
                         }
                     ]
