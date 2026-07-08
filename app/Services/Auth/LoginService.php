@@ -97,17 +97,8 @@ class LoginService
     {
         $tokenName = 'api_'.$portal;
 
-        // Do not revoke existing tokens on login — mobile/Postman sessions stay valid.
-        // Cap growth: keep only the 9 most recent tokens per portal before issuing another.
-        $existingIds = $user->tokens()
-            ->where('name', $tokenName)
-            ->orderByDesc('id')
-            ->pluck('id');
-
-        if ($existingIds->count() >= 10) {
-            $user->tokens()->whereIn('id', $existingIds->slice(9)->values()->all())->delete();
-        }
-
+        // Never revoke existing portal tokens on login — same behaviour as long-lived admin sessions.
+        // Mobile/Postman keep using the saved token until explicit logout.
         return $user->createToken($tokenName, [$portal])->plainTextToken;
     }
 

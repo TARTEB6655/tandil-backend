@@ -44,7 +44,36 @@ class CheckRole
             return $next($request);
         }
 
+        // Legacy Sanctum tokens (api_token with wildcard ability) — allow when user has the app role.
+        if ($token instanceof PersonalAccessToken && $this->legacyTokenGrantsAnyRole($token, $roles, $user)) {
+            return $next($request);
+        }
+
         abort(403, 'Unauthorized access. You do not have the required role.');
+    }
+
+    /**
+     * @param  list<string>  $roles
+     */
+    private function legacyTokenGrantsAnyRole(PersonalAccessToken $token, array $roles, $user): bool
+    {
+        $abilities = $token->abilities ?? [];
+        if (! in_array('*', $abilities, true)) {
+            return false;
+        }
+
+        $name = $token->name;
+        if (! is_string($name) || $name !== 'api_token') {
+            return false;
+        }
+
+        foreach ($roles as $role) {
+            if ($user->hasAppRole($role)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
