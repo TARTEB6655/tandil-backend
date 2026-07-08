@@ -145,10 +145,128 @@ class VendorPerformanceAnalyticsService
             'top_products' => $this->topProducts($vendor->id, $start, $end, $previousStart, $previousEnd),
             'recent_activity' => $this->recentActivity($vendor->id),
             'actions' => [
-                ['id' => 'export_report', 'label' => 'Export Report', 'available' => false],
+                [
+                    'id' => 'export_report',
+                    'label' => 'Export Report',
+                    'available' => true,
+                    'type' => 'download',
+                    'method' => 'GET',
+                    'path' => '/api/vendor/analytics/performance/export',
+                    'query_params' => ['period' => $period],
+                    'file_format' => 'csv',
+                ],
                 ['id' => 'share_analytics', 'label' => 'Share Analytics', 'available' => true],
             ],
         ];
+    }
+
+    /**
+     * CSV rows for analytics export (Excel-compatible).
+     *
+     * @return list<list<string>>
+     */
+    public function buildCsvRows(Vendor $vendor, string $period = 'month'): array
+    {
+        $period = $this->normalizePeriod($period);
+        $analytics = $this->build($vendor, $period);
+        $businessName = $vendor->profile?->business_name ?? 'Vendor';
+
+        $rows = [
+            ['Vendor Performance Analytics Report'],
+            ['Business', $businessName],
+            ['Period', $analytics['period_label']],
+            ['Generated At', now()->toDateTimeString()],
+            [],
+            ['Overview'],
+            ['Metric', 'Value', 'Subtitle', 'Growth'],
+        ];
+
+        foreach ([
+            'total_products' => 'Total Products',
+            'total_orders' => 'Total Orders',
+            'total_revenue' => 'Total Revenue',
+            'total_views' => 'Total Views',
+        ] as $key => $label) {
+            $item = $analytics['overview'][$key];
+            $rows[] = [
+                $label,
+                (string) ($item['display'] ?? $item['value']),
+                (string) ($item['subtitle'] ?? ''),
+                (string) ($item['growth_display'] ?? ''),
+            ];
+        }
+
+        $rows[] = [];
+        $rows[] = ['Performance Metrics'];
+        $rows[] = ['Metric', 'Value', 'Subtitle'];
+        foreach ([
+            'conversion_rate' => 'Conversion Rate',
+            'avg_order_value' => 'Average Order Value',
+            'satisfaction' => 'Customer Satisfaction',
+            'return_rate' => 'Return Rate',
+        ] as $key => $label) {
+            $metric = $analytics['performance_metrics'][$key];
+            $rows[] = [
+                $label,
+                (string) ($metric['display'] ?? $metric['value']),
+                (string) ($metric['subtitle'] ?? ''),
+            ];
+        }
+
+        $rows[] = [];
+        $rows[] = ['Top Products'];
+        $rows[] = ['Rank', 'Product', 'Orders', 'Revenue', 'Growth'];
+        foreach ($analytics['top_products'] as $product) {
+            $rows[] = [
+                (string) $product['rank'],
+                (string) $product['name'],
+                (string) $product['orders'],
+                (string) $product['revenue_display'],
+                (string) $product['growth_display'],
+            ];
+        }
+
+        $rows[] = [];
+        $rows[] = ['Recent Activity'];
+        $rows[] = ['Type', 'Title', 'Value', 'Time'];
+        foreach ($analytics['recent_activity'] as $activity) {
+            $rows[] = [
+                (string) $activity['type'],
+                (string) $activity['title'],
+                (string) $activity['value'],
+                (string) $activity['time_ago'],
+            ];
+        }
+
+        $rows[] = [];
+        $rows[] = ['Daily Performance (Last 7 Days)'];
+        $rows[] = ['Day', 'Orders', 'Revenue (AED)'];
+        foreach ($analytics['trends']['daily_performance']['data_points'] as $point) {
+            $rows[] = [
+                (string) $point['label'],
+                (string) $point['orders'],
+                (string) $point['revenue'],
+            ];
+        }
+
+        $rows[] = [];
+        $rows[] = ['Weekly Revenue (Last 7 Weeks)'];
+        $rows[] = ['Week', 'Revenue (AED)'];
+        foreach ($analytics['trends']['weekly_revenue']['data_points'] as $point) {
+            $rows[] = [
+                (string) $point['label'],
+                (string) $point['revenue'],
+            ];
+        }
+
+        return $rows;
+    }
+
+    public function exportFilename(string $period = 'month'): string
+    {
+        $period = $this->normalizePeriod($period);
+
+        return 'vendor_analytics_'.$period.'_'.now()->format('Y-m-d_His').'.csv';
     }
 
     public function normalizePeriod(string $period): string

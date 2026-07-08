@@ -51,7 +51,31 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
                         'actions',
                     ],
                 ],
-            ]);
+            ])
+            ->assertJsonPath('data.analytics.actions.0.id', 'export_report')
+            ->assertJsonPath('data.analytics.actions.0.available', true)
+            ->assertJsonPath('data.analytics.actions.0.path', '/api/vendor/analytics/performance/export');
+    }
+
+    public function test_approved_vendor_can_export_performance_analytics_csv(): void
+    {
+        ['token' => $token] = $this->makeVendorWithOrderData();
+
+        $response = $this->withToken($token)->get('/api/vendor/analytics/performance/export?period=month');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('attachment; filename=', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('Vendor Performance Analytics Report', $response->streamedContent());
+        $this->assertStringContainsString('Organic Cherry Tomatoes', $response->streamedContent());
+    }
+
+    public function test_unapproved_vendor_cannot_export_performance_analytics(): void
+    {
+        ['token' => $token] = $this->makeVendorWithOrderData(VendorStatus::UnderReview);
+
+        $this->withToken($token)->get('/api/vendor/analytics/performance/export')
+            ->assertForbidden();
     }
 
     public function test_unapproved_vendor_cannot_access_performance_analytics(): void
