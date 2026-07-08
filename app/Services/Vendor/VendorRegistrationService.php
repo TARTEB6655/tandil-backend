@@ -142,19 +142,18 @@ class VendorRegistrationService
     }
 
     /**
-     * Vendor self-service profile update (API) — only vendor-editable fields.
+     * Vendor self-service Edit Profile update (API) — mobile UI fields only.
      *
      * @param  array<string, mixed>  $data
      */
     public function updateEditableProfile(
         Vendor $vendor,
         array $data,
-        ?UploadedFile $logo = null,
-        bool $removeLogo = false,
-        ?UploadedFile $banner = null,
-        bool $removeBanner = false
+        ?UploadedFile $logo = null
     ): Vendor {
-        return DB::transaction(function () use ($vendor, $data, $logo, $removeLogo, $banner, $removeBanner) {
+        $data = $this->mapEditProfileInput($data);
+
+        return DB::transaction(function () use ($vendor, $data, $logo) {
             $profile = $vendor->profile;
             $updates = [];
 
@@ -165,7 +164,6 @@ class VendorRegistrationService
                 'description',
                 'address',
                 'city',
-                'google_maps_location',
                 'operating_hours',
                 'delivery_radius',
                 'minimum_order_amount',
@@ -178,43 +176,11 @@ class VendorRegistrationService
                 }
             }
 
-            $socialLinks = $profile->normalizedSocialLinks();
-            $socialChanged = false;
-            foreach ([
-                'facebook' => 'facebook_url',
-                'instagram' => 'instagram_url',
-                'twitter' => 'twitter_url',
-                'website' => 'website_url',
-            ] as $key => $input) {
-                if (array_key_exists($input, $data)) {
-                    $socialLinks[$key] = $data[$input] === '' ? null : $data[$input];
-                    $socialChanged = true;
-                }
-            }
-            if ($socialChanged) {
-                $updates['social_links'] = $socialLinks;
-            }
-
-            if ($removeLogo && $profile->logo_path) {
-                Storage::disk('public')->delete($profile->logo_path);
-                $updates['logo_path'] = null;
-            }
             if ($logo) {
                 if ($profile->logo_path) {
                     Storage::disk('public')->delete($profile->logo_path);
                 }
                 $updates['logo_path'] = $logo->store('vendors/logos', 'public');
-            }
-
-            if ($removeBanner && $profile->banner_path) {
-                Storage::disk('public')->delete($profile->banner_path);
-                $updates['banner_path'] = null;
-            }
-            if ($banner) {
-                if ($profile->banner_path) {
-                    Storage::disk('public')->delete($profile->banner_path);
-                }
-                $updates['banner_path'] = $banner->store('vendors/banners', 'public');
             }
 
             if (! empty($updates)) {
@@ -234,6 +200,41 @@ class VendorRegistrationService
 
             return $vendor->fresh(['profile', 'user']);
         });
+    }
+
+    /**
+     * Map Edit Profile UI field names to database columns.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function mapEditProfileInput(array $data): array
+    {
+        if (array_key_exists('contact_person', $data)) {
+            $data['owner_name'] = $data['contact_person'];
+            unset($data['contact_person']);
+        }
+
+        if (array_key_exists('store_description', $data)) {
+            $data['description'] = $data['store_description'];
+            unset($data['store_description']);
+        }
+
+        if (array_key_exists('delivery_radius_km', $data)) {
+            $data['delivery_radius'] = $data['delivery_radius_km'];
+            unset($data['delivery_radius_km']);
+        }
+
+        $opensAt = trim((string) ($data['opens_at'] ?? ''));
+        $closesAt = trim((string) ($data['closes_at'] ?? ''));
+
+        if ($opensAt !== '' && $closesAt !== '') {
+            $data['operating_hours'] = $opensAt.' - '.$closesAt;
+        }
+
+        unset($data['opens_at'], $data['closes_at']);
+
+        return $data;
     }
 
     /**

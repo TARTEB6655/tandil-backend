@@ -30,7 +30,7 @@ class VendorProfileScreenApiTest extends TestCase
         Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
     }
 
-    public function test_get_profile_returns_edit_profile_form_fields(): void
+    public function test_get_profile_returns_edit_profile_ui_sections(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(withStats: true);
 
@@ -39,18 +39,20 @@ class VendorProfileScreenApiTest extends TestCase
             ->assertJsonPath('data.profile.header.name', 'Ali Vendor')
             ->assertJsonPath('data.profile.stats.products', 1)
             ->assertJsonPath('data.profile.edit_profile.title', 'Edit Profile')
-            ->assertJsonPath('data.profile.edit_profile.editable.business_name', 'Green Fields Agro Supplies')
-            ->assertJsonPath('data.profile.edit_profile.editable.owner_name', 'Ali Vendor')
-            ->assertJsonPath('data.profile.edit_profile.editable.city', 'Al Ain')
-            ->assertJsonPath('data.profile.edit_profile.editable.bank_name', 'Emirates NBD')
-            ->assertJsonPath('data.profile.edit_profile.verified_by_admin.emirate', 'Abu Dhabi')
-            ->assertJsonPath('data.profile.edit_profile.verified_by_admin.locked', true)
+            ->assertJsonPath('data.profile.edit_profile.subtitle', 'Update contact and store operations')
+            ->assertJsonPath('data.profile.edit_profile.store_branding.hint', 'Update your business profile logo.')
+            ->assertJsonPath('data.profile.edit_profile.business_contact.business_name', 'Green Fields Agro Supplies')
+            ->assertJsonPath('data.profile.edit_profile.business_contact.contact_person', 'Ali Vendor')
+            ->assertJsonPath('data.profile.edit_profile.business_contact.city', 'Al Ain')
+            ->assertJsonPath('data.profile.edit_profile.business_hours.delivery_radius_km', 25)
+            ->assertJsonPath('data.profile.edit_profile.bank_account.bank_name', 'Emirates NBD')
             ->assertJsonPath('data.profile.business_information.read_only', true)
-            ->assertJsonPath('data.profile.business_information.business_name', 'Green Fields Agro Supplies')
-            ->assertJsonPath('data.profile.business_information.vendor_type_label', 'Fruits')
             ->assertJsonPath('data.profile.location_address.city', 'Al Ain')
             ->assertJsonPath('data.profile.payment_methods.bank_name', 'Emirates NBD')
-            ->assertJsonPath('data.profile.read_only.vendor_id', $vendor->id);
+            ->assertJsonPath('data.profile.read_only.vendor_id', $vendor->id)
+            ->assertJsonMissingPath('data.profile.edit_profile.editable')
+            ->assertJsonMissingPath('data.profile.edit_profile.verified_by_admin')
+            ->assertJsonMissingPath('data.profile.summary.banner_url');
     }
 
     public function test_post_profile_returns_same_edit_profile_shape_as_get(): void
@@ -58,15 +60,15 @@ class VendorProfileScreenApiTest extends TestCase
         ['token' => $token] = $this->makeVendorUser();
 
         $this->withToken($token)->post('/api/vendor/profile', [
-            'owner_name' => 'Updated Vendor',
+            'contact_person' => 'Updated Vendor',
             'phone' => '+971500000099',
-            'description' => 'Updated store description',
+            'store_description' => 'Updated store description',
             'business_name' => 'Updated Business',
             'address' => 'New Address',
             'city' => 'Dubai',
             'opens_at' => '09:00',
             'closes_at' => '21:00',
-            'delivery_radius' => 30,
+            'delivery_radius_km' => 30,
             'minimum_order_amount' => 75,
             'bank_name' => 'ADCB',
             'iban' => 'AE123456789012345678901',
@@ -74,38 +76,42 @@ class VendorProfileScreenApiTest extends TestCase
             'logo' => UploadedFile::fake()->image('logo.png'),
         ], ['Accept' => 'application/json'])
             ->assertOk()
-            ->assertJsonPath('data.profile.edit_profile.editable.owner_name', 'Updated Vendor')
-            ->assertJsonPath('data.profile.edit_profile.editable.business_name', 'Updated Business')
-            ->assertJsonPath('data.profile.edit_profile.editable.delivery_radius', 30)
-            ->assertJsonPath('data.profile.edit_profile.editable.minimum_order_amount', 75)
+            ->assertJsonPath('data.profile.edit_profile.business_contact.contact_person', 'Updated Vendor')
+            ->assertJsonPath('data.profile.edit_profile.business_contact.business_name', 'Updated Business')
+            ->assertJsonPath('data.profile.edit_profile.business_hours.delivery_radius_km', 30)
+            ->assertJsonPath('data.profile.edit_profile.business_hours.minimum_order_amount', 75)
             ->assertJsonPath('data.profile.edit_profile.store_branding.logo_url', fn ($url) => is_string($url) && $url !== '')
             ->assertJsonPath('data.profile.business_information.business_name', 'Updated Business');
     }
 
-    public function test_vendor_cannot_update_restricted_profile_fields(): void
+    public function test_vendor_cannot_update_extra_profile_fields(): void
     {
         ['token' => $token] = $this->makeVendorUser();
 
         $this->withToken($token)->postJson('/api/vendor/profile', [
+            'owner_name' => 'Hacked',
+            'description' => 'Hacked',
+            'delivery_radius' => 99,
+            'banner' => 'evil',
+            'facebook_url' => 'https://evil.com',
             'status' => 'approved',
-            'commission_rate' => 5,
             'trade_license_number' => 'HACKED',
             'vendor_type' => 'meat',
             'email' => 'hacked@test.com',
             'emirate' => 'Dubai',
-            'password' => 'newpass123',
-            'password_confirmation' => 'newpass123',
         ])
             ->assertStatus(422)
             ->assertJsonValidationErrors([
+                'owner_name',
+                'description',
+                'delivery_radius',
+                'banner',
+                'facebook_url',
                 'status',
-                'commission_rate',
                 'trade_license_number',
                 'vendor_type',
                 'email',
                 'emirate',
-                'password',
-                'password_confirmation',
             ]);
     }
 
@@ -141,6 +147,7 @@ class VendorProfileScreenApiTest extends TestCase
             'emirate' => 'Abu Dhabi',
             'city' => 'Al Ain',
             'address' => 'Industrial Area 1',
+            'description' => 'Fresh local produce',
             'operating_hours' => '08:00 - 22:00',
             'delivery_radius' => 25,
             'minimum_order_amount' => 50,

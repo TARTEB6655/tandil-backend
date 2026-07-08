@@ -46,7 +46,6 @@ class VendorProfileScreenService
             ],
             'summary' => [
                 'profile_image_url' => $vendor->logo_url ?: $user?->profile_picture_url,
-                'banner_url' => $profile?->banner_url,
                 'professional_category' => $profile?->vendor_type_label,
                 'partnership_badge' => $partnership,
                 'member_since' => $memberSince ? $memberSince->format('F Y') : null,
@@ -86,7 +85,7 @@ class VendorProfileScreenService
     }
 
     /**
-     * Edit Profile screen — same shape for GET and POST response.
+     * Edit Profile screen — matches mobile UI sections (GET and POST response).
      *
      * @return array<string, mixed>
      */
@@ -99,33 +98,30 @@ class VendorProfileScreenService
                 'logo_url' => $vendor->logo_url,
                 'hint' => 'Update your business profile logo.',
             ],
-            'editable' => [
+            'business_contact' => [
                 'business_name' => $profile?->business_name,
-                'owner_name' => $profile?->owner_name,
+                'business_name_note' => 'May require admin approval if changed after verification.',
+                'contact_person' => $profile?->owner_name,
                 'phone' => $profile?->phone ?: $user?->phone,
                 'address' => $profile?->address,
                 'city' => $profile?->city,
-                'description' => $profile?->description,
+                'store_description' => $profile?->description,
+            ],
+            'business_hours' => [
                 'opens_at' => $opensAt,
                 'closes_at' => $closesAt,
-                'delivery_radius' => $profile?->delivery_radius !== null
+                'delivery_radius_km' => $profile?->delivery_radius !== null
                     ? (float) $profile->delivery_radius
                     : null,
                 'minimum_order_amount' => $profile?->minimum_order_amount !== null
                     ? (float) $profile->minimum_order_amount
                     : null,
+            ],
+            'bank_account' => [
+                'subtitle' => 'Used for payouts. Ensure details match your trade license.',
                 'bank_name' => $profile?->bank_name,
                 'iban' => $profile?->iban,
                 'account_holder_name' => $profile?->account_holder_name,
-            ],
-            'verified_by_admin' => [
-                'email' => $profile?->email ?: $user?->email,
-                'vendor_type' => $profile?->vendor_type,
-                'vendor_type_label' => $profile?->vendor_type_label,
-                'emirate' => $profile?->emirate,
-                'trade_license_number' => $profile?->trade_license_number,
-                'locked' => true,
-                'note' => 'These fields are set during registration. Contact support to request changes.',
             ],
         ];
     }
@@ -170,7 +166,7 @@ class VendorProfileScreenService
             'city' => $profile?->city,
             'address' => $profile?->address,
             'google_maps_location' => $profile?->google_maps_location,
-            'delivery_radius' => $profile?->delivery_radius !== null
+            'delivery_radius_km' => $profile?->delivery_radius !== null
                 ? (float) $profile->delivery_radius
                 : null,
             'location_display' => implode(', ', $locationParts) ?: null,

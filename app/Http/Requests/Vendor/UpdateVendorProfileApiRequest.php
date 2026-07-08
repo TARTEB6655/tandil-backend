@@ -12,45 +12,48 @@ class UpdateVendorProfileApiRequest extends FormRequest
     }
 
     /**
+     * Edit Profile screen fields only (matches mobile UI).
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'owner_name' => ['sometimes', 'string', 'max:255'],
-            'authorized_person_name' => ['sometimes', 'string', 'max:255'],
-            'email' => [
-                'prohibited',
-            ],
-            'phone' => ['sometimes', 'string', 'max:32'],
+            'logo' => ['sometimes', 'nullable', 'image', 'max:5120'],
             'business_name' => ['sometimes', 'string', 'max:255'],
-            'company_name' => ['sometimes', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'contact_person' => ['sometimes', 'string', 'max:255'],
+            'phone' => ['sometimes', 'string', 'max:32'],
             'address' => ['sometimes', 'string', 'max:2000'],
-            'emirate' => ['prohibited'],
             'city' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'google_maps_location' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'operating_hours' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'store_description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'opens_at' => ['sometimes', 'nullable', 'date_format:H:i'],
             'closes_at' => ['sometimes', 'nullable', 'date_format:H:i'],
-            'delivery_radius' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:10000'],
+            'delivery_radius_km' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:10000'],
             'minimum_order_amount' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:1000000'],
             'bank_name' => ['sometimes', 'string', 'max:191'],
             'iban' => ['sometimes', 'string', 'max:64'],
             'account_holder_name' => ['sometimes', 'string', 'max:191'],
-            'facebook_url' => ['sometimes', 'nullable', 'url', 'max:500'],
-            'instagram_url' => ['sometimes', 'nullable', 'url', 'max:500'],
-            'twitter_url' => ['sometimes', 'nullable', 'url', 'max:500'],
-            'website_url' => ['sometimes', 'nullable', 'url', 'max:500'],
-            'logo' => ['sometimes', 'nullable', 'image', 'max:5120'],
-            'logo_remove' => ['sometimes', 'boolean'],
-            'banner' => ['sometimes', 'nullable', 'image', 'max:5120'],
-            'banner_remove' => ['sometimes', 'boolean'],
 
+            'owner_name' => ['prohibited'],
+            'authorized_person_name' => ['prohibited'],
+            'contact_person_name' => ['prohibited'],
+            'company_name' => ['prohibited'],
+            'description' => ['prohibited'],
+            'delivery_radius' => ['prohibited'],
+            'email' => ['prohibited'],
+            'emirate' => ['prohibited'],
+            'google_maps_location' => ['prohibited'],
+            'operating_hours' => ['prohibited'],
+            'facebook_url' => ['prohibited'],
+            'instagram_url' => ['prohibited'],
+            'twitter_url' => ['prohibited'],
+            'website_url' => ['prohibited'],
+            'logo_remove' => ['prohibited'],
+            'banner' => ['prohibited'],
+            'banner_remove' => ['prohibited'],
             'password' => ['prohibited'],
             'password_confirmation' => ['prohibited'],
             'current_password' => ['prohibited'],
-
             'status' => ['prohibited'],
             'commission_rate' => ['prohibited'],
             'vendor_id' => ['prohibited'],
@@ -65,33 +68,5 @@ class UpdateVendorProfileApiRequest extends FormRequest
             'emirates_id' => ['prohibited'],
             'require_all' => ['prohibited'],
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        $aliases = [
-            'company_name' => 'business_name',
-            'authorized_person_name' => 'owner_name',
-            'contact_person_name' => 'owner_name',
-        ];
-
-        foreach ($aliases as $from => $to) {
-            if ($this->filled($from) && ! $this->filled($to)) {
-                $this->merge([$to => $this->input($from)]);
-            }
-        }
-
-        if ($this->filled('operating_hours')) {
-            return;
-        }
-
-        $opensAt = trim((string) $this->input('opens_at'));
-        $closesAt = trim((string) $this->input('closes_at'));
-
-        if ($opensAt !== '' && $closesAt !== '') {
-            $this->merge([
-                'operating_hours' => $opensAt.' - '.$closesAt,
-            ]);
-        }
     }
 }
