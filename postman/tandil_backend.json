@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18** (profile screen **B**, dashboard **E**, products **F0/F**, orders **H**, admin approve **J**). Signup status = `under_review` until admin approves. **Profile tab:** `18 → B → 1. Get profile` — mobile-shaped `data.profile` (header, summary, stats, account_settings).",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** (Register/Login) + folder **18**. Profile: `18 → B` — `GET/POST /api/vendor/profile` returns `data.profile.edit_profile.editable` + `verified_by_admin` (same shape on GET and POST). Auth: `{{vendor_token}}`.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.58"
+        "version": "3.3.60"
     },
     "item": [
         {
@@ -18984,7 +18984,7 @@
             "item": [
                 {
                     "name": "B. Business Profile",
-                    "description": "Vendor profile — **2 APIs only**.\n\n| # | Method | Endpoint |\n|---|--------|----------|\n| 1 | GET | `/api/vendor/profile` — complete profile + business data |\n| 2 | POST | `/api/vendor/profile` — vendor-editable fields only (no password, no status/commission) |\n\nOnboarding/documents: folder **C** (`/api/vendor/application`, `/api/vendor/documents`).",
+                    "description": "Vendor profile — GET and POST `/api/vendor/profile`. Onboarding/documents: folder **C**.",
                     "item": [
                         {
                             "name": "1. Get profile",
@@ -18994,13 +18994,19 @@
                                     "script": {
                                         "type": "text/javascript",
                                         "exec": [
-                                            "pm.test('Complete profile shape', function () {",
+                                            "pm.test('Profile shape', function () {",
                                             "    var d = pm.response.json();",
-                                            "    pm.expect(d.data.profile).to.have.property('header');",
-                                            "    pm.expect(d.data.profile).to.have.property('stats');",
-                                            "    pm.expect(d.data.profile).to.have.property('edit_profile');",
-                                            "    pm.expect(d.data.profile.edit_profile).to.have.property('editable');",
-                                            "    pm.expect(d.data.profile.edit_profile).to.have.property('verified_by_admin');",
+                                            "    var p = d.data.profile;",
+                                            "    pm.expect(p).to.have.property('header');",
+                                            "    pm.expect(p).to.have.property('summary');",
+                                            "    pm.expect(p).to.have.property('stats');",
+                                            "    pm.expect(p.edit_profile).to.have.property('editable');",
+                                            "    pm.expect(p.edit_profile).to.have.property('verified_by_admin');",
+                                            "    pm.expect(p.edit_profile.editable).to.have.property('business_name');",
+                                            "    pm.expect(p.edit_profile.editable).to.have.property('delivery_radius');",
+                                            "    pm.expect(p.edit_profile.verified_by_admin).to.have.property('locked', true);",
+                                            "    pm.expect(p.summary).to.have.property('banner_url');",
+                                            "    pm.expect(p).to.not.have.property('business_information');",
                                             "});"
                                         ]
                                     }
@@ -19017,11 +19023,26 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "**GET complete vendor profile**\n\nProfile tab: `header`, `summary`, `stats`, `account_settings`\n\nEdit Profile form (same fields on GET + POST response):\n- `edit_profile.store_branding.logo_url`\n- `edit_profile.editable` — business_name, owner_name, phone, address, city, description, opens_at, closes_at, delivery_radius, minimum_order_amount, bank_name, iban, account_holder_name\n- `edit_profile.verified_by_admin` — email, vendor_type_label, emirate, trade_license_number (locked)\n\n`read_only` — vendor_id, status, commission_rate"
+                                "description": "GET `/api/vendor/profile` — Auth: Bearer {{vendor_token}}"
                             }
                         },
                         {
                             "name": "2. Update profile",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Update profile', function () {",
+                                            "    var d = pm.response.json();",
+                                            "    pm.expect(d.data.profile.edit_profile).to.have.property('editable');",
+                                            "    pm.expect(d.data.profile.edit_profile).to.have.property('verified_by_admin');",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19031,28 +19052,27 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text", "description": "Contact person name."},
-                                        {"key": "email", "value": "vendor@example.com", "type": "text"},
-                                        {"key": "phone", "value": "+971500000001", "type": "text"},
                                         {"key": "business_name", "value": "Green Fields Agro Supplies", "type": "text"},
-                                        {"key": "description", "value": "Fresh local produce supplier.", "type": "text", "description": "Store description."},
+                                        {"key": "owner_name", "value": "Ali Vendor", "type": "text"},
+                                        {"key": "phone", "value": "+971500000001", "type": "text"},
                                         {"key": "address", "value": "Industrial Area 1", "type": "text"},
-                                        {"key": "emirate", "value": "Abu Dhabi", "type": "text"},
                                         {"key": "city", "value": "Al Ain", "type": "text"},
-                                        {"key": "google_maps_location", "value": "24.2075,55.7447", "type": "text"},
-                                        {"key": "opens_at", "value": "08:00", "type": "text"},
+                                        {"key": "description", "value": "Fresh local produce supplier.", "type": "text"},
+                                        {"key": "opens_at", "value": "09:00", "type": "text"},
                                         {"key": "closes_at", "value": "22:00", "type": "text"},
+                                        {"key": "delivery_radius", "value": "25", "type": "text"},
+                                        {"key": "minimum_order_amount", "value": "50", "type": "text"},
                                         {"key": "bank_name", "value": "Emirates NBD", "type": "text"},
                                         {"key": "iban", "value": "AE070331234567890123456", "type": "text"},
                                         {"key": "account_holder_name", "value": "Green Fields Agro Supplies", "type": "text"},
+                                        {"key": "logo", "type": "file", "src": []},
+                                        {"key": "logo_remove", "value": "false", "type": "text"},
+                                        {"key": "banner", "type": "file", "src": []},
+                                        {"key": "banner_remove", "value": "false", "type": "text"},
                                         {"key": "facebook_url", "value": "https://facebook.com/vendor", "type": "text"},
                                         {"key": "instagram_url", "value": "https://instagram.com/vendor", "type": "text"},
                                         {"key": "twitter_url", "value": "", "type": "text", "disabled": true},
-                                        {"key": "website_url", "value": "https://vendor.example.com", "type": "text"},
-                                        {"key": "logo", "type": "file", "src": [], "description": "Profile / store logo."},
-                                        {"key": "logo_remove", "value": "false", "type": "text"},
-                                        {"key": "banner", "type": "file", "src": [], "description": "Store banner image."},
-                                        {"key": "banner_remove", "value": "false", "type": "text"}
+                                        {"key": "website_url", "value": "https://vendor.example.com", "type": "text"}
                                     ]
                                 },
                                 "url": {
@@ -19060,7 +19080,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "profile"]
                                 },
-                                "description": "**POST vendor-editable profile fields only** (multipart). PUT also works without files.\n\n**Allowed:** owner_name, email, phone, business_name, description, address, emirate, city, google_maps_location, opens_at/closes_at, bank_name, iban, account_holder_name, social URLs, logo, banner.\n\n**Blocked (422):** password, status, commission_rate, trade_license_number, vendor_type, vat_number, terms, documents.\n\nSend only fields you want to change. Response: full `data.profile` like GET."
+                                "description": "POST `/api/vendor/profile` — form-data. Auth: Bearer {{vendor_token}}"
                             }
                         }
                     ]

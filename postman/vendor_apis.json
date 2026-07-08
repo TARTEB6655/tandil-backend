@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Vendor APIs",
-        "description": "Vendor profile: GET + POST /api/vendor/profile only. Login via main collection folder 2."
+        "description": "Vendor profile: GET + POST /api/vendor/profile. Same edit_profile.editable + verified_by_admin on GET and POST. Banner in summary.banner_url. Login: main collection folder 2 → Login Vendor."
     },
     "item": [
         {
@@ -9,7 +9,7 @@
             "item": [
                 {
                     "name": "Profile",
-                    "description": "GET = complete profile. POST = vendor-editable fields only (no password/status/commission).",
+                    "description": "GET loads Profile tab + Edit Profile form. POST saves editable fields only.",
                     "item": [
                         {
                             "name": "Get profile",
@@ -33,11 +33,24 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
+                                        {"key": "business_name", "value": "Green Fields Agro Supplies", "type": "text"},
                                         {"key": "owner_name", "value": "Ali Vendor", "type": "text"},
                                         {"key": "phone", "value": "+971500000001", "type": "text"},
-                                        {"key": "business_name", "value": "Green Fields Agro Supplies", "type": "text"},
-                                        {"key": "description", "value": "Updated description", "type": "text"},
-                                        {"key": "logo", "type": "file", "src": []}
+                                        {"key": "address", "value": "Industrial Area 1", "type": "text"},
+                                        {"key": "city", "value": "Al Ain", "type": "text"},
+                                        {"key": "description", "value": "Store description", "type": "text"},
+                                        {"key": "opens_at", "value": "09:00", "type": "text"},
+                                        {"key": "closes_at", "value": "22:00", "type": "text"},
+                                        {"key": "delivery_radius", "value": "25", "type": "text"},
+                                        {"key": "minimum_order_amount", "value": "50", "type": "text"},
+                                        {"key": "bank_name", "value": "Emirates NBD", "type": "text"},
+                                        {"key": "iban", "value": "AE070331234567890123456", "type": "text"},
+                                        {"key": "account_holder_name", "value": "Green Fields Agro Supplies", "type": "text"},
+                                        {"key": "logo", "type": "file", "src": []},
+                                        {"key": "banner", "type": "file", "src": []},
+                                        {"key": "facebook_url", "value": "https://facebook.com/vendor", "type": "text"},
+                                        {"key": "instagram_url", "value": "https://instagram.com/vendor", "type": "text"},
+                                        {"key": "website_url", "value": "https://vendor.example.com", "type": "text"}
                                     ]
                                 },
                                 "url": "{{base_url}}/api/vendor/profile"
