@@ -106,11 +106,23 @@ class VendorPerformanceAnalyticsApiTest extends TestCase
         $this->assertIsString($shareUrl);
         $this->assertStringContainsString('/shared/analytics/', $shareUrl);
 
+        $fileUrl = $response->json('data.share.file_url');
+        $this->assertStringContainsString('/shared/analytics/', (string) $fileUrl);
+        $this->assertStringContainsString('/download', (string) $fileUrl);
+
         $token = $response->json('data.share.token');
         $this->get('/shared/analytics/'.$token)
             ->assertOk()
             ->assertSee('Green Fields Agro Supplies')
-            ->assertSee('Organic Cherry Tomatoes');
+            ->assertSee('Organic Cherry Tomatoes')
+            ->assertSee('Overview');
+
+        $this->get('/media/shared/vendor-analytics/'.$token.'.csv')
+            ->assertRedirect('/shared/analytics/'.$token);
+
+        $this->get('/shared/analytics/'.$token.'/download')
+            ->assertOk()
+            ->assertHeader('content-disposition');
     }
 
     public function test_expired_share_link_returns_not_found(): void

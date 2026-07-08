@@ -6,6 +6,7 @@ use App\Services\Vendor\VendorAnalyticsShareService;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SharedVendorAnalyticsController extends Controller
 {
@@ -28,14 +29,57 @@ class SharedVendorAnalyticsController extends Controller
         $vendor = $share->vendor;
         $profile = $vendor?->profile;
 
+        $payload = $this->shares->sharePayload($share);
+
         return view('shared.vendor-analytics', [
             'businessName' => $profile?->business_name ?? 'Vendor Analytics',
             'period' => ucfirst($share->period),
             'generatedAt' => $share->updated_at?->format('M j, Y g:i A'),
             'expiresAt' => $share->expires_at?->format('M j, Y'),
-            'fileUrl' => $this->shares->sharePayload($share)['file_url'],
+            'fileUrl' => $payload['file_url'],
             'sections' => $sections,
+            'metaRows' => $this->parseMetaRows($csv),
         ]);
+    }
+
+    /**
+     * CSV file download (Excel-compatible).
+     */
+    public function download(string $token): BinaryFileResponse
+    {
+        $share = $this->shares->findActiveShare($token);
+        if ($share === null) {
+            abort(404, 'This analytics link has expired or is invalid.');
+        }
+
+        $filename = 'vendor_analytics_'.$share->period.'_'.now()->format('Y-m-d').'.csv';
+
+        return response()->download(
+            Storage::disk('public')->path($share->file_path),
+            $filename,
+            ['Content-Type' => 'text/csv; charset=UTF-8']
+        );
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    private function parseMetaRows(string $csv): array
+    {
+        $lines = preg_split('/\r\n|\r|\n/', trim($csv)) ?: [];
+        $meta = [];
+
+        foreach ($lines as $line) {
+            if (trim($line) === '') {
+                break;
+            }
+            $row = str_getcsv($line);
+            if (count($row) === 2 && ($row[0] ?? '') !== '' && ($row[1] ?? '') !== '') {
+                $meta[] = ['label' => (string) $row[0], 'value' => (string) $row[1]];
+            }
+        }
+
+        return $meta;
     }
 
     /**

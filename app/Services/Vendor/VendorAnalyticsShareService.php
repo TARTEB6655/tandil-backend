@@ -78,7 +78,8 @@ class VendorAnalyticsShareService
             'token' => $share->token,
             'period' => $share->period,
             'share_url' => $base.'/shared/analytics/'.$share->token,
-            'file_url' => $base.'/media/'.$share->file_path,
+            'view_url' => $base.'/shared/analytics/'.$share->token,
+            'file_url' => $base.'/shared/analytics/'.$share->token.'/download',
             'expires_at' => $share->expires_at?->toIso8601String(),
             'expires_in_days' => $share->expires_at
                 ? max(0, (int) now()->diffInDays($share->expires_at, false))

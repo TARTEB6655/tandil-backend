@@ -63,19 +63,37 @@ Route::get('/app-storage/{path}', function (string $path) {
 // Serve public files at clean URL: https://your-domain.com/media/products/xxx.jpg
 Route::get('/media/{path}', function (string $path) {
     $path = str_replace(['..', '\\'], ['', '/'], $path);
+
+    // Shared analytics CSV links should open formatted report in browser, not raw text.
+    if (preg_match('#^shared/vendor-analytics/([a-z0-9]+)\.csv$#i', $path, $matches)) {
+        return redirect()->route('shared.vendor-analytics', ['token' => $matches[1]]);
+    }
+
     if (! Storage::disk('public')->exists($path)) {
         abort(404);
     }
     $fullPath = Storage::disk('public')->path($path);
-    $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
+    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    $mime = match ($extension) {
+        'csv' => 'text/csv; charset=UTF-8',
+        default => mime_content_type($fullPath) ?: 'application/octet-stream',
+    };
 
-    return response()->file($fullPath, ['Content-Type' => $mime]);
+    $headers = ['Content-Type' => $mime];
+    if ($extension === 'csv') {
+        $headers['Content-Disposition'] = 'attachment; filename="'.basename($path).'"';
+    }
+
+    return response()->file($fullPath, $headers);
 })->where('path', '.*')->name('storage.serve');
 
 // Public shared vendor analytics (no login) — Share Analytics button
 Route::get('/shared/analytics/{token}', [\App\Http\Controllers\SharedVendorAnalyticsController::class, 'show'])
     ->where('token', '[A-Za-z0-9]+')
     ->name('shared.vendor-analytics');
+Route::get('/shared/analytics/{token}/download', [\App\Http\Controllers\SharedVendorAnalyticsController::class, 'download'])
+    ->where('token', '[A-Za-z0-9]+')
+    ->name('shared.vendor-analytics.download');
 
 // Public legal pages (no authentication — App Store / website)
 Route::get('/privacy-policy', [LegalPageController::class, 'privacyPolicy'])->name('legal.privacy-policy');
