@@ -63,6 +63,11 @@ class VendorPartnershipService
             'partnership' => $partnership ? $this->partnershipToArray($partnership) : null,
             'tier' => $tier ? $this->tierToArray($tier) : null,
             'usage' => $usage,
+            'product_usage' => $usage['product_usage'],
+            'stats_cards' => $this->buildStatsCards($usage),
+            'partnership_details' => $partnership && $tier
+                ? $this->partnershipDetailsCard($partnership, $tier)
+                : null,
             'limits' => $tier ? $this->limitsForTier($tier, $usage) : null,
             'pending_application' => $this->pendingApplication($vendor)
                 ? $this->applicationToArray($this->pendingApplication($vendor))
@@ -75,22 +80,38 @@ class VendorPartnershipService
      */
     public function usage(Vendor $vendor): array
     {
-        $totalProducts = VendorProduct::where('vendor_id', $vendor->id)->count();
+        $productsUsed = VendorProduct::where('vendor_id', $vendor->id)->count();
         $deliveredOrders = VendorOrderMapping::where('vendor_id', $vendor->id)
             ->where('status', VendorOrderStatus::Delivered->value)
             ->count();
 
         $partnership = $this->currentPartnership($vendor);
-        $maxProducts = $partnership?->tier?->max_product_listings;
-        $remainingProducts = $maxProducts === null
-            ? null
-            : max(0, $maxProducts - $totalProducts);
+        $tier = $partnership?->tier;
+        $limit = $tier?->max_product_listings;
+        $unlimited = $tier !== null && $limit === null;
+        $remaining = $this->remainingProductSlots($limit, $productsUsed, $unlimited);
+        $canAddMore = $partnership !== null && ($unlimited || ($remaining !== null && $remaining > 0));
+
+        $productUsage = [
+            'limit' => $limit,
+            'used' => $productsUsed,
+            'remaining' => $remaining,
+            'unlimited' => $unlimited,
+            'can_add_more' => $canAddMore,
+            'upgrade_required' => $partnership === null || (! $unlimited && $remaining !== null && $remaining <= 0),
+            'message' => $this->productUsageMessage($partnership, $productsUsed, $limit, $remaining, $unlimited),
+        ];
 
         return [
-            'total_products' => $totalProducts,
+            'products_used' => $productsUsed,
+            'product_limit' => $limit,
+            'products_remaining' => $remaining,
             'delivered_orders' => $deliveredOrders,
-            'remaining_product_slots' => $remainingProducts,
             'days_left' => $partnership?->daysRemaining() ?? 0,
+            'product_usage' => $productUsage,
+            // Backward-compatible aliases
+            'total_products' => $productsUsed,
+            'remaining_product_slots' => $remaining,
         ];
     }
 
@@ -99,6 +120,8 @@ class VendorPartnershipService
      */
     public function limitsForTier(VendorPartnershipTier $tier, array $usage): array
     {
+        $productUsage = $usage['product_usage'];
+
         return [
             'max_product_listings' => $tier->max_product_listings,
             'max_partner_product_images' => $tier->max_partner_product_images,
@@ -106,8 +129,11 @@ class VendorPartnershipService
             'social_media_posts_per_month' => $tier->social_media_posts_per_month,
             'app_banners' => $tier->app_banners,
             'home_banner_size' => $tier->home_banner_size,
-            'products_used' => $usage['total_products'],
-            'products_remaining' => $usage['remaining_product_slots'],
+            'products_used' => $productUsage['used'],
+            'products_remaining' => $productUsage['remaining'],
+            'product_limit' => $productUsage['limit'],
+            'unlimited_products' => $productUsage['unlimited'],
+            'can_add_more_products' => $productUsage['can_add_more'],
         ];
     }
 
@@ -445,5 +471,102 @@ class VendorPartnershipService
         }
 
         return "{$tier->required_products_min}-{$tier->required_products_max} free products";
+    }
+
+    private function remainingProductSlots(?int $limit, int $used, bool $unlimited): ?int
+    {
+        if ($unlimited) {
+            return null;
+        }
+
+        if ($limit === null) {
+            return null;
+        }
+
+        return max(0, $limit - $used);
+    }
+
+    private function productUsageMessage(
+        ?VendorPartnership $partnership,
+        int $used,
+        ?int $limit,
+        ?int $remaining,
+        bool $unlimited
+    ): string {
+        if ($partnership === null) {
+            return 'Apply for a partnership plan to add products and unlock vendor benefits.';
+        }
+
+        if ($unlimited) {
+            return "You have added {$used} products. Your plan allows unlimited product listings.";
+        }
+
+        if ($remaining !== null && $remaining <= 0) {
+            return "You have used all {$limit} product slots in your {$partnership->tier?->name} plan. Upgrade to add more products.";
+        }
+
+        return "You have used {$used} of {$limit} product slots. {$remaining} remaining in your {$partnership->tier?->name} plan.";
+    }
+
+    /**
+     * @param  array<string, mixed>  $usage
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildStatsCards(array $usage): array
+    {
+        $productUsage = $usage['product_usage'];
+        $limit = $productUsage['limit'];
+        $remaining = $productUsage['remaining'];
+
+        return [
+            [
+                'key' => 'product_limit',
+                'label' => 'Total Products',
+                'description' => 'Maximum products allowed in your plan',
+                'value' => $productUsage['unlimited'] ? 'Unlimited' : ($limit ?? 0),
+                'numeric_value' => $limit,
+            ],
+            [
+                'key' => 'products_used',
+                'label' => 'Used',
+                'description' => 'Products you have already added',
+                'value' => $productUsage['used'],
+                'numeric_value' => $productUsage['used'],
+            ],
+            [
+                'key' => 'products_remaining',
+                'label' => 'Remaining',
+                'description' => 'Product slots still available in your plan',
+                'value' => $productUsage['unlimited'] ? 'Unlimited' : ($remaining ?? 0),
+                'numeric_value' => $remaining,
+            ],
+            [
+                'key' => 'days_left',
+                'label' => 'Days Left',
+                'description' => 'Days until your partnership renews',
+                'value' => $usage['days_left'],
+                'numeric_value' => $usage['days_left'],
+            ],
+            [
+                'key' => 'delivered_orders',
+                'label' => 'Delivered',
+                'description' => 'Orders delivered to customers',
+                'value' => $usage['delivered_orders'],
+                'numeric_value' => $usage['delivered_orders'],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function partnershipDetailsCard(VendorPartnership $partnership, VendorPartnershipTier $tier): array
+    {
+        return [
+            'next_payment' => $partnership->next_payment_at?->format('j/n/Y'),
+            'marketing_exposure' => ucfirst($tier->marketing_exposure),
+            'social_media_posts' => $tier->social_media_posts_per_month.'/month',
+            'app_banners' => $tier->app_banners.' active',
+        ];
     }
 }

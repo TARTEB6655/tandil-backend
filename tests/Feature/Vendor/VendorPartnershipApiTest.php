@@ -156,7 +156,13 @@ class VendorPartnershipApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.has_partnership', true)
             ->assertJsonPath('data.tier.slug', 'gold')
-            ->assertJsonPath('data.usage.total_products', 1)
+            ->assertJsonPath('data.product_usage.used', 1)
+            ->assertJsonPath('data.product_usage.limit', 100)
+            ->assertJsonPath('data.product_usage.remaining', 99)
+            ->assertJsonPath('data.product_usage.can_add_more', true)
+            ->assertJsonPath('data.stats_cards.0.key', 'product_limit')
+            ->assertJsonPath('data.stats_cards.1.numeric_value', 1)
+            ->assertJsonPath('data.partnership_details.marketing_exposure', 'High')
             ->assertJsonPath('data.limits.marketing_exposure', 'high');
     }
 

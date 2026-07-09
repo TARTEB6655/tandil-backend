@@ -105,6 +105,7 @@ class VendorPartnershipController extends Controller
             return ApiResponse::success('No active partnership.', [
                 'has_partnership' => false,
                 'usage' => $usage,
+                'product_usage' => $usage['product_usage'],
                 'limits' => null,
             ]);
         }
@@ -113,6 +114,7 @@ class VendorPartnershipController extends Controller
             'has_partnership' => true,
             'tier' => $this->partnership->tierToArray($tier),
             'usage' => $usage,
+            'product_usage' => $usage['product_usage'],
             'limits' => $this->partnership->limitsForTier($tier, $usage),
         ]);
     }
