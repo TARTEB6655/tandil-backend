@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\ReportManagementController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\SupportChatWebController;
 use App\Http\Controllers\Admin\SupportTicketWebController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
@@ -355,6 +356,14 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('vendors/{vendor}/under-review', [AdminVendorController::class, 'underReview'])->name('vendors.under-review');
         Route::post('vendors/{vendor}/disable', [AdminVendorController::class, 'disable'])->name('vendors.disable');
         Route::post('vendors/{vendor}/documents/{document}/verify', [AdminVendorController::class, 'verifyDocument'])->name('vendors.documents.verify');
+        Route::get('vendors/{vendor}/analytics', [AdminVendorController::class, 'analytics'])->name('vendors.analytics');
+
+        // Vendor live chat (Support & Help → Live Chat)
+        Route::get('support-chat', [SupportChatWebController::class, 'index'])->name('support-chat.index');
+        Route::get('support-chat/{session}/messages', [SupportChatWebController::class, 'messages'])->name('support-chat.messages');
+        Route::get('support-chat/{session}', [SupportChatWebController::class, 'show'])->name('support-chat.show');
+        Route::post('support-chat/{session}/reply', [SupportChatWebController::class, 'reply'])->name('support-chat.reply');
+        Route::put('support-chat/{session}/status', [SupportChatWebController::class, 'updateStatus'])->name('support-chat.update-status');
 
         // Notifications routes (static paths before {id})
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

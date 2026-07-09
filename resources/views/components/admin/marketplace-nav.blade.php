@@ -10,4 +10,5 @@
     <a href="{{ route('admin.marketplace.orders.index') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.marketplace.orders.*') }}">Orders</a>
     <a href="{{ route('admin.marketplace.inventory.index') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.marketplace.inventory.*') }}">Inventory</a>
     <a href="{{ route('admin.marketplace.settings') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.marketplace.settings') }}">Pricing &amp; Commission</a>
+    <a href="{{ route('admin.support-chat.index') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.support-chat.*') }}">Live Chat</a>
 </nav>

@@ -16,6 +16,9 @@
                     </form>
                 @endif
                 <a href="{{ route('admin.vendors.edit', $vendor) }}" class="px-4 py-2 text-sm border rounded-lg">Edit profile</a>
+                @if($vendor->isApproved())
+                    <a href="{{ route('admin.vendors.analytics', $vendor) }}" class="px-4 py-2 text-sm border rounded-lg text-indigo-600 border-indigo-200">Analytics</a>
+                @endif
             </div>
         </div>
 

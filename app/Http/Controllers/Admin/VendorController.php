@@ -6,10 +6,12 @@ use App\Enums\VendorDocumentType;
 use App\Enums\VendorStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Vendor;
+use App\Models\VendorAnalyticsShare;
 use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorApprovalService;
 use App\Services\Vendor\VendorDashboardService;
 use App\Services\Vendor\VendorDocumentService;
+use App\Services\Vendor\VendorPerformanceAnalyticsService;
 use App\Services\Vendor\VendorRegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -21,7 +23,8 @@ class VendorController extends Controller
         private readonly VendorRegistrationService $registration,
         private readonly VendorDocumentService $documents,
         private readonly VendorApplicationService $application,
-        private readonly VendorDashboardService $dashboard
+        private readonly VendorDashboardService $dashboard,
+        private readonly VendorPerformanceAnalyticsService $performanceAnalytics
     ) {
         $this->middleware('role:admin');
     }
@@ -53,7 +56,13 @@ class VendorController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.vendors.index', compact('vendors', 'stats', 'sort'));
+        $recentRequests = Vendor::with(['profile', 'user'])
+            ->whereIn('status', [VendorStatus::Pending->value, VendorStatus::UnderReview->value])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('admin.vendors.index', compact('vendors', 'stats', 'sort', 'recentRequests'));
     }
 
     public function show(Vendor $vendor)
@@ -185,5 +194,19 @@ class VendorController extends Controller
         $this->documents->verify($doc, $request->user(), $data['verification_status'], $data['admin_notes'] ?? null);
 
         return back()->with('success', 'Document verification updated.');
+    }
+
+    public function analytics(Request $request, Vendor $vendor)
+    {
+        $vendor->load('profile', 'user');
+        $period = $this->performanceAnalytics->normalizePeriod((string) $request->query('period', 'month'));
+        $analytics = $this->performanceAnalytics->build($vendor, $period);
+        $shares = VendorAnalyticsShare::query()
+            ->where('vendor_id', $vendor->id)
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('admin.vendors.analytics', compact('vendor', 'analytics', 'period', 'shares'));
     }
 }

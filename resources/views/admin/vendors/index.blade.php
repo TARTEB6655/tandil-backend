@@ -9,10 +9,30 @@
         </div>
         <x-admin.marketplace-nav />
 
-        @if(($stats['under_review'] ?? 0) > 0)
+        @if(($stats['under_review'] ?? 0) > 0 || ($stats['pending'] ?? 0) > 0)
             <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <strong>{{ $stats['under_review'] }}</strong> vendor application(s) awaiting your review.
+                <strong>{{ ($stats['pending'] ?? 0) + ($stats['under_review'] ?? 0) }}</strong> vendor application(s) awaiting review.
                 <a href="{{ route('admin.vendors.index', ['status' => 'under_review']) }}" class="ml-2 font-medium text-amber-800 underline">Review now →</a>
+            </div>
+        @endif
+
+        @if(isset($recentRequests) && $recentRequests->isNotEmpty())
+            <div class="bg-white dark:bg-gray-800 rounded-xl border p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-medium text-gray-900 dark:text-gray-100">Recent vendor requests</h2>
+                    <a href="{{ route('admin.vendors.index', ['status' => 'pending']) }}" class="text-sm text-indigo-600 hover:underline">View all →</a>
+                </div>
+                <div class="space-y-3">
+                    @foreach($recentRequests as $req)
+                        <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+                            <div>
+                                <p class="font-medium text-sm">{{ $req->profile?->business_name }}</p>
+                                <p class="text-xs text-gray-500">{{ $req->profile?->email }} · {{ $req->statusEnum()->label() }} · {{ $req->created_at?->diffForHumans() }}</p>
+                            </div>
+                            <a href="{{ route('admin.vendors.show', $req) }}" class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg">Review</a>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         @endif
 

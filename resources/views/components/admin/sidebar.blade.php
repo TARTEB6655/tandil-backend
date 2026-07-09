@@ -53,8 +53,8 @@
                         userManagement: {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'true' : 'false' }},
                         subscriptions: {{ request()->routeIs('admin.subscription-plans.*') || request()->routeIs('admin.subscriptions.*') ? 'true' : 'false' }},
                         operations: {{ request()->routeIs('admin.visits.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.report-management.*') || request()->routeIs('admin.areas.*') || request()->routeIs('admin.zone-assignment.*') || request()->routeIs('admin.recent-activities.*') ? 'true' : 'false' }},
-                        ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.vendors.*') || request()->routeIs('admin.marketplace.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? 'true' : 'false' }},
-                        communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') ? 'true' : 'false' }},
+                        ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.vendors.*') || request()->routeIs('admin.marketplace.*') || request()->routeIs('admin.support-chat.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? 'true' : 'false' }},
+                        communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') || request()->routeIs('admin.support-chat.*') ? 'true' : 'false' }},
                         management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.maintenance-photos.*') ? 'true' : 'false' }}
                     }">
                         <!-- Dashboard -->
@@ -415,7 +415,7 @@
 
                         <!-- COMMUNICATION -->
                         <div class="mb-2">
-                            <button @click="communication = !communication" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') ? $navSectionActive : $navSectionIdle }}">
+                            <button @click="communication = !communication" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') || request()->routeIs('admin.support-chat.*') ? $navSectionActive : $navSectionIdle }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                 </svg>
@@ -457,6 +457,15 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8m-8 4h6m4 5H6a2 2 0 01-2-2V7a2 2 0 012-2h3l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2z" />
                                         </svg>
                                         {{ __('admin.support_tickets') }}
+                                    </a>
+                                </li>
+                                <li style="padding-left: 0px;">
+                                    <a href="{{ route('admin.support-chat.index') }}"
+                                       class="{{ $navSubBase }} {{ request()->routeIs('admin.support-chat.*') ? $navActive : $navIdleSub }}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                        Vendor Live Chat
                                     </a>
                                 </li>
                             </ul>

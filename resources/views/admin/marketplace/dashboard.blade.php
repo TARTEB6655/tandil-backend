@@ -22,6 +22,36 @@
             @endforeach
         </div>
 
+        <div class="grid md:grid-cols-2 gap-4">
+            <a href="{{ route('admin.support-chat.index', ['user_role' => 'vendor', 'status' => 'in_progress']) }}" class="block bg-white dark:bg-gray-800 rounded-xl border p-5 hover:border-indigo-300 transition-colors">
+                <p class="text-xs text-gray-500 uppercase">Active vendor live chats</p>
+                <p class="text-3xl font-semibold mt-1 text-indigo-600">{{ $activeLiveChats ?? 0 }}</p>
+                <p class="text-sm text-gray-500 mt-2">Open support conversations →</p>
+            </a>
+            <a href="{{ route('admin.vendors.index', ['status' => 'pending']) }}" class="block bg-white dark:bg-gray-800 rounded-xl border p-5 hover:border-amber-300 transition-colors">
+                <p class="text-xs text-gray-500 uppercase">Pending vendor applications</p>
+                <p class="text-3xl font-semibold mt-1 text-amber-600">{{ $overview['vendors']['pending'] ?? 0 }}</p>
+                <p class="text-sm text-gray-500 mt-2">Review applications →</p>
+            </a>
+        </div>
+
+        @if(isset($recentVendorRequests) && $recentVendorRequests->isNotEmpty())
+            <div class="bg-white dark:bg-gray-800 rounded-xl border p-6">
+                <h2 class="font-medium mb-4">Recent vendor requests</h2>
+                <div class="space-y-2">
+                    @foreach($recentVendorRequests as $req)
+                        <div class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                            <div>
+                                <p class="text-sm font-medium">{{ $req->profile?->business_name }}</p>
+                                <p class="text-xs text-gray-500">{{ $req->statusEnum()->label() }} · {{ $req->created_at?->diffForHumans() }}</p>
+                            </div>
+                            <a href="{{ route('admin.vendors.show', $req) }}" class="text-sm text-indigo-600 hover:underline">Review</a>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="grid lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border p-6">
                 <h2 class="font-medium mb-4">Revenue</h2>
