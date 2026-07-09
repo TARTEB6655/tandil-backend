@@ -116,10 +116,29 @@ class AppPortalWebController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        // Never use redirect()->intended() here: a stale url.intended sends testers to the wrong dashboard.
-        $request->session()->forget('url.intended');
+        // Never use redirect()->intended() blindly: only honor admin/vendor paths matching this portal.
+        $intended = $request->session()->pull('url.intended');
+        if (is_string($intended) && $this->portalCanAccessUrl($portal, $intended)) {
+            return redirect($intended);
+        }
 
         return $this->redirectToRoleDashboard($portal);
+    }
+
+    private function portalCanAccessUrl(string $portal, string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+
+        return match ($portal) {
+            'admin' => str_starts_with($path, '/admin'),
+            'vendor' => str_starts_with($path, '/vendor'),
+            'client' => str_starts_with($path, '/client'),
+            'technician' => str_starts_with($path, '/technician'),
+            'supervisor' => str_starts_with($path, '/supervisor'),
+            'area_manager' => str_starts_with($path, '/area-manager') || str_starts_with($path, '/areamanager'),
+            'hr' => str_starts_with($path, '/hr'),
+            default => false,
+        };
     }
 
     private function redirectToRoleDashboard(string $portal): RedirectResponse

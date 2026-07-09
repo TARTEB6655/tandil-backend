@@ -84,6 +84,47 @@ class AdminSupportChatWebTest extends TestCase
             ->assertJsonPath('success', true);
     }
 
+    public function test_admin_notification_redirects_to_live_chat(): void
+    {
+        $admin = $this->makeAdmin();
+        $session = $this->makeVendorChatSession();
+
+        $admin->notify(new \App\Notifications\AdminNotification(
+            'Vendor Live Chat Message',
+            'Test vendor message',
+            [
+                'entity' => 'support_chat',
+                'session_id' => $session->id,
+                'action' => 'open_support_chat',
+            ]
+        ));
+
+        $notification = $admin->notifications()->first();
+
+        $this->actingAs($admin)
+            ->get(route('admin.notifications.read-and-redirect', $notification->id))
+            ->assertRedirect(route('admin.support-chat.show', $session));
+    }
+
+    public function test_admin_can_accept_open_chat(): void
+    {
+        $admin = $this->makeAdmin();
+        $session = SupportChatSession::create([
+            'user_id' => User::factory()->create(['role' => 'vendor'])->id,
+            'status' => 'open',
+            'subject' => 'Live Chat with Admin',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.support-chat.accept', $session))
+            ->assertRedirect(route('admin.support-chat.show', $session));
+
+        $this->assertDatabaseHas('support_chat_sessions', [
+            'id' => $session->id,
+            'status' => 'in_progress',
+        ]);
+    }
+
     public function test_admin_can_view_vendor_analytics_page(): void
     {
         $admin = $this->makeAdmin();

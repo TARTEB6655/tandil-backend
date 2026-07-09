@@ -360,8 +360,10 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
 
         // Vendor live chat (Support & Help → Live Chat)
         Route::get('support-chat', [SupportChatWebController::class, 'index'])->name('support-chat.index');
+        Route::get('support-chat/widget-data', [SupportChatWebController::class, 'widgetData'])->name('support-chat.widget-data');
         Route::get('support-chat/{session}/messages', [SupportChatWebController::class, 'messages'])->name('support-chat.messages');
         Route::get('support-chat/{session}', [SupportChatWebController::class, 'show'])->name('support-chat.show');
+        Route::post('support-chat/{session}/accept', [SupportChatWebController::class, 'accept'])->name('support-chat.accept');
         Route::post('support-chat/{session}/reply', [SupportChatWebController::class, 'reply'])->name('support-chat.reply');
         Route::put('support-chat/{session}/status', [SupportChatWebController::class, 'updateStatus'])->name('support-chat.update-status');
 
@@ -718,6 +720,11 @@ Route::middleware(['auth', 'role:vendor', 'vendor.account'])->prefix('vendor')->
     Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
     Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
     Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
+
+    Route::get('/support-chat', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'index'])->name('support-chat.index');
+    Route::get('/support-chat/widget-data', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'widgetData'])->name('support-chat.widget-data');
+    Route::get('/support-chat/messages', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'messages'])->name('support-chat.messages');
+    Route::post('/support-chat/messages', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'send'])->name('support-chat.send');
 
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');

@@ -119,6 +119,12 @@ class NotificationController extends Controller
         if (($meta['entity'] ?? null) === 'vendor' && ! empty($meta['vendor_id'])) {
             return redirect()->route('admin.vendors.show', $meta['vendor_id']);
         }
+        if (($meta['entity'] ?? null) === 'support_chat' && ! empty($meta['session_id'])) {
+            return redirect()->route('admin.support-chat.show', $meta['session_id']);
+        }
+        if (($meta['entity'] ?? null) === 'support_ticket' && ! empty($meta['ticket_id'])) {
+            return redirect()->route('admin.support-tickets.show', $meta['ticket_id']);
+        }
 
         $backUrl = request()->query('from') === 'stats'
             ? route('admin.notifications.statistics')
@@ -144,7 +150,9 @@ class NotificationController extends Controller
         $data = $notification->data;
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
         $url = route('admin.notifications.index');
-        if (($meta['entity'] ?? null) === 'support_ticket' && ! empty($meta['ticket_id'] ?? null)) {
+        if (($meta['entity'] ?? null) === 'support_chat' && ! empty($meta['session_id'] ?? null)) {
+            $url = route('admin.support-chat.show', $meta['session_id']);
+        } elseif (($meta['entity'] ?? null) === 'support_ticket' && ! empty($meta['ticket_id'] ?? null)) {
             $url = route('admin.support-tickets.show', $meta['ticket_id']);
         } elseif (($meta['entity'] ?? null) === 'vendor' && ! empty($meta['vendor_id'] ?? null)) {
             $url = route('admin.vendors.show', $meta['vendor_id']);

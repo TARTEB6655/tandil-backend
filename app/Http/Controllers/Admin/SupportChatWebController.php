@@ -110,4 +110,46 @@ class SupportChatWebController extends Controller
 
         return back()->with('success', 'Chat status updated.');
     }
+
+    public function accept(Request $request, SupportChatSession $session)
+    {
+        if ($session->isClosed()) {
+            return back()->withErrors(['message' => 'Chat is already closed.']);
+        }
+
+        $session->update(['status' => 'in_progress']);
+
+        return redirect()
+            ->route('admin.support-chat.show', $session)
+            ->with('success', 'Chat accepted. You can reply to the vendor now.');
+    }
+
+    public function widgetData(Request $request): JsonResponse
+    {
+        $sessions = SupportChatSession::query()
+            ->with('user:id,name,email,role')
+            ->withCount('messages')
+            ->whereIn('status', ['open', 'in_progress'])
+            ->whereHas('user', fn ($q) => $q->where('role', 'vendor'))
+            ->orderByDesc('updated_at')
+            ->limit(15)
+            ->get()
+            ->map(function (SupportChatSession $session) {
+                $data = $this->chat->sessionToArray($session);
+                $data['messages_count'] = $session->messages_count;
+                $data['show_url'] = route('admin.support-chat.show', $session);
+                $data['accept_url'] = route('admin.support-chat.accept', $session);
+                $data['needs_accept'] = $session->status === 'open';
+
+                return $data;
+            });
+
+        return response()->json([
+            'success' => true,
+            'open_count' => $sessions->where('status', 'open')->count(),
+            'active_count' => $sessions->count(),
+            'sessions' => $sessions->values()->all(),
+            'full_page_url' => route('admin.support-chat.index'),
+        ]);
+    }
 }

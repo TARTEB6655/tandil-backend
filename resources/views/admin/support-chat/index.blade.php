@@ -82,7 +82,13 @@
                             </td>
                             <td class="px-4 py-3">{{ $session->messages_count }}</td>
                             <td class="px-4 py-3 text-gray-500">{{ $session->updated_at?->diffForHumans() }}</td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-4 py-3 text-right space-x-2">
+                                @if($session->status === 'open')
+                                    <form method="POST" action="{{ route('admin.support-chat.accept', $session) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-green-600 hover:underline font-medium text-sm">Accept</button>
+                                    </form>
+                                @endif
                                 <a href="{{ route('admin.support-chat.show', $session) }}" class="text-indigo-600 hover:underline font-medium">Open chat</a>
                             </td>
                         </tr>
