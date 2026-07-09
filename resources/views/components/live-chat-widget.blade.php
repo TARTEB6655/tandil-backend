@@ -21,24 +21,26 @@
         aria-label="Live chat"
     >
         {{-- Header --}}
-        <div class="flex shrink-0 items-center justify-between gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3.5 text-white">
+        <div class="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 px-3.5 py-2.5 text-white">
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                     <template x-if="mode === 'admin' && activeSession">
                         <button type="button" @click="closeAdminSession()" class="rounded-lg p-1 hover:bg-white/15" aria-label="Back to conversations">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                         </button>
                     </template>
                     <div class="min-w-0">
-                        <p class="truncate text-sm font-semibold" x-text="mode === 'admin' && activeSession ? (activeSession.user_name || 'User') : title"></p>
-                        <p class="truncate text-xs text-indigo-100" x-text="mode === 'admin' && activeSession ? (activeSession.role_label || activeSession.user_role || '') : subtitle"></p>
+                        <p class="truncate text-[13px] font-medium leading-tight tracking-tight" x-text="mode === 'admin' && activeSession ? (activeSession.user_name || 'User') : title"></p>
+                        <p x-show="mode !== 'portal' || (mode === 'admin' && activeSession)"
+                           class="mt-0.5 truncate text-[10px] font-normal leading-tight text-white/70"
+                           x-text="mode === 'admin' && activeSession ? (activeSession.role_label || activeSession.user_role || '') : subtitle"></p>
                     </div>
                 </div>
             </div>
-            <div class="flex shrink-0 items-center gap-1.5">
-                <a :href="fullPageUrl" class="hidden rounded-lg bg-white/15 px-2.5 py-1 text-[11px] font-medium hover:bg-white/25 sm:inline-block" @click.stop>Full page</a>
-                <button type="button" @click="open = false" class="rounded-lg p-1.5 hover:bg-white/15" aria-label="Close chat">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <div class="flex shrink-0 items-center gap-1">
+                <a :href="fullPageUrl" class="hidden rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-normal text-white/90 hover:bg-white/20 sm:inline-block" @click.stop>Full page</a>
+                <button type="button" @click="open = false" class="rounded-lg p-1 hover:bg-white/15" aria-label="Close chat">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         </div>
@@ -153,20 +155,20 @@
 
         {{-- Portal user thread --}}
         <div x-show="mode === 'portal'" class="flex min-h-0 flex-1 flex-col">
-            <div class="shrink-0 border-b border-slate-100 px-4 py-2.5">
+            <div class="shrink-0 border-b border-slate-100 px-3.5 py-2">
                 <template x-if="portalIsClosed()">
-                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                        <p class="font-semibold">Chat ended</p>
-                        <p class="mt-0.5" x-text="portalClosedNotice || 'Support closed this conversation.'"></p>
-                        <button type="button" @click="startNewPortalChat()" class="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-indigo-700">
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+                        <p class="font-medium">Chat ended</p>
+                        <p class="mt-0.5 font-normal text-amber-800/90" x-text="portalClosedNotice || 'Support closed this conversation.'"></p>
+                        <button type="button" @click="startNewPortalChat()" class="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-indigo-700">
                             Start new chat
                         </button>
                     </div>
                 </template>
                 <template x-if="!portalIsClosed()">
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                        <span class="text-slate-600">Support team · typically replies within minutes</span>
+                    <div class="flex items-center gap-1.5 text-[10px] font-normal leading-tight text-slate-400">
+                        <span class="inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"></span>
+                        <span>Support team · typically replies within minutes</span>
                     </div>
                 </template>
             </div>
