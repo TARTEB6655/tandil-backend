@@ -51,9 +51,13 @@
                 'purple' => 'text-purple-600 dark:text-purple-400',
                 default => 'text-blue-600 dark:text-blue-400',
             };
+            $meta = \App\Support\AdminNotificationTargetUrl::meta(is_array($data) ? $data : []);
+            $notificationOpenUrl = str_starts_with($routeName, 'admin.')
+                ? route('admin.notifications.read-and-redirect', $notification->id).$showQuerySuffix
+                : route($routeName . '.show', $notification->id).$showQuerySuffix;
         @endphp
         <div class="notification-row border-b border-slate-100 dark:border-slate-700/80 last:border-b-0 hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors duration-150 cursor-pointer {{ $isUnread ? 'bg-indigo-50/40 dark:bg-indigo-950/25' : '' }}"
-             data-open-url="{{ route($routeName . '.show', $notification->id) }}{{ $showQuerySuffix }}">
+             data-open-url="{{ $notificationOpenUrl }}">
             <div class="px-4 py-2.5">
                 <div class="flex items-start gap-4">
                     <div class="flex h-8 w-8 shrink-0 items-center justify-center">
@@ -82,7 +86,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-start justify-between gap-3">
-                            <a href="{{ route($routeName . '.show', $notification->id) }}{{ $showQuerySuffix }}" class="flex-1 min-w-0 group block js-open-notification">
+                            <a href="{{ $notificationOpenUrl }}" class="flex-1 min-w-0 group block js-open-notification">
                                 <p class="text-sm mb-1 {{ $isUnread ? 'font-semibold text-gray-900 dark:text-gray-100' : 'font-normal text-gray-700 dark:text-gray-300' }}">
                                     {{ is_array($data) ? ($data['message'] ?? class_basename($type)) : class_basename($type) }}
                                 </p>
@@ -105,10 +109,7 @@
                                 @if(is_array($data) && isset($data['employee_id']))
                                     <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Employee ID: #{{ $data['employee_id'] }}</p>
                                 @endif
-                                @php
-                                    $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
-                                @endphp
-                                @if(($meta['entity'] ?? null) === 'vendor' && ! empty($meta['vendor_id']))
+                                @if(in_array($meta['entity'] ?? null, ['vendor', 'vendor_application'], true) && ! empty($meta['vendor_id']))
                                     <p class="text-xs text-indigo-600 dark:text-indigo-400 mb-1 font-medium">Vendor application — open to review profile, documents, approve or reject</p>
                                 @endif
                             </a>

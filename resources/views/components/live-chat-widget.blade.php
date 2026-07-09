@@ -1,203 +1,194 @@
-@props(['mode' => 'admin'])
-
-@php
-    $isAdmin = $mode === 'admin';
-    $widgetDataUrl = $isAdmin ? route('admin.support-chat.widget-data') : route('vendor.support-chat.widget-data');
-    $fullPageUrl = $isAdmin ? route('admin.support-chat.index') : route('vendor.support-chat.index');
-    $sendUrl = $isAdmin ? null : route('vendor.support-chat.send');
-    $messagesUrl = $isAdmin ? null : route('vendor.support-chat.messages');
-    $csrf = csrf_token();
-@endphp
-
-<div class="fixed bottom-5 right-5 z-[60]" x-data="liveChatWidget({
-    mode: @js($mode),
-    widgetDataUrl: @js($widgetDataUrl),
-    fullPageUrl: @js($fullPageUrl),
-    sendUrl: @js($sendUrl),
-    messagesUrl: @js($messagesUrl),
-    csrf: @js($csrf)
-})" x-init="init()">
-    {{-- Chat panel --}}
-    <div x-show="open" x-cloak
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 translate-y-2 scale-95"
-         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-         class="mb-3 w-[min(100vw-2rem,380px)] rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden flex flex-col"
-         style="height: min(70vh, 520px);">
-        <div class="flex items-center justify-between px-4 py-3 bg-indigo-600 text-white">
-            <div>
-                <p class="text-sm font-semibold" x-text="mode === 'admin' ? 'Vendor Live Chat' : 'Chat with Support'"></p>
-                <p class="text-xs text-indigo-100" x-text="mode === 'admin' ? (openCount + ' waiting') : 'We typically reply within minutes'"></p>
+@if($config)
+<div
+    class="live-chat-widget-root fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999]"
+    x-data="liveChatWidget(@js($config))"
+    x-init="init()"
+    @keydown.escape.window="open = false"
+>
+    {{-- Panel --}}
+    <div
+        x-show="open"
+        x-cloak
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+        x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+        class="mb-3 flex w-[min(100vw-1.5rem,24rem)] sm:w-[26rem] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl ring-1 ring-slate-900/5"
+        style="height: min(78vh, 560px);"
+        role="dialog"
+        aria-label="Live chat"
+    >
+        {{-- Header --}}
+        <div class="flex shrink-0 items-center justify-between gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3.5 text-white">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                    <template x-if="mode === 'admin' && activeSession">
+                        <button type="button" @click="closeAdminSession()" class="rounded-lg p-1 hover:bg-white/15" aria-label="Back to conversations">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                    </template>
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold" x-text="mode === 'admin' && activeSession ? (activeSession.user_name || 'User') : title"></p>
+                        <p class="truncate text-xs text-indigo-100" x-text="mode === 'admin' && activeSession ? (activeSession.role_label || activeSession.user_role || '') : subtitle"></p>
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <a :href="fullPageUrl" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded" @click.stop>Open full page</a>
-                <button type="button" @click="open = false" class="p-1 hover:bg-white/20 rounded">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <div class="flex shrink-0 items-center gap-1.5">
+                <a :href="fullPageUrl" class="hidden rounded-lg bg-white/15 px-2.5 py-1 text-[11px] font-medium hover:bg-white/25 sm:inline-block" @click.stop>Full page</a>
+                <button type="button" @click="open = false" class="rounded-lg p-1.5 hover:bg-white/15" aria-label="Close chat">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         </div>
 
-        {{-- Admin: session list --}}
-        <template x-if="mode === 'admin' && !activeSessionId">
+        {{-- Error banner --}}
+        <div x-show="error" x-cloak class="shrink-0 border-b border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700" x-text="error"></div>
+
+        {{-- Admin: conversation list --}}
+        <div x-show="mode === 'admin' && !activeSession" class="flex min-h-0 flex-1 flex-col">
+            <div class="shrink-0 border-b border-slate-100 px-4 py-2.5 text-xs text-slate-500">
+                <span x-text="openCount + ' waiting · ' + sessions.length + ' active'"></span>
+            </div>
             <div class="flex-1 overflow-y-auto p-3 space-y-2">
                 <template x-if="sessions.length === 0">
-                    <p class="text-sm text-gray-500 text-center py-8">No active vendor chats.</p>
+                    <div class="flex flex-col items-center justify-center py-12 text-center">
+                        <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                        </div>
+                        <p class="text-sm font-medium text-slate-700">No active chats</p>
+                        <p class="mt-1 text-xs text-slate-500">New messages will appear here.</p>
+                    </div>
                 </template>
                 <template x-for="s in sessions" :key="s.id">
-                    <div class="rounded-lg border p-3 hover:border-indigo-300 transition-colors">
-                        <div class="flex justify-between items-start gap-2">
+                    <button type="button" @click="openAdminSession(s)"
+                            class="w-full rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-indigo-300 hover:shadow-sm">
+                        <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0">
-                                <p class="text-sm font-medium text-gray-900 truncate" x-text="s.user_name || 'Vendor'"></p>
-                                <p class="text-xs text-gray-500 truncate" x-text="s.subject"></p>
-                                <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full"
-                                      :class="s.status === 'open' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'"
-                                      x-text="s.status.replace('_', ' ')"></span>
+                                <p class="truncate text-sm font-semibold text-slate-900" x-text="s.user_name || 'User'"></p>
+                                <p class="mt-0.5 truncate text-xs text-slate-500" x-text="s.subject"></p>
+                                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-medium" :class="roleBadgeClass(s.user_role)" x-text="s.role_label || s.user_role"></span>
+                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-medium capitalize" :class="statusClass(s.status)" x-text="(s.status || '').replace('_', ' ')"></span>
+                                </div>
                             </div>
-                            <div class="flex flex-col gap-1 shrink-0">
-                                <template x-if="s.needs_accept">
-                                    <form :action="s.accept_url" method="POST" class="inline">
-                                        <input type="hidden" name="_token" :value="csrf">
-                                        <button type="submit" class="text-xs px-2 py-1 bg-green-600 text-white rounded">Accept</button>
-                                    </form>
-                                </template>
-                                <a :href="s.show_url" class="text-xs text-center text-indigo-600 hover:underline">Open</a>
-                            </div>
+                            <span class="shrink-0 text-[10px] text-slate-400" x-text="(s.messages_count || 0) + ' msgs'"></span>
+                        </div>
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        {{-- Admin: active thread --}}
+        <div x-show="mode === 'admin' && activeSession" class="flex min-h-0 flex-1 flex-col">
+            <div x-show="activeSession && activeSession.needs_accept" class="shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-2.5">
+                <div class="flex items-center justify-between gap-2">
+                    <p class="text-xs text-amber-800">This chat is waiting for acceptance.</p>
+                    <button type="button" @click="acceptAdminSession()" :disabled="sending"
+                            class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+                        Accept
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto bg-slate-50 p-3 space-y-3" x-ref="adminThread">
+                <template x-for="msg in adminMessages" :key="msg.id">
+                    <div class="flex" :class="msg.is_admin ? 'justify-end' : 'justify-start'">
+                        <div class="max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm"
+                             :class="msg.is_admin ? 'rounded-br-md bg-indigo-600 text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-800'">
+                            <p class="mb-1 text-[10px] font-medium opacity-70" x-text="msg.is_admin ? 'You (Admin)' : (msg.sender_name || 'User')"></p>
+                            <p class="whitespace-pre-wrap break-words" x-text="msg.message"></p>
+                            <p class="mt-1 text-[10px] opacity-60" x-text="formatTime(msg.created_at)"></p>
                         </div>
                     </div>
                 </template>
+                <div x-show="adminMessages.length === 0 && !loading" class="py-8 text-center text-xs text-slate-500">No messages yet. Say hello!</div>
             </div>
-        </template>
-
-        {{-- Vendor: inline chat --}}
-        <template x-if="mode === 'vendor'">
-            <div class="flex-1 flex flex-col min-h-0">
-                <div class="flex-1 overflow-y-auto p-3 space-y-2" x-ref="vendorBox">
-                    <template x-for="msg in vendorMessages" :key="msg.id">
-                        <div class="flex" :class="msg.is_admin ? 'justify-start' : 'justify-end'">
-                            <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm"
-                                 :class="msg.is_admin ? 'bg-gray-100 text-gray-900' : 'bg-indigo-600 text-white'">
-                                <p class="text-xs opacity-70 mb-0.5" x-text="msg.is_admin ? 'Support' : 'You'"></p>
-                                <p class="whitespace-pre-wrap" x-text="msg.message"></p>
-                            </div>
-                        </div>
-                    </template>
+            <form @submit.prevent="sendAdminReply()" class="shrink-0 border-t border-slate-200 bg-white p-3">
+                <div class="flex items-end gap-2">
+                    <textarea x-model="draft" rows="1" maxlength="5000" placeholder="Write a reply…"
+                              class="max-h-24 min-h-[2.5rem] flex-1 resize-none rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                              :disabled="sending" @keydown.enter.prevent="if (!$event.shiftKey) sendAdminReply()"></textarea>
+                    <button type="submit" :disabled="sending || !draft.trim()"
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    </button>
                 </div>
-                <form @submit.prevent="sendVendorMessage" class="border-t p-3 bg-gray-50">
-                    <div class="flex gap-2">
-                        <input x-model="draft" type="text" maxlength="5000" placeholder="Type a message…" class="flex-1 rounded-lg border-gray-300 text-sm" :disabled="sending">
-                        <button type="submit" class="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg disabled:opacity-50" :disabled="sending || !draft.trim()">Send</button>
+            </form>
+        </div>
+
+        {{-- Portal user thread --}}
+        <div x-show="mode === 'portal'" class="flex min-h-0 flex-1 flex-col">
+            <div class="shrink-0 border-b border-slate-100 px-4 py-2.5">
+                <template x-if="portalIsClosed()">
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        <p class="font-semibold">Chat ended</p>
+                        <p class="mt-0.5" x-text="portalClosedNotice || 'Support closed this conversation.'"></p>
+                        <button type="button" @click="startNewPortalChat()" class="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-indigo-700">
+                            Start new chat
+                        </button>
                     </div>
-                </form>
+                </template>
+                <template x-if="!portalIsClosed()">
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                        <span class="text-slate-600">Support team · typically replies within minutes</span>
+                    </div>
+                </template>
             </div>
-        </template>
+            <div class="flex-1 overflow-y-auto bg-slate-50 p-3 space-y-3" x-ref="portalThread">
+                <template x-for="msg in portalMessages" :key="msg.id">
+                    <div class="flex" :class="msg.is_admin ? 'justify-start' : 'justify-end'">
+                        <div class="max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm"
+                             :class="msg.is_admin ? 'rounded-bl-md border border-slate-200 bg-white text-slate-800' : 'rounded-br-md bg-indigo-600 text-white'">
+                            <p class="mb-1 text-[10px] font-medium opacity-70" x-text="msg.is_admin ? 'Support Team' : 'You'"></p>
+                            <p class="whitespace-pre-wrap break-words" x-text="msg.message"></p>
+                            <p class="mt-1 text-[10px] opacity-60" x-text="formatTime(msg.created_at)"></p>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="portalMessages.length === 0 && !loading" class="py-10 text-center">
+                    <p class="text-sm font-medium text-slate-700">Start a conversation</p>
+                    <p class="mt-1 text-xs text-slate-500">Send a message and our support team will respond shortly.</p>
+                </div>
+            </div>
+            <form x-show="portalCanSend || portalAwaitingNewChat" @submit.prevent="sendPortalMessage()" class="shrink-0 border-t border-slate-200 bg-white p-3">
+                <div class="flex items-end gap-2">
+                    <textarea x-model="draft" rows="1" maxlength="5000"
+                              :placeholder="portalAwaitingNewChat ? 'Start a new conversation…' : 'Type your message…'"
+                              class="max-h-24 min-h-[2.5rem] flex-1 resize-none rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                              :disabled="sending" @keydown.enter.prevent="if (!$event.shiftKey) sendPortalMessage()"></textarea>
+                    <button type="submit" :disabled="sending || !draft.trim()"
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    </button>
+                </div>
+            </form>
+            <div x-show="portalIsClosed() && !portalAwaitingNewChat" class="shrink-0 border-t border-slate-200 bg-slate-50 px-4 py-3 text-center text-xs text-slate-500">
+                Messaging is disabled for this ended chat.
+            </div>
+        </div>
     </div>
 
-    {{-- Floating button --}}
-    <button type="button" @click="toggle()"
-            class="relative flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all hover:scale-105"
-            aria-label="Open live chat">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    {{-- Launcher --}}
+    <button
+        type="button"
+        @click="toggle()"
+        class="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30 transition hover:scale-105 hover:shadow-xl hover:shadow-indigo-600/40 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        aria-label="Open live chat"
+        :aria-expanded="open"
+    >
+        <svg x-show="!open" class="h-7 w-7 transition group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
         </svg>
-        <span x-show="badgeCount > 0" x-text="badgeCount > 9 ? '9+' : badgeCount"
-              class="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 flex items-center justify-center text-xs font-bold bg-red-500 text-white rounded-full"></span>
+        <svg x-show="open" x-cloak class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+        <span
+            x-show="badgeCount > 0"
+            x-text="badgeCount > 9 ? '9+' : badgeCount"
+            class="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white"
+        ></span>
     </button>
 </div>
-
-@once
-@push('scripts')
-<script>
-function liveChatWidget(config) {
-    return {
-        mode: config.mode,
-        widgetDataUrl: config.widgetDataUrl,
-        fullPageUrl: config.fullPageUrl,
-        sendUrl: config.sendUrl,
-        messagesUrl: config.messagesUrl,
-        csrf: config.csrf,
-        open: false,
-        sessions: [],
-        openCount: 0,
-        badgeCount: 0,
-        vendorMessages: [],
-        vendorLastId: 0,
-        draft: '',
-        sending: false,
-        activeSessionId: null,
-        pollTimer: null,
-        init() {
-            this.refresh();
-            this.pollTimer = setInterval(() => this.refresh(), 5000);
-        },
-        toggle() {
-            this.open = !this.open;
-            if (this.open) this.refresh();
-        },
-        async refresh() {
-            try {
-                const url = this.mode === 'vendor' && this.vendorLastId
-                    ? this.widgetDataUrl + '?after_id=' + this.vendorLastId
-                    : this.widgetDataUrl;
-                const res = await fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!res.ok) return;
-                const data = await res.json();
-                if (this.mode === 'admin') {
-                    this.sessions = data.sessions || [];
-                    this.openCount = data.open_count || 0;
-                    this.badgeCount = data.open_count || 0;
-                } else {
-                    const msgs = data.messages || [];
-                    if (!this.vendorLastId && msgs.length) {
-                        this.vendorMessages = msgs;
-                        this.vendorLastId = msgs[msgs.length - 1].id;
-                        this.$nextTick(() => {
-                            if (this.$refs.vendorBox) this.$refs.vendorBox.scrollTop = this.$refs.vendorBox.scrollHeight;
-                        });
-                    } else if (this.vendorLastId && msgs.length) {
-                        this.vendorMessages.push(...msgs);
-                        this.vendorLastId = msgs[msgs.length - 1].id;
-                        this.$nextTick(() => {
-                            if (this.$refs.vendorBox) this.$refs.vendorBox.scrollTop = this.$refs.vendorBox.scrollHeight;
-                        });
-                    } else if (this.vendorMessages.length === 0 && this.open) {
-                        await this.pollVendorFull();
-                    }
-                    const unread = msgs.filter(m => m.is_admin).length;
-                    if (!this.open && unread) this.badgeCount = Math.min(9, unread);
-                }
-            } catch (e) { /* silent */ }
-        },
-        async pollVendorFull() {
-            const res = await fetch(this.messagesUrl, { headers: { 'Accept': 'application/json' } });
-            if (!res.ok) return;
-            const data = await res.json();
-            this.vendorMessages = data.messages || [];
-            if (this.vendorMessages.length) this.vendorLastId = this.vendorMessages[this.vendorMessages.length - 1].id;
-        },
-        async sendVendorMessage() {
-            if (!this.draft.trim() || this.sending) return;
-            this.sending = true;
-            try {
-                const res = await fetch(this.sendUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': this.csrf,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({ message: this.draft.trim() })
-                });
-                if (res.ok) {
-                    this.draft = '';
-                    this.vendorLastId = 0;
-                    this.vendorMessages = [];
-                    await this.pollVendorFull();
-                }
-            } finally { this.sending = false; }
-        }
-    };
-}
-</script>
-@endpush
-@endonce
+@endif

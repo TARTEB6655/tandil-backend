@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Vendor;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
 
@@ -12,8 +13,12 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Routes are now loaded in bootstrap/app.php (Laravel 11 style)
-        // This method is kept for compatibility but routes are loaded via bootstrap/app.php
-        // If you need to add route model bindings or other route-related logic, add it here
+        Route::bind('vendor', function (string $value) {
+            if (request()->is('admin/*') || request()->is('api/admin/*')) {
+                return Vendor::withTrashed()->findOrFail($value);
+            }
+
+            return Vendor::findOrFail($value);
+        });
     }
 }

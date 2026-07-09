@@ -3,13 +3,14 @@
          x-data="vendorChatPage({
             pollUrl: @js(route('vendor.support-chat.messages')),
             lastId: @js($messages->last()?->id ?? 0),
-            closed: @js($session->isClosed())
+            closed: @js($session->isClosed()),
+            status: @js($session->status)
          })"
          x-init="startPolling()">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900">Live Chat with Support</h1>
-                <p class="text-sm text-gray-500 mt-1">Chat directly with the Tandil admin team · Status: <strong>{{ ucfirst(str_replace('_', ' ', $session->status)) }}</strong></p>
+                <p class="text-sm text-gray-500 mt-1">Chat directly with the Tandil admin team · Status: <strong x-text="statusLabel">{{ ucfirst(str_replace('_', ' ', $session->status)) }}</strong></p>
             </div>
             <a href="{{ route('vendor.help-support.index') }}" class="text-sm text-indigo-600 hover:underline">← Help &amp; Support</a>
         </div>
@@ -52,7 +53,18 @@
                     </div>
                 </form>
             @else
-                <div class="border-t p-4 text-center text-sm text-gray-500">This chat is closed. Open Help &amp; Support to start again.</div>
+                <div class="border-t p-4 text-center text-sm text-gray-500 space-y-2">
+                    <p>This chat was {{ $session->status === 'resolved' ? 'marked as resolved' : 'closed' }} by support.</p>
+                    <p class="text-xs text-gray-400">Send a new message below to start a fresh conversation.</p>
+                </div>
+                <form method="POST" action="{{ route('vendor.support-chat.send') }}" class="border-t p-4 bg-gray-50">
+                    @csrf
+                    <div class="flex gap-2">
+                        <textarea name="message" rows="2" required maxlength="5000" placeholder="Start a new conversation…"
+                                  class="flex-1 rounded-lg border-gray-300 text-sm resize-none"></textarea>
+                        <button type="submit" class="self-end px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Send</button>
+                    </div>
+                </form>
             @endif
         </div>
     </div>
@@ -64,14 +76,15 @@
                 pollUrl: config.pollUrl,
                 lastId: config.lastId,
                 closed: config.closed,
+                status: config.status,
+                statusLabel: (config.status || '').replace('_', ' '),
                 newMessages: [],
                 polling: false,
                 startPolling() {
-                    if (this.closed) return;
                     setInterval(() => this.poll(), 3000);
                 },
                 async poll() {
-                    if (this.polling || this.closed) return;
+                    if (this.polling) return;
                     this.polling = true;
                     try {
                         const res = await fetch(this.pollUrl + '?after_id=' + this.lastId, {
@@ -79,6 +92,11 @@
                         });
                         if (!res.ok) return;
                         const data = await res.json();
+                        if (data.session?.status) {
+                            this.status = data.session.status;
+                            this.statusLabel = (data.session.status || '').replace('_', ' ');
+                            this.closed = !!data.session.is_closed;
+                        }
                         if (data.messages?.length) {
                             this.newMessages.push(...data.messages);
                             this.lastId = data.messages[data.messages.length - 1].id;

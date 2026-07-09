@@ -82,13 +82,7 @@
     
     <!-- Toast Notifications -->
     <x-toast-notifications />
-
-    @auth
-        @if(auth()->user()->role === 'admin')
-            <x-live-chat-widget mode="admin" />
-        @endif
-    @endauth
-
+    <x-live-chat-widget />
     @stack('scripts')
 </body>
 </html>

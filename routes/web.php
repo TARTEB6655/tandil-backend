@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SupportChatWebController;
 use App\Http\Controllers\Admin\SupportTicketWebController;
+use App\Http\Controllers\SupportChat\PortalSupportChatWebController;
 use App\Http\Controllers\Admin\TipController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VisitController;
@@ -95,6 +96,15 @@ Route::get('/shared/analytics/{token}', [\App\Http\Controllers\SharedVendorAnaly
 Route::get('/shared/analytics/{token}/download', [\App\Http\Controllers\SharedVendorAnalyticsController::class, 'download'])
     ->where('token', '[A-Za-z0-9]+')
     ->name('shared.vendor-analytics.download');
+
+if (! function_exists('registerPortalSupportChatRoutes')) {
+    function registerPortalSupportChatRoutes(): void
+    {
+        Route::get('/support-chat/widget-data', [PortalSupportChatWebController::class, 'widgetData'])->name('support-chat.widget-data');
+        Route::get('/support-chat/messages', [PortalSupportChatWebController::class, 'messages'])->name('support-chat.messages');
+        Route::post('/support-chat/messages', [PortalSupportChatWebController::class, 'send'])->name('support-chat.send');
+    }
+}
 
 // Public legal pages (no authentication — App Store / website)
 Route::get('/privacy-policy', [LegalPageController::class, 'privacyPolicy'])->name('legal.privacy-policy');
@@ -376,7 +386,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('notifications/create', [NotificationController::class, 'create'])->name('notifications.create');
         Route::post('notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
         Route::get('notifications/{id}', [NotificationController::class, 'show'])->whereUuid('id')->name('notifications.show');
-        Route::get('notifications/{id}/read-and-redirect', [NotificationController::class, 'readAndRedirect'])->name('notifications.read-and-redirect');
+        Route::get('notifications/{id}/read-and-redirect', [NotificationController::class, 'readAndRedirect'])->whereUuid('id')->name('notifications.read-and-redirect');
         Route::post('notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
         Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -461,6 +471,7 @@ Route::middleware(['auth', 'role:supervisor'])
         Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
         Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
+        registerPortalSupportChatRoutes();
     });
 
 // Technician routes
@@ -506,6 +517,7 @@ Route::middleware(['auth', 'role:technician'])
         Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
         Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
+        registerPortalSupportChatRoutes();
     });
 
 // Client routes
@@ -575,6 +587,7 @@ Route::middleware(['auth', 'role:client'])
         Route::post('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'store'])->name('help-support.store');
         Route::get('/help-support/{id}', [\App\Http\Controllers\Client\HelpSupportController::class, 'show'])->name('help-support.show');
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\Client\HelpSupportController::class, 'reply'])->name('help-support.reply');
+        registerPortalSupportChatRoutes();
 
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Client\NotificationController::class, 'index'])->name('notifications.index');
@@ -630,6 +643,7 @@ Route::middleware(['auth', 'role:area_manager'])
         Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
         Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
+        registerPortalSupportChatRoutes();
     });
 
 // HR routes
@@ -683,6 +697,7 @@ Route::middleware(['auth', 'role:hr'])
         Route::post('/help-support', [\App\Http\Controllers\HelpSupportWebController::class, 'store'])->name('help-support.store');
         Route::get('/help-support/{id}', [\App\Http\Controllers\HelpSupportWebController::class, 'show'])->name('help-support.show');
         Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
+        registerPortalSupportChatRoutes();
     });
 
 // Vendor registration (public)
@@ -722,9 +737,7 @@ Route::middleware(['auth', 'role:vendor', 'vendor.account'])->prefix('vendor')->
     Route::post('/help-support/{id}/reply', [\App\Http\Controllers\HelpSupportWebController::class, 'reply'])->name('help-support.reply');
 
     Route::get('/support-chat', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'index'])->name('support-chat.index');
-    Route::get('/support-chat/widget-data', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'widgetData'])->name('support-chat.widget-data');
-    Route::get('/support-chat/messages', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'messages'])->name('support-chat.messages');
-    Route::post('/support-chat/messages', [\App\Http\Controllers\Vendor\VendorSupportChatWebController::class, 'send'])->name('support-chat.send');
+    registerPortalSupportChatRoutes();
 
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');

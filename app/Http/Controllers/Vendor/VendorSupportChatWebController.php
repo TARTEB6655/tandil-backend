@@ -19,7 +19,7 @@ class VendorSupportChatWebController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $session = $this->chat->getOrCreateSession($user);
+        $session = $this->chat->resolveDisplaySession($user) ?? $this->chat->getOrCreateSession($user);
         $messages = $this->chat->messagesForSession($session);
 
         return view('vendor.support-chat.index', [

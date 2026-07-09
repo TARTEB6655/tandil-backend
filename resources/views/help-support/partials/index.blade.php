@@ -23,10 +23,10 @@
                         <p class="text-sm text-gray-600">{{ $opt['subtitle'] }}</p>
                     </a>
                 @elseif($opt['type'] === 'live_chat')
-                    <div class="opacity-75">
-                        <p class="font-medium text-gray-900">{{ $opt['title'] }}</p>
-                        <p class="text-sm text-gray-600">{{ $opt['subtitle'] }} (coming soon)</p>
-                    </div>
+                    <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-live-chat'))" class="block w-full text-left">
+                        <p class="font-medium text-indigo-600">{{ $opt['title'] }}</p>
+                        <p class="text-sm text-gray-600">{{ $opt['subtitle'] }} — use the chat button bottom-right</p>
+                    </button>
                 @else
                     <a href="#submit-ticket" class="block scroll-smooth">
                         <p class="font-medium text-indigo-600">{{ $opt['title'] }}</p>

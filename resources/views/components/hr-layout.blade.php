@@ -60,8 +60,9 @@
         </div>
     </div>
     
-    <!-- Toast Notifications -->
     <x-toast-notifications />
+    <x-live-chat-widget />
+    @stack('scripts')
 </body>
 </html>
 

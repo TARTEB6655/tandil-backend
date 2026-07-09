@@ -1,5 +1,6 @@
 import './bootstrap';
 import './toast-handler';
+import './live-chat-widget';
 
 import Alpine from 'alpinejs';
 

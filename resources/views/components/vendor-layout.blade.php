@@ -63,15 +63,7 @@
         </div>
     </div>
     <x-toast-notifications />
-
-    @auth
-        @if(auth()->user()->role === 'admin')
-            <x-live-chat-widget mode="admin" />
-        @elseif(auth()->user()->role === 'vendor')
-            <x-live-chat-widget mode="vendor" />
-        @endif
-    @endauth
-
+    <x-live-chat-widget />
     @stack('scripts')
 </body>
 </html>

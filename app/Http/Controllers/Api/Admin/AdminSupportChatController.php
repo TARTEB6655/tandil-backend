@@ -159,9 +159,9 @@ class AdminSupportChatController extends Controller
             return ApiResponse::error('Chat session not found.', 404);
         }
 
-        $session->update(['status' => $request->input('status')]);
+        $session = $this->chat->updateSessionStatus($session, $request->input('status'));
 
-        return ApiResponse::success('Chat status updated.', $this->chat->sessionToArray($session->fresh()));
+        return ApiResponse::success('Chat status updated.', $this->chat->sessionToArray($session));
     }
 
     private function sessionWithMessages(SupportChatSession $session): JsonResponse

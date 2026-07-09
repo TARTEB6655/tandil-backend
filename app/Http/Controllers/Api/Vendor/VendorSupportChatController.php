@@ -21,7 +21,7 @@ class VendorSupportChatController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = $request->user();
-        $session = $this->chat->getOrCreateSession($user);
+        $session = $this->chat->resolveDisplaySession($user) ?? $this->chat->getOrCreateSession($user);
         $messages = $this->chat->messagesForSession($session);
 
         return ApiResponse::success('Live chat loaded.', [
@@ -42,7 +42,7 @@ class VendorSupportChatController extends Controller
      */
     public function messages(Request $request): JsonResponse
     {
-        $session = $this->resolveVendorSession($request);
+        $session = $this->chat->resolveDisplaySession($request->user());
         if ($session === null) {
             return ApiResponse::error('Chat session not found.', 404);
         }
@@ -51,8 +51,10 @@ class VendorSupportChatController extends Controller
         $messages = $this->chat->messagesForSession($session, $afterId);
 
         return ApiResponse::success('Messages retrieved.', [
+            'session' => $this->chat->sessionToArray($session),
             'session_id' => $session->id,
             'messages' => $messages->map(fn ($m) => $this->chat->messageToArray($m))->values()->all(),
+            'can_send' => ! $session->isClosed(),
         ]);
     }
 
@@ -63,13 +65,9 @@ class VendorSupportChatController extends Controller
     {
         $request->validate(['message' => 'required|string|max:5000']);
 
-        $session = $this->resolveVendorSession($request);
+        $session = $this->chat->resolveActiveSession($request->user());
         if ($session === null) {
             $session = $this->chat->getOrCreateSession($request->user());
-        }
-
-        if ($session->isClosed()) {
-            return ApiResponse::error('Chat is closed. Start a new chat.', 422);
         }
 
         try {

@@ -16,11 +16,7 @@ class SupportChatService
      */
     public function getOrCreateSession(User $user): SupportChatSession
     {
-        $session = SupportChatSession::query()
-            ->where('user_id', $user->id)
-            ->whereIn('status', ['open', 'in_progress'])
-            ->latest('updated_at')
-            ->first();
+        $session = $this->resolveActiveSession($user);
 
         if ($session !== null) {
             return $session;
@@ -31,6 +27,45 @@ class SupportChatService
             'status' => 'open',
             'subject' => 'Live Chat with Admin',
         ]);
+    }
+
+    public function resolveActiveSession(User $user): ?SupportChatSession
+    {
+        return SupportChatSession::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['open', 'in_progress'])
+            ->latest('updated_at')
+            ->first();
+    }
+
+    /**
+     * Active session, or the most recently updated ended session for display/history.
+     */
+    public function resolveDisplaySession(User $user): ?SupportChatSession
+    {
+        $active = $this->resolveActiveSession($user);
+        if ($active !== null) {
+            return $active;
+        }
+
+        return SupportChatSession::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['resolved', 'closed'])
+            ->latest('updated_at')
+            ->first();
+    }
+
+    public function updateSessionStatus(SupportChatSession $session, string $status): SupportChatSession
+    {
+        $wasOpen = ! $session->isClosed();
+        $session->update(['status' => $status]);
+        $session = $session->fresh(['user']);
+
+        if ($wasOpen && $session->isClosed()) {
+            $this->notifyUserSessionEnded($session, $status);
+        }
+
+        return $session;
     }
 
     /**
@@ -91,6 +126,9 @@ class SupportChatService
             'token' => $session->token,
             'subject' => $session->subject,
             'status' => $session->status,
+            'is_closed' => $session->isClosed(),
+            'can_send' => ! $session->isClosed(),
+            'status_label' => ucfirst(str_replace('_', ' ', (string) $session->status)),
             'user_id' => $session->user_id,
             'user_name' => $session->user?->name,
             'user_role' => $session->user?->role,
@@ -117,11 +155,12 @@ class SupportChatService
     private function notifyAdmins(SupportChatSession $session, User $sender, SupportChatMessage $message): void
     {
         try {
+            $roleLabel = ucfirst(str_replace('_', ' ', (string) ($sender->role ?? 'user')));
             $admins = User::role('admin')->get();
             foreach ($admins as $admin) {
                 $admin->notify(new AdminNotification(
-                    'Vendor Live Chat Message',
-                    ($sender->name ?: 'Vendor').' sent a live chat message.',
+                    'Live Chat Message',
+                    ($sender->name ?: $roleLabel).' sent a live chat message.',
                     [
                         'entity' => 'support_chat',
                         'session_id' => $session->id,
@@ -133,6 +172,34 @@ class SupportChatService
             }
         } catch (\Throwable $e) {
             Log::warning('Support chat admin notification failed', [
+                'session_id' => $session->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function notifyUserSessionEnded(SupportChatSession $session, string $status): void
+    {
+        try {
+            $user = $session->user;
+            if ($user === null) {
+                return;
+            }
+
+            $endedLabel = $status === 'resolved' ? 'marked as resolved' : 'closed';
+            $user->notify(new AdminNotification(
+                'Live Chat Ended',
+                'Support has '.$endedLabel.' this conversation. Open Live Chat to view history or start a new message.',
+                [
+                    'entity' => 'support_chat',
+                    'session_id' => $session->id,
+                    'token' => $session->token,
+                    'action' => 'chat_ended',
+                    'status' => $status,
+                ]
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Support chat session-ended notification failed', [
                 'session_id' => $session->id,
                 'error' => $e->getMessage(),
             ]);

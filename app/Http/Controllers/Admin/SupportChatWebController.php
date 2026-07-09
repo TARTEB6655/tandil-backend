@@ -85,28 +85,52 @@ class SupportChatWebController extends Controller
         $request->validate(['message' => 'required|string|max:5000']);
 
         if ($session->isClosed()) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'This chat is closed.'], 422);
+            }
+
             return back()->withErrors(['message' => 'This chat is closed.'])->withInput();
         }
 
         try {
-            $this->chat->sendMessage(
+            $chatMessage = $this->chat->sendMessage(
                 $session,
                 $request->user(),
                 $request->input('message'),
                 true
             );
         } catch (\InvalidArgumentException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+
             return back()->withErrors(['message' => $e->getMessage()])->withInput();
         }
 
-        return back()->with('success', 'Reply sent to vendor.');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Reply sent.',
+                'chat_message' => $this->chat->messageToArray($chatMessage),
+                'session' => $this->chat->sessionToArray($session->fresh(['user'])),
+            ]);
+        }
+
+        return back()->with('success', 'Reply sent.');
     }
 
     public function updateStatus(Request $request, SupportChatSession $session)
     {
         $request->validate(['status' => 'required|string|in:open,in_progress,resolved,closed']);
 
-        $session->update(['status' => $request->input('status')]);
+        $session = $this->chat->updateSessionStatus($session, $request->input('status'));
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'session' => $this->chat->sessionToArray($session),
+            ]);
+        }
 
         return back()->with('success', 'Chat status updated.');
     }
@@ -114,14 +138,25 @@ class SupportChatWebController extends Controller
     public function accept(Request $request, SupportChatSession $session)
     {
         if ($session->isClosed()) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Chat is already closed.'], 422);
+            }
+
             return back()->withErrors(['message' => 'Chat is already closed.']);
         }
 
         $session->update(['status' => 'in_progress']);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'session' => $this->chat->sessionToArray($session->fresh(['user'])),
+            ]);
+        }
+
         return redirect()
             ->route('admin.support-chat.show', $session)
-            ->with('success', 'Chat accepted. You can reply to the vendor now.');
+            ->with('success', 'Chat accepted. You can reply now.');
     }
 
     public function widgetData(Request $request): JsonResponse
@@ -130,16 +165,18 @@ class SupportChatWebController extends Controller
             ->with('user:id,name,email,role')
             ->withCount('messages')
             ->whereIn('status', ['open', 'in_progress'])
-            ->whereHas('user', fn ($q) => $q->where('role', 'vendor'))
             ->orderByDesc('updated_at')
-            ->limit(15)
+            ->limit(20)
             ->get()
             ->map(function (SupportChatSession $session) {
                 $data = $this->chat->sessionToArray($session);
                 $data['messages_count'] = $session->messages_count;
                 $data['show_url'] = route('admin.support-chat.show', $session);
                 $data['accept_url'] = route('admin.support-chat.accept', $session);
+                $data['messages_url'] = route('admin.support-chat.messages', $session);
+                $data['reply_url'] = route('admin.support-chat.reply', $session);
                 $data['needs_accept'] = $session->status === 'open';
+                $data['role_label'] = ucfirst(str_replace('_', ' ', (string) ($session->user?->role ?? 'user')));
 
                 return $data;
             });
