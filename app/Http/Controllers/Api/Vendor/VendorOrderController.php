@@ -9,6 +9,7 @@ use App\Models\VendorOrderMapping;
 use App\Services\Vendor\VendorOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -42,16 +43,7 @@ class VendorOrderController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $vendor = $request->attributes->get('vendor');
-        $mapping = VendorOrderMapping::with([
-            'order.user',
-            'order.shippingAddress',
-            'order.items.product.primaryImage',
-            'statusLogs',
-        ])
-            ->where('vendor_id', $vendor->id)
-            ->where('id', $id)
-            ->first();
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
 
         if ($mapping === null) {
             return ApiResponse::error('Order not found.', 404);
@@ -59,6 +51,55 @@ class VendorOrderController extends Controller
 
         return ApiResponse::success('Order retrieved.', [
             'order' => $this->orders->formatDetail($mapping),
+        ]);
+    }
+
+    public function contact(Request $request, int $id): JsonResponse
+    {
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
+
+        if ($mapping === null) {
+            return ApiResponse::error('Order not found.', 404);
+        }
+
+        return ApiResponse::success('Customer contact retrieved.', [
+            'contact' => $this->orders->formatContact($mapping),
+        ]);
+    }
+
+    public function invoice(Request $request, int $id): Response|JsonResponse
+    {
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
+
+        if ($mapping === null) {
+            return ApiResponse::error('Order not found.', 404);
+        }
+
+        $disposition = strtolower((string) $request->query('disposition', 'inline'));
+        $filename = $this->orders->invoiceFilename($mapping);
+        $contentDisposition = $disposition === 'attachment'
+            ? 'attachment; filename="'.$filename.'"'
+            : 'inline; filename="'.$filename.'"';
+
+        return response($this->orders->buildOrderPdfBinary($mapping, 'invoice'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $contentDisposition,
+        ]);
+    }
+
+    public function download(Request $request, int $id): Response|JsonResponse
+    {
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
+
+        if ($mapping === null) {
+            return ApiResponse::error('Order not found.', 404);
+        }
+
+        $filename = $this->orders->downloadFilename($mapping);
+
+        return response($this->orders->buildOrderPdfBinary($mapping, 'order'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 

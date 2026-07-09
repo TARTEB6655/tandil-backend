@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorOrderStatusLog;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -165,7 +166,7 @@ class VendorOrderService
             'product' => $this->formatPrimaryProduct($vendorItems, $currency),
             'status_timeline' => $this->buildStatusTimeline($mapping),
             'available_statuses' => $this->availableStatuses($status),
-            'actions' => $this->resolveActions($status),
+            'actions' => array_merge($this->resolveActions($status), $this->resolveDocumentActions($mapping)),
             'order_info' => [
                 'placed_at' => $this->formatDateTime($order?->created_at),
                 'estimated_delivery' => $this->formatDate($order?->estimated_arrival),
@@ -321,6 +322,140 @@ class VendorOrderService
             'primary_action' => $primaryAction,
             'primary_action_label' => $primaryActionLabel,
         ];
+    }
+
+    public function findMappingForVendor(Vendor $vendor, int $id): ?VendorOrderMapping
+    {
+        return VendorOrderMapping::with([
+            'order.user',
+            'order.shippingAddress',
+            'order.items.product.primaryImage',
+            'statusLogs',
+            'vendor.profile',
+        ])
+            ->where('vendor_id', $vendor->id)
+            ->where('id', $id)
+            ->first();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function formatContact(VendorOrderMapping $mapping): array
+    {
+        $order = $mapping->order;
+        $contactActions = $this->buildContactActions($order);
+        $customer = $this->formatCustomer($order, includeAddress: true);
+
+        return [
+            'order_id' => $mapping->id,
+            'order_number' => $this->orderNumber($mapping),
+            'customer' => $customer,
+            'contact_actions' => $contactActions,
+            'can_contact' => $contactActions !== [],
+            'preferred_action' => $contactActions[0] ?? null,
+        ];
+    }
+
+    public function buildOrderPdfBinary(VendorOrderMapping $mapping, string $type = 'invoice'): string
+    {
+        $mapping->loadMissing([
+            'order.user',
+            'order.shippingAddress',
+            'order.items.product',
+            'vendor.profile',
+        ]);
+
+        $order = $this->formatDetail($mapping);
+        $businessName = $mapping->vendor?->profile?->business_name ?? 'Vendor';
+
+        return Pdf::loadView('shared.vendor-order-invoice-pdf', [
+            'documentType' => $type,
+            'documentTitle' => $type === 'invoice' ? 'Tax Invoice' : 'Order Summary',
+            'businessName' => $businessName,
+            'generatedAt' => now()->format('d M Y, H:i'),
+            'order' => $order,
+        ])->setPaper('a4', 'portrait')->output();
+    }
+
+    public function invoiceFilename(VendorOrderMapping $mapping): string
+    {
+        return strtolower($this->orderNumber($mapping)).'_invoice.pdf';
+    }
+
+    public function downloadFilename(VendorOrderMapping $mapping): string
+    {
+        return strtolower($this->orderNumber($mapping)).'_order.pdf';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function resolveDocumentActions(VendorOrderMapping $mapping): array
+    {
+        $contactActions = $this->buildContactActions($mapping->order);
+        $id = $mapping->id;
+
+        return [
+            'can_contact_customer' => $contactActions !== [],
+            'can_print_invoice' => true,
+            'can_download_order' => true,
+            'contact_endpoint' => "/api/vendor/orders/{$id}/contact",
+            'invoice_endpoint' => "/api/vendor/orders/{$id}/invoice",
+            'download_endpoint' => "/api/vendor/orders/{$id}/download",
+        ];
+    }
+
+    /**
+     * @return list<array{type: string, label: string, url: string}>
+     */
+    private function buildContactActions(?Order $order): array
+    {
+        if ($order === null) {
+            return [];
+        }
+
+        $actions = [];
+        $phone = $order->payerPhone();
+        $email = $order->payerEmail();
+
+        if ($phone !== null && trim($phone) !== '') {
+            $actions[] = [
+                'type' => 'call',
+                'label' => 'Call Customer',
+                'url' => 'tel:'.preg_replace('/\s+/', '', $phone),
+            ];
+
+            $digits = $this->normalizePhoneDigits($phone);
+            if ($digits !== null) {
+                $actions[] = [
+                    'type' => 'whatsapp',
+                    'label' => 'WhatsApp',
+                    'url' => 'https://wa.me/'.$digits,
+                ];
+            }
+        }
+
+        if ($email !== null && trim($email) !== '') {
+            $actions[] = [
+                'type' => 'email',
+                'label' => 'Email Customer',
+                'url' => 'mailto:'.$email,
+            ];
+        }
+
+        return $actions;
+    }
+
+    private function normalizePhoneDigits(?string $phone): ?string
+    {
+        if ($phone === null || trim($phone) === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        return $digits !== '' ? $digits : null;
     }
 
     /**

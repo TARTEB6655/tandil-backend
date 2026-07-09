@@ -130,6 +130,67 @@ class VendorOrderApiTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_vendor_can_get_customer_contact_actions(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->id.'/contact')
+            ->assertOk()
+            ->assertJsonPath('data.contact.customer.name', 'Ahmed Ali')
+            ->assertJsonPath('data.contact.customer.phone', '+971500000001')
+            ->assertJsonPath('data.contact.can_contact', true)
+            ->assertJsonPath('data.contact.contact_actions.0.type', 'call')
+            ->assertJsonStructure([
+                'data' => [
+                    'contact' => [
+                        'order_number',
+                        'customer',
+                        'contact_actions',
+                        'preferred_action',
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_vendor_order_detail_includes_document_actions(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->id)
+            ->assertOk()
+            ->assertJsonPath('data.order.actions.can_contact_customer', true)
+            ->assertJsonPath('data.order.actions.can_print_invoice', true)
+            ->assertJsonPath('data.order.actions.can_download_order', true)
+            ->assertJsonPath('data.order.actions.invoice_endpoint', '/api/vendor/orders/'.$mapping->id.'/invoice');
+    }
+
+    public function test_vendor_can_print_invoice_pdf(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $response = $this->withToken($token)->get('/api/vendor/orders/'.$mapping->id.'/invoice');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_vendor_can_download_order_pdf(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $response = $this->withToken($token)->get('/api/vendor/orders/'.$mapping->id.'/download');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('attachment', strtolower((string) $response->headers->get('Content-Disposition')));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
     private function seedVendorOrder(Vendor $vendor, VendorOrderStatus $status): VendorOrderMapping
     {
         $category = Category::create([

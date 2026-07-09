@@ -19987,7 +19987,7 @@
                 },
                 {
                     "name": "H. Orders (approved only)",
-                    "description": "Bottom nav **Orders** tab — mobile-ready list cards + order detail screen.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET orders | Order list with summary tabs (All, Pending, Confirmed, Shipped, Delivered) |\n| 2 | GET orders/{id} | Order detail — timeline, products, customer, payment, notes |\n| 3 | POST orders/{id}/status | Confirm / Ship / Mark delivered / Cancel |\n\nAuth: `{{vendor_token}}`, approved vendor only.\n\n**List card fields:** `order_number` (VND-YYYY-####), `customer`, `product`, `actions` (`can_confirm`, `can_ship`, `primary_action`).\n\n**Detail fields:** `status_timeline`, `products[]`, `order_notes`, `tracking_number`, `available_statuses`, `payment_method`, `payment_status`.\n\n**Status flow:** pending → confirmed → processing → shipped → delivered (cancel allowed until shipped). Ship auto-generates `tracking_number` (TRK-YYYY-####) if omitted.",
+                    "description": "Bottom nav **Orders** tab — mobile-ready list cards + order detail screen.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET orders | Order list with summary tabs |\n| 2 | GET orders/{id} | Order detail — timeline, products, customer, notes |\n| 3 | GET orders/{id}/contact | **Contact Customer** — phone, email, call/WhatsApp/mailto links |\n| 4 | GET orders/{id}/invoice | **Print Invoice** — PDF (inline for print preview) |\n| 5 | GET orders/{id}/download | **Download Order** — PDF attachment |\n| 6–8 | POST orders/{id}/status | Confirm / Ship / Mark delivered |\n\nAuth: `{{vendor_token}}`, approved vendor only.\n\n**Detail `actions` flags:** `can_contact_customer`, `can_print_invoice`, `can_download_order` + endpoint paths.",
                     "item": [
                         {
                             "name": "1. List orders",
@@ -20024,11 +20024,62 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "orders", "{{vendor_order_mapping_id}}"]
                                 },
-                                "description": "GET `/api/vendor/orders/{id}` — returns `data.order` with `order_number`, `status_timeline`, `products[]`, `customer`, `order_notes`, `tracking_number`, `available_statuses`, `actions`, `order_info`."
+                                "description": "GET `/api/vendor/orders/{id}` — **Order Details screen**.\n\n**Order Status timeline:** `data.order.status_timeline[]` → `{ step, label, status: completed|current|pending, date }`\n\n**Order Information card:**\n- Order ID → `order_number` (VND-YYYY-####)\n- Order Date → `order_date`\n- Delivery Date → `delivery_date_label`\n- Payment Method → `payment_method`\n- Payment Status → `payment_status`\n- Tracking Number → `tracking_number`\n\nAlso includes: `products[]`, `customer`, `order_notes`, `available_statuses`, `actions` (contact/invoice/download flags + endpoints)."
                             }
                         },
                         {
-                            "name": "3. Confirm order (pending → confirmed)",
+                            "name": "3. Contact customer",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/contact",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "orders", "{{vendor_order_mapping_id}}", "contact"]
+                                },
+                                "description": "GET `/api/vendor/orders/{id}/contact` — **Contact Customer** button. Returns `data.contact` with `customer`, `contact_actions[]` (call, whatsapp, email deep links), `preferred_action`."
+                            }
+                        },
+                        {
+                            "name": "4. Print invoice (PDF)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/pdf"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/invoice?disposition=inline",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "orders", "{{vendor_order_mapping_id}}", "invoice"],
+                                    "query": [
+                                        {"key": "disposition", "value": "inline", "description": "inline = print preview | attachment = download"}
+                                    ]
+                                },
+                                "description": "GET `/api/vendor/orders/{id}/invoice` — **Print Invoice** button. Returns PDF (`application/pdf`). Default `disposition=inline` for print preview."
+                            }
+                        },
+                        {
+                            "name": "5. Download order (PDF)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/pdf"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/download",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "orders", "{{vendor_order_mapping_id}}", "download"]
+                                },
+                                "description": "GET `/api/vendor/orders/{id}/download` — **Download Order** button. Returns PDF attachment with order summary."
+                            }
+                        },
+                        {
+                            "name": "6. Confirm order (pending → confirmed)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20049,7 +20100,7 @@
                             }
                         },
                         {
-                            "name": "4. Ship order (confirmed → shipped)",
+                            "name": "7. Ship order (confirmed → shipped)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20070,7 +20121,7 @@
                             }
                         },
                         {
-                            "name": "5. Mark delivered (shipped → delivered)",
+                            "name": "8. Mark delivered (shipped → delivered)",
                             "request": {
                                 "method": "POST",
                                 "header": [
