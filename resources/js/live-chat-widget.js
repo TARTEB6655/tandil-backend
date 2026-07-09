@@ -291,6 +291,8 @@ document.addEventListener('alpine:init', () => {
         portalIsClosed() {
             return this.portalSession?.is_closed && !this.portalAwaitingNewChat;
         },
+
+        scrollToBottom(refName) {
             const el = this.$refs[refName];
             if (el) {
                 el.scrollTop = el.scrollHeight;
