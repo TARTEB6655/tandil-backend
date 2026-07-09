@@ -13,6 +13,7 @@ class VendorOrderMapping extends Model
         'order_id',
         'vendor_id',
         'status',
+        'tracking_number',
         'subtotal',
         'tax_amount',
         'shipping_amount',

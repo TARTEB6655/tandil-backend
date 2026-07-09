@@ -344,7 +344,9 @@ class VendorCatalogApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.summary.total', 1)
             ->assertJsonPath('data.summary.confirmed', 1)
-            ->assertJsonStructure(['data' => ['summary', 'items', 'pagination']]);
+            ->assertJsonStructure(['data' => ['summary', 'items', 'pagination']])
+            ->assertJsonPath('data.items.0.status', 'confirmed')
+            ->assertJsonPath('data.items.0.actions.can_view', true);
     }
 
     public function test_vendor_login_returns_vendor_context(): void

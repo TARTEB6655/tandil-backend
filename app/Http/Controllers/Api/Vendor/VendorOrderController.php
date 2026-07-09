@@ -10,6 +10,7 @@ use App\Services\Vendor\VendorOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class VendorOrderController extends Controller
 {
@@ -22,9 +23,14 @@ class VendorOrderController extends Controller
         $vendor = $request->attributes->get('vendor');
         $paginator = $this->orders->listForVendor($vendor, $request->only(['status', 'search']), (int) $request->query('per_page', 15));
 
+        $items = collect($paginator->items())
+            ->map(fn (VendorOrderMapping $mapping) => $this->orders->formatListItem($mapping))
+            ->values()
+            ->all();
+
         return ApiResponse::success('Orders retrieved.', [
             'summary' => $this->orders->statusSummary($vendor),
-            'items' => $paginator->items(),
+            'items' => $items,
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
@@ -37,7 +43,12 @@ class VendorOrderController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
-        $mapping = VendorOrderMapping::with(['order.user', 'order.items.product', 'statusLogs'])
+        $mapping = VendorOrderMapping::with([
+            'order.user',
+            'order.shippingAddress',
+            'order.items.product.primaryImage',
+            'statusLogs',
+        ])
             ->where('vendor_id', $vendor->id)
             ->where('id', $id)
             ->first();
@@ -46,7 +57,9 @@ class VendorOrderController extends Controller
             return ApiResponse::error('Order not found.', 404);
         }
 
-        return ApiResponse::success('Order retrieved.', ['order_mapping' => $mapping]);
+        return ApiResponse::success('Order retrieved.', [
+            'order' => $this->orders->formatDetail($mapping),
+        ]);
     }
 
     public function updateStatus(Request $request, int $id): JsonResponse
@@ -60,11 +73,28 @@ class VendorOrderController extends Controller
         $data = $request->validate([
             'status' => ['required', Rule::in(VendorOrderStatus::values())],
             'note' => 'nullable|string|max:500',
+            'tracking_number' => 'nullable|string|max:64',
         ]);
 
         $status = VendorOrderStatus::from($data['status']);
-        $mapping = $this->orders->updateStatus($mapping, $status, $request->user(), $data['note'] ?? null);
+        $allowed = array_map(fn (VendorOrderStatus $s) => $s->value, $this->orders->allowedNextStatuses($mapping->statusEnum()));
 
-        return ApiResponse::success('Order status updated.', ['order_mapping' => $mapping]);
+        if ($allowed !== [] && ! in_array($status->value, $allowed, true)) {
+            throw ValidationException::withMessages([
+                'status' => ['This status transition is not allowed from the current order state.'],
+            ]);
+        }
+
+        $mapping = $this->orders->updateStatus(
+            $mapping,
+            $status,
+            $request->user(),
+            $data['note'] ?? null,
+            $data['tracking_number'] ?? null
+        );
+
+        return ApiResponse::success('Order status updated.', [
+            'order' => $this->orders->formatDetail($mapping),
+        ]);
     }
 }

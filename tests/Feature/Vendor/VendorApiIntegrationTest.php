@@ -198,12 +198,16 @@ class VendorApiIntegrationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.summary.total', 1);
 
-        $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->id)->assertOk();
+        $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->id)
+            ->assertOk()
+            ->assertJsonPath('data.order.id', $mapping->id);
 
         $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/status', [
             'status' => 'confirmed',
             'note' => 'Accepted',
-        ])->assertOk();
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.order.status', 'confirmed');
     }
 
     public function test_product_form_options_return_id_and_name_only(): void
