@@ -19,34 +19,99 @@ class VendorOrderService
 {
     public function listForVendor(Vendor $vendor, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $q = VendorOrderMapping::with([
-            'order.user',
-            'order.shippingAddress',
-            'order.items.product.primaryImage',
-        ])->where('vendor_id', $vendor->id);
+        $vendorId = $vendor->id;
+
+        $q = VendorOrderMapping::query()
+            ->where('vendor_id', $vendorId);
 
         if (! empty($filters['status'])) {
             $q->where('status', $filters['status']);
         }
+
         if (! empty($filters['search'])) {
             $search = trim((string) $filters['search']);
             $q->where(function ($query) use ($search) {
-                $query->where('id', 'like', "%{$search}%")
-                    ->orWhere('tracking_number', 'like', "%{$search}%");
+                $query->where('vendor_order_mappings.id', 'like', "%{$search}%")
+                    ->orWhere('vendor_order_mappings.tracking_number', 'like', "%{$search}%");
 
                 if (preg_match('/VND-(\d{4})-(\d+)/i', $search, $matches)) {
-                    $query->orWhere('id', (int) $matches[2]);
+                    $query->orWhere('vendor_order_mappings.id', (int) $matches[2]);
                 }
 
-                $query->orWhereHas('order', function ($oq) use ($search) {
-                    $oq->where('id', 'like', "%{$search}%")
+                $query->orWhereIn('vendor_order_mappings.order_id', function ($sub) use ($search) {
+                    $sub->select('id')
+                        ->from('orders')
+                        ->where('id', 'like', "%{$search}%")
                         ->orWhere('guest_email', 'like', "%{$search}%")
                         ->orWhere('guest_full_name', 'like', "%{$search}%");
                 });
             });
         }
 
-        return $q->latest()->paginate($perPage);
+        $paginator = $q->with($this->listRelations())
+            ->latest('vendor_order_mappings.created_at')
+            ->paginate($perPage);
+
+        $this->attachListProductSummaries(collect($paginator->items()), $vendorId);
+
+        return $paginator;
+    }
+
+    /**
+     * @param  Collection<int, VendorOrderMapping>  $mappings
+     */
+    public function attachListProductSummaries(Collection $mappings, int $vendorId): void
+    {
+        $orderIds = $mappings->pluck('order_id')->unique()->filter()->values();
+        if ($orderIds->isEmpty()) {
+            return;
+        }
+
+        $itemsByOrder = OrderItem::query()
+            ->select(['id', 'order_id', 'product_id', 'quantity', 'price', 'subtotal'])
+            ->with(['product' => fn ($query) => $query->select(['id', 'vendor_id', 'name', 'image'])])
+            ->whereIn('order_id', $orderIds)
+            ->whereHas('product', fn ($query) => $query->where('vendor_id', $vendorId))
+            ->orderBy('id')
+            ->get()
+            ->groupBy('order_id');
+
+        foreach ($mappings as $mapping) {
+            $mapping->setRelation(
+                'vendorListItems',
+                $itemsByOrder->get($mapping->order_id, collect())
+            );
+        }
+    }
+
+    /**
+     * Minimal relations for the mobile orders list (detail view loads more).
+     *
+     * @return array<string, mixed>
+     */
+    private function listRelations(): array
+    {
+        return [
+            'order' => fn ($query) => $query->select([
+                'id',
+                'user_id',
+                'guest_email',
+                'guest_full_name',
+                'guest_phone',
+                'guest_city',
+                'guest_country',
+                'shipping_address_id',
+                'created_at',
+            ]),
+            'order.user' => fn ($query) => $query->select(['id', 'name', 'email', 'phone']),
+            'order.shippingAddress' => fn ($query) => $query->select([
+                'id',
+                'full_name',
+                'phone_number',
+                'city',
+                'country',
+            ]),
+        ];
     }
 
     /**
@@ -463,6 +528,10 @@ class VendorOrderService
      */
     private function vendorOrderItems(VendorOrderMapping $mapping): Collection
     {
+        if ($mapping->relationLoaded('vendorListItems')) {
+            return $mapping->getRelation('vendorListItems');
+        }
+
         $order = $mapping->order;
         if ($order === null || ! $order->relationLoaded('items')) {
             return collect();

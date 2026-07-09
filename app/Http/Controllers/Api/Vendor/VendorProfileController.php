@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Vendor;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendor\UpdateVendorProfileApiRequest;
+use App\Models\Vendor;
 use App\Models\VendorProfile;
 use App\Services\Vendor\VendorProfileScreenService;
 use App\Services\Vendor\VendorRegistrationService;
@@ -21,7 +22,7 @@ class VendorProfileController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        $vendor = VendorContext::vendorForUser($request->user());
+        $vendor = $this->vendorFromRequest($request);
 
         return ApiResponse::success('Vendor profile retrieved.', [
             'profile' => $this->profileScreen->build($vendor),
@@ -33,7 +34,7 @@ class VendorProfileController extends Controller
 
     public function update(UpdateVendorProfileApiRequest $request): JsonResponse
     {
-        $vendor = VendorContext::vendorForUser($request->user());
+        $vendor = $this->vendorFromRequest($request);
         if ($vendor === null) {
             return ApiResponse::error('Vendor not found.', 404);
         }
@@ -51,5 +52,14 @@ class VendorProfileController extends Controller
                 'emirates' => VendorProfile::emirates(),
             ],
         ]);
+    }
+
+    private function vendorFromRequest(Request $request): ?Vendor
+    {
+        $vendor = $request->attributes->get('vendor');
+
+        return $vendor instanceof Vendor
+            ? $vendor
+            : VendorContext::vendorForUser($request->user());
     }
 }

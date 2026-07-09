@@ -25,10 +25,10 @@ class VendorProfileScreenService
         $vendor->loadMissing('profile', 'user');
         $profile = $vendor->profile;
         $user = $vendor->user;
-        $stats = $this->dashboard->stats($vendor);
+        $stats = $this->dashboard->profileSummaryStats($vendor);
 
-        $delivered = (int) ($stats['completed_orders'] ?? 0);
-        $products = (int) ($stats['total_products'] ?? 0);
+        $delivered = $stats['completed_orders'];
+        $products = $stats['total_products'];
         $partnership = $this->partnershipBadge($vendor, $delivered);
 
         $memberSince = $vendor->approved_at ?? $vendor->created_at;

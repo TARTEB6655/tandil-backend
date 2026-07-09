@@ -24,6 +24,21 @@ class VendorDashboardService
     }
 
     /**
+     * Lightweight counts for the vendor profile screen (avoid full stats() work).
+     *
+     * @return array{total_products: int, completed_orders: int}
+     */
+    public function profileSummaryStats(Vendor $vendor): array
+    {
+        return [
+            'total_products' => VendorProduct::where('vendor_id', $vendor->id)->count(),
+            'completed_orders' => VendorOrderMapping::where('vendor_id', $vendor->id)
+                ->where('status', VendorOrderStatus::Delivered->value)
+                ->count(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function stats(Vendor $vendor): array
