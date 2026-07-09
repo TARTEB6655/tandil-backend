@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18** (subfolders **A→P**). **A** Profile · **E** Performance Analytics · **G** Partnership · **M** Orders (mobile-ready). Auth: `{{vendor_token}}`, approved vendor.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18** (subfolders **A→P**). **A** Profile · **E** Performance Analytics · **G** Partnership · **M** Orders (mobile-ready). Auth: `{{vendor_token}}`, approved vendor.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "3.3.76"
@@ -15781,9 +15781,10 @@
         },
         {
             "name": "17. Other Modules",
+            "description": "Shared & cross-role APIs. Subfolders **A → O** in order:\n| Letter | Folder |\n|--------|--------|\n| A | Support Tickets (all roles) |\n| B | Exclusive Offers |\n| C | Complaints |\n| D | Tips |\n| E | Notifications |\n| F | Admin – Categories |\n| G | Admin – Services |\n| H | Admin – Areas (Zones) |\n| I | Alternative Routes – Technician |\n| J | Alternative Routes – Supervisor |\n| K | Services (Public) |\n| L | User Profile |\n| M | User Addresses |\n| N | User Payment Methods |\n| O | User Notifications |",
             "item": [
                 {
-                    "name": "Support Tickets – All roles (Client, Technician, Supervisor, Area Manager, HR)",
+                    "name": "A. Support Tickets – All roles (Client, Technician, Supervisor, Area Manager, HR)",
                     "description": "Same /api/support/* APIs for all these roles. Use Bearer token of the logged-in role (client, technician, supervisor, area_manager, or hr). For role-specific folders see: Module 3 (Client), Module 9 (Technician), Module 10 (Supervisor). Admin uses Module 13.",
                     "item": [
                         {
@@ -15992,7 +15993,7 @@
                     ]
                 },
                 {
-                    "name": "Exclusive Offers",
+                    "name": "B. Exclusive Offers",
                     "description": "Exclusive offers for home screen. Public: List, Get by ID (no auth) – response shape same as admin (data array with image, image_url, is_active). Admin: List, Create, Get, Update, Delete (Bearer + admin). image_url = full URL for display; image = storage path.",
                     "item": [
                         {
@@ -16328,7 +16329,7 @@
                     ]
                 },
                 {
-                    "name": "Complaints",
+                    "name": "C. Complaints",
                     "description": "Complaints API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
                         {
@@ -16525,7 +16526,7 @@
                     ]
                 },
                 {
-                    "name": "Tips",
+                    "name": "D. Tips",
                     "description": "Tips API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
                         {
@@ -16717,7 +16718,7 @@
                     ]
                 },
                 {
-                    "name": "Notifications",
+                    "name": "E. Notifications",
                     "description": "App notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
                     "item": [
                         {
@@ -16879,7 +16880,7 @@
                     ]
                 },
                 {
-                    "name": "Admin - Categories",
+                    "name": "F. Admin - Categories",
                     "description": "Admin: Service categories (add/update/delete). Used for Services. Auth: Bearer token, admin role.",
                     "item": [
                         {
@@ -17190,7 +17191,7 @@
                     ]
                 },
                 {
-                    "name": "Admin - Services",
+                    "name": "G. Admin - Services",
                     "description": "Services API – full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
                     "item": [
                         {
@@ -17482,7 +17483,7 @@
                     ]
                 },
                 {
-                    "name": "Admin - Areas (Zones)",
+                    "name": "H. Admin - Areas (Zones)",
                     "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET all (?all=1, search), POST create (form-data: location, supervisor_id), GET one, PUT update, DELETE. Response: id, location, supervisor_id only. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team. (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
                     "item": [
                         {
@@ -18021,7 +18022,7 @@
                     ]
                 },
                 {
-                    "name": "Alternative Routes - Technician (under /api/auth/tech)",
+                    "name": "I. Alternative Routes - Technician (under /api/auth/tech)",
                     "item": [
                         {
                             "name": "Tech - Get Assigned Visits (Auth)",
@@ -18157,7 +18158,7 @@
                     "description": "Alternative technician routes under /api/auth/tech (duplicate of /api/tech routes)"
                 },
                 {
-                    "name": "Alternative Routes - Supervisor (under /api/auth/supervisor)",
+                    "name": "J. Alternative Routes - Supervisor (under /api/auth/supervisor)",
                     "item": [
                         {
                             "name": "Supervisor - List Visits (Auth)",
@@ -18436,7 +18437,7 @@
                     "description": "Alternative supervisor routes under /api/auth/supervisor (duplicate of /api/supervisor routes)"
                 },
                 {
-                    "name": "Services (Public)",
+                    "name": "K. Services (Public)",
                     "description": "Public Services API – categories (filters) and products (services). No auth. Flow: GET /api/services or /api/services/categories → then GET /api/services/category/:id for products in a category. Env: base_url, service_id (category id for single service), category_id (for Get by Category).",
                     "item": [
                         {
@@ -18631,7 +18632,7 @@
                     ]
                 },
                 {
-                    "name": "User Profile",
+                    "name": "L. User Profile",
                     "description": "User profile – Get, Update. Auth: Bearer token.",
                     "item": [
                         {
@@ -18701,7 +18702,7 @@
                     ]
                 },
                 {
-                    "name": "User Addresses",
+                    "name": "M. User Addresses",
                     "description": "Checkout Address step. List (GET), Create (POST form-data), Update (POST form-data or PUT JSON), Delete. Auth: Bearer token. Create/Update accept multipart form-data. Response: id, type (home|office|other), full_name, phone_number, street_address, city, state, zip_code, country, is_default. type = local address label.",
                     "item": [
                         {
@@ -18947,7 +18948,7 @@
                     ]
                 },
                 {
-                    "name": "User Payment Methods",
+                    "name": "N. User Payment Methods",
                     "description": "Saved payment methods for Profile screen. Placeholder: returns empty list until saved cards are implemented.",
                     "item": [
                         {
@@ -18981,7 +18982,7 @@
                     ]
                 },
                 {
-                    "name": "User Notifications",
+                    "name": "O. User Notifications",
                     "description": "GET/POST /api/user/notifications – database inbox (UUID ids). Response shape matches /api/client/notifications: data.notifications + data.unread_count. Clear-all deletes rows (returns deleted_count). Auth: Bearer.",
                     "item": [
                         {
@@ -19129,7 +19130,7 @@
                     ]
                 }
             ],
-            "description": "Organized by feature: Complaints, Tips, Notifications, Admin - Categories, Areas, Alternative Routes (Tech/Supervisor/Shop), Payment (Shop Stripe webhook + PayPal capture), Services (Public), User Profile, User Addresses, User Notifications."
+            "description": "Subfolders **A → O**: Support Tickets, Exclusive Offers, Complaints, Tips, Notifications, Admin Categories/Services/Areas, Alternative Routes (Tech/Supervisor), Services (Public), User Profile, Addresses, Payment Methods, User Notifications."
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
