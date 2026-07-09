@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Vendor;
 
+use App\Exceptions\PartnershipLimitExceededException;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\VendorProduct;
@@ -50,6 +51,8 @@ class VendorProductController extends Controller
 
         try {
             $vp = $this->products->createFromRequest($vendor, $request);
+        } catch (PartnershipLimitExceededException $e) {
+            return ApiResponse::error($e->getMessage(), 403, $e->toErrorPayload());
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         } catch (ValidationException $e) {
@@ -88,6 +91,8 @@ class VendorProductController extends Controller
 
         try {
             $vp = $this->products->updateFromRequest($vp, $request, $request->user()->id);
+        } catch (PartnershipLimitExceededException $e) {
+            return ApiResponse::error($e->getMessage(), 403, $e->toErrorPayload());
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         } catch (ValidationException $e) {

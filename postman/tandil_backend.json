@@ -15289,6 +15289,118 @@
             ]
         },
         {
+            "name": "15c. Admin – Vendor Partnership",
+            "description": "Manage vendor partnership tiers (Basic → Diamond), review applications, assign plans.\n\n**Flow:** Vendor submits via **18 → H. Partnership → 5** → Admin lists applications → Approve/Reject.\n\nAuth: Bearer `{{token}}` (admin). Uses `{{vendor_id}}` from vendor management.",
+            "item": [
+                {
+                    "name": "1. List partnership tiers",
+                    "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var tiers = pm.response.json().data.tiers || [];", "    if (tiers.length && tiers[0].id) {", "        pm.collectionVariables.set('partnership_tier_id', String(tiers[0].id));", "    }", "}"]}}],
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/tiers", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "tiers"]},
+                        "description": "GET `/api/admin/vendor-partnership/tiers` — all tiers including inactive. Auto-sets `{{partnership_tier_id}}`."
+                    }
+                },
+                {
+                    "name": "2. Create partnership tier",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\n  \"slug\": \"starter\",\n  \"name\": \"Starter\",\n  \"badge_color\": \"green\",\n  \"price\": 150,\n  \"currency\": \"AED\",\n  \"duration_months\": 1,\n  \"required_products_min\": 5,\n  \"required_products_max\": 10,\n  \"max_product_listings\": 10,\n  \"max_partner_product_images\": 1,\n  \"marketing_exposure\": \"low\",\n  \"social_media_posts_per_month\": 0,\n  \"app_banners\": 0,\n  \"home_banner_size\": \"none\",\n  \"benefits\": [\"Partner logo in app\"],\n  \"features\": {\"partner_logo\": true},\n  \"sort_order\": 0,\n  \"is_active\": true\n}"},
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/tiers", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "tiers"]},
+                        "description": "POST `/api/admin/vendor-partnership/tiers` — create new tier. `max_product_listings` null = unlimited."
+                    }
+                },
+                {
+                    "name": "3. Get tier details",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/tiers/{{partnership_tier_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "tiers", "{{partnership_tier_id}}"]},
+                        "description": "GET `/api/admin/vendor-partnership/tiers/{id}`"
+                    }
+                },
+                {
+                    "name": "4. Update tier settings",
+                    "request": {
+                        "method": "PUT",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\n  \"slug\": \"basic\",\n  \"name\": \"Basic\",\n  \"badge_color\": \"orange\",\n  \"price\": 200,\n  \"currency\": \"AED\",\n  \"duration_months\": 1,\n  \"required_products_min\": 10,\n  \"required_products_max\": 20,\n  \"max_product_listings\": 20,\n  \"max_partner_product_images\": 1,\n  \"marketing_exposure\": \"low\",\n  \"social_media_posts_per_month\": 0,\n  \"app_banners\": 0,\n  \"home_banner_size\": \"none\",\n  \"benefits\": [\"Partner logo + 1 product image\"],\n  \"features\": {\"partner_logo\": true, \"shop_mention\": true},\n  \"sort_order\": 1,\n  \"is_active\": true\n}"},
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/tiers/{{partnership_tier_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "tiers", "{{partnership_tier_id}}"]},
+                        "description": "PUT `/api/admin/vendor-partnership/tiers/{id}` — update price, limits, benefits, features."
+                    }
+                },
+                {
+                    "name": "5. Deactivate tier",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/tiers/{{partnership_tier_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "tiers", "{{partnership_tier_id}}"]},
+                        "description": "DELETE `/api/admin/vendor-partnership/tiers/{id}` — soft deactivate (is_active=false)."
+                    }
+                },
+                {
+                    "name": "6. List partnership applications",
+                    "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var items = pm.response.json().data.items || [];", "    if (items.length && items[0].id) {", "        pm.collectionVariables.set('partnership_application_id', String(items[0].id));", "    }", "}"]}}],
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications?status=pending&per_page=15", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications"], "query": [{"key": "status", "value": "pending"}, {"key": "per_page", "value": "15"}]},
+                        "description": "GET `/api/admin/vendor-partnership/applications?status=pending` — review queue. Auto-sets `{{partnership_application_id}}`."
+                    }
+                },
+                {
+                    "name": "7. Get application detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications/{{partnership_application_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications", "{{partnership_application_id}}"]},
+                        "description": "GET `/api/admin/vendor-partnership/applications/{id}` — vendor info + tier + form fields."
+                    }
+                },
+                {
+                    "name": "8. Approve application",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\n  \"admin_notes\": \"Payment verified. Partnership activated.\"\n}"},
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications/{{partnership_application_id}}/approve", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications", "{{partnership_application_id}}", "approve"]},
+                        "description": "POST `/api/admin/vendor-partnership/applications/{id}/approve` — creates active vendor partnership."
+                    }
+                },
+                {
+                    "name": "9. Reject application",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\n  \"reason\": \"Estimated products do not match tier requirements.\"\n}"},
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications/{{partnership_application_id}}/reject", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications", "{{partnership_application_id}}", "reject"]},
+                        "description": "POST `/api/admin/vendor-partnership/applications/{id}/reject` — `reason` required."
+                    }
+                },
+                {
+                    "name": "10. Get vendor partnership status",
+                    "request": {
+                        "method": "GET",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/vendors/{{vendor_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "vendors", "{{vendor_id}}"]},
+                        "description": "GET `/api/admin/vendor-partnership/vendors/{vendorId}` — same dashboard payload as vendor side."
+                    }
+                },
+                {
+                    "name": "11. Assign partnership to vendor (admin override)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+                        "body": {"mode": "raw", "raw": "{\n  \"tier_id\": {{partnership_tier_id}},\n  \"payment_method\": \"bank_transfer\",\n  \"estimated_products\": 50,\n  \"contact_phone\": \"+971500000001\"\n}"},
+                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/vendors/{{vendor_id}}/assign", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "vendors", "{{vendor_id}}", "assign"]},
+                        "description": "POST `/api/admin/vendor-partnership/vendors/{vendorId}/assign` — directly assign tier without application."
+                    }
+                }
+            ]
+        },
+        {
             "name": "16. Admin Dashboard – Settings (Mobile)",
             "item": [
                 {
@@ -19079,7 +19191,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Login: `2. Authentication` → Login Vendor.\n\n**B. Business Profile** (`GET /api/vendor/profile`):\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab + `edit_profile` form |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\n**G. Support & Live Chat** — Profile → Support & Help → Live Chat (`GET/POST /api/vendor/support/chat`).\n\n**Edit Profile POST fields:** `profile_picture` (personal photo → `profile_picture_url`), `logo` (business logo → `logo_url`, separate), `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
+            "description": "Login: `2. Authentication` → Login Vendor.\n\n**B. Business Profile** (`GET /api/vendor/profile`):\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab + `edit_profile` form |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\n**G. Support & Live Chat** — Profile → Support & Help → Live Chat (`GET/POST /api/vendor/support/chat`).\n\n**H. Partnership** — Bottom tab Partnership (`GET/POST /api/vendor/partnership/*`). Apply, upgrade tiers, view limits. Product create blocked without active partnership (403 + upgrade_required).\n\n**Edit Profile POST fields:** `profile_picture` (personal photo → `profile_picture_url`), `logo` (business logo → `logo_url`, separate), `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
             "event": [
                 {
                     "listen": "prerequest",
@@ -19622,6 +19734,122 @@
                     ]
                 },
                 {
+                    "name": "H. Partnership",
+                    "description": "Bottom nav **Partnership** tab — tiers, current plan, apply/upgrade, limits.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET partnership | Current partnership dashboard (products, delivered, days left, marketing exposure) |\n| 2 | GET partnership/tiers | Available tiers (Basic → Diamond) + Upgrade buttons |\n| 3 | GET partnership/limits | Usage vs tier limits |\n| 4 | GET partnership/applications | My application history |\n| 5 | POST partnership/applications | Apply / Upgrade form (tier, estimated products, payment method) |\n| 6 | POST partnership/check-feature | Check if feature allowed (banner, social post, etc.) |\n\nAuth: `{{vendor_token}}`. Admin approves via **15c. Admin – Vendor Partnership**.\n\n**Product limit:** POST `/api/vendor/products` returns 403 with `errors.upgrade_required: true` when partnership missing or product cap reached.",
+                    "item": [
+                        {
+                            "name": "1. Get current partnership",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/partnership",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "partnership"]
+                                },
+                                "description": "GET `/api/vendor/partnership` — `has_partnership`, `partnership`, `tier`, `usage` (total_products, delivered_orders, remaining_product_slots, days_left), `limits`, `pending_application`."
+                            }
+                        },
+                        {
+                            "name": "2. List available tiers",
+                            "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var tiers = pm.response.json().data.tiers || [];", "    if (tiers.length && tiers[0].id) {", "        pm.collectionVariables.set('partnership_tier_id', String(tiers[0].id));", "        pm.environment.set('partnership_tier_id', String(tiers[0].id));", "    }", "}"]}}],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/partnership/tiers",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "partnership", "tiers"]
+                                },
+                                "description": "GET `/api/vendor/partnership/tiers` — Basic/Silver/Gold/Platinum/Diamond with price, duration, benefits, `can_upgrade`, `action_label`. Auto-sets `{{partnership_tier_id}}`."
+                            }
+                        },
+                        {
+                            "name": "3. Get limits & usage",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/partnership/limits",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "partnership", "limits"]
+                                },
+                                "description": "GET `/api/vendor/partnership/limits` — `tier`, `usage`, `limits` (max_product_listings, marketing_exposure, social_media_posts_per_month, app_banners)."
+                            }
+                        },
+                        {
+                            "name": "4. List my applications",
+                            "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var items = pm.response.json().data.items || [];", "    if (items.length && items[0].id) {", "        pm.collectionVariables.set('partnership_application_id', String(items[0].id));", "    }", "}"]}}],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/partnership/applications?per_page=15",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "partnership", "applications"],
+                                    "query": [{"key": "per_page", "value": "15"}]
+                                },
+                                "description": "GET `/api/vendor/partnership/applications` — paginated application history."
+                            }
+                        },
+                        {
+                            "name": "5. Submit application (apply / upgrade)",
+                            "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 201) {", "    var app = pm.response.json().data.application;", "    if (app && app.id) {", "        pm.collectionVariables.set('partnership_application_id', String(app.id));", "    }", "}"]}}],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"},
+                                    {"key": "Content-Type", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"tier_id\": {{partnership_tier_id}},\n  \"estimated_products\": 15,\n  \"business_description\": \"We sell organic gifts and farm produce.\",\n  \"contact_phone\": \"+971500000001\",\n  \"payment_method\": \"credit_card\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/partnership/applications",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "partnership", "applications"]
+                                },
+                                "description": "POST `/api/vendor/partnership/applications` — Partnership Application form.\n\n`payment_method`: credit_card | bank_transfer | digital_wallet\n\n`estimated_products` must be within tier required range (e.g. Basic 10–20). Run **H.2** first for `{{partnership_tier_id}}`."
+                            }
+                        },
+                        {
+                            "name": "6. Check feature allowed",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{vendor_token}}"},
+                                    {"key": "Accept", "value": "application/json"},
+                                    {"key": "Content-Type", "value": "application/json"}
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"feature\": \"home_banner\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/partnership/check-feature",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "vendor", "partnership", "check-feature"]
+                                },
+                                "description": "POST `/api/vendor/partnership/check-feature` — body: `feature` (e.g. home_banner, in_app_banner, social_media_post, exclusive_offers). Returns 403 with upgrade_required if not in plan."
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "F0. Add Product – Dropdown options",
                     "description": "Mobile Add Product screen dropdowns. Returns only id + name. Auth: Bearer {{vendor_token}} (approved vendor).\n\n| Step | API | Notes |\n|------|-----|-------|\n| F0.1 | GET product-options/categories | Platform categories for product `category_id` |\n| F0.2 | GET product-options/services | **All** admin services — not filtered by category |\n| F0.3 | GET products?category_id= | Vendor's own products when category tapped |\n\nThen **F → Create product** with `category_id` + optional `service_id`.",
                     "item": [
@@ -19854,6 +20082,18 @@
             "value": "1",
             "type": "string",
             "description": "Set from Vendor G.1 Open live chat or Admin 15b.1 List sessions."
+        },
+        {
+            "key": "partnership_tier_id",
+            "value": "1",
+            "type": "string",
+            "description": "Set from Vendor 18 → H.2 List tiers or Admin 15c.1 List tiers."
+        },
+        {
+            "key": "partnership_application_id",
+            "value": "1",
+            "type": "string",
+            "description": "Set from Vendor H.5 Submit application or Admin 15c.6 List applications."
         },
         {
             "key": "user_id",

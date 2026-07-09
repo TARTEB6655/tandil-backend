@@ -17,10 +17,12 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
+use Tests\Support\AssignsVendorPartnership;
 use Tests\TestCase;
 
 class VendorCatalogApiTest extends TestCase
 {
+    use AssignsVendorPartnership;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -399,6 +401,10 @@ class VendorCatalogApiTest extends TestCase
             'owner_name' => 'Owner',
             'email' => $user->email,
         ]);
+
+        if ($status === VendorStatus::Approved) {
+            $this->assignTestPartnership($vendor);
+        }
 
         $token = $user->createToken('test', ['vendor'])->plainTextToken;
 

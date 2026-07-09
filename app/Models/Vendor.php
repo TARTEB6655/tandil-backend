@@ -70,6 +70,26 @@ class Vendor extends Model
         return $this->belongsToMany(Category::class, 'category_vendor')->withTimestamps();
     }
 
+    public function partnerships(): HasMany
+    {
+        return $this->hasMany(VendorPartnership::class);
+    }
+
+    public function partnershipApplications(): HasMany
+    {
+        return $this->hasMany(VendorPartnershipApplication::class);
+    }
+
+    public function activePartnership(): HasOne
+    {
+        return $this->hasOne(VendorPartnership::class)
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->latest('starts_at');
+    }
+
     public function statusEnum(): VendorStatus
     {
         return VendorStatus::tryFrom($this->status) ?? VendorStatus::Pending;
