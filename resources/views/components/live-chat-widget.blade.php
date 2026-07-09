@@ -1,6 +1,6 @@
 @if($config)
 <div
-    class="live-chat-widget-root fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999]"
+    class="live-chat-widget-root fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex flex-col items-end gap-3"
     x-data="liveChatWidget(@js($config))"
     x-init="init()"
     @keydown.escape.window="open = false"
@@ -15,7 +15,7 @@
         x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-        class="mb-3 flex w-[min(100vw-1.5rem,24rem)] sm:w-[26rem] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl ring-1 ring-slate-900/5"
+        class="flex w-[min(100vw-1.5rem,24rem)] sm:w-[26rem] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl ring-1 ring-slate-900/5"
         style="height: min(78vh, 560px);"
         role="dialog"
         aria-label="Live chat"
@@ -91,25 +91,59 @@
                     </button>
                 </div>
             </div>
-            <div class="flex-1 overflow-y-auto bg-slate-50 p-3 space-y-3" x-ref="adminThread">
+            <div class="flex-1 overflow-y-auto bg-gradient-to-b from-slate-100/80 to-slate-50 p-3 space-y-2.5" x-ref="adminThread">
                 <template x-for="msg in adminMessages" :key="msg.id">
                     <div class="flex" :class="msg.is_admin ? 'justify-end' : 'justify-start'">
-                        <div class="max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm"
-                             :class="msg.is_admin ? 'rounded-br-md bg-indigo-600 text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-800'">
-                            <p class="mb-1 text-[10px] font-medium opacity-70" x-text="msg.is_admin ? 'You (Admin)' : (msg.sender_name || 'User')"></p>
-                            <p class="whitespace-pre-wrap break-words" x-text="msg.message"></p>
-                            <p class="mt-1 text-[10px] opacity-60" x-text="formatTime(msg.created_at)"></p>
+                        <div class="max-w-[82%] min-w-[4.5rem] overflow-hidden shadow-sm"
+                             :class="msg.is_admin
+                                ? 'rounded-2xl rounded-br-md bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-indigo-600/15'
+                                : 'rounded-2xl rounded-bl-md border border-slate-200/90 bg-white text-slate-800 shadow-slate-200/60'">
+                            <div class="px-3 py-2">
+                                <p x-show="!msg.is_admin" class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400" x-text="msg.sender_name || 'User'"></p>
+                                <template x-if="msg.attachment_url">
+                                    <a :href="msg.attachment_url" target="_blank" rel="noopener noreferrer" class="mb-1.5 block overflow-hidden rounded-lg">
+                                        <img :src="msg.attachment_url" alt="Image attachment" class="max-h-44 max-w-full object-cover" loading="lazy" />
+                                    </a>
+                                </template>
+                                <p x-show="msg.message"
+                                   class="whitespace-pre-wrap break-words text-[13px] leading-[1.45] font-normal"
+                                   :class="msg.is_admin ? 'text-white' : 'text-slate-800'"
+                                   x-text="msg.message"></p>
+                                <div class="mt-1 flex justify-end">
+                                    <span class="text-[9px] leading-none tabular-nums"
+                                          :class="msg.is_admin ? 'text-indigo-100/75' : 'text-slate-400'"
+                                          x-text="formatTime(msg.created_at)"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </template>
                 <div x-show="adminMessages.length === 0 && !loading" class="py-8 text-center text-xs text-slate-500">No messages yet. Say hello!</div>
             </div>
             <form @submit.prevent="sendAdminReply()" class="shrink-0 border-t border-slate-200 bg-white p-3">
-                <div class="flex items-end gap-2">
+                <div x-show="imagePreview" class="mb-2 flex items-center gap-2 rounded-lg bg-slate-50 p-2">
+                    <img :src="imagePreview" alt="Preview" class="h-14 w-14 rounded-lg object-cover" />
+                    <button type="button" @click="clearImage()" class="text-xs font-medium text-red-600 hover:text-red-700">Remove image</button>
+                </div>
+                <div x-show="showEmojiPicker" x-cloak @click.outside="showEmojiPicker = false" class="mb-2 grid grid-cols-8 gap-0.5 rounded-lg border border-slate-200 bg-white p-2">
+                    <template x-for="emoji in emojiOptions" :key="emoji">
+                        <button type="button" @click="addEmoji(emoji)" class="rounded p-1 text-lg leading-none hover:bg-slate-100" x-text="emoji"></button>
+                    </template>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex shrink-0 items-center gap-0.5">
+                        <button type="button" @click="toggleEmojiPicker()" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700" title="Add emoji" aria-label="Add emoji">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </button>
+                        <button type="button" @click="$refs.adminImageInput.click()" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700" title="Attach image" aria-label="Attach image">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </button>
+                        <input type="file" x-ref="adminImageInput" accept="image/*" class="hidden" @change="onImageSelected($event)" />
+                    </div>
                     <textarea x-model="draft" rows="1" maxlength="5000" placeholder="Write a reply…"
-                              class="max-h-24 min-h-[2.5rem] flex-1 resize-none rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                              class="max-h-24 min-h-[2.5rem] flex-1 resize-none rounded-xl border-slate-300 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                               :disabled="sending" @keydown.enter.prevent="if (!$event.shiftKey) sendAdminReply()"></textarea>
-                    <button type="submit" :disabled="sending || !draft.trim()"
+                    <button type="submit" :disabled="sending || !canSendComposer()"
                             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                     </button>
@@ -136,14 +170,30 @@
                     </div>
                 </template>
             </div>
-            <div class="flex-1 overflow-y-auto bg-slate-50 p-3 space-y-3" x-ref="portalThread">
+            <div class="flex-1 overflow-y-auto bg-gradient-to-b from-slate-100/80 to-slate-50 p-3 space-y-2.5" x-ref="portalThread">
                 <template x-for="msg in portalMessages" :key="msg.id">
                     <div class="flex" :class="msg.is_admin ? 'justify-start' : 'justify-end'">
-                        <div class="max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm"
-                             :class="msg.is_admin ? 'rounded-bl-md border border-slate-200 bg-white text-slate-800' : 'rounded-br-md bg-indigo-600 text-white'">
-                            <p class="mb-1 text-[10px] font-medium opacity-70" x-text="msg.is_admin ? 'Support Team' : 'You'"></p>
-                            <p class="whitespace-pre-wrap break-words" x-text="msg.message"></p>
-                            <p class="mt-1 text-[10px] opacity-60" x-text="formatTime(msg.created_at)"></p>
+                        <div class="max-w-[82%] min-w-[4.5rem] overflow-hidden shadow-sm"
+                             :class="msg.is_admin
+                                ? 'rounded-2xl rounded-bl-md border border-slate-200/90 bg-white text-slate-800 shadow-slate-200/60'
+                                : 'rounded-2xl rounded-br-md bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-indigo-600/15'">
+                            <div class="px-3 py-2">
+                                <p x-show="msg.is_admin" class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-500/80">Support Team</p>
+                                <template x-if="msg.attachment_url">
+                                    <a :href="msg.attachment_url" target="_blank" rel="noopener noreferrer" class="mb-1.5 block overflow-hidden rounded-lg">
+                                        <img :src="msg.attachment_url" alt="Image attachment" class="max-h-44 max-w-full object-cover" loading="lazy" />
+                                    </a>
+                                </template>
+                                <p x-show="msg.message"
+                                   class="whitespace-pre-wrap break-words text-[13px] leading-[1.45] font-normal"
+                                   :class="msg.is_admin ? 'text-slate-800' : 'text-white'"
+                                   x-text="msg.message"></p>
+                                <div class="mt-1 flex justify-end">
+                                    <span class="text-[9px] leading-none tabular-nums"
+                                          :class="msg.is_admin ? 'text-slate-400' : 'text-indigo-100/75'"
+                                          x-text="formatTime(msg.created_at)"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -153,12 +203,30 @@
                 </div>
             </div>
             <form x-show="portalCanSend || portalAwaitingNewChat" @submit.prevent="sendPortalMessage()" class="shrink-0 border-t border-slate-200 bg-white p-3">
-                <div class="flex items-end gap-2">
+                <div x-show="imagePreview" class="mb-2 flex items-center gap-2 rounded-lg bg-slate-50 p-2">
+                    <img :src="imagePreview" alt="Preview" class="h-14 w-14 rounded-lg object-cover" />
+                    <button type="button" @click="clearImage()" class="text-xs font-medium text-red-600 hover:text-red-700">Remove image</button>
+                </div>
+                <div x-show="showEmojiPicker" x-cloak @click.outside="showEmojiPicker = false" class="mb-2 grid grid-cols-8 gap-0.5 rounded-lg border border-slate-200 bg-white p-2">
+                    <template x-for="emoji in emojiOptions" :key="emoji">
+                        <button type="button" @click="addEmoji(emoji)" class="rounded p-1 text-lg leading-none hover:bg-slate-100" x-text="emoji"></button>
+                    </template>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex shrink-0 items-center gap-0.5">
+                        <button type="button" @click="toggleEmojiPicker()" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700" title="Add emoji" aria-label="Add emoji">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </button>
+                        <button type="button" @click="$refs.portalImageInput.click()" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700" title="Attach image" aria-label="Attach image">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </button>
+                        <input type="file" x-ref="portalImageInput" accept="image/*" class="hidden" @change="onImageSelected($event)" />
+                    </div>
                     <textarea x-model="draft" rows="1" maxlength="5000"
                               :placeholder="portalAwaitingNewChat ? 'Start a new conversation…' : 'Type your message…'"
-                              class="max-h-24 min-h-[2.5rem] flex-1 resize-none rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                              class="max-h-24 min-h-[2.5rem] flex-1 resize-none rounded-xl border-slate-300 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                               :disabled="sending" @keydown.enter.prevent="if (!$event.shiftKey) sendPortalMessage()"></textarea>
-                    <button type="submit" :disabled="sending || !draft.trim()"
+                    <button type="submit" :disabled="sending || !canSendComposer()"
                             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                     </button>

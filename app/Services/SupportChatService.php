@@ -6,6 +6,7 @@ use App\Models\SupportChatMessage;
 use App\Models\SupportChatSession;
 use App\Models\User;
 use App\Notifications\AdminNotification;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -86,16 +87,28 @@ class SupportChatService
         SupportChatSession $session,
         User $sender,
         string $message,
-        bool $isAdmin
+        bool $isAdmin,
+        ?UploadedFile $attachment = null
     ): SupportChatMessage {
         if ($session->isClosed()) {
             throw new \InvalidArgumentException('Chat session is closed.');
+        }
+
+        $message = trim($message);
+        if ($message === '' && $attachment === null) {
+            throw new \InvalidArgumentException('Message or image is required.');
+        }
+
+        $attachmentPath = null;
+        if ($attachment !== null) {
+            $attachmentPath = $attachment->store('support-chat/'.$session->id, 'public');
         }
 
         $chatMessage = SupportChatMessage::create([
             'support_chat_session_id' => $session->id,
             'user_id' => $sender->id,
             'message' => $message,
+            'attachment_path' => $attachmentPath,
             'is_admin' => $isAdmin,
         ]);
 
@@ -146,6 +159,8 @@ class SupportChatService
             'id' => $message->id,
             'message' => $message->message,
             'is_admin' => $message->is_admin,
+            'attachment_url' => $message->attachment_url,
+            'has_attachment' => ! empty($message->attachment_path),
             'sender_name' => $message->user?->name,
             'sender_role' => $message->user?->role,
             'created_at' => $message->created_at?->toIso8601String(),

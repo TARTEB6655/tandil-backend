@@ -82,7 +82,18 @@ class SupportChatWebController extends Controller
 
     public function reply(Request $request, SupportChatSession $session)
     {
-        $request->validate(['message' => 'required|string|max:5000']);
+        $request->validate([
+            'message' => 'nullable|string|max:5000',
+            'image' => 'nullable|image|max:5120',
+        ]);
+
+        if (! $request->filled('message') && ! $request->hasFile('image')) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Message or image is required.'], 422);
+            }
+
+            return back()->withErrors(['message' => 'Message or image is required.'])->withInput();
+        }
 
         if ($session->isClosed()) {
             if ($request->expectsJson()) {
@@ -96,8 +107,9 @@ class SupportChatWebController extends Controller
             $chatMessage = $this->chat->sendMessage(
                 $session,
                 $request->user(),
-                $request->input('message'),
-                true
+                (string) $request->input('message', ''),
+                true,
+                $request->file('image')
             );
         } catch (\InvalidArgumentException $e) {
             if ($request->expectsJson()) {

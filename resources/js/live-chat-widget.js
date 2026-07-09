@@ -14,6 +14,10 @@ document.addEventListener('alpine:init', () => {
         sending: false,
         error: null,
         draft: '',
+        showEmojiPicker: false,
+        emojiOptions: ['😀', '😃', '😄', '😊', '🙂', '😉', '😍', '🥰', '😂', '🤣', '😭', '👍', '👎', '🙏', '👏', '🎉', '🔥', '❤️', '💯', '✅', '📷', '⭐', '💪', '🤝'],
+        imageFile: null,
+        imagePreview: null,
 
         // Admin
         sessions: [],
@@ -51,9 +55,85 @@ document.addEventListener('alpine:init', () => {
         toggle() {
             this.open = !this.open;
             this.error = null;
+            this.showEmojiPicker = false;
             if (this.open) {
                 this.refresh(true);
             }
+        },
+
+        toggleEmojiPicker() {
+            this.showEmojiPicker = !this.showEmojiPicker;
+        },
+
+        addEmoji(emoji) {
+            this.draft += emoji;
+            this.showEmojiPicker = false;
+        },
+
+        onImageSelected(event) {
+            const file = event.target.files?.[0];
+            if (!file) {
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                this.error = 'Please select an image file.';
+                event.target.value = '';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                this.error = 'Image must be under 5MB.';
+                event.target.value = '';
+                return;
+            }
+            this.clearImage();
+            this.imageFile = file;
+            this.imagePreview = URL.createObjectURL(file);
+            this.error = null;
+            event.target.value = '';
+        },
+
+        clearImage() {
+            if (this.imagePreview) {
+                URL.revokeObjectURL(this.imagePreview);
+            }
+            this.imageFile = null;
+            this.imagePreview = null;
+        },
+
+        canSendComposer() {
+            return Boolean(this.draft.trim() || this.imageFile);
+        },
+
+        buildMessageFormData(messageText) {
+            const formData = new FormData();
+            if (messageText) {
+                formData.append('message', messageText);
+            }
+            if (this.imageFile) {
+                formData.append('image', this.imageFile);
+            }
+            return formData;
+        },
+
+        async postChatMessage(url, messageText) {
+            const hasImage = Boolean(this.imageFile);
+            const headers = {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': this.csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+            let body;
+            if (hasImage) {
+                body = this.buildMessageFormData(messageText);
+            } else {
+                headers['Content-Type'] = 'application/json';
+                body = JSON.stringify({ message: messageText });
+            }
+            return fetch(url, {
+                method: 'POST',
+                headers,
+                body,
+            });
         },
 
         async refresh(forceFull = false) {
@@ -158,7 +238,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async sendAdminReply() {
-            if (!this.draft.trim() || this.sending || !this.activeSession?.reply_url) {
+            if (!this.canSendComposer() || this.sending || !this.activeSession?.reply_url) {
                 return;
             }
             if (this.activeSession.needs_accept) {
@@ -169,20 +249,13 @@ document.addEventListener('alpine:init', () => {
             const text = this.draft.trim();
             this.draft = '';
             try {
-                const res = await fetch(this.activeSession.reply_url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': this.csrf,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({ message: text }),
-                });
+                const res = await this.postChatMessage(this.activeSession.reply_url, text);
                 const data = await res.json();
                 if (!res.ok || !data.success) {
                     throw new Error(data.message || 'Failed to send');
                 }
+                this.clearImage();
+                this.showEmojiPicker = false;
                 if (data.chat_message) {
                     this.adminMessages.push(data.chat_message);
                     this.adminLastId = data.chat_message.id;
@@ -235,7 +308,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async sendPortalMessage() {
-            if (!this.draft.trim() || this.sending || !this.sendUrl) {
+            if (!this.canSendComposer() || this.sending || !this.sendUrl) {
                 return;
             }
             if (!this.portalCanSend && !this.portalAwaitingNewChat) {
@@ -247,20 +320,13 @@ document.addEventListener('alpine:init', () => {
             const text = this.draft.trim();
             this.draft = '';
             try {
-                const res = await fetch(this.sendUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': this.csrf,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({ message: text }),
-                });
+                const res = await this.postChatMessage(this.sendUrl, text);
                 const data = await res.json();
                 if (!res.ok || !data.success) {
                     throw new Error(data.message || 'Failed to send');
                 }
+                this.clearImage();
+                this.showEmojiPicker = false;
                 if (data.chat_message) {
                     this.portalMessages.push(data.chat_message);
                     this.portalLastId = data.chat_message.id;
@@ -286,6 +352,8 @@ document.addEventListener('alpine:init', () => {
             this.portalClosedNotice = null;
             this.error = null;
             this.draft = '';
+            this.clearImage();
+            this.showEmojiPicker = false;
         },
 
         portalIsClosed() {
@@ -305,7 +373,17 @@ document.addEventListener('alpine:init', () => {
             }
             try {
                 const d = new Date(iso);
-                return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const now = new Date();
+                const isToday = d.toDateString() === now.toDateString();
+                if (isToday) {
+                    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                }
+                return d.toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
             } catch (e) {
                 return '';
             }

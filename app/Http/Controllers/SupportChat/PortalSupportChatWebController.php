@@ -36,7 +36,14 @@ class PortalSupportChatWebController extends Controller
 
     public function send(Request $request): JsonResponse
     {
-        $request->validate(['message' => 'required|string|max:5000']);
+        $request->validate([
+            'message' => 'nullable|string|max:5000',
+            'image' => 'nullable|image|max:5120',
+        ]);
+
+        if (! $request->filled('message') && ! $request->hasFile('image')) {
+            return response()->json(['success' => false, 'message' => 'Message or image is required.'], 422);
+        }
 
         $session = $this->chat->resolveActiveSession($request->user());
         if ($session === null) {
@@ -47,8 +54,9 @@ class PortalSupportChatWebController extends Controller
             $message = $this->chat->sendMessage(
                 $session,
                 $request->user(),
-                $request->input('message'),
-                false
+                (string) $request->input('message', ''),
+                false,
+                $request->file('image')
             );
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
