@@ -106,7 +106,7 @@ class VendorPartnershipController extends Controller
                 'has_partnership' => false,
                 'usage' => $usage,
                 'product_usage' => $usage['product_usage'],
-                'limits' => null,
+                'limits' => $this->partnership->defaultFreeLimits($usage),
             ]);
         }
 

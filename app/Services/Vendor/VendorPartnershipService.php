@@ -20,6 +20,10 @@ use Illuminate\Validation\ValidationException;
 
 class VendorPartnershipService
 {
+    public const DEFAULT_FREE_PRODUCT_LIMIT = 5;
+
+    public const DEFAULT_FREE_PRODUCT_IMAGES = 1;
+
     public function currentPartnership(Vendor $vendor): ?VendorPartnership
     {
         return VendorPartnership::query()
@@ -68,7 +72,9 @@ class VendorPartnershipService
             'partnership_details' => $partnership && $tier
                 ? $this->partnershipDetailsCard($partnership, $tier)
                 : null,
-            'limits' => $tier ? $this->limitsForTier($tier, $usage) : null,
+            'limits' => $tier
+                ? $this->limitsForTier($tier, $usage)
+                : $this->defaultFreeLimits($usage),
             'pending_application' => $this->pendingApplication($vendor)
                 ? $this->applicationToArray($this->pendingApplication($vendor))
                 : null,
@@ -86,20 +92,23 @@ class VendorPartnershipService
             ->count();
 
         $partnership = $this->currentPartnership($vendor);
-        $tier = $partnership?->tier;
-        $limit = $tier?->max_product_listings;
-        $unlimited = $tier !== null && $limit === null;
+        $resolved = $this->resolveProductLimit($vendor, $partnership);
+        $limit = $resolved['limit'];
+        $unlimited = $resolved['unlimited'];
         $remaining = $this->remainingProductSlots($limit, $productsUsed, $unlimited);
-        $canAddMore = $partnership !== null && ($unlimited || ($remaining !== null && $remaining > 0));
+        $canAddMore = $unlimited || ($remaining !== null && $remaining > 0);
 
         $productUsage = [
             'limit' => $limit,
             'used' => $productsUsed,
             'remaining' => $remaining,
             'unlimited' => $unlimited,
+            'plan_type' => $resolved['plan_type'],
+            'tier_slug' => $resolved['tier_slug'],
+            'tier_name' => $resolved['tier_name'],
             'can_add_more' => $canAddMore,
-            'upgrade_required' => $partnership === null || (! $unlimited && $remaining !== null && $remaining <= 0),
-            'message' => $this->productUsageMessage($partnership, $productsUsed, $limit, $remaining, $unlimited),
+            'upgrade_required' => ! $canAddMore,
+            'message' => $this->productUsageMessage($partnership, $productsUsed, $limit, $remaining, $unlimited, $resolved),
         ];
 
         return [
@@ -288,32 +297,27 @@ class VendorPartnershipService
     public function assertCanCreateProduct(Vendor $vendor): void
     {
         $partnership = $this->currentPartnership($vendor);
-        if ($partnership === null) {
-            throw new PartnershipLimitExceededException(
-                'You need an active partnership to add products. Apply for a partnership tier to get started.',
-                'partnership_required',
-                0,
-                null,
-                null,
-                true
-            );
-        }
+        $resolved = $this->resolveProductLimit($vendor, $partnership);
 
-        $tier = $partnership->tier;
-        if ($tier === null || $tier->hasUnlimitedProducts()) {
+        if ($resolved['unlimited']) {
             return;
         }
 
         $current = VendorProduct::where('vendor_id', $vendor->id)->count();
-        $max = (int) $tier->max_product_listings;
+        $max = (int) $resolved['limit'];
 
         if ($current >= $max) {
+            $tierName = $resolved['tier_name'];
+            $message = $resolved['plan_type'] === 'free_default'
+                ? "You have reached the free limit of {$max} products. Apply for a partnership plan to add more."
+                : "Your {$tierName} plan allows up to {$max} products. Upgrade your partnership to add more.";
+
             throw new PartnershipLimitExceededException(
-                "Your {$tier->name} plan allows up to {$max} products. Upgrade your partnership to add more.",
+                $message,
                 'max_product_listings',
                 $current,
                 $max,
-                $tier->slug,
+                $resolved['tier_slug'],
                 true
             );
         }
@@ -321,26 +325,23 @@ class VendorPartnershipService
 
     public function assertCanAddProductImages(Vendor $vendor, int $imageCount): void
     {
-        $tier = $this->activeTier($vendor);
-        if ($tier === null) {
-            throw new PartnershipLimitExceededException(
-                'You need an active partnership to upload product images.',
-                'partnership_required',
-                0,
-                null,
-                null,
-                true
-            );
-        }
+        $partnership = $this->currentPartnership($vendor);
+        $tier = $partnership?->tier;
+        $max = $tier?->max_partner_product_images ?? self::DEFAULT_FREE_PRODUCT_IMAGES;
+        $tierName = $tier?->name ?? 'Free';
+        $tierSlug = $tier?->slug ?? 'free';
 
-        $max = (int) $tier->max_partner_product_images;
         if ($imageCount > $max) {
+            $message = $tier === null
+                ? "Without a partnership plan you can upload up to {$max} product image(s). Apply for a partnership to add more."
+                : "Your {$tierName} plan allows up to {$max} product images per listing. Upgrade your partnership for more.";
+
             throw new PartnershipLimitExceededException(
-                "Your {$tier->name} plan allows up to {$max} product images per listing. Upgrade your partnership for more.",
+                $message,
                 'max_partner_product_images',
                 $imageCount,
                 $max,
-                $tier->slug,
+                $tierSlug,
                 true
             );
         }
@@ -491,10 +492,15 @@ class VendorPartnershipService
         int $used,
         ?int $limit,
         ?int $remaining,
-        bool $unlimited
+        bool $unlimited,
+        array $resolved
     ): string {
         if ($partnership === null) {
-            return 'Apply for a partnership plan to add products and unlock vendor benefits.';
+            if ($remaining !== null && $remaining <= 0) {
+                return 'You have used all '.self::DEFAULT_FREE_PRODUCT_LIMIT.' free product slots. Apply for a partnership plan to add more products.';
+            }
+
+            return "You have used {$used} of ".self::DEFAULT_FREE_PRODUCT_LIMIT.' free product slots. '.($remaining ?? 0).' remaining. Apply for a partnership to unlock more.';
         }
 
         if ($unlimited) {
@@ -502,10 +508,60 @@ class VendorPartnershipService
         }
 
         if ($remaining !== null && $remaining <= 0) {
-            return "You have used all {$limit} product slots in your {$partnership->tier?->name} plan. Upgrade to add more products.";
+            return "You have used all {$limit} product slots in your {$resolved['tier_name']} plan. Upgrade to add more products.";
         }
 
-        return "You have used {$used} of {$limit} product slots. {$remaining} remaining in your {$partnership->tier?->name} plan.";
+        return "You have used {$used} of {$limit} product slots. {$remaining} remaining in your {$resolved['tier_name']} plan.";
+    }
+
+    /**
+     * @return array{limit: ?int, unlimited: bool, tier_slug: string, plan_type: string, tier_name: string}
+     */
+    private function resolveProductLimit(Vendor $vendor, ?VendorPartnership $partnership): array
+    {
+        $tier = $partnership?->tier;
+
+        if ($tier === null) {
+            return [
+                'limit' => self::DEFAULT_FREE_PRODUCT_LIMIT,
+                'unlimited' => false,
+                'tier_slug' => 'free',
+                'plan_type' => 'free_default',
+                'tier_name' => 'Free',
+            ];
+        }
+
+        return [
+            'limit' => $tier->max_product_listings,
+            'unlimited' => $tier->hasUnlimitedProducts(),
+            'tier_slug' => $tier->slug,
+            'plan_type' => 'paid',
+            'tier_name' => $tier->name,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $usage
+     * @return array<string, mixed>
+     */
+    public function defaultFreeLimits(array $usage): array
+    {
+        $productUsage = $usage['product_usage'];
+
+        return [
+            'max_product_listings' => self::DEFAULT_FREE_PRODUCT_LIMIT,
+            'max_partner_product_images' => self::DEFAULT_FREE_PRODUCT_IMAGES,
+            'marketing_exposure' => 'none',
+            'social_media_posts_per_month' => 0,
+            'app_banners' => 0,
+            'home_banner_size' => 'none',
+            'products_used' => $productUsage['used'],
+            'products_remaining' => $productUsage['remaining'],
+            'product_limit' => self::DEFAULT_FREE_PRODUCT_LIMIT,
+            'unlimited_products' => false,
+            'can_add_more_products' => $productUsage['can_add_more'],
+            'plan_type' => 'free_default',
+        ];
     }
 
     /**

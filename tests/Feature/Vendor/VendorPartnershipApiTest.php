@@ -96,18 +96,43 @@ class VendorPartnershipApiTest extends TestCase
         ]);
     }
 
-    public function test_vendor_cannot_add_products_without_partnership(): void
+    public function test_vendor_without_plan_gets_five_free_product_slots(): void
     {
         ['token' => $token] = $this->makeVendorUser(VendorStatus::Approved);
+
+        $this->withToken($token)->getJson('/api/vendor/partnership')
+            ->assertOk()
+            ->assertJsonPath('data.has_partnership', false)
+            ->assertJsonPath('data.product_usage.limit', 5)
+            ->assertJsonPath('data.product_usage.plan_type', 'free_default')
+            ->assertJsonPath('data.product_usage.can_add_more', true)
+            ->assertJsonPath('data.limits.max_product_listings', 5)
+            ->assertJsonPath('data.stats_cards.0.numeric_value', 5);
+    }
+
+    public function test_vendor_free_tier_blocks_after_five_products(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
         $category = $this->makeCategory();
 
+        for ($i = 1; $i <= 5; $i++) {
+            $this->withToken($token)->postJson('/api/vendor/products', [
+                'name' => "Free Product {$i}",
+                'price' => 10 + $i,
+                'category_id' => $category->id,
+            ])->assertCreated();
+        }
+
         $this->withToken($token)->postJson('/api/vendor/products', [
-            'name' => 'Blocked Product',
-            'price' => 25,
+            'name' => 'Sixth Product',
+            'price' => 99,
             'category_id' => $category->id,
         ])->assertStatus(403)
-            ->assertJsonPath('errors.upgrade_required', true)
-            ->assertJsonPath('errors.limit', 'partnership_required');
+            ->assertJsonPath('errors.limit', 'max_product_listings')
+            ->assertJsonPath('errors.max', 5)
+            ->assertJsonPath('errors.tier', 'free');
+
+        $this->assertSame(5, VendorProduct::where('vendor_id', $vendor->id)->count());
     }
 
     public function test_vendor_cannot_exceed_product_limit_for_tier(): void
