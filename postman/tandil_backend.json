@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. Profile **B** (Edit Profile). **F** Performance Analytics: `GET /api/vendor/analytics/performance?period=week|month|quarter|year`. **H. Orders** — mobile-ready list + detail (`VND-YYYY-####`, timeline, tracking). **H. Partnership** — tiers, limits, apply/upgrade. Auth: `{{vendor_token}}`, approved vendor.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder 'Admin - Areas (Zones)'.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18** (subfolders **A→P**). **A** Profile · **E** Performance Analytics · **G** Partnership · **M** Orders (mobile-ready). Auth: `{{vendor_token}}`, approved vendor.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
         "version": "3.3.76"
@@ -15290,7 +15290,7 @@
         },
         {
             "name": "15c. Admin – Vendor Partnership",
-            "description": "Manage vendor partnership tiers (Basic → Diamond) — create, update, deactivate plans.\n\nAuth: Bearer `{{token}}` (admin). Vendor apply/upgrade flow is under **18 → H. Partnership**.",
+            "description": "Manage vendor partnership tiers (Basic → Diamond) — create, update, deactivate plans.\n\nAuth: Bearer `{{token}}` (admin). Vendor apply/upgrade flow is under **18 → G. Partnership**.",
             "item": [
                 {
                     "name": "1. List partnership tiers",
@@ -19133,7 +19133,7 @@
         },
         {
             "name": "18. Vendor Dashboard – All APIs",
-            "description": "Login: `2. Authentication` → Login Vendor.\n\n**B. Business Profile** (`GET /api/vendor/profile`):\n| # | Method | Screen |\n|---|--------|--------|\n| 1 | GET | Profile tab + `edit_profile` form |\n| 2 | POST | Update profile (Edit Profile save) |\n| 3 | GET | Business Information (read-only) |\n| 4 | GET | Location & Address (read-only) |\n| 5 | GET | Payment Methods (read-only) |\n\n**G. Support & Live Chat** — Profile → Support & Help → Live Chat (`GET/POST /api/vendor/support/chat`).\n\n**H. Partnership** — Bottom tab Partnership (`GET/POST /api/vendor/partnership/*`). Apply, upgrade tiers, view limits. Product create blocked without active partnership (403 + upgrade_required).\n\n**Edit Profile POST fields:** `profile_picture` (personal photo → `profile_picture_url`), `logo` (business logo → `logo_url`, separate), `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
+            "description": "Login: `2. Authentication` → Login Vendor.\n\n**Subfolders A → P (in order):**\n| Letter | Folder | Purpose |\n|--------|--------|--------|\n| A | Business Profile | Edit profile, business info, location, payment methods |\n| B | Application & Onboarding | Vendor application submit/resubmit |\n| C | Documents | Trade license, Emirates ID uploads |\n| D | Dashboard | Stats & summary (approved only) |\n| E | Performance Analytics | Analytics dashboard, PDF export, share |\n| F | Support & Live Chat | Vendor support chat |\n| G | Partnership | Tiers, apply/upgrade, limits |\n| H | Add Product – Dropdown options | Category/service dropdowns (id + name) |\n| I | Categories | Platform categories (read-only) |\n| J | Services | Platform services (read-only) |\n| K | Products | Create/list/update vendor products |\n| L | Inventory | Stock per product |\n| M | Orders | Order list, detail, contact, invoice, status |\n| N | Vendor Comparison | Public product compare |\n| O | Admin – Vendor Management | Admin vendor approve/reject (admin token) |\n| P | Admin – Marketplace | Admin marketplace settings (admin token) |\n\n**Edit Profile POST fields:** `profile_picture` (personal photo → `profile_picture_url`), `logo` (business logo → `logo_url`, separate), `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
             "event": [
                 {
                     "listen": "prerequest",
@@ -19156,7 +19156,7 @@
             ],
             "item": [
                 {
-                    "name": "B. Business Profile",
+                    "name": "A. Business Profile",
                     "description": "`edit_profile`: store_branding · business_contact · business_hours · bank_account. POST sirf request 2.",
                     "item": [
                         {
@@ -19358,7 +19358,7 @@
                     ]
                 },
                 {
-                    "name": "C. Application & Onboarding",
+                    "name": "B. Application & Onboarding",
                     "item": [
                         {
                             "name": "1. Get application status",
@@ -19411,7 +19411,7 @@
                     ]
                 },
                 {
-                    "name": "D. Documents",
+                    "name": "C. Documents",
                     "item": [
                         {
                             "name": "1. List documents",
@@ -19471,7 +19471,7 @@
                     ]
                 },
                 {
-                    "name": "E. Dashboard (approved only)",
+                    "name": "D. Dashboard (approved only)",
                     "item": [
                         {
                             "name": "1. Dashboard stats",
@@ -19508,7 +19508,7 @@
                     ]
                 },
                 {
-                    "name": "F. Performance Analytics (approved only)",
+                    "name": "E. Performance Analytics (approved only)",
                     "description": "Profile → Partnership → Performance Analytics.\n\n| # | API | Screen |\n|---|-----|--------|\n| 1 | GET performance | Analytics dashboard data |\n| 2 | GET performance/export | **Export Report** — PDF download |\n| 3 | POST performance/share | **Share Analytics** — returns `share_url` + `download_url` only |",
                     "item": [
                         {
@@ -19600,7 +19600,7 @@
                     ]
                 },
                 {
-                    "name": "G. Support & Live Chat",
+                    "name": "F. Support & Live Chat",
                     "description": "Profile → Support & Help → **Live Chat** (vendor ↔ admin).\n\n| # | API | Screen |\n|---|-----|--------|\n| 1 | GET support/chat | Open chat — session + all messages |\n| 2 | GET support/chat/messages?after_id= | Poll new messages (~3s) |\n| 3 | POST support/chat/messages | Send message to admin |\n\nAuth: `{{vendor_token}}` (`vendor.account` — pending vendors OK). Admin replies via folder **15. Admin – Support Live Chat**.",
                     "item": [
                         {
@@ -19676,7 +19676,7 @@
                     ]
                 },
                 {
-                    "name": "H. Partnership",
+                    "name": "G. Partnership",
                     "description": "Bottom nav **Partnership** tab — tiers, current plan, apply/upgrade, limits.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET partnership | Current partnership dashboard (products, delivered, days left, marketing exposure) |\n| 2 | GET partnership/tiers | Available tiers (Basic → Diamond) + Upgrade buttons |\n| 3 | GET partnership/limits | Usage vs tier limits |\n| 4 | GET partnership/applications | My application history |\n| 5 | POST partnership/applications | Apply / Upgrade form (tier, estimated products, payment method) |\n| 6 | POST partnership/check-feature | Check if feature allowed (banner, social post, etc.) |\n\nAuth: `{{vendor_token}}`.\n\n**Product limit:** POST `/api/vendor/products` returns 403 with `errors.upgrade_required: true` when partnership missing or product cap reached.",
                     "item": [
                         {
@@ -19765,7 +19765,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "vendor", "partnership", "applications"]
                                 },
-                                "description": "POST `/api/vendor/partnership/applications` — Partnership Application form.\n\n`payment_method`: credit_card | bank_transfer | digital_wallet\n\n`estimated_products` must be within tier required range (e.g. Basic 10–20). Run **H.2** first for `{{partnership_tier_id}}`."
+                                "description": "POST `/api/vendor/partnership/applications` — Partnership Application form.\n\n`payment_method`: credit_card | bank_transfer | digital_wallet\n\n`estimated_products` must be within tier required range (e.g. Basic 10–20). Run **G.2** first for `{{partnership_tier_id}}`."
                             }
                         },
                         {
@@ -19792,8 +19792,8 @@
                     ]
                 },
                 {
-                    "name": "F0. Add Product – Dropdown options",
-                    "description": "Mobile Add Product screen dropdowns. Returns only id + name. Auth: Bearer {{vendor_token}} (approved vendor).\n\n| Step | API | Notes |\n|------|-----|-------|\n| F0.1 | GET product-options/categories | Platform categories for product `category_id` |\n| F0.2 | GET product-options/services | **All** admin services — not filtered by category |\n| F0.3 | GET products?category_id= | Vendor's own products when category tapped |\n\nThen **F → Create product** with `category_id` + optional `service_id`.",
+                    "name": "H. Add Product – Dropdown options",
+                    "description": "Mobile Add Product screen dropdowns. Returns only id + name. Auth: Bearer {{vendor_token}} (approved vendor).\n\n| Step | API | Notes |\n|------|-----|-------|\n| H.1 | GET product-options/categories | Platform categories for product `category_id` |\n| H.2 | GET product-options/services | **All** admin services — not filtered by category |\n| H.3 | GET products?category_id= | Vendor's own products when category tapped |\n\nThen **K → Create product** with `category_id` + optional `service_id`.",
                     "item": [
                         {
                             "name": "1. Get categories (id + name)",
@@ -19825,15 +19825,15 @@
                             "request": {
                                 "method": "GET",
                                 "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}],
-                                "url": {"raw": "{{base_url}}/api/vendor/products?category_id={{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"], "query": [{"key": "category_id", "value": "{{category_id}}", "description": "Platform category id from F0.1 — returns only this vendor's products"}, {"key": "status", "value": "", "disabled": true}, {"key": "search", "value": "", "disabled": true}]},
+                                "url": {"raw": "{{base_url}}/api/vendor/products?category_id={{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"], "query": [{"key": "category_id", "value": "{{category_id}}", "description": "Platform category id from H.1 — returns only this vendor's products"}, {"key": "status", "value": "", "disabled": true}, {"key": "search", "value": "", "disabled": true}]},
                                 "description": "When user taps a category — lists only the logged-in vendor's products in that category. Admin shop products are never included. Do not use public GET /api/products/category/{id}."
                             }
                         }
                     ]
                 },
                 {
-                    "name": "F1. Categories (approved only – read-only)",
-                    "description": "Platform (admin) categories only. Vendors cannot create/update/delete — use these IDs in product create (category_id). GET F1.1 first, then copy id to {{category_id}}.",
+                    "name": "I. Categories (approved only – read-only)",
+                    "description": "Platform (admin) categories only. Vendors cannot create/update/delete — use these IDs in product create (category_id). GET I.1 first, then copy id to {{category_id}}.",
                     "item": [
                         {"name": "1. List platform categories", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories"]}, "description": "Returns admin platform categories (is_platform: true). Use id in product create."}},
                         {"name": "2. Get platform category", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "categories", "{{category_id}}"]}}},
@@ -19841,8 +19841,8 @@
                     ]
                 },
                 {
-                    "name": "F2. Services (approved only – read-only)",
-                    "description": "Full platform services catalog (admin). Vendors cannot create/update/delete.\n\n**Mobile Add Product dropdown:** use **F0.2** instead (id + name only, all services, no category filter).\n\nUse `service_id` from F0.2 or F2.1 when creating products.",
+                    "name": "J. Services (approved only – read-only)",
+                    "description": "Full platform services catalog (admin). Vendors cannot create/update/delete.\n\n**Mobile Add Product dropdown:** use **H.2** instead (id + name only, all services, no category filter).\n\nUse `service_id` from H.2 or J.1 when creating products.",
                     "item": [
                         {"name": "1. List platform services", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services", "host": ["{{base_url}}"], "path": ["api", "vendor", "services"]}, "description": "Returns admin platform services. Use id as service_id when creating products."}},
                         {"name": "2. Get platform service", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "services", "{{service_id}}"]}}},
@@ -19850,8 +19850,8 @@
                     ]
                 },
                 {
-                    "name": "F. Products (approved only)",
-                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls.\n\nUse **F0** for mobile dropdown ids (id+name only) or **F1/F2** for full platform catalog. category_id + service_id must be platform (admin) IDs. Use inventory API for low_stock_threshold.\n\nList/filter: `?category_id=` returns only this vendor's products (admin products excluded).",
+                    "name": "K. Products (approved only)",
+                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls.\n\nUse **H** for mobile dropdown ids (id+name only) or **I/J** for full platform catalog. category_id + service_id must be platform (admin) IDs. Use inventory API for low_stock_threshold.\n\nList/filter: `?category_id=` returns only this vendor's products (admin products excluded).",
                     "item": [
                         {"name": "1. List products", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/products?category_id={{category_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "products"], "query": [{"key": "category_id", "value": "{{category_id}}", "description": "Optional — only this vendor's products in that platform category (admin products excluded)"}, {"key": "status", "value": "", "disabled": true}, {"key": "search", "value": "", "disabled": true}]}, "description": "Lists only the logged-in vendor's products. Optional ?category_id= filters by platform category. Never returns admin shop products."}},
                         {
@@ -19869,8 +19869,8 @@
                                         {"key": "stock", "value": "10", "type": "text"},
                                         {"key": "status", "value": "active", "type": "text"},
                                         {"key": "is_featured", "value": "0", "type": "text"},
-                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required. Platform category ID from F0.1 or F1.1."},
-                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Platform service ID from F0.2 or F2.1."},
+                                        {"key": "category_id", "value": "{{category_id}}", "type": "text", "description": "Required. Platform category ID from H.1 or I.1."},
+                                        {"key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Optional. Platform service ID from H.2 or J.1."},
                                         {"key": "weight_unit", "value": "kg", "type": "text"},
                                         {"key": "sku", "value": "VENDOR-SKU-001", "type": "text"},
                                         {"key": "handle", "value": "vendor-test-product", "type": "text"},
@@ -19921,14 +19921,14 @@
                     ]
                 },
                 {
-                    "name": "G. Inventory (approved only)",
+                    "name": "L. Inventory (approved only)",
                     "item": [
                         {"name": "1. Get inventory", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/inventory/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "inventory", "{{vendor_product_id}}"]}}},
                         {"name": "2. Update inventory", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{vendor_token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"quantity\": 50,\n  \"low_stock_threshold\": 5,\n  \"notes\": \"Restocked\"\n}"}, "url": {"raw": "{{base_url}}/api/vendor/inventory/{{vendor_product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "inventory", "{{vendor_product_id}}"]}}}
                     ]
                 },
                 {
-                    "name": "H. Orders (approved only)",
+                    "name": "M. Orders (approved only)",
                     "description": "Bottom nav **Orders** tab — mobile-ready list cards + order detail screen.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET orders | Order list with summary tabs |\n| 2 | GET orders/{id} | Order detail — timeline, products, customer, notes |\n| 3 | GET orders/{id}/contact | **Contact Customer** — phone, email, call/WhatsApp/mailto links |\n| 4 | GET orders/{id}/invoice | **Print Invoice** — PDF (inline for print preview) |\n| 5 | GET orders/{id}/download | **Download Order** — PDF attachment |\n| 6–8 | POST orders/{id}/status | Confirm / Ship / Mark delivered |\n\nAuth: `{{vendor_token}}`, approved vendor only.\n\n**Detail `actions` flags:** `can_contact_customer`, `can_print_invoice`, `can_download_order` + endpoint paths.",
                     "item": [
                         {
@@ -20086,14 +20086,14 @@
                     ]
                 },
                 {
-                    "name": "I. Vendor Comparison (public)",
+                    "name": "N. Vendor Comparison (public)",
                     "item": [
                         {"name": "1. Compare by product id", "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/vendor/compare/products/{{product_id}}", "host": ["{{base_url}}"], "path": ["api", "vendor", "compare", "products", "{{product_id}}"]}, "description": "Public — no auth. Compare vendors offering a given product."}},
                         {"name": "2. Compare multiple product ids", "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"product_ids\": [1, 2, 3]\n}"}, "url": {"raw": "{{base_url}}/api/vendor/compare/products", "host": ["{{base_url}}"], "path": ["api", "vendor", "compare", "products"]}, "description": "Public — no auth."}}
                     ]
                 },
                 {
-                    "name": "J. Admin – Vendor Management",
+                    "name": "O. Admin – Vendor Management",
                     "description": "**Admin mobile vendor review flow (test in order):**\n1. **Login admin** — sets {{token}}\n2. **Recent vendor requests** — home widget cards; auto-sets {{vendor_id}} from first item\n3. **List vendors (View All)** — paginated pending + under_review\n4. **Vendor application detail** — tap card; full Contact + Business + Bank + Documents\n5. **Approve** or **Reject** (Cancel button in app)\n\nAuth: Bearer {{token}} (admin). Variable {{vendor_id}} auto-set by steps 2–3.",
                     "item": [
                         {
@@ -20130,7 +20130,7 @@
                     ]
                 },
                 {
-                    "name": "K. Admin – Marketplace",
+                    "name": "P. Admin – Marketplace",
                     "description": "Marketplace-wide admin endpoints (commission, product approval, vendor orders, document verification). Admin token.",
                     "item": [
                         {"name": "1. Analytics overview", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}], "url": {"raw": "{{base_url}}/api/admin/marketplace/analytics", "host": ["{{base_url}}"], "path": ["api", "admin", "marketplace", "analytics"]}}},
@@ -20178,7 +20178,7 @@
             "key": "partnership_tier_id",
             "value": "1",
             "type": "string",
-            "description": "Set from Vendor 18 → H.2 List tiers or Admin 15c.1 List tiers."
+            "description": "Set from Vendor 18 → G.2 List tiers or Admin 15c.1 List tiers."
         },
         {
             "key": "partnership_application_id",
@@ -20254,7 +20254,7 @@
             "key": "vendor_order_mapping_id",
             "value": "1",
             "type": "string",
-            "description": "Auto-set by 18 → H. Orders → 1. List orders. Vendor order mapping id (not platform order_id)."
+            "description": "Auto-set by 18 → M. Orders → 1. List orders. Vendor order mapping id (not platform order_id)."
         },
         {
             "key": "vendor_document_id",
