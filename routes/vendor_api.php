@@ -136,14 +136,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendor-partners
     Route::get('/tiers/{id}', [VendorPartnershipAdminController::class, 'showTier']);
     Route::put('/tiers/{id}', [VendorPartnershipAdminController::class, 'updateTier']);
     Route::delete('/tiers/{id}', [VendorPartnershipAdminController::class, 'destroyTier']);
-
-    Route::get('/applications', [VendorPartnershipAdminController::class, 'indexApplications']);
-    Route::get('/applications/{id}', [VendorPartnershipAdminController::class, 'showApplication']);
-    Route::post('/applications/{id}/approve', [VendorPartnershipAdminController::class, 'approveApplication']);
-    Route::post('/applications/{id}/reject', [VendorPartnershipAdminController::class, 'rejectApplication']);
-
-    Route::get('/vendors/{vendorId}', [VendorPartnershipAdminController::class, 'showVendorPartnership']);
-    Route::post('/vendors/{vendorId}/assign', [VendorPartnershipAdminController::class, 'assignVendorPartnership']);
 });
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/marketplace')->group(function () {

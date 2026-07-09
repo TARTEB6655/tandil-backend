@@ -8,7 +8,6 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorPartnership;
-use App\Models\VendorPartnershipApplication;
 use App\Models\VendorPartnershipTier;
 use App\Models\VendorProduct;
 use App\Models\VendorProfile;
@@ -57,22 +56,10 @@ class VendorPartnershipApiTest extends TestCase
             ->assertJsonPath('data.application.tier.slug', 'basic');
     }
 
-    public function test_admin_can_manage_tiers_and_approve_application(): void
+    public function test_admin_can_manage_partnership_tiers(): void
     {
-        ['vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
         $admin = $this->makeAdminUser();
         $silver = VendorPartnershipTier::where('slug', 'silver')->firstOrFail();
-
-        $application = VendorPartnershipApplication::create([
-            'vendor_id' => $vendor->id,
-            'tier_id' => $silver->id,
-            'type' => 'new',
-            'estimated_products' => 30,
-            'business_description' => 'Gift shop in Dubai.',
-            'contact_phone' => '+971500000002',
-            'payment_method' => 'bank_transfer',
-            'status' => 'pending',
-        ]);
 
         $this->withToken($admin['token'])->getJson('/api/admin/vendor-partnership/tiers')
             ->assertOk()
@@ -84,16 +71,8 @@ class VendorPartnershipApiTest extends TestCase
         ))->assertOk()
             ->assertJsonPath('data.tier.price', 450);
 
-        $this->withToken($admin['token'])->postJson('/api/admin/vendor-partnership/applications/'.$application->id.'/approve', [
-            'admin_notes' => 'Approved after review.',
-        ])->assertOk()
-            ->assertJsonPath('data.partnership.tier.slug', 'silver');
-
-        $this->assertDatabaseHas('vendor_partnerships', [
-            'vendor_id' => $vendor->id,
-            'tier_id' => $silver->id,
-            'status' => 'active',
-        ]);
+        $this->withToken($admin['token'])->getJson('/api/admin/vendor-partnership/applications')
+            ->assertNotFound();
     }
 
     public function test_vendor_without_plan_gets_five_free_product_slots(): void

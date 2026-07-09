@@ -15290,7 +15290,7 @@
         },
         {
             "name": "15c. Admin – Vendor Partnership",
-            "description": "Manage vendor partnership tiers (Basic → Diamond), review applications, assign plans.\n\n**Flow:** Vendor submits via **18 → H. Partnership → 5** → Admin lists applications → Approve/Reject.\n\nAuth: Bearer `{{token}}` (admin). Uses `{{vendor_id}}` from vendor management.",
+            "description": "Manage vendor partnership tiers (Basic → Diamond) — create, update, deactivate plans.\n\nAuth: Bearer `{{token}}` (admin). Vendor apply/upgrade flow is under **18 → H. Partnership**.",
             "item": [
                 {
                     "name": "1. List partnership tiers",
@@ -15338,64 +15338,6 @@
                         "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
                         "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/tiers/{{partnership_tier_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "tiers", "{{partnership_tier_id}}"]},
                         "description": "DELETE `/api/admin/vendor-partnership/tiers/{id}` — soft deactivate (is_active=false)."
-                    }
-                },
-                {
-                    "name": "6. List partnership applications",
-                    "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 200) {", "    var items = pm.response.json().data.items || [];", "    if (items.length && items[0].id) {", "        pm.collectionVariables.set('partnership_application_id', String(items[0].id));", "    }", "}"]}}],
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications?status=pending&per_page=15", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications"], "query": [{"key": "status", "value": "pending"}, {"key": "per_page", "value": "15"}]},
-                        "description": "GET `/api/admin/vendor-partnership/applications?status=pending` — review queue. Auto-sets `{{partnership_application_id}}`."
-                    }
-                },
-                {
-                    "name": "7. Get application detail",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications/{{partnership_application_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications", "{{partnership_application_id}}"]},
-                        "description": "GET `/api/admin/vendor-partnership/applications/{id}` — vendor info + tier + form fields."
-                    }
-                },
-                {
-                    "name": "8. Approve application",
-                    "request": {
-                        "method": "POST",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
-                        "body": {"mode": "raw", "raw": "{\n  \"admin_notes\": \"Payment verified. Partnership activated.\"\n}"},
-                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications/{{partnership_application_id}}/approve", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications", "{{partnership_application_id}}", "approve"]},
-                        "description": "POST `/api/admin/vendor-partnership/applications/{id}/approve` — creates active vendor partnership."
-                    }
-                },
-                {
-                    "name": "9. Reject application",
-                    "request": {
-                        "method": "POST",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
-                        "body": {"mode": "raw", "raw": "{\n  \"reason\": \"Estimated products do not match tier requirements.\"\n}"},
-                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/applications/{{partnership_application_id}}/reject", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "applications", "{{partnership_application_id}}", "reject"]},
-                        "description": "POST `/api/admin/vendor-partnership/applications/{id}/reject` — `reason` required."
-                    }
-                },
-                {
-                    "name": "10. Get vendor partnership status",
-                    "request": {
-                        "method": "GET",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}],
-                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/vendors/{{vendor_id}}", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "vendors", "{{vendor_id}}"]},
-                        "description": "GET `/api/admin/vendor-partnership/vendors/{vendorId}` — same dashboard payload as vendor side."
-                    }
-                },
-                {
-                    "name": "11. Assign partnership to vendor (admin override)",
-                    "request": {
-                        "method": "POST",
-                        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
-                        "body": {"mode": "raw", "raw": "{\n  \"tier_id\": {{partnership_tier_id}},\n  \"payment_method\": \"bank_transfer\",\n  \"estimated_products\": 50,\n  \"contact_phone\": \"+971500000001\"\n}"},
-                        "url": {"raw": "{{base_url}}/api/admin/vendor-partnership/vendors/{{vendor_id}}/assign", "host": ["{{base_url}}"], "path": ["api", "admin", "vendor-partnership", "vendors", "{{vendor_id}}", "assign"]},
-                        "description": "POST `/api/admin/vendor-partnership/vendors/{vendorId}/assign` — directly assign tier without application."
                     }
                 }
             ]
@@ -19735,7 +19677,7 @@
                 },
                 {
                     "name": "H. Partnership",
-                    "description": "Bottom nav **Partnership** tab — tiers, current plan, apply/upgrade, limits.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET partnership | Current partnership dashboard (products, delivered, days left, marketing exposure) |\n| 2 | GET partnership/tiers | Available tiers (Basic → Diamond) + Upgrade buttons |\n| 3 | GET partnership/limits | Usage vs tier limits |\n| 4 | GET partnership/applications | My application history |\n| 5 | POST partnership/applications | Apply / Upgrade form (tier, estimated products, payment method) |\n| 6 | POST partnership/check-feature | Check if feature allowed (banner, social post, etc.) |\n\nAuth: `{{vendor_token}}`. Admin approves via **15c. Admin – Vendor Partnership**.\n\n**Product limit:** POST `/api/vendor/products` returns 403 with `errors.upgrade_required: true` when partnership missing or product cap reached.",
+                    "description": "Bottom nav **Partnership** tab — tiers, current plan, apply/upgrade, limits.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET partnership | Current partnership dashboard (products, delivered, days left, marketing exposure) |\n| 2 | GET partnership/tiers | Available tiers (Basic → Diamond) + Upgrade buttons |\n| 3 | GET partnership/limits | Usage vs tier limits |\n| 4 | GET partnership/applications | My application history |\n| 5 | POST partnership/applications | Apply / Upgrade form (tier, estimated products, payment method) |\n| 6 | POST partnership/check-feature | Check if feature allowed (banner, social post, etc.) |\n\nAuth: `{{vendor_token}}`.\n\n**Product limit:** POST `/api/vendor/products` returns 403 with `errors.upgrade_required: true` when partnership missing or product cap reached.",
                     "item": [
                         {
                             "name": "1. Get current partnership",
