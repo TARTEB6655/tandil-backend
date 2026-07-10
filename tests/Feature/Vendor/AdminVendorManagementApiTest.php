@@ -72,7 +72,14 @@ class AdminVendorManagementApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.metrics.total_products', 1)
             ->assertJsonPath('data.metrics.revenue', 120)
-            ->assertJsonStructure(['data' => ['metrics', 'statistics', 'analytics']]);
+            ->assertJsonStructure([
+                'data' => [
+                    'metrics',
+                    'statistics',
+                    'revenue' => ['total_revenue', 'wallet_balance', 'monthly'],
+                    'analytics',
+                ],
+            ]);
     }
 
     public function test_admin_can_list_vendor_products(): void
@@ -83,8 +90,27 @@ class AdminVendorManagementApiTest extends TestCase
             ->getJson("/api/admin/vendors/{$vendor->id}/products")
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonCount(1, 'data.items')
-            ->assertJsonStructure(['data' => ['items', 'pagination']]);
+            ->assertJsonStructure([
+                'data' => [
+                    'stats' => ['total', 'active', 'disabled', 'draft', 'out_of_stock'],
+                    'items' => [
+                        [
+                            'vendor_product_id',
+                            'name',
+                            'stock',
+                            'stock_quantity',
+                            'sales',
+                            'is_enabled',
+                            'is_live',
+                        ],
+                    ],
+                    'pagination',
+                ],
+            ])
+            ->assertJsonPath('data.items.0.stock', 10)
+            ->assertJsonPath('data.items.0.stock_quantity', 10)
+            ->assertJsonPath('data.stats.total', 1)
+            ->assertJsonPath('data.stats.active', 1);
     }
 
     public function test_admin_can_list_vendor_orders(): void
@@ -95,8 +121,15 @@ class AdminVendorManagementApiTest extends TestCase
             ->getJson("/api/admin/vendors/{$vendor->id}/orders")
             ->assertOk()
             ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'stats' => ['total', 'pending', 'processing', 'delivered', 'total_revenue'],
+                    'items',
+                    'pagination',
+                ],
+            ])
             ->assertJsonCount(1, 'data.items')
-            ->assertJsonStructure(['data' => ['items', 'pagination']]);
+            ->assertJsonPath('data.stats.total', 1);
     }
 
     public function test_admin_mobile_management_returns_summary_and_vendor_cards(): void

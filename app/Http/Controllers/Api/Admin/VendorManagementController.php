@@ -11,7 +11,10 @@ use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
 use App\Services\Vendor\AdminVendorMetricsService;
 use App\Services\Vendor\AdminVendorMobileService;
+use App\Services\Vendor\AdminVendorOrderListService;
+use App\Services\Vendor\AdminVendorProductListService;
 use App\Services\Vendor\AdminVendorProductService;
+use App\Services\Vendor\AdminVendorRevenueService;
 use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorApprovalService;
 use App\Services\Vendor\VendorDashboardService;
@@ -28,7 +31,10 @@ class VendorManagementController extends Controller
         private readonly VendorDashboardService $dashboard,
         private readonly AdminVendorMetricsService $metrics,
         private readonly AdminVendorMobileService $mobile,
-        private readonly AdminVendorProductService $adminProducts
+        private readonly AdminVendorProductService $adminProducts,
+        private readonly AdminVendorProductListService $productList,
+        private readonly AdminVendorOrderListService $orderList,
+        private readonly AdminVendorRevenueService $revenue
     ) {}
 
     /**
@@ -229,6 +235,7 @@ class VendorManagementController extends Controller
             'application' => $this->application->applicationPayload($vendor),
             'metrics' => $this->metrics->forVendor($vendor),
             'statistics' => $this->dashboard->stats($vendor),
+            'revenue' => $this->revenue->forVendor($vendor),
             'analytics' => $this->dashboard->analytics($vendor),
         ]);
     }
@@ -384,19 +391,20 @@ class VendorManagementController extends Controller
 
     public function products(Request $request, int $id): JsonResponse
     {
-        Vendor::findOrFail($id);
-
-        $paginator = VendorProduct::with(['product.category', 'inventory', 'currentPrice'])
-            ->where('vendor_id', $id)
-            ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
-            ->when($request->query('search'), function ($q, $search) {
-                $q->whereHas('product', fn ($pq) => $pq->where('name', 'like', "%{$search}%"));
-            })
-            ->latest()
-            ->paginate(min((int) $request->query('per_page', 15), 100));
+        $vendor = Vendor::findOrFail($id);
+        $paginator = $this->productList->paginate($vendor, $request);
+        $productIds = $paginator->getCollection()->pluck('product_id')->filter()->all();
+        $salesMap = $this->productList->salesCounts($vendor->id, $productIds);
 
         return ApiResponse::success('Vendor products retrieved.', [
-            'items' => $paginator->items(),
+            'stats' => $this->productList->stats($vendor),
+            'items' => collect($paginator->items())
+                ->map(fn (VendorProduct $vp) => $this->productList->formatListItem(
+                    $vp,
+                    (int) ($salesMap[$vp->product_id] ?? 0)
+                ))
+                ->values()
+                ->all(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
@@ -408,22 +416,12 @@ class VendorManagementController extends Controller
 
     public function orders(Request $request, int $id): JsonResponse
     {
-        Vendor::findOrFail($id);
+        $vendor = Vendor::findOrFail($id);
 
-        $paginator = VendorOrderMapping::with(['order.user', 'vendor.profile'])
-            ->where('vendor_id', $id)
-            ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
-            ->when($request->query('search'), function ($q, $search) {
-                $q->where(function ($query) use ($search) {
-                    $query->where('id', 'like', "%{$search}%")
-                        ->orWhere('order_id', 'like', "%{$search}%")
-                        ->orWhere('tracking_number', 'like', "%{$search}%");
-                });
-            })
-            ->latest()
-            ->paginate(min((int) $request->query('per_page', 15), 100));
+        $paginator = $this->orderList->paginate($vendor, $request);
 
         return ApiResponse::success('Vendor orders retrieved.', [
+            'stats' => $this->orderList->stats($vendor),
             'items' => $paginator->items(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),

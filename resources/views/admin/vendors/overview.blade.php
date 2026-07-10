@@ -151,7 +151,7 @@
                     @forelse($data['recent']['low_stock'] as $vp)
                         <div class="flex items-center justify-between px-5 py-3">
                             <p class="truncate text-sm font-medium">{{ $vp->product?->name }}</p>
-                            <span class="text-xs font-medium text-amber-600">{{ $vp->inventory?->quantity ?? 0 }} left</span>
+                            <span class="text-xs font-medium text-amber-600">{{ $vp->stockQuantity() }} left</span>
                         </div>
                     @empty
                         <p class="px-5 py-8 text-sm text-gray-500">All stock levels healthy.</p>

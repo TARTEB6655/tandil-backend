@@ -84,6 +84,8 @@ class AdminVendorMobileService
                 'total_products' => (int) ($productStats['total'] ?? 0),
                 'enabled_products' => (int) ($productStats['active'] ?? 0),
                 'disabled_products' => (int) ($productStats['disabled'] ?? 0),
+                'draft_products' => (int) ($productStats['draft'] ?? 0),
+                'out_of_stock_products' => (int) ($productStats['out_of_stock'] ?? 0),
             ],
             'products' => [
                 'count' => $paginator->total(),
@@ -104,7 +106,7 @@ class AdminVendorMobileService
         $vp = $vp->fresh(['product.primaryImage', 'product.images', 'inventory', 'currentPrice']);
         $product = $vp->product;
         $price = (float) ($vp->currentPrice?->price ?? $product?->price ?? 0);
-        $stock = (int) ($vp->inventory?->quantity ?? $product?->stock ?? 0);
+        $stock = (int) $vp->stockQuantity();
         $isEnabled = $vp->isAdminLive();
 
         return [

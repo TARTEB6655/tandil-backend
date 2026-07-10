@@ -5,7 +5,6 @@ namespace App\Services\Vendor;
 use App\Enums\VendorOrderStatus;
 use App\Models\OrderItem;
 use App\Models\Vendor;
-use App\Models\VendorInventory;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
 use Carbon\Carbon;
@@ -43,16 +42,25 @@ class VendorDashboardService
      */
     public function stats(Vendor $vendor): array
     {
-        $activeProducts = VendorProduct::where('vendor_id', $vendor->id)->where('status', 'active')->count();
-        $disabledProducts = VendorProduct::where('vendor_id', $vendor->id)->where('disabled_by_admin', true)->count();
         $totalProducts = VendorProduct::where('vendor_id', $vendor->id)->count();
+        $activeProducts = VendorProduct::query()
+            ->where('vendor_id', $vendor->id)
+            ->marketplaceLive()
+            ->count();
+        $disabledProducts = VendorProduct::where('vendor_id', $vendor->id)->where('disabled_by_admin', true)->count();
 
-        $inventory = VendorInventory::whereHas('vendorProduct', fn ($q) => $q->where('vendor_id', $vendor->id))->get();
-        $outOfStock = $inventory->filter(fn ($i) => $i->isOutOfStock())->count();
-        $lowStock = $inventory->filter(fn ($i) => $i->isLowStock())->count();
+        $vendorProducts = VendorProduct::with(['inventory', 'product'])
+            ->where('vendor_id', $vendor->id)
+            ->get();
+
+        $outOfStock = $vendorProducts->filter(fn (VendorProduct $vp) => $vp->isOutOfStock())->count();
+        $lowStock = $vendorProducts->filter(fn (VendorProduct $vp) => $vp->isLowStock())->count();
 
         $ordersQuery = VendorOrderMapping::where('vendor_id', $vendor->id);
         $totalOrders = (clone $ordersQuery)->count();
+        $nonCancelledOrders = (clone $ordersQuery)
+            ->whereNotIn('status', [VendorOrderStatus::Cancelled->value])
+            ->count();
         $pendingOrders = (clone $ordersQuery)->where('status', VendorOrderStatus::Pending->value)->count();
         $completedOrders = (clone $ordersQuery)->where('status', VendorOrderStatus::Delivered->value)->count();
         $processingOrders = (clone $ordersQuery)->whereIn('status', [
@@ -69,7 +77,7 @@ class VendorDashboardService
             ->whereNotIn('status', [VendorOrderStatus::Cancelled->value])
             ->sum('commission_amount');
 
-        $avgOrder = $totalOrders > 0 ? round($revenue / $totalOrders, 2) : 0;
+        $avgOrder = $nonCancelledOrders > 0 ? round($revenue / $nonCancelledOrders, 2) : 0;
 
         $uniqueCustomers = (int) VendorOrderMapping::query()
             ->where('vendor_id', $vendor->id)
@@ -88,6 +96,7 @@ class VendorDashboardService
             'pending_orders' => $pendingOrders,
             'processing_orders' => $processingOrders,
             'completed_orders' => $completedOrders,
+            'delivered_orders' => $completedOrders,
             'revenue' => round($revenue, 2),
             'commission_paid' => round($commission, 2),
             'net_earnings' => round(max(0, $revenue - $commission), 2),
@@ -101,17 +110,17 @@ class VendorDashboardService
                 ->map(fn ($m) => $this->orderRow($m)),
             'inventory_alerts' => VendorProduct::with(['product', 'inventory'])
                 ->where('vendor_id', $vendor->id)
-                ->whereHas('inventory', function ($q) {
-                    $q->whereColumn('quantity', '<=', 'low_stock_threshold');
-                })
-                ->limit(10)
                 ->get()
-                ->map(fn ($vp) => [
+                ->filter(fn (VendorProduct $vp) => $vp->isLowStock())
+                ->take(10)
+                ->map(fn (VendorProduct $vp) => [
                     'vendor_product_id' => $vp->id,
                     'product_name' => $vp->product?->name,
-                    'quantity' => $vp->inventory?->quantity ?? 0,
-                    'low_stock_threshold' => $vp->inventory?->low_stock_threshold ?? 0,
-                ]),
+                    'quantity' => $vp->stockQuantity(),
+                    'low_stock_threshold' => $vp->lowStockThreshold(),
+                ])
+                ->values()
+                ->all(),
         ];
     }
 
@@ -130,12 +139,17 @@ class VendorDashboardService
         $productRow = VendorProduct::query()
             ->where('vendor_id', $vendorId)
             ->selectRaw('COUNT(*) as total_products')
-            ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_products")
             ->first();
 
-        $lowStock = (int) VendorInventory::query()
-            ->whereHas('vendorProduct', fn ($q) => $q->where('vendor_id', $vendorId))
-            ->whereColumn('quantity', '<=', 'low_stock_threshold')
+        $activeProducts = VendorProduct::query()
+            ->where('vendor_id', $vendorId)
+            ->marketplaceLive()
+            ->count();
+
+        $lowStock = VendorProduct::with(['inventory', 'product'])
+            ->where('vendor_id', $vendorId)
+            ->get()
+            ->filter(fn (VendorProduct $vp) => $vp->isLowStock())
             ->count();
 
         $orderRow = VendorOrderMapping::query()
@@ -151,7 +165,8 @@ class VendorDashboardService
             'revenue' => round((float) ($orderRow->revenue ?? 0), 2),
             'pending_orders' => (int) ($orderRow->pending_orders ?? 0),
             'products' => (int) ($productRow->total_products ?? 0),
-            'active' => (int) ($productRow->active_products ?? 0),
+            'active' => $activeProducts,
+            'active_products' => $activeProducts,
             'low_stock' => $lowStock,
             'total_orders' => (int) ($orderRow->total_orders ?? 0),
             'delivered_orders' => (int) ($orderRow->delivered_orders ?? 0),

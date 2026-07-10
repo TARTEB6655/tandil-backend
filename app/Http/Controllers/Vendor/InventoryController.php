@@ -26,10 +26,24 @@ class InventoryController extends Controller
             ->where('vendor_id', $vendor->id)
             ->when($request->filled('filter'), function ($q) use ($request) {
                 if ($request->query('filter') === 'low') {
-                    $q->whereHas('inventory', fn ($iq) => $iq->whereColumn('quantity', '<=', 'low_stock_threshold'));
+                    $q->where(function ($query) {
+                        $query->whereHas('inventory', fn ($iq) => $iq
+                            ->whereColumn('quantity', '<=', 'low_stock_threshold')
+                            ->where('quantity', '>', 0))
+                            ->orWhere(function ($query) {
+                                $query->whereDoesntHave('inventory')
+                                    ->whereHas('product', fn ($pq) => $pq->where('stock', '>', 0)->where('stock', '<=', 5));
+                            });
+                    });
                 }
                 if ($request->query('filter') === 'out') {
-                    $q->whereHas('inventory', fn ($iq) => $iq->where('quantity', '<=', 0));
+                    $q->where(function ($query) {
+                        $query->whereHas('inventory', fn ($iq) => $iq->where('quantity', '<=', 0))
+                            ->orWhere(function ($query) {
+                                $query->whereDoesntHave('inventory')
+                                    ->whereHas('product', fn ($pq) => $pq->where('stock', '<=', 0));
+                            });
+                    });
                 }
             })
             ->when($request->filled('search'), function ($q) use ($request) {

@@ -64,7 +64,7 @@ class VendorComparisonService
             $vendor = $vp->vendor;
             $product = $vp->product;
             $price = $vp->currentPrice?->price ?? $product?->price;
-            $qty = $vp->inventory?->quantity ?? $product?->stock ?? 0;
+            $qty = $vp->stockQuantity();
 
             return [
                 'vendor_id' => $vendor->id,

@@ -77,13 +77,47 @@ class VendorProduct extends Model
         return $this->belongsTo(User::class, 'disabled_by_admin_by');
     }
 
+    /**
+     * Canonical on-hand quantity for vendor listings.
+     * Prefer vendor_inventory; fall back to products.stock for legacy rows.
+     */
+    public function stockQuantity(): int
+    {
+        $this->loadMissing(['inventory', 'product']);
+
+        if ($this->inventory) {
+            return max(0, (int) $this->inventory->quantity);
+        }
+
+        return max(0, (int) ($this->product?->stock ?? 0));
+    }
+
+    public function lowStockThreshold(): int
+    {
+        $this->loadMissing('inventory');
+
+        return max(0, (int) ($this->inventory?->low_stock_threshold ?? 5));
+    }
+
+    public function isOutOfStock(): bool
+    {
+        return $this->stockQuantity() <= 0;
+    }
+
+    public function isLowStock(): bool
+    {
+        $quantity = $this->stockQuantity();
+
+        return $quantity > 0 && $quantity <= $this->lowStockThreshold();
+    }
+
     public function displayStatusKey(): string
     {
         if ($this->disabled_by_admin) {
             return 'disabled_by_admin';
         }
 
-        $stock = $this->inventory?->quantity ?? 0;
+        $stock = $this->stockQuantity();
         if ($stock <= 0 && $this->status === 'active' && $this->approval_status === 'approved') {
             return 'out_of_stock';
         }

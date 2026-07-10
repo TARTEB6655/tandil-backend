@@ -2,6 +2,7 @@
 
 namespace App\Services\Vendor;
 
+use App\Enums\VendorProductApprovalStatus;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
@@ -28,12 +29,11 @@ class VendorProductService
         );
 
         return DB::transaction(function () use ($vendor, $request, $validated) {
-            $approvalStatus = AdminVendorProductService::initialApprovalStatus();
-            $productActive = $approvalStatus === 'approved' ? ($validated['status'] ?? 'active') : 'draft';
+            $productStatus = ($validated['status'] ?? null) === 'draft' ? 'draft' : 'active';
 
             $createData = $this->catalog->buildCreateData($request, $validated, [
                 'vendor_id' => $vendor->id,
-                'status' => $productActive,
+                'status' => $productStatus,
                 'track_quantity' => true,
             ]);
 
@@ -53,8 +53,9 @@ class VendorProductService
             $vendorProduct = VendorProduct::create([
                 'vendor_id' => $vendor->id,
                 'product_id' => $product->id,
-                'status' => $validated['vendor_product_status'] ?? ($approvalStatus === 'approved' ? 'active' : 'inactive'),
-                'approval_status' => $approvalStatus,
+                'status' => $validated['vendor_product_status'] ?? 'active',
+                'approval_status' => VendorProductApprovalStatus::Approved->value,
+                'approved_at' => now(),
             ]);
 
             $this->recordPrice(
@@ -200,6 +201,15 @@ class VendorProductService
             'approval_status' => $vendorProduct->approval_status,
             'rejection_reason' => $vendorProduct->rejection_reason,
             'approved_at' => $vendorProduct->approved_at?->toIso8601String(),
+            'disabled_by_admin' => (bool) $vendorProduct->disabled_by_admin,
+            'stock_quantity' => $vendorProduct->stockQuantity(),
+            'stock' => $vendorProduct->stockQuantity(),
+            'low_stock_threshold' => $vendorProduct->lowStockThreshold(),
+            'is_low_stock' => $vendorProduct->isLowStock(),
+            'is_out_of_stock' => $vendorProduct->isOutOfStock(),
+            'is_live' => $vendorProduct->isMarketplaceVisible(),
+            'display_status' => $vendorProduct->displayStatusKey(),
+            'display_status_label' => $vendorProduct->displayStatusLabel(),
             'inventory' => $vendorProduct->inventory,
             'current_price' => $vendorProduct->currentPrice,
             'product' => $productData,

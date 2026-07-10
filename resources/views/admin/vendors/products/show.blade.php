@@ -33,7 +33,7 @@
 
         <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
             <x-admin.vendor.stat-card label="Price" :value="'AED '.number_format($vendorProduct->currentPrice?->price ?? $product?->price ?? 0, 2)" />
-            <x-admin.vendor.stat-card label="Stock" :value="number_format($vendorProduct->inventory?->quantity ?? 0)" />
+            <x-admin.vendor.stat-card label="Stock" :value="number_format($vendorProduct->stockQuantity())" />
             <x-admin.vendor.stat-card label="Total Sales" :value="number_format($totalSales)" accent="text-indigo-600" />
             <x-admin.vendor.stat-card label="Marketplace" :value="$vendorProduct->isMarketplaceVisible() ? 'Visible' : 'Hidden'" :accent="$vendorProduct->isMarketplaceVisible() ? 'text-emerald-600' : 'text-rose-600'" />
             <x-admin.vendor.stat-card label="Created" :value="$vendorProduct->created_at?->format('M j, Y') ?? '—'" />

@@ -4,7 +4,6 @@ namespace App\Services\Vendor;
 
 use App\Enums\VendorOrderStatus;
 use App\Models\Vendor;
-use App\Models\VendorInventory;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
 use App\Services\ProfilePictureUploadService;
@@ -52,22 +51,20 @@ class AdminVendorMetricsService
             ->get()
             ->keyBy('vendor_id');
 
-        $lowStock = VendorInventory::query()
-            ->join('vendor_products', 'vendor_inventory.vendor_product_id', '=', 'vendor_products.id')
-            ->whereIn('vendor_products.vendor_id', $vendorIds)
-            ->whereColumn('vendor_inventory.quantity', '<=', 'vendor_inventory.low_stock_threshold')
-            ->select('vendor_products.vendor_id')
-            ->selectRaw('COUNT(*) as low_stock_products')
-            ->groupBy('vendor_products.vendor_id')
+        $lowStockMap = VendorProduct::with(['inventory', 'product'])
+            ->whereIn('vendor_id', $vendorIds)
             ->get()
-            ->keyBy('vendor_id');
+            ->groupBy('vendor_id')
+            ->map(fn (Collection $products) => (object) [
+                'low_stock_products' => $products->filter(fn (VendorProduct $vp) => $vp->isLowStock())->count(),
+            ]);
 
         $map = [];
         foreach ($vendorIds as $vendorId) {
             $map[$vendorId] = $this->formatRow(
                 $products->get($vendorId),
                 $orders->get($vendorId),
-                $lowStock->get($vendorId)
+                $lowStockMap->get($vendorId)
             );
         }
 

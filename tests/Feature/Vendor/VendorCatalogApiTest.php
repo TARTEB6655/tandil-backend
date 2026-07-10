@@ -341,6 +341,37 @@ class VendorCatalogApiTest extends TestCase
         $this->assertSame(6, VendorProduct::where('vendor_id', $vendor->id)->count());
     }
 
+    public function test_new_vendor_product_is_live_by_default(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
+        \App\Models\Setting::set('marketplace_product_approval_required', '1', 'boolean', 'marketplace');
+
+        $category = Category::create([
+            'name' => 'Live Default',
+            'slug' => 'live-default-'.uniqid(),
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+
+        $response = $this->withToken($token)->postJson('/api/vendor/products', [
+            'name' => 'Auto Live Product',
+            'price' => 45,
+            'stock' => 8,
+            'category_id' => $category->id,
+        ])->assertCreated();
+
+        $vendorProductId = $response->json('data.vendor_product.id');
+        $vp = VendorProduct::with('product')->findOrFail($vendorProductId);
+
+        $this->assertSame('approved', $vp->approval_status);
+        $this->assertSame('active', $vp->status);
+        $this->assertSame('active', $vp->product?->status);
+        $this->assertFalse($vp->disabled_by_admin);
+        $this->assertTrue($vp->isMarketplaceVisible());
+        $this->assertTrue($response->json('data.vendor_product.is_live'));
+    }
+
     public function test_vendor_orders_list_includes_status_summary(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);

@@ -26,6 +26,10 @@ class VendorInventoryController extends Controller
         }
 
         return ApiResponse::success('Inventory retrieved.', [
+            'stock_quantity' => $vp->stockQuantity(),
+            'low_stock_threshold' => $vp->lowStockThreshold(),
+            'is_low_stock' => $vp->isLowStock(),
+            'is_out_of_stock' => $vp->isOutOfStock(),
             'inventory' => $vp->inventory,
             'history' => VendorInventoryLog::where('vendor_product_id', $vp->id)->latest()->limit(50)->get(),
         ]);
@@ -45,12 +49,17 @@ class VendorInventoryController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        if (isset($data['low_stock_threshold'])) {
-            $vp->inventory?->update(['low_stock_threshold' => $data['low_stock_threshold']]);
-        }
-
         $inventory = $this->inventory->adjust($vp, (int) $data['quantity'], $request->user(), 'manual_update', $data['notes'] ?? null);
 
-        return ApiResponse::success('Inventory updated.', ['inventory' => $inventory]);
+        if (isset($data['low_stock_threshold'])) {
+            $inventory->update(['low_stock_threshold' => (int) $data['low_stock_threshold']]);
+        }
+
+        $vp = $vp->fresh(['inventory', 'product']);
+
+        return ApiResponse::success('Inventory updated.', [
+            'stock_quantity' => $vp->stockQuantity(),
+            'inventory' => $inventory->fresh(),
+        ]);
     }
 }

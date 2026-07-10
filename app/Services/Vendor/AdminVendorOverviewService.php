@@ -121,7 +121,16 @@ class AdminVendorOverviewService
                 ->limit(6)
                 ->get(),
             'low_stock' => VendorProduct::with(['product', 'vendor.profile', 'inventory'])
-                ->whereHas('inventory', fn ($q) => $q->whereColumn('quantity', '<=', 'low_stock_threshold')->where('quantity', '>', 0))
+                ->where(function ($query) {
+                    $query->whereHas('inventory', fn ($q) => $q
+                        ->whereColumn('quantity', '<=', 'low_stock_threshold')
+                        ->where('quantity', '>', 0))
+                        ->orWhere(function ($query) {
+                            $query->whereDoesntHave('inventory')
+                                ->whereHas('product', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', 5));
+                        });
+                })
+                ->latest()
                 ->limit(6)
                 ->get(),
             'disabled_products' => VendorProduct::with(['product', 'vendor.profile'])

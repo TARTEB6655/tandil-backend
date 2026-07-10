@@ -33,7 +33,7 @@
                     <tr class="transition-colors hover:bg-gray-50">
                         <td class="px-3 py-3 text-sm font-medium text-gray-900 sm:px-6">{{ $vp->product?->name }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">AED {{ number_format($vp->currentPrice?->price ?? $vp->product?->price ?? 0, 2) }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ $vp->inventory?->quantity ?? 0 }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ $vp->stockQuantity() }}</td>
                         <td class="px-4 py-3 text-sm">
                             @if($vp->disabled_by_admin)
                                 <span class="inline-flex rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-600/20">Disabled by Admin</span>

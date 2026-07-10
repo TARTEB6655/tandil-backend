@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Vendor;
-use App\Models\VendorInventory;
 use App\Models\VendorProduct;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -22,8 +21,13 @@ class AdminVendorProductListService
         $base = VendorProduct::query()->where('vendor_id', $vendor->id);
 
         $outOfStock = (clone $base)
-            ->marketplaceLive()
-            ->whereHas('inventory', fn ($q) => $q->where('quantity', '<=', 0))
+            ->where(function ($query) {
+                $query->whereHas('inventory', fn ($q) => $q->where('quantity', '<=', 0))
+                    ->orWhere(function ($query) {
+                        $query->whereDoesntHave('inventory')
+                            ->whereHas('product', fn ($q) => $q->where('stock', '<=', 0));
+                    });
+            })
             ->count();
 
         return [
@@ -46,8 +50,13 @@ class AdminVendorProductListService
             if ($status === 'disabled_by_admin') {
                 $query->where('disabled_by_admin', true);
             } elseif ($status === 'out_of_stock') {
-                $query->where('status', 'active')
-                    ->whereHas('inventory', fn ($q) => $q->where('quantity', '<=', 0));
+                $query->where(function ($query) {
+                    $query->whereHas('inventory', fn ($q) => $q->where('quantity', '<=', 0))
+                        ->orWhere(function ($query) {
+                            $query->whereDoesntHave('inventory')
+                                ->whereHas('product', fn ($q) => $q->where('stock', '<=', 0));
+                        });
+                });
             } else {
                 $query->where('status', $status);
             }
@@ -85,8 +94,11 @@ class AdminVendorProductListService
             'price_low' => $query->orderBy(
                 Product::select('price')->whereColumn('products.id', 'vendor_products.product_id')
             ),
-            'stock_low' => $query->orderBy(
-                VendorInventory::select('quantity')->whereColumn('vendor_inventories.vendor_product_id', 'vendor_products.id')
+            'stock_low' => $query->orderByRaw(
+                'COALESCE('
+                .'(SELECT quantity FROM vendor_inventory WHERE vendor_product_id = vendor_products.id LIMIT 1), '
+                .'(SELECT stock FROM products WHERE id = vendor_products.product_id LIMIT 1), '
+                .'0) ASC'
             ),
             default => $query->latest('vendor_products.created_at'),
         };
@@ -127,5 +139,41 @@ class AdminVendorProductListService
             ->pluck('products.category_id');
 
         return Category::query()->whereIn('id', $categoryIds)->orderBy('name')->get(['id', 'name']);
+    }
+
+    /**
+     * Admin/API list row — matches web vendor products table fields.
+     *
+     * @return array<string, mixed>
+     */
+    public function formatListItem(VendorProduct $vp, int $sales = 0): array
+    {
+        $vp->loadMissing(['product.category', 'product.primaryImage', 'product.images', 'inventory', 'currentPrice']);
+        $product = $vp->product;
+        $price = (float) ($vp->currentPrice?->price ?? $product?->price ?? 0);
+
+        return [
+            'id' => $vp->id,
+            'vendor_product_id' => $vp->id,
+            'product_id' => $vp->product_id,
+            'name' => $product?->name,
+            'sku' => $product?->sku,
+            'category' => $product?->category?->name,
+            'price' => round($price, 2),
+            'price_formatted' => 'AED '.number_format($price, 2),
+            'stock' => $vp->stockQuantity(),
+            'stock_quantity' => $vp->stockQuantity(),
+            'sales' => $sales,
+            'status' => $vp->status,
+            'product_status' => $product?->status,
+            'disabled_by_admin' => (bool) $vp->disabled_by_admin,
+            'is_enabled' => $vp->isAdminLive(),
+            'is_live' => $vp->isAdminLive(),
+            'is_low_stock' => $vp->isLowStock(),
+            'is_out_of_stock' => $vp->isOutOfStock(),
+            'image_url' => $product?->image_url,
+            'created_at' => $vp->created_at?->toIso8601String(),
+            'updated_at' => $vp->updated_at?->toIso8601String(),
+        ];
     }
 }

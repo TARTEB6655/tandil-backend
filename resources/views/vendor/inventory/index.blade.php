@@ -14,8 +14,8 @@
     <div class="space-y-4">
         @forelse($items as $vp)
             @php
-                $qty = $vp->inventory?->quantity ?? 0;
-                $threshold = $vp->inventory?->low_stock_threshold ?? 5;
+                $qty = $vp->stockQuantity();
+                $threshold = $vp->lowStockThreshold();
                 $isLow = $qty <= $threshold;
                 $isOut = $qty <= 0;
             @endphp

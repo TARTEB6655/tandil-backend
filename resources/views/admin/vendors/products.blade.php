@@ -107,7 +107,7 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse($products as $vp)
                             @php
-                                $stock = $vp->inventory?->quantity ?? 0;
+                                $stock = $vp->stockQuantity();
                                 $sales = $salesMap[$vp->product_id] ?? 0;
                                 $price = $vp->currentPrice?->price ?? $vp->product?->price ?? 0;
                             @endphp

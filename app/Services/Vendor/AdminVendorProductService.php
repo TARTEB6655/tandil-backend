@@ -5,7 +5,6 @@ namespace App\Services\Vendor;
 use App\Enums\VendorProductApprovalStatus;
 use App\Models\User;
 use App\Models\VendorProduct;
-use App\Support\MarketplaceSettings;
 use Illuminate\Support\Facades\DB;
 
 class AdminVendorProductService
@@ -124,8 +123,6 @@ class AdminVendorProductService
 
     public static function initialApprovalStatus(): string
     {
-        return MarketplaceSettings::productApprovalRequired()
-            ? VendorProductApprovalStatus::Pending->value
-            : VendorProductApprovalStatus::Approved->value;
+        return VendorProductApprovalStatus::Approved->value;
     }
 }

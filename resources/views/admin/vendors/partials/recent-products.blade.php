@@ -15,7 +15,7 @@
                     <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $vp->product?->name }}</p>
                     <div class="mt-1 flex items-center gap-2">
                         <x-admin.vendor.status-badge :status="$vp->status" />
-                        <span class="text-xs text-gray-500">{{ $vp->inventory?->quantity ?? 0 }} in stock</span>
+                        <span class="text-xs text-gray-500">{{ $vp->stockQuantity() }} in stock</span>
                     </div>
                 </div>
             </div>
