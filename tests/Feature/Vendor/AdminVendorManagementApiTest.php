@@ -115,6 +115,9 @@ class AdminVendorManagementApiTest extends TestCase
                             'business_name',
                             'owner_name',
                             'email',
+                            'logo_url',
+                            'profile_picture_url',
+                            'profile_url',
                             'products_count',
                             'active_count',
                             'revenue',
@@ -128,6 +131,25 @@ class AdminVendorManagementApiTest extends TestCase
             ->assertJsonPath('data.items.0.vendor_id', $vendor->id)
             ->assertJsonPath('data.items.0.products_count', 1)
             ->assertJsonPath('data.items.0.revenue', 120);
+    }
+
+    public function test_admin_mobile_management_includes_vendor_profile_image_urls(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+
+        $vendor->profile->update([
+            'logo_path' => 'vendors/logos/test-logo.jpg',
+            'profile_picture_path' => 'vendors/profile-pictures/test-profile.jpg',
+        ]);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/admin/vendors/management')
+            ->assertOk();
+
+        $item = $response->json('data.items.0');
+        $this->assertStringContainsString('vendors/logos/test-logo.jpg', (string) ($item['logo_url'] ?? ''));
+        $this->assertStringContainsString('vendors/profile-pictures/test-profile.jpg', (string) ($item['profile_picture_url'] ?? ''));
+        $this->assertStringContainsString('vendors/logos/test-logo.jpg', (string) ($item['profile_url'] ?? ''));
     }
 
     public function test_admin_mobile_management_supports_search(): void

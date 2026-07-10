@@ -7,6 +7,7 @@ use App\Models\Vendor;
 use App\Models\VendorInventory;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
+use App\Services\ProfilePictureUploadService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -97,9 +98,13 @@ class AdminVendorMetricsService
             'owner_name' => $profile?->owner_name,
             'email' => $profile?->email ?? $vendor->user?->email,
             'phone' => $profile?->phone ?? $vendor->user?->phone,
-            'logo_url' => $profile?->logo_url,
             'emirate' => $profile?->emirate,
             'city' => $profile?->city,
+            'logo_url' => $profile?->logo_url ?? $vendor->logo_url,
+            'profile_picture_url' => $profile?->profile_picture_url,
+            'profile_url' => ($profile?->logo_url ?? $vendor->logo_url)
+                ?? $profile?->profile_picture_url
+                ?? ProfilePictureUploadService::fullUrl($vendor->user?->profile_picture),
             'metrics' => $metrics ?? $this->emptyMetrics(),
         ];
     }
