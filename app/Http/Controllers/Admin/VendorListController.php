@@ -25,7 +25,7 @@ class VendorListController extends Controller
 
     public function index(Request $request): View
     {
-        return $this->renderList($request, null, 'All Vendors', 'Manage every marketplace seller in one place.');
+        return $this->renderList($request, null, 'All Vendors', 'Each row is one vendor — metrics in the performance column belong to that vendor only.');
     }
 
     public function pending(Request $request): View
