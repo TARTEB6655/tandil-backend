@@ -23,7 +23,7 @@ class VendorAuthController extends Controller
             VendorRegistrationService::documentFilesFromRequest($request)
         );
 
-        return ApiResponse::success('Vendor registration submitted. Admin will review your application before you can sell.', [
+        return ApiResponse::success(VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE, [
             'vendor_id' => $vendor->id,
             'status' => $vendor->status,
             'logo_url' => $vendor->logo_url,

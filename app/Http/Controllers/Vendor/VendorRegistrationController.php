@@ -36,7 +36,7 @@ class VendorRegistrationController extends Controller
 
         return redirect()->route('app-portal.login', ['portal' => 'vendor'])->with(
             'success',
-            'Registration submitted successfully. You can sign in after admin approves your vendor account.'
+            VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE
         );
     }
 }

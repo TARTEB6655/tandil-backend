@@ -12,6 +12,12 @@
             </div>
         @endif
 
+        @if (session('success'))
+            <div class="portal-alert" style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;margin-bottom:1rem;">
+                {{ session('success') }}
+            </div>
+        @endif
+
         <header style="text-align:center;margin-bottom:1.25rem;">
             <div class="portal-logo-wrap">
                 <img src="{{ asset('images/logo.png') }}" alt="TANDIL" width="80" height="80" decoding="async">

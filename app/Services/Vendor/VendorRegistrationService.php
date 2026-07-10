@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Storage;
 
 class VendorRegistrationService
 {
+    public const REGISTRATION_SUCCESS_MESSAGE = 'Thank you! We have received your registration request successfully. We will contact you shortly after we review your request.';
+
     public function __construct(
         private readonly VendorDocumentService $documents,
         private readonly VendorApplicationService $application

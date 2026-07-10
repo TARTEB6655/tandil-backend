@@ -8,6 +8,7 @@ use App\Models\Vendor;
 use App\Models\VendorProfile;
 use App\Notifications\AdminNotification;
 use App\Notifications\VendorApplicationStatusNotification;
+use App\Services\Vendor\VendorRegistrationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -61,6 +62,7 @@ class VendorModuleTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('message', VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE)
             ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
             ->assertJsonPath('data.profile.business_name', 'Green Farms LLC')
             ->assertJsonPath('data.profile.owner_name', 'Ali Vendor')
