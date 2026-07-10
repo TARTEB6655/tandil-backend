@@ -7,6 +7,7 @@ use App\Enums\VendorStatus;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
@@ -209,6 +210,29 @@ class AdminVendorManagementApiTest extends TestCase
         $this->assertStringContainsString('vendors/logos/detail-logo.jpg', (string) ($vendorPayload['logo_url'] ?? ''));
         $this->assertArrayNotHasKey('profile_picture_url', $vendorPayload);
         $this->assertArrayNotHasKey('profile_url', $vendorPayload);
+    }
+
+    public function test_admin_mobile_vendor_detail_returns_product_image_from_gallery_without_primary(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+        $product = $vendorProduct->product;
+        $product->update(['image' => null]);
+
+        ProductImage::create([
+            'product_id' => $product->id,
+            'image_path' => 'gallery-only.jpg',
+            'sort_order' => 0,
+            'is_primary' => false,
+        ]);
+
+        $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/management")
+            ->assertOk()
+            ->assertJsonPath(
+                'data.products.items.0.image_url',
+                fn ($url) => is_string($url) && str_contains($url, 'gallery-only.jpg')
+            );
     }
 
     public function test_admin_mobile_vendor_detail_returns_products_with_toggle_metadata(): void

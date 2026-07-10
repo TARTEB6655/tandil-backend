@@ -131,6 +131,19 @@ class Product extends Model
                 return $this->buildImageUrl($primary->image_path);
             }
         }
+
+        // Fallback to gallery images when primary is not marked
+        if ($this->relationLoaded('images')) {
+            $images = $this->getRelation('images');
+            if ($images && $images->isNotEmpty()) {
+                $primary = $images->firstWhere('is_primary', true);
+                $candidate = $primary ?? $images->sortBy('sort_order')->first();
+                if ($candidate && $candidate->image_path) {
+                    return $this->buildImageUrl($candidate->image_path);
+                }
+            }
+        }
+
         // Fallback to first available image relation when no primary is marked
         if ($this->relationLoaded('firstImage')) {
             $first = $this->getRelation('firstImage');
@@ -138,10 +151,12 @@ class Product extends Model
                 return $this->buildImageUrl($first->image_path);
             }
         }
-        // Fallback to image field
+
+        // Fallback to legacy image column
         if ($this->image) {
             return $this->buildImageUrl($this->image, 'products/');
         }
+
         return null;
     }
 

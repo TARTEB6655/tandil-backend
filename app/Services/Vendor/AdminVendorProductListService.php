@@ -47,7 +47,7 @@ class AdminVendorProductListService
     public function paginate(Vendor $vendor, Request $request): LengthAwarePaginator
     {
         $query = VendorProduct::query()
-            ->with(['product.category', 'product.primaryImage', 'inventory', 'currentPrice', 'disabledByAdminUser'])
+            ->with(['product.category', 'product.primaryImage', 'product.images', 'inventory', 'currentPrice', 'disabledByAdminUser'])
             ->where('vendor_id', $vendor->id);
 
         if ($request->filled('approval_status')) {
