@@ -27,11 +27,14 @@ class AdminVendorMetricsService
         }
 
         $products = VendorProduct::query()
-            ->whereIn('vendor_id', $vendorIds)
-            ->select('vendor_id')
+            ->join('products', 'products.id', '=', 'vendor_products.product_id')
+            ->whereIn('vendor_products.vendor_id', $vendorIds)
+            ->select('vendor_products.vendor_id')
             ->selectRaw('COUNT(*) as total_products')
-            ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_products")
-            ->groupBy('vendor_id')
+            ->selectRaw(
+                "SUM(CASE WHEN vendor_products.status = 'active' AND vendor_products.approval_status = 'approved' AND vendor_products.disabled_by_admin = 0 AND products.status = 'active' THEN 1 ELSE 0 END) as active_products"
+            )
+            ->groupBy('vendor_products.vendor_id')
             ->get()
             ->keyBy('vendor_id');
 

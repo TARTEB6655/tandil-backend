@@ -57,14 +57,17 @@ class VendorManagementController extends Controller
     public function toggleProduct(Request $request, int $vendorId, int $productId): JsonResponse
     {
         $vendor = Vendor::findOrFail($vendorId);
-        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->findOrFail($productId);
+        $vendorProduct = VendorProduct::findForVendorToggle($vendor->id, $productId);
 
         $updated = $this->adminProducts->toggle($vendorProduct, $request->user());
+        $product = $this->mobile->formatProductItem($vendor, $updated);
 
         return ApiResponse::success(
-            $updated->disabled_by_admin ? 'Product disabled on marketplace.' : 'Product enabled on marketplace.',
+            $product['is_enabled']
+                ? 'Product enabled on marketplace.'
+                : 'Product disabled on marketplace.',
             [
-                'product' => $this->mobile->formatProductItem($vendor, $updated),
+                'product' => $product,
             ]
         );
     }

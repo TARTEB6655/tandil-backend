@@ -310,6 +310,47 @@ class AdminVendorManagementApiTest extends TestCase
         $this->assertSame('approved', $vendorProduct->approval_status);
     }
 
+    public function test_disabled_product_status_matches_across_toggle_and_detail_api(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}/toggle")
+            ->assertOk()
+            ->assertJsonPath('data.product.is_enabled', false)
+            ->assertJsonPath('data.product.is_live', false)
+            ->assertJsonPath('data.product.disabled_by_admin', true)
+            ->assertJsonPath('data.product.status', 'inactive')
+            ->assertJsonPath('data.product.product_status', 'archived');
+
+        $vendorProduct->refresh();
+        $this->assertTrue($vendorProduct->disabled_by_admin);
+        $this->assertSame('inactive', $vendorProduct->status);
+        $this->assertSame('archived', $vendorProduct->product?->fresh()->status);
+        $this->assertFalse($vendorProduct->isAdminLive());
+
+        $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/management")
+            ->assertOk()
+            ->assertJsonPath('data.summary.enabled_products', 0)
+            ->assertJsonPath('data.products.items.0.is_enabled', false)
+            ->assertJsonPath('data.products.items.0.disabled_by_admin', true)
+            ->assertJsonPath('data.products.items.0.status', 'inactive');
+    }
+
+    public function test_toggle_accepts_catalog_product_id(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->product_id}/toggle")
+            ->assertOk()
+            ->assertJsonPath('data.product.is_enabled', false)
+            ->assertJsonPath('data.product.vendor_product_id', $vendorProduct->id);
+    }
+
     /**
      * @return array{adminToken: string, vendor: Vendor}
      */

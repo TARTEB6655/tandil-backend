@@ -22,18 +22,13 @@ class AdminVendorProductListService
         $base = VendorProduct::query()->where('vendor_id', $vendor->id);
 
         $outOfStock = (clone $base)
-            ->where('status', 'active')
-            ->where('disabled_by_admin', false)
+            ->marketplaceLive()
             ->whereHas('inventory', fn ($q) => $q->where('quantity', '<=', 0))
             ->count();
 
         return [
             'total' => (clone $base)->count(),
-            'active' => (clone $base)
-                ->where('status', 'active')
-                ->where('disabled_by_admin', false)
-                ->whereHas('product', fn ($q) => $q->where('status', 'active'))
-                ->count(),
+            'active' => (clone $base)->marketplaceLive()->count(),
             'disabled' => (clone $base)->where('disabled_by_admin', true)->count(),
             'draft' => (clone $base)->whereHas('product', fn ($q) => $q->where('status', 'draft'))->count(),
             'out_of_stock' => $outOfStock,

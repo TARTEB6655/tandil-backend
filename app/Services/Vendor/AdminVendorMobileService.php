@@ -101,11 +101,11 @@ class AdminVendorMobileService
      */
     public function formatProductItem(Vendor $vendor, VendorProduct $vp): array
     {
-        $vp->loadMissing(['product.primaryImage', 'product.images', 'inventory', 'currentPrice']);
+        $vp = $vp->fresh(['product.primaryImage', 'product.images', 'inventory', 'currentPrice']);
         $product = $vp->product;
         $price = (float) ($vp->currentPrice?->price ?? $product?->price ?? 0);
         $stock = (int) ($vp->inventory?->quantity ?? $product?->stock ?? 0);
-        $isEnabled = $this->isProductEnabledForToggle($vp);
+        $isEnabled = $vp->isAdminLive();
 
         return [
             'id' => $vp->id,
@@ -115,7 +115,11 @@ class AdminVendorMobileService
             'price' => round($price, 2),
             'price_formatted' => $this->formatAed($price),
             'stock' => $stock,
+            'status' => $vp->status,
+            'product_status' => $product?->status,
+            'disabled_by_admin' => (bool) $vp->disabled_by_admin,
             'is_enabled' => $isEnabled,
+            'is_live' => $isEnabled,
             'image_url' => $product?->image_url,
             'can_toggle' => true,
             'actions' => [
@@ -191,11 +195,6 @@ class AdminVendorMobileService
                 ->orderBy('vendor_profiles.business_name')
                 ->select('vendors.*'))
             ->when(! in_array($sort, ['oldest', 'business'], true), fn ($query) => $query->latest());
-    }
-
-    private function isProductEnabledForToggle(VendorProduct $vp): bool
-    {
-        return $vp->isMarketplaceVisible();
     }
 
     private function formatAed(float $amount): string

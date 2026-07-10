@@ -132,4 +132,35 @@ class VendorProduct extends Model
             && ! $this->disabled_by_admin
             && ($this->product?->status ?? '') === 'active';
     }
+
+    public function isAdminLive(): bool
+    {
+        return $this->isMarketplaceVisible();
+    }
+
+    /**
+     * Products that are live on the customer marketplace.
+     */
+    public function scopeMarketplaceLive($query)
+    {
+        return $query
+            ->where('vendor_products.status', 'active')
+            ->where('vendor_products.approval_status', 'approved')
+            ->where('vendor_products.disabled_by_admin', false)
+            ->whereHas('product', fn ($q) => $q->where('status', 'active'));
+    }
+
+    /**
+     * Resolve a vendor listing by vendor_product id or underlying product id.
+     */
+    public static function findForVendorToggle(int $vendorId, int $productId): self
+    {
+        return static::query()
+            ->where('vendor_id', $vendorId)
+            ->where(function ($query) use ($productId) {
+                $query->where('id', $productId)
+                    ->orWhere('product_id', $productId);
+            })
+            ->firstOrFail();
+    }
 }
