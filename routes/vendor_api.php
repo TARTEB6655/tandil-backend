@@ -105,8 +105,11 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->group(function () {
     Route::get('/stats', [VendorManagementController::class, 'stats']);
+    Route::get('/management', [VendorManagementController::class, 'management']);
     Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
     Route::get('/', [VendorManagementController::class, 'index']);
+    Route::get('/{id}/management', [VendorManagementController::class, 'managementDetail']);
+    Route::post('/{vendorId}/products/{productId}/toggle', [VendorManagementController::class, 'toggleProduct']);
     Route::get('/{id}/analytics', [VendorManagementController::class, 'analytics']);
     Route::get('/{id}/products', [VendorManagementController::class, 'products']);
     Route::get('/{id}/orders', [VendorManagementController::class, 'orders']);

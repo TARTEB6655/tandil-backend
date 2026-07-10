@@ -10,6 +10,8 @@ use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
 use App\Services\Vendor\AdminVendorMetricsService;
+use App\Services\Vendor\AdminVendorMobileService;
+use App\Services\Vendor\AdminVendorProductService;
 use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorApprovalService;
 use App\Services\Vendor\VendorDashboardService;
@@ -24,8 +26,46 @@ class VendorManagementController extends Controller
         private readonly VendorRegistrationService $registration,
         private readonly VendorApplicationService $application,
         private readonly VendorDashboardService $dashboard,
-        private readonly AdminVendorMetricsService $metrics
+        private readonly AdminVendorMetricsService $metrics,
+        private readonly AdminVendorMobileService $mobile,
+        private readonly AdminVendorProductService $adminProducts
     ) {}
+
+    /**
+     * Admin mobile app — Vendor Management screen (summary + searchable vendor list).
+     */
+    public function management(Request $request): JsonResponse
+    {
+        return ApiResponse::success('Vendor management retrieved.', $this->mobile->managementIndex($request));
+    }
+
+    /**
+     * Admin mobile app — vendor detail with products and enable/disable toggle metadata.
+     */
+    public function managementDetail(Request $request, int $id): JsonResponse
+    {
+        $vendor = Vendor::findOrFail($id);
+
+        return ApiResponse::success('Vendor management detail retrieved.', $this->mobile->managementDetail($vendor, $request));
+    }
+
+    /**
+     * Admin mobile app — toggle vendor product enabled/disabled on marketplace.
+     */
+    public function toggleProduct(Request $request, int $vendorId, int $productId): JsonResponse
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->findOrFail($productId);
+
+        $updated = $this->adminProducts->toggle($vendorProduct, $request->user());
+
+        return ApiResponse::success(
+            $updated->disabled_by_admin ? 'Product disabled on marketplace.' : 'Product enabled on marketplace.',
+            [
+                'product' => $this->mobile->formatProductItem($vendor, $updated),
+            ]
+        );
+    }
 
     public function index(Request $request): JsonResponse
     {

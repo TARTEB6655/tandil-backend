@@ -98,6 +98,110 @@ class AdminVendorManagementApiTest extends TestCase
             ->assertJsonStructure(['data' => ['items', 'pagination']]);
     }
 
+    public function test_admin_mobile_management_returns_summary_and_vendor_cards(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+
+        $this->withToken($token)
+            ->getJson('/api/admin/vendors/management')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'summary' => ['vendors', 'products', 'revenue', 'revenue_formatted'],
+                    'items' => [
+                        [
+                            'vendor_id',
+                            'business_name',
+                            'owner_name',
+                            'email',
+                            'products_count',
+                            'active_count',
+                            'revenue',
+                            'revenue_formatted',
+                            'detail' => ['method', 'endpoint'],
+                        ],
+                    ],
+                    'pagination',
+                ],
+            ])
+            ->assertJsonPath('data.items.0.vendor_id', $vendor->id)
+            ->assertJsonPath('data.items.0.products_count', 1)
+            ->assertJsonPath('data.items.0.revenue', 120);
+    }
+
+    public function test_admin_mobile_management_supports_search(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+
+        $this->withToken($token)
+            ->getJson('/api/admin/vendors/management?search=Metrics')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.business_name', 'Metrics Store');
+
+        $this->withToken($token)
+            ->getJson('/api/admin/vendors/management?search=missing-vendor')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.items');
+    }
+
+    public function test_admin_mobile_vendor_detail_returns_products_with_toggle_metadata(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+
+        $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/management")
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'vendor' => ['id', 'email', 'phone', 'business_name'],
+                    'summary' => [
+                        'total_revenue',
+                        'total_revenue_formatted',
+                        'total_products',
+                        'enabled_products',
+                    ],
+                    'products' => [
+                        'count',
+                        'items' => [
+                            [
+                                'vendor_product_id',
+                                'name',
+                                'price_formatted',
+                                'stock',
+                                'is_enabled',
+                                'status_label',
+                                'image_url',
+                                'actions' => ['toggle' => ['method', 'endpoint']],
+                            ],
+                        ],
+                        'pagination',
+                    ],
+                ],
+            ])
+            ->assertJsonPath('data.summary.total_products', 1)
+            ->assertJsonPath('data.summary.enabled_products', 1)
+            ->assertJsonPath('data.products.items.0.is_enabled', true);
+    }
+
+    public function test_admin_can_toggle_vendor_product_from_mobile_api(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}/toggle")
+            ->assertOk()
+            ->assertJsonPath('data.product.is_enabled', false)
+            ->assertJsonPath('data.product.disabled_by_admin', true);
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}/toggle")
+            ->assertOk()
+            ->assertJsonPath('data.product.is_enabled', true)
+            ->assertJsonPath('data.product.disabled_by_admin', false);
+    }
+
     /**
      * @return array{adminToken: string, vendor: Vendor}
      */

@@ -21464,7 +21464,7 @@
                 },
                 {
                     "name": "N. Admin – Vendor Management",
-                    "description": "**Admin mobile vendor review flow (test in order):**\n1. **Login admin** — sets {{token}}\n2. **Recent vendor requests** — home widget cards; auto-sets {{vendor_id}} from first item\n3. **List vendors (View All)** — paginated pending + under_review\n4. **Vendor application detail** — tap card; full Contact + Business + Bank + Documents\n5. **Approve** or **Reject** (Cancel button in app)\n\nAuth: Bearer {{token}} (admin). Variable {{vendor_id}} auto-set by steps 2–3.",
+                    "description": "**Admin mobile flows (Bearer {{token}}):**\n\n**A — Vendor review (pending):** 0 Login → 2 Recent requests → 3 List pending → 4 Application detail → 8 Approve \/ 9 Reject\n\n**B — Vendor Management dashboard (monitor vendors + products):**\n1a **Vendor management** — summary cards (vendors, products, revenue) + searchable vendor list\n1b **Vendor management detail** — vendor header, KPIs, products with toggle metadata\n1c **Toggle product** — enable\/disable product on marketplace\n\nVariables {{vendor_id}} and {{vendor_product_id}} auto-set by test scripts in 1a–1b.",
                     "item": [
                         {
                             "name": "0. Login admin (set token)",
@@ -21540,6 +21540,192 @@
                                     ]
                                 },
                                 "description": "Counts: total, pending, under_review, approved, rejected, suspended, disabled."
+                            }
+                        },
+                        {
+                            "name": "1a. Vendor management (mobile dashboard)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text\/javascript",
+                                        "exec": [
+                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                            "if (pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    pm.expect(j.data).to.have.property('summary');",
+                                            "    pm.expect(j.data.summary).to.have.keys(['vendors', 'products', 'revenue', 'revenue_formatted']);",
+                                            "    var items = j.data.items || [];",
+                                            "    if (items.length && items[0].vendor_id) {",
+                                            "        pm.collectionVariables.set('vendor_id', String(items[0].vendor_id));",
+                                            "        pm.environment.set('vendor_id', String(items[0].vendor_id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendors\/management?per_page=15&sort=newest",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "vendors",
+                                        "management"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        },
+                                        {
+                                            "key": "sort",
+                                            "value": "newest"
+                                        },
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "disabled": true,
+                                            "description": "Search business name, owner, email"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "approved",
+                                            "disabled": true,
+                                            "description": "Single or comma-separated vendor status"
+                                        }
+                                    ]
+                                },
+                                "description": "**Vendor Management screen** — top summary (vendors count, products count, marketplace revenue) plus paginated vendor cards with products_count, active_count, revenue_formatted. Auto-sets {{vendor_id}} from first card."
+                            }
+                        },
+                        {
+                            "name": "1b. Vendor management detail (mobile)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text\/javascript",
+                                        "exec": [
+                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                            "if (pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    pm.expect(j.data.vendor).to.have.property('email');",
+                                            "    pm.expect(j.data.summary).to.have.keys(['total_revenue', 'total_products', 'enabled_products']);",
+                                            "    var items = j.data.products && j.data.products.items;",
+                                            "    if (items && items.length && items[0].vendor_product_id) {",
+                                            "        pm.collectionVariables.set('vendor_product_id', String(items[0].vendor_product_id));",
+                                            "        pm.environment.set('vendor_product_id', String(items[0].vendor_product_id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendors\/{{vendor_id}}\/management?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "vendors",
+                                        "{{vendor_id}}",
+                                        "management"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        },
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "active",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "**Vendor detail screen** — vendor email\/phone, KPI cards (total revenue, total products, enabled products), and products list with price_formatted, stock, is_enabled, status_label, image_url, and toggle action endpoint. Auto-sets {{vendor_product_id}} from first product."
+                            }
+                        },
+                        {
+                            "name": "1c. Toggle vendor product (enable\/disable)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text\/javascript",
+                                        "exec": [
+                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                            "if (pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    pm.expect(j.data.product).to.have.property('is_enabled');",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendors\/{{vendor_id}}\/products\/{{vendor_product_id}}\/toggle",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "vendors",
+                                        "{{vendor_id}}",
+                                        "products",
+                                        "{{vendor_product_id}}",
+                                        "toggle"
+                                    ]
+                                },
+                                "description": "Toggles marketplace visibility for an approved vendor product. Response includes updated product object (is_enabled, disabled_by_admin, status_label). Run twice to flip back."
                             }
                         },
                         {
