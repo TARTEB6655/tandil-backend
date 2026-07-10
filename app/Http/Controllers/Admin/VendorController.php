@@ -3,19 +3,29 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\VendorDocumentType;
-use App\Enums\VendorStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Vendor;
 use App\Models\VendorAnalyticsShare;
+use App\Models\VendorOrderMapping;
+use App\Models\VendorProduct;
+use App\Notifications\AdminNotification;
+use App\Services\Vendor\AdminVendorActivityService;
+use App\Services\Vendor\AdminVendorListService;
 use App\Services\Vendor\AdminVendorMetricsService;
+use App\Services\Vendor\AdminVendorProductService;
+use App\Services\Vendor\AdminVendorRevenueService;
 use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorApprovalService;
 use App\Services\Vendor\VendorDashboardService;
 use App\Services\Vendor\VendorDocumentService;
 use App\Services\Vendor\VendorPerformanceAnalyticsService;
 use App\Services\Vendor\VendorRegistrationService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class VendorController extends Controller
 {
@@ -26,52 +36,16 @@ class VendorController extends Controller
         private readonly VendorApplicationService $application,
         private readonly VendorDashboardService $dashboard,
         private readonly VendorPerformanceAnalyticsService $performanceAnalytics,
-        private readonly AdminVendorMetricsService $vendorMetrics
+        private readonly AdminVendorMetricsService $vendorMetrics,
+        private readonly AdminVendorListService $listService,
+        private readonly AdminVendorRevenueService $revenueService,
+        private readonly AdminVendorActivityService $activityService,
+        private readonly AdminVendorProductService $adminProducts
     ) {
         $this->middleware('role:admin');
     }
 
-    public function index(Request $request)
-    {
-        $stats = [
-            'total' => Vendor::count(),
-            'pending' => Vendor::where('status', VendorStatus::Pending->value)->count(),
-            'under_review' => Vendor::where('status', VendorStatus::UnderReview->value)->count(),
-            'approved' => Vendor::where('status', VendorStatus::Approved->value)->count(),
-            'suspended' => Vendor::where('status', VendorStatus::Suspended->value)->count(),
-            'rejected' => Vendor::where('status', VendorStatus::Rejected->value)->count(),
-            'disabled' => Vendor::where('status', VendorStatus::Disabled->value)->count(),
-        ];
-
-        $sort = $request->query('sort', 'newest');
-        $vendors = Vendor::with(['profile', 'user'])
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
-            ->when($request->query('search'), function ($q) use ($request) {
-                $search = $request->query('search');
-                $q->whereHas('profile', fn ($pq) => $pq->where('business_name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('owner_name', 'like', "%{$search}%"));
-            })
-            ->when($sort === 'oldest', fn ($q) => $q->oldest())
-            ->when($sort === 'business', fn ($q) => $q->leftJoin('vendor_profiles', 'vendors.id', '=', 'vendor_profiles.vendor_id')->orderBy('vendor_profiles.business_name')->select('vendors.*'))
-            ->when(! in_array($sort, ['oldest', 'business'], true), fn ($q) => $q->latest())
-            ->paginate(15)
-            ->withQueryString();
-
-        $metricsMap = $this->vendorMetrics->mapForVendorIds(
-            $vendors->getCollection()->pluck('id')->all()
-        );
-
-        $recentRequests = Vendor::with(['profile', 'user'])
-            ->whereIn('status', [VendorStatus::Pending->value, VendorStatus::UnderReview->value])
-            ->latest()
-            ->limit(5)
-            ->get();
-
-        return view('admin.vendors.index', compact('vendors', 'stats', 'sort', 'recentRequests', 'metricsMap'));
-    }
-
-    public function show(Vendor $vendor)
+    public function show(Vendor $vendor): View
     {
         $vendor->load([
             'profile',
@@ -84,6 +58,8 @@ class VendorController extends Controller
 
         $statistics = $this->dashboard->stats($vendor);
         $metrics = $this->vendorMetrics->forVendor($vendor);
+        $analytics = $this->dashboard->analytics($vendor);
+        $revenue = $this->revenueService->forVendor($vendor);
 
         return view('admin.vendors.show', [
             'vendor' => $vendor,
@@ -91,9 +67,169 @@ class VendorController extends Controller
             'application' => $this->application->applicationPayload($vendor),
             'statistics' => $statistics,
             'metrics' => $metrics,
+            'analytics' => $analytics,
+            'revenue' => $revenue,
+            'isVerified' => $this->listService->isVerified($vendor),
             'recentProducts' => $vendor->vendorProducts()->with(['product', 'inventory'])->latest()->limit(6)->get(),
             'recentOrders' => $statistics['recent_orders'] ?? [],
         ]);
+    }
+
+    public function products(Request $request, Vendor $vendor): View
+    {
+        $vendor->load('profile');
+
+        $products = VendorProduct::with(['product.category', 'inventory', 'currentPrice'])
+            ->where('vendor_id', $vendor->id)
+            ->when($request->filled('approval_status'), fn ($q) => $q->where('approval_status', $request->query('approval_status')))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
+            ->when($request->filled('category_id'), fn ($q) => $q->whereHas('product', fn ($pq) => $pq->where('category_id', $request->query('category_id'))))
+            ->when($request->query('search'), function ($q) use ($request) {
+                $s = $request->query('search');
+                $q->whereHas('product', fn ($pq) => $pq->where('name', 'like', "%{$s}%"));
+            })
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.vendors.products', compact('vendor', 'products'));
+    }
+
+    public function orders(Request $request, Vendor $vendor): View
+    {
+        $vendor->load('profile');
+
+        $orders = VendorOrderMapping::with(['order.user'])
+            ->where('vendor_id', $vendor->id)
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
+            ->when($request->query('search'), function ($q) use ($request) {
+                $s = $request->query('search');
+                $q->where(function ($query) use ($s) {
+                    $query->where('order_id', 'like', "%{$s}%")
+                        ->orWhere('tracking_number', 'like', "%{$s}%");
+                });
+            })
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.vendors.orders', compact('vendor', 'orders'));
+    }
+
+    public function vendorRevenue(Vendor $vendor): View
+    {
+        $vendor->load('profile');
+
+        return view('admin.vendors.vendor-revenue', [
+            'vendor' => $vendor,
+            'revenue' => $this->revenueService->forVendor($vendor),
+            'metrics' => $this->vendorMetrics->forVendor($vendor),
+        ]);
+    }
+
+    public function activity(Vendor $vendor): View
+    {
+        $vendor->load('profile');
+
+        return view('admin.vendors.activity', [
+            'vendor' => $vendor,
+            'timeline' => $this->activityService->timeline($vendor),
+        ]);
+    }
+
+    public function resetPassword(Request $request, Vendor $vendor): RedirectResponse
+    {
+        $request->validate([
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $user = $vendor->user;
+        if (! $user) {
+            return back()->with('error', 'Vendor has no linked user account.');
+        }
+
+        $password = $request->filled('password') ? $request->password : Str::password(12);
+        $user->password = Hash::make($password);
+        $user->save();
+
+        return back()->with('success', $request->filled('password')
+            ? 'Vendor password updated.'
+            : "Vendor password reset. Temporary password: {$password}");
+    }
+
+    public function notify(Request $request, Vendor $vendor): RedirectResponse
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'message' => 'required|string|max:2000',
+        ]);
+
+        $user = $vendor->user;
+        if ($user) {
+            $user->notify(new AdminNotification($data['title'], $data['message'], [
+                'vendor_id' => $vendor->id,
+                'type' => 'vendor_admin_message',
+            ]));
+        }
+
+        return back()->with('success', 'Notification sent to vendor.');
+    }
+
+    public function verifyVendor(Vendor $vendor): RedirectResponse
+    {
+        foreach ($vendor->documents as $doc) {
+            if ($doc->verification_status !== 'verified') {
+                $this->documents->verify($doc, request()->user(), 'verified', 'Bulk verified by admin');
+            }
+        }
+
+        return back()->with('success', 'Vendor documents marked as verified.');
+    }
+
+    public function approveProduct(Request $request, Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
+    {
+        abort_unless($vendorProduct->vendor_id === $vendor->id, 404);
+        $this->adminProducts->approve($vendorProduct, $request->user(), $request->input('notes'));
+
+        return back()->with('success', 'Product approved.');
+    }
+
+    public function rejectProduct(Request $request, Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
+    {
+        abort_unless($vendorProduct->vendor_id === $vendor->id, 404);
+        $request->validate(['reason' => 'required|string|max:1000']);
+        $this->adminProducts->reject($vendorProduct, $request->user(), $request->input('reason'));
+
+        return back()->with('success', 'Product rejected.');
+    }
+
+    public function toggleProduct(Request $request, Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
+    {
+        abort_unless($vendorProduct->vendor_id === $vendor->id, 404);
+        $newStatus = $vendorProduct->status === 'active' ? 'inactive' : 'active';
+        $vendorProduct->update(['status' => $newStatus]);
+        $vendorProduct->product?->update(['status' => $newStatus === 'active' ? 'active' : 'archived']);
+
+        return back()->with('success', 'Product '.($newStatus === 'active' ? 'enabled' : 'disabled').'.');
+    }
+
+    public function featureProduct(Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
+    {
+        abort_unless($vendorProduct->vendor_id === $vendor->id, 404);
+        $product = $vendorProduct->product;
+        if ($product) {
+            $product->update(['is_featured' => ! $product->is_featured]);
+        }
+
+        return back()->with('success', 'Product featured status updated.');
+    }
+
+    public function destroyProduct(Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
+    {
+        abort_unless($vendorProduct->vendor_id === $vendor->id, 404);
+        $this->adminProducts->removeListing($vendorProduct);
+
+        return back()->with('success', 'Product removed.');
     }
 
     public function edit(Vendor $vendor)

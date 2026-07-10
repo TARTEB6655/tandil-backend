@@ -52,8 +52,9 @@
                         notifications: {{ request()->routeIs('admin.notifications.*') ? 'true' : 'false' }},
                         userManagement: {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'true' : 'false' }},
                         subscriptions: {{ request()->routeIs('admin.subscription-plans.*') || request()->routeIs('admin.subscriptions.*') ? 'true' : 'false' }},
+                        vendors: {{ request()->routeIs('admin.vendors.*') ? 'true' : 'false' }},
                         operations: {{ request()->routeIs('admin.visits.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.report-management.*') || request()->routeIs('admin.areas.*') || request()->routeIs('admin.zone-assignment.*') || request()->routeIs('admin.recent-activities.*') ? 'true' : 'false' }},
-                        ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.vendors.*') || request()->routeIs('admin.marketplace.*') || request()->routeIs('admin.support-chat.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? 'true' : 'false' }},
+                        ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.marketplace.*') || request()->routeIs('admin.support-chat.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? 'true' : 'false' }},
                         communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') || request()->routeIs('admin.support-chat.*') ? 'true' : 'false' }},
                         management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.maintenance-photos.*') ? 'true' : 'false' }}
                     }">
@@ -203,6 +204,34 @@
                                         {{ __('admin.all_subscriptions') }}
                                     </a>
                                 </li>
+                            </ul>
+                        </div>
+
+                        <!-- VENDORS -->
+                        <div class="mb-2">
+                            <button @click="vendors = !vendors" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.vendors.*') ? $navSectionActive : $navSectionIdle }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                <span>Vendors</span>
+                                <svg class="w-3 h-3 text-gray-500 ml-auto transition-transform duration-200" :class="{ 'rotate-90': vendors }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                            <ul x-show="vendors"
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="mt-1.5 flex flex-col gap-0.5">
+                                <li><a href="{{ route('admin.vendors.index') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.index') ? $navActive : $navIdleSub }}">All Vendors</a></li>
+                                <li><a href="{{ route('admin.vendors.pending') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.pending') ? $navActive : $navIdleSub }}">Pending Approvals</a></li>
+                                <li><a href="{{ route('admin.vendors.active') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.active') ? $navActive : $navIdleSub }}">Active Vendors</a></li>
+                                <li><a href="{{ route('admin.vendors.suspended') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.suspended') ? $navActive : $navIdleSub }}">Suspended Vendors</a></li>
+                                <li><a href="{{ route('admin.vendors.insights') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.insights') ? $navActive : $navIdleSub }}">Vendor Analytics</a></li>
+                                <li><a href="{{ route('admin.vendors.revenue') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.revenue') ? $navActive : $navIdleSub }}">Revenue</a></li>
                             </ul>
                         </div>
 
@@ -372,15 +401,6 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                         </svg>
                                         Marketplace
-                                    </a>
-                                </li>
-                                <li style="padding-left: 0px;">
-                                    <a href="{{ route('admin.vendors.index') }}"
-                                       class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.*') ? $navActive : $navIdleSub }}">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
-                                        Vendors
                                     </a>
                                 </li>
                                 <li style="padding-left: 0px;">

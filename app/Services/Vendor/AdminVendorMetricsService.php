@@ -43,6 +43,7 @@ class AdminVendorMetricsService
             ->selectRaw('COUNT(*) as total_orders')
             ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending_orders', [$pending])
             ->selectRaw('SUM(CASE WHEN status = ? THEN 0 ELSE total_amount END) as revenue', [$cancelled])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 0 ELSE commission_amount END) as commission_earned', [$cancelled])
             ->groupBy('vendor_id')
             ->get()
             ->keyBy('vendor_id');
@@ -115,7 +116,16 @@ class AdminVendorMetricsService
             'total_orders' => (int) ($orderRow->total_orders ?? 0),
             'pending_orders' => (int) ($orderRow->pending_orders ?? 0),
             'revenue' => round((float) ($orderRow->revenue ?? 0), 2),
+            'commission_earned' => round((float) ($orderRow->commission_earned ?? 0), 2),
         ];
+    }
+
+    /**
+     * @return array<string, int|float>
+     */
+    public function emptyMetricsPublic(): array
+    {
+        return $this->emptyMetrics();
     }
 
     /**
@@ -130,6 +140,7 @@ class AdminVendorMetricsService
             'total_orders' => 0,
             'pending_orders' => 0,
             'revenue' => 0.0,
+            'commission_earned' => 0.0,
         ];
     }
 }
