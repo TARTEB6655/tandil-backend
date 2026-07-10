@@ -358,12 +358,14 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
 
         Route::get('vendors/export', [VendorListController::class, 'export'])->name('vendors.export');
         Route::post('vendors/bulk', [VendorListController::class, 'bulk'])->name('vendors.bulk');
+        Route::get('vendors/all', [VendorListController::class, 'index'])->name('vendors.index');
         Route::get('vendors/pending', [VendorListController::class, 'pending'])->name('vendors.pending');
         Route::get('vendors/active', [VendorListController::class, 'active'])->name('vendors.active');
         Route::get('vendors/suspended', [VendorListController::class, 'suspended'])->name('vendors.suspended');
+        Route::get('vendors/reports', [VendorInsightsController::class, 'reports'])->name('vendors.reports');
         Route::get('vendors/insights', [VendorInsightsController::class, 'index'])->name('vendors.insights');
         Route::get('vendors/revenue', [VendorInsightsController::class, 'revenue'])->name('vendors.revenue');
-        Route::get('vendors', [VendorListController::class, 'index'])->name('vendors.index');
+        Route::get('vendors', [VendorInsightsController::class, 'overview'])->name('vendors.overview');
         Route::get('vendors/{vendor}/products', [AdminVendorController::class, 'products'])->name('vendors.products');
         Route::post('vendors/{vendor}/products/bulk', [AdminVendorController::class, 'bulkProducts'])->name('vendors.products.bulk');
         Route::get('vendors/{vendor}/products/{vendorProduct}', [AdminVendorController::class, 'showProduct'])->name('vendors.products.show');
@@ -815,6 +817,9 @@ Route::prefix('app-portal')->name('app-portal.')->group(function () {
 });
 
 Route::redirect('/portal-login-demo', '/app-portal', 301)->name('portal-login-demo');
+
+// Direct vendor sign-in (same app-portal flow with vendor role pre-selected)
+Route::redirect('/vendor/login', '/app-portal/login?portal=vendor', 302)->name('vendor.login');
 
 // Breeze auth routes (login/logout/password/reset)
 require __DIR__.'/auth.php';

@@ -3,16 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\Auth\LoginService;
 use App\Support\AppLoginRoles;
 use App\Support\VendorLoginGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class AppPortalWebController extends Controller
 {
+    public function __construct(
+        private readonly LoginService $loginService
+    ) {}
     /**
      * @return array<string, array{title: string, subtitle: string, icon: string}>
      */
@@ -75,16 +78,21 @@ class AppPortalWebController extends Controller
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
             'remember' => ['sometimes', 'boolean'],
+            'portal' => ['nullable', 'string', 'in:'.implode(',', User::LOGIN_PORTALS)],
         ]);
 
-        $portal = $request->session()->get('app_portal');
+        $portal = $validated['portal'] ?? $request->session()->get('app_portal');
         if (! is_string($portal) || ! in_array($portal, User::LOGIN_PORTALS, true)) {
             return redirect()->route('app-portal.roles');
         }
 
-        $user = User::where('email', $validated['email'])->first();
+        $request->session()->put('app_portal', $portal);
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        $user = User::query()
+            ->whereRaw('LOWER(email) = ?', [strtolower(trim($validated['email']))])
+            ->first();
+
+        if (! $user || ! $this->loginService->passwordMatches($user, $validated['password'])) {
             return back()
                 ->withErrors(['email' => trans('auth.failed')])
                 ->onlyInput('email');
@@ -97,10 +105,13 @@ class AppPortalWebController extends Controller
         }
 
         if (! $user->matchesLoginPortal($portal)) {
+            $suggestedPortal = $user->resolvedLoginPortal();
+
             return back()
                 ->withErrors([
                     'email' => __('These credentials do not match this sign-in path. Go back and choose the role that matches your account, or contact support.'),
                 ])
+                ->with('suggested_portal', $suggestedPortal)
                 ->onlyInput('email');
         }
 

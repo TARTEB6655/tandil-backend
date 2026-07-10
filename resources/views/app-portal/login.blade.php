@@ -31,6 +31,7 @@
         <div class="portal-card">
             <form method="POST" action="{{ route('app-portal.login.submit') }}">
                 @csrf
+                <input type="hidden" name="portal" value="{{ $portal }}">
 
                 <div class="portal-field">
                     <label class="portal-label" for="email">{{ __('Email') }}</label>
@@ -38,6 +39,17 @@
                     @error('email')
                         <p class="portal-err">{{ $message }}</p>
                     @enderror
+                    @if (session('suggested_portal') && is_string(session('suggested_portal')))
+                        @php
+                            $suggested = session('suggested_portal');
+                            $suggestedMeta = \App\Support\AppLoginRoles::bySlug()[$suggested] ?? null;
+                        @endphp
+                        <p class="portal-err" style="margin-top:0.5rem;">
+                            <a class="portal-link" href="{{ route('app-portal.login', ['portal' => $suggested]) }}">
+                                {{ __('Sign in as :role instead', ['role' => $suggestedMeta['title'] ?? ucfirst(str_replace('_', ' ', $suggested))]) }}
+                            </a>
+                        </p>
+                    @endif
                 </div>
 
                 <div class="portal-field">

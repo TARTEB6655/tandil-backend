@@ -209,11 +209,11 @@
 
                         <!-- VENDORS -->
                         <div class="mb-2">
-                            <button @click="vendors = !vendors" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.vendors.*') ? $navSectionActive : $navSectionIdle }}">
+                            <button @click="vendors = !vendors" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.vendors.*') || request()->routeIs('admin.marketplace.products.*') || request()->routeIs('admin.marketplace.orders.*') ? $navSectionActive : $navSectionIdle }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                 </svg>
-                                <span>Vendors</span>
+                                <a href="{{ route('admin.vendors.overview') }}" @click.stop class="flex-1 text-left hover:underline">Vendors</a>
                                 <svg class="w-3 h-3 text-gray-500 ml-auto transition-transform duration-200" :class="{ 'rotate-90': vendors }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
@@ -226,12 +226,16 @@
                                 x-transition:leave-start="opacity-100"
                                 x-transition:leave-end="opacity-0"
                                 class="mt-1.5 flex flex-col gap-0.5">
+                                <li><a href="{{ route('admin.vendors.overview') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.overview') ? $navActive : $navIdleSub }}">Overview</a></li>
                                 <li><a href="{{ route('admin.vendors.index') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.index') ? $navActive : $navIdleSub }}">All Vendors</a></li>
-                                <li><a href="{{ route('admin.vendors.pending') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.pending') ? $navActive : $navIdleSub }}">Pending Approvals</a></li>
+                                <li><a href="{{ route('admin.vendors.pending') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.pending') ? $navActive : $navIdleSub }}">Pending Vendors</a></li>
                                 <li><a href="{{ route('admin.vendors.active') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.active') ? $navActive : $navIdleSub }}">Active Vendors</a></li>
                                 <li><a href="{{ route('admin.vendors.suspended') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.suspended') ? $navActive : $navIdleSub }}">Suspended Vendors</a></li>
-                                <li><a href="{{ route('admin.vendors.insights') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.insights') ? $navActive : $navIdleSub }}">Vendor Analytics</a></li>
-                                <li><a href="{{ route('admin.vendors.revenue') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.revenue') ? $navActive : $navIdleSub }}">Revenue</a></li>
+                                <li><a href="{{ route('admin.marketplace.products.index') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.marketplace.products.*') ? $navActive : $navIdleSub }}">Vendor Products</a></li>
+                                <li><a href="{{ route('admin.marketplace.orders.index') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.marketplace.orders.*') ? $navActive : $navIdleSub }}">Vendor Orders</a></li>
+                                <li><a href="{{ route('admin.vendors.revenue') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.revenue') ? $navActive : $navIdleSub }}">Revenue & Commissions</a></li>
+                                <li><a href="{{ route('admin.vendors.insights') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.insights') ? $navActive : $navIdleSub }}">Analytics</a></li>
+                                <li><a href="{{ route('admin.vendors.reports') }}" class="{{ $navSubBase }} {{ request()->routeIs('admin.vendors.reports') ? $navActive : $navIdleSub }}">Reports</a></li>
                             </ul>
                         </div>
 

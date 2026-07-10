@@ -5,7 +5,7 @@
 @endphp
 <nav class="flex flex-wrap gap-2 mb-6 p-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
     <a href="{{ route('admin.marketplace.dashboard') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.marketplace.dashboard') }}">Overview</a>
-    <a href="{{ route('admin.vendors.index') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.vendors.*') }}">Vendors</a>
+    <a href="{{ route('admin.vendors.overview') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.vendors.*') }}">Vendors</a>
     <a href="{{ route('admin.marketplace.products.index') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.marketplace.products.*') }}">Products</a>
     <a href="{{ route('admin.marketplace.orders.index') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.marketplace.orders.*') }}">Orders</a>
     <a href="{{ route('admin.marketplace.inventory.index') }}" class="px-3 py-2 text-sm rounded-lg {{ $link('admin.marketplace.inventory.*') }}">Inventory</a>

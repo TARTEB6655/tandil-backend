@@ -33,6 +33,7 @@ class AdminVendorWebTest extends TestCase
             'email' => 'vendor@test.com',
         ]);
 
+        $this->actingAs($admin)->get(route('admin.vendors.overview'))->assertOk()->assertSee('Vendor Overview');
         $this->actingAs($admin)->get(route('admin.vendors.index'))->assertOk()->assertSee('All Vendors');
         $this->actingAs($admin)->get(route('admin.vendors.pending'))->assertOk();
         $this->actingAs($admin)->get(route('admin.vendors.active'))->assertOk();

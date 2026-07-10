@@ -53,7 +53,7 @@ class LoginService
         }
     }
 
-    private function passwordMatches(User $user, string $password): bool
+    public function passwordMatches(User $user, string $password): bool
     {
         if ($password === '') {
             return false;

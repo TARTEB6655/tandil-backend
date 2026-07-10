@@ -46,10 +46,10 @@
 
         <x-admin.vendor.flash />
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
             <x-admin.vendor.stat-card label="Total Vendors" :value="number_format($stats['total'] ?? 0)" />
-            <x-admin.vendor.stat-card label="Active Vendors" :value="number_format($stats['approved'] ?? 0)" accent="text-emerald-600" />
-            <x-admin.vendor.stat-card label="Pending Approval" :value="number_format($pendingCount)" accent="text-amber-600" />
+            <x-admin.vendor.stat-card label="Active" :value="number_format($stats['approved'] ?? 0)" accent="text-emerald-600" />
+            <x-admin.vendor.stat-card label="Pending" :value="number_format(($stats['pending'] ?? 0) + ($stats['under_review'] ?? 0))" accent="text-amber-600" />
             <x-admin.vendor.stat-card label="Suspended" :value="number_format($stats['suspended'] ?? 0)" accent="text-orange-600" />
             <x-admin.vendor.stat-card label="Total Revenue" :value="'AED '.number_format($totalRevenue, 2)" accent="text-indigo-600" />
         </div>
