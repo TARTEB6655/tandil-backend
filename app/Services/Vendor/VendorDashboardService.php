@@ -114,24 +114,56 @@ class VendorDashboardService
     }
 
     /**
+     * Fast counts for mobile/web dashboard summary cards (no charts or recent tables).
+     *
+     * @return array<string, mixed>
+     */
+    public function dashboardSummaryMetrics(Vendor $vendor): array
+    {
+        $vendorId = $vendor->id;
+        $cancelled = VendorOrderStatus::Cancelled->value;
+        $pending = VendorOrderStatus::Pending->value;
+        $delivered = VendorOrderStatus::Delivered->value;
+
+        $productRow = VendorProduct::query()
+            ->where('vendor_id', $vendorId)
+            ->selectRaw('COUNT(*) as total_products')
+            ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_products")
+            ->first();
+
+        $lowStock = (int) VendorInventory::query()
+            ->whereHas('vendorProduct', fn ($q) => $q->where('vendor_id', $vendorId))
+            ->whereColumn('quantity', '<=', 'low_stock_threshold')
+            ->count();
+
+        $orderRow = VendorOrderMapping::query()
+            ->where('vendor_id', $vendorId)
+            ->selectRaw('COUNT(*) as total_orders')
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending_orders', [$pending])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as delivered_orders', [$delivered])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 0 ELSE total_amount END) as revenue', [$cancelled])
+            ->first();
+
+        return [
+            'currency' => 'AED',
+            'revenue' => round((float) ($orderRow->revenue ?? 0), 2),
+            'pending_orders' => (int) ($orderRow->pending_orders ?? 0),
+            'products' => (int) ($productRow->total_products ?? 0),
+            'active' => (int) ($productRow->active_products ?? 0),
+            'low_stock' => $lowStock,
+            'total_orders' => (int) ($orderRow->total_orders ?? 0),
+            'delivered_orders' => (int) ($orderRow->delivered_orders ?? 0),
+        ];
+    }
+
+    /**
      * Lightweight mobile home-screen payload (matches Vendor Portal dashboard cards).
      *
      * @return array<string, mixed>
      */
     public function mobileSummary(Vendor $vendor): array
     {
-        $stats = $this->stats($vendor);
-
-        return [
-            'currency' => 'AED',
-            'revenue' => $stats['revenue'],
-            'pending_orders' => $stats['pending_orders'],
-            'products' => $stats['total_products'],
-            'active' => $stats['active_products'],
-            'low_stock' => $stats['low_stock_products'],
-            'total_orders' => $stats['total_orders'],
-            'delivered_orders' => $stats['completed_orders'],
-        ];
+        return $this->dashboardSummaryMetrics($vendor);
     }
 
     /**

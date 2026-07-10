@@ -58,7 +58,11 @@ class MarketplaceAdminController extends Controller
     public function products(Request $request): JsonResponse
     {
         $items = VendorProduct::with(['product.category', 'vendor.profile', 'inventory'])
+            ->when($request->query('vendor_id'), fn ($q, $vendorId) => $q->where('vendor_id', $vendorId))
             ->when($request->query('approval_status'), fn ($q, $s) => $q->where('approval_status', $s))
+            ->when($request->query('search'), function ($q, $search) {
+                $q->whereHas('product', fn ($pq) => $pq->where('name', 'like', "%{$search}%"));
+            })
             ->latest()
             ->paginate(min((int) $request->query('per_page', 15), 100));
 
@@ -85,7 +89,15 @@ class MarketplaceAdminController extends Controller
     public function vendorOrders(Request $request): JsonResponse
     {
         $items = VendorOrderMapping::with(['order.user', 'vendor.profile'])
+            ->when($request->query('vendor_id'), fn ($q, $vendorId) => $q->where('vendor_id', $vendorId))
             ->when($request->query('status'), fn ($q, $s) => $q->where('status', $s))
+            ->when($request->query('search'), function ($q, $search) {
+                $q->where(function ($query) use ($search) {
+                    $query->where('id', 'like', "%{$search}%")
+                        ->orWhere('order_id', 'like', "%{$search}%")
+                        ->orWhere('tracking_number', 'like', "%{$search}%");
+                });
+            })
             ->latest()
             ->paginate(min((int) $request->query('per_page', 15), 100));
 

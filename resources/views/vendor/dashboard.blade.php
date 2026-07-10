@@ -1,55 +1,124 @@
 <x-vendor-layout>
     <x-dashboard.page-header :title="$dashboardTitle" :subtitle="$dashboardSubtitle" />
 
-    {{-- Primary metrics --}}
-    <div class="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 md:mb-8 md:gap-6 lg:grid-cols-4">
-        <x-dashboard.stat-card label="Total Revenue" :value="'AED '.number_format($stats['revenue'] ?? 0, 2)" :subtitle="'Net AED '.number_format($stats['net_earnings'] ?? 0, 2).' after commission'" color="amber" :href="route('vendor.orders.index')">
-            <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></x-slot:icon>
-        </x-dashboard.stat-card>
-        <x-dashboard.stat-card label="Total Orders" :value="number_format($stats['total_orders'] ?? 0)" :subtitle="($stats['pending_orders'] ?? 0).' pending · '.($stats['completed_orders'] ?? 0).' delivered'" color="purple" :href="route('vendor.orders.index')">
-            <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></x-slot:icon>
-        </x-dashboard.stat-card>
-        <x-dashboard.stat-card label="Active Products" :value="number_format($stats['active_products'] ?? 0)" :subtitle="($stats['total_products'] ?? 0).' total in catalog'" color="blue" :href="route('vendor.products.index')">
-            <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></x-slot:icon>
-        </x-dashboard.stat-card>
-        <x-dashboard.stat-card label="Customers" :value="number_format($stats['unique_customers'] ?? 0)" subtitle="Unique buyers" color="green">
-            <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></x-slot:icon>
-        </x-dashboard.stat-card>
+    @php
+        $currency = $summary['currency'] ?? 'AED';
+    @endphp
+
+    {{-- Hero cards (mobile summary API alignment) --}}
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <a href="{{ route('vendor.orders.index') }}" class="group relative overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-amber-700/80">Total Revenue</p>
+                    <p class="mt-2 text-2xl font-semibold text-amber-700 sm:text-3xl">{{ $currency }} {{ number_format($summary['revenue'] ?? 0, 2) }}</p>
+                    <p class="mt-1 text-sm text-gray-500">{{ $summary['delivered_orders'] ?? 0 }} delivered orders</p>
+                </div>
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ route('vendor.orders.index', ['status' => 'pending']) }}" class="group relative overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 shadow-sm transition hover:border-purple-300 hover:shadow-md sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-purple-700/80">Pending Orders</p>
+                    <p class="mt-2 text-2xl font-semibold text-purple-700 sm:text-3xl">{{ number_format($summary['pending_orders'] ?? 0) }}</p>
+                    <p class="mt-1 text-sm text-gray-500">{{ number_format($summary['total_orders'] ?? 0) }} total orders</p>
+                </div>
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                </div>
+            </div>
+        </a>
     </div>
 
-    {{-- Secondary metrics --}}
-    <div class="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 md:mb-8 md:gap-6 lg:grid-cols-4">
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-            <p class="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">Pending Orders</p>
-            <p class="text-xl font-semibold text-yellow-600 sm:text-2xl">{{ number_format($stats['pending_orders'] ?? 0) }}</p>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-            <p class="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">In Fulfillment</p>
-            <p class="text-xl font-semibold text-blue-600 sm:text-2xl">{{ number_format($stats['processing_orders'] ?? 0) }}</p>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-            <p class="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">Low Stock</p>
-            <p class="text-xl font-semibold text-red-600 sm:text-2xl">{{ number_format($stats['low_stock_products'] ?? 0) }}</p>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-            <p class="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">Avg. Order Value</p>
-            <p class="text-xl font-semibold text-indigo-600 sm:text-2xl">AED {{ number_format($stats['average_order_value'] ?? 0, 2) }}</p>
+    {{-- Overview grid --}}
+    <div class="mb-6">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Overview</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <x-dashboard.stat-card label="Products" :value="number_format($summary['products'] ?? 0)" :subtitle="($summary['active'] ?? 0).' active'" color="blue" :href="route('vendor.products.index')">
+                <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></x-slot:icon>
+            </x-dashboard.stat-card>
+            <x-dashboard.stat-card label="Active" :value="number_format($summary['active'] ?? 0)" subtitle="Live in catalog" color="green" :href="route('vendor.products.index')">
+                <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></x-slot:icon>
+            </x-dashboard.stat-card>
+            <x-dashboard.stat-card label="Low Stock" :value="number_format($summary['low_stock'] ?? 0)" subtitle="Needs attention" color="red" :href="route('vendor.inventory.index', ['filter' => 'low'])">
+                <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></x-slot:icon>
+            </x-dashboard.stat-card>
+            <x-dashboard.stat-card label="Total Orders" :value="number_format($summary['total_orders'] ?? 0)" :subtitle="($summary['delivered_orders'] ?? 0).' delivered'" color="purple" :href="route('vendor.orders.index')">
+                <x-slot:icon><svg class="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></x-slot:icon>
+            </x-dashboard.stat-card>
         </div>
     </div>
 
-    {{-- Charts row 1 --}}
+    {{-- Quick actions --}}
+    <div class="mb-8">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Quick Actions</h2>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <a href="{{ route('vendor.products.create') }}" class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </span>
+                <div>
+                    <p class="font-medium text-gray-900">Add Product</p>
+                    <p class="text-xs text-gray-500">List a new item</p>
+                </div>
+            </a>
+            <a href="{{ route('vendor.orders.index') }}" class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                </span>
+                <div>
+                    <p class="font-medium text-gray-900">View Orders</p>
+                    <p class="text-xs text-gray-500">Manage fulfillment</p>
+                </div>
+            </a>
+            <a href="{{ route('vendor.inventory.index') }}" class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+                </span>
+                <div>
+                    <p class="font-medium text-gray-900">Inventory</p>
+                    <p class="text-xs text-gray-500">Stock & thresholds</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    {{-- Extended metrics --}}
+    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Net Earnings</p>
+            <p class="mt-1 text-xl font-semibold text-green-600">{{ $currency }} {{ number_format($stats['net_earnings'] ?? 0, 2) }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">In Fulfillment</p>
+            <p class="mt-1 text-xl font-semibold text-blue-600">{{ number_format($stats['processing_orders'] ?? 0) }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Customers</p>
+            <p class="mt-1 text-xl font-semibold text-indigo-600">{{ number_format($stats['unique_customers'] ?? 0) }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Avg. Order</p>
+            <p class="mt-1 text-xl font-semibold text-gray-900">{{ $currency }} {{ number_format($stats['average_order_value'] ?? 0, 2) }}</p>
+        </div>
+    </div>
+
+    {{-- Analytics --}}
+    <div class="mb-4">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Analytics</h2>
+    </div>
     <div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 md:mb-8 lg:grid-cols-2 lg:gap-6">
         <x-dashboard.chart-card title="Sales Overview (Revenue & Orders)" canvasId="vendorSalesOverviewChart" />
         <x-dashboard.chart-card title="Revenue Analytics (Last 6 Months)" canvasId="vendorRevenueChart" />
     </div>
-
-    {{-- Charts row 2 --}}
     <div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 md:mb-8 lg:grid-cols-2 lg:gap-6">
         <x-dashboard.chart-card title="Order Trends by Status" canvasId="vendorOrdersStatusChart" />
         <x-dashboard.chart-card title="Monthly Earnings (Net)" canvasId="vendorEarningsChart" />
     </div>
-
-    {{-- Charts row 3 --}}
     <div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 md:mb-8 lg:grid-cols-2 lg:gap-6">
         <x-dashboard.chart-card title="Customer Growth" canvasId="vendorCustomerGrowthChart" />
         <x-dashboard.chart-card title="Product Performance (Top 5)" canvasId="vendorProductPerformanceChart" />
@@ -79,8 +148,8 @@
                                     <a href="{{ route('vendor.orders.show', $order['id']) }}" class="text-indigo-600 hover:text-indigo-800">#{{ $order['order_id'] }}</a>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ $order['customer_name'] ?? 'Guest' }}</td>
-                                <td class="px-4 py-3 text-sm capitalize text-gray-600">{{ $order['status'] }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900">AED {{ number_format($order['total_amount'], 2) }}</td>
+                                <td class="px-4 py-3 text-sm capitalize text-gray-600">{{ str_replace('_', ' ', $order['status']) }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900">{{ $currency }} {{ number_format($order['total_amount'], 2) }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500">No orders yet.</td></tr>

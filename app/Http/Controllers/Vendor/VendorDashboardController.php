@@ -19,16 +19,17 @@ class VendorDashboardController extends Controller
     public function index(Request $request): View
     {
         $vendor = $request->attributes->get('vendor');
-        $overview = $this->dashboard->overview($vendor);
-        $stats = $overview;
-        $analytics = $overview['analytics'];
+        $summary = $this->dashboard->dashboardSummaryMetrics($vendor);
+        $analytics = $this->dashboard->analytics($vendor);
+        $stats = $this->dashboard->stats($vendor);
 
         return view('vendor.dashboard', [
             'vendor' => $vendor->load('profile'),
+            'summary' => $summary,
             'stats' => $stats,
             'analytics' => $analytics,
-            'dashboardTitle' => 'Vendor Dashboard',
-            'dashboardSubtitle' => 'Welcome back, '.($vendor->profile?->business_name ?? $request->user()->name).'. Here is your store performance overview.',
+            'dashboardTitle' => 'Dashboard',
+            'dashboardSubtitle' => 'Welcome back. Overview of your '.($vendor->profile?->business_name ?? 'store').'.',
         ]);
     }
 

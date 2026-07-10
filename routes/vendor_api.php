@@ -108,6 +108,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
     Route::get('/', [VendorManagementController::class, 'index']);
     Route::get('/{id}/analytics', [VendorManagementController::class, 'analytics']);
+    Route::get('/{id}/products', [VendorManagementController::class, 'products']);
+    Route::get('/{id}/orders', [VendorManagementController::class, 'orders']);
     Route::get('/{id}/application-detail', [VendorManagementController::class, 'applicationDetail']);
     Route::get('/{id}', [VendorManagementController::class, 'show']);
     Route::put('/{id}', [VendorManagementController::class, 'update']);

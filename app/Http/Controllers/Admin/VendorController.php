@@ -7,6 +7,7 @@ use App\Enums\VendorStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Vendor;
 use App\Models\VendorAnalyticsShare;
+use App\Services\Vendor\AdminVendorMetricsService;
 use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorApprovalService;
 use App\Services\Vendor\VendorDashboardService;
@@ -24,7 +25,8 @@ class VendorController extends Controller
         private readonly VendorDocumentService $documents,
         private readonly VendorApplicationService $application,
         private readonly VendorDashboardService $dashboard,
-        private readonly VendorPerformanceAnalyticsService $performanceAnalytics
+        private readonly VendorPerformanceAnalyticsService $performanceAnalytics,
+        private readonly AdminVendorMetricsService $vendorMetrics
     ) {
         $this->middleware('role:admin');
     }
@@ -56,13 +58,17 @@ class VendorController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $metricsMap = $this->vendorMetrics->mapForVendorIds(
+            $vendors->getCollection()->pluck('id')->all()
+        );
+
         $recentRequests = Vendor::with(['profile', 'user'])
             ->whereIn('status', [VendorStatus::Pending->value, VendorStatus::UnderReview->value])
             ->latest()
             ->limit(5)
             ->get();
 
-        return view('admin.vendors.index', compact('vendors', 'stats', 'sort', 'recentRequests'));
+        return view('admin.vendors.index', compact('vendors', 'stats', 'sort', 'recentRequests', 'metricsMap'));
     }
 
     public function show(Vendor $vendor)
@@ -76,11 +82,17 @@ class VendorController extends Controller
             'categories',
         ]);
 
+        $statistics = $this->dashboard->stats($vendor);
+        $metrics = $this->vendorMetrics->forVendor($vendor);
+
         return view('admin.vendors.show', [
             'vendor' => $vendor,
             'documentTypes' => VendorDocumentType::cases(),
             'application' => $this->application->applicationPayload($vendor),
-            'statistics' => $this->dashboard->stats($vendor),
+            'statistics' => $statistics,
+            'metrics' => $metrics,
+            'recentProducts' => $vendor->vendorProducts()->with(['product', 'inventory'])->latest()->limit(6)->get(),
+            'recentOrders' => $statistics['recent_orders'] ?? [],
         ]);
     }
 
