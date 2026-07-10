@@ -1,22 +1,21 @@
-<div class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white/80 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-900/70">
-    <div class="flex items-center justify-between border-b px-4 py-3 dark:border-gray-700">
-        <h2 class="font-semibold">Recent Orders</h2>
+<x-admin.vendor.card :padding="false">
+    <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Recent orders</h2>
     </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-900/40"><tr><th class="px-4 py-2 text-left">Order</th><th class="px-4 py-2 text-left">Customer</th><th class="px-4 py-2 text-left">Status</th><th class="px-4 py-2 text-right">Total</th></tr></thead>
-            <tbody>
-                @forelse($recentOrders as $order)
-                    <tr class="border-t dark:border-gray-800">
-                        <td class="px-4 py-3 font-medium text-indigo-600">#{{ $order['order_id'] }}</td>
-                        <td class="px-4 py-3">{{ $order['customer_name'] ?? 'Guest' }}</td>
-                        <td class="px-4 py-3 capitalize">{{ str_replace('_', ' ', $order['status']) }}</td>
-                        <td class="px-4 py-3 text-right">AED {{ number_format($order['total_amount'], 2) }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No orders.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+        @forelse($recentOrders as $order)
+            <div class="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-800/40">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Order #{{ $order['order_id'] }}</p>
+                    <p class="text-xs text-gray-500">{{ $order['customer_name'] ?? 'Guest' }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">AED {{ number_format($order['total_amount'], 2) }}</p>
+                    <p class="text-xs capitalize text-gray-500">{{ str_replace('_', ' ', $order['status']) }}</p>
+                </div>
+            </div>
+        @empty
+            <div class="px-5 py-8 text-center text-sm text-gray-500">No orders yet.</div>
+        @endforelse
     </div>
-</div>
+</x-admin.vendor.card>

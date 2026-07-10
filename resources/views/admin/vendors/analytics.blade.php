@@ -1,13 +1,10 @@
 <x-admin-layout>
-    <div class="space-y-6 max-w-6xl">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Performance Analytics</h1>
-                <p class="text-sm text-gray-500 mt-1">{{ $vendor->profile?->business_name }} — {{ $analytics['period_label'] ?? ucfirst($period) }}</p>
-            </div>
-            <a href="{{ route('admin.vendors.show', $vendor) }}" class="px-3 py-2 text-sm border rounded-lg">← Vendor profile</a>
-        </div>
-        <x-admin.marketplace-nav />
+    <x-admin.vendor.shell>
+        <x-admin.vendor.nav :vendor="$vendor" />
+
+        <x-admin.vendor.page-header
+            title="Performance analytics"
+            :description="($vendor->profile?->business_name).' — '.($analytics['period_label'] ?? ucfirst($period))" />
 
         <form method="GET" class="flex flex-wrap gap-2">
             @foreach($analytics['filters'] ?? [] as $filter)
@@ -113,5 +110,5 @@
                 </table>
             @endif
         </div>
-    </div>
+    </x-admin.vendor.shell>
 </x-admin-layout>

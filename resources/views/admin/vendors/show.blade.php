@@ -1,67 +1,132 @@
 <x-admin-layout>
-    <div class="mx-auto max-w-7xl space-y-6">
-        @if(session('success'))<div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>@endif
-        @if(session('error'))<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>@endif
+    <x-admin.vendor.shell>
+        <x-admin.vendor.flash />
 
         <x-admin.vendor.nav :vendor="$vendor" />
 
-        <div class="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-gray-200/80 bg-white/80 p-5 backdrop-blur dark:border-gray-700 dark:bg-gray-900/70">
+        {{-- Profile header --}}
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div class="flex items-start gap-4">
-                @if($vendor->logo_url)
-                    <img src="{{ $vendor->logo_url }}" class="h-16 w-16 rounded-2xl border object-cover" alt="" />
-                @else
-                    <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-xl font-bold text-indigo-600">{{ strtoupper(substr($vendor->profile?->business_name ?? 'V', 0, 1)) }}</div>
-                @endif
+                <x-admin.vendor.avatar
+                    :name="$vendor->profile?->business_name ?? 'V'"
+                    :src="$vendor->logo_url"
+                    size="xl" />
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ $vendor->profile?->business_name }}</h1>
-                    <p class="text-sm text-gray-500">{{ $vendor->profile?->owner_name }} · {{ $vendor->profile?->email }}</p>
-                    <div class="mt-2 flex flex-wrap gap-2">
+                    <h1 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">{{ $vendor->profile?->business_name }}</h1>
+                    <p class="mt-1 text-sm text-gray-500">{{ $vendor->profile?->owner_name }} · {{ $vendor->profile?->email }}</p>
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
                         <x-admin.vendor.status-badge :status="$vendor->status" />
-                        @if($isVerified ?? false)
-                            <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Verified</span>
-                        @endif
+                        <x-admin.vendor.verification-badge :verified="$isVerified ?? false" />
                     </div>
                 </div>
             </div>
             <div class="flex flex-wrap gap-2">
                 @if(in_array($vendor->status, ['pending', 'under_review']))
-                    <form method="POST" action="{{ route('admin.vendors.approve', $vendor) }}">@csrf<button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white">Approve</button></form>
+                    <form method="POST" action="{{ route('admin.vendors.approve', $vendor) }}">@csrf
+                        <x-admin.vendor.btn variant="brand" type="submit">Approve vendor</x-admin.vendor.btn>
+                    </form>
                 @endif
                 @if($vendor->status === 'approved')
-                    <form method="POST" action="{{ route('admin.vendors.suspend', $vendor) }}">@csrf<button class="rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white">Suspend</button></form>
+                    <form method="POST" action="{{ route('admin.vendors.suspend', $vendor) }}">@csrf
+                        <x-admin.vendor.btn variant="secondary" type="submit">Suspend</x-admin.vendor.btn>
+                    </form>
                 @endif
-                <a href="{{ route('admin.vendors.edit', $vendor) }}" class="rounded-xl border px-4 py-2 text-sm font-medium">Edit</a>
+                <x-admin.vendor.btn variant="secondary" :href="route('admin.vendors.edit', $vendor)">Edit vendor</x-admin.vendor.btn>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-            <x-admin.vendor.kpi-card label="Total Revenue" :value="'AED '.number_format($revenue['total_revenue'] ?? 0, 2)" accent="text-amber-600" />
-            <x-admin.vendor.kpi-card label="Total Orders" :value="number_format($statistics['total_orders'] ?? 0)" accent="text-purple-600" />
-            <x-admin.vendor.kpi-card label="Pending Orders" :value="number_format($statistics['pending_orders'] ?? 0)" accent="text-yellow-600" />
-            <x-admin.vendor.kpi-card label="Delivered" :value="number_format($statistics['completed_orders'] ?? 0)" accent="text-emerald-600" />
-            <x-admin.vendor.kpi-card label="Products" :value="number_format($metrics['total_products'] ?? 0)" :subtitle="($metrics['active_products'] ?? 0).' active'" accent="text-blue-600" />
-            <x-admin.vendor.kpi-card label="Wallet Balance" :value="'AED '.number_format($revenue['wallet_balance'] ?? 0, 2)" accent="text-indigo-600" />
+        {{-- Overview KPIs --}}
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+            <x-admin.vendor.stat-card label="Total Revenue" :value="'AED '.number_format($revenue['total_revenue'] ?? 0, 2)" accent="text-emerald-600" />
+            <x-admin.vendor.stat-card label="Total Orders" :value="number_format($statistics['total_orders'] ?? 0)" />
+            <x-admin.vendor.stat-card label="Active Products" :value="number_format($metrics['active_products'] ?? 0)" accent="text-indigo-600" />
+            <x-admin.vendor.stat-card label="Pending Products" :value="number_format($vendor->vendorProducts->where('approval_status', 'pending')->count())" accent="text-amber-600" />
+            <x-admin.vendor.stat-card label="Pending Orders" :value="number_format($statistics['pending_orders'] ?? 0)" accent="text-sky-600" />
+            <x-admin.vendor.stat-card label="Wallet Balance" :value="'AED '.number_format($revenue['wallet_balance'] ?? 0, 2)" accent="text-violet-600" />
         </div>
 
-        <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <x-admin.vendor.kpi-card label="Out of Stock" :value="number_format($statistics['out_of_stock_products'] ?? 0)" accent="text-rose-600" />
-            <x-admin.vendor.kpi-card label="Low Stock" :value="number_format($statistics['low_stock_products'] ?? 0)" accent="text-orange-600" />
-            <x-admin.vendor.kpi-card label="Commission" :value="'AED '.number_format($revenue['commission'] ?? 0, 2)" accent="text-gray-700" />
-            <x-admin.vendor.kpi-card label="Net Earnings" :value="'AED '.number_format($statistics['net_earnings'] ?? 0, 2)" accent="text-emerald-600" />
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <x-admin.vendor.stat-card label="Delivered Orders" :value="number_format($statistics['completed_orders'] ?? 0)" accent="text-emerald-600" />
+            <x-admin.vendor.stat-card label="Out of Stock" :value="number_format($statistics['out_of_stock_products'] ?? 0)" accent="text-rose-600" />
+            <x-admin.vendor.stat-card label="Commission Earned" :value="'AED '.number_format($revenue['commission'] ?? 0, 2)" />
+            <x-admin.vendor.stat-card label="Net Earnings" :value="'AED '.number_format($statistics['net_earnings'] ?? 0, 2)" accent="text-emerald-600" />
         </div>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <x-dashboard.chart-card title="Revenue (6 months)" canvasId="vendorAdminRevenueChart" />
-            <x-dashboard.chart-card title="Orders by Status" canvasId="vendorAdminOrdersChart" />
-        </div>
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            {{-- Charts --}}
+            <div class="space-y-6 xl:col-span-2">
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <x-dashboard.chart-card title="Revenue trend" canvasId="vendorAdminRevenueChart" />
+                    <x-dashboard.chart-card title="Orders by status" canvasId="vendorAdminOrdersChart" />
+                </div>
 
-        @include('admin.vendors.partials.controls', ['vendor' => $vendor, 'isVerified' => $isVerified ?? false])
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    @include('admin.vendors.partials.recent-products', ['vendor' => $vendor, 'recentProducts' => $recentProducts])
+                    @include('admin.vendors.partials.recent-orders', ['recentOrders' => $recentOrders])
+                </div>
+            </div>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            @include('admin.vendors.partials.recent-products', ['vendor' => $vendor, 'recentProducts' => $recentProducts])
-            @include('admin.vendors.partials.recent-orders', ['recentOrders' => $recentOrders])
+            {{-- Sidebar: info + quick actions --}}
+            <div class="space-y-6">
+                <x-admin.vendor.card title="Vendor information">
+                    <dl class="space-y-4 text-sm">
+                        <div>
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Store name</dt>
+                            <dd class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $vendor->profile?->business_name ?? '—' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Contact</dt>
+                            <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ $vendor->profile?->email }}</dd>
+                            <dd class="text-gray-500">{{ $vendor->profile?->phone ?? '—' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Address</dt>
+                            <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ $vendor->profile?->address ?? '—' }}</dd>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Registered</dt>
+                                <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ $vendor->created_at?->format('M j, Y') }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Last login</dt>
+                                <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ $vendor->user?->updated_at?->diffForHumans() ?? '—' }}</dd>
+                            </div>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Account status</dt>
+                            <dd class="mt-2"><x-admin.vendor.status-badge :status="$vendor->status" /></dd>
+                        </div>
+                    </dl>
+                </x-admin.vendor.card>
+
+                <x-admin.vendor.card title="Quick actions">
+                    <div class="space-y-2">
+                        <x-admin.vendor.btn variant="secondary" :href="route('admin.vendors.edit', $vendor)" class="w-full">Edit vendor</x-admin.vendor.btn>
+                        @if(!($isVerified ?? false))
+                            <form method="POST" action="{{ route('admin.vendors.verify', $vendor) }}">@csrf
+                                <x-admin.vendor.btn variant="brand" type="submit" class="w-full">Verify vendor</x-admin.vendor.btn>
+                            </form>
+                        @endif
+                        @if($vendor->status === 'approved')
+                            <form method="POST" action="{{ route('admin.vendors.suspend', $vendor) }}">@csrf
+                                <x-admin.vendor.btn variant="secondary" type="submit" class="w-full">Suspend vendor</x-admin.vendor.btn>
+                            </form>
+                        @elseif(in_array($vendor->status, ['suspended', 'rejected', 'disabled']))
+                            <form method="POST" action="{{ route('admin.vendors.activate', $vendor) }}">@csrf
+                                <x-admin.vendor.btn variant="brand" type="submit" class="w-full">Activate vendor</x-admin.vendor.btn>
+                            </form>
+                        @endif
+                        <form method="POST" action="{{ route('admin.vendors.disable', $vendor) }}">@csrf
+                            <x-admin.vendor.btn variant="secondary" type="submit" class="w-full">Disable store</x-admin.vendor.btn>
+                        </form>
+                    </div>
+                </x-admin.vendor.card>
+
+                @include('admin.vendors.partials.controls', ['vendor' => $vendor, 'isVerified' => $isVerified ?? false])
+            </div>
         </div>
-    </div>
+    </x-admin.vendor.shell>
 
     @push('scripts')
     <script>
@@ -75,13 +140,24 @@
                     datasets: [{
                         label: 'Revenue (AED)',
                         data: monthly.map(i => i.revenue),
-                        borderColor: 'rgb(99, 102, 241)',
-                        backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                        borderColor: 'rgb(79, 70, 229)',
+                        backgroundColor: 'rgba(79, 70, 229, 0.08)',
                         fill: true,
-                        tension: 0.35,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
                     }],
                 },
-                options: { responsive: true, maintainAspectRatio: false },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+                    },
+                },
             });
         }
 
@@ -92,9 +168,18 @@
                 type: 'doughnut',
                 data: {
                     labels: statusData.map(i => i.status),
-                    datasets: [{ data: statusData.map(i => i.count), backgroundColor: ['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ef4444','#6b7280'] }],
+                    datasets: [{
+                        data: statusData.map(i => i.count),
+                        backgroundColor: ['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ef4444','#6b7280'],
+                        borderWidth: 0,
+                    }],
                 },
-                options: { responsive: true, maintainAspectRatio: false },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } } },
+                },
             });
         }
     </script>

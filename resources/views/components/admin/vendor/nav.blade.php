@@ -1,28 +1,40 @@
 @props(['vendor' => null])
 
 @php
-    $tab = fn (string $route, array $params = []) => request()->routeIs($route)
-        ? 'bg-indigo-600 text-white shadow-sm'
-        : 'bg-white/70 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/70 dark:text-gray-300 dark:hover:bg-gray-800';
+    $link = fn (string $route, bool $active) => $active
+        ? 'border-gray-900 text-gray-900 dark:border-gray-100 dark:text-gray-100'
+        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-200';
 @endphp
 
-@if($vendor)
-    <nav class="mb-4 flex flex-wrap gap-1.5 rounded-xl border border-gray-200/80 bg-white/60 p-1.5 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-900/60">
-        <a href="{{ route('admin.vendors.show', $vendor) }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.show', ['vendor' => $vendor->id]) }}">Overview</a>
-        <a href="{{ route('admin.vendors.products', $vendor) }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.products') }}">Products</a>
-        <a href="{{ route('admin.vendors.orders', $vendor) }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.orders') }}">Orders</a>
-        <a href="{{ route('admin.vendors.vendor-revenue', $vendor) }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.vendor-revenue') }}">Revenue</a>
-        <a href="{{ route('admin.vendors.activity', $vendor) }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.activity') }}">Activity</a>
-        <a href="{{ route('admin.vendors.analytics', $vendor) }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.analytics') }}">Analytics</a>
-        <a href="{{ route('admin.vendors.edit', $vendor) }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.edit') }}">Settings</a>
-    </nav>
-@else
-    <nav class="mb-4 flex flex-wrap gap-1.5 rounded-xl border border-gray-200/80 bg-white/60 p-1.5 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-900/60">
-        <a href="{{ route('admin.vendors.index') }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.index') }}">All Vendors</a>
-        <a href="{{ route('admin.vendors.pending') }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.pending') }}">Pending Approvals</a>
-        <a href="{{ route('admin.vendors.active') }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.active') }}">Active Vendors</a>
-        <a href="{{ route('admin.vendors.suspended') }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.suspended') }}">Suspended</a>
-        <a href="{{ route('admin.vendors.insights') }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.insights') }}">Analytics</a>
-        <a href="{{ route('admin.vendors.revenue') }}" class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition {{ $tab('admin.vendors.revenue') }}">Revenue</a>
-    </nav>
-@endif
+<nav class="-mb-px flex flex-wrap gap-x-1 border-b border-gray-200 dark:border-gray-800">
+    @if($vendor)
+        @foreach([
+            ['admin.vendors.show', 'Overview', ['vendor' => $vendor->id]],
+            ['admin.vendors.products', 'Products', ['vendor' => $vendor]],
+            ['admin.vendors.orders', 'Orders', ['vendor' => $vendor]],
+            ['admin.vendors.vendor-revenue', 'Revenue', ['vendor' => $vendor]],
+            ['admin.vendors.activity', 'Activity', ['vendor' => $vendor]],
+            ['admin.vendors.analytics', 'Analytics', ['vendor' => $vendor]],
+            ['admin.vendors.edit', 'Settings', ['vendor' => $vendor]],
+        ] as [$route, $label, $params])
+            <a href="{{ route($route, $params) }}"
+               class="border-b-2 px-3 py-2.5 text-sm font-medium transition-colors {{ $link($route, request()->routeIs($route)) }}">
+                {{ $label }}
+            </a>
+        @endforeach
+    @else
+        @foreach([
+            ['admin.vendors.index', 'All Vendors'],
+            ['admin.vendors.pending', 'Pending'],
+            ['admin.vendors.active', 'Active'],
+            ['admin.vendors.suspended', 'Suspended'],
+            ['admin.vendors.insights', 'Analytics'],
+            ['admin.vendors.revenue', 'Revenue'],
+        ] as [$route, $label])
+            <a href="{{ route($route) }}"
+               class="border-b-2 px-3 py-2.5 text-sm font-medium transition-colors {{ $link($route, request()->routeIs($route)) }}">
+                {{ $label }}
+            </a>
+        @endforeach
+    @endif
+</nav>

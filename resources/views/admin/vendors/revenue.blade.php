@@ -1,12 +1,12 @@
 <x-admin-layout>
-    <div class="space-y-6">
+    <x-admin.vendor.shell>
         <x-admin.vendor.nav />
-        <div>
-            <h1 class="text-2xl font-semibold">Revenue Management</h1>
-            <p class="text-sm text-gray-500">Platform-wide marketplace revenue, commissions, and payouts.</p>
-        </div>
 
-        <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <x-admin.vendor.page-header
+            title="Revenue Management"
+            description="Platform-wide marketplace revenue, commissions, and payouts." />
+
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
             <x-admin.vendor.kpi-card label="Total Revenue" :value="'AED '.number_format($revenue['total_revenue'], 2)" accent="text-amber-600" />
             <x-admin.vendor.kpi-card label="Vendor Earnings" :value="'AED '.number_format($revenue['vendor_earnings'], 2)" accent="text-emerald-600" />
             <x-admin.vendor.kpi-card label="Platform Earnings" :value="'AED '.number_format($revenue['platform_earnings'], 2)" accent="text-indigo-600" />
@@ -16,7 +16,7 @@
         </div>
 
         <x-dashboard.chart-card title="Monthly Revenue" canvasId="platformRevenueChart" />
-    </div>
+    </x-admin.vendor.shell>
 
     @push('scripts')
     <script>

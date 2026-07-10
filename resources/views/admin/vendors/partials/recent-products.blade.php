@@ -1,18 +1,26 @@
-<div class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white/80 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-900/70">
-    <div class="flex items-center justify-between border-b px-4 py-3 dark:border-gray-700">
-        <h2 class="font-semibold">Recent Products</h2>
-        <a href="{{ route('admin.vendors.products', $vendor) }}" class="text-sm text-indigo-600">View all</a>
+<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Recent products</h2>
+        <a href="{{ route('admin.vendors.products', $vendor) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">View all</a>
     </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-900/40"><tr><th class="px-4 py-2 text-left">Product</th><th class="px-4 py-2 text-left">Status</th><th class="px-4 py-2 text-right">Stock</th></tr></thead>
-            <tbody>
-                @forelse($recentProducts as $vp)
-                    <tr class="border-t dark:border-gray-800"><td class="px-4 py-3">{{ $vp->product?->name }}</td><td class="px-4 py-3 capitalize">{{ $vp->status }}</td><td class="px-4 py-3 text-right">{{ $vp->inventory?->quantity ?? '—' }}</td></tr>
-                @empty
-                    <tr><td colspan="3" class="px-4 py-8 text-center text-gray-500">No products.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+        @forelse($recentProducts as $vp)
+            <div class="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-800/40">
+                @if($vp->product?->image_url)
+                    <img src="{{ $vp->product->image_url }}" alt="" class="h-10 w-10 rounded-md border object-cover dark:border-gray-700" />
+                @else
+                    <x-admin.vendor.avatar :name="$vp->product?->name ?? 'P'" size="sm" />
+                @endif
+                <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $vp->product?->name }}</p>
+                    <div class="mt-1 flex items-center gap-2">
+                        <x-admin.vendor.status-badge :status="$vp->status" />
+                        <span class="text-xs text-gray-500">{{ $vp->inventory?->quantity ?? 0 }} in stock</span>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="px-5 py-8 text-center text-sm text-gray-500">No products yet.</div>
+        @endforelse
     </div>
 </div>
