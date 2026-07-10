@@ -41,7 +41,6 @@
             <x-admin.vendor.stat-card label="Total Orders" :value="number_format($statistics['total_orders'] ?? 0)" />
             <x-admin.vendor.stat-card label="Active Products" :value="number_format($metrics['active_products'] ?? 0)" accent="text-indigo-600" />
             <x-admin.vendor.stat-card label="Disabled Products" :value="number_format($statistics['disabled_products'] ?? 0)" accent="text-rose-600" />
-            <x-admin.vendor.stat-card label="Pending Products" :value="number_format($vendor->vendorProducts->where('approval_status', 'pending')->count())" accent="text-amber-600" />
             <x-admin.vendor.stat-card label="Pending Orders" :value="number_format($statistics['pending_orders'] ?? 0)" accent="text-sky-600" />
             <x-admin.vendor.stat-card label="Wallet Balance" :value="'AED '.number_format($revenue['wallet_balance'] ?? 0, 2)" accent="text-violet-600" />
         </div>

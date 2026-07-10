@@ -67,6 +67,21 @@ class AdminVendorProductControlTest extends TestCase
         $this->assertTrue($vp2->fresh()->disabled_by_admin);
     }
 
+    public function test_admin_can_enable_pending_product_without_separate_approval(): void
+    {
+        [$admin, $vendor, $vp] = $this->seedVendorProduct('pending');
+
+        $this->actingAs($admin)
+            ->post(route('admin.vendors.products.enable', [$vendor, $vp]))
+            ->assertRedirect();
+
+        $vp->refresh();
+        $this->assertSame('approved', $vp->approval_status);
+        $this->assertSame('active', $vp->status);
+        $this->assertFalse($vp->disabled_by_admin);
+        $this->assertTrue($vp->isMarketplaceVisible());
+    }
+
     public function test_admin_product_pages_are_accessible(): void
     {
         [$admin, $vendor, $vp] = $this->seedVendorProduct('pending');

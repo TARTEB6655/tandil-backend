@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\VendorProduct;
 use App\Support\MarketplaceSettings;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class AdminVendorProductService
 {
@@ -59,14 +58,12 @@ class AdminVendorProductService
 
     public function enableByAdmin(VendorProduct $vp, User $admin): VendorProduct
     {
-        if ($vp->approval_status !== VendorProductApprovalStatus::Approved->value) {
-            throw ValidationException::withMessages([
-                'product' => 'Product must be approved before it can be enabled on the marketplace.',
-            ]);
-        }
-
         $vp->update([
             'status' => 'active',
+            'approval_status' => VendorProductApprovalStatus::Approved->value,
+            'rejection_reason' => null,
+            'approved_at' => $vp->approved_at ?? now(),
+            'approved_by' => $vp->approved_by ?? $admin->id,
             'disabled_by_admin' => false,
             'disabled_by_admin_at' => null,
             'disabled_by_admin_by' => null,
@@ -79,7 +76,7 @@ class AdminVendorProductService
 
     public function toggle(VendorProduct $vp, User $admin): VendorProduct
     {
-        if ($vp->status === 'active' && ! $vp->disabled_by_admin) {
+        if ($vp->isMarketplaceVisible()) {
             return $this->disableByAdmin($vp, $admin);
         }
 
@@ -110,8 +107,6 @@ class AdminVendorProductService
             foreach ($products as $vp) {
                 try {
                     match ($action) {
-                        'approve' => $this->approve($vp, $admin),
-                        'reject' => $this->reject($vp, $admin, $reason ?? 'Bulk rejected by admin'),
                         'enable' => $this->enableByAdmin($vp, $admin),
                         'disable' => $this->disableByAdmin($vp, $admin, $reason),
                         'delete' => $this->removeListing($vp),

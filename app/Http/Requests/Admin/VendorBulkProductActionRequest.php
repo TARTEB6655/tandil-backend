@@ -17,10 +17,10 @@ class VendorBulkProductActionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'action' => 'required|in:enable,disable,approve,reject,delete',
+            'action' => 'required|in:enable,disable,delete',
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'integer|exists:vendor_products,id',
-            'reason' => 'required_if:action,reject|nullable|string|max:1000',
+            'reason' => 'nullable|string|max:1000',
         ];
     }
 }

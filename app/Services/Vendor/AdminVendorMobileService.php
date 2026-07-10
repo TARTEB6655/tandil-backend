@@ -2,7 +2,6 @@
 
 namespace App\Services\Vendor;
 
-use App\Enums\VendorProductApprovalStatus;
 use App\Enums\VendorStatus;
 use App\Models\Vendor;
 use App\Models\VendorProduct;
@@ -85,7 +84,6 @@ class AdminVendorMobileService
                 'total_products' => (int) ($productStats['total'] ?? 0),
                 'enabled_products' => (int) ($productStats['active'] ?? 0),
                 'disabled_products' => (int) ($productStats['disabled'] ?? 0),
-                'pending_products' => (int) ($productStats['pending'] ?? 0),
             ],
             'products' => [
                 'count' => $paginator->total(),
@@ -118,14 +116,8 @@ class AdminVendorMobileService
             'price_formatted' => $this->formatAed($price),
             'stock' => $stock,
             'is_enabled' => $isEnabled,
-            'status' => $isEnabled ? 'enabled' : 'disabled',
-            'status_label' => $isEnabled ? 'Enabled' : 'Disabled',
-            'display_status' => $vp->displayStatusKey(),
-            'display_status_label' => $vp->displayStatusLabel(),
-            'approval_status' => $vp->approval_status,
-            'disabled_by_admin' => (bool) $vp->disabled_by_admin,
             'image_url' => $product?->image_url,
-            'can_toggle' => $vp->approval_status === VendorProductApprovalStatus::Approved->value,
+            'can_toggle' => true,
             'actions' => [
                 'toggle' => [
                     'method' => 'POST',
@@ -203,9 +195,7 @@ class AdminVendorMobileService
 
     private function isProductEnabledForToggle(VendorProduct $vp): bool
     {
-        return $vp->status === 'active'
-            && $vp->approval_status === VendorProductApprovalStatus::Approved->value
-            && ! $vp->disabled_by_admin;
+        return $vp->isMarketplaceVisible();
     }
 
     private function formatAed(float $amount): string

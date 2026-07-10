@@ -385,7 +385,6 @@ class VendorManagementController extends Controller
 
         $paginator = VendorProduct::with(['product.category', 'inventory', 'currentPrice'])
             ->where('vendor_id', $id)
-            ->when($request->query('approval_status'), fn ($q, $status) => $q->where('approval_status', $status))
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->when($request->query('search'), function ($q, $search) {
                 $q->whereHas('product', fn ($pq) => $pq->where('name', 'like', "%{$search}%"));

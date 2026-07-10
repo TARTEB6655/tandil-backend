@@ -118,7 +118,11 @@
                                 <p class="truncate text-sm font-medium">{{ $vp->product?->name }}</p>
                                 <p class="text-xs text-gray-500">{{ $vp->vendor?->profile?->business_name }}</p>
                             </div>
-                            <x-admin.vendor.product-status-badge :status="$vp->displayStatusKey()" />
+                            <span @class([
+                                'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium ring-1',
+                                'bg-emerald-50 text-emerald-700 ring-emerald-600/20' => $vp->isMarketplaceVisible(),
+                                'bg-gray-100 text-gray-600 ring-gray-500/20' => ! $vp->isMarketplaceVisible(),
+                            ])>{{ $vp->isMarketplaceVisible() ? 'Live' : 'Hidden' }}</span>
                         </div>
                     @empty
                         <p class="px-5 py-8 text-sm text-gray-500">No products yet.</p>
@@ -163,7 +167,7 @@
                                 <p class="truncate text-sm font-medium">{{ $vp->product?->name }}</p>
                                 <p class="text-xs text-gray-500">{{ $vp->vendor?->profile?->business_name }}</p>
                             </div>
-                            <x-admin.vendor.product-status-badge status="disabled_by_admin" />
+                            <span class="text-xs font-medium text-rose-600">Disabled</span>
                         </div>
                     @empty
                         <p class="px-5 py-8 text-sm text-gray-500">No admin-disabled products.</p>

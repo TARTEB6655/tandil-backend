@@ -2,7 +2,6 @@
 
 namespace App\Services\Vendor;
 
-use App\Enums\VendorProductApprovalStatus;
 use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -24,7 +23,6 @@ class AdminVendorProductListService
 
         $outOfStock = (clone $base)
             ->where('status', 'active')
-            ->where('approval_status', VendorProductApprovalStatus::Approved->value)
             ->where('disabled_by_admin', false)
             ->whereHas('inventory', fn ($q) => $q->where('quantity', '<=', 0))
             ->count();
@@ -33,12 +31,10 @@ class AdminVendorProductListService
             'total' => (clone $base)->count(),
             'active' => (clone $base)
                 ->where('status', 'active')
-                ->where('approval_status', VendorProductApprovalStatus::Approved->value)
                 ->where('disabled_by_admin', false)
+                ->whereHas('product', fn ($q) => $q->where('status', 'active'))
                 ->count(),
             'disabled' => (clone $base)->where('disabled_by_admin', true)->count(),
-            'pending' => (clone $base)->where('approval_status', VendorProductApprovalStatus::Pending->value)->count(),
-            'rejected' => (clone $base)->where('approval_status', VendorProductApprovalStatus::Rejected->value)->count(),
             'draft' => (clone $base)->whereHas('product', fn ($q) => $q->where('status', 'draft'))->count(),
             'out_of_stock' => $outOfStock,
         ];
@@ -49,10 +45,6 @@ class AdminVendorProductListService
         $query = VendorProduct::query()
             ->with(['product.category', 'product.primaryImage', 'product.images', 'inventory', 'currentPrice', 'disabledByAdminUser'])
             ->where('vendor_id', $vendor->id);
-
-        if ($request->filled('approval_status')) {
-            $query->where('approval_status', $request->query('approval_status'));
-        }
 
         if ($request->filled('status')) {
             $status = $request->query('status');

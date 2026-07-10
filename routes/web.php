@@ -382,8 +382,6 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('vendors/{vendor}/reset-password', [AdminVendorController::class, 'resetPassword'])->name('vendors.reset-password');
         Route::post('vendors/{vendor}/notify', [AdminVendorController::class, 'notify'])->name('vendors.notify');
         Route::post('vendors/{vendor}/verify', [AdminVendorController::class, 'verifyVendor'])->name('vendors.verify');
-        Route::post('vendors/{vendor}/products/{vendorProduct}/approve', [AdminVendorController::class, 'approveProduct'])->name('vendors.products.approve');
-        Route::post('vendors/{vendor}/products/{vendorProduct}/reject', [AdminVendorController::class, 'rejectProduct'])->name('vendors.products.reject');
         Route::post('vendors/{vendor}/products/{vendorProduct}/enable', [AdminVendorController::class, 'enableProduct'])->name('vendors.products.enable');
         Route::post('vendors/{vendor}/products/{vendorProduct}/disable', [AdminVendorController::class, 'disableProduct'])->name('vendors.products.disable');
         Route::post('vendors/{vendor}/products/{vendorProduct}/toggle', [AdminVendorController::class, 'toggleProduct'])->name('vendors.products.toggle');

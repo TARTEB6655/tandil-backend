@@ -21600,7 +21600,7 @@
                                                 }
                                             ]
                                         },
-                                        "description": "**Vendor detail screen** (approved vendors only) — vendor email\/phone, logo_url (business logo only), KPI cards (total revenue, total products, enabled products), and products list with price_formatted, stock, is_enabled, status_label, image_url, and toggle action endpoint. Auto-sets {{vendor_product_id}} from first product."
+                                        "description": "**Vendor detail screen** (approved vendors only) — vendor email\/phone, logo_url (business logo only), KPI cards (total revenue, total products, enabled products), and products list with price_formatted, stock, is_enabled, image_url, and toggle action endpoint. Auto-sets {{vendor_product_id}} from first product."
                                     }
                                 },
                                 {
@@ -21647,7 +21647,7 @@
                                                 "toggle"
                                             ]
                                         },
-                                        "description": "Toggles marketplace visibility for an approved vendor product. Response includes updated product object (is_enabled, disabled_by_admin, status_label). Run twice to flip back."
+                                        "description": "Toggles marketplace visibility for a vendor product (Live on\/off). Response includes updated product object (is_enabled). Run twice to flip back."
                                     }
                                 }
                             ]
@@ -21948,18 +21948,13 @@
                                                     "disabled": true
                                                 },
                                                 {
-                                                    "key": "approval_status",
-                                                    "value": "approved",
-                                                    "disabled": true
-                                                },
-                                                {
                                                     "key": "search",
                                                     "value": "",
                                                     "disabled": true
                                                 }
                                             ]
                                         },
-                                        "description": "Paginated vendor catalog for admin tracking. Filters: status, approval_status, search."
+                                        "description": "Paginated vendor catalog for admin tracking. Filters: status, search."
                                     }
                                 },
                                 {

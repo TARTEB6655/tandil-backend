@@ -16,9 +16,12 @@
                     <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-50">{{ $product?->name }}</h1>
                     <p class="mt-1 text-sm text-gray-500">SKU: {{ $product?->sku ?? '—' }} · {{ $product?->category?->name ?? 'Uncategorized' }}</p>
                     <div class="mt-3 flex flex-wrap gap-2">
-                        <x-admin.vendor.product-status-badge :status="$vendorProduct->displayStatusKey()" />
-                        <x-admin.vendor.status-badge :status="$vendorProduct->approval_status" />
                         @if($product?->is_featured)<span class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20">Featured</span>@endif
+                        <span @class([
+                            'rounded-md px-2 py-0.5 text-xs font-medium ring-1',
+                            'bg-emerald-50 text-emerald-700 ring-emerald-600/20' => $vendorProduct->isMarketplaceVisible(),
+                            'bg-gray-100 text-gray-600 ring-gray-500/20' => ! $vendorProduct->isMarketplaceVisible(),
+                        ])>{{ $vendorProduct->isMarketplaceVisible() ? 'Live' : 'Hidden' }}</span>
                     </div>
                 </div>
             </div>
@@ -47,7 +50,7 @@
                 </dl>
             </x-admin.vendor.card>
 
-            <x-admin.vendor.card title="Moderation">
+            <x-admin.vendor.card title="Marketplace control">
                 <dl class="space-y-4 text-sm">
                     @if($vendorProduct->disabled_by_admin)
                         <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900/50 dark:bg-rose-950/30">
@@ -56,19 +59,9 @@
                             <p class="mt-2 text-xs text-gray-500">{{ $vendorProduct->disabled_by_admin_at?->format('M j, Y g:i A') }} · {{ $vendorProduct->disabledByAdminUser?->name ?? 'Admin' }}</p>
                         </div>
                     @endif
-                    @if($vendorProduct->approval_status === 'rejected')
-                        <div><dt class="text-xs font-medium uppercase text-gray-500">Rejection reason</dt><dd class="mt-1 text-rose-700">{{ $vendorProduct->rejection_reason ?? '—' }}</dd></div>
-                    @endif
-                    <div><dt class="text-xs font-medium uppercase text-gray-500">Approved by</dt><dd class="mt-1">{{ $vendorProduct->approvedByUser?->name ?? '—' }}</dd></div>
-                    <div><dt class="text-xs font-medium uppercase text-gray-500">Approved at</dt><dd class="mt-1">{{ $vendorProduct->approved_at?->format('M j, Y g:i A') ?? '—' }}</dd></div>
                 </dl>
 
                 <div class="mt-6 space-y-2 border-t border-gray-100 pt-4 dark:border-gray-800">
-                    @if($vendorProduct->approval_status === 'pending')
-                        <form method="POST" action="{{ route('admin.vendors.products.approve', [$vendor, $vendorProduct]) }}">@csrf
-                            <x-admin.vendor.btn variant="brand" type="submit" class="w-full">Approve product</x-admin.vendor.btn>
-                        </form>
-                    @endif
                     <form method="POST" action="{{ route($vendorProduct->isMarketplaceVisible() ? 'admin.vendors.products.disable' : 'admin.vendors.products.enable', [$vendor, $vendorProduct]) }}" onsubmit="return confirm('Change marketplace visibility?')">@csrf
                         <x-admin.vendor.btn variant="secondary" type="submit" class="w-full">{{ $vendorProduct->isMarketplaceVisible() ? 'Disable on marketplace' : 'Enable on marketplace' }}</x-admin.vendor.btn>
                     </form>

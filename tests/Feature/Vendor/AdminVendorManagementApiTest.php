@@ -260,7 +260,6 @@ class AdminVendorManagementApiTest extends TestCase
                                 'price_formatted',
                                 'stock',
                                 'is_enabled',
-                                'status_label',
                                 'image_url',
                                 'actions' => ['toggle' => ['method', 'endpoint']],
                             ],
@@ -282,14 +281,33 @@ class AdminVendorManagementApiTest extends TestCase
         $this->withToken($token)
             ->postJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}/toggle")
             ->assertOk()
-            ->assertJsonPath('data.product.is_enabled', false)
-            ->assertJsonPath('data.product.disabled_by_admin', true);
+            ->assertJsonPath('data.product.is_enabled', false);
 
         $this->withToken($token)
             ->postJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}/toggle")
             ->assertOk()
-            ->assertJsonPath('data.product.is_enabled', true)
-            ->assertJsonPath('data.product.disabled_by_admin', false);
+            ->assertJsonPath('data.product.is_enabled', true);
+    }
+
+    public function test_admin_can_toggle_pending_product_from_mobile_api(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+        $vendorProduct->update(['approval_status' => 'pending']);
+
+        $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/management")
+            ->assertOk()
+            ->assertJsonPath('data.products.items.0.can_toggle', true)
+            ->assertJsonPath('data.products.items.0.is_enabled', false);
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}/toggle")
+            ->assertOk()
+            ->assertJsonPath('data.product.is_enabled', true);
+
+        $vendorProduct->refresh();
+        $this->assertSame('approved', $vendorProduct->approval_status);
     }
 
     /**

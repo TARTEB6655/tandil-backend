@@ -332,25 +332,6 @@ class VendorController extends Controller
         return back()->with('success', 'Vendor documents marked as verified.');
     }
 
-    public function approveProduct(Request $request, Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
-    {
-        Gate::authorize('manageProducts', $vendor);
-        abort_unless($vendorProduct->vendor_id === $vendor->id, 404);
-        $this->adminProducts->approve($vendorProduct, $request->user(), $request->input('notes'));
-
-        return back()->with('success', 'Product approved.');
-    }
-
-    public function rejectProduct(Request $request, Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
-    {
-        Gate::authorize('manageProducts', $vendor);
-        abort_unless($vendorProduct->vendor_id === $vendor->id, 404);
-        $request->validate(['reason' => 'required|string|max:1000']);
-        $this->adminProducts->reject($vendorProduct, $request->user(), $request->input('reason'));
-
-        return back()->with('success', 'Product rejected.');
-    }
-
     public function enableProduct(Request $request, Vendor $vendor, VendorProduct $vendorProduct): RedirectResponse
     {
         Gate::authorize('manageProducts', $vendor);

@@ -21,18 +21,16 @@
 
         <x-admin.vendor.page-header
             :title="'Products — '.$vendor->profile?->business_name"
-            description="Full catalog control — approve, disable, and manage every product for this vendor.">
+            description="Full catalog control — enable or disable products on the marketplace with the Live toggle.">
             <x-slot:actions>
                 <x-admin.vendor.btn variant="secondary" type="button" @click="bulkOpen = !bulkOpen">Bulk actions</x-admin.vendor.btn>
             </x-slot:actions>
         </x-admin.vendor.page-header>
 
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
             <x-admin.vendor.stat-card label="Total Products" :value="number_format($stats['total'] ?? 0)" />
-            <x-admin.vendor.stat-card label="Active" :value="number_format($stats['active'] ?? 0)" accent="text-emerald-600" />
-            <x-admin.vendor.stat-card label="Disabled by Admin" :value="number_format($stats['disabled'] ?? 0)" accent="text-rose-600" />
-            <x-admin.vendor.stat-card label="Pending Review" :value="number_format($stats['pending'] ?? 0)" accent="text-amber-600" />
-            <x-admin.vendor.stat-card label="Rejected" :value="number_format($stats['rejected'] ?? 0)" accent="text-orange-600" />
+            <x-admin.vendor.stat-card label="Live" :value="number_format($stats['active'] ?? 0)" accent="text-emerald-600" />
+            <x-admin.vendor.stat-card label="Disabled" :value="number_format($stats['disabled'] ?? 0)" accent="text-rose-600" />
             <x-admin.vendor.stat-card label="Draft" :value="number_format($stats['draft'] ?? 0)" />
             <x-admin.vendor.stat-card label="Out of Stock" :value="number_format($stats['out_of_stock'] ?? 0)" accent="text-sky-600" />
         </div>
@@ -52,14 +50,12 @@
                         <select name="action" class="w-full rounded-md border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" required>
                             <option value="enable">Enable selected</option>
                             <option value="disable">Disable selected</option>
-                            <option value="approve">Approve selected</option>
-                            <option value="reject">Reject selected</option>
                             <option value="delete">Delete selected</option>
                         </select>
                     </div>
                     <div class="min-w-[220px]">
-                        <label class="mb-1.5 block text-xs font-medium text-gray-600">Reason (for reject)</label>
-                        <input name="reason" placeholder="Required when rejecting" class="w-full rounded-md border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
+                        <label class="mb-1.5 block text-xs font-medium text-gray-600">Reason (optional, for disable)</label>
+                        <input name="reason" placeholder="Optional disable reason" class="w-full rounded-md border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
                     </div>
                     <x-admin.vendor.btn variant="primary" type="submit" x-bind:disabled="selected.length === 0">Apply to <span x-text="selected.length"></span> product(s)</x-admin.vendor.btn>
                 </form>
@@ -72,16 +68,6 @@
                     <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     <input name="search" value="{{ request('search') }}" placeholder="Search name or SKU..." class="w-full rounded-md border-gray-300 py-2 pl-10 text-sm dark:border-gray-700 dark:bg-gray-900" />
                 </div>
-                <select name="approval_status" class="rounded-md border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900">
-                    <option value="">All approvals</option>
-                    @foreach(['pending','approved','rejected'] as $s)<option value="{{ $s }}" @selected(request('approval_status')===$s)>{{ ucfirst($s) }}</option>@endforeach
-                </select>
-                <select name="status" class="rounded-md border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900">
-                    <option value="">All statuses</option>
-                    @foreach(['active','inactive','draft','disabled_by_admin','out_of_stock'] as $s)
-                        <option value="{{ $s }}" @selected(request('status')===$s)>{{ str_replace('_', ' ', ucfirst($s)) }}</option>
-                    @endforeach
-                </select>
                 <select name="category_id" class="rounded-md border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900">
                     <option value="">All categories</option>
                     @foreach($categories as $cat)<option value="{{ $cat->id }}" @selected(request('category_id')==$cat->id)>{{ $cat->name }}</option>@endforeach
@@ -112,8 +98,6 @@
                             <th class="px-4 py-3 text-right">Price</th>
                             <th class="px-4 py-3 text-right">Stock</th>
                             <th class="px-4 py-3 text-right">Sales</th>
-                            <th class="px-4 py-3">Status</th>
-                            <th class="px-4 py-3">Approval</th>
                             <th class="px-4 py-3">Created</th>
                             <th class="px-4 py-3">Updated</th>
                             <th class="px-4 py-3 text-center">Live</th>
@@ -147,8 +131,6 @@
                                 <td class="px-4 py-4 text-right tabular-nums font-medium">AED {{ number_format($price, 2) }}</td>
                                 <td class="px-4 py-4 text-right tabular-nums">{{ $stock }}</td>
                                 <td class="px-4 py-4 text-right tabular-nums text-gray-600">{{ number_format($sales) }}</td>
-                                <td class="px-4 py-4"><x-admin.vendor.product-status-badge :status="$vp->displayStatusKey()" /></td>
-                                <td class="px-4 py-4"><x-admin.vendor.status-badge :status="$vp->approval_status" /></td>
                                 <td class="px-4 py-4 text-xs text-gray-500">{{ $vp->created_at?->format('M j, Y') }}</td>
                                 <td class="px-4 py-4 text-xs text-gray-500">{{ $vp->updated_at?->diffForHumans() }}</td>
                                 <td class="px-4 py-4 text-center">
@@ -170,7 +152,7 @@
                                 <td class="px-4 py-4">@include('admin.vendors.partials.product-actions', ['vendor' => $vendor, 'vp' => $vp])</td>
                             </tr>
                         @empty
-                            <tr><td colspan="13" class="p-0"><x-admin.vendor.empty-state title="No products found" description="This vendor has no products matching your filters." /></td></tr>
+                            <tr><td colspan="11" class="p-0"><x-admin.vendor.empty-state title="No products found" description="This vendor has no products matching your filters." /></td></tr>
                         @endforelse
                     </tbody>
                 </table>
