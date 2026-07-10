@@ -29,7 +29,7 @@ class VendorProfileScreenService
 
         $delivered = $stats['completed_orders'];
         $products = $stats['total_products'];
-        $partnership = $this->partnershipBadge($vendor, $delivered);
+        $statusBadge = $this->vendorStatusBadge($vendor);
 
         $memberSince = $vendor->approved_at ?? $vendor->created_at;
         $locationParts = array_values(array_filter([
@@ -49,7 +49,7 @@ class VendorProfileScreenService
                 'profile_image_url' => $this->profilePictureUrl($vendor, $user),
                 'profile_picture_url' => $this->profilePictureUrl($vendor, $user),
                 'professional_category' => $profile?->vendor_type_label,
-                'partnership_badge' => $partnership,
+                'status_badge' => $statusBadge,
                 'member_since' => $memberSince ? $memberSince->format('F Y') : null,
                 'member_since_iso' => $memberSince?->toIso8601String(),
             ],
@@ -66,10 +66,8 @@ class VendorProfileScreenService
                 ['id' => 'location_address', 'title' => 'Location & Address', 'icon' => 'location'],
                 ['id' => 'payment_methods', 'title' => 'Payment Methods', 'icon' => 'payment'],
             ],
-            'partnership' => [
-                ['id' => 'partnership_status', 'title' => 'Partnership Status', 'icon' => 'diamond'],
+            'vendor_tools' => [
                 ['id' => 'performance_analytics', 'title' => 'Performance Analytics', 'icon' => 'analytics'],
-                ['id' => 'partnership_documents', 'title' => 'Partnership Documents', 'icon' => 'document'],
                 ['id' => 'support_team', 'title' => 'Support Team', 'icon' => 'support'],
             ],
             'edit_profile' => $this->editProfileForm($vendor, $profile, $user, $opensAt, $closesAt),
@@ -242,20 +240,17 @@ class VendorProfileScreenService
     /**
      * @return array{label: string, tier: string}
      */
-    private function partnershipBadge(Vendor $vendor, int $deliveredOrders): array
+    private function vendorStatusBadge(Vendor $vendor): array
     {
-        if (! $vendor->isApproved()) {
-            return ['label' => 'New Vendor', 'tier' => 'new'];
+        if ($vendor->isApproved()) {
+            return ['label' => 'Approved Vendor', 'tier' => 'approved'];
         }
 
-        if ($deliveredOrders >= 500) {
-            return ['label' => 'Gold Partner', 'tier' => 'gold'];
-        }
-
-        if ($deliveredOrders >= 50) {
-            return ['label' => 'Silver Partner', 'tier' => 'silver'];
-        }
-
-        return ['label' => 'Bronze Partner', 'tier' => 'bronze'];
+        return match ($vendor->status) {
+            'pending', 'under_review' => ['label' => 'Pending Approval', 'tier' => 'pending'],
+            'rejected' => ['label' => 'Application Rejected', 'tier' => 'rejected'],
+            'suspended' => ['label' => 'Suspended', 'tier' => 'suspended'],
+            default => ['label' => 'Vendor', 'tier' => 'vendor'],
+        };
     }
 }

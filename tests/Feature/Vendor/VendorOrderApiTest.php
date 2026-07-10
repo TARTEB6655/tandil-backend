@@ -16,12 +16,10 @@ use App\Models\VendorProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
-use Tests\Support\AssignsVendorPartnership;
 use Tests\TestCase;
 
 class VendorOrderApiTest extends TestCase
 {
-    use AssignsVendorPartnership;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -270,7 +268,6 @@ class VendorOrderApiTest extends TestCase
             'owner_name' => 'Owner',
             'email' => $user->email,
         ]);
-        $this->assignTestPartnership($vendor);
 
         return [
             'user' => $user,

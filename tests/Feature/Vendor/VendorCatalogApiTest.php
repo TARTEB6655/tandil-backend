@@ -17,12 +17,10 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
-use Tests\Support\AssignsVendorPartnership;
 use Tests\TestCase;
 
 class VendorCatalogApiTest extends TestCase
 {
-    use AssignsVendorPartnership;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -321,6 +319,28 @@ class VendorCatalogApiTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
+    public function test_approved_vendor_can_add_unlimited_products_without_partnership(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
+        $category = Category::create([
+            'name' => 'Produce',
+            'slug' => 'produce-'.uniqid(),
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+
+        for ($i = 1; $i <= 6; $i++) {
+            $this->withToken($token)->postJson('/api/vendor/products', [
+                'name' => "Product {$i}",
+                'price' => 10 + $i,
+                'category_id' => $category->id,
+            ])->assertCreated();
+        }
+
+        $this->assertSame(6, VendorProduct::where('vendor_id', $vendor->id)->count());
+    }
+
     public function test_vendor_orders_list_includes_status_summary(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser(VendorStatus::Approved);
@@ -403,10 +423,6 @@ class VendorCatalogApiTest extends TestCase
             'owner_name' => 'Owner',
             'email' => $user->email,
         ]);
-
-        if ($status === VendorStatus::Approved) {
-            $this->assignTestPartnership($vendor);
-        }
 
         $token = $user->createToken('test', ['vendor'])->plainTextToken;
 

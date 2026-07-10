@@ -16,15 +16,11 @@ use Illuminate\Validation\ValidationException;
 class VendorProductService
 {
     public function __construct(
-        private readonly ProductCatalogWriter $catalog,
-        private readonly VendorPartnershipService $partnership
+        private readonly ProductCatalogWriter $catalog
     ) {}
 
     public function createFromRequest(Vendor $vendor, Request $request): VendorProduct
     {
-        $this->partnership->assertCanCreateProduct($vendor);
-        $this->partnership->assertCanAddProductImages($vendor, $this->countIncomingImages($request));
-
         $this->catalog->prepareRequest($request);
         $validated = $request->validate(
             $this->catalog->storeRules(),
@@ -94,14 +90,6 @@ class VendorProductService
 
     public function updateFromRequest(VendorProduct $vendorProduct, Request $request, ?int $setByUserId = null): VendorProduct
     {
-        $incomingImages = $this->countIncomingImages($request);
-        if ($incomingImages > 0) {
-            $this->partnership->assertCanAddProductImages(
-                $vendorProduct->vendor,
-                $incomingImages
-            );
-        }
-
         $this->catalog->prepareRequest($request);
         $productId = $vendorProduct->product_id;
         $validated = $request->validate(
@@ -267,29 +255,5 @@ class VendorProductService
         }
 
         throw ValidationException::withMessages($errors);
-    }
-
-    private function countIncomingImages(Request $request): int
-    {
-        $count = 0;
-
-        if ($request->hasFile('main_image')) {
-            $main = $request->file('main_image');
-            $count += is_array($main) ? count($main) : 1;
-        }
-
-        if ($request->hasFile('image')) {
-            $count++;
-        }
-
-        if ($request->hasFile('images')) {
-            $count += count($request->file('images'));
-        }
-
-        if ($request->hasFile('option_images')) {
-            $count += count(array_filter($request->file('option_images')));
-        }
-
-        return $count;
     }
 }

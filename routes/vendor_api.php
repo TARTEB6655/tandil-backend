@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\VendorManagementController;
-use App\Http\Controllers\Api\Admin\VendorPartnershipAdminController;
 use App\Http\Controllers\Api\Vendor\VendorAuthController;
 use App\Http\Controllers\Api\Vendor\VendorComparisonController;
 use App\Http\Controllers\Api\Vendor\VendorDashboardController;
@@ -54,13 +53,6 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
     Route::get('/documents', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'index']);
     Route::post('/documents', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'store']);
     Route::delete('/documents/{id}', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'destroy']);
-
-    Route::get('/partnership', [\App\Http\Controllers\Api\Vendor\VendorPartnershipController::class, 'show']);
-    Route::get('/partnership/tiers', [\App\Http\Controllers\Api\Vendor\VendorPartnershipController::class, 'tiers']);
-    Route::get('/partnership/limits', [\App\Http\Controllers\Api\Vendor\VendorPartnershipController::class, 'limits']);
-    Route::get('/partnership/applications', [\App\Http\Controllers\Api\Vendor\VendorPartnershipController::class, 'applications']);
-    Route::post('/partnership/applications', [\App\Http\Controllers\Api\Vendor\VendorPartnershipController::class, 'storeApplication']);
-    Route::post('/partnership/check-feature', [\App\Http\Controllers\Api\Vendor\VendorPartnershipController::class, 'checkFeature']);
 
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard/stats', [VendorDashboardController::class, 'stats']);
@@ -128,14 +120,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::post('/{id}/disable', [VendorManagementController::class, 'disable']);
     Route::post('/{id}/delete', [VendorManagementController::class, 'destroy']);
     Route::delete('/{id}', [VendorManagementController::class, 'destroy']);
-});
-
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendor-partnership')->group(function () {
-    Route::get('/tiers', [VendorPartnershipAdminController::class, 'indexTiers']);
-    Route::post('/tiers', [VendorPartnershipAdminController::class, 'storeTier']);
-    Route::get('/tiers/{id}', [VendorPartnershipAdminController::class, 'showTier']);
-    Route::put('/tiers/{id}', [VendorPartnershipAdminController::class, 'updateTier']);
-    Route::delete('/tiers/{id}', [VendorPartnershipAdminController::class, 'destroyTier']);
 });
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/marketplace')->group(function () {
