@@ -116,8 +116,6 @@ class AdminVendorManagementApiTest extends TestCase
                             'owner_name',
                             'email',
                             'logo_url',
-                            'profile_picture_url',
-                            'profile_url',
                             'products_count',
                             'active_count',
                             'revenue',
@@ -133,7 +131,7 @@ class AdminVendorManagementApiTest extends TestCase
             ->assertJsonPath('data.items.0.revenue', 120);
     }
 
-    public function test_admin_mobile_management_includes_vendor_profile_image_urls(): void
+    public function test_admin_mobile_management_returns_business_logo_url_only(): void
     {
         ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
 
@@ -148,8 +146,35 @@ class AdminVendorManagementApiTest extends TestCase
 
         $item = $response->json('data.items.0');
         $this->assertStringContainsString('vendors/logos/test-logo.jpg', (string) ($item['logo_url'] ?? ''));
-        $this->assertStringContainsString('vendors/profile-pictures/test-profile.jpg', (string) ($item['profile_picture_url'] ?? ''));
-        $this->assertStringContainsString('vendors/logos/test-logo.jpg', (string) ($item['profile_url'] ?? ''));
+        $this->assertArrayNotHasKey('profile_picture_url', $item);
+        $this->assertArrayNotHasKey('profile_url', $item);
+    }
+
+    public function test_admin_mobile_management_lists_only_approved_vendors(): void
+    {
+        ['adminToken' => $token, 'vendor' => $approvedVendor] = $this->seedVendorWithMetrics();
+
+        $pendingUser = User::factory()->create(['role' => 'vendor', 'password' => Hash::make('password')]);
+        $pendingUser->assignRole('vendor');
+        $pendingVendor = Vendor::create([
+            'user_id' => $pendingUser->id,
+            'status' => VendorStatus::Pending->value,
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $pendingVendor->id,
+            'business_name' => 'Pending Only Store',
+            'owner_name' => 'Pending Owner',
+            'email' => $pendingUser->email,
+        ]);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/admin/vendors/management')
+            ->assertOk();
+
+        $ids = collect($response->json('data.items'))->pluck('vendor_id')->all();
+        $this->assertContains($approvedVendor->id, $ids);
+        $this->assertNotContains($pendingVendor->id, $ids);
+        $this->assertSame(1, $response->json('data.summary.vendors'));
     }
 
     public function test_admin_mobile_management_supports_search(): void
@@ -167,6 +192,25 @@ class AdminVendorManagementApiTest extends TestCase
             ->assertJsonCount(0, 'data.items');
     }
 
+    public function test_admin_mobile_vendor_detail_returns_business_logo_url_only(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+
+        $vendor->profile->update([
+            'logo_path' => 'vendors/logos/detail-logo.jpg',
+            'profile_picture_path' => 'vendors/profile-pictures/detail-profile.jpg',
+        ]);
+
+        $response = $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/management")
+            ->assertOk();
+
+        $vendorPayload = $response->json('data.vendor');
+        $this->assertStringContainsString('vendors/logos/detail-logo.jpg', (string) ($vendorPayload['logo_url'] ?? ''));
+        $this->assertArrayNotHasKey('profile_picture_url', $vendorPayload);
+        $this->assertArrayNotHasKey('profile_url', $vendorPayload);
+    }
+
     public function test_admin_mobile_vendor_detail_returns_products_with_toggle_metadata(): void
     {
         ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
@@ -176,7 +220,7 @@ class AdminVendorManagementApiTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'vendor' => ['id', 'email', 'phone', 'business_name'],
+                    'vendor' => ['id', 'email', 'phone', 'business_name', 'logo_url'],
                     'summary' => [
                         'total_revenue',
                         'total_revenue_formatted',

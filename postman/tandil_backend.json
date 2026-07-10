@@ -21525,21 +21525,15 @@
                                                     "key": "sort",
                                                     "value": "newest"
                                                 },
-                                                {
-                                                    "key": "search",
-                                                    "value": "",
-                                                    "disabled": true,
-                                                    "description": "Search business name, owner, email"
-                                                },
-                                                {
-                                                    "key": "status",
-                                                    "value": "approved",
-                                                    "disabled": true,
-                                                    "description": "Single or comma-separated vendor status"
-                                                }
-                                            ]
-                                        },
-                                        "description": "**Vendor Management screen** — top summary (vendors count, products count, marketplace revenue) plus paginated vendor cards with products_count, active_count, revenue_formatted. Auto-sets {{vendor_id}} from first card."
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "disabled": true,
+                                            "description": "Search business name, owner, email"
+                                        }
+                                    ]
+                                },
+                                "description": "**Vendor Management screen** — approved vendors only. Summary cards (approved vendors count, products, revenue) plus paginated vendor cards with logo_url (business logo only), products_count, active_count, revenue_formatted. Auto-sets {{vendor_id}} from first card."
                                     }
                                 },
                                 {
@@ -21606,7 +21600,7 @@
                                                 }
                                             ]
                                         },
-                                        "description": "**Vendor detail screen** — vendor email\/phone, KPI cards (total revenue, total products, enabled products), and products list with price_formatted, stock, is_enabled, status_label, image_url, and toggle action endpoint. Auto-sets {{vendor_product_id}} from first product."
+                                        "description": "**Vendor detail screen** (approved vendors only) — vendor email\/phone, logo_url (business logo only), KPI cards (total revenue, total products, enabled products), and products list with price_formatted, stock, is_enabled, status_label, image_url, and toggle action endpoint. Auto-sets {{vendor_product_id}} from first product."
                                     }
                                 },
                                 {

@@ -3,9 +3,9 @@
 namespace App\Services\Vendor;
 
 use App\Enums\VendorProductApprovalStatus;
+use App\Enums\VendorStatus;
 use App\Models\Vendor;
 use App\Models\VendorProduct;
-use App\Services\ProfilePictureUploadService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
@@ -25,6 +25,9 @@ class AdminVendorMobileService
     public function managementIndex(Request $request): array
     {
         $overview = $this->analytics->overview();
+        $approvedVendorCount = Vendor::query()
+            ->where('status', VendorStatus::Approved->value)
+            ->count();
 
         $paginator = $this->vendorQuery($request)->paginate(
             min($request->integer('per_page', 15), 100)
@@ -35,7 +38,7 @@ class AdminVendorMobileService
 
         return [
             'summary' => [
-                'vendors' => (int) ($overview['vendors']['total'] ?? 0),
+                'vendors' => $approvedVendorCount,
                 'products' => (int) ($overview['products']['total'] ?? 0),
                 'revenue' => (float) ($overview['revenue']['gross'] ?? 0),
                 'revenue_formatted' => $this->formatAed((float) ($overview['revenue']['gross'] ?? 0)),
@@ -66,15 +69,16 @@ class AdminVendorMobileService
         $paginator = $this->productList->paginate($vendor, $request);
 
         return [
-            'vendor' => array_merge([
+            'vendor' => [
                 'id' => $vendor->id,
                 'business_name' => $profile?->business_name,
                 'owner_name' => $profile?->owner_name,
                 'email' => $profile?->email ?? $vendor->user?->email,
                 'phone' => $profile?->phone ?? $vendor->user?->phone,
+                'logo_url' => $this->businessLogoUrl($vendor),
                 'status' => $vendor->status,
                 'status_label' => $vendor->statusEnum()->label(),
-            ], $this->vendorImageFields($vendor)),
+            ],
             'summary' => [
                 'total_revenue' => (float) ($metrics['revenue'] ?? 0),
                 'total_revenue_formatted' => $this->formatAed((float) ($metrics['revenue'] ?? 0)),
@@ -142,13 +146,14 @@ class AdminVendorMobileService
         $metrics ??= $this->metrics->emptyMetricsPublic();
         $revenue = (float) ($metrics['revenue'] ?? 0);
 
-        return array_merge([
+        return [
             'id' => $vendor->id,
             'vendor_id' => $vendor->id,
             'business_name' => $profile?->business_name,
             'owner_name' => $profile?->owner_name,
             'email' => $profile?->email ?? $vendor->user?->email,
             'phone' => $profile?->phone ?? $vendor->user?->phone,
+            'logo_url' => $this->businessLogoUrl($vendor),
             'status' => $vendor->status,
             'status_label' => $vendor->statusEnum()->label(),
             'products_count' => (int) ($metrics['total_products'] ?? 0),
@@ -160,26 +165,14 @@ class AdminVendorMobileService
                 'method' => 'GET',
                 'endpoint' => "/api/admin/vendors/{$vendor->id}/management",
             ],
-        ], $this->vendorImageFields($vendor));
+        ];
     }
 
-    /**
-     * @return array{logo_url: ?string, profile_picture_url: ?string, profile_url: ?string}
-     */
-    private function vendorImageFields(Vendor $vendor): array
+    private function businessLogoUrl(Vendor $vendor): ?string
     {
-        $vendor->loadMissing(['profile', 'user']);
-        $profile = $vendor->profile;
+        $vendor->loadMissing('profile');
 
-        $logoUrl = $profile?->logo_url ?? $vendor->logo_url;
-        $profilePictureUrl = $profile?->profile_picture_url;
-        $userPictureUrl = ProfilePictureUploadService::fullUrl($vendor->user?->profile_picture);
-
-        return [
-            'logo_url' => $logoUrl,
-            'profile_picture_url' => $profilePictureUrl,
-            'profile_url' => $logoUrl ?? $profilePictureUrl ?? $userPictureUrl,
-        ];
+        return $vendor->profile?->logo_url ?? $vendor->logo_url;
     }
 
     private function vendorQuery(Request $request)
@@ -187,15 +180,7 @@ class AdminVendorMobileService
         $sort = $request->query('sort', 'newest');
 
         return Vendor::with(['profile', 'user'])
-            ->when($request->query('status'), function ($query, $status) {
-                if (str_contains((string) $status, ',')) {
-                    $statuses = array_values(array_filter(array_map('trim', explode(',', (string) $status))));
-
-                    return $query->whereIn('status', $statuses);
-                }
-
-                return $query->where('status', $status);
-            })
+            ->where('status', VendorStatus::Approved->value)
             ->when($request->query('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->whereHas('profile', function ($pq) use ($search) {

@@ -44,7 +44,9 @@ class VendorManagementController extends Controller
      */
     public function managementDetail(Request $request, int $id): JsonResponse
     {
-        $vendor = Vendor::findOrFail($id);
+        $vendor = Vendor::query()
+            ->where('status', VendorStatus::Approved->value)
+            ->findOrFail($id);
 
         return ApiResponse::success('Vendor management detail retrieved.', $this->mobile->managementDetail($vendor, $request));
     }
