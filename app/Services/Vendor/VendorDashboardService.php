@@ -44,6 +44,7 @@ class VendorDashboardService
     public function stats(Vendor $vendor): array
     {
         $activeProducts = VendorProduct::where('vendor_id', $vendor->id)->where('status', 'active')->count();
+        $disabledProducts = VendorProduct::where('vendor_id', $vendor->id)->where('disabled_by_admin', true)->count();
         $totalProducts = VendorProduct::where('vendor_id', $vendor->id)->count();
 
         $inventory = VendorInventory::whereHas('vendorProduct', fn ($q) => $q->where('vendor_id', $vendor->id))->get();
@@ -80,6 +81,7 @@ class VendorDashboardService
         return [
             'total_products' => $totalProducts,
             'active_products' => $activeProducts,
+            'disabled_products' => $disabledProducts,
             'out_of_stock_products' => $outOfStock,
             'low_stock_products' => $lowStock,
             'total_orders' => $totalOrders,

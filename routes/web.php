@@ -365,7 +365,16 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('vendors/revenue', [VendorInsightsController::class, 'revenue'])->name('vendors.revenue');
         Route::get('vendors', [VendorListController::class, 'index'])->name('vendors.index');
         Route::get('vendors/{vendor}/products', [AdminVendorController::class, 'products'])->name('vendors.products');
+        Route::post('vendors/{vendor}/products/bulk', [AdminVendorController::class, 'bulkProducts'])->name('vendors.products.bulk');
+        Route::get('vendors/{vendor}/products/{vendorProduct}', [AdminVendorController::class, 'showProduct'])->name('vendors.products.show');
         Route::get('vendors/{vendor}/orders', [AdminVendorController::class, 'orders'])->name('vendors.orders');
+        Route::get('vendors/{vendor}/orders/export', [AdminVendorController::class, 'exportOrders'])->name('vendors.orders.export');
+        Route::get('vendors/{vendor}/orders/{vendorOrder}', [AdminVendorController::class, 'showOrder'])->name('vendors.orders.show');
+        Route::post('vendors/{vendor}/orders/{vendorOrder}/status', [AdminVendorController::class, 'updateOrderStatus'])->name('vendors.orders.status');
+        Route::post('vendors/{vendor}/orders/{vendorOrder}/cancel', [AdminVendorController::class, 'cancelOrder'])->name('vendors.orders.cancel');
+        Route::post('vendors/{vendor}/orders/{vendorOrder}/payment', [AdminVendorController::class, 'updateOrderPayment'])->name('vendors.orders.payment');
+        Route::post('vendors/{vendor}/orders/{vendorOrder}/refund', [AdminVendorController::class, 'refundOrder'])->name('vendors.orders.refund');
+        Route::get('vendors/{vendor}/orders/{vendorOrder}/invoice', [AdminVendorController::class, 'downloadOrderInvoice'])->name('vendors.orders.invoice');
         Route::get('vendors/{vendor}/revenue', [AdminVendorController::class, 'vendorRevenue'])->name('vendors.vendor-revenue');
         Route::get('vendors/{vendor}/activity', [AdminVendorController::class, 'activity'])->name('vendors.activity');
         Route::post('vendors/{vendor}/reset-password', [AdminVendorController::class, 'resetPassword'])->name('vendors.reset-password');
@@ -373,6 +382,8 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('vendors/{vendor}/verify', [AdminVendorController::class, 'verifyVendor'])->name('vendors.verify');
         Route::post('vendors/{vendor}/products/{vendorProduct}/approve', [AdminVendorController::class, 'approveProduct'])->name('vendors.products.approve');
         Route::post('vendors/{vendor}/products/{vendorProduct}/reject', [AdminVendorController::class, 'rejectProduct'])->name('vendors.products.reject');
+        Route::post('vendors/{vendor}/products/{vendorProduct}/enable', [AdminVendorController::class, 'enableProduct'])->name('vendors.products.enable');
+        Route::post('vendors/{vendor}/products/{vendorProduct}/disable', [AdminVendorController::class, 'disableProduct'])->name('vendors.products.disable');
         Route::post('vendors/{vendor}/products/{vendorProduct}/toggle', [AdminVendorController::class, 'toggleProduct'])->name('vendors.products.toggle');
         Route::post('vendors/{vendor}/products/{vendorProduct}/feature', [AdminVendorController::class, 'featureProduct'])->name('vendors.products.feature');
         Route::delete('vendors/{vendor}/products/{vendorProduct}', [AdminVendorController::class, 'destroyProduct'])->name('vendors.products.destroy');

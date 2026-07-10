@@ -128,6 +128,11 @@ class VendorProductService
             }
 
             if (isset($validated['vendor_product_status'])) {
+                if ($vendorProduct->disabled_by_admin && $validated['vendor_product_status'] === 'active' && ! auth()->user()?->isAdmin()) {
+                    throw ValidationException::withMessages([
+                        'vendor_product_status' => 'This product was disabled by an administrator and cannot be re-enabled.',
+                    ]);
+                }
                 $vendorProduct->update(['status' => $validated['vendor_product_status']]);
             }
 
