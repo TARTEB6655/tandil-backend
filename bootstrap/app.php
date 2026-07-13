@@ -54,6 +54,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
                     $errors = $e->errors();
                     $message = 'Validation failed.';
+                    $firstError = collect($errors)->flatten()->first();
+                    if (is_string($firstError) && $firstError !== '') {
+                        $message = $firstError;
+                    }
 
                     return response()->json([
                         'success' => false,

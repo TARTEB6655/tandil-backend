@@ -68,6 +68,7 @@ abstract class VendorProfileFormRequest extends FormRequest
         }
 
         $this->normalizeVendorFieldAliases();
+        $this->normalizeTimeFields(['opens_at', 'closes_at']);
         $this->normalizeOperatingHoursFromTimes();
     }
 
@@ -76,6 +77,7 @@ abstract class VendorProfileFormRequest extends FormRequest
         $aliases = [
             'company_name' => 'business_name',
             'authorized_person_name' => 'owner_name',
+            'delivery_radius_km' => 'delivery_radius',
         ];
 
         foreach ($aliases as $from => $to) {
@@ -99,5 +101,51 @@ abstract class VendorProfileFormRequest extends FormRequest
                 'operating_hours' => $opensAt.' - '.$closesAt,
             ]);
         }
+    }
+
+    /**
+     * Normalize mobile time pickers (e.g. 6:00, 06:00:00) to HH:MM for validation/storage.
+     *
+     * @param  list<string>  $keys
+     */
+    protected function normalizeTimeFields(array $keys): void
+    {
+        $merge = [];
+
+        foreach ($keys as $key) {
+            if (! $this->exists($key)) {
+                continue;
+            }
+
+            $normalized = self::normalizeTimeValue($this->input($key));
+            if ($normalized !== null) {
+                $merge[$key] = $normalized;
+            }
+        }
+
+        if ($merge !== []) {
+            $this->merge($merge);
+        }
+    }
+
+    public static function normalizeTimeValue(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $value, $matches) !== 1) {
+            return $value;
+        }
+
+        $hour = (int) $matches[1];
+        $minute = (int) $matches[2];
+
+        if ($hour > 23 || $minute > 59) {
+            return $value;
+        }
+
+        return sprintf('%02d:%02d', $hour, $minute);
     }
 }
