@@ -327,6 +327,8 @@ class ProductController extends Controller
                 'message' => 'Vendor comparison retrieved successfully',
                 'data' => $data,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             \Log::error('ProductController::compareVendors '.$e->getMessage());
 

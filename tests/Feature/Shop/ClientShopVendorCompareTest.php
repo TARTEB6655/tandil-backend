@@ -97,6 +97,97 @@ class ClientShopVendorCompareTest extends TestCase
             ->assertJsonCount(1, 'data.vendors');
     }
 
+    public function test_compare_vendors_sorts_by_rating_tab(): void
+    {
+        [$category, $productA] = $this->seedVendorListing('Vendor A', 30, null, 10, '2 day delivery');
+        $this->seedVendorListing('Vendor B', 35, null, 12, '2 day delivery', $category);
+
+        $this->getJson("/api/shop/products/{$productA->id}/compare-vendors?sort_by=rating")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.sort_by', 'rating')
+            ->assertJsonCount(2, 'data.vendors')
+            ->assertJsonStructure([
+                'data' => [
+                    'reference_product' => ['id', 'name', 'category_id', 'category_name'],
+                    'vendors' => [
+                        '*' => [
+                            'vendor_product_id',
+                            'vendor_id',
+                            'vendor_name',
+                            'product_id',
+                            'price',
+                            'stock_label',
+                            'delivery_label',
+                            'is_best_price',
+                        ],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_vendor_compare_route_matches_shop_compare_response(): void
+    {
+        [$category, $productA] = $this->seedVendorListing('Green Valley Nursery', 42, 55, 85, '2 day delivery');
+        $this->seedVendorListing('Desert Bloom Supplies', 48, null, 40, '1 day delivery', $category);
+
+        $shop = $this->getJson("/api/shop/products/{$productA->id}/compare-vendors?sort_by=price")
+            ->assertOk()
+            ->json('data');
+
+        $vendor = $this->getJson("/api/vendor/compare/products/{$productA->id}?sort_by=price")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Vendor comparison.')
+            ->json('data');
+
+        $this->assertSame($shop['vendor_count'], $vendor['vendor_count']);
+        $this->assertSame($shop['sort_by'], $vendor['sort_by']);
+        $this->assertSame($shop['vendors'][0]['vendor_name'], $vendor['vendors'][0]['vendor_name']);
+        $this->assertSame($shop['vendors'][0]['price'], $vendor['vendors'][0]['price']);
+        $this->assertSame($shop['vendors'][1]['vendor_name'], $vendor['vendors'][1]['vendor_name']);
+    }
+
+    public function test_vendor_compare_multiple_product_ids_endpoint(): void
+    {
+        [$category, $productA] = $this->seedVendorListing('Vendor One', 25, null, 10, '2 day delivery');
+        [, $productB] = $this->seedVendorListing('Vendor Two', 30, null, 15, '1 day delivery', $category);
+
+        $this->postJson('/api/vendor/compare/products', [
+            'product_ids' => [$productA->id, $productB->id],
+            'sort_by' => 'price',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.sort_by', 'price')
+            ->assertJsonCount(2, 'data.vendors')
+            ->assertJsonPath('data.vendors.0.price', 25)
+            ->assertJsonPath('data.vendors.1.price', 30);
+    }
+
+    public function test_compare_endpoints_return_404_for_missing_product(): void
+    {
+        $this->getJson('/api/shop/products/999999')
+            ->assertNotFound();
+
+        $this->getJson('/api/shop/products/999999/compare-vendors')
+            ->assertNotFound();
+
+        $this->getJson('/api/vendor/compare/products/999999')
+            ->assertNotFound();
+    }
+
+    public function test_compare_rejects_invalid_sort_by(): void
+    {
+        [, $product] = $this->seedVendorListing('Only Vendor', 30, null, 10, '2 day delivery');
+
+        $this->getJson("/api/shop/products/{$product->id}/compare-vendors?sort_by=invalid")
+            ->assertStatus(422);
+
+        $this->getJson("/api/vendor/compare/products/{$product->id}?sort_by=invalid")
+            ->assertStatus(422);
+    }
+
     /**
      * @return array{0: Category, 1: Product}
      */
