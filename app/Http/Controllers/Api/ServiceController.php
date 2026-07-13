@@ -103,7 +103,7 @@ class ServiceController extends Controller
         $search = $request->query('search');
 
         $query = Product::query()
-            ->where('status', 'active')
+            ->visibleInClientShop()
             ->whereHas('services');
 
         if ($serviceId) {
@@ -162,7 +162,7 @@ class ServiceController extends Controller
     {
         $service = Service::findOrFail($id);
         $products = $service->products()
-            ->where('status', 'active')
+            ->visibleInClientShop()
             ->with('primaryImage')
             ->orderBy('name')
             ->get()

@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Shop\CartController;
 use App\Services\CategoryShippingService;
+use App\Services\Vendor\VendorComparisonService;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\ProductImage;
 
 class ProductController extends Controller
 {
+    public function __construct(
+        private readonly VendorComparisonService $vendorComparison
+    ) {}
     /**
      * Get featured products for home / featured section. Active only, optional limit.
      */
@@ -20,7 +24,7 @@ class ProductController extends Controller
             $limit = min(max((int) $request->query('limit', 10), 1), 50);
 
             $products = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
-                ->where('status', 'active')
+                ->visibleInClientShop()
                 ->where('is_featured', true)
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
@@ -49,16 +53,14 @@ class ProductController extends Controller
             $perPage  = (int) $request->query('per_page', 12);
             $search   = $request->query('search');
             $category = $request->query('category_id');
-            $status   = $request->query('status', 'active'); // Filter by status
             $minPrice = $request->query('min_price');
             $maxPrice = $request->query('max_price');
             $sortBy   = $request->query('sort_by', 'created_at');  // name, price, created_at
             $sortDir  = $request->query('sort_dir', 'desc');        // asc, desc
             $inStock  = $request->query('in_stock'); // Filter by stock availability
 
-            $query = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options']);
-
-            // Search
+            $query = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
+                ->visibleInClientShop();
             if ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'LIKE', "%{$search}%")
@@ -70,11 +72,6 @@ class ProductController extends Controller
             // Filter by category
             if ($category) {
                 $query->where('category_id', $category);
-            }
-
-            // Filter by status
-            if ($status) {
-                $query->where('status', $status);
             }
 
             // Filter by price range
@@ -264,8 +261,11 @@ class ProductController extends Controller
     public function show($id)
     {
         try {
-            $product = Product::where('id', $id)
-                ->orWhere('handle', $id)
+            $product = Product::query()
+                ->visibleInClientShop()
+                ->where(function ($q) use ($id) {
+                    $q->where('id', $id)->orWhere('handle', $id);
+                })
                 ->with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
                 ->first();
 
@@ -277,6 +277,8 @@ class ProductController extends Controller
             }
 
             $data = $this->productToPublicData($product);
+            $data['compare_vendors'] = $this->vendorComparison->availabilityForProduct($product);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Product retrieved successfully',
@@ -292,14 +294,62 @@ class ProductController extends Controller
     }
 
     /**
+     * Compare vendors offering live products in the same category as this product.
+     */
+    public function compareVendors(Request $request, $id)
+    {
+        try {
+            $product = Product::query()
+                ->visibleInClientShop()
+                ->where(function ($q) use ($id) {
+                    $q->where('id', $id)->orWhere('handle', $id);
+                })
+                ->first();
+
+            if (! $product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found',
+                ], 404);
+            }
+
+            $validated = $request->validate([
+                'sort_by' => 'sometimes|in:price,rating,delivery',
+            ]);
+
+            $data = $this->vendorComparison->compareByProduct(
+                (int) $product->id,
+                $validated['sort_by'] ?? 'price'
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Vendor comparison retrieved successfully',
+                'data' => $data,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('ProductController::compareVendors '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load vendor comparison.',
+            ], 500);
+        }
+    }
+
+    /**
      * Get all categories.
      */
     public function getCategories()
     {
         try {
-            $categories = \App\Models\Category::withCount(['products' => function ($query) {
-                $query->where('status', 'active');
-            }])
+            $categories = \App\Models\Category::platformCatalog()
+                ->where(function ($q) {
+                    $q->where('is_active', true)->orWhereNull('is_active');
+                })
+                ->withCount(['products' => function ($query) {
+                    $query->visibleInClientShop();
+                }])
                 ->ordered()
                 ->get();
 
@@ -334,7 +384,7 @@ class ProductController extends Controller
             }
 
             $products = Product::where('category_id', $category->id)
-                ->where('status', 'active')
+                ->visibleInClientShop()
                 ->with(['category', 'images', 'primaryImage', 'optionGroups.options', 'variants.options'])
                 ->ordered()
                 ->paginate(12);

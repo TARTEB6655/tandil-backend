@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\VendorStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -42,6 +43,24 @@ class Product extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order')->orderByDesc('id');
+    }
+
+    /**
+     * Products visible on the client shop / category screens.
+     * Platform (admin) products: active only.
+     * Vendor products: approved vendor + live marketplace listing only.
+     */
+    public function scopeVisibleInClientShop($query)
+    {
+        return $query
+            ->where('products.status', 'active')
+            ->where(function ($q) {
+                $q->whereDoesntHave('vendorProduct')
+                    ->orWhereHas('vendorProduct', function ($vendorProduct) {
+                        $vendorProduct->marketplaceLive()
+                            ->whereHas('vendor', fn ($vendor) => $vendor->where('status', VendorStatus::Approved->value));
+                    });
+            });
     }
 
     /**

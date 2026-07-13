@@ -16,7 +16,14 @@ class VendorComparisonController extends Controller
 
     public function byProduct(Request $request, int $productId): JsonResponse
     {
-        return ApiResponse::success('Vendor comparison.', $this->comparison->compareByProduct($productId));
+        $validated = $request->validate([
+            'sort_by' => 'sometimes|in:price,rating,delivery',
+        ]);
+
+        return ApiResponse::success(
+            'Vendor comparison.',
+            $this->comparison->compareByProduct($productId, $validated['sort_by'] ?? 'price')
+        );
     }
 
     public function byProducts(Request $request): JsonResponse
@@ -24,8 +31,12 @@ class VendorComparisonController extends Controller
         $data = $request->validate([
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'integer|exists:products,id',
+            'sort_by' => 'sometimes|in:price,rating,delivery',
         ]);
 
-        return ApiResponse::success('Vendor comparison.', $this->comparison->compareProducts($data['product_ids']));
+        return ApiResponse::success(
+            'Vendor comparison.',
+            $this->comparison->compareProducts($data['product_ids'], $data['sort_by'] ?? 'price')
+        );
     }
 }

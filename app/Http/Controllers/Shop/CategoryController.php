@@ -62,11 +62,15 @@ class CategoryController extends Controller
      */
     public function index(Request $request)
     {
-        $categories = Category::withCount(['products' => function ($query) {
-            $query->where('status', 'active');
-        }])
+        $categories = Category::platformCatalog()
+            ->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            })
+            ->withCount(['products' => function ($query) {
+                $query->visibleInClientShop();
+            }])
             ->with(['products' => function ($query) {
-                $query->where('status', 'active')
+                $query->visibleInClientShop()
                     ->with(['images', 'primaryImage'])
                     ->orderBy('created_at', 'desc')
                     ->take(3);
@@ -100,7 +104,14 @@ class CategoryController extends Controller
         $minPrice = $request->query('min_price');
         $maxPrice = $request->query('max_price');
 
-        $category = Category::where('id', $id)->orWhere('slug', $id)->first();
+        $category = Category::platformCatalog()
+            ->where(function ($q) use ($id) {
+                $q->where('id', $id)->orWhere('slug', $id);
+            })
+            ->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            })
+            ->first();
 
         if (! $category) {
             return response()->json([
@@ -110,7 +121,7 @@ class CategoryController extends Controller
         }
 
         $productsQuery = $category->products()
-            ->where('status', 'active')
+            ->visibleInClientShop()
             ->with(['category', 'images', 'primaryImage']);
 
         if ($minPrice !== null) {
@@ -126,7 +137,7 @@ class CategoryController extends Controller
         $products = $productsQuery->paginate($perPage > 0 ? $perPage : 12);
 
         $categoryData = $this->categoryToApiData($category, [
-            'products_count' => $category->products()->where('status', 'active')->count(),
+            'products_count' => $category->products()->visibleInClientShop()->count(),
         ]);
 
         return response()->json([

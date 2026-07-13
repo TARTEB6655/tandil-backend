@@ -21,7 +21,7 @@ class ShopController extends Controller
         $categoryId = $request->query('category_id');
 
         $query = Product::with(['category', 'primaryImage', 'optionGroups.options'])
-            ->where('status', 'active')
+            ->visibleInClientShop()
             ->orderBy('created_at', 'desc');
 
         if ($categoryId) {
@@ -30,7 +30,11 @@ class ShopController extends Controller
 
         $products = $query->paginate(12)->withQueryString();
 
-        $categories = Category::withCount(['products' => fn ($q) => $q->where('status', 'active')])
+        $categories = Category::platformCatalog()
+            ->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            })
+            ->withCount(['products' => fn ($q) => $q->visibleInClientShop()])
             ->orderBy('name')
             ->get();
 
@@ -42,7 +46,7 @@ class ShopController extends Controller
     public function show($id)
     {
         $product = Product::with(['category', 'images', 'primaryImage', 'optionGroups.options'])
-            ->where('status', 'active')
+            ->visibleInClientShop()
             ->findOrFail($id);
 
         $estimatedShipping = $product->category_id
