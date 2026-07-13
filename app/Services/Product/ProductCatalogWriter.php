@@ -12,6 +12,7 @@ use App\Rules\AssignablePlatformServiceId;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductCatalogWriter
@@ -51,6 +52,16 @@ class ProductCatalogWriter
         }
         if ($imageUrls !== null) {
             $request->merge(['image_urls' => $imageUrls]);
+        }
+
+        foreach (['removed_image_ids', 'remove_image_ids', 'deleted_image_ids', 'delete_image_ids', 'keep_image_ids', 'gallery_image_ids'] as $key) {
+            if (! $request->has($key)) {
+                continue;
+            }
+            $normalized = $this->normalizeImageIdList($request->input($key));
+            if ($normalized !== []) {
+                $request->merge([$key => $normalized]);
+            }
         }
     }
 
@@ -101,6 +112,20 @@ class ProductCatalogWriter
             'option_groups' => 'nullable',
             'option_images' => 'nullable|array',
             'option_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'removed_image_ids' => 'nullable|array',
+            'removed_image_ids.*' => 'integer',
+            'remove_image_ids' => 'nullable|array',
+            'remove_image_ids.*' => 'integer',
+            'deleted_image_ids' => 'nullable|array',
+            'deleted_image_ids.*' => 'integer',
+            'delete_image_ids' => 'nullable|array',
+            'delete_image_ids.*' => 'integer',
+            'keep_image_ids' => 'nullable|array',
+            'keep_image_ids.*' => 'integer',
+            'gallery_image_ids' => 'nullable|array',
+            'gallery_image_ids.*' => 'integer',
+            'remove_main_image' => 'nullable|boolean',
+            'main_image_remove' => 'nullable|boolean',
         ];
     }
 
@@ -196,6 +221,8 @@ class ProductCatalogWriter
 
     public function persistImages(Product $product, Request $request): void
     {
+        $this->removeImagesFromRequest($product, $request);
+
         [$mainFile, $extraFromMain] = $this->normalizeMainImageInput($request);
         $extraFiles = $extraFromMain;
         if ($request->hasFile('images')) {
@@ -208,44 +235,52 @@ class ProductCatalogWriter
         }
         $extraFiles = array_values(array_filter($extraFiles, fn ($f) => $f && $f->isValid()));
 
-        $sortOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order') + 1;
-        if ($sortOrder < 0) {
-            $sortOrder = 0;
-        }
+        $hasMain = $mainFile !== null;
+        $hasGallery = $extraFiles !== [];
 
-        if ($mainFile !== null) {
-            $imagePath = $mainFile->store('products', 'public');
-            $this->scheduleProductImageOptimization($imagePath);
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_path' => $imagePath,
-                'sort_order' => $sortOrder++,
-                'is_primary' => ! ProductImage::where('product_id', $product->id)->where('is_primary', true)->exists(),
-            ]);
-            $product->update(['image' => $imagePath]);
-        }
+        $existingImages = ProductImage::where('product_id', $product->id)
+            ->orderByRaw('is_primary DESC')
+            ->orderBy('sort_order')
+            ->get();
+        $primaryImage = $existingImages->firstWhere('is_primary', true);
+        $galleryImages = $existingImages->filter(fn (ProductImage $img) => ! $img->is_primary)->values();
 
-        foreach ($extraFiles as $image) {
-            $imagePath = $image->store('products', 'public');
-            $this->scheduleProductImageOptimization($imagePath);
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_path' => $imagePath,
-                'sort_order' => $sortOrder++,
-                'is_primary' => false,
-            ]);
-        }
-
-        if ($mainFile === null && $extraFiles !== [] && ! $product->image) {
-            $first = ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
-            if ($first) {
-                $first->update(['is_primary' => true]);
-                $product->update(['image' => $first->image_path]);
+        if ($hasMain && $hasGallery) {
+            $this->deleteProductImageRecords($existingImages);
+            $this->storePrimaryImage($product, $mainFile, 0);
+            $sortOrder = 1;
+            foreach ($extraFiles as $file) {
+                $this->storeGalleryImage($product, $file, $sortOrder++);
+            }
+        } elseif ($hasMain) {
+            if ($primaryImage) {
+                $this->deleteProductImageRecord($primaryImage);
+            }
+            $this->storePrimaryImage($product, $mainFile, 0);
+            foreach ($galleryImages as $index => $img) {
+                $img->update(['sort_order' => $index + 1]);
+            }
+        } elseif ($hasGallery) {
+            foreach ($galleryImages as $old) {
+                $this->deleteProductImageRecord($old);
+            }
+            $sortOrder = $primaryImage ? 1 : 0;
+            $promotedPrimary = false;
+            foreach ($extraFiles as $file) {
+                $makePrimary = ! $primaryImage && ! $promotedPrimary;
+                $this->storeGalleryImage($product, $file, $sortOrder++, $makePrimary);
+                if ($makePrimary) {
+                    $promotedPrimary = true;
+                }
             }
         }
 
-        $primaryAlreadySet = ($mainFile !== null || $extraFiles !== []);
+        $primaryAlreadySet = ($hasMain || $hasGallery);
         if ($request->has('image_urls') && is_array($request->image_urls)) {
+            $sortOrder = (int) ProductImage::where('product_id', $product->id)->max('sort_order') + 1;
+            if ($sortOrder < 0) {
+                $sortOrder = 0;
+            }
             foreach ($request->image_urls as $imageUrl) {
                 if (is_string($imageUrl) && $imageUrl !== '') {
                     ProductImage::create([
@@ -259,13 +294,156 @@ class ProductCatalogWriter
             }
         }
 
-        $firstImage = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first()
-            ?? ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
-        if ($firstImage && ! $product->image) {
-            $product->update(['image' => $firstImage->image_path]);
+        $this->syncProductPrimaryImage($product);
+        $this->reorderProductImages($product->id);
+    }
+
+    private function removeImagesFromRequest(Product $product, Request $request): void
+    {
+        $removedIds = [];
+        foreach (['removed_image_ids', 'remove_image_ids', 'deleted_image_ids', 'delete_image_ids'] as $key) {
+            if ($request->has($key)) {
+                $removedIds = array_merge($removedIds, $this->normalizeImageIdList($request->input($key)));
+            }
         }
 
+        if ($request->boolean('remove_main_image') || $request->boolean('main_image_remove')) {
+            $primaryId = ProductImage::where('product_id', $product->id)->where('is_primary', true)->value('id');
+            if ($primaryId) {
+                $removedIds[] = (int) $primaryId;
+            }
+        }
+
+        foreach (['keep_image_ids', 'gallery_image_ids'] as $key) {
+            if (! $request->has($key)) {
+                continue;
+            }
+            $keepIds = $this->normalizeImageIdList($request->input($key));
+            if ($keepIds === []) {
+                continue;
+            }
+            $missing = ProductImage::where('product_id', $product->id)
+                ->whereNotIn('id', $keepIds)
+                ->pluck('id')
+                ->all();
+            $removedIds = array_merge($removedIds, $missing);
+        }
+
+        $removedIds = array_values(array_unique(array_filter(array_map('intval', $removedIds))));
+        if ($removedIds === []) {
+            return;
+        }
+
+        $images = ProductImage::where('product_id', $product->id)->whereIn('id', $removedIds)->get();
+        $this->deleteProductImageRecords($images);
+        $this->syncProductPrimaryImage($product);
         $this->reorderProductImages($product->id);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function normalizeImageIdList(mixed $value): array
+    {
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            if ($trimmed === '') {
+                return [];
+            }
+            $decoded = json_decode($trimmed, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            } elseif (is_numeric($trimmed)) {
+                return [(int) $trimmed];
+            } elseif (str_contains($trimmed, ',')) {
+                return array_values(array_filter(array_map('intval', explode(',', $trimmed))));
+            }
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('intval', $value)));
+    }
+
+    private function syncProductPrimaryImage(Product $product): void
+    {
+        $product->refresh();
+        $primary = ProductImage::where('product_id', $product->id)->where('is_primary', true)->first()
+            ?? ProductImage::where('product_id', $product->id)->orderBy('sort_order')->first();
+
+        if ($primary === null) {
+            $product->update(['image' => null]);
+
+            return;
+        }
+
+        if (! $primary->is_primary) {
+            ProductImage::where('product_id', $product->id)->update(['is_primary' => false]);
+            $primary->update(['is_primary' => true]);
+        }
+
+        if ($product->image !== $primary->image_path) {
+            $product->update(['image' => $primary->image_path]);
+        }
+    }
+
+    private function storePrimaryImage(Product $product, UploadedFile $file, int $sortOrder): ProductImage
+    {
+        $imagePath = $file->store('products', 'public');
+        $this->scheduleProductImageOptimization($imagePath);
+
+        $image = ProductImage::create([
+            'product_id' => $product->id,
+            'image_path' => $imagePath,
+            'sort_order' => $sortOrder,
+            'is_primary' => true,
+        ]);
+        $product->update(['image' => $imagePath]);
+
+        return $image;
+    }
+
+    private function storeGalleryImage(Product $product, UploadedFile $file, int $sortOrder, bool $isPrimary = false): ProductImage
+    {
+        $imagePath = $file->store('products', 'public');
+        $this->scheduleProductImageOptimization($imagePath);
+
+        $image = ProductImage::create([
+            'product_id' => $product->id,
+            'image_path' => $imagePath,
+            'sort_order' => $sortOrder,
+            'is_primary' => $isPrimary,
+        ]);
+
+        if ($isPrimary) {
+            ProductImage::where('product_id', $product->id)
+                ->where('id', '!=', $image->id)
+                ->update(['is_primary' => false]);
+            $product->update(['image' => $imagePath]);
+        }
+
+        return $image;
+    }
+
+    /**
+     * @param  iterable<ProductImage>  $images
+     */
+    private function deleteProductImageRecords(iterable $images): void
+    {
+        foreach ($images as $image) {
+            $this->deleteProductImageRecord($image);
+        }
+    }
+
+    private function deleteProductImageRecord(ProductImage $image): void
+    {
+        $path = $image->image_path;
+        if ($path && ! str_starts_with($path, 'http') && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+        $image->delete();
     }
 
     /**
