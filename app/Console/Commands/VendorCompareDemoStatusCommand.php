@@ -77,6 +77,7 @@ class VendorCompareDemoStatusCommand extends Command
         $compareCount = Product::query()
             ->visibleInClientShop()
             ->where('category_id', $sample->category_id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim((string) $sample->name))])
             ->whereHas('vendorProduct')
             ->count();
 

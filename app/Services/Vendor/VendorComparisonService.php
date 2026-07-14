@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 class VendorComparisonService
 {
     /**
-     * Compare live vendor listings in the same admin category as the reference product.
+     * Compare live vendor listings for the same product (name + category) as the reference.
      *
      * @return array<string, mixed>
      */
@@ -35,9 +35,9 @@ class VendorComparisonService
     }
 
     /**
-     * Metadata for product detail — show "Compare vendors & prices" when 2+ vendors exist in category.
+     * Metadata for product detail — show button when 2+ vendors sell the same product.
      *
-     * @return array{available: bool, vendor_count: int, label: string}
+     * @return array{available: bool, vendor_count: int, label: string, match_by: string, product_name: string|null}
      */
     public function availabilityForProduct(Product $product): array
     {
@@ -47,23 +47,35 @@ class VendorComparisonService
             'available' => $vendorCount >= 2,
             'vendor_count' => $vendorCount,
             'label' => 'Compare vendors & prices',
+            'match_by' => 'product_name',
+            'product_name' => $product->name,
         ];
     }
 
     /**
+     * Live vendor product IDs that match the reference product (same category + same name).
+     *
      * @return Collection<int, int>
      */
     public function comparableProductIdsForProduct(Product $product): Collection
     {
-        if (! $product->category_id) {
+        if (! $product->category_id || trim((string) $product->name) === '') {
             return collect();
         }
+
+        $normalizedName = $this->normalizedProductName($product);
 
         return Product::query()
             ->visibleInClientShop()
             ->where('category_id', $product->category_id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])
             ->whereHas('vendorProduct')
             ->pluck('id');
+    }
+
+    private function normalizedProductName(Product $product): string
+    {
+        return mb_strtolower(trim((string) $product->name));
     }
 
     public function distinctVendorCountForProduct(Product $product): int
@@ -151,6 +163,7 @@ class VendorComparisonService
                 'category_id' => $reference->category_id,
                 'category_name' => $reference->category?->name,
                 'category' => $reference->category?->name,
+                'match_by' => 'product_name',
             ] : null,
             'sort_by' => $sortBy,
             'compare_available' => $vendorCount >= 2,

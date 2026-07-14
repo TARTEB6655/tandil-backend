@@ -40,6 +40,19 @@ class ClientShopVendorCompareTest extends TestCase
             ->assertJsonPath('data.compare_vendors.label', 'Compare vendors & prices');
     }
 
+    public function test_product_detail_hides_compare_when_only_same_category_different_product_names(): void
+    {
+        [$category, $productA] = $this->seedVendorListing('Vendor A', 30, null, 10, '2 day delivery', productName: 'Mango Box');
+        $this->seedVendorListing('Vendor B', 35, null, 12, '2 day delivery', $category, productName: 'Apple Pack');
+
+        $this->getJson("/api/shop/products/{$productA->id}")
+            ->assertOk()
+            ->assertJsonPath('data.compare_vendors.available', false)
+            ->assertJsonPath('data.compare_vendors.vendor_count', 1)
+            ->assertJsonPath('data.compare_vendors.match_by', 'product_name')
+            ->assertJsonPath('data.compare_vendors.product_name', 'Mango Box');
+    }
+
     public function test_product_detail_hides_compare_for_single_vendor_category(): void
     {
         [, $product] = $this->seedVendorListing('Only Vendor', 30, null, 10, '2 day delivery');
@@ -200,6 +213,7 @@ class ClientShopVendorCompareTest extends TestCase
         ?Category $category = null,
         ?float $deliveryRadius = null,
         VendorStatus $status = VendorStatus::Approved,
+        string $productName = 'test product 2',
     ): array {
         $category ??= Category::create([
             'name' => 'Plants',
@@ -227,7 +241,7 @@ class ClientShopVendorCompareTest extends TestCase
         $product = Product::create([
             'category_id' => $category->id,
             'vendor_id' => $vendor->id,
-            'name' => 'test product 2',
+            'name' => $productName,
             'price' => $price,
             'compare_at_price' => $compareAt,
             'status' => 'active',

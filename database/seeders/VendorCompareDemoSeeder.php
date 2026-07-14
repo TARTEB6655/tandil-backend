@@ -42,7 +42,7 @@ class VendorCompareDemoSeeder extends Seeder
             'business_name' => 'Desert Bloom Supplies',
             'owner_name' => 'Sara Al Mansoori',
             'phone' => '501000002',
-            'product_name' => 'Premium Fruit Basket',
+            'product_name' => 'Fresh Seasonal Fruits Box',
             'price' => 48.00,
             'compare_at_price' => null,
             'stock' => 40,
