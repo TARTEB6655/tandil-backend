@@ -28,7 +28,6 @@ class VendorStoreController extends Controller
 
         $validated = $request->validate([
             'search' => 'sometimes|string|max:255',
-            'category_id' => 'sometimes|integer|exists:categories,id',
             'sort_by' => 'sometimes|in:sort_order,price,name',
             'sort_dir' => 'sometimes|in:asc,desc',
         ]);

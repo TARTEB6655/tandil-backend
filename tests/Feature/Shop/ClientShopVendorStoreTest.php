@@ -75,6 +75,53 @@ class ClientShopVendorStoreTest extends TestCase
             ->assertJsonPath('data.product_count', 1);
     }
 
+    public function test_vendor_store_returns_products_from_all_categories(): void
+    {
+        [$vendor] = $this->seedVendorStoreListing('Multi Category Vendor', 30, 10, 'Apple Juice');
+
+        $category2 = Category::create([
+            'name' => 'Vegetables',
+            'slug' => 'vegetables-'.uniqid(),
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+
+        $product2 = Product::create([
+            'category_id' => $category2->id,
+            'vendor_id' => $vendor->id,
+            'name' => 'Fresh Tomatoes',
+            'price' => 15,
+            'status' => 'active',
+            'sort_order' => 2,
+            'estimated_arrival' => '1 day delivery',
+        ]);
+
+        $vendorProduct2 = VendorProduct::create([
+            'vendor_id' => $vendor->id,
+            'product_id' => $product2->id,
+            'status' => 'active',
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+        ]);
+
+        VendorProductPrice::create([
+            'vendor_product_id' => $vendorProduct2->id,
+            'price' => 15,
+            'effective_from' => now(),
+        ]);
+
+        VendorInventory::create([
+            'vendor_product_id' => $vendorProduct2->id,
+            'quantity' => 20,
+        ]);
+
+        $this->getJson("/api/shop/vendors/{$vendor->id}")
+            ->assertOk()
+            ->assertJsonCount(2, 'data.products')
+            ->assertJsonPath('data.product_count', 2);
+    }
+
     public function test_unapproved_vendor_store_returns_404(): void
     {
         [$vendor] = $this->seedVendorStoreListing('Pending Vendor', 20, 5, status: VendorStatus::UnderReview);

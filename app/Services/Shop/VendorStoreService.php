@@ -70,10 +70,6 @@ class VendorStoreService
             });
         }
 
-        if (! empty($filters['category_id'])) {
-            $query->where('category_id', (int) $filters['category_id']);
-        }
-
         $sortBy = $filters['sort_by'] ?? 'sort_order';
         $sortDir = ($filters['sort_dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
 
