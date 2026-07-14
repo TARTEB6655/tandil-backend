@@ -566,6 +566,10 @@ Route::prefix('shop')->group(function () {
     Route::get('/products/{id}/compare-vendors', [\App\Http\Controllers\Shop\ProductController::class, 'compareVendors']);
     Route::get('/products/{id}', [\App\Http\Controllers\Shop\ProductController::class, 'show']);
 
+    // Public vendor store (client app — after "Select this vendor")
+    Route::get('/vendors/{id}/products', [\App\Http\Controllers\Shop\VendorStoreController::class, 'products']);
+    Route::get('/vendors/{id}', [\App\Http\Controllers\Shop\VendorStoreController::class, 'show']);
+
     // Public category routes
     Route::get('/categories', [\App\Http\Controllers\Shop\CategoryController::class, 'index']);
     Route::get('/categories/{id}', [\App\Http\Controllers\Shop\CategoryController::class, 'show']);
