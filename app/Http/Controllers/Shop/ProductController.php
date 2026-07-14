@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Shop\CartController;
+use App\Enums\VendorStatus;
 use App\Services\CategoryShippingService;
 use App\Services\Vendor\VendorComparisonService;
 use Illuminate\Http\Request;
@@ -270,10 +271,7 @@ class ProductController extends Controller
                 ->first();
 
             if (! $product) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Product not found',
-                ], 404);
+                return $this->shopProductNotFoundResponse($id);
             }
 
             $data = $this->productToPublicData($product);
@@ -307,10 +305,7 @@ class ProductController extends Controller
                 ->first();
 
             if (! $product) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Product not found',
-                ], 404);
+                return $this->shopProductNotFoundResponse($id);
             }
 
             $validated = $request->validate([
@@ -412,6 +407,56 @@ class ProductController extends Controller
                 'message' => 'Unable to load products for this category.',
             ], 500);
         }
+    }
+
+    /**
+     * @param  int|string  $id
+     */
+    private function shopProductNotFoundResponse($id)
+    {
+        $product = Product::query()
+            ->where(function ($q) use ($id) {
+                $q->where('id', $id)->orWhere('handle', $id);
+            })
+            ->with(['vendorProduct.vendor'])
+            ->first();
+
+        if (! $product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+                'hint' => 'Wrong product_id. On server run: php artisan vendor:compare-demo-status',
+            ], 404);
+        }
+
+        $reasons = [];
+        if ($product->status !== 'active') {
+            $reasons[] = 'product status is '.$product->status;
+        }
+
+        $vendorProduct = $product->vendorProduct;
+        if ($vendorProduct) {
+            if ($vendorProduct->status !== 'active') {
+                $reasons[] = 'vendor listing status is '.$vendorProduct->status;
+            }
+            if ($vendorProduct->approval_status !== 'approved') {
+                $reasons[] = 'vendor listing approval is '.$vendorProduct->approval_status;
+            }
+            if ($vendorProduct->disabled_by_admin) {
+                $reasons[] = 'product disabled by admin';
+            }
+            if ($vendorProduct->vendor && $vendorProduct->vendor->status !== VendorStatus::Approved->value) {
+                $reasons[] = 'vendor status is '.$vendorProduct->vendor->status;
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Product not available in shop',
+            'product_id' => $product->id,
+            'reasons' => $reasons !== [] ? $reasons : ['product does not meet marketplace visibility rules'],
+            'hint' => 'Approve vendor and set product active. Run: php artisan vendor:compare-demo-status',
+        ], 404);
     }
 }
 
