@@ -27,14 +27,18 @@ class ClientShopVendorStoreTest extends TestCase
         }
     }
 
-    public function test_vendor_store_profile_returns_logo_and_business_name(): void
+    public function test_vendor_store_returns_vendor_details_and_all_products(): void
     {
-        [$vendor, $product] = $this->seedVendorStoreListing('Green Valley Nursery');
+        [$vendor, $product] = $this->seedVendorStoreListing('Green Valley Nursery', 48, 40);
 
         $this->getJson("/api/shop/vendors/{$vendor->id}")
             ->assertOk()
             ->assertJsonPath('data.business_name', 'Green Valley Nursery')
             ->assertJsonPath('data.product_count', 1)
+            ->assertJsonPath('data.products.0.product_id', $product->id)
+            ->assertJsonPath('data.products.0.name', 'Fresh Seasonal Fruits Box')
+            ->assertJsonPath('data.products.0.price', 48)
+            ->assertJsonPath('data.products.0.stock_label', '40 in stock')
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -44,33 +48,31 @@ class ClientShopVendorStoreTest extends TestCase
                     'operating_hours',
                     'delivery_radius_km',
                     'product_count',
+                    'products' => [
+                        [
+                            'product_id',
+                            'vendor_product_id',
+                            'name',
+                            'price',
+                            'image_url',
+                            'stock_label',
+                            'category',
+                        ],
+                    ],
                 ],
             ]);
     }
 
-    public function test_vendor_store_products_lists_live_catalog(): void
-    {
-        [$vendor, $product] = $this->seedVendorStoreListing('Desert Bloom Supplies', 48, 40);
-
-        $this->getJson("/api/shop/vendors/{$vendor->id}/products?per_page=12")
-            ->assertOk()
-            ->assertJsonPath('data.vendor.business_name', 'Desert Bloom Supplies')
-            ->assertJsonPath('data.products.0.product_id', $product->id)
-            ->assertJsonPath('data.products.0.name', 'Fresh Seasonal Fruits Box')
-            ->assertJsonPath('data.products.0.price', 48)
-            ->assertJsonPath('data.products.0.stock_label', '40 in stock')
-            ->assertJsonPath('data.pagination.total', 1);
-    }
-
-    public function test_vendor_store_products_supports_search(): void
+    public function test_vendor_store_supports_search_filter(): void
     {
         [$vendor] = $this->seedVendorStoreListing('Search Vendor', 30, 10, 'Apple Juice');
         $this->seedVendorStoreListing('Search Vendor 2', 25, 8, 'Mango Shake', $vendor->id);
 
-        $this->getJson("/api/shop/vendors/{$vendor->id}/products?search=Apple")
+        $this->getJson("/api/shop/vendors/{$vendor->id}?search=Apple")
             ->assertOk()
             ->assertJsonCount(1, 'data.products')
-            ->assertJsonPath('data.products.0.name', 'Apple Juice');
+            ->assertJsonPath('data.products.0.name', 'Apple Juice')
+            ->assertJsonPath('data.product_count', 1);
     }
 
     public function test_unapproved_vendor_store_returns_404(): void
@@ -78,9 +80,6 @@ class ClientShopVendorStoreTest extends TestCase
         [$vendor] = $this->seedVendorStoreListing('Pending Vendor', 20, 5, status: VendorStatus::UnderReview);
 
         $this->getJson("/api/shop/vendors/{$vendor->id}")
-            ->assertNotFound();
-
-        $this->getJson("/api/shop/vendors/{$vendor->id}/products")
             ->assertNotFound();
     }
 

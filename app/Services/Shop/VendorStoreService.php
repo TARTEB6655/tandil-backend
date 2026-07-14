@@ -6,8 +6,8 @@ use App\Enums\VendorStatus;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Vendor;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class VendorStoreService
 {
@@ -49,7 +49,15 @@ class VendorStoreService
         ];
     }
 
-    public function paginateProducts(Vendor $vendor, array $filters = [], int $perPage = 12): LengthAwarePaginator
+    /**
+     * @return Collection<int, Product>
+     */
+    public function listProducts(Vendor $vendor, array $filters = []): Collection
+    {
+        return $this->buildProductQuery($vendor, $filters)->get();
+    }
+
+    private function buildProductQuery(Vendor $vendor, array $filters = []): Builder
     {
         $query = $this->visibleProductQuery($vendor->id)
             ->with(['category', 'images', 'primaryImage', 'vendorProduct.currentPrice', 'vendorProduct.inventory']);
@@ -77,7 +85,7 @@ class VendorStoreService
             $query->ordered();
         }
 
-        return $query->paginate(min(max($perPage, 1), 50));
+        return $query;
     }
 
     /**

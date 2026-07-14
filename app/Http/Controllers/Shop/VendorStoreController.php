@@ -14,29 +14,9 @@ class VendorStoreController extends Controller
     ) {}
 
     /**
-     * Vendor store header for client app (logo, name, summary).
+     * Public vendor store page — vendor details + full product catalog.
      */
-    public function show(int $id): JsonResponse
-    {
-        $vendor = $this->vendorStore->findVisibleVendor($id);
-        if (! $vendor) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vendor not found',
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Vendor store retrieved successfully',
-            'data' => $this->vendorStore->vendorPayload($vendor),
-        ]);
-    }
-
-    /**
-     * Live product catalog for a vendor store page.
-     */
-    public function products(Request $request, int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         $vendor = $this->vendorStore->findVisibleVendor($id);
         if (! $vendor) {
@@ -51,31 +31,22 @@ class VendorStoreController extends Controller
             'category_id' => 'sometimes|integer|exists:categories,id',
             'sort_by' => 'sometimes|in:sort_order,price,name',
             'sort_dir' => 'sometimes|in:asc,desc',
-            'per_page' => 'sometimes|integer|min:1|max:50',
         ]);
 
-        $paginator = $this->vendorStore->paginateProducts(
-            $vendor,
-            $validated,
-            (int) ($validated['per_page'] ?? 12)
-        );
+        $products = $this->vendorStore->listProducts($vendor, $validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Vendor products retrieved successfully',
-            'data' => [
-                'vendor' => $this->vendorStore->vendorPayload($vendor, $paginator->total()),
-                'products' => collect($paginator->items())
-                    ->map(fn ($product) => $this->vendorStore->productCard($product))
-                    ->values()
-                    ->all(),
-                'pagination' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
-                ],
-            ],
+            'message' => 'Vendor store retrieved successfully',
+            'data' => array_merge(
+                $this->vendorStore->vendorPayload($vendor, $products->count()),
+                [
+                    'products' => $products
+                        ->map(fn ($product) => $this->vendorStore->productCard($product))
+                        ->values()
+                        ->all(),
+                ]
+            ),
         ]);
     }
 }
