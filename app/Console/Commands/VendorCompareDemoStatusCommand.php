@@ -29,7 +29,7 @@ class VendorCompareDemoStatusCommand extends Command
 
             if (! $product) {
                 $this->warn("Missing: {$vendorData['business_name']} — run seeder first.");
-                $this->line('  php artisan db:seed --class=Database/Seeders/VendorCompareDemoSeeder --force');
+                $this->line('  php artisan vendor:compare-demo-seed');
                 $this->newLine();
 
                 continue;
