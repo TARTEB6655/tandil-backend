@@ -225,4 +225,49 @@ final class NotificationSystemSmokeTest extends TestCase
             ->assertJsonPath('data.applied_filters.filter', 'unread')
             ->assertJsonPath('data.applied_filters.q', 'MSG_TECH_ONLY');
     }
+
+    public function test_admin_can_delete_other_users_notification_from_statistics_api(): void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        $vendorUser = $this->makeUserWithRole('vendor');
+
+        $vendorUser->notify(new AdminNotification('Vendor application rejected', 'Your vendor application was not approved.'));
+        $notificationId = $vendorUser->notifications()->first()->id;
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/notifications?per_page=20')
+            ->assertStatus(200)
+            ->assertJsonPath('data.scope', 'all_users');
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/admin/notifications/{$notificationId}")
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('notifications', ['id' => $notificationId]);
+    }
+
+    public function test_admin_clear_all_respects_statistics_filters(): void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        $technician = $this->makeUserWithRole('technician');
+
+        $technician->notify(new AdminNotification('Delete me', 'MSG_CLEAR_ONE'));
+        $technician->notify(new AdminNotification('Keep me', 'MSG_CLEAR_TWO'));
+        $admin->notify(new AdminNotification('Admin row', 'MSG_CLEAR_ADMIN'));
+
+        $deleteId = $technician->notifications()->where('data', 'like', '%MSG_CLEAR_ONE%')->value('id');
+        $keepId = $technician->notifications()->where('data', 'like', '%MSG_CLEAR_TWO%')->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/admin/notifications/clear-all?audience_role=technician&q=MSG_CLEAR_ONE')
+            ->assertStatus(200)
+            ->assertJsonPath('data.deleted_count', 1);
+
+        $this->assertDatabaseMissing('notifications', ['id' => $deleteId]);
+        $this->assertDatabaseHas('notifications', ['id' => $keepId]);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $admin->id,
+        ]);
+    }
 }

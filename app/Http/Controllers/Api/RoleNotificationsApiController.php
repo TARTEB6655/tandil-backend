@@ -13,6 +13,82 @@ use Illuminate\Http\Request;
 
 class RoleNotificationsApiController extends Controller
 {
+    private function isAdminStatsApi(Request $request): bool
+    {
+        if (! $request->user()?->hasRole('admin')) {
+            return false;
+        }
+
+        $path = $request->path();
+
+        if ($path === 'api/admin/notifications') {
+            return true;
+        }
+
+        if (! str_starts_with($path, 'api/admin/notifications/')) {
+            return false;
+        }
+
+        $suffix = substr($path, strlen('api/admin/notifications/'));
+
+        return ! str_starts_with($suffix, 'broadcast')
+            && ! str_starts_with($suffix, 'delivery-stats');
+    }
+
+    /**
+     * Same row scope as GET index (self inbox vs admin all-users statistics).
+     */
+    private function buildScopedQuery(Request $request)
+    {
+        $user = $request->user();
+        $audienceRole = $request->query('audience_role');
+        $filter = (string) $request->query('filter', 'all');
+        $kindRaw = $request->query('kind');
+        $kind = is_string($kindRaw) ? trim($kindRaw) : null;
+        if ($kind === '') {
+            $kind = null;
+        }
+        $search = trim((string) $request->query('q', ''));
+
+        $base = $this->isAdminStatsApi($request)
+            ? GlobalNotificationFilter::allUsers($audienceRole)
+            : UserNotificationInbox::forUser($user, $audienceRole);
+
+        $expandLeaveWithBroadcasts = ! $this->isAdminStatsApi($request)
+            && $kind === NotificationInboxWebFilters::KIND_LEAVE
+            && $user->hasAnyRole(['technician', 'supervisor', 'client']);
+
+        if ($expandLeaveWithBroadcasts) {
+            $scoped = $base->where(function ($q) {
+                $q->where('type', LeaveRequestStatusNotification::class)
+                    ->orWhere('type', AdminNotification::class);
+            });
+        } else {
+            $scoped = NotificationInboxWebFilters::applyKind($base, is_string($kind) ? $kind : null);
+        }
+
+        if ($search !== '') {
+            $scoped->where('data', 'like', '%'.$search.'%');
+        }
+
+        if ($filter === 'unread') {
+            $scoped->whereNull('read_at');
+        } elseif ($filter === 'read') {
+            $scoped->whereNotNull('read_at');
+        }
+
+        return $scoped;
+    }
+
+    private function findForMutation(Request $request, string $id)
+    {
+        if ($this->isAdminStatsApi($request)) {
+            return GlobalNotificationFilter::findForAdminReview($id);
+        }
+
+        return UserNotificationInbox::forUser($request->user())->find($id);
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -28,7 +104,7 @@ class RoleNotificationsApiController extends Controller
         $search = trim((string) $request->query('q', ''));
 
         // Admin dedicated API behaves like "Statics" page: all users + full filter set.
-        $isAdminStatsApi = $request->is('api/admin/notifications') && $user->hasRole('admin');
+        $isAdminStatsApi = $this->isAdminStatsApi($request);
         $base = $isAdminStatsApi
             ? GlobalNotificationFilter::allUsers($audienceRole)
             : UserNotificationInbox::forUser($user, $audienceRole);
@@ -85,8 +161,7 @@ class RoleNotificationsApiController extends Controller
 
     public function markAsRead(Request $request, string $id)
     {
-        $user = $request->user();
-        $notification = UserNotificationInbox::forUser($user)->find($id);
+        $notification = $this->findForMutation($request, $id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -99,16 +174,16 @@ class RoleNotificationsApiController extends Controller
 
     public function markAllAsRead(Request $request)
     {
-        $user = $request->user();
-        UserNotificationInbox::unreadForUser($user)->update(['read_at' => now()]);
+        $this->buildScopedQuery($request)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
         return ApiResponse::success('All notifications marked as read.');
     }
 
     public function destroy(Request $request, string $id)
     {
-        $user = $request->user();
-        $notification = UserNotificationInbox::forUser($user)->find($id);
+        $notification = $this->findForMutation($request, $id);
 
         if (! $notification) {
             return ApiResponse::error('Notification not found.', 404);
@@ -121,8 +196,7 @@ class RoleNotificationsApiController extends Controller
 
     public function clearAll(Request $request)
     {
-        $user = $request->user();
-        $query = UserNotificationInbox::forUser($user);
+        $query = $this->buildScopedQuery($request);
         $deleted = $query->count();
         $query->delete();
 
