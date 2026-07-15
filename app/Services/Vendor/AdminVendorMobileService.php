@@ -129,6 +129,10 @@ class AdminVendorMobileService
                     'method' => 'POST',
                     'endpoint' => "/api/admin/vendors/{$vendor->id}/products/{$vp->id}/toggle",
                 ],
+                'delete' => [
+                    'method' => 'DELETE',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/products/{$vp->id}",
+                ],
             ],
         ];
     }

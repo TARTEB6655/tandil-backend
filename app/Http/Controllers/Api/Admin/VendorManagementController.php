@@ -78,6 +78,27 @@ class VendorManagementController extends Controller
         );
     }
 
+    /**
+     * Admin — permanently remove a vendor product listing from the marketplace.
+     */
+    public function destroyProduct(Request $request, int $vendorId, int $productId): JsonResponse
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+        $vendorProduct = VendorProduct::findForVendorToggle($vendor->id, $productId);
+
+        $vendorProductId = $vendorProduct->id;
+        $catalogProductId = $vendorProduct->product_id;
+
+        $this->adminProducts->removeListing($vendorProduct);
+
+        return ApiResponse::success('Product removed.', [
+            'vendor_id' => $vendor->id,
+            'vendor_product_id' => $vendorProductId,
+            'product_id' => $catalogProductId,
+            'deleted' => true,
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $sort = $request->query('sort', 'newest');

@@ -294,7 +294,10 @@ class AdminVendorManagementApiTest extends TestCase
                                 'stock',
                                 'is_enabled',
                                 'image_url',
-                                'actions' => ['toggle' => ['method', 'endpoint']],
+                                'actions' => [
+                                    'toggle' => ['method', 'endpoint'],
+                                    'delete' => ['method', 'endpoint'],
+                                ],
                             ],
                         ],
                         'pagination',
@@ -382,6 +385,58 @@ class AdminVendorManagementApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.product.is_enabled', false)
             ->assertJsonPath('data.product.vendor_product_id', $vendorProduct->id);
+    }
+
+    public function test_admin_can_delete_vendor_product_from_mobile_api(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+        $catalogProduct = $vendorProduct->product;
+
+        $this->withToken($token)
+            ->deleteJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}")
+            ->assertOk()
+            ->assertJsonPath('data.deleted', true)
+            ->assertJsonPath('data.vendor_product_id', $vendorProduct->id)
+            ->assertJsonPath('data.product_id', $catalogProduct->id);
+
+        $this->assertNull(VendorProduct::find($vendorProduct->id));
+        $this->assertSame('archived', $catalogProduct->fresh()->status);
+
+        $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/management")
+            ->assertOk()
+            ->assertJsonPath('data.summary.total_products', 0)
+            ->assertJsonCount(0, 'data.products.items');
+    }
+
+    public function test_delete_accepts_catalog_product_id(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+
+        $this->withToken($token)
+            ->deleteJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->product_id}")
+            ->assertOk()
+            ->assertJsonPath('data.deleted', true)
+            ->assertJsonPath('data.vendor_product_id', $vendorProduct->id);
+
+        $this->assertNull(VendorProduct::find($vendorProduct->id));
+    }
+
+    public function test_non_admin_cannot_delete_vendor_product(): void
+    {
+        ['vendor' => $vendor] = $this->seedVendorWithMetrics();
+        $vendorProduct = VendorProduct::where('vendor_id', $vendor->id)->firstOrFail();
+        $client = User::factory()->create(['role' => 'client']);
+        $client->assignRole('client');
+        $clientToken = $client->createToken('test', ['client'])->plainTextToken;
+
+        $this->withToken($clientToken)
+            ->deleteJson("/api/admin/vendors/{$vendor->id}/products/{$vendorProduct->id}")
+            ->assertForbidden();
+
+        $this->assertNotNull(VendorProduct::find($vendorProduct->id));
     }
 
     /**
