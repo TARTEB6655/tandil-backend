@@ -381,7 +381,8 @@ class CmsPageApiTest extends TestCase
             ->assertSee('Privacy Policy')
             ->assertSee('Terms & Conditions')
             ->assertSee('Contact Us')
-            ->assertSee('Client + Vendor audiences');
+            ->assertSee('Client App')
+            ->assertSee('Vendor App');
     }
 
     public function test_public_terms_and_contact_routes_render_saved_content(): void
@@ -403,5 +404,70 @@ class CmsPageApiTest extends TestCase
         $this->get('/terms-and-conditions?audience=client')
             ->assertOk()
             ->assertSee('Custom terms body', false);
+    }
+
+    public function test_all_cms_api_endpoints_respond_successfully(): void
+    {
+        Role::firstOrCreate(['name' => 'client', 'guard_name' => 'web']);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $this->getJson('/api/public/cms/pages')->assertOk();
+        $this->getJson('/api/public/cms/pages/unknown?audience=client')->assertNotFound();
+
+        foreach (['client', 'vendor'] as $audience) {
+            foreach (['privacy-policy', 'terms-and-conditions', 'contact-us'] as $slug) {
+                $response = $this->getJson("/api/public/cms/pages/{$slug}?audience={$audience}&lang=en");
+                $response->assertOk()->assertJsonPath('data.audience', $audience)->assertJsonPath('data.slug', $slug);
+            }
+        }
+
+        $this->withToken($token)->getJson('/api/admin/cms/pages')->assertOk();
+        foreach (['privacy-policy', 'terms-and-conditions', 'contact-us'] as $slug) {
+            $this->withToken($token)
+                ->getJson("/api/admin/cms/pages/{$slug}")
+                ->assertOk()
+                ->assertJsonPath('data.slug', $slug)
+                ->assertJsonStructure(['data' => ['translations' => ['client', 'vendor']]]);
+        }
+
+        $this->withToken($token)
+            ->putJson('/api/admin/cms/pages/privacy-policy', [
+                'translations' => [
+                    'client' => ['en' => ['title' => 'Client Privacy', 'subtitle' => 'Client sub', 'body' => '<p>Client</p>']],
+                    'vendor' => ['en' => ['title' => 'Vendor Privacy', 'subtitle' => 'Vendor sub', 'body' => '<p>Vendor</p>']],
+                ],
+                'is_active' => true,
+            ])
+            ->assertOk();
+
+        $this->withToken($token)
+            ->getJson('/api/admin/settings/legal?type=privacy&audience=client')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'privacy-policy');
+
+        $this->withToken($token)
+            ->getJson('/api/admin/settings/legal?type=terms&audience=vendor')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'terms-and-conditions');
+
+        $this->withToken($token)
+            ->putJson('/api/admin/settings/legal?type=privacy', [
+                'translations' => [
+                    'client' => ['en' => ['title' => 'Legal Alias Privacy', 'subtitle' => 'Alias', 'body' => '<p>Alias</p>']],
+                    'vendor' => ['en' => ['title' => 'Vendor Legal Alias', 'subtitle' => 'Alias', 'body' => '<p>Alias vendor</p>']],
+                ],
+                'is_active' => true,
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin)->get(route('admin.cms-pages.index'))->assertOk();
+        foreach (['privacy-policy', 'terms-and-conditions', 'contact-us'] as $slug) {
+            $this->actingAs($admin)->get(route('admin.cms-pages.edit', $slug))->assertOk();
+        }
+
+        $this->get('/privacy-policy?audience=client')->assertOk();
+        $this->get('/contact-us?audience=vendor')->assertOk();
     }
 }

@@ -30,27 +30,16 @@ class LegalPageController extends Controller
 
     private function renderPage(string $slug, Request $request): View
     {
-        $locale = $request->query('lang', app()->getLocale());
+        $locale = $this->cmsPages->resolveLocale($request->query('lang'));
         $audience = $this->cmsPages->resolveAudience($request->query('audience', CmsPage::AUDIENCE_CLIENT));
         $page = $this->cmsPages->findPublicBySlug($slug) ?? $this->cmsPages->findBySlug($slug);
-        $translations = $this->cmsPages->toAdminPayload($page)['translations'];
-        $content = $translations[$audience][$locale]
-            ?? $translations[$audience]['en']
-            ?? reset($translations[$audience] ?? [])
-            ?: ['title' => $page->label, 'body' => ''];
-
-        $contactDetails = [];
-        if ($page->isContactPage()) {
-            $allContact = $this->cmsPages->toAdminPayload($page)['contact_details'];
-            $contactDetails = $allContact[$audience] ?? $allContact[CmsPage::AUDIENCE_CLIENT] ?? [];
-        }
+        $appPayload = $this->cmsPages->toAppPayload($page, $audience, $locale);
 
         return view('legal.cms-page', [
-            'title' => $content['title'] ?? $page->label,
-            'body' => $content['body'] ?? $content['intro'] ?? '',
-            'locale' => $locale,
+            'page' => $page,
             'audience' => $audience,
-            'contactDetails' => $contactDetails,
+            'locale' => $locale,
+            'payload' => $appPayload,
         ]);
     }
 }

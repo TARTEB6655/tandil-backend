@@ -27,13 +27,14 @@ class CmsPageController extends Controller
     public function edit(string $slug): View
     {
         $page = $this->cmsPages->findBySlug($slug);
+        $payload = $this->cmsPages->toAdminPayload($page);
 
         return view('admin.cms-pages.edit', [
             'page' => $page,
             'locales' => CmsPageService::SUGGESTED_LOCALES,
             'audiences' => CmsPage::AUDIENCES,
-            'translations' => $this->cmsPages->toAdminPayload($page)['translations'],
-            'contactDetails' => $this->cmsPages->toAdminPayload($page)['contact_details'],
+            'translations' => $payload['translations'],
+            'contactDetails' => $payload['contact_details'],
         ]);
     }
 
