@@ -203,6 +203,38 @@
                     "description": "Example multilingual content API (Spatie laravel-translatable). See docs\/API_LOCALIZATION.md in repo."
                 },
                 {
+                    "name": "CMS Pages (public)",
+                    "item": [
+                        {
+                            "name": "List CMS pages",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application\/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "public", "cms", "pages"]
+                                },
+                                "description": "GET \/api\/public\/cms\/pages — public list (privacy-policy, terms-and-conditions, contact-us). Frontend picks language from translations object."
+                            }
+                        },
+                        {
+                            "name": "Get CMS page (privacy-policy)",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application\/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/privacy-policy",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "public", "cms", "pages", "privacy-policy"]
+                                },
+                                "description": "GET \/api\/public\/cms\/pages\/{slug} — returns all saved translations + contact_details for contact-us. Slugs: privacy-policy | terms-and-conditions | contact-us"
+                            }
+                        }
+                    ],
+                    "description": "Public CMS content for app\/website. No auth. Backend stores all languages; frontend chooses which translation to display."
+                },
+                {
                     "name": "Wallet APIs",
                     "item": [
                         {
@@ -16030,7 +16062,66 @@
                                 }
                             ]
                         },
-                        "description": "GET \/api\/admin\/settings\/legal?type=privacy|terms - URL and content for Privacy Policy or Terms."
+                        "description": "GET \/api\/admin\/settings\/legal?type=privacy|terms - CMS-backed legal pages with translations."
+                    }
+                },
+                {
+                    "name": "Update Legal (Privacy or Terms)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application\/json"},
+                            {"key": "Content-Type", "value": "application\/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"translations\": {\n    \"en\": {\"title\": \"Privacy Policy\", \"body\": \"<p>English content</p>\"},\n    \"ar\": {\"title\": \"سياسة الخصوصية\", \"body\": \"<p>Arabic content</p>\"},\n    \"ur\": {\"title\": \"رازداری کی پالیسی\", \"body\": \"<p>Urdu content</p>\"}\n  },\n  \"is_active\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}\/api\/admin\/settings\/legal?type=privacy",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "settings", "legal"],
+                            "query": [{"key": "type", "value": "privacy", "description": "privacy or terms"}]
+                        },
+                        "description": "PUT \/api\/admin\/settings\/legal?type=privacy|terms — legacy alias for CMS legal pages."
+                    }
+                },
+                {
+                    "name": "List CMS pages (admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application\/json"}
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}\/api\/admin\/cms\/pages",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "cms", "pages"]
+                        },
+                        "description": "GET \/api\/admin\/cms\/pages — all managed pages with full translations."
+                    }
+                },
+                {
+                    "name": "Update CMS page (contact-us)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                            {"key": "Accept", "value": "application\/json"},
+                            {"key": "Content-Type", "value": "application\/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"translations\": {\n    \"en\": {\"title\": \"Contact Us\", \"body\": \"<p>Reach our team anytime.</p>\"}\n  },\n  \"contact_details\": {\n    \"phone\": \"+971555381810\",\n    \"whatsapp\": \"+971555381810\",\n    \"email\": \"info@tandil.ae\",\n    \"working_hours\": {\"en\": \"Mon–Sat 9am–6pm\"},\n    \"service_areas\": {\"en\": \"Dubai, Sharjah, Abu Dhabi\"}\n  },\n  \"is_active\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}\/api\/admin\/cms\/pages\/contact-us",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "cms", "pages", "contact-us"]
+                        },
+                        "description": "PUT \/api\/admin\/cms\/pages\/{slug} — slug: privacy-policy | terms-and-conditions | contact-us"
                     }
                 },
                 {

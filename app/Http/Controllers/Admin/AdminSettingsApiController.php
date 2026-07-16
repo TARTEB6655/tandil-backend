@@ -279,19 +279,39 @@ class AdminSettingsApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid type.'], 400);
         }
 
-        $urlKey = $type === 'privacy' ? 'privacy_policy_url' : 'terms_of_service_url';
-        $contentKey = $type === 'privacy' ? 'privacy_policy_content' : 'terms_of_service_content';
-
-        $url = Setting::get($urlKey, '');
-        $content = Setting::get($contentKey, '');
+        $slug = $type === 'privacy' ? \App\Models\CmsPage::SLUG_PRIVACY : \App\Models\CmsPage::SLUG_TERMS;
+        $service = app(\App\Services\Cms\CmsPageService::class);
+        $page = $service->findBySlug($slug);
 
         return response()->json([
             'success' => true,
-            'data' => [
+            'data' => array_merge([
                 'type' => $type,
-                'url' => $url,
-                'content' => $content,
-            ],
+                'slug' => $slug,
+                'url' => url('/'.($type === 'privacy' ? 'privacy-policy' : 'terms-and-conditions')),
+            ], $service->toAdminPayload($page)),
+        ]);
+    }
+
+    /**
+     * PUT /api/admin/settings/legal?type=privacy|terms
+     */
+    public function updateLegal(Request $request): JsonResponse
+    {
+        $type = $request->input('type', 'privacy');
+        if (! in_array($type, ['privacy', 'terms'], true)) {
+            return response()->json(['success' => false, 'message' => 'Invalid type.'], 400);
+        }
+
+        $slug = $type === 'privacy' ? \App\Models\CmsPage::SLUG_PRIVACY : \App\Models\CmsPage::SLUG_TERMS;
+        $service = app(\App\Services\Cms\CmsPageService::class);
+        $page = $service->findBySlug($slug);
+        $updated = $service->update($page, $request->all());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Legal page updated.',
+            'data' => $service->toAdminPayload($updated),
         ]);
     }
 

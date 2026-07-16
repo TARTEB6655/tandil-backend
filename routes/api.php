@@ -20,6 +20,10 @@ Route::get('/localized-articles', [\App\Http\Controllers\Api\LocalizedArticleCon
 Route::get('/localized-articles/{slug}', [\App\Http\Controllers\Api\LocalizedArticleController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*');
 
+Route::get('/public/cms/pages', [\App\Http\Controllers\Api\PublicCmsPageController::class, 'index']);
+Route::get('/public/cms/pages/{slug}', [\App\Http\Controllers\Api\PublicCmsPageController::class, 'show'])
+    ->where('slug', '[a-z0-9-]+');
+
 // Alias (same handler as api/auth/technician-signup-areas) — useful if proxies/docs use a shorter path; always deploy latest routes.
 Route::get('/technician-signup-areas', [\App\Http\Controllers\Auth\AuthController::class, 'technicianSignupAreas'])
     ->name('api.technician-signup-areas');
@@ -891,7 +895,16 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->gro
     Route::get('/shop/category-shipping', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getCategoryShipping']);
     Route::put('/shop/category-shipping', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateCategoryShipping']);
     Route::get('/legal', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getLegal']);
+    Route::put('/legal', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateLegal']);
     Route::post('/export-data', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'exportData']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/cms/pages')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'index']);
+    Route::get('/{slug}', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+');
+    Route::put('/{slug}', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'update'])
+        ->where('slug', '[a-z0-9-]+');
 });
 
 /*

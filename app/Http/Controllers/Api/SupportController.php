@@ -10,11 +10,16 @@ use App\Models\Setting;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Notifications\AdminNotification;
+use App\Services\Cms\CmsPageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class SupportController extends Controller
 {
+    public function __construct(
+        private readonly CmsPageService $cmsPages
+    ) {}
+
     /**
      * GET /api/support/help-center - Full Help Center payload for the app screen.
      * Returns: heading, tagline, get_support options, contact_info (phone, email, address, support_hours),
@@ -22,23 +27,31 @@ class SupportController extends Controller
      */
     public function helpCenter(Request $request)
     {
-        $contactPhone = Setting::get('contact_phone', '+1 (234) 567-8900');
-        $contactEmail = Setting::get('contact_email', 'support@tandil.com');
-        $contactAddress = Setting::get('contact_address', '');
-        $supportHours = Setting::get('support_hours', '24/7 Customer Support');
+        $locale = $request->query('lang');
+        $contact = $this->cmsPages->contactForHelpCenter(is_string($locale) ? $locale : null);
+        $contactPhone = $contact['phone'];
+        $contactEmail = $contact['email'];
+        $contactAddress = $contact['address'] ?? '';
+        $supportHours = $contact['support_hours'];
+        $whatsapp = $contact['whatsapp'] ?? null;
 
         $getSupport = [
             ['type' => 'call', 'title' => 'Call Support', 'subtitle' => 'Speak with our team', 'value' => $contactPhone],
             ['type' => 'email', 'title' => 'Email Support', 'subtitle' => 'Send us an email', 'value' => $contactEmail],
-            ['type' => 'live_chat', 'title' => 'Live Chat', 'subtitle' => 'Chat with us now', 'value' => null],
-            ['type' => 'submit_ticket', 'title' => 'Submit Ticket', 'subtitle' => 'Create a support ticket', 'value' => null],
         ];
+        if ($whatsapp) {
+            $getSupport[] = ['type' => 'whatsapp', 'title' => 'WhatsApp', 'subtitle' => 'Chat on WhatsApp', 'value' => $whatsapp];
+        }
+        $getSupport[] = ['type' => 'live_chat', 'title' => 'Live Chat', 'subtitle' => 'Chat with us now', 'value' => null];
+        $getSupport[] = ['type' => 'submit_ticket', 'title' => 'Submit Ticket', 'subtitle' => 'Create a support ticket', 'value' => null];
 
         $contactInfo = [
             'phone' => $contactPhone,
+            'whatsapp' => $whatsapp,
             'email' => $contactEmail,
             'address' => $contactAddress ?: null,
             'support_hours' => $supportHours,
+            'service_areas' => $contact['service_areas'] ?? null,
         ];
 
         $submitTicket = [

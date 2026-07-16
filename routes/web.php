@@ -110,6 +110,8 @@ if (! function_exists('registerPortalSupportChatRoutes')) {
 
 // Public legal pages (no authentication — App Store / website)
 Route::get('/privacy-policy', [LegalPageController::class, 'privacyPolicy'])->name('legal.privacy-policy');
+Route::get('/terms-and-conditions', [LegalPageController::class, 'terms'])->name('legal.terms');
+Route::get('/contact-us', [LegalPageController::class, 'contact'])->name('legal.contact');
 Route::redirect('/privacy', '/privacy-policy', 301);
 
 // Redirect root '/' to app portal (role picker) or dashboard redirect
@@ -328,6 +330,9 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
         Route::resource('banners', BannerController::class);
         Route::resource('maintenance-photos', \App\Http\Controllers\Admin\MaintenancePhotoController::class)->except(['show']);
+        Route::get('cms-pages', [\App\Http\Controllers\Admin\CmsPageController::class, 'index'])->name('cms-pages.index');
+        Route::get('cms-pages/{slug}/edit', [\App\Http\Controllers\Admin\CmsPageController::class, 'edit'])->name('cms-pages.edit');
+        Route::put('cms-pages/{slug}', [\App\Http\Controllers\Admin\CmsPageController::class, 'update'])->name('cms-pages.update');
         Route::post('coupons/{id}/toggle-status', [CouponController::class, 'toggleStatus'])->name('coupons.toggle-status');
         Route::resource('coupons', CouponController::class)->except(['show']);
         Route::get('packages', [PackageController::class, 'index'])->name('packages.index');

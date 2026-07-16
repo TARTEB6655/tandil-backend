@@ -56,7 +56,7 @@
                         operations: {{ request()->routeIs('admin.visits.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.report-management.*') || request()->routeIs('admin.areas.*') || request()->routeIs('admin.zone-assignment.*') || request()->routeIs('admin.recent-activities.*') ? 'true' : 'false' }},
                         ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.marketplace.*') || request()->routeIs('admin.support-chat.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? 'true' : 'false' }},
                         communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') || request()->routeIs('admin.support-chat.*') ? 'true' : 'false' }},
-                        management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.maintenance-photos.*') ? 'true' : 'false' }}
+                        management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.maintenance-photos.*') || request()->routeIs('admin.cms-pages.*') ? 'true' : 'false' }}
                     }">
                         <!-- Dashboard -->
                         <div class="mb-2">
@@ -497,7 +497,7 @@
 
                         <!-- MANAGEMENT -->
                         <div class="mb-2">
-                            <button @click="management = !management" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.maintenance-photos.*') ? $navSectionActive : $navSectionIdle }}">
+                            <button @click="management = !management" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.maintenance-photos.*') || request()->routeIs('admin.cms-pages.*') ? $navSectionActive : $navSectionIdle }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
@@ -548,6 +548,15 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h4l2-3h6l2 3h4v12H3V7zm9 3a4 4 0 100 8 4 4 0 000-8z" />
                                         </svg>
                                         {{ __('admin.maintenance_photos') }}
+                                    </a>
+                                </li>
+                                <li style="padding-left: 0px;">
+                                    <a href="{{ route('admin.cms-pages.index') }}"
+                                       class="{{ $navSubBase }} {{ request()->routeIs('admin.cms-pages.*') ? $navActive : $navIdleSub }}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        CMS Pages
                                     </a>
                                 </li>
                             </ul>
