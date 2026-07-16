@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST \/api\/technician\/report\/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET \/api\/supervisor\/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list\/create\/get\/update\/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get\/add\/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate\/checkout, **I** = Stripe \/ PayPal \/ React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager \/ HR = same \/api\/support\/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list\/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET \/teams\/{{team_id}}, \/teams\/{{team_id}}\/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET \/api\/area-manager\/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET \/api\/admin\/notifications\/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send\/list\/detail; \/api\/user\/notifications and \/api\/client\/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs\/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET \/api\/admin\/maintenance-photos\/{id}` (**edit screen detail**) → create\/update\/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `\/media\/maintenance_photos\/...` (not `\/storage\/`). Client **8b** — `GET \/api\/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET \/compare-vendors`) · **P** Vendor Store (`GET \/api\/shop\/vendors\/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.88"
+        "version": "3.3.89"
     },
     "item": [
         {
@@ -215,50 +215,113 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "public", "cms", "pages"]
                                 },
-                                "description": "GET \/api\/public\/cms\/pages — public list (privacy-policy, terms-and-conditions, contact-us). Frontend picks language from translations object."
+                                "description": "GET \/api\/public\/cms\/pages — list slugs with audiences client|vendor."
                             }
                         },
                         {
-                            "name": "Get CMS page (privacy-policy)",
+                            "name": "Privacy Policy (client)",
                             "request": {
                                 "method": "GET",
                                 "header": [{"key": "Accept", "value": "application\/json"}],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/privacy-policy",
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/privacy-policy?audience=client&lang=en",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "privacy-policy"]
+                                    "path": ["api", "public", "cms", "pages", "privacy-policy"],
+                                    "query": [
+                                        {"key": "audience", "value": "client", "description": "client or vendor (required for app screen)"},
+                                        {"key": "lang", "value": "en", "description": "en|ar|ur"}
+                                    ]
                                 },
-                                "description": "GET \/api\/public\/cms\/pages\/{slug} — returns all saved translations + contact_details for contact-us. Slugs: privacy-policy | terms-and-conditions | contact-us"
+                                "description": "GET \/api\/public\/cms\/pages\/privacy-policy — app payload: title, subtitle, body."
                             }
                         },
                         {
-                            "name": "Get CMS page (terms-and-conditions)",
+                            "name": "Privacy Policy (vendor)",
                             "request": {
                                 "method": "GET",
                                 "header": [{"key": "Accept", "value": "application\/json"}],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/terms-and-conditions",
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/privacy-policy?audience=vendor&lang=en",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "terms-and-conditions"]
+                                    "path": ["api", "public", "cms", "pages", "privacy-policy"],
+                                    "query": [
+                                        {"key": "audience", "value": "vendor"},
+                                        {"key": "lang", "value": "en"}
+                                    ]
                                 },
-                                "description": "GET \/api\/public\/cms\/pages\/terms-and-conditions — all locales in translations object."
+                                "description": "GET privacy-policy for vendor app."
                             }
                         },
                         {
-                            "name": "Get CMS page (contact-us)",
+                            "name": "Terms & Conditions (client)",
                             "request": {
                                 "method": "GET",
                                 "header": [{"key": "Accept", "value": "application\/json"}],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/contact-us",
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/terms-and-conditions?audience=client&lang=en",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "contact-us"]
+                                    "path": ["api", "public", "cms", "pages", "terms-and-conditions"],
+                                    "query": [
+                                        {"key": "audience", "value": "client"},
+                                        {"key": "lang", "value": "en"}
+                                    ]
                                 },
-                                "description": "GET \/api\/public\/cms\/pages\/contact-us — includes contact_details (phone, whatsapp, email, working_hours, service_areas) per locale."
+                                "description": "GET terms — app payload: title, effective_date, intro, sections[]."
+                            }
+                        },
+                        {
+                            "name": "Terms & Conditions (vendor)",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application\/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/terms-and-conditions?audience=vendor&lang=en",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "public", "cms", "pages", "terms-and-conditions"],
+                                    "query": [
+                                        {"key": "audience", "value": "vendor"},
+                                        {"key": "lang", "value": "en"}
+                                    ]
+                                },
+                                "description": "GET terms for vendor app."
+                            }
+                        },
+                        {
+                            "name": "Contact Us (client)",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application\/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/contact-us?audience=client&lang=en",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "public", "cms", "pages", "contact-us"],
+                                    "query": [
+                                        {"key": "audience", "value": "client"},
+                                        {"key": "lang", "value": "en"}
+                                    ]
+                                },
+                                "description": "GET contact-us — app payload: subtitle, hero, company, reach_us[], response_notice."
+                            }
+                        },
+                        {
+                            "name": "Contact Us (vendor)",
+                            "request": {
+                                "method": "GET",
+                                "header": [{"key": "Accept", "value": "application\/json"}],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/contact-us?audience=vendor&lang=en",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "public", "cms", "pages", "contact-us"],
+                                    "query": [
+                                        {"key": "audience", "value": "vendor"},
+                                        {"key": "lang", "value": "en"}
+                                    ]
+                                },
+                                "description": "GET contact-us for vendor app (subtitle: We are here to help vendors)."
                             }
                         }
                     ],
-                    "description": "Public CMS content for app\/website. No auth. Backend stores all languages; frontend chooses which translation to display. Admin edit APIs: folder **19. Admin - CMS Pages**."
+                    "description": "Public CMS for **Client** and **Vendor** apps only. Query `audience=client|vendor` + optional `lang=en|ar|ur`. Returns app-ready screen payload. Admin edit: folder **19. Admin - CMS Pages**."
                 },
                 {
                     "name": "Wallet APIs",
@@ -22923,7 +22986,7 @@
         },
         {
             "name": "19. Admin - CMS Pages",
-            "description": "Editable CMS pages: **Privacy Policy**, **Terms & Conditions**, **Contact Us**. Multilingual storage (EN \/ AR \/ UR) in `translations` JSON; frontend picks locale. Auth: Bearer `{{token}}` + admin role.\n\n**Primary API:** `\/api\/admin\/cms\/pages`\n**Legacy alias (mobile settings):** `\/api\/admin\/settings\/legal?type=privacy|terms`\n\n**Public read (no auth):** folder **1 → CMS Pages (public)** — `GET \/api\/public\/cms\/pages` and `\/api\/public\/cms\/pages\/{slug}`.\n\n**Web admin UI:** `\/admin\/cms-pages`",
+            "description": "Editable CMS pages for **Client** and **Vendor** apps: Privacy Policy, Terms & Conditions, Contact Us. Storage: translations[audience][locale] + contact_details[audience]. Public API uses `?audience=client|vendor&lang=en|ar|ur` and returns app-ready screen JSON.\n\n**Primary API:** `\/api\/admin\/cms\/pages`\n**Legacy alias:** `\/api\/admin\/settings\/legal?type=privacy|terms`\n**Public read:** folder **1 → CMS Pages (public)**\n**Web admin UI:** `\/admin\/cms-pages`",
             "item": [
                 {
                     "name": "A. CMS Pages API",
@@ -23004,7 +23067,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"translations\": {\n    \"en\": {\"title\": \"Privacy Policy\", \"body\": \"<p>English privacy content</p>\"},\n    \"ar\": {\"title\": \"سياسة الخصوصية\", \"body\": \"<p>Arabic privacy content</p>\"},\n    \"ur\": {\"title\": \"رازداری کی پالیسی\", \"body\": \"<p>Urdu privacy content</p>\"}\n  },\n  \"is_active\": true\n}"
+                                    "raw": "{\n  \"translations\": {\n    \"client\": {\n      \"en\": {\"title\": \"Privacy Policy\", \"subtitle\": \"How Tandil collects, uses, and protects your information\", \"body\": \"<p>Client privacy content</p>\"}\n    },\n    \"vendor\": {\n      \"en\": {\"title\": \"Privacy Policy\", \"subtitle\": \"How Tandil collects, uses, and protects vendor information\", \"body\": \"<p>Vendor privacy content</p>\"}\n    }\n  },\n  \"is_active\": true\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}\/api\/admin\/cms\/pages\/privacy-policy",
@@ -23025,7 +23088,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"translations\": {\n    \"en\": {\"title\": \"Terms & Conditions\", \"body\": \"<p>English terms</p>\"},\n    \"ar\": {\"title\": \"الشروط والأحكام\", \"body\": \"<p>Arabic terms</p>\"},\n    \"ur\": {\"title\": \"شرائط و ضوابط\", \"body\": \"<p>Urdu terms</p>\"}\n  },\n  \"is_active\": true\n}"
+                                    "raw": "{\n  \"translations\": {\n    \"client\": {\n      \"en\": {\n        \"title\": \"Terms & Conditions\",\n        \"effective_date\": \"July 9, 2026\",\n        \"intro\": \"<p>Welcome to Tandil client terms.</p>\",\n        \"sections\": [{\"title\": \"About Tandil\", \"body\": \"Client section body\"}]\n      }\n    },\n    \"vendor\": {\n      \"en\": {\n        \"title\": \"Terms & Conditions\",\n        \"effective_date\": \"July 9, 2026\",\n        \"intro\": \"<p>Welcome to Tandil vendor terms.</p>\",\n        \"sections\": [{\"title\": \"About Tandil\", \"body\": \"Vendor section body\"}]\n      }\n    }\n  },\n  \"is_active\": true\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}\/api\/admin\/cms\/pages\/terms-and-conditions",
@@ -23046,7 +23109,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"translations\": {\n    \"en\": {\"title\": \"Contact Us\", \"body\": \"<p>Reach our team anytime.</p>\"},\n    \"ar\": {\"title\": \"اتصل بنا\", \"body\": \"<p>Arabic contact page</p>\"},\n    \"ur\": {\"title\": \"ہم سے رابطہ کریں\", \"body\": \"<p>Urdu contact page</p>\"}\n  },\n  \"contact_details\": {\n    \"phone\": \"+971555381810\",\n    \"whatsapp\": \"+971555381810\",\n    \"email\": \"info@tandil.ae\",\n    \"working_hours\": {\"en\": \"Mon–Sat 9am–6pm\", \"ar\": \"الإثنين–السبت 9ص–6م\", \"ur\": \"پیر–ہفتہ 9صبح–6شام\"},\n    \"service_areas\": {\"en\": \"Dubai, Sharjah, Abu Dhabi\", \"ar\": \"دبي، الشارقة، أبوظبي\", \"ur\": \"دبئی، شارجہ، ابوظبی\"}\n  },\n  \"is_active\": true\n}"
+                                    "raw": "{\n  \"translations\": {\n    \"client\": {\n      \"en\": {\n        \"title\": \"Contact Us\",\n        \"subtitle\": \"We are here to help you\",\n        \"hero_title\": \"Get in touch with Tandil\",\n        \"hero_description\": \"For any questions, contact us using any of the options below.\",\n        \"response_notice\": \"Our support team typically responds within 24–48 hours on business days.\"\n      }\n    },\n    \"vendor\": {\n      \"en\": {\n        \"title\": \"Contact Us\",\n        \"subtitle\": \"We are here to help vendors\",\n        \"hero_title\": \"Get in touch with Tandil\",\n        \"hero_description\": \"For any questions regarding these Terms, please contact us using any of the options below.\",\n        \"response_notice\": \"Our support team typically responds within 24–48 hours on business days.\"\n      }\n    }\n  },\n  \"contact_details\": {\n    \"client\": {\n      \"company_name\": \"Tandil\",\n      \"website\": \"tandil.ae\",\n      \"email\": \"info@tandil.ae\",\n      \"whatsapp\": \"+971 569206959\",\n      \"location\": {\"en\": \"United Arab Emirates\"},\n      \"channel_subtitles\": {\n        \"website\": {\"en\": \"Visit our official site\"},\n        \"email\": {\"en\": \"Send us your questions\"},\n        \"whatsapp\": {\"en\": \"Chat with our team\"}\n      }\n    },\n    \"vendor\": {\n      \"company_name\": \"Tandil\",\n      \"website\": \"tandil.ae\",\n      \"email\": \"info@tandil.ae\",\n      \"whatsapp\": \"+971 569206959\",\n      \"location\": {\"en\": \"United Arab Emirates\"},\n      \"channel_subtitles\": {\n        \"website\": {\"en\": \"Visit our official site\"},\n        \"email\": {\"en\": \"Send us your questions\"},\n        \"whatsapp\": {\"en\": \"Chat with our team\"}\n      }\n    }\n  },\n  \"is_active\": true\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}\/api\/admin\/cms\/pages\/contact-us",
@@ -23129,7 +23192,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"translations\": {\n    \"en\": {\"title\": \"Terms & Conditions\", \"body\": \"<p>English terms</p>\"},\n    \"ar\": {\"title\": \"الشروط والأحكام\", \"body\": \"<p>Arabic terms</p>\"},\n    \"ur\": {\"title\": \"شرائط و ضوابط\", \"body\": \"<p>Urdu terms</p>\"}\n  },\n  \"is_active\": true\n}"
+                                    "raw": "{\n  \"translations\": {\n    \"client\": {\n      \"en\": {\n        \"title\": \"Terms & Conditions\",\n        \"effective_date\": \"July 9, 2026\",\n        \"intro\": \"<p>Welcome to Tandil client terms.</p>\",\n        \"sections\": [{\"title\": \"About Tandil\", \"body\": \"Client section body\"}]\n      }\n    },\n    \"vendor\": {\n      \"en\": {\n        \"title\": \"Terms & Conditions\",\n        \"effective_date\": \"July 9, 2026\",\n        \"intro\": \"<p>Welcome to Tandil vendor terms.</p>\",\n        \"sections\": [{\"title\": \"About Tandil\", \"body\": \"Vendor section body\"}]\n      }\n    }\n  },\n  \"is_active\": true\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}\/api\/admin\/settings\/legal?type=terms",

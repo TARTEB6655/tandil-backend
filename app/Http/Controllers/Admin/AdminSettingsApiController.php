@@ -282,12 +282,14 @@ class AdminSettingsApiController extends Controller
         $slug = $type === 'privacy' ? \App\Models\CmsPage::SLUG_PRIVACY : \App\Models\CmsPage::SLUG_TERMS;
         $service = app(\App\Services\Cms\CmsPageService::class);
         $page = $service->findBySlug($slug);
+        $audience = $service->resolveAudience($request->input('audience'));
 
         return response()->json([
             'success' => true,
             'data' => array_merge([
                 'type' => $type,
                 'slug' => $slug,
+                'audience' => $audience,
                 'url' => url('/'.($type === 'privacy' ? 'privacy-policy' : 'terms-and-conditions')),
             ], $service->toAdminPayload($page)),
         ]);

@@ -31,18 +31,26 @@ class LegalPageController extends Controller
     private function renderPage(string $slug, Request $request): View
     {
         $locale = $request->query('lang', app()->getLocale());
+        $audience = $this->cmsPages->resolveAudience($request->query('audience', CmsPage::AUDIENCE_CLIENT));
         $page = $this->cmsPages->findPublicBySlug($slug) ?? $this->cmsPages->findBySlug($slug);
-
-        $translation = $page->translations[$locale]
-            ?? $page->translations['en']
-            ?? reset($page->translations)
+        $translations = $this->cmsPages->toAdminPayload($page)['translations'];
+        $content = $translations[$audience][$locale]
+            ?? $translations[$audience]['en']
+            ?? reset($translations[$audience] ?? [])
             ?: ['title' => $page->label, 'body' => ''];
 
+        $contactDetails = [];
+        if ($page->isContactPage()) {
+            $allContact = $this->cmsPages->toAdminPayload($page)['contact_details'];
+            $contactDetails = $allContact[$audience] ?? $allContact[CmsPage::AUDIENCE_CLIENT] ?? [];
+        }
+
         return view('legal.cms-page', [
-            'title' => $translation['title'] ?? $page->label,
-            'body' => $translation['body'] ?? '',
+            'title' => $content['title'] ?? $page->label,
+            'body' => $content['body'] ?? $content['intro'] ?? '',
             'locale' => $locale,
-            'contactDetails' => $page->isContactPage() ? ($page->contact_details ?? []) : [],
+            'audience' => $audience,
+            'contactDetails' => $contactDetails,
         ]);
     }
 }

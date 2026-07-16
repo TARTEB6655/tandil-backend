@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Models\CmsPage;
 use App\Services\Cms\CmsPageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class CmsPageApiController extends Controller
 
         return ApiResponse::success('CMS pages retrieved.', [
             'items' => $items,
+            'suggested_audiences' => CmsPage::AUDIENCES,
             'suggested_locales' => CmsPageService::SUGGESTED_LOCALES,
         ]);
     }

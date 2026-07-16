@@ -18,12 +18,13 @@ class CmsPageApiTest extends TestCase
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     }
 
-    public function test_public_lists_all_managed_cms_pages(): void
+    public function test_public_lists_all_managed_cms_pages_with_audiences(): void
     {
         $this->getJson('/api/public/cms/pages')
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonCount(3, 'data.items')
+            ->assertJsonPath('data.suggested_audiences', ['client', 'vendor'])
             ->assertJsonFragment(['slug' => 'privacy-policy'])
             ->assertJsonFragment(['slug' => 'terms-and-conditions'])
             ->assertJsonFragment(['slug' => 'contact-us']);
@@ -31,9 +32,66 @@ class CmsPageApiTest extends TestCase
 
     public function test_public_returns_404_for_unknown_slug(): void
     {
-        $this->getJson('/api/public/cms/pages/unknown-page')
+        $this->getJson('/api/public/cms/pages/unknown-page?audience=client')
             ->assertNotFound()
             ->assertJsonPath('success', false);
+    }
+
+    public function test_public_rejects_invalid_audience(): void
+    {
+        $this->getJson('/api/public/cms/pages/privacy-policy?audience=technician')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['audience']);
+    }
+
+    public function test_public_privacy_returns_app_shaped_payload_for_vendor(): void
+    {
+        $this->getJson('/api/public/cms/pages/privacy-policy?audience=vendor&lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'privacy-policy')
+            ->assertJsonPath('data.audience', 'vendor')
+            ->assertJsonPath('data.locale', 'en')
+            ->assertJsonPath('data.title', 'Privacy Policy')
+            ->assertJsonStructure([
+                'data' => ['slug', 'audience', 'locale', 'title', 'subtitle', 'body'],
+            ]);
+    }
+
+    public function test_public_terms_returns_sections_for_client(): void
+    {
+        $this->getJson('/api/public/cms/pages/terms-and-conditions?audience=client&lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Terms & Conditions')
+            ->assertJsonPath('data.effective_date', 'July 9, 2026')
+            ->assertJsonStructure([
+                'data' => ['intro', 'sections' => [['number', 'title', 'body']]],
+            ])
+            ->assertJsonPath('data.sections.0.number', 1)
+            ->assertJsonPath('data.sections.0.title', 'About Tandil');
+    }
+
+    public function test_public_contact_returns_reach_us_for_vendor(): void
+    {
+        $this->getJson('/api/public/cms/pages/contact-us?audience=vendor&lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.subtitle', 'We are here to help vendors')
+            ->assertJsonPath('data.hero.title', 'Get in touch with Tandil')
+            ->assertJsonPath('data.company.name', 'Tandil')
+            ->assertJsonStructure([
+                'data' => [
+                    'hero' => ['title', 'description'],
+                    'company' => ['name', 'location'],
+                    'reach_us' => [['type', 'label', 'value', 'subtitle']],
+                    'response_notice',
+                ],
+            ]);
+
+        $reachUs = $this->getJson('/api/public/cms/pages/contact-us?audience=vendor&lang=en')
+            ->json('data.reach_us');
+        $types = array_column($reachUs, 'type');
+        $this->assertContains('website', $types);
+        $this->assertContains('email', $types);
+        $this->assertContains('whatsapp', $types);
     }
 
     public function test_admin_can_list_and_show_cms_pages(): void
@@ -46,6 +104,7 @@ class CmsPageApiTest extends TestCase
             ->getJson('/api/admin/cms/pages')
             ->assertOk()
             ->assertJsonCount(3, 'data.items')
+            ->assertJsonPath('data.suggested_audiences', ['client', 'vendor'])
             ->assertJsonPath('data.suggested_locales', ['en', 'ar', 'ur']);
 
         $this->withToken($token)
@@ -56,14 +115,14 @@ class CmsPageApiTest extends TestCase
                 'data' => [
                     'slug',
                     'label',
-                    'translations',
+                    'translations' => ['client', 'vendor'],
                     'is_active',
-                    'suggested_locales',
+                    'suggested_audiences',
                 ],
             ]);
     }
 
-    public function test_admin_can_update_terms_and_conditions(): void
+    public function test_admin_can_update_vendor_terms_separately_from_client(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $admin->assignRole('admin');
@@ -72,17 +131,37 @@ class CmsPageApiTest extends TestCase
         $this->withToken($token)
             ->putJson('/api/admin/cms/pages/terms-and-conditions', [
                 'translations' => [
-                    'en' => ['title' => 'Terms', 'body' => '<p>English terms</p>'],
-                    'ur' => ['title' => 'شرائط', 'body' => '<p>Urdu terms</p>'],
+                    'client' => [
+                        'en' => [
+                            'title' => 'Client Terms',
+                            'effective_date' => 'Jan 1, 2026',
+                            'intro' => '<p>Client intro</p>',
+                            'sections' => [['title' => 'Client section', 'body' => 'Client body']],
+                        ],
+                    ],
+                    'vendor' => [
+                        'en' => [
+                            'title' => 'Vendor Terms',
+                            'effective_date' => 'Feb 1, 2026',
+                            'intro' => '<p>Vendor intro</p>',
+                            'sections' => [['title' => 'Vendor section', 'body' => 'Vendor body']],
+                        ],
+                    ],
                 ],
                 'is_active' => true,
             ])
             ->assertOk()
-            ->assertJsonPath('data.translations.en.body', '<p>English terms</p>');
+            ->assertJsonPath('data.translations.vendor.en.title', 'Vendor Terms');
 
-        $this->getJson('/api/public/cms/pages/terms-and-conditions')
+        $this->getJson('/api/public/cms/pages/terms-and-conditions?audience=client&lang=en')
             ->assertOk()
-            ->assertJsonPath('data.translations.ur.body', '<p>Urdu terms</p>');
+            ->assertJsonPath('data.title', 'Client Terms')
+            ->assertJsonPath('data.sections.0.title', 'Client section');
+
+        $this->getJson('/api/public/cms/pages/terms-and-conditions?audience=vendor&lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Vendor Terms')
+            ->assertJsonPath('data.sections.0.title', 'Vendor section');
     }
 
     public function test_legal_settings_alias_get_and_put_work(): void
@@ -92,21 +171,26 @@ class CmsPageApiTest extends TestCase
         $token = $admin->createToken('test', ['admin'])->plainTextToken;
 
         $this->withToken($token)
-            ->getJson('/api/admin/settings/legal?type=privacy')
+            ->getJson('/api/admin/settings/legal?type=privacy&audience=vendor')
             ->assertOk()
             ->assertJsonPath('data.slug', 'privacy-policy')
+            ->assertJsonPath('data.audience', 'vendor')
             ->assertJsonStructure(['data' => ['translations', 'type', 'url']]);
 
         $this->withToken($token)
             ->putJson('/api/admin/settings/legal?type=terms', [
                 'translations' => [
-                    'en' => ['title' => 'Terms via alias', 'body' => '<p>Alias update</p>'],
+                    'client' => [
+                        'en' => ['title' => 'Terms via alias', 'intro' => '<p>Alias update</p>'],
+                    ],
+                    'vendor' => [
+                        'en' => ['title' => 'Vendor alias terms', 'intro' => '<p>Vendor alias</p>'],
+                    ],
                 ],
                 'is_active' => true,
             ])
             ->assertOk()
-            ->assertJsonPath('data.slug', 'terms-and-conditions')
-            ->assertJsonPath('data.translations.en.title', 'Terms via alias');
+            ->assertJsonPath('data.translations.vendor.en.title', 'Vendor alias terms');
     }
 
     public function test_non_admin_cannot_update_cms_pages(): void
@@ -118,7 +202,9 @@ class CmsPageApiTest extends TestCase
 
         $this->withToken($token)
             ->putJson('/api/admin/cms/pages/privacy-policy', [
-                'translations' => ['en' => ['title' => 'Hack', 'body' => 'x']],
+                'translations' => [
+                    'client' => ['en' => ['title' => 'Hack', 'body' => 'x']],
+                ],
             ])
             ->assertForbidden();
     }
@@ -132,17 +218,18 @@ class CmsPageApiTest extends TestCase
         $this->withToken($token)
             ->putJson('/api/admin/cms/pages/privacy-policy', [
                 'translations' => [
-                    'en' => ['title' => 'Hidden', 'body' => '<p>Hidden</p>'],
+                    'client' => ['en' => ['title' => 'Hidden', 'body' => '<p>Hidden</p>']],
+                    'vendor' => ['en' => ['title' => 'Hidden', 'body' => '<p>Hidden</p>']],
                 ],
                 'is_active' => false,
             ])
             ->assertOk();
 
-        $this->getJson('/api/public/cms/pages/privacy-policy')
+        $this->getJson('/api/public/cms/pages/privacy-policy?audience=client')
             ->assertNotFound();
     }
 
-    public function test_help_center_uses_cms_contact_details(): void
+    public function test_help_center_uses_client_cms_contact_details(): void
     {
         Role::firstOrCreate(['name' => 'client', 'guard_name' => 'web']);
         $admin = User::factory()->create(['role' => 'admin']);
@@ -155,14 +242,44 @@ class CmsPageApiTest extends TestCase
         $this->withToken($adminToken)
             ->putJson('/api/admin/cms/pages/contact-us', [
                 'translations' => [
-                    'en' => ['title' => 'Contact', 'body' => '<p>Contact body</p>'],
+                    'client' => [
+                        'en' => [
+                            'title' => 'Contact',
+                            'subtitle' => 'We are here to help you',
+                            'hero_title' => 'Get in touch',
+                            'hero_description' => 'Client hero',
+                            'response_notice' => '24h response',
+                        ],
+                    ],
+                    'vendor' => [
+                        'en' => [
+                            'title' => 'Contact',
+                            'subtitle' => 'We are here to help vendors',
+                            'hero_title' => 'Vendor hero',
+                            'hero_description' => 'Vendor hero body',
+                            'response_notice' => '48h response',
+                        ],
+                    ],
                 ],
                 'contact_details' => [
-                    'phone' => '+971599988877',
-                    'whatsapp' => '+971599988877',
-                    'email' => 'cms-contact@tandil.com',
-                    'working_hours' => ['en' => 'Daily 8am-8pm'],
-                    'service_areas' => ['en' => 'All UAE'],
+                    'client' => [
+                        'phone' => '+971599988877',
+                        'whatsapp' => '+971599988877',
+                        'email' => 'cms-contact@tandil.com',
+                        'website' => 'tandil.ae',
+                        'company_name' => 'Tandil',
+                        'location' => ['en' => 'All UAE'],
+                        'working_hours' => ['en' => 'Daily 8am-8pm'],
+                        'service_areas' => ['en' => 'All UAE'],
+                    ],
+                    'vendor' => [
+                        'phone' => '+971500000001',
+                        'whatsapp' => '+971500000001',
+                        'email' => 'vendor@tandil.com',
+                        'website' => 'tandil.ae',
+                        'company_name' => 'Tandil',
+                        'location' => ['en' => 'UAE'],
+                    ],
                 ],
                 'is_active' => true,
             ])
@@ -186,56 +303,23 @@ class CmsPageApiTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.cms-pages.update', 'privacy-policy'), [
                 'translations' => [
-                    'en' => ['title' => 'Web Save', 'body' => '<p>Saved from admin form</p>'],
+                    'client' => [
+                        'en' => ['title' => 'Web Save', 'subtitle' => 'Saved subtitle', 'body' => '<p>Saved from admin form</p>'],
+                    ],
+                    'vendor' => [
+                        'en' => ['title' => 'Vendor Web Save', 'subtitle' => 'Vendor subtitle', 'body' => '<p>Vendor saved</p>'],
+                    ],
                 ],
                 'is_active' => '1',
             ])
             ->assertRedirect(route('admin.cms-pages.edit', 'privacy-policy'));
 
-        $this->getJson('/api/public/cms/pages/privacy-policy')
+        $this->getJson('/api/public/cms/pages/privacy-policy?audience=vendor&lang=en')
             ->assertOk()
-            ->assertJsonPath('data.translations.en.title', 'Web Save');
+            ->assertJsonPath('data.title', 'Vendor Web Save');
     }
 
-    public function test_public_can_fetch_cms_page_with_all_translations(): void
-    {
-        $this->getJson('/api/public/cms/pages/privacy-policy')
-            ->assertOk()
-            ->assertJsonPath('data.slug', 'privacy-policy')
-            ->assertJsonStructure([
-                'data' => [
-                    'slug',
-                    'label',
-                    'translations',
-                ],
-            ]);
-    }
-
-    public function test_admin_can_update_privacy_policy_in_multiple_languages(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $admin->assignRole('admin');
-        $token = $admin->createToken('test', ['admin'])->plainTextToken;
-
-        $this->withToken($token)
-            ->putJson('/api/admin/cms/pages/privacy-policy', [
-                'translations' => [
-                    'en' => ['title' => 'Privacy Policy', 'body' => '<p>English privacy</p>'],
-                    'ar' => ['title' => 'سياسة الخصوصية', 'body' => '<p>Arabic privacy</p>'],
-                    'ur' => ['title' => 'رازداری کی پالیسی', 'body' => '<p>Urdu privacy</p>'],
-                ],
-                'is_active' => true,
-            ])
-            ->assertOk()
-            ->assertJsonPath('data.translations.en.body', '<p>English privacy</p>')
-            ->assertJsonPath('data.translations.ar.title', 'سياسة الخصوصية');
-
-        $this->getJson('/api/public/cms/pages/privacy-policy')
-            ->assertOk()
-            ->assertJsonPath('data.translations.ar.body', '<p>Arabic privacy</p>');
-    }
-
-    public function test_admin_can_update_contact_us_details(): void
+    public function test_admin_can_update_contact_us_details_per_audience(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $admin->assignRole('admin');
@@ -244,24 +328,45 @@ class CmsPageApiTest extends TestCase
         $this->withToken($token)
             ->putJson('/api/admin/cms/pages/contact-us', [
                 'translations' => [
-                    'en' => ['title' => 'Contact Us', 'body' => '<p>Get in touch</p>'],
+                    'client' => [
+                        'en' => [
+                            'title' => 'Contact Us',
+                            'subtitle' => 'Client subtitle',
+                            'hero_title' => 'Client hero',
+                            'hero_description' => 'Client hero body',
+                            'response_notice' => 'Client notice',
+                        ],
+                    ],
+                    'vendor' => [
+                        'en' => [
+                            'title' => 'Contact Us',
+                            'subtitle' => 'Vendor subtitle',
+                            'hero_title' => 'Vendor hero',
+                            'hero_description' => 'Vendor hero body',
+                            'response_notice' => 'Vendor notice',
+                        ],
+                    ],
                 ],
                 'contact_details' => [
-                    'phone' => '+971501112233',
-                    'whatsapp' => '+971501112233',
-                    'email' => 'hello@tandil.com',
-                    'working_hours' => ['en' => '9am - 6pm'],
-                    'service_areas' => ['en' => 'Dubai, Sharjah'],
+                    'client' => [
+                        'website' => 'client.tandil.ae',
+                        'email' => 'hello@tandil.com',
+                        'whatsapp' => '+971501112233',
+                    ],
+                    'vendor' => [
+                        'website' => 'vendor.tandil.ae',
+                        'email' => 'vendors@tandil.com',
+                        'whatsapp' => '+971509998877',
+                    ],
                 ],
                 'is_active' => true,
             ])
-            ->assertOk()
-            ->assertJsonPath('data.contact_details.phone', '+971501112233')
-            ->assertJsonPath('data.contact_details.whatsapp', '+971501112233');
+            ->assertOk();
 
-        $this->getJson('/api/public/cms/pages/contact-us')
+        $this->getJson('/api/public/cms/pages/contact-us?audience=vendor&lang=en')
             ->assertOk()
-            ->assertJsonPath('data.contact_details.email', 'hello@tandil.com');
+            ->assertJsonPath('data.subtitle', 'Vendor subtitle')
+            ->assertJsonFragment(['value' => 'vendors@tandil.com']);
     }
 
     public function test_admin_web_can_open_cms_pages_index(): void
@@ -275,7 +380,8 @@ class CmsPageApiTest extends TestCase
             ->assertSee('CMS Pages')
             ->assertSee('Privacy Policy')
             ->assertSee('Terms & Conditions')
-            ->assertSee('Contact Us');
+            ->assertSee('Contact Us')
+            ->assertSee('Client + Vendor audiences');
     }
 
     public function test_public_terms_and_contact_routes_render_saved_content(): void
@@ -284,12 +390,17 @@ class CmsPageApiTest extends TestCase
             'slug' => CmsPage::SLUG_TERMS,
             'label' => 'Terms & Conditions',
             'translations' => [
-                'en' => ['title' => 'Terms & Conditions', 'body' => '<p>Custom terms body</p>'],
+                'client' => [
+                    'en' => ['title' => 'Terms & Conditions', 'intro' => '<p>Custom terms body</p>'],
+                ],
+                'vendor' => [
+                    'en' => ['title' => 'Terms & Conditions', 'intro' => '<p>Vendor terms body</p>'],
+                ],
             ],
             'is_active' => true,
         ]);
 
-        $this->get('/terms-and-conditions')
+        $this->get('/terms-and-conditions?audience=client')
             ->assertOk()
             ->assertSee('Custom terms body', false);
     }

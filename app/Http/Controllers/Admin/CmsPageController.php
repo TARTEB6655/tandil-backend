@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CmsPage;
 use App\Services\Cms\CmsPageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,9 @@ class CmsPageController extends Controller
         return view('admin.cms-pages.edit', [
             'page' => $page,
             'locales' => CmsPageService::SUGGESTED_LOCALES,
+            'audiences' => CmsPage::AUDIENCES,
+            'translations' => $this->cmsPages->toAdminPayload($page)['translations'],
+            'contactDetails' => $this->cmsPages->toAdminPayload($page)['contact_details'],
         ]);
     }
 

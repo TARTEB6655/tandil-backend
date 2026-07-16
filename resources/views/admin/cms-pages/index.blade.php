@@ -3,7 +3,7 @@
         <div>
             <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">CMS Pages</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Manage Terms &amp; Conditions, Privacy Policy, and Contact Us content. Save content in any language — the app chooses what to display.
+                Manage Terms &amp; Conditions, Privacy Policy, and Contact Us for <strong>Client</strong> and <strong>Vendor</strong> apps. Save content in any language — the app chooses what to display.
             </p>
         </div>
 
@@ -27,9 +27,9 @@
                     </div>
 
                     <p class="text-sm text-gray-600 dark:text-gray-300 mt-4 flex-1">
-                        {{ count($page->translations ?? []) }} language(s) saved
+                        Client + Vendor audiences
                         @if($page->isContactPage())
-                            · phone, WhatsApp, email, hours, service areas
+                            · website, email, WhatsApp, phone
                         @endif
                     </p>
 

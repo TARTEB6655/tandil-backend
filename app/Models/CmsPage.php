@@ -12,11 +12,21 @@ class CmsPage extends Model
 
     public const SLUG_CONTACT = 'contact-us';
 
+    public const AUDIENCE_CLIENT = 'client';
+
+    public const AUDIENCE_VENDOR = 'vendor';
+
     /** @var list<string> */
     public const MANAGED_SLUGS = [
         self::SLUG_PRIVACY,
         self::SLUG_TERMS,
         self::SLUG_CONTACT,
+    ];
+
+    /** @var list<string> */
+    public const AUDIENCES = [
+        self::AUDIENCE_CLIENT,
+        self::AUDIENCE_VENDOR,
     ];
 
     protected $fillable = [
@@ -39,5 +49,15 @@ class CmsPage extends Model
     public function isContactPage(): bool
     {
         return $this->slug === self::SLUG_CONTACT;
+    }
+
+    public function isTermsPage(): bool
+    {
+        return $this->slug === self::SLUG_TERMS;
+    }
+
+    public function isPrivacyPage(): bool
+    {
+        return $this->slug === self::SLUG_PRIVACY;
     }
 }
