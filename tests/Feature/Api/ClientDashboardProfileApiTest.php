@@ -298,9 +298,10 @@ class ClientDashboardProfileApiTest extends TestCase
             ],
         ]);
         $getSupport = $response->json('data.get_support');
-        $this->assertCount(4, $getSupport);
+        $this->assertCount(5, $getSupport);
         $types = array_column($getSupport, 'type');
         $this->assertContains('call', $types);
+        $this->assertContains('whatsapp', $types);
         $this->assertContains('email', $types);
         $this->assertContains('live_chat', $types);
         $this->assertContains('submit_ticket', $types);
