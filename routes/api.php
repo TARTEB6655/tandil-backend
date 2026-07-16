@@ -899,6 +899,18 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->gro
     Route::post('/export-data', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'exportData']);
 });
 
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/cms')->group(function () {
+    Route::get('/legal-content/pages', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'pages']);
+    Route::get('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'show']);
+    Route::put('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'update']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/cms')->group(function () {
+    Route::get('/legal-content/pages', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'pages']);
+    Route::get('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'show']);
+    Route::put('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'update']);
+});
+
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/cms/pages')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'index']);
     Route::get('/{slug}', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'show'])

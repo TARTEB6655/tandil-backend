@@ -135,6 +135,8 @@ class CmsPageService
             'contact_details' => 'nullable|array',
             'contact_details.*' => 'array',
             'contact_details.*.website' => 'nullable|string|max:255',
+            'contact_details.*.website_url' => 'nullable|string|max:255',
+            'contact_details.*.whatsapp_display' => 'nullable|string|max:50',
             'contact_details.*.email' => 'nullable|email|max:255',
             'contact_details.*.whatsapp' => 'nullable|string|max:50',
             'contact_details.*.phone' => 'nullable|string|max:50',
@@ -178,6 +180,182 @@ class CmsPageService
         $this->syncLegacySettings($page);
 
         return $page->fresh();
+    }
+
+    public function resolvePageKey(?string $page): string
+    {
+        $page = strtolower(trim(str_replace('_', '-', (string) $page)));
+
+        return match ($page) {
+            'contact-us', 'contact' => CmsPage::SLUG_CONTACT,
+            'terms-and-conditions', 'terms' => CmsPage::SLUG_TERMS,
+            'privacy-policy', 'privacy' => CmsPage::SLUG_PRIVACY,
+            default => throw ValidationException::withMessages([
+                'page' => 'Invalid page. Use contact-us, terms, or privacy.',
+            ]),
+        };
+    }
+
+    public function mobilePageKey(string $slug): string
+    {
+        return match ($slug) {
+            CmsPage::SLUG_CONTACT => 'contact_us',
+            CmsPage::SLUG_TERMS => 'terms',
+            CmsPage::SLUG_PRIVACY => 'privacy',
+            default => $slug,
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toMobileAdminTab(CmsPage $page, string $audience): array
+    {
+        $form = $this->toMobileAdminForm($page, $audience);
+
+        return [
+            'page' => $page->slug,
+            'page_key' => $this->mobilePageKey($page->slug),
+            'label' => $page->label,
+            'page_title' => $form['page_title'] ?? $page->label,
+            'is_active' => $page->is_active,
+        ];
+    }
+
+    /**
+     * Flat form fields for the mobile admin Legal & Contact Content screen.
+     *
+     * @return array<string, mixed>
+     */
+    public function toMobileAdminForm(CmsPage $page, string $audience): array
+    {
+        $audience = $this->resolveAudience($audience);
+        $locale = 'en';
+        $translations = $this->normalizeAudienceTranslations($page->translations ?? []);
+        $content = $this->pickLocaleContent($translations[$audience] ?? [], $locale);
+        $contact = $this->audienceContactBlock($page, $audience);
+
+        $base = [
+            'audience' => $audience,
+            'page' => $page->slug,
+            'page_key' => $this->mobilePageKey($page->slug),
+            'is_active' => $page->is_active,
+        ];
+
+        if ($page->isContactPage()) {
+            $whatsappDial = (string) ($contact['whatsapp'] ?? '');
+
+            return array_merge($base, [
+                'page_title' => $content['title'] ?? 'Contact Us',
+                'company_name' => $contact['company_name'] ?? 'Tandil',
+                'website_url' => $contact['website_url'] ?? $this->guessWebsiteUrl((string) ($contact['website'] ?? '')),
+                'website_label' => $contact['website'] ?? '',
+                'email' => $contact['email'] ?? '',
+                'phone' => $contact['phone'] ?? '',
+                'whatsapp_display' => $contact['whatsapp_display'] ?? $this->formatWhatsAppDisplay($whatsappDial),
+                'whatsapp_dial_number' => $whatsappDial,
+                'country' => $contact['location'][$locale] ?? $contact['location']['en'] ?? '',
+                'hero_title' => $content['hero_title'] ?? '',
+                'hero_description' => $content['hero_description'] ?? '',
+                'support_note' => $content['response_notice'] ?? '',
+            ]);
+        }
+
+        if ($page->isTermsPage()) {
+            return array_merge($base, [
+                'page_title' => $content['title'] ?? 'Terms & Conditions',
+                'content_body' => $this->mobileTermsContentBody($content),
+            ]);
+        }
+
+        return array_merge($base, [
+            'page_title' => $content['title'] ?? 'Privacy Policy',
+            'content_body' => $content['body'] ?? '',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateFromMobileAdminForm(CmsPage $page, string $audience, array $data): CmsPage
+    {
+        $audience = $this->resolveAudience($audience);
+        $locale = 'en';
+        $existing = $this->toAdminPayload($page);
+        $translations = $existing['translations'];
+        $contactDetails = $existing['contact_details'];
+        $isActive = array_key_exists('is_active', $data)
+            ? filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN)
+            : $page->is_active;
+
+        if ($page->isContactPage()) {
+            $validated = validator($data, [
+                'page_title' => 'nullable|string|max:500',
+                'company_name' => 'nullable|string|max:255',
+                'website_url' => 'nullable|string|max:255',
+                'website_label' => 'nullable|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'phone' => 'nullable|string|max:50',
+                'whatsapp_display' => 'nullable|string|max:50',
+                'whatsapp_dial_number' => 'nullable|string|max:50',
+                'country' => 'nullable|string|max:500',
+                'hero_title' => 'nullable|string|max:500',
+                'hero_description' => 'nullable|string|max:5000',
+                'support_note' => 'nullable|string|max:2000',
+            ])->validate();
+
+            $translations[$audience][$locale] = array_filter([
+                'title' => $validated['page_title'] ?? ($translations[$audience][$locale]['title'] ?? 'Contact Us'),
+                'subtitle' => $audience === CmsPage::AUDIENCE_VENDOR
+                    ? 'We are here to help vendors'
+                    : 'We are here to help you',
+                'hero_title' => $validated['hero_title'] ?? null,
+                'hero_description' => $validated['hero_description'] ?? null,
+                'response_notice' => $validated['support_note'] ?? null,
+            ], fn ($value) => $value !== null && $value !== '');
+
+            $contactDetails[$audience] = array_filter(array_merge($contactDetails[$audience] ?? [], [
+                'company_name' => $validated['company_name'] ?? '',
+                'website' => $validated['website_label'] ?? '',
+                'website_url' => $validated['website_url'] ?? '',
+                'email' => $validated['email'] ?? '',
+                'phone' => $validated['phone'] ?? '',
+                'whatsapp' => $validated['whatsapp_dial_number'] ?? '',
+                'whatsapp_display' => $validated['whatsapp_display'] ?? '',
+                'location' => array_filter(array_merge($contactDetails[$audience]['location'] ?? [], [
+                    $locale => $validated['country'] ?? '',
+                ])),
+            ]), fn ($value) => $value !== [] && $value !== '');
+        } elseif ($page->isTermsPage()) {
+            $validated = validator($data, [
+                'page_title' => 'nullable|string|max:500',
+                'content_body' => 'nullable|string|max:50000',
+            ])->validate();
+
+            $translations[$audience][$locale] = array_filter([
+                'title' => $validated['page_title'] ?? 'Terms & Conditions',
+                'effective_date' => $translations[$audience][$locale]['effective_date'] ?? 'July 9, 2026',
+                'intro' => $validated['content_body'] ?? '',
+                'sections' => [],
+            ], fn ($value) => $value !== null && $value !== '');
+        } else {
+            $validated = validator($data, [
+                'page_title' => 'nullable|string|max:500',
+                'content_body' => 'nullable|string|max:50000',
+            ])->validate();
+
+            $translations[$audience][$locale] = array_filter(array_merge($translations[$audience][$locale] ?? [], [
+                'title' => $validated['page_title'] ?? 'Privacy Policy',
+                'subtitle' => $translations[$audience][$locale]['subtitle'] ?? '',
+                'body' => $validated['content_body'] ?? '',
+            ]), fn ($value) => $value !== null && $value !== '');
+        }
+
+        return $this->update($page, [
+            'translations' => $translations,
+            'contact_details' => $page->isContactPage() ? $contactDetails : null,
+            'is_active' => $isActive,
+        ]);
     }
 
     public function ensureDefaults(): void
@@ -575,8 +753,10 @@ class CmsPageService
 
         $clean = array_filter([
             'website' => trim((string) ($contact['website'] ?? '')),
+            'website_url' => trim((string) ($contact['website_url'] ?? '')),
             'email' => trim((string) ($contact['email'] ?? '')),
             'whatsapp' => trim((string) ($contact['whatsapp'] ?? '')),
+            'whatsapp_display' => trim((string) ($contact['whatsapp_display'] ?? '')),
             'phone' => trim((string) ($contact['phone'] ?? '')),
             'company_name' => trim((string) ($contact['company_name'] ?? '')),
             'location' => $location,
@@ -621,6 +801,58 @@ class CmsPageService
             'support_hours' => Setting::get('support_hours', '24/7 Customer Support'),
             'service_areas' => null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     */
+    private function mobileTermsContentBody(array $content): string
+    {
+        $parts = [];
+        if (! empty($content['intro'])) {
+            $parts[] = trim((string) $content['intro']);
+        }
+        foreach ((array) ($content['sections'] ?? []) as $section) {
+            if (! is_array($section)) {
+                continue;
+            }
+            $title = trim((string) ($section['title'] ?? ''));
+            $body = trim((string) ($section['body'] ?? ''));
+            if ($title !== '') {
+                $parts[] = $title;
+            }
+            if ($body !== '') {
+                $parts[] = $body;
+            }
+        }
+
+        if ($parts !== []) {
+            return implode("\n\n", $parts);
+        }
+
+        return trim((string) ($content['body'] ?? ''));
+    }
+
+    private function guessWebsiteUrl(string $website): string
+    {
+        $website = trim($website);
+        if ($website === '') {
+            return '';
+        }
+
+        return str_starts_with($website, 'http://') || str_starts_with($website, 'https://')
+            ? $website
+            : 'https://'.$website;
+    }
+
+    private function formatWhatsAppDisplay(string $dialNumber): string
+    {
+        $digits = preg_replace('/\D+/', '', $dialNumber) ?? '';
+        if (strlen($digits) < 10) {
+            return $dialNumber;
+        }
+
+        return '+'.substr($digits, 0, 3).' '.substr($digits, 3);
     }
 
     /**

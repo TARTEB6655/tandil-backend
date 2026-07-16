@@ -470,4 +470,94 @@ class CmsPageApiTest extends TestCase
         $this->get('/privacy-policy?audience=client')->assertOk();
         $this->get('/contact-us?audience=vendor')->assertOk();
     }
+
+    public function test_mobile_legal_content_api_uses_form_fields(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/admin/cms/legal-content/pages?audience=client')
+            ->assertOk()
+            ->assertJsonCount(3, 'data.items')
+            ->assertJsonFragment(['page_key' => 'contact_us'])
+            ->assertJsonFragment(['page_key' => 'terms'])
+            ->assertJsonFragment(['page_key' => 'privacy']);
+
+        $this->withToken($token)
+            ->getJson('/api/admin/cms/legal-content?audience=vendor&page=contact_us')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'audience',
+                    'page',
+                    'page_key',
+                    'page_title',
+                    'company_name',
+                    'website_url',
+                    'website_label',
+                    'email',
+                    'phone',
+                    'whatsapp_display',
+                    'whatsapp_dial_number',
+                    'country',
+                    'hero_title',
+                    'hero_description',
+                    'support_note',
+                ],
+            ])
+            ->assertJsonPath('data.audience', 'vendor');
+
+        $this->withToken($token)
+            ->put('/api/admin/cms/legal-content', [
+                'audience' => 'client',
+                'page' => 'privacy',
+                'page_title' => 'Privacy Policy',
+                'content_body' => '<p>Updated from mobile form</p>',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page_title', 'Privacy Policy')
+            ->assertJsonPath('data.content_body', '<p>Updated from mobile form</p>');
+
+        $this->getJson('/api/public/cms/pages/privacy-policy?audience=client&lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.body', '<p>Updated from mobile form</p>');
+
+        $this->withToken($token)
+            ->put('/api/admin/cms/legal-content', [
+                'audience' => 'vendor',
+                'page' => 'contact-us',
+                'page_title' => 'Contact Us',
+                'company_name' => 'Tandil',
+                'website_url' => 'https://tandil.ae',
+                'website_label' => 'tandil.ae',
+                'email' => 'vendor@tandil.com',
+                'phone' => '+971569206959',
+                'whatsapp_display' => '+971 569206959',
+                'whatsapp_dial_number' => '+971569206959',
+                'country' => 'United Arab Emirates',
+                'hero_title' => 'Get in touch with Tandil',
+                'hero_description' => 'Vendor support description',
+                'support_note' => 'Responds within 24-48 hours',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.email', 'vendor@tandil.com')
+            ->assertJsonPath('data.hero_description', 'Vendor support description');
+
+        $this->getJson('/api/public/cms/pages/contact-us?audience=vendor&lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.hero.description', 'Vendor support description')
+            ->assertJsonFragment(['value' => 'vendor@tandil.com']);
+
+        $this->withToken($token)
+            ->put('/api/admin/cms/legal-content', [
+                'audience' => 'client',
+                'page' => 'terms',
+                'page_title' => 'Terms & Conditions',
+                'content_body' => '<p>Client terms from mobile form</p>',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.content_body', '<p>Client terms from mobile form</p>');
+    }
 }
