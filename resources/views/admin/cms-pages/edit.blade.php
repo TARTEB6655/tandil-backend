@@ -36,7 +36,7 @@
 
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4 text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
             API:
-            <span x-text="'GET /api/public/cms/pages/{{ $page->slug }}?audience=' + activeAudience + '&lang=' + activeLocale"></span>
+            <span x-text="'GET /api/' + activeAudience + '/{{ $page->slug }}?lang=' + activeLocale"></span>
         </div>
 
         @if(session('success'))

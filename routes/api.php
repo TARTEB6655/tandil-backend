@@ -20,9 +20,17 @@ Route::get('/localized-articles', [\App\Http\Controllers\Api\LocalizedArticleCon
 Route::get('/localized-articles/{slug}', [\App\Http\Controllers\Api\LocalizedArticleController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*');
 
-Route::get('/public/cms/pages', [\App\Http\Controllers\Api\PublicCmsPageController::class, 'index']);
-Route::get('/public/cms/pages/{slug}', [\App\Http\Controllers\Api\PublicCmsPageController::class, 'show'])
-    ->where('slug', '[a-z0-9-]+');
+$legalContentPages = ['contact-us', 'terms-and-conditions', 'privacy-policy'];
+
+foreach (['client', 'vendor'] as $audience) {
+    Route::prefix($audience)->group(function () use ($audience, $legalContentPages) {
+        foreach ($legalContentPages as $page) {
+            Route::get('/'.$page, [\App\Http\Controllers\Api\LegalContentApiController::class, 'showPublic'])
+                ->defaults('audience', $audience)
+                ->defaults('page', $page);
+        }
+    });
+}
 
 // Alias (same handler as api/auth/technician-signup-areas) — useful if proxies/docs use a shorter path; always deploy latest routes.
 Route::get('/technician-signup-areas', [\App\Http\Controllers\Auth\AuthController::class, 'technicianSignupAreas'])
@@ -899,24 +907,22 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->gro
     Route::post('/export-data', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'exportData']);
 });
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/cms')->group(function () {
-    Route::get('/legal-content/pages', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'pages']);
-    Route::get('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'show']);
-    Route::put('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'update']);
-});
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () use ($legalContentPages) {
+    foreach (['client', 'vendor'] as $audience) {
+        Route::prefix('admin/'.$audience)->group(function () use ($audience, $legalContentPages) {
+            Route::get('/pages', [\App\Http\Controllers\Api\LegalContentApiController::class, 'adminPages'])
+                ->defaults('audience', $audience);
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/cms')->group(function () {
-    Route::get('/legal-content/pages', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'pages']);
-    Route::get('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'show']);
-    Route::put('/legal-content', [\App\Http\Controllers\Api\Admin\CmsLegalContentApiController::class, 'update']);
-});
-
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/cms/pages')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'index']);
-    Route::get('/{slug}', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'show'])
-        ->where('slug', '[a-z0-9-]+');
-    Route::put('/{slug}', [\App\Http\Controllers\Api\Admin\CmsPageApiController::class, 'update'])
-        ->where('slug', '[a-z0-9-]+');
+            foreach ($legalContentPages as $page) {
+                Route::get('/'.$page, [\App\Http\Controllers\Api\LegalContentApiController::class, 'adminShow'])
+                    ->defaults('audience', $audience)
+                    ->defaults('page', $page);
+                Route::put('/'.$page, [\App\Http\Controllers\Api\LegalContentApiController::class, 'adminUpdate'])
+                    ->defaults('audience', $audience)
+                    ->defaults('page', $page);
+            }
+        });
+    }
 });
 
 /*

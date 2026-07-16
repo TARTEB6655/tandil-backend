@@ -39,7 +39,7 @@
         <div class="rounded-xl border border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/30 p-4 text-sm text-indigo-900 dark:text-indigo-200">
             <p class="font-medium">API mapping</p>
             <p class="mt-1 text-indigo-800 dark:text-indigo-300">
-                Public app read: <code class="text-xs bg-white/70 dark:bg-gray-900 px-1.5 py-0.5 rounded">GET /api/public/cms/pages/{slug}?audience=client|vendor&lang=en</code>
+                Public app read: <code class="text-xs bg-white/70 dark:bg-gray-900 px-1.5 py-0.5 rounded">GET /api/client/{page}</code> and <code class="text-xs bg-white/70 dark:bg-gray-900 px-1.5 py-0.5 rounded">GET /api/vendor/{page}</code>
             </p>
         </div>
 

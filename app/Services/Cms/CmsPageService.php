@@ -191,7 +191,7 @@ class CmsPageService
             'terms-and-conditions', 'terms' => CmsPage::SLUG_TERMS,
             'privacy-policy', 'privacy' => CmsPage::SLUG_PRIVACY,
             default => throw ValidationException::withMessages([
-                'page' => 'Invalid page. Use contact-us, terms, or privacy.',
+                'page' => 'Invalid page. Use contact-us, terms-and-conditions, or privacy-policy.',
             ]),
         };
     }

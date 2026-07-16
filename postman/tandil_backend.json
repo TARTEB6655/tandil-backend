@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST \/api\/technician\/report\/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET \/api\/supervisor\/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list\/create\/get\/update\/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get\/add\/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate\/checkout, **I** = Stripe \/ PayPal \/ React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager \/ HR = same \/api\/support\/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list\/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET \/teams\/{{team_id}}, \/teams\/{{team_id}}\/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET \/api\/area-manager\/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET \/api\/admin\/notifications\/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send\/list\/detail; \/api\/user\/notifications and \/api\/client\/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs\/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET \/api\/admin\/maintenance-photos\/{id}` (**edit screen detail**) → create\/update\/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `\/media\/maintenance_photos\/...` (not `\/storage\/`). Client **8b** — `GET \/api\/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET \/compare-vendors`) · **P** Vendor Store (`GET \/api\/shop\/vendors\/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.3.91"
+        "version": "3.3.92"
     },
     "item": [
         {
@@ -203,125 +203,99 @@
                     "description": "Example multilingual content API (Spatie laravel-translatable). See docs\/API_LOCALIZATION.md in repo."
                 },
                 {
-                    "name": "CMS Pages (public)",
+                    "name": "Legal & Contact (public)",
                     "item": [
                         {
-                            "name": "List CMS pages",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Accept", "value": "application\/json"}],
-                                "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages"]
+                            "name": "A. Client App",
+                            "item": [
+                                {
+                                    "name": "Contact Us",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [{"key": "Accept", "value": "application\/json"}],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/client\/contact-us?lang=en",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "client", "contact-us"],
+                                            "query": [{"key": "lang", "value": "en"}]
+                                        },
+                                        "description": "GET \/api\/client\/contact-us — app screen payload."
+                                    }
                                 },
-                                "description": "GET \/api\/public\/cms\/pages — list slugs with audiences client|vendor."
-                            }
+                                {
+                                    "name": "Terms & Conditions",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [{"key": "Accept", "value": "application\/json"}],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/client\/terms-and-conditions?lang=en",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "client", "terms-and-conditions"],
+                                            "query": [{"key": "lang", "value": "en"}]
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Privacy Policy",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [{"key": "Accept", "value": "application\/json"}],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/client\/privacy-policy?lang=en",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "client", "privacy-policy"],
+                                            "query": [{"key": "lang", "value": "en"}]
+                                        }
+                                    }
+                                }
+                            ]
                         },
                         {
-                            "name": "Privacy Policy (client)",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Accept", "value": "application\/json"}],
-                                "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/privacy-policy?audience=client&lang=en",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "privacy-policy"],
-                                    "query": [
-                                        {"key": "audience", "value": "client", "description": "client or vendor (required for app screen)"},
-                                        {"key": "lang", "value": "en", "description": "en|ar|ur"}
-                                    ]
+                            "name": "B. Vendor App",
+                            "item": [
+                                {
+                                    "name": "Contact Us",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [{"key": "Accept", "value": "application\/json"}],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/vendor\/contact-us?lang=en",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "vendor", "contact-us"],
+                                            "query": [{"key": "lang", "value": "en"}]
+                                        }
+                                    }
                                 },
-                                "description": "GET \/api\/public\/cms\/pages\/privacy-policy — app payload: title, subtitle, body."
-                            }
-                        },
-                        {
-                            "name": "Privacy Policy (vendor)",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Accept", "value": "application\/json"}],
-                                "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/privacy-policy?audience=vendor&lang=en",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "privacy-policy"],
-                                    "query": [
-                                        {"key": "audience", "value": "vendor"},
-                                        {"key": "lang", "value": "en"}
-                                    ]
+                                {
+                                    "name": "Terms & Conditions",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [{"key": "Accept", "value": "application\/json"}],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/vendor\/terms-and-conditions?lang=en",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "vendor", "terms-and-conditions"],
+                                            "query": [{"key": "lang", "value": "en"}]
+                                        }
+                                    }
                                 },
-                                "description": "GET privacy-policy for vendor app."
-                            }
-                        },
-                        {
-                            "name": "Terms & Conditions (client)",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Accept", "value": "application\/json"}],
-                                "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/terms-and-conditions?audience=client&lang=en",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "terms-and-conditions"],
-                                    "query": [
-                                        {"key": "audience", "value": "client"},
-                                        {"key": "lang", "value": "en"}
-                                    ]
-                                },
-                                "description": "GET terms — app payload: title, effective_date, intro, sections[]."
-                            }
-                        },
-                        {
-                            "name": "Terms & Conditions (vendor)",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Accept", "value": "application\/json"}],
-                                "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/terms-and-conditions?audience=vendor&lang=en",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "terms-and-conditions"],
-                                    "query": [
-                                        {"key": "audience", "value": "vendor"},
-                                        {"key": "lang", "value": "en"}
-                                    ]
-                                },
-                                "description": "GET terms for vendor app."
-                            }
-                        },
-                        {
-                            "name": "Contact Us (client)",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Accept", "value": "application\/json"}],
-                                "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/contact-us?audience=client&lang=en",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "contact-us"],
-                                    "query": [
-                                        {"key": "audience", "value": "client"},
-                                        {"key": "lang", "value": "en"}
-                                    ]
-                                },
-                                "description": "GET contact-us — app payload: subtitle, hero, company, reach_us[], response_notice."
-                            }
-                        },
-                        {
-                            "name": "Contact Us (vendor)",
-                            "request": {
-                                "method": "GET",
-                                "header": [{"key": "Accept", "value": "application\/json"}],
-                                "url": {
-                                    "raw": "{{base_url}}\/api\/public\/cms\/pages\/contact-us?audience=vendor&lang=en",
-                                    "host": ["{{base_url}}"],
-                                    "path": ["api", "public", "cms", "pages", "contact-us"],
-                                    "query": [
-                                        {"key": "audience", "value": "vendor"},
-                                        {"key": "lang", "value": "en"}
-                                    ]
-                                },
-                                "description": "GET contact-us for vendor app (subtitle: We are here to help vendors)."
-                            }
+                                {
+                                    "name": "Privacy Policy",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [{"key": "Accept", "value": "application\/json"}],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/vendor\/privacy-policy?lang=en",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "vendor", "privacy-policy"],
+                                            "query": [{"key": "lang", "value": "en"}]
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     ],
-                    "description": "Public CMS for **Client** and **Vendor** apps only. Query `audience=client|vendor` + optional `lang=en|ar|ur`. Returns app-ready screen payload. Admin edit: folder **19 → A. Mobile Legal & Contact (form-data)**."
+                    "description": "Public legal pages for client and vendor apps. Optional `lang=en|ar|ur`. Admin edit: folder **19 → A\/B**."
                 },
                 {
                     "name": "Wallet APIs",
@@ -22985,15 +22959,15 @@
             ]
         },
         {
-            "name": "19. Admin - CMS Pages",
-            "description": "Admin CMS for **Client** and **Vendor** apps. Folder **A → Mobile Legal & Contact (form-data)** — flat fields, multipart form PUT (not JSON). Web dashboard: `\/admin\/cms-pages`. Public read: folder **1 → CMS Pages (public)** with `?audience=client|vendor`.",
+            "name": "19. Legal & Contact Content",
+            "description": "Admin mobile **Legal & Contact Content** screen. Use **form-data** PUT (not JSON). Audience is in the URL path (`\/api\/admin\/client\/...` or `\/api\/admin\/vendor\/...`). Public read: folder **1 → A\/B**. Web dashboard: `\/admin\/cms-pages`.",
             "item": [
                 {
-                    "name": "A. Mobile Legal & Contact (form-data)",
-                    "description": "Admin mobile app screen **Legal & Contact Content**. Use **form-data** or **x-www-form-urlencoded** — do NOT send JSON body. Query `audience=client|vendor` and `page=contact_us|terms|privacy`.",
+                    "name": "A. Client (admin form-data)",
+                    "description": "GET\/PUT `\/api\/admin\/client\/contact-us|terms-and-conditions|privacy-policy`",
                     "item": [
                         {
-                            "name": "1. List pages for audience",
+                            "name": "1. List pages",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23001,16 +22975,15 @@
                                     {"key": "Accept", "value": "application\/json"}
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/admin\/cms\/legal-content\/pages?audience=client",
+                                    "raw": "{{base_url}}\/api\/admin\/client\/pages",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "cms", "legal-content", "pages"],
-                                    "query": [{"key": "audience", "value": "client", "description": "client or vendor"}]
+                                    "path": ["api", "admin", "client", "pages"]
                                 },
                                 "description": "GET tabs list: contact_us, terms, privacy with page_title."
                             }
                         },
                         {
-                            "name": "2. Get Contact Us (client)",
+                            "name": "2. Get Contact Us",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23018,19 +22991,15 @@
                                     {"key": "Accept", "value": "application\/json"}
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/admin\/cms\/legal-content?audience=client&page=contact_us",
+                                    "raw": "{{base_url}}\/api\/admin\/client\/contact-us",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "cms", "legal-content"],
-                                    "query": [
-                                        {"key": "audience", "value": "client"},
-                                        {"key": "page", "value": "contact_us"}
-                                    ]
+                                    "path": ["api", "admin", "client", "contact-us"]
                                 },
-                                "description": "GET flat form fields: page_title, company_name, website_url, website_label, email, phone, whatsapp_display, whatsapp_dial_number, country, hero_title, hero_description, support_note."
+                                "description": "GET flat form fields for client Contact Us screen."
                             }
                         },
                         {
-                            "name": "3. Save Contact Us (vendor) — form-data",
+                            "name": "3. Save Contact Us — form-data",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -23040,8 +23009,6 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {"key": "audience", "value": "vendor", "type": "text"},
-                                        {"key": "page", "value": "contact_us", "type": "text"},
                                         {"key": "page_title", "value": "Contact Us", "type": "text"},
                                         {"key": "company_name", "value": "Tandil", "type": "text"},
                                         {"key": "website_url", "value": "https:\/\/tandil.ae", "type": "text"},
@@ -23057,15 +23024,14 @@
                                     ]
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/admin\/cms\/legal-content",
+                                    "raw": "{{base_url}}\/api\/admin\/client\/contact-us",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "cms", "legal-content"]
-                                },
-                                "description": "PUT form-data — vendor Contact Us screen."
+                                    "path": ["api", "admin", "client", "contact-us"]
+                                }
                             }
                         },
                         {
-                            "name": "4. Get Terms (client)",
+                            "name": "4. Get Terms & Conditions",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23073,19 +23039,14 @@
                                     {"key": "Accept", "value": "application\/json"}
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/admin\/cms\/legal-content?audience=client&page=terms",
+                                    "raw": "{{base_url}}\/api\/admin\/client\/terms-and-conditions",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "cms", "legal-content"],
-                                    "query": [
-                                        {"key": "audience", "value": "client"},
-                                        {"key": "page", "value": "terms"}
-                                    ]
-                                },
-                                "description": "GET page_title + content_body."
+                                    "path": ["api", "admin", "client", "terms-and-conditions"]
+                                }
                             }
                         },
                         {
-                            "name": "5. Save Terms (client) — form-data",
+                            "name": "5. Save Terms & Conditions — form-data",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -23095,22 +23056,19 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {"key": "audience", "value": "client", "type": "text"},
-                                        {"key": "page", "value": "terms", "type": "text"},
                                         {"key": "page_title", "value": "Terms & Conditions", "type": "text"},
                                         {"key": "content_body", "value": "<p>Welcome to Tandil. These Terms govern your use of the platform.</p>", "type": "text"}
                                     ]
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/admin\/cms\/legal-content",
+                                    "raw": "{{base_url}}\/api\/admin\/client\/terms-and-conditions",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "cms", "legal-content"]
-                                },
-                                "description": "PUT form-data — Terms & Conditions content_body (HTML allowed)."
+                                    "path": ["api", "admin", "client", "terms-and-conditions"]
+                                }
                             }
                         },
                         {
-                            "name": "6. Get Privacy (vendor)",
+                            "name": "6. Get Privacy Policy",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23118,19 +23076,14 @@
                                     {"key": "Accept", "value": "application\/json"}
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/admin\/cms\/legal-content?audience=vendor&page=privacy",
+                                    "raw": "{{base_url}}\/api\/admin\/client\/privacy-policy",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "cms", "legal-content"],
-                                    "query": [
-                                        {"key": "audience", "value": "vendor"},
-                                        {"key": "page", "value": "privacy"}
-                                    ]
-                                },
-                                "description": "GET page_title + content_body."
+                                    "path": ["api", "admin", "client", "privacy-policy"]
+                                }
                             }
                         },
                         {
-                            "name": "7. Save Privacy (vendor) — form-data",
+                            "name": "7. Save Privacy Policy — form-data",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -23140,18 +23093,157 @@
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
-                                        {"key": "audience", "value": "vendor", "type": "text"},
-                                        {"key": "page", "value": "privacy", "type": "text"},
                                         {"key": "page_title", "value": "Privacy Policy", "type": "text"},
                                         {"key": "content_body", "value": "<p>We respect your privacy. Tandil collects only the information needed to provide services.</p>", "type": "text"}
                                     ]
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/admin\/cms\/legal-content",
+                                    "raw": "{{base_url}}\/api\/admin\/client\/privacy-policy",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "admin", "cms", "legal-content"]
+                                    "path": ["api", "admin", "client", "privacy-policy"]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "B. Vendor (admin form-data)",
+                    "description": "GET\/PUT `\/api\/admin\/vendor\/contact-us|terms-and-conditions|privacy-policy`",
+                    "item": [
+                        {
+                            "name": "1. List pages",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application\/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendor\/pages",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "vendor", "pages"]
+                                }
+                            }
+                        },
+                        {
+                            "name": "2. Get Contact Us",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application\/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendor\/contact-us",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "vendor", "contact-us"]
+                                }
+                            }
+                        },
+                        {
+                            "name": "3. Save Contact Us — form-data",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application\/json"}
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "page_title", "value": "Contact Us", "type": "text"},
+                                        {"key": "company_name", "value": "Tandil", "type": "text"},
+                                        {"key": "website_url", "value": "https:\/\/tandil.ae", "type": "text"},
+                                        {"key": "website_label", "value": "tandil.ae", "type": "text"},
+                                        {"key": "email", "value": "vendor@tandil.ae", "type": "text"},
+                                        {"key": "phone", "value": "+971569206959", "type": "text"},
+                                        {"key": "whatsapp_display", "value": "+971 569206959", "type": "text"},
+                                        {"key": "whatsapp_dial_number", "value": "+971569206959", "type": "text"},
+                                        {"key": "country", "value": "United Arab Emirates", "type": "text"},
+                                        {"key": "hero_title", "value": "Get in touch with Tandil", "type": "text"},
+                                        {"key": "hero_description", "value": "Our support team is here to help vendors.", "type": "text"},
+                                        {"key": "support_note", "value": "Our support team typically responds within 24-48 hours on business days.", "type": "text"}
+                                    ]
                                 },
-                                "description": "PUT form-data — Privacy Policy content_body."
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendor\/contact-us",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "vendor", "contact-us"]
+                                }
+                            }
+                        },
+                        {
+                            "name": "4. Get Terms & Conditions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application\/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendor\/terms-and-conditions",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "vendor", "terms-and-conditions"]
+                                }
+                            }
+                        },
+                        {
+                            "name": "5. Save Terms & Conditions — form-data",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application\/json"}
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "page_title", "value": "Terms & Conditions", "type": "text"},
+                                        {"key": "content_body", "value": "<p>Vendor terms and conditions.</p>", "type": "text"}
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendor\/terms-and-conditions",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "vendor", "terms-and-conditions"]
+                                }
+                            }
+                        },
+                        {
+                            "name": "6. Get Privacy Policy",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application\/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendor\/privacy-policy",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "vendor", "privacy-policy"]
+                                }
+                            }
+                        },
+                        {
+                            "name": "7. Save Privacy Policy — form-data",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application\/json"}
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {"key": "page_title", "value": "Privacy Policy", "type": "text"},
+                                        {"key": "content_body", "value": "<p>Vendor privacy policy.</p>", "type": "text"}
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/vendor\/privacy-policy",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "vendor", "privacy-policy"]
+                                }
                             }
                         }
                     ]
