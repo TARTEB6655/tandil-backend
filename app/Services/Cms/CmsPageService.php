@@ -398,10 +398,55 @@ class CmsPageService
                 ]
             );
 
+            if ($page->wasRecentlyCreated || ! $this->pageNeedsLegacyBackfill($page)) {
+                continue;
+            }
+
             if ($this->backfillPageFromDefaults($page, $defaults)) {
                 $page->save();
             }
         }
+    }
+
+    private function pageNeedsLegacyBackfill(CmsPage $page): bool
+    {
+        $translations = $page->translations ?? [];
+
+        foreach (CmsPage::AUDIENCES as $audience) {
+            $locales = $translations[$audience] ?? [];
+            if (! is_array($locales)) {
+                continue;
+            }
+
+            foreach ($locales as $localeContent) {
+                if (! is_array($localeContent)) {
+                    continue;
+                }
+
+                foreach (['body', 'intro', 'hero_description', 'response_notice'] as $field) {
+                    if (trim((string) ($localeContent[$field] ?? '')) !== '') {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        if ($page->isContactPage()) {
+            foreach (CmsPage::AUDIENCES as $audience) {
+                $contact = $page->contact_details[$audience] ?? [];
+                if (! is_array($contact)) {
+                    continue;
+                }
+
+                foreach (['email', 'phone', 'whatsapp', 'website', 'website_url'] as $field) {
+                    if (trim((string) ($contact[$field] ?? '')) !== '') {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -424,6 +469,11 @@ class CmsPageService
 
                 foreach ($fields as $field => $value) {
                     if ($field === 'sections') {
+                        $existingIntro = trim((string) ($translations[$audience][$locale]['intro'] ?? ''));
+                        if ($existingIntro !== '') {
+                            continue;
+                        }
+
                         $existingSections = $translations[$audience][$locale]['sections'] ?? [];
                         if ($existingSections === [] && is_array($value) && $value !== []) {
                             $translations[$audience][$locale]['sections'] = $value;
@@ -609,21 +659,25 @@ class CmsPageService
      */
     private function buildTermsAppPayload(CmsPage $page, string $audience, string $locale, array $content): array
     {
+        $intro = trim((string) ($content['intro'] ?? $content['body'] ?? ''));
         $sections = [];
-        foreach ((array) ($content['sections'] ?? []) as $index => $section) {
-            if (! is_array($section)) {
-                continue;
+
+        if ($intro === '') {
+            foreach ((array) ($content['sections'] ?? []) as $index => $section) {
+                if (! is_array($section)) {
+                    continue;
+                }
+                $title = trim((string) ($section['title'] ?? ''));
+                $body = trim((string) ($section['body'] ?? ''));
+                if ($title === '' && $body === '') {
+                    continue;
+                }
+                $sections[] = [
+                    'number' => $index + 1,
+                    'title' => $title,
+                    'body' => $body,
+                ];
             }
-            $title = trim((string) ($section['title'] ?? ''));
-            $body = trim((string) ($section['body'] ?? ''));
-            if ($title === '' && $body === '') {
-                continue;
-            }
-            $sections[] = [
-                'number' => $index + 1,
-                'title' => $title,
-                'body' => $body,
-            ];
         }
 
         return [
@@ -632,7 +686,7 @@ class CmsPageService
             'locale' => $locale,
             'title' => $content['title'] ?? $page->label,
             'effective_date' => $content['effective_date'] ?? '',
-            'intro' => $content['intro'] ?? $content['body'] ?? '',
+            'intro' => $intro,
             'sections' => $sections,
         ];
     }
@@ -1065,10 +1119,8 @@ HTML;
         $termsLocale = fn (): array => [
             'title' => 'Terms & Conditions',
             'effective_date' => 'July 9, 2026',
-            'intro' => $termsIntro,
-            'sections' => [
-                ['title' => 'About Tandil', 'body' => $aboutTandil],
-            ],
+            'intro' => $termsIntro.'<p><strong>About Tandil</strong></p><p>'.$aboutTandil.'</p>',
+            'sections' => [],
         ];
 
         $contactLocale = fn (string $subtitle, string $responseNotice): array => [

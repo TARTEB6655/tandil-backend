@@ -34,7 +34,8 @@ class CmsPageApiTest extends TestCase
 
         $this->getJson('/api/client/terms-and-conditions?lang=en')
             ->assertOk()
-            ->assertJsonPath('data.sections.0.title', 'About Tandil');
+            ->assertJson(fn ($json) => $json->where('data.intro', fn ($intro) => is_string($intro) && str_contains($intro, 'Welcome to Tandil'))->etc())
+            ->assertJsonPath('data.sections', []);
     }
 
     public function test_public_returns_404_for_inactive_page(): void
@@ -320,6 +321,47 @@ class CmsPageApiTest extends TestCase
         $this->getJson('/api/client/privacy-policy?lang=en')
             ->assertOk()
             ->assertJsonPath('data.body', '<p>Saved privacy text</p>');
+    }
+
+    public function test_terms_public_api_uses_admin_intro_and_hides_default_sections(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $this->getJson('/api/client/terms-and-conditions?lang=en')->assertOk();
+
+        $page = CmsPage::query()->where('slug', CmsPage::SLUG_TERMS)->firstOrFail();
+        $translations = $page->translations ?? [];
+        $translations['client']['en'] = [
+            'title' => 'Terms & Conditions',
+            'effective_date' => 'July 9, 2026',
+            'intro' => '<p>Custom terms from admin</p>',
+            'sections' => [
+                ['title' => 'About Tandil', 'body' => 'Default seeded section body'],
+            ],
+        ];
+        $page->update(['translations' => $translations]);
+
+        $this->getJson('/api/client/terms-and-conditions?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.intro', '<p>Custom terms from admin</p>')
+            ->assertJsonPath('data.sections', []);
+
+        $this->withToken($token)
+            ->put('/api/admin/client/terms-and-conditions', [
+                'page_title' => 'Terms & Conditions',
+                'content_body' => '<p>Updated terms only</p>',
+            ])
+            ->assertOk();
+
+        $this->getJson('/api/client/terms-and-conditions?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.intro', '<p>Updated terms only</p>')
+            ->assertJsonPath('data.sections', []);
+
+        $this->getJson('/api/client/terms-and-conditions?lang=en')
+            ->assertJsonPath('data.sections', []);
     }
 
     public function test_admin_vendor_privacy_update_via_put_multipart_form_data(): void
