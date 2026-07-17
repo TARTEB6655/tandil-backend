@@ -6,10 +6,27 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotificationBroadcast;
 use App\Services\NotificationBroadcastService;
+use App\Support\UserNotificationAudience;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class NotificationBroadcastController extends Controller
 {
+    /**
+     * Send-notification form metadata for admin mobile app (role dropdown, scope types).
+     */
+    public function options()
+    {
+        return ApiResponse::success('Broadcast options retrieved successfully.', [
+            'scope_types' => [
+                ['value' => 'all', 'label' => 'All users'],
+                ['value' => 'role', 'label' => 'Specific role'],
+                ['value' => 'users', 'label' => 'Selected users'],
+            ],
+            'roles' => UserNotificationAudience::broadcastRoleOptions(),
+        ]);
+    }
+
     /**
      * Send a broadcast (same behaviour as admin web). Optional per-role title/message overrides in messages_by_role.
      */

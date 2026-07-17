@@ -47,6 +47,24 @@ class AdminNotificationBroadcastApiTest extends TestCase
         }
     }
 
+    public function test_admin_broadcast_options_includes_vendor_role(): void
+    {
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/notifications/broadcast/options');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonFragment(['value' => 'vendor', 'label' => 'Vendor'])
+            ->assertJsonFragment(['value' => 'client', 'label' => 'Client'])
+            ->assertJsonFragment(['value' => 'admin', 'label' => 'Admin']);
+
+        $roles = collect($response->json('data.roles'))->pluck('value')->all();
+        $this->assertSame(
+            ['client', 'technician', 'supervisor', 'area_manager', 'hr', 'vendor', 'admin'],
+            $roles
+        );
+    }
+
     public function test_admin_broadcast_returns_recipient_counts_and_persists_row(): void
     {
         if (! Schema::hasTable('admin_notification_broadcasts')) {

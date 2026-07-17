@@ -133,6 +133,7 @@ final class NotificationDeliveryAnalytics
             'supervisors' => (int) ($summaryAudience['supervisor'] ?? 0),
             'area_managers' => (int) ($summaryAudience['area_manager'] ?? 0),
             'hr' => (int) ($summaryAudience['hr'] ?? 0),
+            'vendors' => (int) ($summaryAudience['vendor'] ?? 0),
             'admins' => (int) ($summaryAudience['admin'] ?? 0),
             'other' => (int) ($summaryAudience['other'] ?? 0),
             'unknown' => (int) ($summaryAudience['unknown'] ?? 0),

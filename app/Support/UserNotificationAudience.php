@@ -70,4 +70,32 @@ final class UserNotificationAudience
             'unknown' => 'Unknown',
         ];
     }
+
+    /**
+     * Role picker for admin "Send notification" (mobile + API). Value = POST broadcast `role` field.
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    public static function broadcastRoleOptions(): array
+    {
+        $labels = [
+            'client' => 'Client',
+            'technician' => 'Technician',
+            'supervisor' => 'Supervisor',
+            'area_manager' => 'Area manager',
+            'hr' => 'HR',
+            'vendor' => 'Vendor',
+            'admin' => 'Admin',
+        ];
+
+        $options = [];
+        foreach (self::PRIORITY_ROLES as $role) {
+            $options[] = [
+                'value' => $role,
+                'label' => $labels[$role] ?? ucfirst(str_replace('_', ' ', $role)),
+            ];
+        }
+
+        return $options;
+    }
 }

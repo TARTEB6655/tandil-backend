@@ -73,7 +73,7 @@
                 <p class="text-xs font-semibold text-amber-900 dark:text-amber-100 uppercase tracking-wide">Untracked (no JSON key)</p>
                 <p class="text-2xl font-bold text-amber-950 dark:text-amber-50 tabular-nums">{{ number_format($tracking['untracked'] ?? 0) }}</p>
             </div>
-            @foreach(['customers' => 'Customers', 'technicians' => 'Technicians', 'supervisors' => 'Supervisors', 'area_managers' => 'Area managers', 'hr' => 'HR', 'admins' => 'Admins', 'other' => 'Other', 'unknown' => 'Unknown', 'untracked' => 'Untracked (bucket)'] as $key => $label)
+            @foreach(['customers' => 'Customers', 'technicians' => 'Technicians', 'supervisors' => 'Supervisors', 'area_managers' => 'Area managers', 'hr' => 'HR', 'vendors' => 'Vendors', 'admins' => 'Admins', 'other' => 'Other', 'unknown' => 'Unknown', 'untracked' => 'Untracked (bucket)'] as $key => $label)
                 <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
                     <p class="text-xs font-semibold text-gray-500 dark:text-gray-400">{{ $label }}</p>
                     <p class="text-xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums">{{ number_format($labeled[$key] ?? 0) }}</p>

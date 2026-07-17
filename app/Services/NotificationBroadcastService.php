@@ -8,6 +8,7 @@ use App\Notifications\AdminNotification;
 use App\Support\UserNotificationAudience;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 
 class NotificationBroadcastService
 {
@@ -165,8 +166,7 @@ class NotificationBroadcastService
             'title' => 'required|string|max:255',
             'message' => 'required|string|max:1000',
             'type' => 'required|in:all,role,users',
-            // Role options are validated in UI; keep backend tolerant for legacy role-column setups.
-            'role' => 'required_if:type,role|string|max:100',
+            'role' => ['required_if:type,role', 'string', 'max:100', Rule::in(UserNotificationAudience::PRIORITY_ROLES)],
             'user_ids' => 'required_if:type,users|array',
             'user_ids.*' => 'exists:users,id',
             'messages_by_role' => 'nullable|array',

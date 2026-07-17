@@ -468,6 +468,7 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/support/tickets/{id}/reply', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'reply']);
     Route::put('/support/tickets/{id}/status', [\App\Http\Controllers\Api\Admin\SupportTicketController::class, 'updateStatus']);
     // Admin broadcast + delivery statistics (register before /notifications to avoid route clash)
+    Route::get('/notifications/broadcast/options', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'options']);
     Route::post('/notifications/broadcast', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'store']);
     Route::get('/notifications/broadcasts', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'index']);
     Route::get('/notifications/broadcasts/{id}', [\App\Http\Controllers\Api\Admin\NotificationBroadcastController::class, 'show'])->whereNumber('id');

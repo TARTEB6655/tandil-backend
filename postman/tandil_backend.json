@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST \/api\/technician\/report\/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET \/api\/supervisor\/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list\/create\/get\/update\/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get\/add\/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate\/checkout, **I** = Stripe \/ PayPal \/ React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager \/ HR = same \/api\/support\/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list\/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET \/teams\/{{team_id}}, \/teams\/{{team_id}}\/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET \/api\/area-manager\/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET \/api\/admin\/notifications\/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send\/list\/detail; \/api\/user\/notifications and \/api\/client\/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs\/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET \/api\/admin\/maintenance-photos\/{id}` (**edit screen detail**) → create\/update\/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `\/media\/maintenance_photos\/...` (not `\/storage\/`). Client **8b** — `GET \/api\/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET \/compare-vendors`) · **P** Vendor Store (`GET \/api\/shop\/vendors\/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.5.0"
+        "version": "3.5.2"
     },
     "item": [
         {
@@ -6542,7 +6542,37 @@
                                                 }
                                             ]
                                         },
-                                        "description": "GET \/api\/admin\/notifications\/delivery-stats. Query: since, until (optional Y-m-d, filter created_at). Response: grand_total; by_audience (technical keys: client, technician, …); by_audience_labeled (customers, technicians, supervisors, area_managers, hr, admins, other, unknown, untracked); by_notification_type[] (per Laravel notification class: total_deliveries, by_audience). Admin only."
+                                        "description": "GET \/api\/admin\/notifications\/delivery-stats. Query: since, until (optional Y-m-d, filter created_at). Response: grand_total; by_audience (technical keys: client, technician, vendor, …); by_audience_labeled (customers, technicians, supervisors, area_managers, hr, vendors, admins, other, unknown, untracked); by_notification_type[] (per Laravel notification class: total_deliveries, by_audience). Admin only."
+                                    }
+                                },
+                                {
+                                    "name": "Notifications - Broadcast options (roles)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application\/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/admin\/notifications\/broadcast\/options",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "notifications",
+                                                "broadcast",
+                                                "options"
+                                            ]
+                                        },
+                                        "description": "GET \/api\/admin\/notifications\/broadcast\/options — Send Notification screen role dropdown. Returns scope_types (all|role|users) and roles[] with value+label (includes vendor). Use role value in POST \/broadcast when type=role."
                                     }
                                 },
                                 {
@@ -6619,7 +6649,7 @@
                                                 "broadcast"
                                             ]
                                         },
-                                        "description": "POST \/api\/admin\/notifications\/broadcast (form-data). Frontend-equivalent fields: title, message, type (all|role|users), role, user_ids[], optional messages_by_role[role][title\/message]. Response: broadcast_id, total_recipients, recipient_counts. Admin only."
+                                        "description": "POST \/api\/admin\/notifications\/broadcast (form-data). Fields: title, message, type (all|role|users), role (client|technician|supervisor|area_manager|hr|vendor|admin when type=role), user_ids[], optional messages_by_role[role][title\/message]. GET \/broadcast\/options for role dropdown. Response: broadcast_id, total_recipients, recipient_counts. Admin only."
                                     }
                                 },
                                 {
@@ -7916,11 +7946,11 @@
                         },
                         {
                             "name": "Legal & Contact Content",
-                            "description": "Admin mobile **Legal & Contact Content** editor. Form-data PUT (not JSON). **A** = client app pages, **B** = vendor app pages.",
+                            "description": "Admin mobile Legal and Contact Content editor. Form-data PUT or POST (not JSON). Folder A = client app pages, B = vendor app pages. Location: Module 5 > D. Settings (Mobile).",
                             "item": [
                                 {
-                                    "name": "A. Client (admin form-data)",
-                                    "description": "GET\/PUT `\/api\/admin\/client\/contact-us|terms-and-conditions|privacy-policy`",
+                                    "name": "A. Client - Legal Admin",
+                                    "description": "Client app legal pages (admin editor):\n- GET /api/admin/client/pages\n- GET/PUT/POST /api/admin/client/contact-us\n- GET/PUT/POST /api/admin/client/terms-and-conditions\n- GET/PUT/POST /api/admin/client/privacy-policy\n\nAuth: Bearer {{token}} (admin). Saves use form-data.",
                                     "item": [
                                         {
                                             "name": "1. List pages",
@@ -7981,7 +8011,7 @@
                                             }
                                         },
                                         {
-                                            "name": "3. Save Contact Us — form-data",
+                                            "name": "3. Save Contact Us - form-data",
                                             "request": {
                                                 "method": "PUT",
                                                 "header": [
@@ -8102,7 +8132,7 @@
                                             }
                                         },
                                         {
-                                            "name": "5. Save Terms & Conditions — form-data",
+                                            "name": "5. Save Terms and Conditions - form-data",
                                             "request": {
                                                 "method": "PUT",
                                                 "header": [
@@ -8141,7 +8171,52 @@
                                                         "client",
                                                         "terms-and-conditions"
                                                     ]
-                                                }
+                                                },
+                                                "description": "PUT /api/admin/client/terms-and-conditions — form-data: page_title, content_body (HTML intro)."
+                                            }
+                                        },
+                                        {
+                                            "name": "5b. Save Terms and Conditions - POST form-data",
+                                            "request": {
+                                                "method": "POST",
+                                                "header": [
+                                                    {
+                                                        "key": "Authorization",
+                                                        "value": "Bearer {{token}}"
+                                                    },
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application\/json"
+                                                    }
+                                                ],
+                                                "body": {
+                                                    "mode": "formdata",
+                                                    "formdata": [
+                                                        {
+                                                            "key": "page_title",
+                                                            "value": "Terms & Conditions",
+                                                            "type": "text"
+                                                        },
+                                                        {
+                                                            "key": "content_body",
+                                                            "value": "<p>Welcome to Tandil. These Terms govern your use of the platform.<\/p>",
+                                                            "type": "text"
+                                                        }
+                                                    ]
+                                                },
+                                                "url": {
+                                                    "raw": "{{base_url}}\/api\/admin\/client\/terms-and-conditions",
+                                                    "host": [
+                                                        "{{base_url}}"
+                                                    ],
+                                                    "path": [
+                                                        "api",
+                                                        "admin",
+                                                        "client",
+                                                        "terms-and-conditions"
+                                                    ]
+                                                },
+                                                "description": "POST /api/admin/client/terms-and-conditions — same as PUT 5; use if PUT form-data does not work."
                                             }
                                         },
                                         {
@@ -8173,7 +8248,7 @@
                                             }
                                         },
                                         {
-                                            "name": "7. Save Privacy Policy — form-data",
+                                            "name": "7. Save Privacy Policy - form-data",
                                             "request": {
                                                 "method": "PUT",
                                                 "header": [
@@ -8218,8 +8293,8 @@
                                     ]
                                 },
                                 {
-                                    "name": "B. Vendor (admin form-data)",
-                                    "description": "GET\/PUT `\/api\/admin\/vendor\/contact-us|terms-and-conditions|privacy-policy`",
+                                    "name": "B. Vendor - Legal Admin",
+                                    "description": "Vendor app legal pages (admin editor):\n- GET /api/admin/vendor/pages\n- GET/PUT/POST /api/admin/vendor/contact-us\n- GET/PUT/POST /api/admin/vendor/terms-and-conditions\n- GET/PUT/POST /api/admin/vendor/privacy-policy\n\nAuth: Bearer {{token}} (admin). Saves use form-data.",
                                     "item": [
                                         {
                                             "name": "1. List pages",
@@ -8278,7 +8353,7 @@
                                             }
                                         },
                                         {
-                                            "name": "3. Save Contact Us — form-data",
+                                            "name": "3. Save Contact Us - form-data",
                                             "request": {
                                                 "method": "PUT",
                                                 "header": [
@@ -8399,7 +8474,7 @@
                                             }
                                         },
                                         {
-                                            "name": "5. Save Terms & Conditions — form-data",
+                                            "name": "5. Save Terms and Conditions - form-data",
                                             "request": {
                                                 "method": "PUT",
                                                 "header": [
@@ -8470,7 +8545,7 @@
                                             }
                                         },
                                         {
-                                            "name": "7. Save Privacy Policy — form-data",
+                                            "name": "7. Save Privacy Policy - form-data",
                                             "request": {
                                                 "method": "PUT",
                                                 "header": [
