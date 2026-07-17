@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\ParsesPutMultipartFormFields;
 use App\Models\CmsPage;
 use App\Services\Cms\CmsPageService;
 use Illuminate\Http\JsonResponse;
@@ -11,6 +12,8 @@ use Illuminate\Http\Request;
 
 class LegalContentApiController extends Controller
 {
+    use ParsesPutMultipartFormFields;
+
     public function __construct(
         private readonly CmsPageService $legalPages
     ) {}
@@ -64,10 +67,12 @@ class LegalContentApiController extends Controller
     }
 
     /**
-     * PUT /api/admin/client/{page} or /api/admin/vendor/{page} — form-data body.
+     * PUT|POST /api/admin/client/{page} or /api/admin/vendor/{page} — form-data or JSON body.
      */
     public function adminUpdate(Request $request): JsonResponse
     {
+        $this->mergePutMultipartFormFields($request);
+
         $audience = $this->legalPages->resolveAudience($request->route('audience'));
         $slug = $this->legalPages->resolvePageKey($request->route('page'));
         $page = $this->legalPages->findBySlug($slug);

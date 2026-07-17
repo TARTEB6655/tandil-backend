@@ -321,4 +321,42 @@ class CmsPageApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.body', '<p>Saved privacy text</p>');
     }
+
+    public function test_admin_vendor_privacy_update_via_put_multipart_form_data(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $contentBody = '<p>Lorem Ipsum vendor privacy from multipart PUT</p>';
+        $boundary = '----LegalFormBoundary7';
+        $body = "--{$boundary}\r\n"
+            ."Content-Disposition: form-data; name=\"page_title\"\r\n\r\n"
+            ."Privacy Policy\r\n"
+            ."--{$boundary}\r\n"
+            ."Content-Disposition: form-data; name=\"content_body\"\r\n\r\n"
+            .$contentBody."\r\n"
+            ."--{$boundary}--\r\n";
+
+        $this->call(
+            'PUT',
+            '/api/admin/vendor/privacy-policy',
+            [],
+            [],
+            [],
+            [
+                'HTTP_AUTHORIZATION' => 'Bearer '.$token,
+                'HTTP_ACCEPT' => 'application/json',
+                'CONTENT_TYPE' => 'multipart/form-data; boundary='.$boundary,
+            ],
+            $body
+        )
+            ->assertOk()
+            ->assertJsonPath('data.audience', 'vendor')
+            ->assertJsonPath('data.content_body', $contentBody);
+
+        $this->getJson('/api/vendor/privacy-policy?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.body', $contentBody);
+    }
 }

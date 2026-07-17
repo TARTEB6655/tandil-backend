@@ -923,6 +923,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () use ($legal
                 Route::put('/'.$page, [\App\Http\Controllers\Api\LegalContentApiController::class, 'adminUpdate'])
                     ->defaults('audience', $audience)
                     ->defaults('page', $page);
+                Route::post('/'.$page, [\App\Http\Controllers\Api\LegalContentApiController::class, 'adminUpdate'])
+                    ->defaults('audience', $audience)
+                    ->defaults('page', $page);
             }
         });
     }
