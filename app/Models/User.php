@@ -27,6 +27,7 @@ class User extends Authenticatable
         'status',  // active / inactive
         'wallet_balance',
         'wallet_forfeited_total',
+        'loyalty_points_balance',
     ];
 
     protected $appends = [
@@ -46,6 +47,7 @@ class User extends Authenticatable
         'preferred_locale' => 'string',
         'wallet_balance' => 'decimal:2',
         'wallet_forfeited_total' => 'decimal:2',
+        'loyalty_points_balance' => 'integer',
     ];
 
     /**

@@ -693,6 +693,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::post('/payment-methods/{id}/default', [\App\Http\Controllers\Api\UserController::class, 'setDefaultPaymentMethod']);
     Route::delete('/payment-methods/{id}', [\App\Http\Controllers\Api\UserController::class, 'deletePaymentMethod']);
     Route::get('/notifications', [\App\Http\Controllers\Api\UserController::class, 'getNotifications']);
+    Route::get('/loyalty', [\App\Http\Controllers\Api\LoyaltyApiController::class, 'index']);
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\UserController::class, 'markNotificationAsRead']);
     Route::post('/notifications/read-all', [\App\Http\Controllers\Api\UserController::class, 'markAllNotificationsAsRead']);
     Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\UserController::class, 'clearAllNotifications']);
@@ -707,6 +708,8 @@ Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(func
     Route::get('/settings/dashboard', [\App\Http\Controllers\Api\ClientSettingsController::class, 'dashboard']);
     Route::get('/settings/sections', [\App\Http\Controllers\Api\ClientSettingsController::class, 'sections']);
     Route::get('/memberships', [\App\Http\Controllers\Api\ClientSettingsController::class, 'memberships']);
+    Route::get('/loyalty', [\App\Http\Controllers\Api\LoyaltyApiController::class, 'index']);
+    Route::post('/loyalty/rewards/{id}/redeem', [\App\Http\Controllers\Api\LoyaltyApiController::class, 'redeem']);
     Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
