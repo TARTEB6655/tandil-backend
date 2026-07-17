@@ -65,6 +65,25 @@ class AdminNotificationBroadcastApiTest extends TestCase
         );
     }
 
+    public function test_admin_broadcast_recipients_returns_vendor_users(): void
+    {
+        Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
+
+        $vendor = User::factory()->create([
+            'role' => 'vendor',
+            'name' => 'Ali Vendor',
+            'email' => 'vendor-list@test.com',
+        ]);
+        $vendor->assignRole('vendor');
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/notifications/broadcast/recipients?role=vendor')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.role', 'vendor')
+            ->assertJsonFragment(['email' => 'vendor-list@test.com', 'role' => 'vendor']);
+    }
+
     public function test_admin_broadcast_returns_recipient_counts_and_persists_row(): void
     {
         if (! Schema::hasTable('admin_notification_broadcasts')) {

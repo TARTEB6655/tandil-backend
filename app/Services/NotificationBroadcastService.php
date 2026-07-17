@@ -86,29 +86,39 @@ class NotificationBroadcastService
         }
         if ($data['type'] === 'role') {
             $role = (string) ($data['role'] ?? '');
-            if ($role === '') {
-                return collect();
-            }
 
-            // Primary: Spatie role scope.
-            $spatie = collect();
-            try {
-                if (Schema::hasTable('roles') && Schema::hasTable('model_has_roles')) {
-                    $spatie = User::role($role)->get();
-                }
-            } catch (\Throwable $e) {
-                $spatie = collect();
-            }
-
-            // Fallback: legacy users.role column (for deployments not fully migrated to Spatie).
-            $legacy = Schema::hasColumn('users', 'role')
-                ? User::query()->where('role', $role)->get()
-                : collect();
-
-            return $spatie->concat($legacy)->unique('id')->values();
+            return self::usersForRole($role);
         }
 
         return User::whereIn('id', $data['user_ids'] ?? [])->get();
+    }
+
+    /**
+     * Users that would receive a role-targeted broadcast (Spatie + legacy users.role).
+     *
+     * @return Collection<int, User>
+     */
+    public static function usersForRole(string $role): Collection
+    {
+        $role = trim($role);
+        if ($role === '') {
+            return collect();
+        }
+
+        $spatie = collect();
+        try {
+            if (Schema::hasTable('roles') && Schema::hasTable('model_has_roles')) {
+                $spatie = User::role($role)->get();
+            }
+        } catch (\Throwable $e) {
+            $spatie = collect();
+        }
+
+        $legacy = Schema::hasColumn('users', 'role')
+            ? User::query()->where('role', $role)->get()
+            : collect();
+
+        return $spatie->concat($legacy)->unique('id')->values();
     }
 
     /**

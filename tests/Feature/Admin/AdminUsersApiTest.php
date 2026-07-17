@@ -42,6 +42,28 @@ class AdminUsersApiTest extends TestCase
         $this->assertNotContains('vendor@test.com', $emails);
     }
 
+    public function test_admin_users_list_includes_vendors_when_role_filter_is_vendor(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+
+        $vendor = User::factory()->create(['role' => 'vendor', 'name' => 'Ali Vendor', 'email' => 'vendor@test.com']);
+        $vendor->assignRole('vendor');
+
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/admin/users?role=vendor')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonFragment(['email' => 'vendor@test.com', 'role' => 'vendor']);
+
+        $this->withToken($token)
+            ->getJson('/api/admin/users?category=vendors')
+            ->assertOk()
+            ->assertJsonFragment(['email' => 'vendor@test.com']);
+    }
+
     public function test_admin_users_statistics_excludes_vendors_from_all_users_count(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

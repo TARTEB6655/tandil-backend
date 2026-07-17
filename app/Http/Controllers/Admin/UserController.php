@@ -20,7 +20,9 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::with(['roles', 'supervisedAreas:id,name', 'assignedAreas:id,name']);
-        $this->withoutVendors($query);
+        if (! $this->isVendorAudienceRequest($request)) {
+            $this->withoutVendors($query);
+        }
 
         // Search
         if ($request->has('search') && $request->search) {
@@ -63,6 +65,12 @@ class UserController extends Controller
                 case 'clients':
                     $query->where(function ($q) {
                         $q->where('role', 'client')->orWhereHas('roles', fn ($r) => $r->where('name', 'client'));
+                    });
+                    break;
+                case 'vendors':
+                case 'vendor':
+                    $query->where(function ($q) {
+                        $q->where('role', 'vendor')->orWhereHas('roles', fn ($r) => $r->where('name', 'vendor'));
                     });
                     break;
                 default:
@@ -163,6 +171,17 @@ class UserController extends Controller
                 'clients' => $clients,
             ]
         ]);
+    }
+
+    /**
+     * Vendors are managed under Marketplace → Vendor Management, not User Management.
+     */
+    private function isVendorAudienceRequest(Request $request): bool
+    {
+        $role = strtolower(trim((string) $request->query('role', '')));
+        $category = strtolower(trim((string) $request->query('category', '')));
+
+        return $role === 'vendor' || in_array($category, ['vendor', 'vendors'], true);
     }
 
     /**
@@ -438,6 +457,7 @@ class UserController extends Controller
             'supervisor' => 'SUP',
             'area_manager' => 'AM',
             'hr' => 'HR',
+            'vendor' => 'VND',
             'admin' => 'ADM',
         ];
         
@@ -455,6 +475,7 @@ class UserController extends Controller
             'supervisor' => 'Supervisor',
             'area_manager' => 'Area Manager',
             'hr' => 'HR Manager',
+            'vendor' => 'Vendor',
             'admin' => 'Administrator',
         ];
         
