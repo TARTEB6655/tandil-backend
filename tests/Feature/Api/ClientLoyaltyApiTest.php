@@ -175,5 +175,8 @@ class ClientLoyaltyApiTest extends TestCase
         $response->assertOk();
         $ids = array_column($response->json('data'), 'id');
         $this->assertContains('loyalty', $ids);
+        $this->assertContains('contact_us', $ids);
+        $this->assertContains('terms_and_conditions', $ids);
+        $this->assertContains('privacy_policy', $ids);
     }
 }
