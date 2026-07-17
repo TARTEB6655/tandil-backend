@@ -2514,7 +2514,7 @@
                 },
                 {
                     "name": "G. Loyalty Points",
-                    "description": "Client app Loyalty Points screen — balance, available rewards, recent transactions. Auth: Bearer {{token}} (client role).",
+                    "description": "Client app Loyalty Points — balance, rewards, history, redeem. Auth: Bearer {{token}} (client). **Auto-earn:** 1 point per AED when shop order or membership payment becomes paid (logged-in client only). Config: settings loyalty_points_per_aed, loyalty_auto_earn_enabled.",
                     "item": [
                         {
                             "name": "1. Get Loyalty Screen (GET)",

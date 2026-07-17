@@ -4,12 +4,124 @@ namespace App\Services\Loyalty;
 
 use App\Models\LoyaltyReward;
 use App\Models\LoyaltyTransaction;
+use App\Models\Order;
+use App\Models\Setting;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class LoyaltyService
 {
+    public const REFERENCE_ORDER = 'order';
+
+    public const REFERENCE_SUBSCRIPTION = 'subscription';
+
+    public static function isAutoEarnEnabled(): bool
+    {
+        return Setting::get('loyalty_auto_earn_enabled', '1') !== '0';
+    }
+
+    public static function pointsPerAed(): float
+    {
+        $rate = (float) Setting::get('loyalty_points_per_aed', '1');
+
+        return max(0, $rate);
+    }
+
+    public function calculatePointsFromAmount(float $amount): int
+    {
+        if ($amount <= 0 || self::pointsPerAed() <= 0) {
+            return 0;
+        }
+
+        return max(1, (int) floor($amount * self::pointsPerAed()));
+    }
+
+    public function hasEarnedForReference(string $referenceType, int $referenceId): bool
+    {
+        return LoyaltyTransaction::query()
+            ->where('type', LoyaltyTransaction::TYPE_EARN)
+            ->where('reference_type', $referenceType)
+            ->where('reference_id', $referenceId)
+            ->exists();
+    }
+
+    public function creditForPaidOrder(Order $order): ?LoyaltyTransaction
+    {
+        if (! self::isAutoEarnEnabled()) {
+            return null;
+        }
+
+        if ($order->user_id === null || strtolower((string) $order->payment_status) !== 'paid') {
+            return null;
+        }
+
+        if ($this->hasEarnedForReference(self::REFERENCE_ORDER, (int) $order->id)) {
+            return null;
+        }
+
+        $user = $order->relationLoaded('user') ? $order->user : User::query()->find($order->user_id);
+        if (! $user || ! $this->userCanEarnLoyalty($user)) {
+            return null;
+        }
+
+        $points = $this->calculatePointsFromAmount((float) $order->total_amount);
+        if ($points <= 0) {
+            return null;
+        }
+
+        return $this->awardPoints(
+            $user,
+            $points,
+            'Order '.$order->publicOrderNumber().' completed',
+            self::REFERENCE_ORDER,
+            (int) $order->id
+        );
+    }
+
+    public function creditForPaidSubscription(Subscription $subscription): ?LoyaltyTransaction
+    {
+        if (! self::isAutoEarnEnabled()) {
+            return null;
+        }
+
+        if ($subscription->client_id === null || strtolower((string) $subscription->payment_status) !== 'paid') {
+            return null;
+        }
+
+        if ($this->hasEarnedForReference(self::REFERENCE_SUBSCRIPTION, (int) $subscription->id)) {
+            return null;
+        }
+
+        $user = $subscription->relationLoaded('client') ? $subscription->client : User::query()->find($subscription->client_id);
+        if (! $user || ! $this->userCanEarnLoyalty($user)) {
+            return null;
+        }
+
+        $points = $this->calculatePointsFromAmount((float) $subscription->amount);
+        if ($points <= 0) {
+            return null;
+        }
+
+        return $this->awardPoints(
+            $user,
+            $points,
+            'Membership #'.$subscription->id.' completed',
+            self::REFERENCE_SUBSCRIPTION,
+            (int) $subscription->id
+        );
+    }
+
+    private function userCanEarnLoyalty(User $user): bool
+    {
+        if (method_exists($user, 'isClient') && $user->isClient()) {
+            return true;
+        }
+
+        return strtolower(trim((string) ($user->role ?? ''))) === 'client';
+    }
+
     public function ensureDefaultRewards(): void
     {
         $defaults = [

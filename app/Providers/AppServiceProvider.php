@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Order;
+use App\Models\Subscription;
+use App\Observers\OrderObserver;
+use App\Observers\SubscriptionObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -34,5 +38,8 @@ class AppServiceProvider extends ServiceProvider
         // Use Tailwind pagination view
         \Illuminate\Pagination\Paginator::defaultView('vendor.pagination.tailwind');
         \Illuminate\Pagination\Paginator::defaultSimpleView('vendor.pagination.simple-tailwind');
+
+        Order::observe(OrderObserver::class);
+        Subscription::observe(SubscriptionObserver::class);
     }
 }
