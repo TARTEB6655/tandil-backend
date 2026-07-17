@@ -304,51 +304,78 @@ class CmsPageService
                 'support_note' => 'nullable|string|max:2000',
             ])->validate();
 
+            $existingLocale = $translations[$audience][$locale] ?? [];
+            $existingContact = $contactDetails[$audience] ?? [];
+
             $translations[$audience][$locale] = array_filter([
-                'title' => $validated['page_title'] ?? ($translations[$audience][$locale]['title'] ?? 'Contact Us'),
+                'title' => $this->preservedFormString($data, $validated, 'page_title', $existingLocale['title'] ?? 'Contact Us'),
                 'subtitle' => $audience === CmsPage::AUDIENCE_VENDOR
                     ? 'We are here to help vendors'
                     : 'We are here to help you',
-                'hero_title' => $validated['hero_title'] ?? null,
-                'hero_description' => $validated['hero_description'] ?? null,
-                'response_notice' => $validated['support_note'] ?? null,
+                'hero_title' => $this->preservedFormString($data, $validated, 'hero_title', $existingLocale['hero_title'] ?? null),
+                'hero_description' => $this->preservedFormString($data, $validated, 'hero_description', $existingLocale['hero_description'] ?? null),
+                'response_notice' => $this->preservedFormString($data, $validated, 'support_note', $existingLocale['response_notice'] ?? null),
             ], fn ($value) => $value !== null && $value !== '');
 
-            $contactDetails[$audience] = array_filter(array_merge($contactDetails[$audience] ?? [], [
-                'company_name' => $validated['company_name'] ?? '',
-                'website' => $validated['website_label'] ?? '',
-                'website_url' => $validated['website_url'] ?? '',
-                'email' => $validated['email'] ?? '',
-                'phone' => $validated['phone'] ?? '',
-                'whatsapp' => $validated['whatsapp_dial_number'] ?? '',
-                'whatsapp_display' => $validated['whatsapp_display'] ?? '',
-                'location' => array_filter(array_merge($contactDetails[$audience]['location'] ?? [], [
-                    $locale => $validated['country'] ?? '',
-                ])),
-            ]), fn ($value) => $value !== [] && $value !== '');
+            $mergedContact = array_merge($existingContact, array_filter([
+                'company_name' => $this->preservedFormString($data, $validated, 'company_name', $existingContact['company_name'] ?? null),
+                'website' => $this->preservedFormString($data, $validated, 'website_label', $existingContact['website'] ?? null),
+                'website_url' => $this->preservedFormString($data, $validated, 'website_url', $existingContact['website_url'] ?? null),
+                'email' => $this->preservedFormString($data, $validated, 'email', $existingContact['email'] ?? null),
+                'phone' => $this->preservedFormString($data, $validated, 'phone', $existingContact['phone'] ?? null),
+                'whatsapp' => $this->preservedFormString($data, $validated, 'whatsapp_dial_number', $existingContact['whatsapp'] ?? null),
+                'whatsapp_display' => $this->preservedFormString($data, $validated, 'whatsapp_display', $existingContact['whatsapp_display'] ?? null),
+            ], fn ($value) => $value !== null && $value !== ''));
+
+            if (array_key_exists('country', $data)) {
+                $country = trim((string) ($validated['country'] ?? ''));
+                if ($country !== '') {
+                    $mergedContact['location'] = array_merge($existingContact['location'] ?? [], [$locale => $country]);
+                }
+            } elseif (isset($existingContact['location'])) {
+                $mergedContact['location'] = $existingContact['location'];
+            }
+
+            $contactDetails[$audience] = array_filter($mergedContact, fn ($value) => $value !== [] && $value !== '');
         } elseif ($page->isTermsPage()) {
             $validated = validator($data, [
                 'page_title' => 'nullable|string|max:500',
                 'content_body' => 'nullable|string|max:50000',
             ])->validate();
 
-            $translations[$audience][$locale] = array_filter([
-                'title' => $validated['page_title'] ?? 'Terms & Conditions',
-                'effective_date' => $translations[$audience][$locale]['effective_date'] ?? 'July 9, 2026',
-                'intro' => $validated['content_body'] ?? '',
-                'sections' => [],
-            ], fn ($value) => $value !== null && $value !== '');
+            $existingLocale = $translations[$audience][$locale] ?? [];
+            $localeData = [
+                'title' => $this->preservedFormString($data, $validated, 'page_title', $existingLocale['title'] ?? 'Terms & Conditions'),
+                'effective_date' => $existingLocale['effective_date'] ?? 'July 9, 2026',
+                'intro' => $existingLocale['intro'] ?? '',
+                'sections' => $existingLocale['sections'] ?? [],
+            ];
+
+            if (array_key_exists('content_body', $data)) {
+                $contentBody = trim((string) ($validated['content_body'] ?? ''));
+                if ($contentBody !== '') {
+                    $localeData['intro'] = $contentBody;
+                    $localeData['sections'] = [];
+                }
+            }
+
+            $translations[$audience][$locale] = array_filter(
+                $localeData,
+                fn ($value) => $value !== null && $value !== '' && $value !== []
+            );
         } else {
             $validated = validator($data, [
                 'page_title' => 'nullable|string|max:500',
                 'content_body' => 'nullable|string|max:50000',
             ])->validate();
 
-            $translations[$audience][$locale] = array_filter(array_merge($translations[$audience][$locale] ?? [], [
-                'title' => $validated['page_title'] ?? 'Privacy Policy',
-                'subtitle' => $translations[$audience][$locale]['subtitle'] ?? '',
-                'body' => $validated['content_body'] ?? '',
-            ]), fn ($value) => $value !== null && $value !== '');
+            $existingLocale = $translations[$audience][$locale] ?? [];
+
+            $translations[$audience][$locale] = array_filter([
+                'title' => $this->preservedFormString($data, $validated, 'page_title', $existingLocale['title'] ?? 'Privacy Policy'),
+                'subtitle' => $existingLocale['subtitle'] ?? '',
+                'body' => $this->preservedFormString($data, $validated, 'content_body', $existingLocale['body'] ?? null),
+            ], fn ($value) => $value !== null && $value !== '');
         }
 
         return $this->update($page, [
@@ -361,7 +388,7 @@ class CmsPageService
     public function ensureDefaults(): void
     {
         foreach ($this->defaultPages() as $defaults) {
-            CmsPage::query()->firstOrCreate(
+            $page = CmsPage::query()->firstOrCreate(
                 ['slug' => $defaults['slug']],
                 [
                     'label' => $defaults['label'],
@@ -370,7 +397,145 @@ class CmsPageService
                     'is_active' => true,
                 ]
             );
+
+            if ($this->backfillPageFromDefaults($page, $defaults)) {
+                $page->save();
+            }
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $defaults
+     */
+    private function backfillPageFromDefaults(CmsPage $page, array $defaults): bool
+    {
+        $changed = false;
+        $translations = $page->translations ?? [];
+
+        foreach (($defaults['translations'] ?? []) as $audience => $locales) {
+            if (! is_string($audience) || ! is_array($locales)) {
+                continue;
+            }
+
+            foreach ($locales as $locale => $fields) {
+                if (! is_string($locale) || ! is_array($fields)) {
+                    continue;
+                }
+
+                foreach ($fields as $field => $value) {
+                    if ($field === 'sections') {
+                        $existingSections = $translations[$audience][$locale]['sections'] ?? [];
+                        if ($existingSections === [] && is_array($value) && $value !== []) {
+                            $translations[$audience][$locale]['sections'] = $value;
+                            $changed = true;
+                        }
+
+                        continue;
+                    }
+
+                    $existing = trim((string) ($translations[$audience][$locale][$field] ?? ''));
+                    if ($existing === '' && trim((string) $value) !== '') {
+                        $translations[$audience][$locale][$field] = $value;
+                        $changed = true;
+                    }
+                }
+            }
+        }
+
+        if ($page->isContactPage() && is_array($defaults['contact_details'] ?? null)) {
+            $contactDetails = $page->contact_details ?? [];
+
+            foreach ($defaults['contact_details'] as $audience => $contact) {
+                if (! is_string($audience) || ! is_array($contact)) {
+                    continue;
+                }
+
+                $before = json_encode($contactDetails[$audience] ?? []);
+                $merged = $this->mergeContactDefaults($contactDetails[$audience] ?? [], $contact);
+
+                if (json_encode($merged) !== $before) {
+                    $contactDetails[$audience] = $merged;
+                    $changed = true;
+                }
+            }
+
+            if ($changed) {
+                $page->contact_details = $contactDetails;
+            }
+        }
+
+        if ($changed) {
+            $page->translations = $translations;
+        }
+
+        return $changed;
+    }
+
+    /**
+     * @param  array<string, mixed>  $existing
+     * @param  array<string, mixed>  $defaults
+     * @return array<string, mixed>
+     */
+    private function mergeContactDefaults(array $existing, array $defaults): array
+    {
+        $merged = $existing;
+
+        foreach ($defaults as $key => $value) {
+            if (in_array($key, ['location', 'working_hours', 'service_areas', 'channel_subtitles'], true)) {
+                if (! is_array($value)) {
+                    continue;
+                }
+
+                $existingNested = is_array($merged[$key] ?? null) ? $merged[$key] : [];
+                foreach ($value as $nestedKey => $nestedValue) {
+                    if (is_array($nestedValue)) {
+                        $existingChild = is_array($existingNested[$nestedKey] ?? null) ? $existingNested[$nestedKey] : [];
+                        foreach ($nestedValue as $childKey => $childValue) {
+                            $existingChildValue = trim((string) ($existingChild[$childKey] ?? ''));
+                            if ($existingChildValue === '' && trim((string) $childValue) !== '') {
+                                $existingChild[$childKey] = $childValue;
+                            }
+                        }
+                        if ($existingChild !== []) {
+                            $existingNested[$nestedKey] = $existingChild;
+                        }
+                    } else {
+                        $existingNestedValue = trim((string) ($existingNested[$nestedKey] ?? ''));
+                        if ($existingNestedValue === '' && trim((string) $nestedValue) !== '') {
+                            $existingNested[$nestedKey] = $nestedValue;
+                        }
+                    }
+                }
+
+                if ($existingNested !== []) {
+                    $merged[$key] = $existingNested;
+                }
+
+                continue;
+            }
+
+            $existingValue = trim((string) ($merged[$key] ?? ''));
+            if ($existingValue === '' && trim((string) $value) !== '') {
+                $merged[$key] = $value;
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $validated
+     */
+    private function preservedFormString(array $data, array $validated, string $key, ?string $existing): ?string
+    {
+        if (! array_key_exists($key, $data)) {
+            return $existing;
+        }
+
+        $value = trim((string) ($validated[$key] ?? ''));
+
+        return $value !== '' ? $value : $existing;
     }
 
     /**
@@ -876,8 +1041,9 @@ HTML;
 
         $sharedContact = [
             'website' => 'tandil.ae',
+            'website_url' => 'https://tandil.ae',
             'email' => 'info@tandil.ae',
-            'whatsapp' => '+971 569206959',
+            'whatsapp' => '+971569206959',
             'phone' => Setting::get('contact_phone', '+971 569206959'),
             'company_name' => 'Tandil',
             'location' => ['en' => 'United Arab Emirates'],

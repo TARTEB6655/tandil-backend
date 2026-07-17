@@ -249,4 +249,76 @@ class CmsPageApiTest extends TestCase
         $this->getJson('/api/admin/cms/legal-content?audience=client&page=contact_us')->assertNotFound();
         $this->getJson('/api/admin/cms/pages')->assertNotFound();
     }
+
+    public function test_ensure_defaults_backfills_empty_cms_records(): void
+    {
+        CmsPage::query()->create([
+            'slug' => CmsPage::SLUG_PRIVACY,
+            'label' => 'Privacy Policy',
+            'translations' => [
+                CmsPage::AUDIENCE_CLIENT => [
+                    'en' => ['title' => 'Privacy Policy', 'subtitle' => '', 'body' => ''],
+                ],
+            ],
+            'is_active' => true,
+        ]);
+
+        CmsPage::query()->create([
+            'slug' => CmsPage::SLUG_CONTACT,
+            'label' => 'Contact Us',
+            'translations' => [
+                CmsPage::AUDIENCE_CLIENT => [
+                    'en' => [
+                        'title' => 'Contact Us',
+                        'subtitle' => 'We are here to help you',
+                        'hero_title' => 'Get in touch with Tandil',
+                    ],
+                ],
+            ],
+            'contact_details' => [
+                CmsPage::AUDIENCE_CLIENT => [
+                    'company_name' => 'Tandil',
+                    'location' => ['en' => 'United Arab Emirates'],
+                ],
+            ],
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/client/privacy-policy?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Privacy Policy')
+            ->assertJson(fn ($json) => $json->where('data.body', fn ($body) => is_string($body) && strlen($body) > 20)->etc());
+
+        $this->getJson('/api/client/contact-us?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.company.name', 'Tandil')
+            ->assertJsonPath('data.hero.description', fn ($value) => is_string($value) && $value !== '');
+    }
+
+    public function test_admin_form_update_does_not_wipe_existing_content_with_empty_fields(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $this->getJson('/api/client/privacy-policy?lang=en')->assertOk();
+
+        $this->withToken($token)
+            ->put('/api/admin/client/privacy-policy', [
+                'page_title' => 'Privacy Policy',
+                'content_body' => '<p>Saved privacy text</p>',
+            ])
+            ->assertOk();
+
+        $this->withToken($token)
+            ->put('/api/admin/client/privacy-policy', [
+                'page_title' => 'Privacy Policy',
+                'content_body' => '',
+            ])
+            ->assertOk();
+
+        $this->getJson('/api/client/privacy-policy?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.body', '<p>Saved privacy text</p>');
+    }
 }
