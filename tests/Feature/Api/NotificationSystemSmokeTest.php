@@ -3,6 +3,8 @@
 namespace Tests\Feature\Api;
 
 use App\Models\User;
+use App\Models\Vendor;
+use App\Models\VendorProfile;
 use App\Notifications\AdminNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -31,6 +33,23 @@ final class NotificationSystemSmokeTest extends TestCase
             $user->assignRole($role);
         }
 
+        if ($role === 'vendor') {
+            $vendor = Vendor::create([
+                'user_id' => $user->id,
+                'status' => 'approved',
+                'approved_at' => now(),
+            ]);
+            VendorProfile::create([
+                'vendor_id' => $vendor->id,
+                'business_name' => 'Smoke Vendor',
+                'owner_name' => 'Smoke Owner',
+                'email' => $user->email,
+                'vendor_type' => 'fruits',
+                'emirate' => 'Dubai',
+                'city' => 'Dubai',
+            ]);
+        }
+
         return $user;
     }
 
@@ -56,6 +75,7 @@ final class NotificationSystemSmokeTest extends TestCase
             'supervisor' => '/api/supervisor/notifications',
             'area_manager' => '/api/area-manager/notifications',
             'hr' => '/api/hr/notifications',
+            'vendor' => '/api/vendor/notifications',
             'admin' => '/api/admin/notifications',
         ];
 

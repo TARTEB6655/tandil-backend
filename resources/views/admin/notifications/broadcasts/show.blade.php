@@ -46,6 +46,10 @@
                     <dd class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ $counts['hr'] }}</dd>
                 </div>
                 <div class="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-4 border border-gray-100 dark:border-gray-700">
+                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Vendors</dt>
+                    <dd class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ $counts['vendors'] }}</dd>
+                </div>
+                <div class="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-4 border border-gray-100 dark:border-gray-700">
                     <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Admins</dt>
                     <dd class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ $counts['admins'] }}</dd>
                 </div>

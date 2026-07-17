@@ -42,6 +42,12 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
     Route::put('/profile', [VendorProfileController::class, 'update']);
     Route::post('/profile', [VendorProfileController::class, 'update']);
 
+    Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
+
     Route::get('/support/chat', [VendorSupportChatController::class, 'show']);
     Route::get('/support/chat/messages', [VendorSupportChatController::class, 'messages']);
     Route::post('/support/chat/messages', [VendorSupportChatController::class, 'sendMessage']);

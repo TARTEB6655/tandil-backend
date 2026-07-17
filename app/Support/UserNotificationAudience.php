@@ -16,6 +16,7 @@ final class UserNotificationAudience
         'supervisor',
         'area_manager',
         'hr',
+        'vendor',
         'admin',
     ];
 
@@ -48,6 +49,7 @@ final class UserNotificationAudience
             'supervisor' => 'recipient_supervisor_count',
             'area_manager' => 'recipient_area_manager_count',
             'hr' => 'recipient_hr_count',
+            'vendor' => 'recipient_vendor_count',
             'admin' => 'recipient_admin_count',
             default => 'recipient_other_count',
         };
@@ -62,6 +64,7 @@ final class UserNotificationAudience
             'supervisor' => 'Supervisors',
             'area_manager' => 'Area managers',
             'hr' => 'HR',
+            'vendor' => 'Vendors',
             'admin' => 'Admins',
             'other' => 'Other',
             'unknown' => 'Unknown',

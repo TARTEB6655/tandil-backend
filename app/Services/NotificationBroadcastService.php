@@ -41,6 +41,7 @@ class NotificationBroadcastService
             'recipient_supervisor_count' => 0,
             'recipient_area_manager_count' => 0,
             'recipient_hr_count' => 0,
+            'recipient_vendor_count' => 0,
             'recipient_admin_count' => 0,
             'recipient_other_count' => 0,
         ];
