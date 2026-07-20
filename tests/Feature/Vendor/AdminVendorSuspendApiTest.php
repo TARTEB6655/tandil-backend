@@ -25,7 +25,7 @@ class AdminVendorSuspendApiTest extends TestCase
         Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
     }
 
-    public function test_management_detail_includes_suspend_action_for_approved_vendor(): void
+    public function test_management_detail_includes_account_status_action_for_approved_vendor(): void
     {
         ['adminToken' => $token, 'vendor' => $vendor] = $this->seedApprovedVendorWithProduct();
 
@@ -34,19 +34,19 @@ class AdminVendorSuspendApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.vendor.status', 'approved')
             ->assertJsonPath('data.vendor.status_label', 'Approved')
-            ->assertJsonPath('data.vendor.account_actions.can_suspend', true)
-            ->assertJsonPath('data.vendor.account_actions.can_activate', false)
+            ->assertJsonPath('data.vendor.account_actions.can_update', true)
+            ->assertJsonPath('data.vendor.account_actions.action', 'suspend')
             ->assertJsonPath(
-                'data.vendor.account_actions.suspend.confirmation_message',
+                'data.vendor.account_actions.confirmation_message',
                 'Are you sure you want to suspend this vendor account?'
             )
             ->assertJsonPath(
-                'data.vendor.account_actions.suspend.endpoint',
-                "/api/admin/vendors/{$vendor->id}/suspend"
+                'data.vendor.account_actions.endpoint',
+                "/api/admin/vendors/{$vendor->id}/account-status"
             );
     }
 
-    public function test_admin_can_suspend_vendor_and_blocks_login_and_shop_visibility(): void
+    public function test_admin_can_suspend_vendor_via_account_status_api(): void
     {
         [
             'adminToken' => $adminToken,
@@ -57,11 +57,13 @@ class AdminVendorSuspendApiTest extends TestCase
         ] = $this->seedApprovedVendorWithProduct();
 
         $this->withToken($adminToken)
-            ->postJson("/api/admin/vendors/{$vendor->id}/suspend", [
+            ->postJson("/api/admin/vendors/{$vendor->id}/account-status", [
+                'action' => 'suspend',
                 'notes' => 'Policy violation',
             ])
             ->assertOk()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.action', 'suspend')
             ->assertJsonPath('data.vendor.status', 'suspended');
 
         $this->assertSame('suspended', $vendor->fresh()->status);
@@ -86,16 +88,11 @@ class AdminVendorSuspendApiTest extends TestCase
             ->getJson("/api/admin/vendors/{$vendor->id}/management")
             ->assertOk()
             ->assertJsonPath('data.vendor.status', 'suspended')
-            ->assertJsonPath('data.vendor.status_label', 'Suspended')
-            ->assertJsonPath('data.vendor.account_actions.can_suspend', false)
-            ->assertJsonPath('data.vendor.account_actions.can_activate', true)
-            ->assertJsonPath(
-                'data.vendor.account_actions.activate.label',
-                'Reactivate Vendor Account'
-            );
+            ->assertJsonPath('data.vendor.account_actions.action', 'activate')
+            ->assertJsonPath('data.vendor.account_actions.label', 'Reactivate Vendor Account');
     }
 
-    public function test_admin_can_reactivate_suspended_vendor(): void
+    public function test_admin_can_reactivate_suspended_vendor_via_account_status_api(): void
     {
         [
             'adminToken' => $adminToken,
@@ -105,15 +102,19 @@ class AdminVendorSuspendApiTest extends TestCase
         ] = $this->seedApprovedVendorWithProduct();
 
         $this->withToken($adminToken)
-            ->postJson("/api/admin/vendors/{$vendor->id}/suspend")
+            ->postJson("/api/admin/vendors/{$vendor->id}/account-status", [
+                'action' => 'suspend',
+            ])
             ->assertOk();
 
         $this->withToken($adminToken)
-            ->postJson("/api/admin/vendors/{$vendor->id}/activate", [
+            ->postJson("/api/admin/vendors/{$vendor->id}/account-status", [
+                'action' => 'activate',
                 'notes' => 'Issue resolved',
             ])
             ->assertOk()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.action', 'activate')
             ->assertJsonPath('data.vendor.status', 'approved');
 
         $this->assertSame('approved', $vendor->fresh()->status);
@@ -132,13 +133,27 @@ class AdminVendorSuspendApiTest extends TestCase
             ->assertJsonPath('success', true);
     }
 
-    public function test_non_admin_cannot_suspend_vendor(): void
+    public function test_account_status_api_rejects_invalid_transition(): void
+    {
+        ['adminToken' => $adminToken, 'vendor' => $vendor] = $this->seedApprovedVendorWithProduct();
+
+        $this->withToken($adminToken)
+            ->postJson("/api/admin/vendors/{$vendor->id}/account-status", [
+                'action' => 'activate',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['action']);
+    }
+
+    public function test_non_admin_cannot_update_vendor_account_status(): void
     {
         ['vendor' => $vendor, 'vendorUser' => $vendorUser] = $this->seedApprovedVendorWithProduct();
         $vendorToken = $vendorUser->createToken('test', ['vendor'])->plainTextToken;
 
         $this->withToken($vendorToken)
-            ->postJson("/api/admin/vendors/{$vendor->id}/suspend")
+            ->postJson("/api/admin/vendors/{$vendor->id}/account-status", [
+                'action' => 'suspend',
+            ])
             ->assertForbidden();
 
         $this->assertSame('approved', $vendor->fresh()->status);

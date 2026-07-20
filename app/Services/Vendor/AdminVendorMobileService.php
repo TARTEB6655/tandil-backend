@@ -186,24 +186,39 @@ class AdminVendorMobileService
      */
     private function accountActions(Vendor $vendor): array
     {
+        $endpoint = "/api/admin/vendors/{$vendor->id}/account-status";
         $canSuspend = $vendor->status === VendorStatus::Approved->value;
         $canActivate = $vendor->status === VendorStatus::Suspended->value;
 
-        return [
-            'can_suspend' => $canSuspend,
-            'can_activate' => $canActivate,
-            'suspend' => $canSuspend ? [
+        if ($canSuspend) {
+            return [
+                'can_update' => true,
+                'action' => 'suspend',
                 'method' => 'POST',
-                'endpoint' => "/api/admin/vendors/{$vendor->id}/suspend",
+                'endpoint' => $endpoint,
                 'label' => 'Suspend Vendor Account',
                 'confirmation_message' => 'Are you sure you want to suspend this vendor account?',
-            ] : null,
-            'activate' => $canActivate ? [
+            ];
+        }
+
+        if ($canActivate) {
+            return [
+                'can_update' => true,
+                'action' => 'activate',
                 'method' => 'POST',
-                'endpoint' => "/api/admin/vendors/{$vendor->id}/activate",
+                'endpoint' => $endpoint,
                 'label' => 'Reactivate Vendor Account',
                 'confirmation_message' => null,
-            ] : null,
+            ];
+        }
+
+        return [
+            'can_update' => false,
+            'action' => null,
+            'method' => 'POST',
+            'endpoint' => $endpoint,
+            'label' => null,
+            'confirmation_message' => null,
         ];
     }
 

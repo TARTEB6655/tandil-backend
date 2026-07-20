@@ -124,6 +124,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::get('/{id}', [VendorManagementController::class, 'show']);
     Route::put('/{id}', [VendorManagementController::class, 'update']);
     Route::post('/{id}', [VendorManagementController::class, 'update']);
+    Route::post('/{id}/account-status', [VendorManagementController::class, 'updateAccountStatus']);
     Route::post('/{id}/approve', [VendorManagementController::class, 'approve']);
     Route::post('/{id}/reject', [VendorManagementController::class, 'reject']);
     Route::post('/{id}/suspend', [VendorManagementController::class, 'suspend']);

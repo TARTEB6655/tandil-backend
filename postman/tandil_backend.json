@@ -4,7 +4,7 @@
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST \/api\/technician\/report\/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET \/api\/supervisor\/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list\/create\/get\/update\/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get\/add\/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate\/checkout, **I** = Stripe \/ PayPal \/ React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager \/ HR = same \/api\/support\/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list\/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET \/teams\/{{team_id}}, \/teams\/{{team_id}}\/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET \/api\/area-manager\/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET \/api\/admin\/notifications\/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send\/list\/detail; \/api\/user\/notifications and \/api\/client\/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs\/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET \/api\/admin\/maintenance-photos\/{id}` (**edit screen detail**) → create\/update\/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `\/media\/maintenance_photos\/...` (not `\/storage\/`). Client **8b** — `GET \/api\/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET \/compare-vendors`) · **P** Vendor Store (`GET \/api\/shop\/vendors\/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.5.4"
+        "version": "3.5.6"
     },
     "item": [
         {
@@ -22634,7 +22634,7 @@
                     "item": [
                         {
                             "name": "A. Vendor Management (Mobile)",
-                            "description": "**Vendor Management dashboard** — monitor approved vendors, products, revenue.\n\n**Login first:** `2. Authentication` → **Login** (roles: `admin`) — sets {{token}}.\n\n**Test order:** **1** list + summary cards → **2** vendor detail + products → **5** suspend vendor (confirmation in app) → **6** reactivate → **3** toggle product → **4** delete product.\n\nAuto-sets {{vendor_id}} (1) and {{vendor_product_id}} (2). Detail works for **approved** and **suspended** vendors (`data.vendor.status`, `account_actions`).",
+                            "description": "**Vendor Management dashboard** — monitor approved vendors, products, revenue.\n\n**Login first:** `2. Authentication` → **Login** (roles: `admin`) — sets {{token}}.\n\n**Test order:** **1** list → **2** vendor detail → **5** account status (`suspend` or `activate`) → **3** toggle product → **4** delete product.\n\nDetail (`2`) returns `account_actions.action` + same endpoint for both buttons. Auto-sets {{vendor_id}} (1) and {{vendor_product_id}} (2).",
                             "item": [
                                 {
                                     "name": "1. Vendor management (mobile dashboard)",
@@ -22766,7 +22766,7 @@
                                                 }
                                             ]
                                         },
-                                        "description": "**Vendor detail screen** — vendor email\/phone, logo_url, **status** (`approved` | `suspended`), **account_actions** (suspend \/ reactivate button metadata + confirmation message), KPI cards, and products list with toggle\/delete actions. Auto-sets {{vendor_product_id}} from first product."
+                                        "description": "**Vendor detail screen** — vendor email\/phone, logo_url, **status** (`approved` | `suspended`), **account_actions** (`action`, `label`, `endpoint`, `confirmation_message`), KPI cards, and products list. Auto-sets {{vendor_product_id}} from first product."
                                     }
                                 },
                                 {
@@ -22865,7 +22865,7 @@
                                     }
                                 },
                                 {
-                                    "name": "5. Suspend vendor account (mobile)",
+                                    "name": "5. Update vendor account status (suspend \/ reactivate)",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -22875,7 +22875,8 @@
                                                     "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
                                                     "if (pm.response.code === 200) {",
                                                     "    var j = pm.response.json();",
-                                                    "    pm.expect(j.data.vendor.status).to.eql('suspended');",
+                                                    "    pm.expect(j.data).to.have.property('action');",
+                                                    "    pm.expect(j.data.vendor).to.have.property('status');",
                                                     "}"
                                                 ]
                                             }
@@ -22899,10 +22900,10 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"notes\": \"Suspended from admin mobile app\"\n}"
+                                            "raw": "{\n  \"action\": \"suspend\",\n  \"notes\": \"Suspended from admin mobile app\"\n}"
                                         },
                                         "url": {
-                                            "raw": "{{base_url}}\/api\/admin\/vendors\/{{vendor_id}}\/suspend",
+                                            "raw": "{{base_url}}\/api\/admin\/vendors\/{{vendor_id}}\/account-status",
                                             "host": [
                                                 "{{base_url}}"
                                             ],
@@ -22911,70 +22912,17 @@
                                                 "admin",
                                                 "vendors",
                                                 "{{vendor_id}}",
-                                                "suspend"
+                                                "account-status"
                                             ]
                                         },
-                                        "description": "**Suspend Vendor Account** — `POST \/api\/admin\/vendors\/{vendor_id}\/suspend`\n\n**When to use:** Vendor detail screen → admin confirms: *Are you sure you want to suspend this vendor account?*\n\n**Effects:** status `approved` → `suspended`; vendor **cannot login**; existing tokens revoked; products **hidden** from client shop.\n\nOptional body: `{ \"notes\": \"reason\" }`.\n\nRe-run **2. Vendor management detail** — `account_actions.can_activate` becomes true."
-                                    }
-                                },
-                                {
-                                    "name": "6. Reactivate vendor account (mobile)",
-                                    "event": [
-                                        {
-                                            "listen": "test",
-                                            "script": {
-                                                "type": "text\/javascript",
-                                                "exec": [
-                                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                                                    "if (pm.response.code === 200) {",
-                                                    "    var j = pm.response.json();",
-                                                    "    pm.expect(j.data.vendor.status).to.eql('approved');",
-                                                    "}"
-                                                ]
-                                            }
-                                        }
-                                    ],
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application\/json"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application\/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"notes\": \"Reactivated from admin mobile app\"\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}\/api\/admin\/vendors\/{{vendor_id}}\/activate",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "vendors",
-                                                "{{vendor_id}}",
-                                                "activate"
-                                            ]
-                                        },
-                                        "description": "**Reactivate Vendor Account** — `POST \/api\/admin\/vendors\/{vendor_id}\/activate`\n\nRestores status `suspended` → `approved`. Vendor can login again; products visible in shop if still enabled.\n\nOptional body: `{ \"notes\": \"reason\" }`."
+                                        "description": "**Single API for suspend + reactivate** — `POST \/api\/admin\/vendors\/{vendor_id}\/account-status`\n\n**Body (required):**\n```json\n{\n  \"action\": \"suspend\",\n  \"notes\": \"optional reason\"\n}\n```\nUse `\"action\": \"activate\"` to reactivate.\n\nRead `data.vendor.account_actions.action` from request **2** — send the same value here.\n\n**Suspend effects:** `approved` → `suspended`; login blocked; tokens revoked; products hidden from shop.\n\n**Activate effects:** `suspended` → `approved`; vendor can login again."
                                     }
                                 }
                             ]
                         },
                         {
                             "name": "B. Vendor Approval & Actions",
-                            "description": "**Vendor onboarding & admin actions** — pending requests, approve\/reject, suspend, full CRUD.\n\n**Login first:** `2. Authentication` → **Login** (roles: `admin`).\n\n**Approval flow:** b Recent requests → c List pending → d Application detail → j Approve \/ k Reject\n\n**Also includes:** stats (a), analytics (f), products\/orders (g–h), profile update (i), suspend\/activate\/disable\/delete (m–p).",
+                            "description": "**Vendor onboarding & admin actions** — pending requests, approve\/reject, full CRUD.\n\n**Login first:** `2. Authentication` → **Login** (roles: `admin`).\n\n**Approval flow:** 2 Recent requests → 3 List pending → 4 Application detail → 10 Approve \/ 11 Reject\n\n**Suspend \/ reactivate:** folder **A** → request **5** (`POST ...\/account-status`).\n\n**Also includes:** stats (1), analytics (6), products\/orders (7–8), profile update (9), disable\/delete (13–14).",
                             "item": [
                                 {
                                     "name": "1. Vendor stats",
@@ -23523,113 +23471,7 @@
                                     }
                                 },
                                 {
-                                    "name": "13. Suspend vendor",
-                                    "event": [
-                                        {
-                                            "listen": "test",
-                                            "script": {
-                                                "type": "text\/javascript",
-                                                "exec": [
-                                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                                                    "if (pm.response.code === 200) {",
-                                                    "    var j = pm.response.json();",
-                                                    "    pm.expect(j.data.vendor.status).to.eql('suspended');",
-                                                    "}"
-                                                ]
-                                            }
-                                        }
-                                    ],
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application\/json"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application\/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"notes\": \"Suspended by admin\"\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}\/api\/admin\/vendors\/{{vendor_id}}\/suspend",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "vendors",
-                                                "{{vendor_id}}",
-                                                "suspend"
-                                            ]
-                                        },
-                                        "description": "POST \/api\/admin\/vendors\/{vendor_id}\/suspend — Blocks vendor login, revokes tokens, hides products from client shop. Optional `notes`."
-                                    }
-                                },
-                                {
-                                    "name": "14. Activate \/ reactivate vendor",
-                                    "event": [
-                                        {
-                                            "listen": "test",
-                                            "script": {
-                                                "type": "text\/javascript",
-                                                "exec": [
-                                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                                                    "if (pm.response.code === 200) {",
-                                                    "    var j = pm.response.json();",
-                                                    "    pm.expect(j.data.vendor.status).to.eql('approved');",
-                                                    "}"
-                                                ]
-                                            }
-                                        }
-                                    ],
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application\/json"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application\/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"notes\": \"Reactivated by admin\"\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}\/api\/admin\/vendors\/{{vendor_id}}\/activate",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "vendors",
-                                                "{{vendor_id}}",
-                                                "activate"
-                                            ]
-                                        },
-                                        "description": "POST \/api\/admin\/vendors\/{vendor_id}\/activate — Restores `suspended` → `approved`. Vendor can login; products visible again. Optional `notes`."
-                                    }
-                                },
-                                {
-                                    "name": "15. Disable vendor",
+                                    "name": "13. Disable vendor",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -23658,7 +23500,7 @@
                                     }
                                 },
                                 {
-                                    "name": "16. Delete vendor (permanent)",
+                                    "name": "14. Delete vendor (permanent)",
                                     "request": {
                                         "method": "DELETE",
                                         "header": [

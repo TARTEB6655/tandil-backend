@@ -6,6 +6,7 @@ use App\Enums\VendorStatus;
 use App\Enums\VendorDocumentType;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
@@ -21,6 +22,7 @@ use App\Services\Vendor\VendorDashboardService;
 use App\Services\Vendor\VendorRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class VendorManagementController extends Controller
 {
@@ -514,11 +516,41 @@ class VendorManagementController extends Controller
         ]);
     }
 
+    public function updateAccountStatus(Request $request, int $id): JsonResponse
+    {
+        $vendor = Vendor::findOrFail($id);
+        $data = $request->validate([
+            'action' => 'required|in:suspend,activate',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $vendor = $this->applyAccountStatusAction(
+            $vendor,
+            $data['action'],
+            $request->user(),
+            $data['notes'] ?? null
+        );
+
+        $message = $data['action'] === 'suspend'
+            ? 'Vendor suspended.'
+            : 'Vendor activated.';
+
+        return ApiResponse::success($message, [
+            'action' => $data['action'],
+            'vendor' => $vendor,
+        ]);
+    }
+
     public function suspend(Request $request, int $id): JsonResponse
     {
         $vendor = Vendor::findOrFail($id);
         $data = $request->validate(['notes' => 'nullable|string|max:500']);
-        $vendor = $this->approval->suspend($vendor, $request->user(), $data['notes'] ?? null);
+        $vendor = $this->applyAccountStatusAction(
+            $vendor,
+            'suspend',
+            $request->user(),
+            $data['notes'] ?? null
+        );
 
         return ApiResponse::success('Vendor suspended.', ['vendor' => $vendor]);
     }
@@ -527,7 +559,12 @@ class VendorManagementController extends Controller
     {
         $vendor = Vendor::findOrFail($id);
         $data = $request->validate(['notes' => 'nullable|string|max:500']);
-        $vendor = $this->approval->activate($vendor, $request->user(), $data['notes'] ?? null);
+        $vendor = $this->applyAccountStatusAction(
+            $vendor,
+            'activate',
+            $request->user(),
+            $data['notes'] ?? null
+        );
 
         return ApiResponse::success('Vendor activated.', ['vendor' => $vendor]);
     }
@@ -566,5 +603,30 @@ class VendorManagementController extends Controller
             'vendor_id' => $id,
             'deleted' => true,
         ]);
+    }
+
+    private function applyAccountStatusAction(
+        Vendor $vendor,
+        string $action,
+        User $admin,
+        ?string $notes
+    ): Vendor {
+        if ($action === 'suspend') {
+            if ($vendor->status !== VendorStatus::Approved->value) {
+                throw ValidationException::withMessages([
+                    'action' => ['Vendor can only be suspended when status is approved.'],
+                ]);
+            }
+
+            return $this->approval->suspend($vendor, $admin, $notes);
+        }
+
+        if ($vendor->status !== VendorStatus::Suspended->value) {
+            throw ValidationException::withMessages([
+                'action' => ['Vendor can only be reactivated when status is suspended.'],
+            ]);
+        }
+
+        return $this->approval->activate($vendor, $admin, $notes);
     }
 }
