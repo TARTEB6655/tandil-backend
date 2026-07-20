@@ -184,7 +184,7 @@ class AdminVendorManagementApiTest extends TestCase
         $this->assertArrayNotHasKey('profile_url', $item);
     }
 
-    public function test_admin_mobile_management_lists_only_approved_vendors(): void
+    public function test_admin_mobile_management_lists_approved_and_suspended_vendors(): void
     {
         ['adminToken' => $token, 'vendor' => $approvedVendor] = $this->seedVendorWithMetrics();
 
@@ -201,14 +201,35 @@ class AdminVendorManagementApiTest extends TestCase
             'email' => $pendingUser->email,
         ]);
 
+        $suspendedUser = User::factory()->create(['role' => 'vendor', 'password' => Hash::make('password')]);
+        $suspendedUser->assignRole('vendor');
+        $suspendedVendor = Vendor::create([
+            'user_id' => $suspendedUser->id,
+            'status' => VendorStatus::Suspended->value,
+            'suspended_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $suspendedVendor->id,
+            'business_name' => 'Suspended Store',
+            'owner_name' => 'Suspended Owner',
+            'email' => $suspendedUser->email,
+        ]);
+
         $response = $this->withToken($token)
             ->getJson('/api/admin/vendors/management')
             ->assertOk();
 
         $ids = collect($response->json('data.items'))->pluck('vendor_id')->all();
         $this->assertContains($approvedVendor->id, $ids);
+        $this->assertContains($suspendedVendor->id, $ids);
         $this->assertNotContains($pendingVendor->id, $ids);
-        $this->assertSame(1, $response->json('data.summary.vendors'));
+        $this->assertSame(2, $response->json('data.summary.vendors'));
+
+        $suspendedItem = collect($response->json('data.items'))
+            ->firstWhere('vendor_id', $suspendedVendor->id);
+        $this->assertSame('suspended', $suspendedItem['status']);
+        $this->assertSame('Suspended', $suspendedItem['status_label']);
+        $this->assertSame('SUSPENDED', $suspendedItem['status_display']);
     }
 
     public function test_admin_mobile_management_supports_search(): void

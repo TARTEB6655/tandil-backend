@@ -24,8 +24,11 @@ class AdminVendorMobileService
     public function managementIndex(Request $request): array
     {
         $overview = $this->analytics->overview();
-        $approvedVendorCount = Vendor::query()
-            ->where('status', VendorStatus::Approved->value)
+        $managedVendorCount = Vendor::query()
+            ->whereIn('status', [
+                VendorStatus::Approved->value,
+                VendorStatus::Suspended->value,
+            ])
             ->count();
 
         $paginator = $this->vendorQuery($request)->paginate(
@@ -37,7 +40,7 @@ class AdminVendorMobileService
 
         return [
             'summary' => [
-                'vendors' => $approvedVendorCount,
+                'vendors' => $managedVendorCount,
                 'products' => (int) ($overview['products']['total'] ?? 0),
                 'revenue' => (float) ($overview['revenue']['gross'] ?? 0),
                 'revenue_formatted' => $this->formatAed((float) ($overview['revenue']['gross'] ?? 0)),
@@ -160,6 +163,7 @@ class AdminVendorMobileService
             'logo_url' => $this->businessLogoUrl($vendor),
             'status' => $vendor->status,
             'status_label' => $vendor->statusEnum()->label(),
+            'status_display' => $vendor->statusEnum()->displayStatus(),
             'products_count' => (int) ($metrics['total_products'] ?? 0),
             'active_count' => (int) ($metrics['active_products'] ?? 0),
             'revenue' => $revenue,
@@ -227,7 +231,17 @@ class AdminVendorMobileService
         $sort = $request->query('sort', 'newest');
 
         return Vendor::with(['profile', 'user'])
-            ->where('status', VendorStatus::Approved->value)
+            ->whereIn('status', [
+                VendorStatus::Approved->value,
+                VendorStatus::Suspended->value,
+            ])
+            ->when($request->query('status'), function ($query, $status) {
+                if ($status === 'all') {
+                    return $query;
+                }
+
+                return $query->where('status', $status);
+            })
             ->when($request->query('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->whereHas('profile', function ($pq) use ($search) {

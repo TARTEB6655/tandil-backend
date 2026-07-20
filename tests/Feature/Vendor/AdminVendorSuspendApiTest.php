@@ -90,6 +90,15 @@ class AdminVendorSuspendApiTest extends TestCase
             ->assertJsonPath('data.vendor.status', 'suspended')
             ->assertJsonPath('data.vendor.account_actions.action', 'activate')
             ->assertJsonPath('data.vendor.account_actions.label', 'Reactivate Vendor Account');
+
+        $listResponse = $this->withToken($adminToken)
+            ->getJson('/api/admin/vendors/management')
+            ->assertOk();
+
+        $listItem = collect($listResponse->json('data.items'))
+            ->firstWhere('vendor_id', $vendor->id);
+        $this->assertNotNull($listItem);
+        $this->assertSame('suspended', $listItem['status']);
     }
 
     public function test_admin_can_reactivate_suspended_vendor_via_account_status_api(): void
@@ -157,6 +166,97 @@ class AdminVendorSuspendApiTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame('approved', $vendor->fresh()->status);
+    }
+
+    public function test_suspended_vendor_products_hidden_from_all_client_shop_endpoints(): void
+    {
+        [
+            'adminToken' => $adminToken,
+            'vendor' => $vendor,
+            'product' => $product,
+        ] = $this->seedApprovedVendorWithProduct();
+
+        $categoryId = $product->category_id;
+        $product->update(['is_featured' => true]);
+
+        $this->getJson('/api/shop/products')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $product->id]);
+
+        $this->getJson("/api/shop/products/category/{$categoryId}")
+            ->assertOk()
+            ->assertJsonFragment(['id' => $product->id]);
+
+        $this->getJson('/api/shop/products/featured')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $product->id]);
+
+        $this->getJson("/api/shop/vendors/{$vendor->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $vendor->id);
+
+        $this->withToken($adminToken)
+            ->postJson("/api/admin/vendors/{$vendor->id}/account-status", [
+                'action' => 'suspend',
+            ])
+            ->assertOk();
+
+        $this->getJson('/api/shop/products')
+            ->assertOk()
+            ->assertJsonMissing(['id' => $product->id]);
+
+        $categoryResponse = $this->getJson("/api/shop/products/category/{$categoryId}")
+            ->assertOk();
+        $this->assertFalse(
+            collect($categoryResponse->json('data.products'))->pluck('id')->contains($product->id)
+        );
+
+        $featuredResponse = $this->getJson('/api/shop/products/featured')
+            ->assertOk();
+        $this->assertFalse(
+            collect($featuredResponse->json('data'))->pluck('id')->contains($product->id)
+        );
+
+        $this->getJson("/api/shop/products/{$product->id}")
+            ->assertNotFound();
+
+        $this->getJson("/api/shop/vendors/{$vendor->id}")
+            ->assertNotFound();
+    }
+
+    public function test_suspended_vendor_cannot_login_and_existing_tokens_are_revoked(): void
+    {
+        [
+            'adminToken' => $adminToken,
+            'vendor' => $vendor,
+            'vendorUser' => $vendorUser,
+            'vendorToken' => $vendorToken,
+        ] = $this->seedApprovedVendorWithProduct();
+
+        $this->withToken($adminToken)
+            ->postJson("/api/admin/vendors/{$vendor->id}/account-status", [
+                'action' => 'suspend',
+            ])
+            ->assertOk();
+
+        $this->postJson('/api/vendor/auth/login', [
+            'email' => $vendorUser->email,
+            'password' => 'secret12',
+            'roles' => 'vendor',
+        ])
+            ->assertStatus(403)
+            ->assertJsonPath(
+                'message',
+                'Your vendor account has been suspended. Please contact admin.'
+            );
+
+        $this->withToken($vendorToken)
+            ->getJson('/api/vendor/auth/me')
+            ->assertForbidden();
+
+        $this->withToken($vendorToken)
+            ->getJson('/api/vendor/products')
+            ->assertForbidden();
     }
 
     /**

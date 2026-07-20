@@ -22699,7 +22699,7 @@
                                                 }
                                             ]
                                         },
-                                        "description": "**Vendor Management screen** — approved vendors only. Summary cards (approved vendors count, products, revenue) plus paginated vendor cards with logo_url (business logo only), products_count, active_count, revenue_formatted. Auto-sets {{vendor_id}} from first card."
+                                        "description": "**Vendor Management screen** — approved + suspended vendors (not hidden after suspend). Summary cards, vendor cards with `status`, `status_label`, `status_display`. Auto-sets {{vendor_id}} from first card."
                                     }
                                 },
                                 {
