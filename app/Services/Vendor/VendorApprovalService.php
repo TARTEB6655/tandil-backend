@@ -53,6 +53,9 @@ class VendorApprovalService
             if ($newStatus === VendorStatus::Disabled && $vendor->user) {
                 $vendor->user->update(['status' => 'inactive']);
             }
+            if ($newStatus === VendorStatus::Suspended && $vendor->user) {
+                $vendor->user->tokens()->delete();
+            }
             if ($newStatus === VendorStatus::Approved && $vendor->user) {
                 $vendor->user->update(['status' => 'active']);
             }

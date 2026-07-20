@@ -77,6 +77,8 @@ class AdminVendorMobileService
                 'logo_url' => $this->businessLogoUrl($vendor),
                 'status' => $vendor->status,
                 'status_label' => $vendor->statusEnum()->label(),
+                'status_display' => $vendor->statusEnum()->displayStatus(),
+                'account_actions' => $this->accountActions($vendor),
             ],
             'summary' => [
                 'total_revenue' => (float) ($metrics['revenue'] ?? 0),
@@ -175,6 +177,34 @@ class AdminVendorMobileService
         $vendor->loadMissing('profile');
 
         return $vendor->profile?->logo_url ?? $vendor->logo_url;
+    }
+
+    /**
+     * Suspend / reactivate actions for the admin mobile vendor detail screen.
+     *
+     * @return array<string, mixed>
+     */
+    private function accountActions(Vendor $vendor): array
+    {
+        $canSuspend = $vendor->status === VendorStatus::Approved->value;
+        $canActivate = $vendor->status === VendorStatus::Suspended->value;
+
+        return [
+            'can_suspend' => $canSuspend,
+            'can_activate' => $canActivate,
+            'suspend' => $canSuspend ? [
+                'method' => 'POST',
+                'endpoint' => "/api/admin/vendors/{$vendor->id}/suspend",
+                'label' => 'Suspend Vendor Account',
+                'confirmation_message' => 'Are you sure you want to suspend this vendor account?',
+            ] : null,
+            'activate' => $canActivate ? [
+                'method' => 'POST',
+                'endpoint' => "/api/admin/vendors/{$vendor->id}/activate",
+                'label' => 'Reactivate Vendor Account',
+                'confirmation_message' => null,
+            ] : null,
+        ];
     }
 
     private function vendorQuery(Request $request)
