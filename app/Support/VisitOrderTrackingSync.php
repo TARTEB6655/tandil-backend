@@ -54,7 +54,7 @@ final class VisitOrderTrackingSync
         $status = (string) ($visit->status ?? 'pending');
         if ($status === 'completed') {
             $visit->loadMissing('report');
-            if (($visit->report?->status ?? null) === 'approved') {
+            if (($visit->report?->status ?? null) === 'sent_to_client') {
                 return 'completed';
             }
         }

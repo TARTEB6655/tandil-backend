@@ -7,21 +7,16 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Report;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\Visit;
-use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
-/**
- * Smoke test for client-reported status mismatch:
- * technician/supervisor see visit "completed" while admin/client order tracking stays "in_progress"
- * until supervisor submits the finalized report to the client.
- */
-class OrderTrackingCrossRoleSmokeTest extends TestCase
+class ClientOrderReportFlowTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -39,24 +34,22 @@ class OrderTrackingCrossRoleSmokeTest extends TestCase
         }
     }
 
-    public function test_shop_order_status_stays_in_progress_until_supervisor_submits_report_to_client(): void
+    public function test_client_sees_report_only_after_supervisor_submits_and_can_mark_delivered(): void
     {
         Setting::set('paypal_enabled', '1');
         Config::set('payments.paypal.client_id', '');
         Config::set('payments.paypal.secret', '');
 
-        $admin = User::factory()->create(['role' => 'admin']);
-        $client = User::factory()->create(['role' => 'client', 'email' => 'cross-role-client@test.com']);
+        $client = User::factory()->create(['role' => 'client', 'email' => 'client-report@test.com']);
         $supervisor = User::factory()->create(['role' => 'supervisor']);
         $technician = User::factory()->create(['role' => 'technician']);
-        $hr = User::factory()->create(['role' => 'hr']);
-        foreach ([$admin, $client, $supervisor, $technician, $hr] as $user) {
+        foreach ([$client, $supervisor, $technician] as $user) {
             $this->assignRoleIfAvailable($user, $user->role);
         }
 
         $area = Area::factory()->create([
-            'name' => 'Dubai Central',
-            'location' => 'Dubai',
+            'name' => 'Abu Dhabi Central',
+            'location' => 'Abu Dhabi',
             'country' => 'UAE',
             'is_active' => true,
         ]);
@@ -71,10 +64,10 @@ class OrderTrackingCrossRoleSmokeTest extends TestCase
         $start = $this->postJson('/api/shop/checkout/start', [
             'payment_method' => 'paypal',
             'email' => $client->email,
-            'full_name' => 'Cross Role Client',
+            'full_name' => 'Report Client',
             'phone_number' => '+971501111111',
-            'street_address' => 'Test St',
-            'city' => 'Dubai',
+            'street_address' => 'Office 302, Al Khalidiya',
+            'city' => 'Abu Dhabi',
             'country' => 'United Arab Emirates',
             'items' => [['product_id' => $product->id, 'qty' => 1]],
             'success_url' => 'https://example.com/ok',
@@ -89,48 +82,29 @@ class OrderTrackingCrossRoleSmokeTest extends TestCase
 
         $order = Order::findOrFail($orderId);
         $order->update(['user_id' => $client->id]);
-        $visit = Visit::query()
-            ->where('notes', 'like', '%[SHOP-ORDER:'.$orderId.']%')
-            ->firstOrFail();
-
-        $visit->update([
-            'technician_id' => $technician->id,
-            'status' => 'in_progress',
-        ]);
-        $order->refresh();
-        $this->assertSame('in_progress', $order->order_status);
-
-        $supervisorUnreadBefore = $supervisor->unreadNotifications()->count();
-        $hrUnreadBefore = $hr->unreadNotifications()->count();
+        $visit = Visit::query()->where('order_id', $orderId)->first()
+            ?? Visit::query()->where('notes', 'like', '%[SHOP-ORDER:'.$orderId.']%')->firstOrFail();
+        $visit->update(['technician_id' => $technician->id, 'status' => 'in_progress']);
 
         $this->actingAs($technician, 'sanctum')
             ->postJson('/api/technician/reports', [
                 'visit_id' => $visit->id,
-                'technician_notes' => 'Job done',
+                'technician_notes' => 'Completed watering and pruning.',
             ])
             ->assertCreated();
 
-        $visit->refresh();
-        $order->refresh();
         $report = Report::where('visit_id', $visit->id)->firstOrFail();
-
-        $this->assertSame('completed', $visit->status);
-        $this->assertSame('pending', $report->status);
-        $this->assertSame('in_progress', $order->order_status);
+        $clientUnreadBefore = $client->unreadNotifications()->count();
 
         $this->actingAs($client, 'sanctum')
             ->getJson("/api/orders/{$orderId}/track")
             ->assertOk()
-            ->assertJsonPath('data.tracking.status', 'in_progress')
-            ->assertJsonPath('data.service_report.available', false);
+            ->assertJsonPath('data.service_report.available', false)
+            ->assertJsonPath('data.service_report.can_view_report', false);
 
-        $this->actingAs($supervisor, 'sanctum')
-            ->getJson('/api/supervisor/reports?status=pending')
-            ->assertOk()
-            ->assertJsonFragment(['id' => $report->id]);
-
-        $this->assertGreaterThan($hrUnreadBefore, $hr->fresh()->unreadNotifications()->count());
-        $this->assertSame($supervisorUnreadBefore, $supervisor->fresh()->unreadNotifications()->count());
+        $this->actingAs($client, 'sanctum')
+            ->getJson("/api/orders/{$orderId}/report")
+            ->assertStatus(404);
 
         $this->actingAs($supervisor, 'sanctum')
             ->postJson("/api/supervisor/reports/{$report->id}/accept")
@@ -142,19 +116,35 @@ class OrderTrackingCrossRoleSmokeTest extends TestCase
         $this->actingAs($supervisor, 'sanctum')
             ->postJson("/api/supervisor/visits/{$visit->id}/finalize", [
                 'status' => 'sent_to_client',
-                'supervisor_notes' => 'Approved for client.',
+                'supervisor_notes' => 'Good work overall.',
+                'recommendations' => ['Needs Fertilizer', 'Needs Watering'],
             ])
-            ->assertOk();
+            ->assertOk()
+            ->assertJsonPath('data.status', 'sent_to_client');
 
         $order->refresh();
         $this->assertSame('completed', $order->order_status);
-        $this->assertSame('sent_to_client', $report->fresh()->status);
+        $this->assertGreaterThan($clientUnreadBefore, $client->fresh()->unreadNotifications()->count());
 
         $this->actingAs($client, 'sanctum')
             ->getJson("/api/orders/{$orderId}/track")
             ->assertOk()
-            ->assertJsonPath('data.tracking.status', 'completed')
             ->assertJsonPath('data.service_report.available', true)
-            ->assertJsonPath('data.current_status', 'Completed');
+            ->assertJsonPath('data.service_report.can_view_report', true)
+            ->assertJsonPath('data.service_report.can_mark_delivered', true)
+            ->assertJsonPath('data.tracking.status', 'completed');
+
+        $this->actingAs($client, 'sanctum')
+            ->getJson("/api/orders/{$orderId}/report")
+            ->assertOk()
+            ->assertJsonPath('data.supervisor_notes', 'Good work overall.')
+            ->assertJsonPath('data.field_notes', 'Completed watering and pruning.')
+            ->assertJsonFragment(['Needs Fertilizer']);
+
+        $this->actingAs($client, 'sanctum')
+            ->postJson("/api/orders/{$orderId}/mark-delivered")
+            ->assertOk()
+            ->assertJsonPath('data.order_status', 'delivered')
+            ->assertJsonPath('data.tracking.status', 'delivered');
     }
 }

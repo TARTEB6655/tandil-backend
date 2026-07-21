@@ -3625,7 +3625,7 @@
                                         "reports"
                                     ]
                                 },
-                                "description": "✅ STEP 10: List all reports (role-based access)"
+                                "description": "List client-visible reports (`sent_to_client` only). Includes subscription visits and shop orders linked by visit.order_id."
                             }
                         },
                         {
@@ -3653,7 +3653,7 @@
                                         "{{report_id}}"
                                     ]
                                 },
-                                "description": "✅ STEP 11: Get report details with recommendations"
+                                "description": "GET \/api\/reports\/{id} – Client sees formatted report (field_worker, notes, photos, recommendations) when status is sent_to_client. Prefer GET \/api\/orders\/{order_id}\/report for shop order flow."
                             }
                         },
                         {
@@ -4144,8 +4144,8 @@
                             ]
                         },
                         {
-                            "name": "E. My orders (app routes — track \/ cancel)",
-                            "description": "Same orders, shorter URLs for the app: `\/api\/orders`. **Track** = timeline + `order_summary` + `order_number_short`. **Cancel** = POST cancel.",
+                            "name": "E. My orders (app routes — track \/ cancel \/ service report)",
+                            "description": "Same orders, shorter URLs for the app: `\/api\/orders`. **Track** = timeline + `order_summary` + `service_report` flags. **Service Report** = full report after supervisor submits (`sent_to_client`). **Mark as Delivered** = client confirms delivery. **Cancel** = POST cancel.",
                             "item": [
                                 {
                                     "name": "1. Orders - List (Alternative Route)",
@@ -4279,11 +4279,85 @@
                                                 "track"
                                             ]
                                         },
-                                        "description": "GET \/api\/orders\/{id}\/track – Timeline + order_summary: placed_at, delivery_address, payment_method, total, currency, special_instructions, **estimated_arrival** (e.g. \"15–20 minutes\" for arrival), **job_duration** (e.g. \"Approx. 1 hour\" for on-site work) — both nullable until staff sets them. Also order_number_short, order_number, can_cancel."
+                                        "description": "GET \/api\/orders\/{id}\/track – Timeline + order_summary + **service_report** block.\n\n**service_report:** `available`, `report_id`, `can_view_report`, `can_mark_delivered`, `pending_message`.\n\nShow report card only when `service_report.can_view_report` is true (after supervisor POST \/api\/supervisor\/visits\/{visit_id}\/finalize with status=sent_to_client).\n\nAlso: placed_at, delivery_address, payment_method, total, order_number_short, can_cancel, maintenance_photos."
                                     }
                                 },
                                 {
-                                    "name": "5. Orders - Cancel Track",
+                                    "name": "5. Orders - Service Report",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "exec": [
+                                                    "if (pm.response.code === 200) {",
+                                                    "    var jsonData = pm.response.json();",
+                                                    "    if (jsonData.data && jsonData.data.report_id) {",
+                                                    "        pm.environment.set('report_id', jsonData.data.report_id);",
+                                                    "    }",
+                                                    "}"
+                                                ],
+                                                "type": "text\/javascript"
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application\/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/orders\/{{order_id}}\/report",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "orders",
+                                                "{{order_id}}",
+                                                "report"
+                                            ]
+                                        },
+                                        "description": "**NEW** GET \/api\/orders\/{id}\/report – Client service report screen.\n\n**Auth:** Bearer (client owner).\n\n**Available when:** supervisor submitted report to client (`sent_to_client`). Otherwise 404.\n\n**Response data:** field_worker, visit_information, field_notes, supervisor_notes, recommendations[], recommended_products[], before_photos, after_photos, field_photos.\n\n**Mobile:** Open from order track when `service_report.can_view_report` is true."
+                                    }
+                                },
+                                {
+                                    "name": "6. Orders - Mark as Delivered",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application\/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}\/api\/orders\/{{order_id}}\/mark-delivered",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "orders",
+                                                "{{order_id}}",
+                                                "mark-delivered"
+                                            ]
+                                        },
+                                        "description": "**NEW** POST \/api\/orders\/{id}\/mark-delivered – Client confirms delivery from Service Report screen.\n\n**Auth:** Bearer (client owner).\n\n**Requires:** order_status = completed and report sent_to_client.\n\n**Result:** order_status → delivered, timeline updated.\n\n**Body:** empty JSON `{}` or no body."
+                                    }
+                                },
+                                {
+                                    "name": "7. Orders - Cancel Track",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -4312,7 +4386,7 @@
                                     }
                                 },
                                 {
-                                    "name": "6. Orders - Cancel",
+                                    "name": "8. Orders - Cancel",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -4349,7 +4423,7 @@
                                     }
                                 },
                                 {
-                                    "name": "7. Orders - Update",
+                                    "name": "9. Orders - Update",
                                     "request": {
                                         "method": "PUT",
                                         "header": [
@@ -4385,7 +4459,7 @@
                                     }
                                 },
                                 {
-                                    "name": "8. Orders - Rate",
+                                    "name": "10. Orders - Rate",
                                     "request": {
                                         "method": "POST",
                                         "header": [

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
 use App\Services\ShopOrderCancellationService;
+use App\Support\OrderClientReportService;
 use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -241,6 +242,7 @@ class OrderController extends Controller
 
         $timeline = $this->buildOrderTimeline($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
+        $serviceReport = app(OrderClientReportService::class)->serviceReportMetaForOrder($order);
 
         return response()->json([
             'success' => true,
@@ -260,10 +262,119 @@ class OrderController extends Controller
                     'updated_at' => $order->updated_at?->format('c'),
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
+                'service_report' => $serviceReport,
                 'maintenance_photos' => $maintenancePhotos,
                 'can_cancel' => ! app(ShopOrderCancellationService::class)->isForbidden((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
                 'wallet' => $this->walletSnapshot($order),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Client service report for a shop order (visible only after supervisor submits to client).
+     */
+    public function report(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::query()->find($id);
+
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+        }
+
+        if (! $this->canViewOrder($user, $order)) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        $reportService = app(OrderClientReportService::class);
+        $report = $reportService->findReportForOrder($order);
+
+        if (! $reportService->isReportVisibleToClient($report)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Service report is not available yet. It will appear after your supervisor submits it.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Service report retrieved successfully.',
+            'data' => $reportService->formatReportForClient($report),
+        ], 200);
+    }
+
+    /**
+     * Client confirms delivery after reviewing the service report.
+     */
+    public function markDelivered(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::query()->find($id);
+
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+        }
+
+        if ($order->user_id !== null && (int) $order->user_id !== (int) $user->id) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        if ($order->user_id === null) {
+            $orderEmail = strtolower(trim((string) ($order->guest_email ?? '')));
+            $userEmail = strtolower(trim((string) ($user->email ?? '')));
+            if ($orderEmail === '' || $orderEmail !== $userEmail) {
+                return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+            }
+        }
+
+        $reportService = app(OrderClientReportService::class);
+        $report = $reportService->findReportForOrder($order);
+        if (! $reportService->isReportVisibleToClient($report)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Service report must be available before marking the order as delivered.',
+            ], 422);
+        }
+
+        $status = strtolower((string) ($order->order_status ?? 'pending'));
+        if ($status === 'delivered') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Order is already marked as delivered.',
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_status' => $order->order_status,
+                    'tracking' => [
+                        'status' => $order->order_status,
+                        'timeline' => $this->buildOrderTimeline($order),
+                    ],
+                ],
+            ], 200);
+        }
+
+        if ($status !== 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order must be completed before it can be marked as delivered.',
+            ], 422);
+        }
+
+        $order->order_status = 'delivered';
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order marked as delivered.',
+            'data' => [
+                'order_id' => $order->id,
+                'order_status' => $order->order_status,
+                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
+                'tracking' => [
+                    'status' => $order->order_status,
+                    'timeline' => $this->buildOrderTimeline($order),
+                ],
+                'service_report' => $reportService->serviceReportMetaForOrder($order),
             ],
         ], 200);
     }
@@ -420,6 +531,8 @@ class OrderController extends Controller
         $order->load(['items.product', 'items.product.primaryImage', 'shippingAddress']);
         $timeline = $this->buildOrderTimeline($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
+        $serviceReport = app(OrderClientReportService::class)->serviceReportMetaForOrder($order);
+
         return response()->json([
             'success' => true,
             'message' => 'Order tracking information retrieved successfully',
@@ -438,6 +551,7 @@ class OrderController extends Controller
                     'updated_at' => $order->updated_at?->format('c'),
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
+                'service_report' => $serviceReport,
                 'maintenance_photos' => $maintenancePhotos,
                 'can_cancel' => ! app(ShopOrderCancellationService::class)->isForbidden((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
@@ -632,10 +746,21 @@ class OrderController extends Controller
      */
     private function getOrderMaintenancePhotos(Order $order): array
     {
-        $photos = [];
+        $reportService = app(OrderClientReportService::class);
+        $visit = $reportService->findVisitForOrder($order);
+        if ($visit === null) {
+            return [];
+        }
 
-        // TODO: when orders are linked to visits, load VisitPhoto or MaintenancePhoto and return image_url
-        return $photos;
+        $photoService = app(\App\Services\VisitPhotoService::class);
+
+        return $visit->photos()
+            ->where('show_on_client_app', true)
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($photo) => $photoService->toApiItem($photo))
+            ->values()
+            ->all();
     }
 
     /**

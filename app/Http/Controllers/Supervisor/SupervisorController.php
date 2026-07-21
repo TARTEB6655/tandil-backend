@@ -9,6 +9,8 @@ use App\Models\Product;
 use App\Models\Area;
 use App\Models\Complaint;
 use App\Support\CapsPagination;
+use App\Support\OrderClientReportService;
+use App\Support\VisitOrderTrackingSync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -253,6 +255,19 @@ class SupervisorController extends Controller
         }
 
         $report->save();
+
+        if ($status === 'sent_to_client') {
+            $reportService = app(OrderClientReportService::class);
+            $reportService->releasePhotosToClient($visit);
+            VisitOrderTrackingSync::syncFromVisit($visit->fresh(['report']));
+
+            $order = $reportService->resolveOrderForVisit($visit);
+            if ($order) {
+                $reportService->notifyClientReportReady($order, $report);
+            } else {
+                $reportService->notifySubscriptionClientReportReady($visit, $report);
+            }
+        }
 
         return response()->json([
             'success' => true,

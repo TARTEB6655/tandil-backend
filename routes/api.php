@@ -667,6 +667,8 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])
     Route::put('/{id}', [\App\Http\Controllers\Shop\OrderController::class, 'update']);
     Route::post('/{id}/cancel', [\App\Http\Controllers\Shop\OrderController::class, 'cancel']);
     Route::get('/{id}/track', [\App\Http\Controllers\Shop\OrderController::class, 'track']);
+    Route::get('/{id}/report', [\App\Http\Controllers\Shop\OrderController::class, 'report']);
+    Route::post('/{id}/mark-delivered', [\App\Http\Controllers\Shop\OrderController::class, 'markDelivered']);
     Route::get('/{id}/cancel-track', [\App\Http\Controllers\Shop\OrderController::class, 'cancelTrack']);
     Route::post('/{id}/rate', [\App\Http\Controllers\Shop\OrderController::class, 'rate']);
 });

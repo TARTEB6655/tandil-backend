@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Report;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\Report;
 use App\Models\Subscription;
 use App\Models\Visit;
 use App\Support\CapsPagination;
+use App\Support\OrderClientReportService;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -44,10 +46,19 @@ class ReportController extends Controller
                 $subscriptionIds = Subscription::query()
                     ->where('client_id', $user->id)
                     ->pluck('id');
-                $visitIds = Visit::query()
-                    ->whereIn('subscription_id', $subscriptionIds)
+                $subscriptionVisitIds = $subscriptionIds->isNotEmpty()
+                    ? Visit::query()->whereIn('subscription_id', $subscriptionIds)->pluck('id')
+                    : collect();
+                $orderVisitIds = Visit::query()
+                    ->whereIn('order_id', Order::query()->where('user_id', $user->id)->select('id'))
                     ->pluck('id');
-                $query->whereIn('visit_id', $visitIds);
+                $visitIds = $subscriptionVisitIds->merge($orderVisitIds)->unique()->values();
+                if ($visitIds->isEmpty()) {
+                    $query->whereRaw('1 = 0');
+                } else {
+                    $query->whereIn('visit_id', $visitIds)
+                        ->whereIn('status', OrderClientReportService::CLIENT_VISIBLE_REPORT_STATUSES);
+                }
             } elseif ($role === 'technician' || $user->hasRole('technician')) {
                 $visitIds = Visit::query()
                     ->where('technician_id', $user->id)
@@ -91,13 +102,32 @@ class ReportController extends Controller
         }
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         try {
+            $user = $request->user();
             $report = Report::with(['visit', 'supervisor'])->find($id);
 
             if (! $report) {
                 return response()->json(['status' => false, 'message' => 'Report not found'], 404);
+            }
+
+            if ($user && ($user->hasRole('client') || strtolower((string) ($user->role ?? '')) === 'client')) {
+                if (! app(OrderClientReportService::class)->isReportVisibleToClient($report)) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Service report is not available yet.',
+                    ], 404);
+                }
+
+                if (! $this->clientCanAccessReport($user, $report)) {
+                    return response()->json(['status' => false, 'message' => 'Forbidden'], 403);
+                }
+
+                return response()->json([
+                    'status' => true,
+                    'data' => app(OrderClientReportService::class)->formatReportForClient($report),
+                ], 200);
             }
 
             return response()->json(['status' => true, 'data' => $report], 200);
@@ -107,6 +137,26 @@ class ReportController extends Controller
                 'message' => 'Failed to fetch report: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function clientCanAccessReport($user, Report $report): bool
+    {
+        $visit = $report->visit;
+        if ($visit === null) {
+            return false;
+        }
+
+        if ($visit->subscription && (int) $visit->subscription->client_id === (int) $user->id) {
+            return true;
+        }
+
+        if ($visit->order_id) {
+            $order = Order::query()->find((int) $visit->order_id);
+
+            return $order && (int) $order->user_id === (int) $user->id;
+        }
+
+        return false;
     }
 
     /**

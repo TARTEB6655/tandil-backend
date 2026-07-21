@@ -1504,9 +1504,6 @@ class SupervisorDashboardApiController extends Controller
         $report->approved_by = $request->user()->id;
         $report->approved_at = now();
         $report->save();
-        if ($report->visit) {
-            VisitOrderTrackingSync::syncFromVisit($report->visit);
-        }
 
         return response()->json([
             'success' => true,

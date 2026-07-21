@@ -75,9 +75,11 @@ SNo,Module,Method,Endpoint,Status
 74,8. Client Dashboard – Shop & Orders,PUT,/api/orders/{id},Done
 75,8. Client Dashboard – Shop & Orders,POST,/api/orders/{id}/cancel,Done
 76,8. Client Dashboard – Shop & Orders,GET,/api/orders/{id}/track,Done
-77,8. Client Dashboard – Shop & Orders,POST,/api/orders/{id}/rate,Done
-78,8. Client Dashboard – Shop & Orders,GET,/api/orders,Done
-79,8. Client Dashboard – Shop & Orders,GET,/api/orders/{id},Done
+77,8. Client Dashboard – Shop & Orders,GET,/api/orders/{id}/report,Done
+78,8. Client Dashboard – Shop & Orders,POST,/api/orders/{id}/mark-delivered,Done
+79,8. Client Dashboard – Shop & Orders,POST,/api/orders/{id}/rate,Done
+80,8. Client Dashboard – Shop & Orders,GET,/api/orders,Done
+81,8. Client Dashboard – Shop & Orders,GET,/api/orders/{id},Done
 80,8. Client Dashboard – Shop & Orders,GET,/api/shop/categories,Done
 81,8. Client Dashboard – Shop & Orders,GET,/api/shop/categories/{id},Done
 82,8. Client Dashboard – Shop & Orders,GET,/api/shop/payments,Done
