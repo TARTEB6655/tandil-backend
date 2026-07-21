@@ -20,6 +20,7 @@ use App\Models\VisitPhoto;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Services\VisitOfferService;
+use App\Support\OrderClientReportService;
 use App\Models\Tip;
 use App\Helpers\ApiResponse;
 use App\Support\CapsPagination;
@@ -1461,6 +1462,37 @@ class TechnicianDashboardController extends Controller
     {
         $client = $visit->subscription?->client;
         $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+
+        // Shop-order visits have no subscription client; resolve the buyer from the linked
+        // order (registered user or guest) so Customer Information is never empty.
+        $order = $client === null
+            ? app(OrderClientReportService::class)->resolveOrderForVisit($visit)
+            : null;
+
+        if ($client !== null) {
+            // Subscription visit: the farm name is the meaningful customer label.
+            $customerName = $meta['farm_name'] ?? $client->name;
+            $customerPhone = $client->phone;
+            $customerEmail = $client->email;
+        } elseif ($order !== null) {
+            // Shop-order visit: use the buyer details from the order.
+            $customerName = ($order->payerDisplayName() ?: null) ?? ($meta['farm_name'] ?? null);
+            $customerPhone = $order->payerPhone();
+            $customerEmail = $order->payerEmail();
+        } else {
+            $customerName = $meta['farm_name'] ?? null;
+            $customerPhone = null;
+            $customerEmail = null;
+        }
+
+        $serviceAddress = $meta['location'] ?? $visit->area?->name;
+        if ($order !== null) {
+            $orderAddress = trim($order->payerAddressForDisplay());
+            if ($orderAddress !== '') {
+                $serviceAddress = $orderAddress;
+            }
+        }
+
         $scheduledAt = $visit->started_at ?? ($visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->setTime(8, 0) : null);
         $duration = $meta['duration_minutes'] ?? null;
         if ($duration === null && $visit->started_at && $visit->completed_at) {
@@ -1489,16 +1521,16 @@ class TechnicianDashboardController extends Controller
                 'price_display' => $visit->price !== null ? ('AED ' . number_format((float) $visit->price, 2)) : ($meta['price_display'] ?? null),
             ],
             'customer_information' => [
-                'name' => $meta['farm_name'] ?? $client?->name,
-                'phone' => $client?->phone,
-                'email' => $client?->email,
+                'name' => $customerName,
+                'phone' => $customerPhone,
+                'email' => $customerEmail,
             ],
             'service_address' => [
                 'label' => 'Service Location',
-                'address' => $meta['location'] ?? $visit->area?->name,
+                'address' => $serviceAddress,
                 'get_directions' => true,
             ],
-            'special_instructions' => null,
+            'special_instructions' => $order?->special_instructions,
             'technician_notes' => $visit->report?->technician_notes ?? null,
             'before_after_photos' => [
                 'before' => $photos->where('type', 'before')->values(),
