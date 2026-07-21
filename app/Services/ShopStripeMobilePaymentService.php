@@ -617,6 +617,10 @@ class ShopStripeMobilePaymentService
                 'publishable_key' => StripeCredentials::publishableKey(),
                 'stripe_mode' => StripeCredentials::mode(),
                 'stripe_keys_version' => StripeCredentials::keysVersion(),
+                // Cache-bust signal: whenever this changes, the app MUST discard any cached
+                // publishable_key / client_secret and re-init the Payment Sheet using the
+                // publishable_key + client_secret from THIS response.
+                'stripe_account_fingerprint' => StripeCredentials::accountFingerprint(),
                 'shipping_country_iso' => $countryCode,
                 'order_total' => $total,
                 'amount_due' => $cardTotal,
@@ -674,6 +678,9 @@ class ShopStripeMobilePaymentService
                 'publishable_key' => StripeCredentials::publishableKey(),
                 'stripe_mode' => StripeCredentials::mode(),
                 'stripe_keys_version' => StripeCredentials::keysVersion(),
+                // App should compare this to the last value it stored; if different, clear the
+                // cached publishable_key and re-initialize Stripe before the next checkout.
+                'stripe_account_fingerprint' => StripeCredentials::accountFingerprint(),
                 'stripe_diagnostics' => [
                     'mode' => StripeCredentials::mode(),
                     'secret_key_source' => StripeCredentials::secretKeySource(),
