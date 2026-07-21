@@ -20,11 +20,13 @@ class VisitPhotoService
             return $path;
         }
 
+        // Serve via clean /media/ path (matches profile pictures, product images).
+        // The public /storage symlink is not reliable on all hosts (e.g. Cloudways).
         if (function_exists('request') && request() && request()->getHttpHost()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/').'/storage/'.$path;
+            return rtrim(request()->getSchemeAndHttpHost(), '/').'/media/'.$path;
         }
 
-        return asset('storage/'.$path);
+        return asset('media/'.$path);
     }
 
     /**

@@ -244,7 +244,8 @@ class TechnicianController extends Controller
         ]);
 
         // Response shape aligned with category image update: include photo_url
-        $photoUrl = $path ? (request()->getSchemeAndHttpHost() ? rtrim(request()->getSchemeAndHttpHost(), '/') . '/storage/' . $path : asset('storage/' . $path)) : null;
+        // Use clean /media/ path (matches profile pictures / product images; reliable on Cloudways).
+        $photoUrl = app(\App\Services\VisitPhotoService::class)->photoUrl($path);
         $data = $vp->toArray();
         $data['photo_url'] = $photoUrl;
 
