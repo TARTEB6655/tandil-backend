@@ -76,6 +76,30 @@ class ShopOrderTrackAndCancelTest extends TestCase
         ]);
     }
 
+    public function test_track_returns_delivery_address_for_logged_in_order_with_guest_address_fields(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'package_id' => null,
+            'order_status' => 'pending',
+            'payment_status' => 'paid',
+            'guest_street_address' => 'Office 302, Al Khalidiya, Corniche Road',
+            'guest_city' => 'Abu Dhabi',
+            'guest_state' => 'Abu Dhabi',
+            'guest_zip_code' => '00000',
+            'guest_country' => 'UAE',
+            'shipping_address_id' => null,
+        ]);
+
+        $response = $this->getJson('/api/orders/'.$order->id.'/track', $this->bearer($user));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Office 302, Al Khalidiya, Corniche Road', (string) $response->json('data.order_summary.delivery_address'));
+        $this->assertStringContainsString('Abu Dhabi', (string) $response->json('data.order_summary.delivery_address'));
+        $this->assertStringContainsString('UAE', (string) $response->json('data.order_summary.delivery_address'));
+    }
+
     public function test_track_falls_back_to_product_service_timing_when_order_fields_are_null(): void
     {
         $user = User::factory()->create(['role' => 'client']);

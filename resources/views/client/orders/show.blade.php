@@ -1,5 +1,5 @@
 @php
-    use Illuminate\Support\Facades\Storage;
+    $shipping = $order->getShippingAddressForApi();
 @endphp
 <x-client-layout>
     <!-- Page Header -->
@@ -23,11 +23,29 @@
                 <h2 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Order Items</h2>
                 <div class="space-y-4">
                     @forelse($order->items as $item)
+                        @php
+                            $product = $item->product;
+                            $productImageUrl = $product?->image_url;
+                            if (! $productImageUrl && ! empty($product?->image)) {
+                                $rawImage = (string) $product->image;
+                                if (str_starts_with($rawImage, 'http://') || str_starts_with($rawImage, 'https://')) {
+                                    $productImageUrl = str_contains($rawImage, '/storage/products/')
+                                        ? str_replace('/storage/products/', '/media/products/', $rawImage)
+                                        : $rawImage;
+                                } else {
+                                    $normalizedPath = ltrim(str_replace('\\', '/', $rawImage), '/');
+                                    if (! str_starts_with($normalizedPath, 'products/')) {
+                                        $normalizedPath = 'products/' . $normalizedPath;
+                                    }
+                                    $productImageUrl = asset('media/' . $normalizedPath);
+                                }
+                            }
+                        @endphp
                         <div class="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
                             <div class="flex-shrink-0">
-                                @if($item->product && $item->product->image)
-                                    <img src="{{ Storage::disk('public')->exists($item->product->image) ? asset('storage/' . $item->product->image) : asset('images/placeholder.png') }}" 
-                                         alt="{{ $item->product->name }}" 
+                                @if($productImageUrl)
+                                    <img src="{{ $productImageUrl }}"
+                                         alt="{{ $product?->name ?? 'Product image' }}"
                                          class="w-20 h-20 object-cover rounded-lg border border-gray-200">
                                 @else
                                     <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
@@ -53,6 +71,68 @@
                     @endforelse
                 </div>
             </div>
+
+            <!-- Shipping Address -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
+                <h2 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Shipping Address</h2>
+                @if($shipping)
+                    <div class="space-y-3 text-sm text-gray-700">
+                        @if(!empty($shipping['full_name']))
+                            <div>
+                                <p class="text-xs text-gray-500 mb-1">Full Name</p>
+                                <p class="font-medium text-gray-900">{{ $shipping['full_name'] }}</p>
+                            </div>
+                        @endif
+                        @if(!empty($shipping['phone_number']))
+                            <div>
+                                <p class="text-xs text-gray-500 mb-1">Phone</p>
+                                <p class="font-medium text-gray-900">{{ $shipping['phone_number'] }}</p>
+                            </div>
+                        @endif
+                        @if(!empty($shipping['street_address']))
+                            <div>
+                                <p class="text-xs text-gray-500 mb-1">Street Address</p>
+                                <p class="font-medium text-gray-900">{{ $shipping['street_address'] }}</p>
+                            </div>
+                        @endif
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @if(!empty($shipping['city']))
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">City</p>
+                                    <p class="font-medium text-gray-900">{{ $shipping['city'] }}</p>
+                                </div>
+                            @endif
+                            @if(!empty($shipping['state']))
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">State</p>
+                                    <p class="font-medium text-gray-900">{{ $shipping['state'] }}</p>
+                                </div>
+                            @endif
+                            @if(!empty($shipping['zip_code']))
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">ZIP Code</p>
+                                    <p class="font-medium text-gray-900">{{ $shipping['zip_code'] }}</p>
+                                </div>
+                            @endif
+                            @if(!empty($shipping['country']))
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">Country</p>
+                                    <p class="font-medium text-gray-900">{{ $shipping['country'] }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-500">No shipping address available for this order.</p>
+                @endif
+            </div>
+
+            @if($order->special_instructions)
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
+                <h2 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Special Instructions</h2>
+                <p class="text-sm text-gray-700">{{ $order->special_instructions }}</p>
+            </div>
+            @endif
 
             <!-- Order Timeline -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
@@ -121,8 +201,20 @@
                 <div class="space-y-3">
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600">Subtotal</span>
-                        <span class="text-gray-900 font-medium">AED {{ number_format($order->items->sum('subtotal'), 2) }}</span>
+                        <span class="text-gray-900 font-medium">AED {{ number_format((float) ($order->subtotal_amount ?? $order->items->sum('subtotal')), 2) }}</span>
                     </div>
+                    @if((float) ($order->shipping_amount ?? 0) > 0)
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Shipping</span>
+                        <span class="text-gray-900 font-medium">AED {{ number_format((float) $order->shipping_amount, 2) }}</span>
+                    </div>
+                    @endif
+                    @if((float) ($order->tax_amount ?? 0) > 0)
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Tax @if($order->tax_percent)({{ $order->tax_percent }}%)@endif</span>
+                        <span class="text-gray-900 font-medium">AED {{ number_format((float) $order->tax_amount, 2) }}</span>
+                    </div>
+                    @endif
                     <div class="border-t border-gray-200 pt-3">
                         <div class="flex justify-between">
                             <span class="text-base font-semibold text-gray-900">Total</span>

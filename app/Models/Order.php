@@ -192,15 +192,6 @@ class Order extends Model
 
     public function payerAddressForDisplay(): string
     {
-        if ($this->isGuestOrder()) {
-            $lines = array_filter([
-                $this->guest_street_address,
-                trim(implode(' ', array_filter([$this->guest_city, $this->guest_state, $this->guest_zip_code]))),
-                $this->guest_country,
-            ]);
-
-            return implode("\n", $lines);
-        }
         if ($this->shippingAddress) {
             $a = $this->shippingAddress;
             $lines = array_filter([
@@ -210,6 +201,15 @@ class Order extends Model
             ]);
 
             return implode("\n", $lines);
+        }
+
+        $guestLines = array_filter([
+            $this->guest_street_address,
+            trim(implode(' ', array_filter([$this->guest_city, $this->guest_state, $this->guest_zip_code]))),
+            $this->guest_country,
+        ]);
+        if ($guestLines !== []) {
+            return implode("\n", $guestLines);
         }
 
         return '';

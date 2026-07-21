@@ -29,7 +29,14 @@ class OrderController extends Controller
     {
         $user = Auth::user();
         $order = Order::where('user_id', $user->id)
-            ->with(['items.product.category', 'user'])
+            ->with([
+                'items.product.category',
+                'items.product.primaryImage',
+                'items.product.images',
+                'items.product.firstImage',
+                'shippingAddress',
+                'user',
+            ])
             ->findOrFail($id);
 
         return view('client.orders.show', compact('order'));
