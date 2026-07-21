@@ -235,7 +235,10 @@ class TechnicianController extends Controller
         $file = $request->file('photo');
         $type = $request->input('type', 'after');
         $path = $file->store('visit_photos', 'public');
-        \App\Services\ImageCompressionService::compressIfNeededFromPublicPath($path);
+        // Optimize after the response is sent (fast: 512 KB / 1280px single-pass).
+        // Doing it inline on full-resolution camera photos was CPU-heavy and caused
+        // the mobile client to hit its 30s upload timeout.
+        \App\Jobs\OptimizePublicDiskImageJob::dispatch($path, 'visit')->afterResponse();
 
         $vp = VisitPhoto::create([
             'visit_id' => $visit->id,
