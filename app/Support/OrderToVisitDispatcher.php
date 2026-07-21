@@ -129,6 +129,13 @@ final class OrderToVisitDispatcher
                 || ($zip !== '' && str_contains($hay, $zip));
         });
 
+        // Fallback: no textual area match, but supervised areas exist. Route the order
+        // to an active area that has a supervisor (prefer the country-matched subset) so
+        // the area supervisor always sees the order, regardless of address wording or status.
+        if (! $matched instanceof Area) {
+            $matched = $areas->first();
+        }
+
         if (! $matched instanceof Area) {
             return null;
         }

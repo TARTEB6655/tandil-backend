@@ -2,19 +2,25 @@
 
 namespace Database\Seeders;
 
+use App\Models\Area;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Models\Visit;
+use App\Support\OrderToVisitDispatcher;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Seeds an additional small-amount order for client1@test.com.
  * - Same address as the recent order (Al Khalidiya, Corniche Road).
- * - Fresh new-order status: order_status = "pending" (no supervisor visit yet).
+ * - Fresh new-order status: order_status = "pending".
+ * - A supervisor visit is created (via Visit::withoutEvents so the order stays
+ *   pending) so the area supervisor sees the order regardless of status.
  * - Small total amount, different from the previous order.
  *
  * Run: php artisan db:seed --class=Client1SmallOrderSeeder
@@ -55,6 +61,7 @@ class Client1SmallOrderSeeder extends Seeder
             return;
         }
 
+        $this->ensureAbuDhabiAreaWithSupervisor();
         $shippingAddress = $this->ensureClientShippingAddress($client);
 
         // Small amount, different from the previous order.
@@ -118,12 +125,55 @@ class Client1SmallOrderSeeder extends Seeder
             'processed_at' => $order->paid_at,
         ]);
 
+        // Create the supervisor visit without firing Visit events, so the order stays
+        // "pending" while still being visible to the area supervisor.
+        $visit = Visit::withoutEvents(fn () => OrderToVisitDispatcher::createVisitForPaidOrder(
+            $order->fresh(['items.product', 'shippingAddress'])
+        ));
+
         $this->command->info('Created small order #' . $order->id . ' (' . $order->publicOrderNumber() . ') for client1@test.com.');
         $this->command->info('Product: ' . $product->name . ' — AED ' . number_format($total, 2) . ' (subtotal ' . number_format($subtotal, 2) . ' + shipping ' . number_format($shipping, 2) . ' + tax ' . number_format($tax, 2) . ')');
-        $this->command->info('order_status: pending (fresh new-order status, no visit)');
+        $this->command->info('order_status: pending (fresh new-order status)');
         $this->command->info('Address: ' . self::ADDRESS['street_address'] . ', ' . self::ADDRESS['city'] . ', ' . self::ADDRESS['country'] . ' ' . self::ADDRESS['zip_code']);
+        if ($visit) {
+            $this->command->info('Visit #' . $visit->id . ' assigned to supervisor #' . $visit->supervisor_id . ' (area #' . $visit->area_id . ') — visible to supervisor while order stays pending.');
+        } else {
+            $this->command->warn('No visit dispatched — ensure an active area has a supervisor.');
+        }
         $this->command->info('Login: client1@test.com / password123');
         $this->command->info('Track: GET /api/orders/' . $order->id . '/track');
+    }
+
+    private function ensureAbuDhabiAreaWithSupervisor(): void
+    {
+        $supervisor = User::query()
+            ->where('email', 'supervisor1@test.com')
+            ->where('role', 'supervisor')
+            ->first()
+            ?? User::query()->where('role', 'supervisor')->orderBy('id')->first();
+
+        if ($supervisor === null) {
+            $this->command->warn('No supervisor user found — visit dispatch may fail.');
+
+            return;
+        }
+
+        $area = Area::query()->firstOrCreate(
+            ['name' => 'Abu Dhabi Central'],
+            [
+                'description' => 'Service area for Abu Dhabi and Corniche Road.',
+                'location' => 'Abu Dhabi',
+                'country' => 'UAE',
+                'is_active' => true,
+            ]
+        );
+
+        $area->update(['location' => 'Abu Dhabi', 'country' => 'UAE', 'is_active' => true]);
+
+        DB::table('area_supervisor')->updateOrInsert(
+            ['area_id' => $area->id, 'user_id' => $supervisor->id],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
     }
 
     private function ensureClientShippingAddress(User $client): UserAddress

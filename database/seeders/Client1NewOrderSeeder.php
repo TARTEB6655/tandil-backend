@@ -132,7 +132,11 @@ class Client1NewOrderSeeder extends Seeder
             'processed_at' => $order->paid_at,
         ]);
 
-        $visit = OrderToVisitDispatcher::createVisitForPaidOrder($order->fresh(['items.product', 'shippingAddress']));
+        // Create the supervisor visit without firing Visit events so the order stays
+        // "pending" while remaining visible to the area supervisor.
+        $visit = Visit::withoutEvents(fn () => OrderToVisitDispatcher::createVisitForPaidOrder(
+            $order->fresh(['items.product', 'shippingAddress'])
+        ));
 
         $this->printSummary($order, $product, $total, $visit);
     }
@@ -155,7 +159,9 @@ class Client1NewOrderSeeder extends Seeder
         ]);
 
         $visit = Visit::query()->where('order_id', $order->id)->first()
-            ?? OrderToVisitDispatcher::createVisitForPaidOrder($order->fresh(['items.product', 'shippingAddress']));
+            ?? Visit::withoutEvents(fn () => OrderToVisitDispatcher::createVisitForPaidOrder(
+                $order->fresh(['items.product', 'shippingAddress'])
+            ));
 
         $product = $order->items()->with('product')->first()?->product;
 
