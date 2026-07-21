@@ -28,8 +28,24 @@ class SanjeevAbuDhabiOrderSeeder extends Seeder
             ->where('special_instructions', 'like', '%' . self::DEMO_MARKER . '%')
             ->first();
 
+        $client = User::query()
+            ->where('email', 'client1@test.com')
+            ->where('role', 'client')
+            ->first();
+
+        if ($client === null) {
+            $this->command->error('Client client1@test.com not found. Run FixedUsersOnlySeeder first.');
+
+            return;
+        }
+
         if ($existing) {
-            $this->command->warn('Sanjeev demo order already exists: #' . $existing->id . ' (' . $existing->publicOrderNumber() . ').');
+            if ($existing->user_id !== $client->id) {
+                $existing->update(['user_id' => $client->id]);
+                $this->command->info('Linked existing Sanjeev order #' . $existing->id . ' to client1@test.com.');
+            } else {
+                $this->command->warn('Sanjeev demo order already exists: #' . $existing->id . ' (' . $existing->publicOrderNumber() . ').');
+            }
 
             return;
         }
@@ -56,8 +72,9 @@ class SanjeevAbuDhabiOrderSeeder extends Seeder
         $total = round($subtotal + $shipping + $tax, 2);
 
         $order = Order::create([
+            'user_id' => $client->id,
             'guest_full_name' => 'sanjeev',
-            'guest_email' => 'sanjeev.abudhabi@tandil.test',
+            'guest_email' => $client->email,
             'guest_phone' => '+971500000999',
             'guest_street_address' => 'Office 302, Al Khalidiya, Corniche Road',
             'guest_city' => 'Abu Dhabi',
@@ -119,7 +136,8 @@ class SanjeevAbuDhabiOrderSeeder extends Seeder
             $this->command->warn('Order created but no visit was dispatched — ensure an active Abu Dhabi area has a supervisor assigned.');
         }
 
-        $this->command->info('Track: GET /api/orders/' . $order->id . '/track (guest email + order number).');
+        $this->command->info('Client account: client1@test.com (password123)');
+        $this->command->info('Track: GET /api/orders/' . $order->id . '/track (client token or guest email + order number).');
     }
 
     private function ensureAbuDhabiAreaWithSupervisor(): void
