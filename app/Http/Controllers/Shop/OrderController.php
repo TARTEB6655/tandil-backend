@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\Review;
 use App\Models\User;
 use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
@@ -263,6 +265,7 @@ class OrderController extends Controller
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
                 'service_report' => $serviceReport,
+                'service_rating' => $this->serviceRatingMetaForOrder($order, $user),
                 'maintenance_photos' => $maintenancePhotos,
                 'can_cancel' => ! app(ShopOrderCancellationService::class)->isForbidden((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
@@ -552,6 +555,7 @@ class OrderController extends Controller
                     'paid_at' => $order->paid_at?->format('c'),
                 ],
                 'service_report' => $serviceReport,
+                'service_rating' => $this->serviceRatingMetaForOrder($order, $request->user()),
                 'maintenance_photos' => $maintenancePhotos,
                 'can_cancel' => ! app(ShopOrderCancellationService::class)->isForbidden((string) ($order->order_status ?? 'pending')),
                 'refund_policy' => RefundPolicy::policyForApi(),
@@ -785,60 +789,181 @@ class OrderController extends Controller
     }
 
     /**
-     * Rate order
+     * Rate the service for a completed/delivered order.
+     *
+     * Body:
+     *   rating (int 1-5, required)         – overall service rating
+     *   review (string, optional)          – service review text
+     *   product_ratings[] (optional)       – per-product ratings:
+     *       [{ product_id, rating (1-5), review? }]
+     *       When omitted, the service rating is applied to every product in the order.
+     *
+     * Stores an order-level service review (product_id = null) plus one review per product,
+     * and recomputes each product's rating_average / rating_count.
      */
     public function rate(Request $request, $id)
     {
         $user = $request->user();
-        $order = Order::find($id);
+        $order = Order::with('items')->find($id);
 
         if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
-        // Check if user owns the order
-        if ($order->user_id !== $user->id) {
+        if (! $this->canViewOrder($user, $order)) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        $status = strtolower((string) ($order->order_status ?? 'pending'));
+        if (! in_array($status, ['completed', 'delivered'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can rate the service once the order is completed.',
+            ], 422);
         }
 
         $validated = $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'review' => 'nullable|string|max:1000',
+            'product_ratings' => 'nullable|array',
+            'product_ratings.*.product_id' => 'required|integer',
+            'product_ratings.*.rating' => 'required|integer|min:1|max:5',
+            'product_ratings.*.review' => 'nullable|string|max:1000',
         ]);
 
-        // Store rating in notes field if rating/review columns don't exist
-        // This is a workaround until proper rating columns are added
-        $notes = $order->notes ?? '';
-        $ratingNote = "Rating: {$validated['rating']}/5";
-        if (! empty($validated['review'])) {
-            $ratingNote .= "\nReview: {$validated['review']}";
+        $orderProductIds = $order->items->pluck('product_id')->filter()->map(fn ($v) => (int) $v)->unique()->values();
+
+        // Build per-product rating map (product_id => ['rating' => int, 'review' => ?string]).
+        $productRatings = [];
+        if (! empty($validated['product_ratings'])) {
+            foreach ($validated['product_ratings'] as $entry) {
+                $pid = (int) $entry['product_id'];
+                if (! $orderProductIds->contains($pid)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Product #{$pid} is not part of this order.",
+                    ], 422);
+                }
+                $productRatings[$pid] = [
+                    'rating' => (int) $entry['rating'],
+                    'review' => $entry['review'] ?? null,
+                ];
+            }
+        } else {
+            // Default: apply the overall service rating/review to every product in the order.
+            foreach ($orderProductIds as $pid) {
+                $productRatings[$pid] = [
+                    'rating' => (int) $validated['rating'],
+                    'review' => $validated['review'] ?? null,
+                ];
+            }
         }
 
-        // Try to update rating if column exists, otherwise store in notes
-        $updateData = [];
-        if (in_array('rating', $order->getFillable()) || \Schema::hasColumn('orders', 'rating')) {
-            $updateData['rating'] = $validated['rating'];
-        }
-        if (in_array('review', $order->getFillable()) || \Schema::hasColumn('orders', 'review')) {
-            $updateData['review'] = $validated['review'] ?? null;
-        }
-        if (in_array('notes', $order->getFillable()) || \Schema::hasColumn('orders', 'notes')) {
-            $updateData['notes'] = $notes.($notes ? "\n\n" : '').$ratingNote;
-        }
+        \DB::transaction(function () use ($order, $user, $validated, $productRatings) {
+            // Service (order-level) review — product_id null.
+            Review::updateOrCreate(
+                ['user_id' => $user->id, 'order_id' => $order->id, 'product_id' => null],
+                ['rating' => (int) $validated['rating'], 'comment' => $validated['review'] ?? null]
+            );
 
-        if (! empty($updateData)) {
-            $order->update($updateData);
+            foreach ($productRatings as $pid => $data) {
+                Review::updateOrCreate(
+                    ['user_id' => $user->id, 'order_id' => $order->id, 'product_id' => $pid],
+                    ['rating' => $data['rating'], 'comment' => $data['review']]
+                );
+            }
+        });
+
+        // Recompute aggregate rating for each rated product.
+        $productSnapshots = [];
+        foreach (Product::whereIn('id', array_keys($productRatings))->get() as $product) {
+            $product->recalculateRating();
+            $productSnapshots[] = [
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'rating' => $productRatings[$product->id]['rating'],
+                'review' => $productRatings[$product->id]['review'],
+                'rating_average' => (float) $product->rating_average,
+                'rating_count' => (int) $product->rating_count,
+            ];
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Order rated successfully',
+            'message' => 'Thank you! Your rating has been submitted.',
             'data' => [
-                'order' => $order->load(['items.product', 'user']),
-                'rating' => $validated['rating'],
-                'review' => $validated['review'] ?? null,
+                'order_id' => $order->id,
+                'service_rating' => (int) $validated['rating'],
+                'service_review' => $validated['review'] ?? null,
+                'product_ratings' => $productSnapshots,
             ],
         ], 200);
+    }
+
+    /**
+     * Existing rating for an order (so the app can show already-submitted state).
+     */
+    public function rating(Request $request, $id)
+    {
+        $user = $request->user();
+        $order = Order::query()->find($id);
+
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+        }
+
+        if (! $this->canViewOrder($user, $order)) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order rating retrieved successfully.',
+            'data' => $this->serviceRatingMetaForOrder($order, $user),
+        ], 200);
+    }
+
+    /**
+     * Rating meta for track/rating responses: whether the client can rate and any existing rating.
+     *
+     * @return array<string, mixed>
+     */
+    private function serviceRatingMetaForOrder(Order $order, ?User $user): array
+    {
+        $status = strtolower((string) ($order->order_status ?? 'pending'));
+        $canRate = in_array($status, ['completed', 'delivered'], true);
+
+        $serviceReview = null;
+        $productReviews = [];
+
+        if ($user !== null) {
+            $reviews = Review::query()
+                ->where('order_id', $order->id)
+                ->where('user_id', $user->id)
+                ->get();
+
+            $service = $reviews->firstWhere('product_id', null);
+            if ($service) {
+                $serviceReview = [
+                    'rating' => (int) $service->rating,
+                    'review' => $service->comment,
+                    'submitted_at' => $service->created_at?->format('c'),
+                ];
+            }
+
+            $productReviews = $reviews->whereNotNull('product_id')->map(fn (Review $r) => [
+                'product_id' => (int) $r->product_id,
+                'rating' => (int) $r->rating,
+                'review' => $r->comment,
+            ])->values()->all();
+        }
+
+        return [
+            'can_rate' => $canRate,
+            'has_rated' => $serviceReview !== null,
+            'service_rating' => $serviceReview,
+            'product_ratings' => $productReviews,
+        ];
     }
 
     private function userIsAdminLike(User $user): bool

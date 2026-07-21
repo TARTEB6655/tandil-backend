@@ -110,6 +110,14 @@ class Order extends Model
     }
 
     /**
+     * Ratings/reviews for this order (service review has null product_id).
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /**
      * Shipping address for API (logged-in: from user_addresses; guest: from guest_* columns).
      */
     public function getShippingAddressForApi(): ?array

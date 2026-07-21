@@ -670,6 +670,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin|supervisor|area_manager'])
     Route::get('/{id}/report', [\App\Http\Controllers\Shop\OrderController::class, 'report']);
     Route::post('/{id}/mark-delivered', [\App\Http\Controllers\Shop\OrderController::class, 'markDelivered']);
     Route::get('/{id}/cancel-track', [\App\Http\Controllers\Shop\OrderController::class, 'cancelTrack']);
+    Route::get('/{id}/rating', [\App\Http\Controllers\Shop\OrderController::class, 'rating']);
     Route::post('/{id}/rate', [\App\Http\Controllers\Shop\OrderController::class, 'rate']);
 });
 

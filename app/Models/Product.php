@@ -15,7 +15,7 @@ class Product extends Model
         'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured', 'sort_order',
         'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
         'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
-        'estimated_arrival', 'job_duration',
+        'estimated_arrival', 'job_duration', 'rating_average', 'rating_count',
     ];
 
     // Valid values for product_type column
@@ -34,6 +34,8 @@ class Product extends Model
         'price' => 'float',
         'compare_at_price' => 'float',
         'cost_per_item' => 'float',
+        'rating_average' => 'float',
+        'rating_count' => 'integer',
     ];
 
     /**
@@ -114,6 +116,29 @@ class Product extends Model
     public function images()
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Recompute rating_average and rating_count from per-product reviews.
+     */
+    public function recalculateRating(): void
+    {
+        $stats = $this->reviews()
+            ->selectRaw('COUNT(*) as cnt, AVG(rating) as avg_rating')
+            ->first();
+
+        $count = (int) ($stats->cnt ?? 0);
+        $average = $count > 0 ? round((float) $stats->avg_rating, 2) : 0.0;
+
+        $this->forceFill([
+            'rating_count' => $count,
+            'rating_average' => $average,
+        ])->saveQuietly();
     }
 
     public function primaryImage()
