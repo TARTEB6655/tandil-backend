@@ -54,6 +54,11 @@ class ImageCompressionService
         if (! file_exists($fullPath) || ! is_file($fullPath)) {
             return false;
         }
+
+        // Allow decoding large source images (e.g. 12–48 MP camera photos) without OOM.
+        // Harmless if the host disables ini_set.
+        @ini_set('memory_limit', '512M');
+        clearstatcache(true, $fullPath);
         $size = filesize($fullPath);
         if ($size === false || $size <= $maxBytes) {
             if ($maxDimension !== null && $maxDimension > 0) {
@@ -95,7 +100,11 @@ class ImageCompressionService
             return true;
         }
 
-        if ($size > $maxBytes * 2 && $maxDimension !== null && $maxDimension > 0) {
+        // Whenever a max dimension is configured (all upload profiles set one), use the
+        // fast single-decode / single-resize / bounded-encode path so even very large
+        // images are shrunk to the KB target quickly. The legacy multi-attempt loop is
+        // only kept as a fallback for callers that pass no dimension cap.
+        if ($maxDimension !== null && $maxDimension > 0) {
             $result = self::fastCompressAndSave($image, $fullPath, $type, $width, $height, $maxBytes, $maxDimension);
             if (is_resource($image) || $image instanceof \GdImage) {
                 imagedestroy($image);
@@ -218,40 +227,16 @@ class ImageCompressionService
     }
 
     /**
-     * Single-pass resize + encode for very large uploads (fast; used before response returns).
+     * Fast path: one decode (done by caller), one resize to the dimension cap, then a
+     * small bounded set of quality steps on the already-resized image (no re-decode /
+     * re-resize). Keeps large uploads well under the KB target in ~sub-second time.
      */
     private static function fastCompressAndSave($image, string $path, int $type, int $width, int $height, int $maxBytes, int $maxDimension): bool
     {
-        $scale = 1.0;
-        if (max($width, $height) > $maxDimension) {
-            $scale = $maxDimension / (float) max($width, $height);
-        }
-        if ($scale < 1.0) {
-            $outW = max(1, (int) round($width * $scale));
-            $outH = max(1, (int) round($height * $scale));
-            if (! self::resizeAndSave($image, $path, $type, $width, $height, $outW, $outH)) {
-                return false;
-            }
-            $newSize = filesize($path);
-            if ($newSize !== false && $newSize <= $maxBytes) {
-                return true;
-            }
-            $image = self::loadImage($path, $type);
-            if ($image === null) {
-                return true;
-            }
-            $info = @getimagesize($path);
-            if ($info === false) {
-                return false;
-            }
-            $width = (int) $info[0];
-            $height = (int) $info[1];
-            $type = (int) $info[2];
-        }
+        $scale = min(1.0, $maxDimension / (float) max($width, $height, 1));
+        $outW = max(1, (int) round($width * $scale));
+        $outH = max(1, (int) round($height * $scale));
 
-        $ext = pathinfo($path, PATHINFO_EXTENSION);
-        $outW = max(1, (int) round($width * min(1.0, $maxDimension / (float) max($width, $height, 1))));
-        $outH = max(1, (int) round($height * ($outW / max($width, 1))));
         $out = imagecreatetruecolor($outW, $outH);
         if ($out === false) {
             return false;
@@ -259,9 +244,27 @@ class ImageCompressionService
         if (in_array($type, [IMAGETYPE_PNG, IMAGETYPE_GIF], true)) {
             imagealphablending($out, false);
             imagesavealpha($out, true);
+            $transparent = imagecolorallocatealpha($out, 255, 255, 255, 127);
+            imagefilledrectangle($out, 0, 0, $outW, $outH, $transparent);
         }
         imagecopyresampled($out, $image, 0, 0, 0, 0, $outW, $outH, $width, $height);
-        $saved = self::saveImage($out, $path, $type, $ext, 78);
+
+        $ext = pathinfo($path, PATHINFO_EXTENSION);
+        // Start at high quality; step down only if still above target. Bounded to a few
+        // encodes on the small resized image, so this stays fast for any input size.
+        $qualitySteps = [82, 70, 58, 46];
+        $saved = false;
+        foreach ($qualitySteps as $quality) {
+            $saved = self::saveImage($out, $path, $type, $ext, $quality);
+            if (! $saved) {
+                break;
+            }
+            clearstatcache(true, $path);
+            $newSize = filesize($path);
+            if ($newSize === false || $newSize <= $maxBytes) {
+                break;
+            }
+        }
         imagedestroy($out);
 
         return $saved;
@@ -306,6 +309,7 @@ class ImageCompressionService
                 return false;
             }
 
+            clearstatcache(true, $path);
             $newSize = filesize($path);
             if ($newSize !== false && $newSize <= $maxBytes) {
                 return true;

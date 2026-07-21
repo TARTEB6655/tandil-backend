@@ -1300,8 +1300,9 @@ class TechnicianDashboardController extends Controller
         $rules = [
             'visit_id' => 'required|integer|exists:visits,id',
             'technician_notes' => 'nullable|string|max:10000',
-            'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
+            // Accept large camera photos; they are auto-compressed to the KB target after upload.
+            'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:25600',
+            'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:25600',
         ];
         $data = $request->validate($rules);
 
@@ -1362,8 +1363,9 @@ class TechnicianDashboardController extends Controller
     {
         $rules = [
             'technician_notes' => 'nullable|string|max:10000',
-            'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:10240',
+            // Accept large camera photos; they are auto-compressed to the KB target after upload.
+            'before_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:25600',
+            'after_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:25600',
         ];
         $data = $request->validate($rules);
 
