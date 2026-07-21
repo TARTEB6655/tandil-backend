@@ -58,7 +58,7 @@ class Client1NewOrderSeeder extends Seeder
                 'guest_full_name' => $client->name ?: 'Client One',
                 'guest_email' => $client->email,
                 'guest_phone' => $client->phone ?: '+971500000001',
-                'guest_street_address' => 'Villa 12, Al Reem Island',
+                'guest_street_address' => 'Office 302, Al Khalidiya, Corniche Road',
                 'guest_city' => 'Abu Dhabi',
                 'guest_state' => 'Abu Dhabi',
                 'guest_zip_code' => '00000',
@@ -106,6 +106,7 @@ class Client1NewOrderSeeder extends Seeder
         $this->command->info('Created new order #' . $order->id . ' (' . $order->publicOrderNumber() . ') for client1@test.com.');
         $this->command->info('Product: ' . $product->name . ' — AED ' . number_format($total, 2));
         $this->command->info('order_status: pending (not confirmed)');
+        $this->command->info('Address: Office 302, Al Khalidiya, Corniche Road, Abu Dhabi, UAE 00000');
         $this->command->info('Login: client1@test.com / password123');
         $this->command->info('Track: GET /api/orders/' . $order->id . '/track');
     }
