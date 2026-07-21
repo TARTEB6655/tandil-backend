@@ -517,7 +517,9 @@ class TechnicianDashboardController extends Controller
         } elseif ($filter === 'completed') {
             $query->where('status', 'completed');
         } elseif ($filter === 'accepted') {
-            $query->whereIn('status', ['in_progress']);
+            // A job the technician accepted stays "accepted" through its whole lifecycle:
+            // in_progress -> completed -> approved.
+            $query->whereIn('status', ['in_progress', 'completed', 'approved']);
         } elseif ($filter === 'rejected') {
             $query->where('status', 'rejected');
         } else {
@@ -648,16 +650,18 @@ class TechnicianDashboardController extends Controller
         $period = $request->input('period', 'month');
         [$start, $end] = $this->resolvePeriodRange($period);
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        // Accepted jobs include the full post-acceptance lifecycle so completed jobs
+        // the technician accepted still appear here (in_progress -> completed -> approved).
         $query = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end])
-            ->whereIn('status', ['in_progress'])
+            ->whereIn('status', ['in_progress', 'completed', 'approved'])
             ->with(['subscription.client', 'area', 'supervisor'])
             ->orderByDesc('scheduled_date');
         $items = $query->paginate($perPage);
         $items->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
         return response()->json([
             'success' => true,
-            'message' => 'Accepted/In-Progress jobs list.',
+            'message' => 'Accepted jobs list (in-progress and completed).',
             'data' => [
                 'jobs' => $items,
             ],
@@ -711,7 +715,11 @@ class TechnicianDashboardController extends Controller
             'success' => true,
             'data' => [
                 'period' => $period,
-                'accepted' => (int) ($counts['accepted'] ?? 0),
+                // "Accepted" reflects the accepted-jobs list: in_progress + completed + approved.
+                'accepted' => (int) ($counts['accepted'] ?? 0)
+                    + (int) ($counts['in_progress'] ?? 0)
+                    + (int) ($counts['completed'] ?? 0)
+                    + (int) ($counts['approved'] ?? 0),
                 'in_progress' => (int) ($counts['in_progress'] ?? 0),
                 'rejected' => (int) ($counts['rejected'] ?? 0),
                 'completed' => (int) ($counts['completed'] ?? 0),
