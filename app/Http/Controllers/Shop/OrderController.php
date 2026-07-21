@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
@@ -18,15 +19,16 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
+        $isAdminLike = $this->userIsAdminLike($user);
+        $relations = ['items.product'];
+        if ($isAdminLike) {
+            $relations[] = 'user';
+        }
+
         $query = Order::query()
-            ->with(['items.product', 'user'])
+            ->with($relations)
             ->latest();
 
-        $roleValue = strtolower(trim((string) ($user->role ?? '')));
-        $isAdminLike = in_array($roleValue, ['admin', 'supervisor', 'area_manager'], true)
-            || $user->hasRole('admin')
-            || $user->hasRole('supervisor')
-            || $user->hasRole('area_manager');
         if (! $isAdminLike) {
             $userEmail = strtolower(trim((string) ($user->email ?? '')));
             $query->where(function ($q) use ($user, $userEmail) {
@@ -50,20 +52,10 @@ class OrderController extends Controller
             $query->where('payment_status', $request->payment_status);
         }
 
-        $perPage = $request->get('per_page', 15);
+        $perPage = min(max((int) $request->get('per_page', 15), 1), 50);
         $orders = $query->paginate($perPage);
         $orders->setCollection(
-            $orders->getCollection()->map(function (Order $order) {
-                $firstProduct = $order->items->first()?->product;
-                if (($order->estimated_arrival === null || $order->estimated_arrival === '') && $firstProduct) {
-                    $order->estimated_arrival = $firstProduct->estimated_arrival;
-                }
-                if (($order->job_duration === null || $order->job_duration === '') && $firstProduct) {
-                    $order->job_duration = $firstProduct->job_duration;
-                }
-
-                return $order;
-            })
+            $orders->getCollection()->map(fn (Order $order) => $this->mapOrderForListApi($order))
         );
 
         return response()->json([
@@ -250,9 +242,6 @@ class OrderController extends Controller
         $timeline = $this->buildOrderTimeline($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
 
-        $orderArray = $order->toArray();
-        $orderArray['shipping_address'] = $order->getShippingAddressForApi();
-
         return response()->json([
             'success' => true,
             'message' => 'Order tracking information retrieved successfully',
@@ -260,7 +249,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'order_number' => $order->publicOrderNumber(),
                 'order_number_short' => $order->publicOrderNumberDigits(),
-                'order' => $orderArray,
+                'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
                 'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
@@ -360,8 +349,6 @@ class OrderController extends Controller
 
         $timeline = $this->buildCancelledOrderTimeline($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
-        $orderArray = $order->toArray();
-        $orderArray['shipping_address'] = $order->getShippingAddressForApi();
 
         return response()->json([
             'success' => true,
@@ -370,7 +357,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'order_number' => $order->publicOrderNumber(),
                 'order_number_short' => $order->publicOrderNumberDigits(),
-                'order' => $orderArray,
+                'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
                 'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
@@ -433,9 +420,6 @@ class OrderController extends Controller
         $order->load(['items.product', 'items.product.primaryImage', 'shippingAddress']);
         $timeline = $this->buildOrderTimeline($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
-        $orderArray = $order->toArray();
-        $orderArray['shipping_address'] = $order->getShippingAddressForApi();
-
         return response()->json([
             'success' => true,
             'message' => 'Order tracking information retrieved successfully',
@@ -443,7 +427,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'order_number' => $order->publicOrderNumber(),
                 'order_number_short' => $order->publicOrderNumberDigits(),
-                'order' => $orderArray,
+                'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
                 'current_status' => $this->mapOrderStatusToLabel($order->order_status),
                 'tracking' => [
@@ -460,39 +444,6 @@ class OrderController extends Controller
                 'wallet' => $this->walletSnapshot($order),
             ],
         ], 200);
-    }
-
-    private function walletSnapshot(Order $order): ?array
-    {
-        if (! $order->user_id || ! $order->relationLoaded('user') && ! $order->user) {
-            return null;
-        }
-        // Some deployments may be behind on wallet migrations; keep tracking API non-fatal.
-        if (! Schema::hasTable('wallet_credits')) {
-            return [
-                'balance' => (float) (($order->user?->wallet_balance) ?? 0),
-                'last_refund_credit' => null,
-            ];
-        }
-        $user = $order->user;
-        if (! $user) {
-            return null;
-        }
-
-        $latestCredit = WalletCredit::query()
-            ->where('user_id', $user->id)
-            ->where('order_id', $order->id)
-            ->latest('id')
-            ->first();
-
-        return [
-            'balance' => (float) ($user->wallet_balance ?? 0),
-            'last_refund_credit' => $latestCredit ? [
-                'amount' => (float) $latestCredit->amount,
-                'status' => $latestCredit->status,
-                'expires_at' => $latestCredit->expires_at?->toIso8601String(),
-            ] : null,
-        ];
     }
 
     /**
@@ -763,5 +714,155 @@ class OrderController extends Controller
                 'review' => $validated['review'] ?? null,
             ],
         ], 200);
+    }
+
+    private function userIsAdminLike(User $user): bool
+    {
+        $roleValue = strtolower(trim((string) ($user->role ?? '')));
+
+        return in_array($roleValue, ['admin', 'supervisor', 'area_manager'], true);
+    }
+
+    private function walletCreditsTableExists(): bool
+    {
+        try {
+            return Schema::hasTable('wallet_credits');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function walletSnapshot(Order $order): ?array
+    {
+        if (! $order->user_id || ! $order->relationLoaded('user') && ! $order->user) {
+            return null;
+        }
+        if (! $this->walletCreditsTableExists()) {
+            return [
+                'balance' => (float) (($order->user?->wallet_balance) ?? 0),
+                'last_refund_credit' => null,
+            ];
+        }
+        $user = $order->user;
+        if (! $user) {
+            return null;
+        }
+
+        try {
+            $latestCredit = WalletCredit::query()
+                ->where('user_id', $user->id)
+                ->where('order_id', $order->id)
+                ->latest('id')
+                ->first();
+        } catch (\Throwable $e) {
+            return [
+                'balance' => (float) ($user->wallet_balance ?? 0),
+                'last_refund_credit' => null,
+            ];
+        }
+
+        return [
+            'balance' => (float) ($user->wallet_balance ?? 0),
+            'last_refund_credit' => $latestCredit ? [
+                'amount' => (float) $latestCredit->amount,
+                'status' => $latestCredit->status,
+                'expires_at' => $latestCredit->expires_at?->toIso8601String(),
+            ] : null,
+        ];
+    }
+
+    private function resolveOrderTiming(Order $order): array
+    {
+        $firstProduct = $order->items->first()?->product;
+        $estimatedArrival = $order->estimated_arrival;
+        if (($estimatedArrival === null || $estimatedArrival === '') && $firstProduct) {
+            $estimatedArrival = $firstProduct->estimated_arrival;
+        }
+
+        $jobDuration = $order->job_duration;
+        if (($jobDuration === null || $jobDuration === '') && $firstProduct) {
+            $jobDuration = $firstProduct->job_duration;
+        }
+
+        return [$estimatedArrival, $jobDuration];
+    }
+
+    private function mapOrderItemProductForApi(?OrderItem $item): ?array
+    {
+        $product = $item?->product;
+        if (! $product) {
+            return null;
+        }
+
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'image_url' => $product->image_url,
+            'job_duration' => $product->job_duration,
+            'estimated_arrival' => $product->estimated_arrival,
+        ];
+    }
+
+    private function mapOrderForListApi(Order $order): array
+    {
+        [$estimatedArrival, $jobDuration] = $this->resolveOrderTiming($order);
+
+        return [
+            'id' => $order->id,
+            'order_number' => $order->publicOrderNumber(),
+            'order_number_short' => $order->publicOrderNumberDigits(),
+            'order_status' => $order->order_status,
+            'payment_status' => $order->payment_status,
+            'payment_method' => $order->payment_method,
+            'total_amount' => (float) $order->total_amount,
+            'subtotal_amount' => (float) ($order->subtotal_amount ?? 0),
+            'shipping_amount' => (float) ($order->shipping_amount ?? 0),
+            'tax_amount' => (float) ($order->tax_amount ?? 0),
+            'currency' => strtoupper((string) config('shop.currency', 'AED')),
+            'special_instructions' => $order->special_instructions,
+            'estimated_arrival' => $estimatedArrival,
+            'job_duration' => $jobDuration,
+            'created_at' => $order->created_at?->format('c'),
+            'paid_at' => $order->paid_at?->format('c'),
+            'items' => $order->items->map(fn (OrderItem $item) => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price' => (float) $item->price,
+                'subtotal' => (float) $item->subtotal,
+                'product' => $this->mapOrderItemProductForApi($item),
+            ])->values()->all(),
+        ];
+    }
+
+    private function mapOrderForTrackApi(Order $order): array
+    {
+        [$estimatedArrival, $jobDuration] = $this->resolveOrderTiming($order);
+
+        return [
+            'id' => $order->id,
+            'order_status' => $order->order_status,
+            'payment_status' => $order->payment_status,
+            'payment_method' => $order->payment_method,
+            'total_amount' => (float) $order->total_amount,
+            'subtotal_amount' => (float) ($order->subtotal_amount ?? 0),
+            'shipping_amount' => (float) ($order->shipping_amount ?? 0),
+            'tax_amount' => (float) ($order->tax_amount ?? 0),
+            'special_instructions' => $order->special_instructions,
+            'estimated_arrival' => $estimatedArrival,
+            'job_duration' => $jobDuration,
+            'created_at' => $order->created_at?->format('c'),
+            'updated_at' => $order->updated_at?->format('c'),
+            'paid_at' => $order->paid_at?->format('c'),
+            'shipping_address' => $order->getShippingAddressForApi(),
+            'items' => $order->items->map(fn (OrderItem $item) => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price' => (float) $item->price,
+                'subtotal' => (float) $item->subtotal,
+                'product' => $this->mapOrderItemProductForApi($item),
+            ])->values()->all(),
+        ];
     }
 }

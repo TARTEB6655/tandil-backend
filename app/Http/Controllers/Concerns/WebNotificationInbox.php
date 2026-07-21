@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Concerns;
 
 use App\Support\GlobalNotificationFilter;
 use App\Support\NotificationInboxWebFilters;
+use App\Support\NotificationSearch;
 use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +44,7 @@ trait WebNotificationInbox
         $query = NotificationInboxWebFilters::applyKind($query, $request->query('kind'));
 
         if ($request->filled('q')) {
-            $query->where('data', 'like', '%' . $request->get('q') . '%');
+            $query = NotificationSearch::apply($query, (string) $request->get('q'));
         }
 
         return $query;

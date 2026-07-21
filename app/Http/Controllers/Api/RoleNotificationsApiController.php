@@ -6,8 +6,10 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Notifications\AdminNotification;
 use App\Notifications\LeaveRequestStatusNotification;
+use App\Support\CapsPagination;
 use App\Support\GlobalNotificationFilter;
 use App\Support\NotificationInboxWebFilters;
+use App\Support\NotificationSearch;
 use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 
@@ -68,7 +70,7 @@ class RoleNotificationsApiController extends Controller
         }
 
         if ($search !== '') {
-            $scoped->where('data', 'like', '%'.$search.'%');
+            $scoped = NotificationSearch::apply($scoped, $search);
         }
 
         if ($filter === 'unread') {
@@ -92,8 +94,7 @@ class RoleNotificationsApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $perPage = (int) $request->get('per_page', 20);
-        $perPage = $perPage >= 1 && $perPage <= 100 ? $perPage : 20;
+        $perPage = CapsPagination::perPage($request, 20, 100);
         $audienceRole = $request->query('audience_role');
         $filter = (string) $request->query('filter', 'all');
         $kindRaw = $request->query('kind');
@@ -127,7 +128,7 @@ class RoleNotificationsApiController extends Controller
             $scoped = NotificationInboxWebFilters::applyKind($base, is_string($kind) ? $kind : null);
         }
         if ($search !== '') {
-            $scoped->where('data', 'like', '%' . $search . '%');
+            $scoped = NotificationSearch::apply($scoped, $search);
         }
 
         $listQuery = clone $scoped;

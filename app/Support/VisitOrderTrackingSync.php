@@ -12,7 +12,7 @@ final class VisitOrderTrackingSync
      */
     public static function syncFromVisit(Visit $visit): void
     {
-        $orderId = self::extractOrderIdFromNotes((string) ($visit->notes ?? ''));
+        $orderId = $visit->order_id ? (int) $visit->order_id : self::extractOrderIdFromNotes((string) ($visit->notes ?? ''));
         if (! $orderId) {
             return;
         }

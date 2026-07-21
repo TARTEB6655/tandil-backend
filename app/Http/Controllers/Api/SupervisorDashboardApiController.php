@@ -21,6 +21,7 @@ use App\Services\VisitOfferService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -86,24 +87,19 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /** Visit IDs the supervisor can see reports for: visits in their zones + visits assigned to them (supervisor_id = me). */
-    private function reportVisitIds(Request $request): \Illuminate\Support\Collection
-    {
-        $supervisorId = $request->user()->id;
-        $fromAreas = $this->visitsQuery($request)->pluck('id');
-        $assignedToMe = Visit::where('supervisor_id', $supervisorId)->pluck('id');
-        return $fromAreas->merge($assignedToMe)->unique()->values();
-    }
-
-    /** Reports the supervisor can see: report.supervisor_id = me (technician sent to me) OR visit in my scope. */
     private function reportsForSupervisorQuery(Request $request)
     {
         $supervisorId = $request->user()->id;
-        $visitIds = $this->reportVisitIds($request);
-        return Report::where(function ($q) use ($supervisorId, $visitIds) {
-            $q->where('supervisor_id', $supervisorId);
-            if ($visitIds->isNotEmpty()) {
-                $q->orWhereIn('visit_id', $visitIds);
-            }
+        $areaIds = $this->areaIds($request);
+
+        return Report::query()->where(function ($q) use ($supervisorId, $areaIds) {
+            $q->where('supervisor_id', $supervisorId)
+                ->orWhereHas('visit', function ($visitQuery) use ($supervisorId, $areaIds) {
+                    $visitQuery->where('supervisor_id', $supervisorId);
+                    if (! empty($areaIds)) {
+                        $visitQuery->orWhereIn('area_id', $areaIds);
+                    }
+                });
         });
     }
 
@@ -150,18 +146,22 @@ class SupervisorDashboardApiController extends Controller
         $query = $this->visitsQuery($request);
         $today = Carbon::today();
 
-        $completedToday = (clone $query)->whereDate('completed_at', $today)->count();
-        $completionRate = (clone $query)->count() > 0
-            ? round(((clone $query)->where('status', 'completed')->count() / (clone $query)->count()) * 100, 2)
-            : 0;
+        $stats = (clone $query)
+            ->selectRaw('COUNT(*) as total, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN DATE(completed_at) = ? THEN 1 ELSE 0 END) as completed_today', ['completed', $today->toDateString()])
+            ->first();
+
+        $total = (int) ($stats->total ?? 0);
+        $completed = (int) ($stats->completed ?? 0);
+        $completedToday = (int) ($stats->completed_today ?? 0);
+        $completionRate = $total > 0 ? round(($completed / $total) * 100, 2) : 0;
 
         return response()->json([
             'success' => true,
             'data' => [
                 'completed_today' => $completedToday,
                 'completion_rate_percent' => $completionRate,
-                'avg_response_minutes' => 0, // placeholder KPI
-                'open_complaints' => 0, // can be replaced with complaint aggregation if needed
+                'avg_response_minutes' => 0,
+                'open_complaints' => 0,
             ],
         ]);
     }
@@ -231,10 +231,50 @@ class SupervisorDashboardApiController extends Controller
         // Include all team members (active + inactive) so supervisor/AM/admin see status; assign flow still uses active() only
         $technicians = User::role('technician')
             ->whereIn('id', $technicianIds)
-            ->with(['employee', 'technicianAvailability', 'visits' => fn ($q) => $q->whereIn('area_id', $areaIds)])
+            ->with([
+                'employee',
+                'technicianAvailability',
+                'visits' => fn ($q) => $q
+                    ->whereIn('area_id', $areaIds)
+                    ->where('status', 'in_progress')
+                    ->select(['id', 'notes', 'area_id', 'status', 'technician_id', 'subscription_id'])
+                    ->limit(1),
+            ])
+            ->withCount([
+                'visits as tasks_total' => fn ($q) => $q->whereIn('area_id', $areaIds),
+                'visits as tasks_completed' => fn ($q) => $q
+                    ->whereIn('area_id', $areaIds)
+                    ->whereIn('status', ['completed', 'approved']),
+            ])
             ->get();
 
-        $data = $technicians->map(fn (User $u) => $this->mapTeamMemberToArray($u, $areaIds, $now, $today))->values()->all();
+        $onLeaveIds = LeaveRequest::query()
+            ->whereIn('user_id', $technicianIds)
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->pluck('user_id')
+            ->flip()
+            ->all();
+
+        $breaksByUser = TechnicianBreak::query()
+            ->whereIn('user_id', $technicianIds)
+            ->whereDate('date', $today)
+            ->get()
+            ->groupBy('user_id');
+
+        $data = $technicians
+            ->map(fn (User $u) => $this->mapTeamMemberToArray(
+                $u,
+                $areaIds,
+                $now,
+                $today,
+                false,
+                isset($onLeaveIds[$u->id]),
+                $breaksByUser->get($u->id, collect())
+            ))
+            ->values()
+            ->all();
 
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -535,7 +575,10 @@ class SupervisorDashboardApiController extends Controller
         }
 
         $baseVisits = $this->visitsQuery($request);
-        $completedList = (clone $baseVisits)->whereIn('status', ['completed', 'approved'])->get();
+        $completedList = (clone $baseVisits)
+            ->whereIn('status', ['completed', 'approved'])
+            ->select(['id', 'technician_id', 'notes', 'started_at', 'completed_at'])
+            ->get();
 
         $visitsToday = $completedList->filter(fn ($v) => $v->completed_at && $v->completed_at->isSameDay($today))->count();
 
@@ -561,16 +604,19 @@ class SupervisorDashboardApiController extends Controller
         }
         $customerRating = count($ratings) > 0 ? round(array_sum($ratings) / count($ratings), 1) : 0;
 
-        $openIssues = Complaint::whereHas('visit', function ($q) use ($areaIds) {
-            $q->whereIn('area_id', $areaIds);
-        })->whereIn('status', ['pending', 'in_progress'])->count();
+        $openIssues = Complaint::query()
+            ->join('visits', 'complaints.visit_id', '=', 'visits.id')
+            ->whereIn('visits.area_id', $areaIds)
+            ->whereIn('complaints.status', ['pending', 'in_progress'])
+            ->count();
 
         $technicianIds = $this->teamMemberIdsInZones($areaIds);
         $members = [];
         if ($technicianIds->isNotEmpty()) {
-$technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
+            $technicians = User::role('technician')->whereIn('id', $technicianIds)->get(['id', 'name', 'status']);
+            $completedByTechnician = $completedList->groupBy('technician_id');
             foreach ($technicians as $u) {
-                $memberVisits = $this->memberVisitsQuery($request, $u->id)->whereIn('status', ['completed', 'approved'])->get();
+                $memberVisits = $completedByTechnician->get($u->id, collect());
                 $completed = $memberVisits->count();
                 $memberRatings = [];
                 foreach ($memberVisits as $v) {
@@ -604,23 +650,38 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         ]);
     }
 
-    private function mapTeamMemberToArray(User $u, array $areaIds, Carbon $now, string $today, bool $useAllVisits = false): array
-    {
+    private function mapTeamMemberToArray(
+        User $u,
+        array $areaIds,
+        Carbon $now,
+        string $today,
+        bool $useAllVisits = false,
+        ?bool $onLeaveFromApproved = null,
+        ?Collection $breaksForUser = null
+    ): array {
         $visits = $useAllVisits ? $u->visits : $u->visits->whereIn('area_id', $areaIds);
-        $totalTasks = $visits->count();
-        $completedTasks = $visits->whereIn('status', ['completed', 'approved'])->count();
+        $totalTasks = $useAllVisits
+            ? $visits->count()
+            : (int) ($u->tasks_total ?? $visits->count());
+        $completedTasks = $useAllVisits
+            ? $visits->whereIn('status', ['completed', 'approved'])->count()
+            : (int) ($u->tasks_completed ?? $visits->whereIn('status', ['completed', 'approved'])->count());
         $currentVisit = $visits->where('status', 'in_progress')->first();
 
         $accountStatus = $u->status ?? 'active';
-        $onLeaveFromApproved = LeaveRequest::where('user_id', $u->id)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
-            ->where('start_date', '<=', $today)
-            ->where('end_date', '>=', $today)
-            ->exists();
-        $onBreak = TechnicianBreak::where('user_id', $u->id)
-            ->whereDate('date', $today)
-            ->get()
-            ->contains(fn ($b) => $this->isTimeInBreak($now, $b->start_time ?? '', $b->end_time ?? ''));
+        if ($onLeaveFromApproved === null) {
+            $onLeaveFromApproved = LeaveRequest::where('user_id', $u->id)
+                ->whereRaw('LOWER(status) = ?', ['approved'])
+                ->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today)
+                ->exists();
+        }
+        if ($breaksForUser === null) {
+            $breaksForUser = TechnicianBreak::where('user_id', $u->id)
+                ->whereDate('date', $today)
+                ->get();
+        }
+        $onBreak = $breaksForUser->contains(fn ($b) => $this->isTimeInBreak($now, $b->start_time ?? '', $b->end_time ?? ''));
 
         $status = $onLeaveFromApproved ? 'On leave' : ($accountStatus === 'inactive' ? 'Inactive' : ($onBreak ? 'Break' : 'Active'));
         $currentActivity = $onBreak ? 'On Break' : ($onLeaveFromApproved ? 'On leave' : ($accountStatus === 'inactive' ? 'Inactive' : null));
@@ -836,15 +897,22 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         }
 
         $pending = $this->assignableVisitsQuery($request)
-            ->with('supervisor')
+            ->select([
+                'id', 'notes', 'scheduled_date', 'status', 'price', 'technician_id',
+                'supervisor_id', 'area_id', 'escalated_at', 'created_at', 'accept_by',
+            ])
+            ->with('supervisor:id,name')
             ->orderByRaw('escalated_at IS NOT NULL DESC')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate((int) $request->get('per_page', 100));
+            ->paginate(min(max((int) $request->get('per_page', 30), 1), 50));
 
         $pending->getCollection()->transform(function ($visit) {
             $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
-            $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+            $meta = $this->parseVisitMetaFromNotes(
+                (string) ($visit->notes ?? ''),
+                $visit->order_id ? (int) $visit->order_id : null
+            );
             $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
             $visit->service_name = $meta['service_name'] ?? null;
             $visit->location = $meta['location'] ?? null;
@@ -857,6 +925,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             $visit->client_phone = $meta['client_phone'] ?? null;
             $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
             $visit->makeHidden(['supervisor']);
+
             return $visit;
         });
 
@@ -887,7 +956,10 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $sub = $visit->subscription;
         $client = $sub?->client;
         $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
-        $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+        $meta = $this->parseVisitMetaFromNotes(
+            (string) ($visit->notes ?? ''),
+            $visit->order_id ? (int) $visit->order_id : null
+        );
         $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
         $visit->service_name = $meta['service_name'] ?? null;
         $visit->location = $meta['location'] ?? null;
@@ -945,14 +1017,21 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         $team_members = $teamData['data'] ?? [];
 
         $pending = $this->assignableVisitsQuery($request)
-                ->with('supervisor')
+                ->select([
+                    'id', 'notes', 'scheduled_date', 'status', 'price', 'technician_id',
+                    'supervisor_id', 'area_id', 'escalated_at', 'created_at', 'accept_by',
+                ])
+                ->with('supervisor:id,name')
                 ->orderByRaw('escalated_at IS NOT NULL DESC')
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
-                ->paginate((int) $request->get('per_page', 100));
+                ->paginate(min(max((int) $request->get('per_page', 30), 1), 50));
             $pending->getCollection()->transform(function ($visit) {
                 $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
-                $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
+                $meta = $this->parseVisitMetaFromNotes(
+            (string) ($visit->notes ?? ''),
+            $visit->order_id ? (int) $visit->order_id : null
+        );
                 $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
                 $visit->service_name = $meta['service_name'] ?? null;
                 $visit->location = $meta['location'] ?? null;
@@ -1030,7 +1109,6 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             if ($request->filled('scheduled_date')) {
                 $visit->scheduled_date = $request->input('scheduled_date');
             }
-            $visit->save();
             VisitOfferService::offerToTechnician($visit, $technician->id);
             $visit->load(['technician']);
 
@@ -1100,7 +1178,6 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         if ($request->filled('note')) {
             $visit->notes = trim(($visit->notes ? $visit->notes . PHP_EOL : '') . $request->input('note'));
         }
-        $visit->save();
         VisitOfferService::offerToTechnician($visit, $technician->id);
         $visit->load(['technician']);
 
@@ -1231,7 +1308,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         }
 
         $reports = $query->orderByDesc('created_at')
-            ->paginate((int) $request->get('per_page', 20));
+            ->paginate(min(max((int) $request->get('per_page', 20), 1), 50));
 
         $message = $reports->isEmpty()
             ? 'No reports yet. Technicians submit field reports for jobs assigned to you; they appear here when sent (report is linked to you by supervisor_id).'
@@ -1295,7 +1372,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         return response()->json($payload);
     }
 
-    private function parseVisitMetaFromNotes(string $notes): array
+    private function parseVisitMetaFromNotes(string $notes, ?int $visitOrderId = null): array
     {
         $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? $notes);
         $parts = array_values(array_filter(array_map('trim', explode('|', $clean)), fn ($p) => $p !== ''));
@@ -1310,7 +1387,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             $duration_minutes = (int) $m[1];
         }
         if ($duration_minutes === null) {
-            $duration_minutes = $this->durationMinutesFromShopOrderMarker($clean);
+            $duration_minutes = $this->durationMinutesFromShopOrderMarker($clean, $visitOrderId);
         }
         $price_display = isset($parts[4]) ? trim($parts[4]) : null;
         $client_name = null;
@@ -1346,13 +1423,15 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
         ];
     }
 
-    private function durationMinutesFromShopOrderMarker(string $notes): ?int
+    private function durationMinutesFromShopOrderMarker(string $notes, ?int $visitOrderId = null): ?int
     {
-        if (! preg_match('/\[SHOP-ORDER:(\d+)\]/', $notes, $m)) {
-            return null;
+        $orderId = ($visitOrderId !== null && $visitOrderId > 0) ? $visitOrderId : null;
+        if ($orderId === null) {
+            if (! preg_match('/\[SHOP-ORDER:(\d+)\]/', $notes, $m)) {
+                return null;
+            }
+            $orderId = (int) ($m[1] ?? 0);
         }
-
-        $orderId = (int) ($m[1] ?? 0);
         if ($orderId <= 0) {
             return null;
         }
@@ -1364,13 +1443,13 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
 
         $order = Order::query()->find($orderId);
         if (! $order) {
-            return $cache[$orderId] = null;
+            return null;
         }
 
         $firstItem = $order->items()->with('product:id,job_duration')->orderBy('id')->first();
         $raw = trim((string) ($firstItem?->product?->job_duration ?? ''));
         if ($raw === '') {
-            return $cache[$orderId] = null;
+            return null;
         }
 
         if (preg_match('/(\d+)\s*(?:min|mins|minute|minutes|m)\b/i', $raw, $mm)) {
@@ -1383,7 +1462,7 @@ $technicians = User::role('technician')->whereIn('id', $technicianIds)->get();
             return $cache[$orderId] = (int) $raw;
         }
 
-        return $cache[$orderId] = null;
+        return null;
     }
 
     /** Parse duration and rating from visit notes (e.g. seeded format with "120 min" and "4.6/5"). */

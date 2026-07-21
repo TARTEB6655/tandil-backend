@@ -16,10 +16,20 @@ final class OrderToVisitDispatcher
                 return null;
             }
 
-            $marker = self::orderMarker($order->id);
-            $existing = Visit::query()->where('notes', 'like', '%' . $marker . '%')->first();
+            $existing = Visit::query()->where('order_id', $order->id)->first();
             if ($existing) {
                 return $existing;
+            }
+
+            $marker = self::orderMarker($order->id);
+            $legacy = Visit::query()->where('notes', 'like', '%' . $marker . '%')->first();
+            if ($legacy) {
+                if ($legacy->order_id === null) {
+                    $legacy->order_id = $order->id;
+                    $legacy->save();
+                }
+
+                return $legacy;
             }
 
             $resolved = self::resolveAreaAndSupervisor($order);
@@ -57,6 +67,7 @@ final class OrderToVisitDispatcher
 
             return Visit::create([
                 'subscription_id' => null,
+                'order_id' => (int) $order->id,
                 'technician_id' => null,
                 'supervisor_id' => (int) $resolved['supervisor_id'],
                 'area_id' => (int) $resolved['area']->id,
@@ -97,7 +108,6 @@ final class OrderToVisitDispatcher
             ->get()
             ->filter(fn (Area $a) => $a->supervisors->isNotEmpty())
             ->values();
-
         if ($areas->isEmpty()) {
             return null;
         }

@@ -102,17 +102,17 @@ class GlobalNotificationFilter
          * user's Spatie role (same keys as filter) so admin role filters are not empty for legacy data.
          */
         return $query->where(function ($group) use ($expr, $audienceRole) {
+            $role = strtolower($audienceRole);
             $group->whereRaw("({$expr}) = ?", [$audienceRole])
-                ->orWhere(function ($legacy) use ($expr, $audienceRole) {
+                ->orWhere(function ($legacy) use ($expr, $role) {
                     $legacy->whereRaw("({$expr}) = ?", ['untracked'])
                         ->where('notifiable_type', User::class)
-                        ->whereHasMorph(
-                            'notifiable',
-                            [User::class],
-                            function ($userQuery) use ($audienceRole) {
-                                $userQuery->role($audienceRole);
-                            }
-                        );
+                        ->whereIn('notifiable_id', User::query()
+                            ->select('id')
+                            ->where(function ($userQuery) use ($role) {
+                                $userQuery->whereRaw('LOWER(role) = ?', [$role])
+                                    ->orWhereHas('roles', fn ($roles) => $roles->whereRaw('LOWER(name) = ?', [$role]));
+                            }));
                 });
         });
     }

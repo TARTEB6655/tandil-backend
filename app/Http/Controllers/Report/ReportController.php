@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Report;
 
 use App\Http\Controllers\Controller;
+use App\Models\Report;
+use App\Models\Subscription;
+use App\Models\Visit;
+use App\Support\CapsPagination;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
     public function __construct()
     {
-        // Apply middleware to protect routes based on roles
         $this->middleware(['auth:sanctum', 'role:client|technician|supervisor|area_manager|admin']);
     }
 
@@ -21,24 +24,64 @@ class ReportController extends Controller
                 return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
             }
 
-            if ($user->hasRole('admin') || $user->hasRole('supervisor') || $user->hasRole('area_manager')) {
-                $reports = \App\Models\Report::with(['visit', 'supervisor'])->get();
+            $role = strtolower(trim((string) ($user->role ?? '')));
+
+            $query = Report::query()
+                ->with([
+                    'visit.subscription.client:id,name,email,phone',
+                    'visit.technician:id,name,email,phone',
+                    'visit.area:id,name,location',
+                    'supervisor:id,name,email,phone',
+                ])
+                ->latest();
+
+            if (in_array($role, ['admin', 'supervisor', 'area_manager'], true)
+                || $user->hasRole('admin')
+                || $user->hasRole('supervisor')
+                || $user->hasRole('area_manager')) {
+                // Admin-like roles see all reports (optionally paginated).
+            } elseif ($role === 'client' || $user->hasRole('client')) {
+                $subscriptionIds = Subscription::query()
+                    ->where('client_id', $user->id)
+                    ->pluck('id');
+                $visitIds = Visit::query()
+                    ->whereIn('subscription_id', $subscriptionIds)
+                    ->pluck('id');
+                $query->whereIn('visit_id', $visitIds);
+            } elseif ($role === 'technician' || $user->hasRole('technician')) {
+                $visitIds = Visit::query()
+                    ->where('technician_id', $user->id)
+                    ->pluck('id');
+                $query->whereIn('visit_id', $visitIds);
             } else {
-                // Clients and technicians see only their own reports
-                $reports = \App\Models\Report::whereHas('visit', function($q) use ($user) {
-                    if ($user->hasRole('client')) {
-                        $q->whereHas('subscription', function($sq) use ($user) {
-                            $sq->where('client_id', $user->id);
-                        });
-                    } elseif ($user->hasRole('technician')) {
-                        $q->where('technician_id', $user->id);
-                    }
-                })->with(['visit', 'supervisor'])->get();
+                $query->whereRaw('1 = 0');
             }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->input('status'));
+            }
+
+            if ($request->has('page') || $request->has('per_page')) {
+                $perPage = CapsPagination::perPage($request, 20, 100);
+                $paginator = $query->paginate($perPage);
+
+                return response()->json([
+                    'status' => true,
+                    'data' => $paginator->items(),
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'last_page' => $paginator->lastPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                    ],
+                ], 200);
+            }
+
+            $reports = $query->limit(200)->get();
 
             return response()->json([
                 'status' => true,
-                'data' => $reports
+                'data' => $reports,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -51,7 +94,7 @@ class ReportController extends Controller
     public function show($id)
     {
         try {
-            $report = \App\Models\Report::with(['visit', 'supervisor'])->find($id);
+            $report = Report::with(['visit', 'supervisor'])->find($id);
 
             if (! $report) {
                 return response()->json(['status' => false, 'message' => 'Report not found'], 404);
@@ -83,9 +126,8 @@ class ReportController extends Controller
             ]);
 
             $user = $request->user();
-            $visit = \App\Models\Visit::find($data['visit_id']);
+            $visit = Visit::find($data['visit_id']);
 
-            // When technician submits: ensure visit is assigned to them and set defaults
             if ($user && $user->hasRole('technician')) {
                 if ($visit->technician_id !== $user->id) {
                     return response()->json([
@@ -96,7 +138,7 @@ class ReportController extends Controller
                 $data['status'] = $data['status'] ?? 'pending';
             }
 
-            $report = \App\Models\Report::create($data);
+            $report = Report::create($data);
 
             return response()->json(['status' => true, 'data' => $report], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {

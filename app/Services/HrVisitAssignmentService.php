@@ -60,7 +60,6 @@ class HrVisitAssignmentService
             $visit->notes = trim(($visit->notes ? $visit->notes . PHP_EOL : '') . $note);
         }
 
-        $visit->save();
         VisitOfferService::offerToTechnician($visit, $technician->id);
         $visit->load(['technician', 'supervisor', 'area', 'subscription.client']);
 

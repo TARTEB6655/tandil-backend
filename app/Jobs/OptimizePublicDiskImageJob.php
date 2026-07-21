@@ -28,6 +28,7 @@ class OptimizePublicDiskImageJob
         try {
             $ok = match ($this->profile) {
                 'option' => ImageCompressionService::optimizeProductOptionFromPublicPath($this->relativePath),
+                'visit' => ImageCompressionService::compressVisitPhotoFromPublicPath($this->relativePath),
                 default => ImageCompressionService::optimizeProductGalleryFromPublicPath($this->relativePath),
             };
 

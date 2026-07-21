@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
+use App\Jobs\SyncVisitOrderTrackingJob;
 use App\Notifications\AdminNotification;
-use App\Support\VisitOrderTrackingSync;
+use App\Support\RoleUsersNotifier;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -13,6 +14,7 @@ class Visit extends Model
 
     protected $fillable = [
         'subscription_id',
+        'order_id',
         'technician_id',
         'supervisor_id',
         'area_id',
@@ -52,6 +54,11 @@ class Visit extends Model
     public function subscription()
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function technician()
@@ -96,7 +103,7 @@ class Visit extends Model
             if ($visit->area_id && $visit->supervisor_id) {
                 self::notifyNewJobAssignedToSupervisor($visit);
             }
-            VisitOrderTrackingSync::syncFromVisit($visit);
+            self::queueOrderTrackingSync($visit);
         });
 
         static::updated(function (Visit $visit): void {
@@ -112,10 +119,22 @@ class Visit extends Model
                 || $visit->wasChanged('technician_id')
                 || $visit->wasChanged('supervisor_id')
                 || $visit->wasChanged('notes')
+                || $visit->wasChanged('order_id')
             ) {
-                VisitOrderTrackingSync::syncFromVisit($visit);
+                self::queueOrderTrackingSync($visit);
             }
         });
+    }
+
+    private static function queueOrderTrackingSync(Visit $visit): void
+    {
+        if (app()->environment('testing') || app()->runningInConsole()) {
+            (new SyncVisitOrderTrackingJob((int) $visit->id))->handle();
+
+            return;
+        }
+
+        SyncVisitOrderTrackingJob::dispatch((int) $visit->id)->afterResponse();
     }
 
     private static function notifyNewJobAssignedToSupervisor(Visit $visit): void
@@ -144,11 +163,7 @@ class Visit extends Model
             $supervisor->notify(new AdminNotification('New job assigned', $message, $meta));
 
             // Admin notifications
-            $admins = User::query()
-                ->whereRaw('LOWER(role) = ?', ['admin'])
-                ->orWhereHas('roles', fn ($q) => $q->whereRaw('LOWER(name) = ?', ['admin']))
-                ->get();
-            foreach ($admins as $admin) {
+            foreach (RoleUsersNotifier::usersForRole('admin') as $admin) {
                 $admin->notify(new AdminNotification('New job assigned', $message, $meta));
             }
         } catch (\Throwable $e) {

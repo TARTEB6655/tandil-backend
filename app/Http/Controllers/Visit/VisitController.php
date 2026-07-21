@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Area;
 use App\Models\Visit;
+use App\Support\CapsPagination;
 use App\Support\VisitAreaResolver;
 use App\Models\User;
 use App\Notifications\AdminNotification;
@@ -37,42 +38,56 @@ class VisitController extends Controller
                 return response()->json(['status' => false, 'message' => 'Unauthenticated'], 401);
             }
 
-            if ($user->hasRole('admin')) {
+            $query = Visit::query()
+                ->with([
+                    'subscription.client:id,name,email,phone',
+                    'technician:id,name,email,phone,profile_picture',
+                    'supervisor:id,name,email,phone,profile_picture',
+                    'area:id,name,location,country',
+                    'photos:id,visit_id,photo_path,type',
+                ])
+                ->latest();
+
+            $role = strtolower(trim((string) ($user->role ?? '')));
+
+            if ($role === 'admin' || $user->hasRole('admin')) {
                 // Admin sees everything
-                $visits = Visit::with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                    ->latest()
-                    ->get();
-            } elseif ($user->hasRole('area_manager')) {
-                // Area Manager → visits in their managed areas
+            } elseif ($role === 'area_manager' || $user->hasRole('area_manager')) {
                 $areaIds = $user->supervisedAreaIds();
-
-                $visits = Visit::whereIn('area_id', $areaIds)
-                    ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                    ->latest()
-                    ->get();
-            } elseif ($user->hasRole('supervisor')) {
-                // Supervisor → visits in areas they supervise
+                $query->whereIn('area_id', $areaIds);
+            } elseif ($role === 'supervisor' || $user->hasRole('supervisor')) {
                 $areaIds = $user->supervisedAreaIds();
-
-                $visits = Visit::whereIn('area_id', $areaIds)
-                    ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                    ->latest()
-                    ->get();
-            } elseif ($user->hasRole('technician')) {
-                // Technician → assigned visits
-                $visits = Visit::where('technician_id', $user->id)
-                    ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                    ->latest()
-                    ->get();
+                $query->whereIn('area_id', $areaIds);
+            } elseif ($role === 'technician' || $user->hasRole('technician')) {
+                $query->where('technician_id', $user->id);
             } else {
-                // Client → their subscription visits
-                $visits = Visit::whereHas('subscription', function ($q) use ($user) {
-                    $q->where('client_id', $user->id);
-                })
-                ->with(['subscription.client', 'technician', 'supervisor', 'area', 'photos'])
-                ->latest()
-                ->get();
+                $subscriptionIds = \App\Models\Subscription::query()
+                    ->where('client_id', $user->id)
+                    ->pluck('id');
+                $query->whereIn('subscription_id', $subscriptionIds);
             }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->input('status'));
+            }
+
+            if ($request->has('page') || $request->has('per_page')) {
+                $perPage = CapsPagination::perPage($request, 20, 100);
+                $paginator = $query->paginate($perPage);
+
+                return response()->json([
+                    'status' => true,
+                    'data' => $paginator->items(),
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'last_page' => $paginator->lastPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                    ],
+                ], 200);
+            }
+
+            $visits = $query->limit(200)->get();
 
             return response()->json(['status' => true, 'data' => $visits], 200);
         } catch (\Exception $e) {

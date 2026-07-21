@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Technician;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\NotifyHrOnVisitCompletedJob;
+use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\Complaint;
 use App\Models\Employee;
 use App\Services\ImageCompressionService;
@@ -20,6 +22,7 @@ use App\Notifications\AdminNotification;
 use App\Services\VisitOfferService;
 use App\Models\Tip;
 use App\Helpers\ApiResponse;
+use App\Support\CapsPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -42,19 +45,33 @@ class TechnicianDashboardController extends Controller
         $user = $request->user();
         $technicianId = $user->id;
 
-        $totalVisits = Visit::where('technician_id', $technicianId)->count();
-        $completedVisits = Visit::where('technician_id', $technicianId)->whereIn('status', ['completed', 'approved'])->count();
-        $pendingVisits = Visit::where('technician_id', $technicianId)->where('status', 'pending')->count();
-        $acceptedVisits = Visit::where('technician_id', $technicianId)->where('status', 'pending_acceptance')->count();
-        $inProgressVisits = Visit::where('technician_id', $technicianId)->whereIn('status', ['in_progress', 'started', 'scheduled'])->count();
+        $visitStats = Visit::query()
+            ->where('technician_id', $technicianId)
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN status IN ('completed','approved') THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'pending_acceptance' THEN 1 ELSE 0 END) as accepted,
+                SUM(CASE WHEN status IN ('in_progress','started','scheduled') THEN 1 ELSE 0 END) as in_progress
+            ")
+            ->first();
 
-        $visitIds = Visit::where('technician_id', $technicianId)->pluck('id');
-        $totalReports = Report::whereIn('visit_id', $visitIds)->count();
-        $approvedReports = Report::whereIn('visit_id', $visitIds)->where('status', 'approved')->count();
-        $pendingReports = Report::whereIn('visit_id', $visitIds)->where('status', 'pending')->count();
+        $totalVisits = (int) ($visitStats->total ?? 0);
+        $completedVisits = (int) ($visitStats->completed ?? 0);
+        $pendingVisits = (int) ($visitStats->pending ?? 0);
+        $acceptedVisits = (int) ($visitStats->accepted ?? 0);
+        $inProgressVisits = (int) ($visitStats->in_progress ?? 0);
 
-        $totalComplaints = Complaint::whereIn('visit_id', $visitIds)->count();
-        $resolvedComplaints = Complaint::whereIn('visit_id', $visitIds)->where('status', 'resolved')->count();
+        $visitIdSubquery = Visit::query()
+            ->where('technician_id', $technicianId)
+            ->select('id');
+
+        $totalReports = Report::whereIn('visit_id', $visitIdSubquery)->count();
+        $approvedReports = Report::whereIn('visit_id', $visitIdSubquery)->where('status', 'approved')->count();
+        $pendingReports = Report::whereIn('visit_id', $visitIdSubquery)->where('status', 'pending')->count();
+
+        $totalComplaints = Complaint::whereIn('visit_id', $visitIdSubquery)->count();
+        $resolvedComplaints = Complaint::whereIn('visit_id', $visitIdSubquery)->where('status', 'resolved')->count();
 
         $recentVisits = Visit::where('technician_id', $technicianId)
             ->with(['subscription.client', 'area'])
@@ -62,12 +79,12 @@ class TechnicianDashboardController extends Controller
             ->orderByDesc('id')
             ->limit(10)
             ->get();
-        $recentReports = Report::whereIn('visit_id', $visitIds)
+        $recentReports = Report::whereIn('visit_id', $visitIdSubquery)
             ->with('visit.subscription.client')
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
-        $recentComplaints = Complaint::whereIn('visit_id', $visitIds)
+        $recentComplaints = Complaint::whereIn('visit_id', $visitIdSubquery)
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
@@ -116,7 +133,7 @@ class TechnicianDashboardController extends Controller
      */
     public function dashboard(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user()->load('employee', 'technicianAvailability');
         $employee = $user->employee;
         $availability = $user->technicianAvailability;
 
@@ -599,14 +616,13 @@ class TechnicianDashboardController extends Controller
             ->whereBetween('scheduled_date', [$start, $end])
             ->whereIn('status', $jobStatuses);
         $completed = (clone $query)->where('status', 'completed')->count();
-        $totalEarnings = 0; // stub
-        $avgRating = 0; // stub
-        $list = Visit::where('technician_id', $user->id)
-            ->whereBetween('scheduled_date', [$start, $end])
-            ->whereIn('status', $jobStatuses)
+        $totalEarnings = 0;
+        $avgRating = 0;
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $list = (clone $query)
             ->with(['subscription.client', 'area', 'supervisor'])
             ->orderByDesc('scheduled_date')
-            ->paginate((int) $request->input('per_page', 15));
+            ->paginate($perPage);
         $list->getCollection()->transform(fn ($v) => $this->formatVisitAsTask($v));
         return response()->json([
             'success' => true,
@@ -685,16 +701,21 @@ class TechnicianDashboardController extends Controller
         $base = Visit::where('technician_id', $user->id)
             ->whereBetween('scheduled_date', [$start, $end]);
 
+        $counts = (clone $base)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
         return response()->json([
             'success' => true,
             'data' => [
                 'period' => $period,
-                'accepted' => (clone $base)->where('status', 'accepted')->count(),
-                'in_progress' => (clone $base)->where('status', 'in_progress')->count(),
-                'rejected' => (clone $base)->where('status', 'rejected')->count(),
-                'completed' => (clone $base)->where('status', 'completed')->count(),
-                'pending' => (clone $base)->where('status', 'pending')->count(),
-                'cancelled' => (clone $base)->where('status', 'cancelled')->count(),
+                'accepted' => (int) ($counts['accepted'] ?? 0),
+                'in_progress' => (int) ($counts['in_progress'] ?? 0),
+                'rejected' => (int) ($counts['rejected'] ?? 0),
+                'completed' => (int) ($counts['completed'] ?? 0),
+                'pending' => (int) ($counts['pending'] ?? 0),
+                'cancelled' => (int) ($counts['cancelled'] ?? 0),
             ],
         ]);
     }
@@ -1193,7 +1214,8 @@ class TechnicianDashboardController extends Controller
      */
     public function markAllNotificationsRead(Request $request)
     {
-        $request->user()->unreadNotifications->each(fn ($n) => $n->markAsRead());
+        $request->user()->unreadNotifications()->update(['read_at' => now()]);
+
         return ApiResponse::success('All notifications marked as read.');
     }
 
@@ -1203,7 +1225,8 @@ class TechnicianDashboardController extends Controller
      */
     public function clearAllNotifications(Request $request)
     {
-        $request->user()->unreadNotifications->each(fn ($n) => $n->markAsRead());
+        $request->user()->unreadNotifications()->update(['read_at' => now()]);
+
         return ApiResponse::success('All notifications cleared.');
     }
 
@@ -1215,9 +1238,12 @@ class TechnicianDashboardController extends Controller
     public function fieldNotesIndex(Request $request)
     {
         $user = $request->user();
-        $query = Report::whereHas('visit', fn ($q) => $q->where('technician_id', $user->id))
+        $query = Report::query()
+            ->join('visits', 'reports.visit_id', '=', 'visits.id')
+            ->where('visits.technician_id', $user->id)
+            ->select('reports.*')
             ->with(['visit.photos', 'supervisor'])
-            ->orderByDesc('created_at');
+            ->orderByDesc('reports.created_at');
         if ($request->filled('supervisor_id')) {
             $query->where('supervisor_id', (int) $request->input('supervisor_id'));
         }
@@ -1295,8 +1321,7 @@ class TechnicianDashboardController extends Controller
             ], 422);
         }
 
-        $report = $visit->report;
-        if ($report) {
+        if ($visit->report) {
             return response()->json([
                 'success' => false,
                 'status' => false,
@@ -1304,35 +1329,12 @@ class TechnicianDashboardController extends Controller
             ], 422);
         }
 
-        $supervisorId = (int) $visit->supervisor_id;
-
-        $report = Report::create([
-            'visit_id' => $visit->id,
-            'supervisor_id' => $supervisorId,
-            'technician_notes' => $data['technician_notes'] ?? '',
-            'status' => 'pending',
-        ]);
-
-        $visit->status = 'completed';
-        $visit->completed_at = now();
-        $visit->completed_date = Carbon::today();
-        $visit->save();
-        $this->notifyHrOnVisitCompleted($visit, $user);
-
-        foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
-            if (! $request->hasFile($key)) {
-                continue;
-            }
-            $file = $request->file($key);
-            $path = $file->store('visit_photos', 'public');
-            ImageCompressionService::compressVisitPhotoFromPublicPath($path);
-            VisitPhoto::create([
-                'visit_id' => $visit->id,
-                'photo_path' => $path,
-                'type' => $type,
-                'show_on_client_app' => false,
-            ]);
-        }
+        $report = $this->createTechnicianReportAndCompleteVisit(
+            $visit,
+            $user,
+            (string) ($data['technician_notes'] ?? ''),
+            $request
+        );
 
         $report->load(['visit', 'visit.photos']);
         $payload = [
@@ -1380,8 +1382,7 @@ class TechnicianDashboardController extends Controller
             ], 422);
         }
 
-        $report = $visit->report;
-        if ($report) {
+        if ($visit->report) {
             return response()->json([
                 'success' => false,
                 'status' => false,
@@ -1389,42 +1390,18 @@ class TechnicianDashboardController extends Controller
             ], 422);
         }
 
-        $supervisorId = (int) $visit->supervisor_id;
-
-        $report = Report::create([
-            'visit_id' => $visit->id,
-            'supervisor_id' => $supervisorId,
-            'technician_notes' => $data['technician_notes'] ?? '',
-            'status' => 'pending',
-        ]);
-        $message = 'Report submitted successfully.';
-
-        $visit->status = 'completed';
-        $visit->completed_at = now();
-        $visit->completed_date = Carbon::today();
-        $visit->save();
-        $this->notifyHrOnVisitCompleted($visit, $user);
-
-        foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
-            if (! $request->hasFile($key)) {
-                continue;
-            }
-            $file = $request->file($key);
-            $path = $file->store('visit_photos', 'public');
-            ImageCompressionService::compressVisitPhotoFromPublicPath($path);
-            VisitPhoto::create([
-                'visit_id' => $visit->id,
-                'photo_path' => $path,
-                'type' => $type,
-                'show_on_client_app' => false,
-            ]);
-        }
+        $report = $this->createTechnicianReportAndCompleteVisit(
+            $visit,
+            $user,
+            (string) ($data['technician_notes'] ?? ''),
+            $request
+        );
 
         $report->load(['visit', 'visit.photos']);
         return response()->json([
             'success' => true,
             'status' => true,
-            'message' => $message,
+            'message' => 'Report submitted successfully.',
             'data' => [
                 'id' => $report->id,
                 'report_id' => $report->id,
@@ -1437,33 +1414,45 @@ class TechnicianDashboardController extends Controller
         ], 201);
     }
 
-    private function notifyHrOnVisitCompleted(Visit $visit, User $technician): void
-    {
-        $hrUsers = User::whereRaw('LOWER(role) = ?', ['hr'])
-            ->orWhereHas('roles', fn ($q) => $q->whereRaw('LOWER(name) = ?', ['hr']))
-            ->get();
-
-        if ($hrUsers->isEmpty()) {
-            return;
-        }
-
-        $title = 'Visit completed';
-        $message = sprintf(
-            'Visit #%d was completed by %s.',
-            $visit->id,
-            $technician->name ?? 'Technician'
-        );
-        $meta = [
-            'type' => 'hr_visit_completed',
+    private function createTechnicianReportAndCompleteVisit(
+        Visit $visit,
+        User $technician,
+        string $technicianNotes,
+        Request $request
+    ): Report {
+        $report = Report::create([
             'visit_id' => $visit->id,
-            'technician_id' => $technician->id,
-            'technician_name' => $technician->name ?? null,
-            'completed_at' => now()->toIso8601String(),
-        ];
+            'supervisor_id' => (int) $visit->supervisor_id,
+            'technician_notes' => $technicianNotes,
+            'status' => 'pending',
+        ]);
 
-        foreach ($hrUsers as $hr) {
-            $hr->notify(new AdminNotification($title, $message, $meta));
+        $visit->status = 'completed';
+        $visit->completed_at = now();
+        $visit->completed_date = Carbon::today();
+        $visit->save();
+
+        if (app()->environment('testing')) {
+            (new NotifyHrOnVisitCompletedJob((int) $visit->id, (int) $technician->id))->handle();
+        } else {
+            NotifyHrOnVisitCompletedJob::dispatch((int) $visit->id, (int) $technician->id)->afterResponse();
         }
+
+        foreach (['before_photo' => 'before', 'after_photo' => 'after'] as $key => $type) {
+            if (! $request->hasFile($key)) {
+                continue;
+            }
+            $path = $request->file($key)->store('visit_photos', 'public');
+            VisitPhoto::create([
+                'visit_id' => $visit->id,
+                'photo_path' => $path,
+                'type' => $type,
+                'show_on_client_app' => false,
+            ]);
+            OptimizePublicDiskImageJob::dispatch($path, 'visit')->afterResponse();
+        }
+
+        return $report;
     }
 
     private function formatJobDetails(Visit $visit): array

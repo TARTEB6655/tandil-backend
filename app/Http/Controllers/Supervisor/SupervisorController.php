@@ -8,6 +8,7 @@ use App\Models\Report;
 use App\Models\Product;
 use App\Models\Area;
 use App\Models\Complaint;
+use App\Support\CapsPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -53,7 +54,12 @@ class SupervisorController extends Controller
         $areaIds = $user->supervisedAreaIds();
 
         $query = Visit::whereIn('area_id', $areaIds)
-            ->with(['subscription.client', 'technician', 'report', 'photos']);
+            ->with([
+                'subscription.client:id,name,email,phone',
+                'technician:id,name,email,phone,profile_picture',
+                'report:id,visit_id,status,created_at',
+                'photos:id,visit_id,photo_path,type',
+            ]);
 
         $status = $request->query('status');
         if ($status === 'active') {
@@ -64,7 +70,23 @@ class SupervisorController extends Controller
             $query->where('status', $status);
         }
 
-        $visits = $query->latest()->get();
+        if ($request->has('page') || $request->has('per_page')) {
+            $perPage = CapsPagination::perPage($request, 20, 100);
+            $paginator = $query->latest()->paginate($perPage);
+
+            return response()->json([
+                'status' => true,
+                'data' => $paginator->items(),
+                'pagination' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ],
+            ], 200);
+        }
+
+        $visits = $query->latest()->limit(200)->get();
 
         return response()->json(['status' => true, 'data' => $visits], 200);
     }
@@ -76,7 +98,13 @@ class SupervisorController extends Controller
     {
         $user = $request->user();
 
-        $areas = $user->supervisedAreas()->with(['technicians', 'visits'])->get();
+        $areas = $user->supervisedAreas()
+            ->with([
+                'technicians:id,name,email,phone,profile_picture',
+                'visits' => fn ($q) => $q->latest()->limit(25),
+            ])
+            ->withCount(['technicians', 'visits'])
+            ->get();
 
         return response()->json(['status' => true, 'data' => $areas], 200);
     }
@@ -311,9 +339,29 @@ class SupervisorController extends Controller
 
         $areaIds = $user->supervisedAreaIds();
 
-        $complaints = Complaint::whereHas('visit', function ($query) use ($areaIds) {
-            $query->whereIn('visits.area_id', $areaIds);
-        })->with(['visit', 'client'])->get();
+        $complaintsQuery = Complaint::query()
+            ->join('visits', 'complaints.visit_id', '=', 'visits.id')
+            ->whereIn('visits.area_id', $areaIds)
+            ->select('complaints.*')
+            ->with(['visit:id,area_id,status,scheduled_date', 'client:id,name,email,phone']);
+
+        if ($request->has('page') || $request->has('per_page')) {
+            $perPage = CapsPagination::perPage($request, 20, 100);
+            $paginator = $complaintsQuery->latest('complaints.created_at')->paginate($perPage);
+
+            return response()->json([
+                'status' => true,
+                'data' => $paginator->items(),
+                'pagination' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ],
+            ], 200);
+        }
+
+        $complaints = $complaintsQuery->latest('complaints.created_at')->limit(200)->get();
 
         return response()->json(['status' => true, 'data' => $complaints], 200);
     }

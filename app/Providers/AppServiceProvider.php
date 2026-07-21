@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Order;
 use App\Models\Subscription;
+use App\Observers\DatabaseNotificationObserver;
 use App\Observers\OrderObserver;
 use App\Observers\SubscriptionObserver;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -41,5 +43,6 @@ class AppServiceProvider extends ServiceProvider
 
         Order::observe(OrderObserver::class);
         Subscription::observe(SubscriptionObserver::class);
+        DatabaseNotification::observe(DatabaseNotificationObserver::class);
     }
 }
