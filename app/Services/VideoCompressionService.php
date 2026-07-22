@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Compress video banner uploads for fast API create/update and small home-screen payloads.
  * Uses ffmpeg when available (720p H.264 + AAC, fast preset, high quality CRF).
- * Falls back to keeping the original file if ffmpeg is missing or compression fails.
+ * Falls back to keeping the original file if ffmpeg / proc_open / exec are unavailable
+ * (common on shared hosting) — never throws, so create/update still succeed.
  */
 class VideoCompressionService
 {
@@ -31,9 +32,9 @@ class VideoCompressionService
     /**
      * Compress a video stored on the public disk (in place, replaces with .mp4 when needed).
      *
-     * @return string|null Relative public-disk path to use (may change extension to .mp4), or null on hard failure
+     * @return string Relative public-disk path to use (may change extension to .mp4)
      */
-    public static function compressIfNeededFromPublicPath(string $relativePath): ?string
+    public static function compressIfNeededFromPublicPath(string $relativePath): string
     {
         $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
         $disk = Storage::disk('public');
@@ -46,6 +47,15 @@ class VideoCompressionService
         clearstatcache(true, $fullPath);
         $size = is_file($fullPath) ? filesize($fullPath) : false;
         if ($size !== false && $size <= self::SKIP_UNDER_BYTES) {
+            return $relativePath;
+        }
+
+        if (! self::canRunExternalProcess()) {
+            Log::warning('VideoCompressionService: proc_open/exec disabled; storing original video', [
+                'path' => $relativePath,
+                'size' => $size,
+            ]);
+
             return $relativePath;
         }
 
@@ -68,15 +78,11 @@ class VideoCompressionService
         }
         $tmpOut = $dir.DIRECTORY_SEPARATOR.'vb_'.uniqid('cmp_', true).'.mp4';
 
-        // Scale longest side down to 720p height max; keep aspect; even dims for H.264.
-        // +faststart moves moov atom forward so mobile playback starts immediately.
-        $scaleFilter = "scale=-2:'min(720,ih)'";
-
-        $result = Process::timeout(90)->run([
+        $args = [
             $ffmpeg,
             '-y',
             '-i', $fullPath,
-            '-vf', $scaleFilter,
+            '-vf', "scale=-2:'min(720,ih)'",
             '-map', '0:v:0',
             '-map', '0:a:0?',
             '-c:v', 'libx264',
@@ -87,13 +93,14 @@ class VideoCompressionService
             '-movflags', '+faststart',
             '-pix_fmt', 'yuv420p',
             $tmpOut,
-        ]);
+        ];
 
-        if (! $result->successful() || ! is_file($tmpOut) || filesize($tmpOut) === 0) {
+        $ran = self::runCommand($args, 90);
+        if (! $ran['ok'] || ! is_file($tmpOut) || filesize($tmpOut) === 0) {
             Log::warning('VideoCompressionService: ffmpeg compress failed; keeping original', [
                 'path' => $relativePath,
-                'exit' => $result->exitCode(),
-                'error' => $result->errorOutput(),
+                'exit' => $ran['exit'],
+                'error' => $ran['error'],
             ]);
             @unlink($tmpOut);
 
@@ -104,7 +111,6 @@ class VideoCompressionService
         $newSize = filesize($tmpOut) ?: 0;
         $oldSize = $size ?: 0;
 
-        // If compressed file is somehow larger, keep the smaller original.
         if ($oldSize > 0 && $newSize >= $oldSize) {
             @unlink($tmpOut);
 
@@ -139,7 +145,7 @@ class VideoCompressionService
     }
 
     /**
-     * Locate ffmpeg binary: env FFMPEG_PATH, PATH, or common Windows install locations.
+     * Locate ffmpeg binary without requiring proc_open (check known paths first).
      */
     public static function resolveFfmpegBinary(): ?string
     {
@@ -148,33 +154,31 @@ class VideoCompressionService
             return $configured;
         }
 
-        $which = Process::timeout(5)->run([
-            PHP_OS_FAMILY === 'Windows' ? 'where' : 'which',
-            'ffmpeg',
-        ]);
-        if ($which->successful()) {
-            $line = trim(explode("\n", str_replace("\r", '', $which->output()))[0] ?? '');
-            if ($line !== '' && self::isExecutable($line)) {
-                return $line;
+        $candidates = PHP_OS_FAMILY === 'Windows'
+            ? array_filter([
+                (getenv('LOCALAPPDATA') ?: '').'\\Microsoft\\WinGet\\Links\\ffmpeg.exe',
+                (getenv('ProgramFiles') ?: 'C:\\Program Files').'\\ffmpeg\\bin\\ffmpeg.exe',
+                'C:\\ffmpeg\\bin\\ffmpeg.exe',
+            ])
+            : ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/opt/homebrew/bin/ffmpeg'];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '' && self::isExecutable($candidate)) {
+                return $candidate;
             }
         }
 
-        $candidates = [];
-        if (PHP_OS_FAMILY === 'Windows') {
-            $localAppData = getenv('LOCALAPPDATA') ?: '';
-            $programFiles = getenv('ProgramFiles') ?: 'C:\\Program Files';
-            $candidates = array_filter([
-                $localAppData !== '' ? $localAppData.'\\Microsoft\\WinGet\\Links\\ffmpeg.exe' : null,
-                $programFiles.'\\ffmpeg\\bin\\ffmpeg.exe',
-                'C:\\ffmpeg\\bin\\ffmpeg.exe',
-            ]);
-        } else {
-            $candidates = ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/opt/homebrew/bin/ffmpeg'];
+        // Last resort: which/where (needs proc_open or exec)
+        if (! self::canRunExternalProcess()) {
+            return null;
         }
 
-        foreach ($candidates as $candidate) {
-            if (self::isExecutable($candidate)) {
-                return $candidate;
+        $finder = PHP_OS_FAMILY === 'Windows' ? 'where' : 'which';
+        $ran = self::runCommand([$finder, 'ffmpeg'], 5);
+        if ($ran['ok']) {
+            $line = trim(explode("\n", str_replace("\r", '', $ran['output']))[0] ?? '');
+            if ($line !== '' && self::isExecutable($line)) {
+                return $line;
             }
         }
 
@@ -183,7 +187,94 @@ class VideoCompressionService
 
     public static function isAvailable(): bool
     {
-        return self::resolveFfmpegBinary() !== null;
+        return self::canRunExternalProcess() && self::resolveFfmpegBinary() !== null;
+    }
+
+    /**
+     * Shared hosts often disable proc_open (Laravel Process requires it).
+     */
+    public static function canRunExternalProcess(): bool
+    {
+        return self::isFunctionEnabled('proc_open')
+            || self::isFunctionEnabled('exec')
+            || self::isFunctionEnabled('shell_exec');
+    }
+
+    private static function isFunctionEnabled(string $function): bool
+    {
+        if (! function_exists($function)) {
+            return false;
+        }
+
+        $disabled = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+
+        return ! in_array($function, $disabled, true);
+    }
+
+    /**
+     * @param  list<string>  $args
+     * @return array{ok: bool, exit: int|null, output: string, error: string}
+     */
+    private static function runCommand(array $args, int $timeoutSeconds): array
+    {
+        if (self::isFunctionEnabled('proc_open')) {
+            try {
+                $result = Process::timeout($timeoutSeconds)->run($args);
+
+                return [
+                    'ok' => $result->successful(),
+                    'exit' => $result->exitCode(),
+                    'output' => $result->output(),
+                    'error' => $result->errorOutput(),
+                ];
+            } catch (\Throwable $e) {
+                Log::warning('VideoCompressionService: Process failed', ['error' => $e->getMessage()]);
+
+                // Fall through to exec/shell_exec
+            }
+        }
+
+        $command = self::buildShellCommand($args);
+
+        if (self::isFunctionEnabled('exec')) {
+            $outputLines = [];
+            $exitCode = 1;
+            @exec($command.' 2>&1', $outputLines, $exitCode);
+            $output = implode("\n", $outputLines);
+
+            return [
+                'ok' => $exitCode === 0,
+                'exit' => $exitCode,
+                'output' => $output,
+                'error' => $exitCode === 0 ? '' : $output,
+            ];
+        }
+
+        if (self::isFunctionEnabled('shell_exec')) {
+            $output = (string) @shell_exec($command.' 2>&1');
+            // shell_exec has no exit code; treat non-empty ffmpeg error patterns as failure later via file checks
+            return [
+                'ok' => true,
+                'exit' => null,
+                'output' => $output,
+                'error' => '',
+            ];
+        }
+
+        return [
+            'ok' => false,
+            'exit' => null,
+            'output' => '',
+            'error' => 'No process runner available (proc_open/exec/shell_exec disabled)',
+        ];
+    }
+
+    /**
+     * @param  list<string>  $args
+     */
+    private static function buildShellCommand(array $args): string
+    {
+        return implode(' ', array_map(static fn (string $arg) => escapeshellarg($arg), $args));
     }
 
     private static function isExecutable(string $path): bool

@@ -161,9 +161,18 @@ class VideoBannerController extends Controller
         }
 
         $path = $file->store('video_banners', 'public');
-        $compressed = VideoCompressionService::compressIfNeededFromPublicPath($path);
 
-        return $compressed ?: $path;
+        try {
+            return VideoCompressionService::compressIfNeededFromPublicPath($path);
+        } catch (\Throwable $e) {
+            // Shared hosts often disable proc_open; never fail create because of compression.
+            Log::warning('Video banner: compression skipped', [
+                'path' => $path,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $path;
+        }
     }
 
     private function deleteStoredFile(?string $path): void
