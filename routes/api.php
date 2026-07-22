@@ -731,6 +731,13 @@ Route::get('/banners', [\App\Http\Controllers\Api\BannerController::class, 'inde
 
 /*
 |--------------------------------------------------------------------------
+| VIDEO BANNER (Public - for customer home screen "Featured Video")
+|--------------------------------------------------------------------------
+*/
+Route::get('/video-banners', [\App\Http\Controllers\Api\VideoBannerController::class, 'index']);
+
+/*
+|--------------------------------------------------------------------------
 | EXCLUSIVE OFFERS (Public - for customer home screen "Exclusive Offers" section)
 |--------------------------------------------------------------------------
 */
@@ -761,6 +768,21 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/banners')->grou
     Route::post('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'update']); // POST for multipart (image replace)
     Route::post('/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\BannerController::class, 'toggleStatus']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\BannerController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN VIDEO BANNER (create, edit, delete, enable/disable)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/video-banners')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'update']);
+    Route::post('/{id}', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'update']); // POST for multipart (file replace)
+    Route::post('/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'toggleStatus']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'destroy']);
 });
 
 /*
