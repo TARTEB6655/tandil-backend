@@ -3173,7 +3173,7 @@
                                         "video-banners"
                                     ]
                                 },
-                                "description": "GET \/api\/video-banners - Active video banners for the customer home screen \"Featured Video\" section. Public endpoint - no authentication required.\n\n**Response (each item):**\n- `id`: Video banner ID\n- `title`: Title (e.g. See Tandil in action)\n- `video_url`: Full URL to the video (MP4) or external URL\n- `poster_url`: Full URL to the poster image (shown before play)\n- `badge_text`: Small badge label (e.g. Watch now)\n- `button_text`: CTA button label (e.g. Explore services)\n- `button_link`: CTA link \/ route\n- `is_active`: Whether it is shown"
+                                "description": "GET \/api\/video-banners - Active video banners for the customer home screen \"Featured Video\" section. Public endpoint - no authentication required.\n\n**Response (each item):**\n- `id`: Video banner ID\n- `title`: Title (e.g. See Tandil in action)\n- `video_url`: Full URL to the video (MP4)\n- `badge_text`: Small badge label (e.g. Watch now)\n- `button_text`: CTA button label (e.g. Explore services)\n- `is_active`: Whether it is shown"
                             }
                         }
                     ],
@@ -9155,7 +9155,7 @@
                                         "video-banners"
                                     ]
                                 },
-                                "description": "GET \/api\/admin\/video-banners - List all video banners (admin). Auth: Bearer token. Response: success, message, data (array). Auto-sets video_banner_id."
+                                "description": "GET \/api\/admin\/video-banners - List all video banners (admin). Auth: Bearer token. Response fields: id, title, video_url, badge_text, button_text, is_active. Auto-sets video_banner_id."
                             }
                         },
                         {
@@ -9179,13 +9179,7 @@
                                             "key": "video",
                                             "type": "file",
                                             "src": "",
-                                            "description": "Video file (MP4\/MOV\/WEBM\/OGG, max 25MB). Required. Server auto-compresses to ~720p high-quality MP4 for fast home playback."
-                                        },
-                                        {
-                                            "key": "poster",
-                                            "type": "file",
-                                            "src": "",
-                                            "description": "Optional poster image (JPG\/PNG\/WEBP, max 5MB). Server auto-compresses to ~400KB."
+                                            "description": "Video file (MP4\/MOV\/WEBM\/OGG, max 25MB). Required. Server auto-compresses to ~720p high-quality MP4."
                                         },
                                         {
                                             "key": "title",
@@ -9198,10 +9192,6 @@
                                         {
                                             "key": "button_text",
                                             "value": "Explore services"
-                                        },
-                                        {
-                                            "key": "button_link",
-                                            "value": "services"
                                         },
                                         {
                                             "key": "is_active",
@@ -9220,7 +9210,7 @@
                                         "video-banners"
                                     ]
                                 },
-                                "description": "Create a video banner. Upload a `video` file (required, max 25MB) and an optional `poster` image (max 5MB). Server auto-compresses video (~720p high-quality MP4) and poster (~400KB) so create stays fast. Fields: title, badge_text, button_text, button_link, is_active. Response: 201, data (id, title, video_url, poster_url, badge_text, button_text, button_link, is_active)."
+                                "description": "Create a video banner. Upload a `video` file (required, max 25MB). Server auto-compresses video (~720p). Fields: title, badge_text, button_text, is_active. Response: 201, data (id, title, video_url, badge_text, button_text, is_active)."
                             }
                         },
                         {
@@ -9276,12 +9266,6 @@
                                             "description": "Optional. Upload to replace the video."
                                         },
                                         {
-                                            "key": "poster",
-                                            "type": "file",
-                                            "src": "",
-                                            "description": "Optional. Upload to replace the poster."
-                                        },
-                                        {
                                             "key": "title",
                                             "value": "See Tandil in action"
                                         },
@@ -9292,10 +9276,6 @@
                                         {
                                             "key": "button_text",
                                             "value": "Explore services"
-                                        },
-                                        {
-                                            "key": "button_link",
-                                            "value": "services"
                                         },
                                         {
                                             "key": "is_active",
@@ -9315,7 +9295,7 @@
                                         "{{video_banner_id}}"
                                     ]
                                 },
-                                "description": "Update a video banner (POST for multipart file replace; PUT also supported for field-only updates). Send only the fields you want to change. Replace video\/poster by attaching a new file."
+                                "description": "Update a video banner (POST for multipart file replace; PUT also supported for field-only updates). Send only the fields you want to change."
                             }
                         },
                         {
@@ -9347,9 +9327,38 @@
                                 },
                                 "description": "POST \/api\/admin\/video-banners\/{id}\/toggle-status - Enable\/disable the video banner. Response: data.id, data.is_active."
                             }
+                        },
+                        {
+                            "name": "6. Delete Video Banner",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/admin\/video-banners\/{{video_banner_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "video-banners",
+                                        "{{video_banner_id}}"
+                                    ]
+                                },
+                                "description": "DELETE \/api\/admin\/video-banners\/{id} - Delete the video banner and its stored video file. Response: success, message."
+                            }
                         }
                     ],
-                    "description": "Admin only. Single \"Featured Video\" banner for the customer home screen. Create with a `video` file and optional poster. No delete endpoint (only one banner is shown; use Toggle Status to hide it). Customer: GET \/api\/video-banners."
+                    "description": "Admin only. Featured Video banner for the customer home screen. Fields: title, video, badge_text, button_text, is_active. Customer: GET \/api\/video-banners."
                 },
                 {
                     "name": "F. Packages",

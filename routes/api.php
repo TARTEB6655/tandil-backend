@@ -782,6 +782,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/video-banners')
     Route::put('/{id}', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'update']);
     Route::post('/{id}', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'update']); // POST for multipart (file replace)
     Route::post('/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'toggleStatus']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\Admin\VideoBannerController::class, 'destroy']);
 });
 
 /*

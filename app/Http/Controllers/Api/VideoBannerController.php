@@ -23,10 +23,8 @@ class VideoBannerController extends Controller
                     'id' => $videoBanner->id,
                     'title' => $videoBanner->title,
                     'video_url' => $videoBanner->video_url,
-                    'poster_url' => $videoBanner->poster_url,
                     'badge_text' => $videoBanner->badge_text,
                     'button_text' => $videoBanner->button_text,
-                    'button_link' => $videoBanner->button_link,
                     'is_active' => $videoBanner->is_active,
                 ];
             });

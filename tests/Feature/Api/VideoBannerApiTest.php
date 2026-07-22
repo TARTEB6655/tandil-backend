@@ -45,19 +45,18 @@ class VideoBannerApiTest extends TestCase
             'title' => 'See Tandil in action',
             'badge_text' => 'Watch now',
             'button_text' => 'Explore services',
-            'button_link' => 'services',
             'is_active' => true,
             'video' => UploadedFile::fake()->create('promo.mp4', 500, 'video/mp4'),
-            'poster' => UploadedFile::fake()->image('poster.jpg', 600, 400),
         ]);
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.title', 'See Tandil in action')
-            ->assertJsonPath('data.badge_text', 'Watch now');
+            ->assertJsonPath('data.badge_text', 'Watch now')
+            ->assertJsonMissingPath('data.poster_url')
+            ->assertJsonMissingPath('data.button_link');
 
         $this->assertNotNull($response->json('data.video_url'));
-        $this->assertNotNull($response->json('data.poster_url'));
         $this->assertDatabaseHas('video_banners', ['title' => 'See Tandil in action', 'is_active' => true]);
     }
 
@@ -77,7 +76,7 @@ class VideoBannerApiTest extends TestCase
 
         $response->assertCreated();
         $this->assertSame(
-            ['id', 'title', 'video_url', 'poster_url', 'badge_text', 'button_text', 'button_link', 'is_active'],
+            ['id', 'title', 'video_url', 'badge_text', 'button_text', 'is_active'],
             array_keys($response->json('data'))
         );
     }
@@ -92,11 +91,16 @@ class VideoBannerApiTest extends TestCase
         $titles = collect($response->json('data'))->pluck('title')->all();
         $this->assertContains('Active', $titles);
         $this->assertNotContains('Hidden', $titles);
+        $this->assertSame(
+            ['id', 'title', 'video_url', 'badge_text', 'button_text', 'is_active'],
+            array_keys($response->json('data.0'))
+        );
     }
 
-    public function test_admin_can_update_and_toggle(): void
+    public function test_admin_can_update_toggle_and_delete(): void
     {
         $vb = VideoBanner::create(['title' => 'Old', 'video_path' => 'video_banners/a.mp4', 'is_active' => true]);
+        Storage::disk('public')->put('video_banners/a.mp4', 'fake-video');
 
         $this->actingAs($this->admin, 'sanctum')
             ->putJson('/api/admin/video-banners/'.$vb->id, ['title' => 'New title'])
@@ -107,6 +111,14 @@ class VideoBannerApiTest extends TestCase
             ->postJson('/api/admin/video-banners/'.$vb->id.'/toggle-status')
             ->assertOk()
             ->assertJsonPath('data.is_active', false);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson('/api/admin/video-banners/'.$vb->id)
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('video_banners', ['id' => $vb->id]);
+        Storage::disk('public')->assertMissing('video_banners/a.mp4');
     }
 
     public function test_non_admin_cannot_create(): void

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\VideoBanner;
-use App\Services\ImageCompressionService;
 use App\Services\VideoCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 class VideoBannerController extends Controller
 {
     /** File input keys handled by this controller (multipart). */
-    private const FILE_KEYS = ['video', 'poster'];
+    private const FILE_KEYS = ['video'];
 
     /**
      * List all video banners (admin). Customer app uses GET /api/video-banners for active only.
@@ -29,12 +28,10 @@ class VideoBannerController extends Controller
 
     /**
      * Create a video banner.
-     * Fields: video (file, required), poster (file), title, badge_text,
-     * button_text, button_link, is_active.
+     * Fields: video (file, required), title, badge_text, button_text, is_active.
      */
     public function store(Request $request)
     {
-        // Large media uploads: allow enough time for receive + compress, keep response fast.
         @set_time_limit(120);
         @ini_set('memory_limit', '512M');
 
@@ -50,21 +47,17 @@ class VideoBannerController extends Controller
         if (! $videoPath) {
             return ApiResponse::error('Failed to store video file.', 500);
         }
-        $posterPath = $this->storePoster($this->getSingleFile($request, 'poster'));
 
         try {
             $videoBanner = VideoBanner::create([
                 'title' => $request->input('title'),
                 'video_path' => $videoPath,
-                'poster_path' => $posterPath,
                 'badge_text' => $request->input('badge_text'),
                 'button_text' => $request->input('button_text'),
-                'button_link' => $request->input('button_link'),
                 'is_active' => $request->has('is_active') ? filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) : true,
             ]);
         } catch (\Throwable $e) {
             $this->deleteStoredFile($videoPath);
-            $this->deleteStoredFile($posterPath);
             Log::error('Video banner create failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             throw $e;
         }
@@ -96,7 +89,7 @@ class VideoBannerController extends Controller
         $this->validatePayload($request);
 
         $data = [];
-        foreach (['title', 'badge_text', 'button_text', 'button_link'] as $field) {
+        foreach (['title', 'badge_text', 'button_text'] as $field) {
             if ($request->has($field)) {
                 $data[$field] = $request->input($field);
             }
@@ -111,12 +104,6 @@ class VideoBannerController extends Controller
             $data['video_path'] = $this->storeVideo($videoFile);
         }
 
-        $posterFile = $this->getSingleFile($request, 'poster');
-        if ($posterFile) {
-            $this->deleteStoredFile($videoBanner->poster_path);
-            $data['poster_path'] = $this->storePoster($posterFile);
-        }
-
         try {
             $videoBanner->update($data);
         } catch (\Throwable $e) {
@@ -125,6 +112,19 @@ class VideoBannerController extends Controller
         }
 
         return ApiResponse::success('Video banner updated successfully.', $this->toArray($videoBanner->fresh()));
+    }
+
+    /**
+     * Delete a video banner and its stored video file.
+     */
+    public function destroy($id)
+    {
+        $videoBanner = VideoBanner::findOrFail($id);
+
+        $this->deleteStoredFile($videoBanner->video_path);
+        $videoBanner->delete();
+
+        return ApiResponse::success('Video banner deleted successfully.');
     }
 
     /**
@@ -144,15 +144,12 @@ class VideoBannerController extends Controller
 
     private function validatePayload(Request $request): void
     {
-        // Keep under typical PHP post_max_size (40M) so uploads don't hang for 60s+ then fail.
-        // Server compresses video (ffmpeg → ~720p) and poster (≤400KB) after upload.
+        // Keep under typical PHP post_max_size (40M). Server compresses video (ffmpeg → ~720p).
         $request->validate([
             'title' => 'nullable|string|max:255',
             'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/webm,video/ogg,video/x-m4v|max:25600',
-            'poster' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'badge_text' => 'nullable|string|max:100',
             'button_text' => 'nullable|string|max:100',
-            'button_link' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
         ]);
     }
@@ -169,21 +166,6 @@ class VideoBannerController extends Controller
         return $compressed ?: $path;
     }
 
-    private function storePoster(?UploadedFile $file): ?string
-    {
-        if (! $file || ! $file->isValid()) {
-            return null;
-        }
-
-        $path = $file->store('video_banners/posters', 'public');
-        ImageCompressionService::compressVideoBannerPosterFromPublicPath($path);
-
-        return $path;
-    }
-
-    /**
-     * Delete a stored public-disk file. Skips external URLs.
-     */
     private function deleteStoredFile(?string $path): void
     {
         if (! $path) {
@@ -197,10 +179,6 @@ class VideoBannerController extends Controller
         }
     }
 
-    /**
-     * Normalize multipart requests: parse PUT bodies (PHP does not populate files for PUT)
-     * and collapse multi-file inputs down to a single UploadedFile per key.
-     */
     private function prepareRequest(Request $request): void
     {
         $isMultipart = str_contains($request->header('Content-Type', ''), 'multipart/form-data');
@@ -228,10 +206,6 @@ class VideoBannerController extends Controller
         return null;
     }
 
-    /**
-     * Parse multipart/form-data (fields + files) for PUT/PATCH into the request.
-     * Handles the file keys in self::FILE_KEYS. Mirrors Api\Admin\BannerController.
-     */
     private function parseMultipartIntoRequest(Request $request): void
     {
         $contentType = $request->header('Content-Type');
@@ -327,10 +301,8 @@ class VideoBannerController extends Controller
             'id' => $videoBanner->id,
             'title' => $videoBanner->title,
             'video_url' => $videoBanner->video_url,
-            'poster_url' => $videoBanner->poster_url,
             'badge_text' => $videoBanner->badge_text,
             'button_text' => $videoBanner->button_text,
-            'button_link' => $videoBanner->button_link,
             'is_active' => $videoBanner->is_active,
         ];
     }

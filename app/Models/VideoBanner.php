@@ -9,10 +9,8 @@ class VideoBanner extends Model
     protected $fillable = [
         'title',
         'video_path',
-        'poster_path',
         'badge_text',
         'button_text',
-        'button_link',
         'is_active',
     ];
 
@@ -21,20 +19,11 @@ class VideoBanner extends Model
     ];
 
     /**
-     * Full URL for the video (uses /media/ like Banner image_url). Returns the
-     * value as-is when it is already an absolute URL (external video).
+     * Full URL for the video (uses /media/ like Banner image_url).
      */
     public function getVideoUrlAttribute(): ?string
     {
         return $this->resolveMediaUrl($this->video_path);
-    }
-
-    /**
-     * Full URL for the poster image.
-     */
-    public function getPosterUrlAttribute(): ?string
-    {
-        return $this->resolveMediaUrl($this->poster_path);
     }
 
     private function resolveMediaUrl(?string $path): ?string

@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api;
 
 use App\Models\User;
-use App\Services\ImageCompressionService;
 use App\Services\VideoCompressionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -31,31 +30,6 @@ class VideoBannerCompressionTest extends TestCase
         } catch (\Throwable $e) {
             //
         }
-    }
-
-    public function test_create_compresses_large_poster_under_banner_limit(): void
-    {
-        // Large PNG-ish jpeg from fake image, then force a big file on disk after store via service path.
-        $response = $this->actingAs($this->admin, 'sanctum')->post('/api/admin/video-banners', [
-            'title' => 'Compressed poster',
-            'video' => UploadedFile::fake()->create('clip.mp4', 500, 'video/mp4'),
-            'poster' => UploadedFile::fake()->image('huge.jpg', 4000, 3000),
-        ]);
-
-        $response->assertCreated();
-        $posterUrl = $response->json('data.poster_url');
-        $this->assertNotNull($posterUrl);
-
-        $rel = ltrim(parse_url($posterUrl, PHP_URL_PATH), '/');
-        $rel = preg_replace('#^media/#', '', $rel);
-        Storage::disk('public')->assertExists($rel);
-
-        $size = Storage::disk('public')->size($rel);
-        $this->assertLessThanOrEqual(
-            ImageCompressionService::VIDEO_BANNER_POSTER_MAX_BYTES,
-            $size,
-            "Poster should be compressed under 400KB, got {$size} bytes"
-        );
     }
 
     public function test_create_rejects_video_over_25mb_limit(): void
@@ -133,17 +107,14 @@ class VideoBannerCompressionTest extends TestCase
         $this->assertTrue($gen->successful(), $gen->errorOutput());
 
         $upload = new UploadedFile($tmp, 'banner.mp4', 'video/mp4', null, true);
-        $poster = UploadedFile::fake()->image('poster.jpg', 2000, 1200);
 
         $started = microtime(true);
         $response = $this->actingAs($this->admin, 'sanctum')->post('/api/admin/video-banners', [
             'title' => 'See Tandil in action',
             'badge_text' => 'Watch now',
             'button_text' => 'Explore services',
-            'button_link' => 'services',
             'is_active' => '1',
             'video' => $upload,
-            'poster' => $poster,
         ]);
         $elapsed = microtime(true) - $started;
 
@@ -151,7 +122,9 @@ class VideoBannerCompressionTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.title', 'See Tandil in action');
+            ->assertJsonPath('data.title', 'See Tandil in action')
+            ->assertJsonMissingPath('data.poster_url')
+            ->assertJsonMissingPath('data.button_link');
         $this->assertNotNull($response->json('data.video_url'));
         $this->assertLessThan(20.0, $elapsed, "Create API took too long: {$elapsed}s");
     }

@@ -11,12 +11,10 @@ return new class extends Migration
         Schema::create('video_banners', function (Blueprint $table) {
             $table->id();
             $table->string('title')->nullable();
-            // Stored relative path (public disk) OR an external URL. Exposed as video_url/poster_url.
+            // Stored relative path (public disk). Exposed as video_url.
             $table->string('video_path')->nullable();
-            $table->string('poster_path')->nullable();
             $table->string('badge_text')->nullable();
             $table->string('button_text')->nullable();
-            $table->string('button_link')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
