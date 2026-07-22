@@ -28,7 +28,6 @@ class VideoBannerController extends Controller
                     'button_text' => $videoBanner->button_text,
                     'button_link' => $videoBanner->button_link,
                     'is_active' => $videoBanner->is_active,
-                    'priority' => $videoBanner->priority,
                 ];
             });
 

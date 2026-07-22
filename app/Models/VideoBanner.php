@@ -13,13 +13,11 @@ class VideoBanner extends Model
         'badge_text',
         'button_text',
         'button_link',
-        'priority',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'priority' => 'integer',
     ];
 
     /**
@@ -59,6 +57,6 @@ class VideoBanner extends Model
 
     public function scopeOrdered($query)
     {
-        return $query->orderBy('priority', 'asc')->orderBy('created_at', 'desc');
+        return $query->orderBy('created_at', 'desc');
     }
 }

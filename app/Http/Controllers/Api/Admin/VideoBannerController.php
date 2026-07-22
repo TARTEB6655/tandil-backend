@@ -52,7 +52,6 @@ class VideoBannerController extends Controller
                 'badge_text' => $request->input('badge_text'),
                 'button_text' => $request->input('button_text'),
                 'button_link' => $request->input('button_link'),
-                'priority' => (int) ($request->input('priority') ?? 0),
                 'is_active' => $request->has('is_active') ? filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) : true,
             ]);
         } catch (\Throwable $e) {
@@ -90,9 +89,6 @@ class VideoBannerController extends Controller
             if ($request->has($field)) {
                 $data[$field] = $request->input($field);
             }
-        }
-        if ($request->has('priority')) {
-            $data['priority'] = (int) $request->input('priority');
         }
         if ($request->has('is_active')) {
             $data['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN);
@@ -152,7 +148,6 @@ class VideoBannerController extends Controller
             'badge_text' => 'nullable|string|max:100',
             'button_text' => 'nullable|string|max:100',
             'button_link' => 'nullable|string|max:500',
-            'priority' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
         ]);
     }
@@ -334,7 +329,6 @@ class VideoBannerController extends Controller
             'badge_text' => $videoBanner->badge_text,
             'button_text' => $videoBanner->button_text,
             'button_link' => $videoBanner->button_link,
-            'priority' => $videoBanner->priority,
             'is_active' => $videoBanner->is_active,
             'created_at' => $videoBanner->created_at?->format('c'),
             'updated_at' => $videoBanner->updated_at?->format('c'),

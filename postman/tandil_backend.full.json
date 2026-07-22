@@ -3173,7 +3173,7 @@
                                         "video-banners"
                                     ]
                                 },
-                                "description": "GET \/api\/video-banners - Active video banners for the customer home screen \"Featured Video\" section. Public endpoint - no authentication required.\n\n**Response (each item):**\n- `id`: Video banner ID\n- `title`: Title (e.g. See Tandil in action)\n- `video_url`: Full URL to the video (MP4) or external URL\n- `poster_url`: Full URL to the poster image (shown before play)\n- `badge_text`: Small badge label (e.g. Watch now)\n- `button_text`: CTA button label (e.g. Explore services)\n- `button_link`: CTA link \/ route\n- `is_active`: Whether it is shown\n- `priority`: Display order (lower = first)"
+                                "description": "GET \/api\/video-banners - Active video banners for the customer home screen \"Featured Video\" section. Public endpoint - no authentication required.\n\n**Response (each item):**\n- `id`: Video banner ID\n- `title`: Title (e.g. See Tandil in action)\n- `video_url`: Full URL to the video (MP4) or external URL\n- `poster_url`: Full URL to the poster image (shown before play)\n- `badge_text`: Small badge label (e.g. Watch now)\n- `button_text`: CTA button label (e.g. Explore services)\n- `button_link`: CTA link \/ route\n- `is_active`: Whether it is shown"
                             }
                         }
                     ],
@@ -8953,10 +8953,6 @@
                                             "value": "services"
                                         },
                                         {
-                                            "key": "priority",
-                                            "value": "0"
-                                        },
-                                        {
                                             "key": "is_active",
                                             "value": "1"
                                         }
@@ -8973,7 +8969,7 @@
                                         "video-banners"
                                     ]
                                 },
-                                "description": "Create a video banner. Provide either a `video` file OR a `video_url`. Poster is optional (`poster` file OR `poster_url`). Fields: title, badge_text, button_text, button_link, priority, is_active. Response: 201, data (video banner object with video_url, poster_url)."
+                                "description": "Create a video banner. Provide either a `video` file OR a `video_url`. Poster is optional (`poster` file OR `poster_url`). Fields: title, badge_text, button_text, button_link, is_active. Response: 201, data (video banner object with video_url, poster_url)."
                             }
                         },
                         {
