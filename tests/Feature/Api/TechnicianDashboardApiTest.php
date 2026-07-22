@@ -297,6 +297,31 @@ class TechnicianDashboardApiTest extends TestCase
         $this->assertContains($accepted->id, $ids);
     }
 
+    public function test_accepted_jobs_list_auto_removes_jobs_older_than_90_days(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $sub = Subscription::factory()->create(['client_id' => $client->id]);
+
+        $recent = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'completed',
+            'scheduled_date' => Carbon::today()->subDays(10),
+        ]);
+        $stale = Visit::factory()->create([
+            'subscription_id' => $sub->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'completed',
+            'scheduled_date' => Carbon::today()->subDays(120),
+        ]);
+
+        $response = $this->getJson('/api/technician/jobs/accepted?period=year&per_page=100', $this->authHeaders());
+        $response->assertStatus(200);
+        $ids = collect($response->json('data.jobs.data'))->pluck('id')->all();
+        $this->assertContains($recent->id, $ids);
+        $this->assertNotContains($stale->id, $ids);
+    }
+
     public function test_rejected_jobs_endpoint_returns_rejected_only(): void
     {
         $client = User::factory()->create(['role' => 'client']);
