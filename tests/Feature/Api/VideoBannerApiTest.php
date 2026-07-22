@@ -68,21 +68,24 @@ class VideoBannerApiTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_admin_can_create_with_external_urls(): void
+    public function test_create_response_has_exact_fields(): void
     {
-        $this->actingAs($this->admin, 'sanctum')->postJson('/api/admin/video-banners', [
-            'title' => 'External',
-            'video_url' => 'https://cdn.example.com/promo.mp4',
-            'poster_url' => 'https://cdn.example.com/poster.jpg',
-        ])->assertCreated()
-            ->assertJsonPath('data.video_url', 'https://cdn.example.com/promo.mp4')
-            ->assertJsonPath('data.poster_url', 'https://cdn.example.com/poster.jpg');
+        $response = $this->actingAs($this->admin, 'sanctum')->post('/api/admin/video-banners', [
+            'title' => 'See Tandil in action',
+            'video' => UploadedFile::fake()->create('promo.mp4', 500, 'video/mp4'),
+        ]);
+
+        $response->assertCreated();
+        $this->assertSame(
+            ['id', 'title', 'video_url', 'poster_url', 'badge_text', 'button_text', 'button_link', 'is_active'],
+            array_keys($response->json('data'))
+        );
     }
 
     public function test_public_get_returns_only_active(): void
     {
-        VideoBanner::create(['title' => 'Active', 'video_path' => 'https://x/a.mp4', 'is_active' => true]);
-        VideoBanner::create(['title' => 'Hidden', 'video_path' => 'https://x/b.mp4', 'is_active' => false]);
+        VideoBanner::create(['title' => 'Active', 'video_path' => 'video_banners/a.mp4', 'is_active' => true]);
+        VideoBanner::create(['title' => 'Hidden', 'video_path' => 'video_banners/b.mp4', 'is_active' => false]);
 
         $response = $this->getJson('/api/video-banners')->assertOk();
 
@@ -93,7 +96,7 @@ class VideoBannerApiTest extends TestCase
 
     public function test_admin_can_update_and_toggle(): void
     {
-        $vb = VideoBanner::create(['title' => 'Old', 'video_path' => 'https://x/a.mp4', 'is_active' => true]);
+        $vb = VideoBanner::create(['title' => 'Old', 'video_path' => 'video_banners/a.mp4', 'is_active' => true]);
 
         $this->actingAs($this->admin, 'sanctum')
             ->putJson('/api/admin/video-banners/'.$vb->id, ['title' => 'New title'])
@@ -111,7 +114,7 @@ class VideoBannerApiTest extends TestCase
         $client = User::factory()->create(['role' => 'client']);
 
         $this->actingAs($client, 'sanctum')
-            ->postJson('/api/admin/video-banners', ['title' => 'x', 'video_url' => 'https://x/a.mp4'])
+            ->postJson('/api/admin/video-banners', ['title' => 'x'])
             ->assertForbidden();
     }
 }

@@ -28,8 +28,8 @@ class VideoBannerController extends Controller
 
     /**
      * Create a video banner.
-     * Fields: video (file) or video_url (string), poster (file) or poster_url (string),
-     * title, badge_text, button_text, button_link, priority, is_active.
+     * Fields: video (file, required), poster (file), title, badge_text,
+     * button_text, button_link, is_active.
      */
     public function store(Request $request)
     {
@@ -37,12 +37,12 @@ class VideoBannerController extends Controller
         $this->validatePayload($request);
 
         $videoFile = $this->getSingleFile($request, 'video');
-        if (! $videoFile && ! $request->filled('video_url')) {
-            return ApiResponse::error('A video file or video_url is required.', 422);
+        if (! $videoFile) {
+            return ApiResponse::error('A video file is required.', 422);
         }
 
-        $videoPath = $this->storeVideo($request, $videoFile);
-        $posterPath = $this->storePoster($request, $this->getSingleFile($request, 'poster'));
+        $videoPath = $this->storeVideo($videoFile);
+        $posterPath = $this->storePoster($this->getSingleFile($request, 'poster'));
 
         try {
             $videoBanner = VideoBanner::create([
@@ -97,19 +97,13 @@ class VideoBannerController extends Controller
         $videoFile = $this->getSingleFile($request, 'video');
         if ($videoFile) {
             $this->deleteStoredFile($videoBanner->video_path);
-            $data['video_path'] = $this->storeVideo($request, $videoFile);
-        } elseif ($request->filled('video_url')) {
-            $this->deleteStoredFile($videoBanner->video_path);
-            $data['video_path'] = trim((string) $request->input('video_url'));
+            $data['video_path'] = $this->storeVideo($videoFile);
         }
 
         $posterFile = $this->getSingleFile($request, 'poster');
         if ($posterFile) {
             $this->deleteStoredFile($videoBanner->poster_path);
-            $data['poster_path'] = $this->storePoster($request, $posterFile);
-        } elseif ($request->filled('poster_url')) {
-            $this->deleteStoredFile($videoBanner->poster_path);
-            $data['poster_path'] = trim((string) $request->input('poster_url'));
+            $data['poster_path'] = $this->storePoster($posterFile);
         }
 
         try {
@@ -142,9 +136,7 @@ class VideoBannerController extends Controller
         $request->validate([
             'title' => 'nullable|string|max:255',
             'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/webm,video/ogg,video/x-m4v|max:102400',
-            'video_url' => 'nullable|string|max:1000',
             'poster' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240',
-            'poster_url' => 'nullable|string|max:1000',
             'badge_text' => 'nullable|string|max:100',
             'button_text' => 'nullable|string|max:100',
             'button_link' => 'nullable|string|max:500',
@@ -152,28 +144,22 @@ class VideoBannerController extends Controller
         ]);
     }
 
-    private function storeVideo(Request $request, ?UploadedFile $file): ?string
+    private function storeVideo(?UploadedFile $file): ?string
     {
         if ($file && $file->isValid()) {
             return $file->store('video_banners', 'public');
-        }
-        if ($request->filled('video_url')) {
-            return trim((string) $request->input('video_url'));
         }
 
         return null;
     }
 
-    private function storePoster(Request $request, ?UploadedFile $file): ?string
+    private function storePoster(?UploadedFile $file): ?string
     {
         if ($file && $file->isValid()) {
             $path = $file->store('video_banners/posters', 'public');
             ImageCompressionService::compressIfNeededFromPublicPath($path);
 
             return $path;
-        }
-        if ($request->filled('poster_url')) {
-            return trim((string) $request->input('poster_url'));
         }
 
         return null;
@@ -330,8 +316,6 @@ class VideoBannerController extends Controller
             'button_text' => $videoBanner->button_text,
             'button_link' => $videoBanner->button_link,
             'is_active' => $videoBanner->is_active,
-            'created_at' => $videoBanner->created_at?->format('c'),
-            'updated_at' => $videoBanner->updated_at?->format('c'),
         ];
     }
 }

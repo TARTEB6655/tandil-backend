@@ -9179,23 +9179,13 @@
                                             "key": "video",
                                             "type": "file",
                                             "src": "",
-                                            "description": "Video file (MP4\/MOV\/WEBM\/OGG, max 100MB). Required unless video_url is provided."
+                                            "description": "Video file (MP4\/MOV\/WEBM\/OGG, max 100MB). Required."
                                         },
                                         {
                                             "key": "poster",
                                             "type": "file",
                                             "src": "",
-                                            "description": "Optional poster image (JPG\/PNG\/WEBP, max 10MB). Or use poster_url."
-                                        },
-                                        {
-                                            "key": "video_url",
-                                            "value": "",
-                                            "description": "Optional external video URL (use instead of uploading a video file)."
-                                        },
-                                        {
-                                            "key": "poster_url",
-                                            "value": "",
-                                            "description": "Optional external poster image URL (use instead of uploading a poster file)."
+                                            "description": "Optional poster image (JPG\/PNG\/WEBP, max 10MB)."
                                         },
                                         {
                                             "key": "title",
@@ -9230,7 +9220,7 @@
                                         "video-banners"
                                     ]
                                 },
-                                "description": "Create a video banner. Provide either a `video` file OR a `video_url`. Poster is optional (`poster` file OR `poster_url`). Fields: title, badge_text, button_text, button_link, is_active. Response: 201, data (video banner object with video_url, poster_url)."
+                                "description": "Create a video banner. Upload a `video` file (required) and an optional `poster` image. Fields: title, badge_text, button_text, button_link, is_active. Response: 201, data (id, title, video_url, poster_url, badge_text, button_text, button_link, is_active)."
                             }
                         },
                         {
@@ -9283,13 +9273,13 @@
                                             "key": "video",
                                             "type": "file",
                                             "src": "",
-                                            "description": "Optional. Upload to replace the video. Or use video_url."
+                                            "description": "Optional. Upload to replace the video."
                                         },
                                         {
                                             "key": "poster",
                                             "type": "file",
                                             "src": "",
-                                            "description": "Optional. Upload to replace the poster. Or use poster_url."
+                                            "description": "Optional. Upload to replace the poster."
                                         },
                                         {
                                             "key": "title",
@@ -9325,7 +9315,7 @@
                                         "{{video_banner_id}}"
                                     ]
                                 },
-                                "description": "Update a video banner (POST for multipart file replace; PUT also supported for field-only updates). Send only the fields you want to change. Replace video\/poster by attaching a new file, or set video_url\/poster_url."
+                                "description": "Update a video banner (POST for multipart file replace; PUT also supported for field-only updates). Send only the fields you want to change. Replace video\/poster by attaching a new file."
                             }
                         },
                         {
@@ -9359,7 +9349,7 @@
                             }
                         }
                     ],
-                    "description": "Admin only. Single \"Featured Video\" banner for the customer home screen. Create with a `video` file (or `video_url`) and optional poster. No delete endpoint (only one banner is shown; use Toggle Status to hide it). Customer: GET \/api\/video-banners."
+                    "description": "Admin only. Single \"Featured Video\" banner for the customer home screen. Create with a `video` file and optional poster. No delete endpoint (only one banner is shown; use Toggle Status to hide it). Customer: GET \/api\/video-banners."
                 },
                 {
                     "name": "F. Packages",
