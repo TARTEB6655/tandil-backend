@@ -247,8 +247,8 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 
         Route::resource('roles', RoleController::class);
-        Route::resource('products', ProductController::class);
-        Route::post('products/{product}', [ProductController::class, 'update'])->name('products.update.post');
+        Route::resource('products', ProductController::class)->whereNumber('product');
+        Route::post('products/{product}', [ProductController::class, 'update'])->name('products.update.post')->whereNumber('product');
         Route::get('products/import', [ProductController::class, 'showImport'])->name('products.import');
         Route::post('products/import', [ProductController::class, 'import'])->name('products.import.store');
         Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
@@ -262,18 +262,18 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('services/create', [\App\Http\Controllers\Admin\ServicesController::class, 'create'])->name('services.create');
         Route::post('services', [\App\Http\Controllers\Admin\ServicesController::class, 'store'])->name('services.store');
         Route::get('services/category/{id}', [\App\Http\Controllers\Admin\ServicesController::class, 'showCategory'])->name('services.category');
-        Route::resource('subscriptions', SubscriptionController::class);
+        Route::resource('subscriptions', SubscriptionController::class)->only(['index', 'show', 'edit', 'update']);
         Route::post('subscriptions/{id}/extend', [SubscriptionController::class, 'extend'])->name('subscriptions.extend');
         Route::post('subscriptions/{id}/activate', [SubscriptionController::class, 'activate'])->name('subscriptions.activate');
         Route::post('subscriptions/{id}/deactivate', [SubscriptionController::class, 'deactivate'])->name('subscriptions.deactivate');
 
         Route::resource('subscription-plans', SubscriptionPlanController::class)->except(['create', 'store', 'destroy']);
 
-        Route::resource('visits', VisitController::class);
+        Route::resource('visits', VisitController::class)->only(['index', 'show', 'create', 'store'])->whereNumber('visit');
         Route::post('visits/{id}/assign-technician', [VisitController::class, 'assignTechnician'])->name('visits.assign-technician');
         Route::post('visits/{id}/assign-supervisor', [VisitController::class, 'assignSupervisor'])->name('visits.assign-supervisor');
 
-        Route::resource('reports', ReportController::class);
+        Route::resource('reports', ReportController::class)->only(['index', 'show']);
         Route::post('reports/{id}/approve', [ReportController::class, 'approve'])->name('reports.approve');
         Route::post('reports/{id}/send-to-client', [ReportController::class, 'sendToClient'])->name('reports.send-to-client');
 
@@ -292,7 +292,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('areas/{id}/toggle-active', [AreaController::class, 'toggleActive'])->name('areas.toggle-active');
         Route::resource('areas', AreaController::class);
         Route::get('orders/cancelled', [OrderController::class, 'cancelled'])->name('orders.cancelled');
-        Route::resource('orders', OrderController::class)->only(['index', 'show']);
+        Route::resource('orders', OrderController::class)->only(['index', 'show'])->whereNumber('order');
         Route::delete('orders/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
         Route::post('orders/bulk-delete', [OrderController::class, 'bulkDelete'])->name('orders.bulk-delete');
         Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
@@ -328,7 +328,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         // Banner routes - define specific routes before resource to avoid conflicts
         Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
-        Route::resource('banners', BannerController::class);
+        Route::resource('banners', BannerController::class)->except(['show']);
         Route::resource('maintenance-photos', \App\Http\Controllers\Admin\MaintenancePhotoController::class)->except(['show']);
         Route::get('cms-pages', [\App\Http\Controllers\Admin\CmsPageController::class, 'index'])->name('cms-pages.index');
         Route::get('cms-pages/{slug}/edit', [\App\Http\Controllers\Admin\CmsPageController::class, 'edit'])->name('cms-pages.edit');

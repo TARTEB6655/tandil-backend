@@ -121,7 +121,7 @@
                         </div>
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600">
-                                Tax@if(!empty($usesCategoryTax)) (by category)@else ({{ $taxPercent ?? 5 }}%)@endif
+                                Tax{{ !empty($usesCategoryTax) ? ' (by category)' : ' ('.($taxPercent ?? 5).'%)' }}
                             </span>
                             <span class="text-gray-900 font-medium">AED {{ number_format($tax ?? 0, 2) }}</span>
                         </div>

@@ -25,6 +25,7 @@ use App\Models\Tip;
 use App\Helpers\ApiResponse;
 use App\Support\CapsPagination;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -32,12 +33,6 @@ use Illuminate\View\View;
 
 class TechnicianDashboardController extends Controller
 {
-    /**
-     * Accepted jobs older than this (by scheduled_date) are auto-removed from the
-     * technician's Accepted Jobs list. Records are kept in the database.
-     */
-    private const ACCEPTED_JOBS_RETENTION_DAYS = 90;
-
     public function __construct()
     {
         // index() is for web /technician/dashboard (uses session auth from route). API methods use auth:sanctum from route.
@@ -105,11 +100,15 @@ class TechnicianDashboardController extends Controller
             ->all();
 
         $sixMonthsAgo = Carbon::now()->subMonths(5)->startOfMonth();
+        $isSqlite = in_array(DB::connection()->getDriverName(), ['sqlite', 'sqlite3'], true);
+        $monthExpr = $isSqlite
+            ? "strftime('%Y-%m', scheduled_date)"
+            : "DATE_FORMAT(scheduled_date, '%Y-%m')";
         $monthlyVisits = Visit::where('technician_id', $technicianId)
             ->where('scheduled_date', '>=', $sixMonthsAgo)
-            ->selectRaw("DATE_FORMAT(scheduled_date, '%Y-%m') as month, count(*) as count")
-            ->groupBy('month')
-            ->orderBy('month')
+            ->selectRaw("{$monthExpr} as month, count(*) as count")
+            ->groupBy(DB::raw($monthExpr))
+            ->orderBy(DB::raw($monthExpr))
             ->get()
             ->map(fn ($r) => ['month' => $r->month, 'count' => (string) $r->count])
             ->values()
@@ -524,10 +523,8 @@ class TechnicianDashboardController extends Controller
             $query->where('status', 'completed');
         } elseif ($filter === 'accepted') {
             // A job the technician accepted stays "accepted" through its whole lifecycle:
-            // in_progress -> completed -> approved. Auto-removed from the list after the
-            // retention window (records are kept in the database).
-            $query->whereIn('status', ['in_progress', 'completed', 'approved'])
-                ->where('scheduled_date', '>=', Carbon::today()->subDays(self::ACCEPTED_JOBS_RETENTION_DAYS)->toDateString());
+            // in_progress -> completed -> approved.
+            $query->whereIn('status', ['in_progress', 'completed', 'approved']);
         } elseif ($filter === 'rejected') {
             $query->where('status', 'rejected');
         } else {
@@ -660,12 +657,8 @@ class TechnicianDashboardController extends Controller
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
         // Accepted jobs include the full post-acceptance lifecycle so completed jobs
         // the technician accepted still appear here (in_progress -> completed -> approved).
-        // Jobs older than the retention window are auto-removed from the list (records kept),
-        // so even the yearly period never shows accepted jobs older than 90 days.
-        $retentionFloor = Carbon::today()->subDays(self::ACCEPTED_JOBS_RETENTION_DAYS)->toDateString();
-        $effectiveStart = $start >= $retentionFloor ? $start : $retentionFloor;
         $query = Visit::where('technician_id', $user->id)
-            ->whereBetween('scheduled_date', [$effectiveStart, $end])
+            ->whereBetween('scheduled_date', [$start, $end])
             ->whereIn('status', ['in_progress', 'completed', 'approved'])
             ->with(['subscription.client', 'area', 'supervisor'])
             ->orderByDesc('scheduled_date');
@@ -723,22 +716,15 @@ class TechnicianDashboardController extends Controller
             ->groupBy('status')
             ->pluck('aggregate', 'status');
 
-        // "Accepted" mirrors the Accepted Jobs list: in_progress + completed + approved,
-        // and honours the 90-day retention window (so it never counts stale jobs the
-        // list itself no longer shows).
-        $retentionFloor = Carbon::today()->subDays(self::ACCEPTED_JOBS_RETENTION_DAYS)->toDateString();
-        $acceptedFloor = $start >= $retentionFloor ? $start : $retentionFloor;
-        $acceptedCount = Visit::where('technician_id', $user->id)
-            ->whereBetween('scheduled_date', [$acceptedFloor, $end])
-            ->whereIn('status', ['in_progress', 'completed', 'approved'])
-            ->count();
-
         return response()->json([
             'success' => true,
             'data' => [
                 'period' => $period,
                 // "Accepted" reflects the accepted-jobs list: in_progress + completed + approved.
-                'accepted' => $acceptedCount,
+                'accepted' => (int) ($counts['accepted'] ?? 0)
+                    + (int) ($counts['in_progress'] ?? 0)
+                    + (int) ($counts['completed'] ?? 0)
+                    + (int) ($counts['approved'] ?? 0),
                 'in_progress' => (int) ($counts['in_progress'] ?? 0),
                 'rejected' => (int) ($counts['rejected'] ?? 0),
                 'completed' => (int) ($counts['completed'] ?? 0),

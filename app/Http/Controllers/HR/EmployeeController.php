@@ -243,7 +243,14 @@ class EmployeeController extends Controller
     // Show create form
     public function create()
     {
-        return view('hr.employees.create');
+        $linkedUserIds = Employee::whereNotNull('user_id')->pluck('user_id')->all();
+        $availableUsers = User::query()
+            ->where('role', '!=', 'client')
+            ->whereNotIn('id', $linkedUserIds)
+            ->orderBy('name')
+            ->get();
+
+        return view('hr.employees.create', compact('availableUsers'));
     }
 
     // Add a new employee (accepts JSON or form-data; form-data me profile_picture file bhi bhej sakte hain)
