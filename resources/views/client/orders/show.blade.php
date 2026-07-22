@@ -350,6 +350,10 @@
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Your service report is ready.
                     </div>
+                    <a href="{{ route('client.orders.report', $order->id) }}"
+                       class="mb-3 block w-full text-center px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium">
+                        View Full Report
+                    </a>
                     @if($order->order_status === 'delivered')
                         <div class="flex items-center gap-2 text-sm font-medium text-green-700">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

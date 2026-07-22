@@ -64,6 +64,30 @@ class OrderController extends Controller
     }
 
     /**
+     * Full service report for a shop order (web). Shop-order reports are linked
+     * to a visit via order_id / [SHOP-ORDER:id] notes, so they are not covered
+     * by the subscription-scoped client.reports.show route. Reuses the same
+     * formatter as the mobile API and is gated on report visibility.
+     */
+    public function report($id)
+    {
+        $user = Auth::user();
+        $order = Order::where('user_id', $user->id)->findOrFail($id);
+
+        $reportService = app(OrderClientReportService::class);
+        $report = $reportService->findReportForOrder($order);
+        if (! $reportService->isReportVisibleToClient($report)) {
+            return redirect()
+                ->route('client.orders.show', $order->id)
+                ->with('error', 'The service report is not available yet.');
+        }
+
+        $reportData = $reportService->formatReportForClient($report);
+
+        return view('client.orders.report', compact('order', 'reportData'));
+    }
+
+    /**
      * Client confirms they received the order. Mirrors the mobile API
      * (POST /api/orders/{id}/mark-delivered): the service report must be
      * visible and the order must be completed first.

@@ -581,6 +581,7 @@ Route::middleware(['auth', 'role:client'])
         // Orders
         Route::get('/orders', [\App\Http\Controllers\Client\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{id}', [\App\Http\Controllers\Client\OrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{id}/report', [\App\Http\Controllers\Client\OrderController::class, 'report'])->name('orders.report');
         Route::post('/orders/{id}/mark-delivered', [\App\Http\Controllers\Client\OrderController::class, 'markDelivered'])->name('orders.mark-delivered');
         Route::post('/orders/{id}/rate', [\App\Http\Controllers\Client\OrderController::class, 'rate'])->name('orders.rate');
 

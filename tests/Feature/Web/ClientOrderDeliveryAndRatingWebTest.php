@@ -110,6 +110,28 @@ class ClientOrderDeliveryAndRatingWebTest extends TestCase
         $this->assertDatabaseMissing('reviews', ['order_id' => $order->id]);
     }
 
+    public function test_report_page_renders_when_report_is_visible(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        [$order] = $this->makeOrderWithProduct($user, 'completed');
+        $this->attachVisibleReport($order);
+
+        $this->actingAs($user)
+            ->get('/client/orders/'.$order->id.'/report')
+            ->assertOk()
+            ->assertSee('Service Report');
+    }
+
+    public function test_report_page_redirects_when_report_not_visible(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        [$order] = $this->makeOrderWithProduct($user, 'completed');
+
+        $this->actingAs($user)
+            ->get('/client/orders/'.$order->id.'/report')
+            ->assertRedirect(route('client.orders.show', $order->id));
+    }
+
     public function test_mark_delivered_requires_visible_report(): void
     {
         $user = User::factory()->create(['role' => 'client']);
