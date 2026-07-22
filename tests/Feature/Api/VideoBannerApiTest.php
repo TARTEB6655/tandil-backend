@@ -91,7 +91,7 @@ class VideoBannerApiTest extends TestCase
         $this->assertNotContains('Hidden', $titles);
     }
 
-    public function test_admin_can_update_and_toggle_and_delete(): void
+    public function test_admin_can_update_and_toggle(): void
     {
         $vb = VideoBanner::create(['title' => 'Old', 'video_path' => 'https://x/a.mp4', 'is_active' => true]);
 
@@ -104,12 +104,6 @@ class VideoBannerApiTest extends TestCase
             ->postJson('/api/admin/video-banners/'.$vb->id.'/toggle-status')
             ->assertOk()
             ->assertJsonPath('data.is_active', false);
-
-        $this->actingAs($this->admin, 'sanctum')
-            ->deleteJson('/api/admin/video-banners/'.$vb->id)
-            ->assertOk();
-
-        $this->assertDatabaseMissing('video_banners', ['id' => $vb->id]);
     }
 
     public function test_non_admin_cannot_create(): void

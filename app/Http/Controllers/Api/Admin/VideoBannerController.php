@@ -127,21 +127,6 @@ class VideoBannerController extends Controller
     }
 
     /**
-     * Delete a video banner and its stored files.
-     */
-    public function destroy($id)
-    {
-        $videoBanner = VideoBanner::findOrFail($id);
-
-        $this->deleteStoredFile($videoBanner->video_path);
-        $this->deleteStoredFile($videoBanner->poster_path);
-
-        $videoBanner->delete();
-
-        return ApiResponse::success('Video banner deleted successfully.');
-    }
-
-    /**
      * Toggle active/inactive.
      */
     public function toggleStatus($id)
