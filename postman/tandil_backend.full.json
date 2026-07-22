@@ -8918,13 +8918,13 @@
                                             "key": "video",
                                             "type": "file",
                                             "src": "",
-                                            "description": "Video file (MP4\/MOV\/WEBM\/OGG, max 100MB). Required."
+                                            "description": "Video file (MP4\/MOV\/WEBM\/OGG, max 25MB). Required. Server auto-compresses to ~720p high-quality MP4 for fast home playback."
                                         },
                                         {
                                             "key": "poster",
                                             "type": "file",
                                             "src": "",
-                                            "description": "Optional poster image (JPG\/PNG\/WEBP, max 10MB)."
+                                            "description": "Optional poster image (JPG\/PNG\/WEBP, max 5MB). Server auto-compresses to ~400KB."
                                         },
                                         {
                                             "key": "title",
@@ -8959,7 +8959,7 @@
                                         "video-banners"
                                     ]
                                 },
-                                "description": "Create a video banner. Upload a `video` file (required) and an optional `poster` image. Fields: title, badge_text, button_text, button_link, is_active. Response: 201, data (id, title, video_url, poster_url, badge_text, button_text, button_link, is_active)."
+                                "description": "Create a video banner. Upload a `video` file (required, max 25MB) and an optional `poster` image (max 5MB). Server auto-compresses video (~720p high-quality MP4) and poster (~400KB) so create stays fast. Fields: title, badge_text, button_text, button_link, is_active. Response: 201, data (id, title, video_url, poster_url, badge_text, button_text, button_link, is_active)."
                             }
                         },
                         {

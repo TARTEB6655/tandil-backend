@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\VideoBanner;
 use App\Services\ImageCompressionService;
+use App\Services\VideoCompressionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -33,6 +34,10 @@ class VideoBannerController extends Controller
      */
     public function store(Request $request)
     {
+        // Large media uploads: allow enough time for receive + compress, keep response fast.
+        @set_time_limit(120);
+        @ini_set('memory_limit', '512M');
+
         $this->prepareRequest($request);
         $this->validatePayload($request);
 
@@ -42,6 +47,9 @@ class VideoBannerController extends Controller
         }
 
         $videoPath = $this->storeVideo($videoFile);
+        if (! $videoPath) {
+            return ApiResponse::error('Failed to store video file.', 500);
+        }
         $posterPath = $this->storePoster($this->getSingleFile($request, 'poster'));
 
         try {
@@ -79,6 +87,9 @@ class VideoBannerController extends Controller
      */
     public function update(Request $request, $id)
     {
+        @set_time_limit(120);
+        @ini_set('memory_limit', '512M');
+
         $videoBanner = VideoBanner::findOrFail($id);
 
         $this->prepareRequest($request);
@@ -133,10 +144,12 @@ class VideoBannerController extends Controller
 
     private function validatePayload(Request $request): void
     {
+        // Keep under typical PHP post_max_size (40M) so uploads don't hang for 60s+ then fail.
+        // Server compresses video (ffmpeg → ~720p) and poster (≤400KB) after upload.
         $request->validate([
             'title' => 'nullable|string|max:255',
-            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/webm,video/ogg,video/x-m4v|max:102400',
-            'poster' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/webm,video/ogg,video/x-m4v|max:25600',
+            'poster' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'badge_text' => 'nullable|string|max:100',
             'button_text' => 'nullable|string|max:100',
             'button_link' => 'nullable|string|max:500',
@@ -146,23 +159,26 @@ class VideoBannerController extends Controller
 
     private function storeVideo(?UploadedFile $file): ?string
     {
-        if ($file && $file->isValid()) {
-            return $file->store('video_banners', 'public');
+        if (! $file || ! $file->isValid()) {
+            return null;
         }
 
-        return null;
+        $path = $file->store('video_banners', 'public');
+        $compressed = VideoCompressionService::compressIfNeededFromPublicPath($path);
+
+        return $compressed ?: $path;
     }
 
     private function storePoster(?UploadedFile $file): ?string
     {
-        if ($file && $file->isValid()) {
-            $path = $file->store('video_banners/posters', 'public');
-            ImageCompressionService::compressIfNeededFromPublicPath($path);
-
-            return $path;
+        if (! $file || ! $file->isValid()) {
+            return null;
         }
 
-        return null;
+        $path = $file->store('video_banners/posters', 'public');
+        ImageCompressionService::compressVideoBannerPosterFromPublicPath($path);
+
+        return $path;
     }
 
     /**

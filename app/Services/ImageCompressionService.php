@@ -39,6 +39,11 @@ class ImageCompressionService
 
     public const MAINTENANCE_PHOTO_MAX_DIMENSION = 1280;
 
+    /** Video banner poster (home Featured Video card) — small + sharp for fast loads. */
+    public const VIDEO_BANNER_POSTER_MAX_BYTES = 400 * 1024; // 400 KB
+
+    public const VIDEO_BANNER_POSTER_MAX_DIMENSION = 1280;
+
     /**
      * Compress image at the given path in place if it exceeds maxBytes.
      * Optionally resize to maxDimension (longest side) first for faster compression and smaller files.
@@ -128,7 +133,8 @@ class ImageCompressionService
      */
     public static function compressIfNeededFromPublicPath(string $relativePath, int $maxBytes = self::DEFAULT_MAX_BYTES, ?int $maxDimension = null): bool
     {
-        $fullPath = storage_path('app/public/'.ltrim(str_replace('\\', '/', $relativePath), '/'));
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($relativePath);
 
         return self::compressIfNeeded($fullPath, $maxBytes, $maxDimension);
     }
@@ -154,6 +160,18 @@ class ImageCompressionService
             $relativePath,
             self::MAINTENANCE_PHOTO_MAX_BYTES,
             self::MAINTENANCE_PHOTO_MAX_DIMENSION
+        );
+    }
+
+    /**
+     * Compress video-banner poster images for fast home-screen loads.
+     */
+    public static function compressVideoBannerPosterFromPublicPath(string $relativePath): bool
+    {
+        return self::compressIfNeededFromPublicPath(
+            $relativePath,
+            self::VIDEO_BANNER_POSTER_MAX_BYTES,
+            self::VIDEO_BANNER_POSTER_MAX_DIMENSION
         );
     }
 
