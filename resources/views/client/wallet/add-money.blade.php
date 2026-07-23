@@ -6,12 +6,11 @@
         $maxAmount = (float) ($options['max_amount'] ?? 5000);
         $currency = $options['currency'] ?? 'AED';
         $methods = $options['payment_methods'] ?? [];
-        $defaultAmount = in_array(100, $presets, true) ? 100 : ($presets[0] ?? $minAmount);
+        $defaultAmount = in_array(100, $presets, true) ? 100 : (float) ($presets[0] ?? $minAmount);
     @endphp
 
-    <div class="mx-auto max-w-lg space-y-6" id="wallet-add-money"
+    <div class="mx-auto max-w-2xl space-y-6" id="wallet-add-money"
          data-balance="{{ $balance }}"
-         data-presets='@json($presets)'
          data-min="{{ $minAmount }}"
          data-max="{{ $maxAmount }}"
          data-currency="{{ $currency }}"
@@ -21,127 +20,142 @@
          data-wallet-url="{{ route('client.wallet.index') }}"
          data-csrf="{{ csrf_token() }}">
 
-        <div class="flex items-center gap-3">
-            <a href="{{ route('client.wallet.index') }}" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800" aria-label="Back">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        <div class="flex items-start gap-3">
+            <a href="{{ route('client.wallet.index') }}"
+               class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+               aria-label="Back to wallet">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </a>
             <div>
                 <h1 class="text-xl font-semibold text-gray-900">Add Money</h1>
-                <p class="text-sm text-gray-500">Top up your wallet with card or Apple Pay</p>
+                <p class="mt-1 text-sm text-gray-500">Top up your wallet using Stripe or Apple Pay.</p>
             </div>
         </div>
 
-        <div class="rounded-2xl border border-emerald-100 bg-[#f4f1ea] px-5 py-4">
-            <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <div class="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Available balance</p>
+            <p class="mt-1 text-2xl font-bold text-indigo-900">
+                {{ $currency }} <span id="ui-balance">{{ number_format($balance, 2) }}</span>
+            </p>
+        </div>
+
+        {{-- Step 1: amount --}}
+        <div id="step-amount" class="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-100 px-5 py-4">
+                <h2 class="text-base font-semibold text-gray-900">1. Select amount</h2>
+                <p class="mt-1 text-sm text-gray-500">Choose a preset or enter a custom amount.</p>
+            </div>
+
+            <div class="space-y-5 px-5 py-5">
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    @foreach($presets as $preset)
+                        <button type="button"
+                                data-preset="{{ $preset }}"
+                                class="preset-btn rounded-lg border px-3 py-3 text-sm font-semibold transition-colors {{ (float) $preset === (float) $defaultAmount ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-gray-200 bg-white text-gray-800 hover:border-indigo-300' }}">
+                            {{ $currency }} {{ $preset }}
+                        </button>
+                    @endforeach
                 </div>
+
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Available balance</p>
-                    <p class="text-2xl font-bold text-emerald-800">{{ $currency }} <span id="ui-balance">{{ number_format($balance, 2) }}</span></p>
+                    <label for="custom-amount" class="block text-sm font-medium text-gray-700">Custom amount</label>
+                    <div class="mt-1.5 flex overflow-hidden rounded-lg border border-gray-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                        <span class="inline-flex items-center bg-gray-50 px-3 text-sm text-gray-500 border-r border-gray-300">{{ $currency }}</span>
+                        <input id="custom-amount" type="number" min="0" step="0.01" placeholder="0.00"
+                               class="w-full border-0 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0">
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Min {{ $currency }} {{ number_format($minAmount, 2) }} · Max {{ $currency }} {{ number_format($maxAmount, 2) }}</p>
                 </div>
-            </div>
-        </div>
 
-        {{-- Amount step --}}
-        <div id="step-amount" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-            <div>
-                <h2 class="text-base font-semibold text-gray-900">Select amount</h2>
-                <p class="mt-1 text-sm text-gray-500">Choose a preset or enter a custom amount to top up your wallet.</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3" id="preset-grid">
-                @foreach($presets as $preset)
-                    <button type="button"
-                            data-preset="{{ $preset }}"
-                            class="preset-btn rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors {{ (float) $preset === (float) $defaultAmount ? 'border-emerald-700 bg-emerald-50 text-emerald-800' : 'border-transparent bg-[#f4f1ea] text-gray-800 hover:border-emerald-300' }}">
-                        {{ $currency }} {{ $preset }}
-                    </button>
-                @endforeach
-            </div>
-
-            <div>
-                <label for="custom-amount" class="text-sm font-medium text-gray-700">Or enter custom amount</label>
-                <div class="mt-1.5 flex rounded-xl border border-gray-200 bg-[#f4f1ea] focus-within:border-emerald-600 focus-within:ring-1 focus-within:ring-emerald-600">
-                    <span class="flex items-center pl-3 text-sm font-medium text-gray-500">{{ $currency }}</span>
-                    <input id="custom-amount" type="number" min="0" step="0.01" placeholder="Enter amount"
-                           class="w-full border-0 bg-transparent px-2 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0">
+                <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm space-y-2">
+                    <div class="flex items-center justify-between text-gray-700">
+                        <span>You will add</span>
+                        <span class="font-semibold text-gray-900">{{ $currency }} <span id="ui-add">{{ number_format($defaultAmount, 2) }}</span></span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-700">New balance</span>
+                        <span class="font-semibold text-indigo-700">{{ $currency }} <span id="ui-new">{{ number_format($balance + $defaultAmount, 2) }}</span></span>
+                    </div>
                 </div>
-                <p class="mt-1 text-xs text-gray-500">
-                    Min {{ $currency }} {{ number_format($minAmount, 2) }} · Max {{ $currency }} {{ number_format($maxAmount, 2) }}
-                </p>
-            </div>
 
-            <div class="rounded-xl bg-[#f4f1ea] px-4 py-3 text-sm space-y-2">
-                <div class="flex justify-between text-gray-700">
-                    <span>You will add</span>
-                    <span class="font-semibold">{{ $currency }} <span id="ui-add">{{ number_format($defaultAmount, 2) }}</span></span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-700">New balance</span>
-                    <span class="font-bold text-emerald-800">{{ $currency }} <span id="ui-new">{{ number_format($balance + $defaultAmount, 2) }}</span></span>
-                </div>
-            </div>
-
-            <div>
-                <p class="text-sm font-semibold text-gray-900 mb-2">Payment method</p>
-                <div class="space-y-2">
-                    @forelse($methods as $i => $method)
-                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3 transition-colors method-label {{ $i === 0 ? 'border-emerald-700 bg-emerald-50' : 'border-gray-200' }}">
-                            <input type="radio" name="payment_method" value="{{ $method['id'] }}" class="mt-1 text-emerald-700 focus:ring-emerald-600" {{ $i === 0 ? 'checked' : '' }}>
-                            <span>
-                                <span class="block text-sm font-semibold text-gray-900">{{ $method['label'] ?? ucfirst($method['id']) }}</span>
-                                <span class="block text-xs text-gray-500">{{ $method['description'] ?? '' }}</span>
-                            </span>
-                        </label>
-                    @empty
-                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-emerald-700 bg-emerald-50 p-3">
-                            <input type="radio" name="payment_method" value="stripe" class="mt-1" checked>
-                            <span>
-                                <span class="block text-sm font-semibold">Stripe</span>
-                                <span class="block text-xs text-gray-500">Pay with card via Stripe</span>
-                            </span>
-                        </label>
-                    @endforelse
-                </div>
-            </div>
-
-            <p class="text-xs text-gray-500">Funds stay in your wallet and can be used at checkout. This flow is separate from shop checkout.</p>
-            <p id="amount-error" class="hidden text-sm text-rose-600"></p>
-
-            <button type="button" id="btn-start-pay"
-                    class="w-full rounded-xl bg-emerald-800 px-4 py-3.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60 transition-colors">
-                Add {{ $currency }} <span id="btn-amount-label">{{ number_format($defaultAmount, 2) }}</span>
-            </button>
-        </div>
-
-        {{-- Pay step --}}
-        <div id="step-pay" class="hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between gap-3">
                 <div>
-                    <h2 class="text-base font-semibold text-gray-900">Complete payment</h2>
+                    <p class="mb-2 text-sm font-medium text-gray-900">Payment method</p>
+                    <div class="space-y-2">
+                        @forelse($methods as $i => $method)
+                            <label class="method-label flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors {{ $i === 0 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 bg-white hover:border-gray-300' }}">
+                                <input type="radio"
+                                       name="payment_method"
+                                       value="{{ $method['id'] }}"
+                                       class="mt-1 text-indigo-600 focus:ring-indigo-500"
+                                       {{ $i === 0 ? 'checked' : '' }}>
+                                <span>
+                                    <span class="block text-sm font-semibold text-gray-900">{{ $method['label'] ?? ucfirst($method['id']) }}</span>
+                                    <span class="block text-xs text-gray-500">{{ $method['description'] ?? '' }}</span>
+                                </span>
+                            </label>
+                        @empty
+                            <label class="method-label flex cursor-pointer items-start gap-3 rounded-lg border border-indigo-600 bg-indigo-50 p-3">
+                                <input type="radio" name="payment_method" value="stripe" class="mt-1 text-indigo-600" checked>
+                                <span>
+                                    <span class="block text-sm font-semibold text-gray-900">Stripe</span>
+                                    <span class="block text-xs text-gray-500">Pay with card</span>
+                                </span>
+                            </label>
+                        @endforelse
+                    </div>
+                </div>
+
+                <p id="amount-error" class="hidden text-sm text-red-600"></p>
+            </div>
+
+            <div class="border-t border-gray-100 bg-gray-50 px-5 py-4">
+                <button type="button" id="btn-start-pay"
+                        class="inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+                    Continue to payment · {{ $currency }} <span id="btn-amount-label">{{ number_format($defaultAmount, 2) }}</span>
+                </button>
+                <p class="mt-2 text-center text-xs text-gray-500">Funds stay in your wallet and can be used at checkout.</p>
+            </div>
+        </div>
+
+        {{-- Step 2: pay --}}
+        <div id="step-pay" class="hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-100 px-5 py-4 flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-base font-semibold text-gray-900">2. Complete payment</h2>
                     <p class="mt-1 text-sm text-gray-500">
-                        Amount: <span class="font-semibold text-emerald-800">{{ $currency }} <span id="pay-amount-label">0.00</span></span>
+                        Amount due:
+                        <span class="font-semibold text-gray-900">{{ $currency }} <span id="pay-amount-label">{{ number_format($defaultAmount, 2) }}</span></span>
                     </p>
                 </div>
-                <button type="button" id="btn-change-amount" class="text-sm font-medium text-emerald-800 hover:underline">Change amount</button>
+                <button type="button" id="btn-change-amount" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                    Change amount
+                </button>
             </div>
-            <div id="payment-element" class="min-h-[180px] rounded-xl border border-gray-100 p-3"></div>
-            <p id="pay-error" class="hidden text-sm text-rose-600"></p>
-            <button type="button" id="btn-confirm-pay"
-                    class="w-full rounded-xl bg-emerald-800 px-4 py-3.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60 transition-colors">
-                Pay {{ $currency }} <span id="pay-btn-amount">0.00</span>
-            </button>
+
+            <div class="space-y-4 px-5 py-5">
+                <div id="payment-element" class="min-h-[200px] rounded-lg border border-gray-200 bg-white p-3"></div>
+                <p id="pay-error" class="hidden text-sm text-red-600"></p>
+            </div>
+
+            <div class="border-t border-gray-100 bg-gray-50 px-5 py-4">
+                <button type="button" id="btn-confirm-pay"
+                        class="inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+                    Pay {{ $currency }} <span id="pay-btn-amount">{{ number_format($defaultAmount, 2) }}</span>
+                </button>
+            </div>
         </div>
 
         {{-- Done --}}
-        <div id="step-done" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center space-y-3">
-            <p class="text-lg font-semibold text-emerald-900">Money added successfully</p>
-            <p class="text-sm text-emerald-800">
+        <div id="step-done" class="hidden rounded-xl border border-green-200 bg-green-50 px-6 py-8 text-center">
+            <p class="text-lg font-semibold text-green-900">Money added successfully</p>
+            <p class="mt-2 text-sm text-green-800">
                 Added {{ $currency }} <span id="done-added">0.00</span>.
                 New balance: <strong>{{ $currency }} <span id="done-balance">0.00</span></strong>
             </p>
-            <a href="{{ route('client.wallet.index') }}" class="inline-flex rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-900">Back to wallet</a>
+            <a href="{{ route('client.wallet.index') }}"
+               class="mt-5 inline-flex rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                Back to wallet
+            </a>
         </div>
     </div>
 
@@ -150,11 +164,10 @@
         <script>
             (function () {
                 const root = document.getElementById('wallet-add-money');
-                if (!root) return;
+                if (!root || typeof Stripe === 'undefined') return;
 
                 const cfg = {
                     balance: parseFloat(root.dataset.balance),
-                    presets: JSON.parse(root.dataset.presets || '[]'),
                     min: parseFloat(root.dataset.min),
                     max: parseFloat(root.dataset.max),
                     currency: root.dataset.currency,
@@ -165,11 +178,12 @@
                 };
 
                 let amount = parseFloat(root.dataset.defaultAmount);
+                let usingCustom = false;
                 let stripe = null;
                 let elements = null;
                 let paymentIntentId = null;
 
-                const el = {
+                const ui = {
                     balance: document.getElementById('ui-balance'),
                     add: document.getElementById('ui-add'),
                     neu: document.getElementById('ui-new'),
@@ -195,21 +209,21 @@
                 }
 
                 function refreshSummary() {
-                    el.add.textContent = money(amount);
-                    el.neu.textContent = money(cfg.balance + amount);
-                    el.btnLabel.textContent = money(amount);
-                    el.payAmount.textContent = money(amount);
-                    el.payBtnAmount.textContent = money(amount);
+                    ui.add.textContent = money(amount);
+                    ui.neu.textContent = money(cfg.balance + amount);
+                    ui.btnLabel.textContent = money(amount);
+                    ui.payAmount.textContent = money(amount);
+                    ui.payBtnAmount.textContent = money(amount);
                 }
 
-                function setPresetActive(value) {
+                function setPresetStyles() {
                     document.querySelectorAll('.preset-btn').forEach((btn) => {
-                        const active = parseFloat(btn.dataset.preset) === value && !el.custom.value;
-                        btn.classList.toggle('border-emerald-700', active);
-                        btn.classList.toggle('bg-emerald-50', active);
-                        btn.classList.toggle('text-emerald-800', active);
-                        btn.classList.toggle('border-transparent', !active);
-                        btn.classList.toggle('bg-[#f4f1ea]', !active);
+                        const active = !usingCustom && parseFloat(btn.dataset.preset) === amount;
+                        btn.classList.toggle('border-indigo-600', active);
+                        btn.classList.toggle('bg-indigo-50', active);
+                        btn.classList.toggle('text-indigo-800', active);
+                        btn.classList.toggle('border-gray-200', !active);
+                        btn.classList.toggle('bg-white', !active);
                         btn.classList.toggle('text-gray-800', !active);
                     });
                 }
@@ -226,19 +240,21 @@
 
                 document.querySelectorAll('.preset-btn').forEach((btn) => {
                     btn.addEventListener('click', () => {
+                        usingCustom = false;
                         amount = parseFloat(btn.dataset.preset);
-                        el.custom.value = '';
-                        setPresetActive(amount);
-                        showError(el.amountError, '');
+                        ui.custom.value = '';
+                        setPresetStyles();
+                        showError(ui.amountError, '');
                         refreshSummary();
                     });
                 });
 
-                el.custom.addEventListener('input', () => {
-                    const v = parseFloat(el.custom.value);
+                ui.custom.addEventListener('input', () => {
+                    const v = parseFloat(ui.custom.value);
+                    usingCustom = true;
                     if (!isNaN(v) && v > 0) {
                         amount = Math.round(v * 100) / 100;
-                        setPresetActive(null);
+                        setPresetStyles();
                         refreshSummary();
                     }
                 });
@@ -247,27 +263,29 @@
                     input.addEventListener('change', () => {
                         document.querySelectorAll('.method-label').forEach((label) => {
                             const checked = label.querySelector('input').checked;
-                            label.classList.toggle('border-emerald-700', checked);
-                            label.classList.toggle('bg-emerald-50', checked);
+                            label.classList.toggle('border-indigo-600', checked);
+                            label.classList.toggle('bg-indigo-50', checked);
                             label.classList.toggle('border-gray-200', !checked);
+                            label.classList.toggle('bg-white', !checked);
                         });
                     });
                 });
 
-                el.startBtn.addEventListener('click', async () => {
-                    showError(el.amountError, '');
+                ui.startBtn.addEventListener('click', async () => {
+                    showError(ui.amountError, '');
                     if (amount < cfg.min) {
-                        showError(el.amountError, `Minimum amount is ${cfg.currency} ${money(cfg.min)}.`);
+                        showError(ui.amountError, `Minimum amount is ${cfg.currency} ${money(cfg.min)}.`);
                         return;
                     }
                     if (amount > cfg.max) {
-                        showError(el.amountError, `Maximum amount is ${cfg.currency} ${money(cfg.max)}.`);
+                        showError(ui.amountError, `Maximum amount is ${cfg.currency} ${money(cfg.max)}.`);
                         return;
                     }
 
                     const method = (document.querySelector('input[name="payment_method"]:checked') || {}).value || 'stripe';
-                    el.startBtn.disabled = true;
-                    el.startBtn.textContent = 'Preparing payment…';
+                    const original = ui.startBtn.innerHTML;
+                    ui.startBtn.disabled = true;
+                    ui.startBtn.textContent = 'Preparing secure payment…';
 
                     try {
                         const res = await fetch(cfg.intentUrl, {
@@ -289,35 +307,42 @@
                         stripe = Stripe(data.publishable_key);
                         elements = stripe.elements({
                             clientSecret: data.client_secret,
-                            appearance: { theme: 'stripe', variables: { colorPrimary: '#065f46' } },
+                            appearance: {
+                                theme: 'stripe',
+                                variables: { colorPrimary: '#4f46e5' },
+                            },
                         });
 
-                        el.stepAmount.classList.add('hidden');
-                        el.stepPay.classList.remove('hidden');
-                        el.paymentMount.innerHTML = '';
+                        ui.stepAmount.classList.add('hidden');
+                        ui.stepPay.classList.remove('hidden');
+                        ui.paymentMount.innerHTML = '';
                         elements.create('payment').mount('#payment-element');
                         refreshSummary();
+                        ui.stepPay.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     } catch (e) {
-                        showError(el.amountError, e.message || 'Payment setup failed.');
+                        showError(ui.amountError, e.message || 'Payment setup failed.');
                     } finally {
-                        el.startBtn.disabled = false;
-                        el.startBtn.innerHTML = `Add ${cfg.currency} <span id="btn-amount-label">${money(amount)}</span>`;
-                        el.btnLabel = document.getElementById('btn-amount-label');
+                        ui.startBtn.disabled = false;
+                        ui.startBtn.innerHTML = original;
+                        ui.btnLabel = document.getElementById('btn-amount-label');
+                        if (ui.btnLabel) ui.btnLabel.textContent = money(amount);
                     }
                 });
 
-                el.changeBtn.addEventListener('click', () => {
-                    el.stepPay.classList.add('hidden');
-                    el.stepAmount.classList.remove('hidden');
-                    el.paymentMount.innerHTML = '';
+                ui.changeBtn.addEventListener('click', () => {
+                    ui.stepPay.classList.add('hidden');
+                    ui.stepAmount.classList.remove('hidden');
+                    ui.paymentMount.innerHTML = '';
                     elements = null;
-                    showError(el.payError, '');
+                    showError(ui.payError, '');
                 });
 
-                el.confirmBtn.addEventListener('click', async () => {
+                ui.confirmBtn.addEventListener('click', async () => {
                     if (!stripe || !elements) return;
-                    el.confirmBtn.disabled = true;
-                    showError(el.payError, '');
+                    ui.confirmBtn.disabled = true;
+                    const original = ui.confirmBtn.innerHTML;
+                    ui.confirmBtn.textContent = 'Processing payment…';
+                    showError(ui.payError, '');
 
                     try {
                         const { error, paymentIntent } = await stripe.confirmPayment({
@@ -343,19 +368,27 @@
                         }
 
                         cfg.balance = Number(json.data.available_balance);
-                        el.balance.textContent = money(cfg.balance);
-                        el.doneAdded.textContent = money(json.data.amount_added);
-                        el.doneBalance.textContent = money(json.data.available_balance);
-                        el.stepPay.classList.add('hidden');
-                        el.stepDone.classList.remove('hidden');
+                        ui.balance.textContent = money(cfg.balance);
+                        ui.doneAdded.textContent = money(json.data.amount_added);
+                        ui.doneBalance.textContent = money(json.data.available_balance);
+                        ui.stepPay.classList.add('hidden');
+                        ui.stepDone.classList.remove('hidden');
                     } catch (e) {
-                        showError(el.payError, e.message || 'Payment failed.');
+                        showError(ui.payError, e.message || 'Payment failed.');
+                        ui.confirmBtn.innerHTML = original;
                     } finally {
-                        el.confirmBtn.disabled = false;
+                        ui.confirmBtn.disabled = false;
+                        if (!ui.stepDone.classList.contains('hidden')) {
+                            // success
+                        } else if (!ui.confirmBtn.textContent.includes('Pay')) {
+                            ui.confirmBtn.innerHTML = `Pay ${cfg.currency} <span id="pay-btn-amount">${money(amount)}</span>`;
+                            ui.payBtnAmount = document.getElementById('pay-btn-amount');
+                        }
                     }
                 });
 
                 refreshSummary();
+                setPresetStyles();
             })();
         </script>
     @endpush

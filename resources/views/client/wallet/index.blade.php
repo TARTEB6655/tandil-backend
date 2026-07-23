@@ -1,32 +1,21 @@
 <x-client-layout>
     <div class="space-y-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900">My Wallet</h1>
                 <p class="mt-1 text-sm text-gray-500">Track refund credits, expiry, and forfeited amounts.</p>
             </div>
             <a href="{{ route('client.wallet.add-money') }}"
-               class="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-               style="background-color: #047857;">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+               class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 Add Money
             </a>
         </div>
 
         @if(session('success'))
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 {{ session('success') }}
             </div>
         @endif
-
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p class="text-sm text-emerald-900">Need more balance? Top up your wallet with card or Apple Pay.</p>
-            <a href="{{ route('client.wallet.add-money') }}"
-               class="inline-flex shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-               style="background-color: #047857;">
-                Add Money
-            </a>
-        </div>
 
         @php
             $wt = \App\Support\RefundPolicy::policyForApi()['wallet_terms'] ?? [];
@@ -111,4 +100,3 @@
         </div>
     </div>
 </x-client-layout>
-
