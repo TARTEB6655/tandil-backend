@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AreaController;
 // Dashboard Controllers for roles
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\VideoBannerController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ComplaintController;
@@ -352,6 +353,10 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('banners/update-order', [BannerController::class, 'updateOrder'])->name('banners.update-order');
         Route::post('banners/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('banners.toggle-status');
         Route::resource('banners', BannerController::class)->except(['show']);
+
+        // Video banners (Featured Video on customer app)
+        Route::post('video-banners/{id}/toggle-status', [VideoBannerController::class, 'toggleStatus'])->name('video-banners.toggle-status');
+        Route::resource('video-banners', VideoBannerController::class)->except(['show']);
         Route::resource('maintenance-photos', \App\Http\Controllers\Admin\MaintenancePhotoController::class)->except(['show']);
         Route::get('cms-pages', [\App\Http\Controllers\Admin\CmsPageController::class, 'index'])->name('cms-pages.index');
         Route::get('cms-pages/{slug}/edit', [\App\Http\Controllers\Admin\CmsPageController::class, 'edit'])->name('cms-pages.edit');
