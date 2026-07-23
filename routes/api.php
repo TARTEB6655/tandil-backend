@@ -720,6 +720,15 @@ Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(func
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'destroy']);
     Route::post('/notifications/clear-all', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'clearAll']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Client Wallet Top-Up / Add Money (SEPARATE from shop checkout)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/wallet/top-up', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'options']);
+    Route::post('/wallet/top-up/payment-intent', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'paymentIntent']);
+    Route::post('/wallet/top-up/confirm', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'confirm']);
 });
 
 /*

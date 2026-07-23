@@ -274,6 +274,111 @@
                             }
                         },
                         {
+                            "name": "Add Money – Options (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "wallet",
+                                        "top-up"
+                                    ]
+                                },
+                                "description": "GET \/api\/client\/wallet\/top-up — Add Money screen data: available_balance, presets [50,100,150,200], min\/max amount, payment_methods (stripe, apple_pay). SEPARATE from shop checkout. Auth: client."
+                            }
+                        },
+                        {
+                            "name": "Add Money – Create Payment Intent (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"amount\": 100,\n  \"payment_method\": \"stripe\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/payment-intent",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "wallet",
+                                        "top-up",
+                                        "payment-intent"
+                                    ]
+                                },
+                                "description": "POST \/api\/client\/wallet\/top-up\/payment-intent — Create Stripe PaymentIntent for wallet top-up only (no cart\/order). Body: amount (AED), payment_method optional stripe|apple_pay. Response: client_secret, publishable_key, payment_intent_id, amount, new_balance, purpose=wallet_topup. Open Payment Sheet with THIS publishable_key + client_secret (supports card + Apple Pay)."
+                            }
+                        },
+                        {
+                            "name": "Add Money – Confirm Top-Up (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"payment_intent_id\": \"{{payment_intent_id}}\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/confirm",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "wallet",
+                                        "top-up",
+                                        "confirm"
+                                    ]
+                                },
+                                "description": "POST \/api\/client\/wallet\/top-up\/confirm — After Payment Sheet success. Body: payment_intent_id. Credits users.wallet_balance + wallet_credits (reason=top_up). Idempotent with Stripe webhook. Does NOT create shop orders."
+                            }
+                        },
+                        {
                             "name": "Admin Wallet Overview",
                             "request": {
                                 "method": "GET",
@@ -2262,6 +2367,111 @@
                                     ]
                                 },
                                 "description": "GET \/api\/user\/wallet\/credits — **paginated** wallet credit rows (same DB as 8b, for Wallet → History \/ full list UI). Response: `data` + `pagination`."
+                            }
+                        },
+                        {
+                            "name": "4. Add Money – Options (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "wallet",
+                                        "top-up"
+                                    ]
+                                },
+                                "description": "Add Money screen: available_balance, presets 50\/100\/150\/200, stripe + apple_pay. Separate from shop checkout."
+                            }
+                        },
+                        {
+                            "name": "5. Add Money – Payment Intent (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"amount\": 100,\n  \"payment_method\": \"stripe\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/payment-intent",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "wallet",
+                                        "top-up",
+                                        "payment-intent"
+                                    ]
+                                },
+                                "description": "Create wallet top-up PaymentIntent. Use returned publishable_key + client_secret for Payment Sheet (card or Apple Pay). purpose=wallet_topup — never use shop checkout endpoints for this."
+                            }
+                        },
+                        {
+                            "name": "6. Add Money – Confirm (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application\/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application\/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"payment_intent_id\": \"pi_xxx\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/confirm",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "wallet",
+                                        "top-up",
+                                        "confirm"
+                                    ]
+                                },
+                                "description": "Confirm successful Payment Sheet payment and credit wallet. Idempotent with webhook."
                             }
                         }
                     ],

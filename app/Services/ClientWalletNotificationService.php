@@ -95,4 +95,30 @@ final class ClientWalletNotificationService
             'wallet_balance' => round($newBalance, 2),
         ]));
     }
+
+    public static function notifyTopUpCredited(
+        int $userId,
+        float $amount,
+        float $newBalance,
+        ?string $paymentIntentId = null
+    ): void {
+        $user = User::query()->find($userId);
+        if (! $user) {
+            return;
+        }
+
+        $amt = number_format($amount, 2);
+        $bal = number_format($newBalance, 2);
+
+        $title = 'Wallet topped up';
+        $message = "{$amt} AED was added to your wallet. Your available balance is now {$bal} AED.";
+
+        $user->notify(new AdminNotification($title, $message, [
+            'wallet_event' => 'top_up_credited',
+            'amount' => round($amount, 2),
+            'currency' => 'AED',
+            'wallet_balance' => round($newBalance, 2),
+            'payment_intent_id' => $paymentIntentId,
+        ]));
+    }
 }

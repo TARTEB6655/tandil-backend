@@ -386,7 +386,13 @@ class ShopPaymentController extends Controller
         if (($event['type'] ?? '') === 'payment_intent.succeeded') {
             $pi = $event['data']['object'] ?? [];
             if (is_array($pi)) {
-                app(ShopStripeMobilePaymentService::class)->fulfillFromWebhookPaymentIntent($pi);
+                $purpose = (string) ($pi['metadata']['purpose'] ?? '');
+                // Wallet Add Money — never create shop orders.
+                if ($purpose === \App\Services\WalletTopUpStripeService::PURPOSE) {
+                    app(\App\Services\WalletTopUpStripeService::class)->fulfillFromWebhookPaymentIntent($pi);
+                } else {
+                    app(ShopStripeMobilePaymentService::class)->fulfillFromWebhookPaymentIntent($pi);
+                }
             }
         }
 
