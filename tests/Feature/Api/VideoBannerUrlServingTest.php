@@ -66,9 +66,11 @@ class VideoBannerUrlServingTest extends TestCase
         $videoResp = $this->get('/media/'.$videoRel);
         $videoResp->assertOk();
         $this->assertNotEmpty((string) $videoResp->headers->get('Content-Type'));
+        $this->assertStringContainsString('max-age=', (string) $videoResp->headers->get('Cache-Control'));
 
         $pub = $this->getJson('/api/video-banners')->assertOk();
         $this->assertSame($videoUrl, $pub->json('data.0.video_url'));
+        $this->assertStringContainsString('max-age=', (string) $pub->headers->get('Cache-Control'));
     }
 
     public function test_missing_media_file_returns_404(): void

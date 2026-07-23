@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\VideoBanner;
 use App\Services\VideoCompressionService;
+use App\Support\VideoBannerCache;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -62,6 +63,8 @@ class VideoBannerController extends Controller
             throw $e;
         }
 
+        VideoBannerCache::forgetPublicList();
+
         return ApiResponse::success('Video banner created successfully.', $this->toArray($videoBanner), 201);
     }
 
@@ -111,6 +114,8 @@ class VideoBannerController extends Controller
             throw $e;
         }
 
+        VideoBannerCache::forgetPublicList();
+
         return ApiResponse::success('Video banner updated successfully.', $this->toArray($videoBanner->fresh()));
     }
 
@@ -124,6 +129,8 @@ class VideoBannerController extends Controller
         $this->deleteStoredFile($videoBanner->video_path);
         $videoBanner->delete();
 
+        VideoBannerCache::forgetPublicList();
+
         return ApiResponse::success('Video banner deleted successfully.');
     }
 
@@ -135,6 +142,8 @@ class VideoBannerController extends Controller
         $videoBanner = VideoBanner::findOrFail($id);
         $videoBanner->is_active = ! $videoBanner->is_active;
         $videoBanner->save();
+
+        VideoBannerCache::forgetPublicList();
 
         return ApiResponse::success('Video banner status updated successfully.', [
             'id' => $videoBanner->id,

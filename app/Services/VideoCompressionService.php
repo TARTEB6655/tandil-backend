@@ -7,30 +7,31 @@ use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Compress video banner uploads for fast API create/update and small home-screen payloads.
- * Uses ffmpeg when available (720p H.264 + AAC, fast preset, high quality CRF).
+ * Compress video banner uploads for fast home-screen playback.
+ * Uses ffmpeg when available (540p H.264 + AAC + faststart).
  * Falls back to keeping the original file if ffmpeg / proc_open / exec are unavailable
  * (common on shared hosting) — never throws, so create/update still succeed.
  */
 class VideoCompressionService
 {
-    /** Target max size after compression (~8 MB). */
-    public const TARGET_MAX_BYTES = 8 * 1024 * 1024;
+    /** Target max size after compression (~4 MB) for quick mobile start. */
+    public const TARGET_MAX_BYTES = 4 * 1024 * 1024;
 
-    /** Skip compression when already under this size (still small enough for home). */
-    public const SKIP_UNDER_BYTES = 1 * 1024 * 1024;
+    /** Skip full re-encode when already under this size (still remux for faststart). */
+    public const SKIP_UNDER_BYTES = 800 * 1024;
 
-    /** Max longest side for banner video (mobile home card). */
-    public const MAX_HEIGHT = 720;
+    /** Max height for banner video (mobile home card — lower = faster start). */
+    public const MAX_HEIGHT = 540;
 
-    /** H.264 quality: lower = better quality / larger file. 23 is visually high quality. */
-    public const CRF = 23;
+    /** H.264 quality: lower = better quality / larger file. 28 keeps size small for banners. */
+    public const CRF = 28;
 
     /** Encoding speed vs compression efficiency. */
     public const PRESET = 'veryfast';
 
     /**
      * Compress a video stored on the public disk (in place, replaces with .mp4 when needed).
+     * Always attempts +faststart so players can start without downloading the whole file.
      *
      * @return string Relative public-disk path to use (may change extension to .mp4)
      */
@@ -46,9 +47,6 @@ class VideoCompressionService
         $fullPath = $disk->path($relativePath);
         clearstatcache(true, $fullPath);
         $size = is_file($fullPath) ? filesize($fullPath) : false;
-        if ($size !== false && $size <= self::SKIP_UNDER_BYTES) {
-            return $relativePath;
-        }
 
         if (! self::canRunExternalProcess()) {
             Log::warning('VideoCompressionService: proc_open/exec disabled; storing original video', [
@@ -69,6 +67,11 @@ class VideoCompressionService
             return $relativePath;
         }
 
+        // Small files: still remux with faststart so playback starts immediately.
+        if ($size !== false && $size <= self::SKIP_UNDER_BYTES) {
+            return self::ensureFastStartFromPublicPath($relativePath, $ffmpeg);
+        }
+
         @ini_set('memory_limit', '512M');
         @set_time_limit(120);
 
@@ -82,14 +85,14 @@ class VideoCompressionService
             $ffmpeg,
             '-y',
             '-i', $fullPath,
-            '-vf', "scale=-2:'min(720,ih)'",
+            '-vf', "scale=-2:'min(".self::MAX_HEIGHT.",ih)'",
             '-map', '0:v:0',
             '-map', '0:a:0?',
             '-c:v', 'libx264',
             '-preset', self::PRESET,
             '-crf', (string) self::CRF,
             '-c:a', 'aac',
-            '-b:a', '128k',
+            '-b:a', '96k',
             '-movflags', '+faststart',
             '-pix_fmt', 'yuv420p',
             $tmpOut,
@@ -97,14 +100,14 @@ class VideoCompressionService
 
         $ran = self::runCommand($args, 90);
         if (! $ran['ok'] || ! is_file($tmpOut) || filesize($tmpOut) === 0) {
-            Log::warning('VideoCompressionService: ffmpeg compress failed; keeping original', [
+            Log::warning('VideoCompressionService: ffmpeg compress failed; trying faststart remux', [
                 'path' => $relativePath,
                 'exit' => $ran['exit'],
                 'error' => $ran['error'],
             ]);
             @unlink($tmpOut);
 
-            return $relativePath;
+            return self::ensureFastStartFromPublicPath($relativePath, $ffmpeg);
         }
 
         clearstatcache(true, $tmpOut);
@@ -114,7 +117,7 @@ class VideoCompressionService
         if ($oldSize > 0 && $newSize >= $oldSize) {
             @unlink($tmpOut);
 
-            return $relativePath;
+            return self::ensureFastStartFromPublicPath($relativePath, $ffmpeg);
         }
 
         $finalRelative = preg_replace('/\.[^.]+$/', '.mp4', $relativePath) ?: ($relativePath.'.mp4');
@@ -139,6 +142,67 @@ class VideoCompressionService
             'to' => $finalRelative,
             'before_bytes' => $oldSize,
             'after_bytes' => $newSize,
+        ]);
+
+        return $finalRelative;
+    }
+
+    /**
+     * Remux only: move moov atom to the front (+faststart) without re-encoding.
+     * Fixes multi-second stalls when players wait for the whole file.
+     */
+    public static function ensureFastStartFromPublicPath(string $relativePath, ?string $ffmpeg = null): string
+    {
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $disk = Storage::disk('public');
+        if (! $disk->exists($relativePath)) {
+            return $relativePath;
+        }
+
+        if (! self::canRunExternalProcess()) {
+            return $relativePath;
+        }
+
+        $ffmpeg = $ffmpeg ?? self::resolveFfmpegBinary();
+        if ($ffmpeg === null) {
+            return $relativePath;
+        }
+
+        $fullPath = $disk->path($relativePath);
+        $dir = dirname($fullPath);
+        $tmpOut = $dir.DIRECTORY_SEPARATOR.'vb_'.uniqid('fst_', true).'.mp4';
+
+        $args = [
+            $ffmpeg,
+            '-y',
+            '-i', $fullPath,
+            '-c', 'copy',
+            '-movflags', '+faststart',
+            $tmpOut,
+        ];
+
+        $ran = self::runCommand($args, 30);
+        if (! $ran['ok'] || ! is_file($tmpOut) || filesize($tmpOut) === 0) {
+            @unlink($tmpOut);
+
+            return $relativePath;
+        }
+
+        $finalRelative = preg_replace('/\.[^.]+$/', '.mp4', $relativePath) ?: ($relativePath.'.mp4');
+        $finalFull = $disk->path($finalRelative);
+
+        @unlink($fullPath);
+        if (! @rename($tmpOut, $finalFull)) {
+            @copy($tmpOut, $finalFull);
+            @unlink($tmpOut);
+        }
+
+        if ($finalRelative !== $relativePath && $disk->exists($relativePath)) {
+            $disk->delete($relativePath);
+        }
+
+        Log::info('VideoCompressionService: applied faststart', [
+            'path' => $finalRelative,
         ]);
 
         return $finalRelative;

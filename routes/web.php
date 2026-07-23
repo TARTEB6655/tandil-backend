@@ -80,10 +80,33 @@ Route::get('/media/{path}', function (string $path) {
     $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
     $mime = match ($extension) {
         'csv' => 'text/csv; charset=UTF-8',
+        'mp4', 'm4v' => 'video/mp4',
+        'webm' => 'video/webm',
+        'mov' => 'video/quicktime',
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
         default => mime_content_type($fullPath) ?: 'application/octet-stream',
     };
 
-    $headers = ['Content-Type' => $mime];
+    $isMediaAsset = in_array($extension, ['mp4', 'm4v', 'webm', 'mov', 'jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+
+    $headers = [
+        'Content-Type' => $mime,
+        // Browsers/apps can resume; Symfony BinaryFileResponse also handles Range.
+        'Accept-Ranges' => 'bytes',
+    ];
+
+    if ($isMediaAsset) {
+        // Video banners / images: cache hard so home screen does not re-download every login.
+        $headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+        $mtime = @filemtime($fullPath) ?: time();
+        $size = @filesize($fullPath) ?: 0;
+        $headers['ETag'] = '"'.md5($path.'|'.$mtime.'|'.$size).'"';
+        $headers['Last-Modified'] = gmdate('D, d M Y H:i:s', $mtime).' GMT';
+    }
+
     if ($extension === 'csv') {
         $headers['Content-Disposition'] = 'attachment; filename="'.basename($path).'"';
     }
