@@ -299,7 +299,7 @@
                                         "top-up"
                                     ]
                                 },
-                                "description": "GET /api/client\/wallet\/add-money \u2014 Add Money screen data: available_balance, presets [50,100,150,200], min/max amount, payment_methods (stripe, apple_pay). SEPARATE from shop checkout. Auth: client."
+                                "description": "GET /api/client\/wallet\/add-money \u2014 Add Money UI only: available_balance, currency, presets [50,100,150,200], min_amount, max_amount, payment_methods[{id,label,description}]. No extra fields. Auth: client."
                             }
                         },
                         {
@@ -337,7 +337,7 @@
                                         "payment-intent"
                                     ]
                                 },
-                                "description": "POST /api/client\/wallet\/add-money/payment-intent \u2014 Create Stripe PaymentIntent for wallet top-up only (no cart/order). Body: amount (AED), payment_method optional stripe|apple_pay. Response: client_secret, publishable_key, payment_intent_id, amount, new_balance, purpose=wallet_topup. Open Payment Sheet with THIS publishable_key + client_secret (supports card + Apple Pay)."
+                                "description": "POST /api/client\/wallet\/add-money/payment-intent \u2014 Body: amount, payment_method optional stripe|apple_pay. Response ONLY: client_secret, payment_intent_id, publishable_key, amount, currency, payment_method, available_balance, new_balance."
                             }
                         },
                         {

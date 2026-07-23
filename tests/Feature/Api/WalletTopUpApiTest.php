@@ -60,11 +60,25 @@ class WalletTopUpApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.available_balance', 137.02)
             ->assertJsonPath('data.currency', 'AED')
-            ->assertJsonPath('data.presets', [50, 100, 150, 200]);
+            ->assertJsonPath('data.presets', [50, 100, 150, 200])
+            ->assertJsonPath('data.min_amount', 2)
+            ->assertJsonPath('data.max_amount', 5000);
 
-        $methods = collect($res->json('data.payment_methods'))->pluck('id')->all();
-        $this->assertContains('stripe', $methods);
-        $this->assertContains('apple_pay', $methods);
+        $data = $res->json('data');
+        $this->assertSame(
+            ['available_balance', 'currency', 'max_amount', 'min_amount', 'payment_methods', 'presets'],
+            collect(array_keys($data))->sort()->values()->all(),
+            'Options data must match Add Money UI fields only'
+        );
+
+        $methods = collect($data['payment_methods'])->pluck('id')->all();
+        $this->assertSame(['stripe', 'apple_pay'], $methods);
+        foreach ($data['payment_methods'] as $method) {
+            $this->assertSame(
+                ['description', 'id', 'label'],
+                collect(array_keys($method))->sort()->values()->all()
+            );
+        }
     }
 
     public function test_payment_intent_rejects_amount_below_minimum(): void
@@ -100,11 +114,18 @@ class WalletTopUpApiTest extends TestCase
             ->assertJsonPath('data.payment_intent_id', 'pi_test_wallet_topup_1')
             ->assertJsonPath('data.client_secret', 'pi_test_wallet_topup_1_secret_abc')
             ->assertJsonPath('data.amount', 100)
+            ->assertJsonPath('data.currency', 'AED')
+            ->assertJsonPath('data.payment_method', 'stripe')
             ->assertJsonPath('data.available_balance', 137.02)
-            ->assertJsonPath('data.new_balance', 237.02)
-            ->assertJsonPath('data.purpose', WalletTopUpStripeService::PURPOSE);
+            ->assertJsonPath('data.new_balance', 237.02);
 
-        $this->assertNotEmpty($res->json('data.publishable_key'));
+        $data = $res->json('data');
+        $this->assertSame(
+            ['amount', 'available_balance', 'client_secret', 'currency', 'new_balance', 'payment_intent_id', 'payment_method', 'publishable_key'],
+            collect(array_keys($data))->sort()->values()->all(),
+            'Payment-intent data must match Top up wallet UI fields only'
+        );
+        $this->assertNotEmpty($data['publishable_key']);
         $this->assertDatabaseHas('wallet_topups', [
             'user_id' => $this->client->id,
             'stripe_payment_intent_id' => 'pi_test_wallet_topup_1',
@@ -143,7 +164,7 @@ class WalletTopUpApiTest extends TestCase
             ], 200),
         ]);
 
-        $this->actingAs($this->client, 'sanctum')
+        $res = $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/client/wallet/add-money/confirm', [
                 'payment_intent_id' => 'pi_test_wallet_confirm',
             ])
@@ -151,7 +172,15 @@ class WalletTopUpApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.amount_added', 100)
             ->assertJsonPath('data.available_balance', 237.02)
-            ->assertJsonPath('data.purpose', WalletTopUpStripeService::PURPOSE);
+            ->assertJsonPath('data.currency', 'AED')
+            ->assertJsonPath('data.status', 'succeeded')
+            ->assertJsonPath('data.payment_intent_id', 'pi_test_wallet_confirm');
+
+        $this->assertSame(
+            ['amount_added', 'available_balance', 'currency', 'payment_intent_id', 'status'],
+            collect(array_keys($res->json('data')))->sort()->values()->all(),
+            'Confirm data must match success UI fields only'
+        );
 
         $this->assertEquals(237.02, (float) $this->client->fresh()->wallet_balance);
         $this->assertDatabaseHas('wallet_credits', [

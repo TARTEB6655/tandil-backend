@@ -62,7 +62,6 @@ class WalletTopUpStripeService
                         'description' => 'Fast and secure top-up with Apple Pay',
                     ],
                 ],
-                'notes' => 'Funds stay in your wallet and can be used at checkout. This flow is separate from shop and service payments.',
             ],
         ];
     }
@@ -174,18 +173,11 @@ class WalletTopUpStripeService
                 'client_secret' => $clientSecret,
                 'payment_intent_id' => $piId,
                 'publishable_key' => StripeCredentials::publishableKey(),
-                'stripe_mode' => StripeCredentials::mode(),
-                'stripe_keys_version' => StripeCredentials::keysVersion(),
-                'stripe_account_fingerprint' => StripeCredentials::accountFingerprint(),
-                'reinitialize_payment_sheet' => true,
                 'amount' => $amount,
-                'amount_minor' => $amountMinor,
                 'currency' => strtoupper($currency),
                 'payment_method' => $paymentMethod,
                 'available_balance' => $balance,
                 'new_balance' => $newBalancePreview,
-                'purpose' => self::PURPOSE,
-                'notes' => 'Use publishable_key + client_secret from THIS response to open Stripe Payment Sheet (card or Apple Pay). Do not reuse shop checkout secrets.',
             ],
         ];
     }
@@ -368,15 +360,11 @@ class WalletTopUpStripeService
     private function successPayload(WalletTopUp $topUp, User $user): array
     {
         return [
-            'topup_id' => $topUp->id,
             'payment_intent_id' => $topUp->stripe_payment_intent_id,
             'amount_added' => round((float) $topUp->amount, 2),
             'currency' => strtoupper((string) $topUp->currency),
             'available_balance' => round((float) ($user->wallet_balance ?? 0), 2),
-            'wallet_credit_id' => $topUp->wallet_credit_id,
             'status' => $topUp->status,
-            'purpose' => self::PURPOSE,
-            'message' => 'Wallet topped up successfully.',
         ];
     }
 
