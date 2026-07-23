@@ -18,18 +18,18 @@ class WalletTopUpController extends Controller
     }
 
     /**
-     * GET /api/client/wallet/top-up
+     * GET /api/client/wallet/add-money
      * Add Money screen: balance, presets (50/100/150/200), limits, payment methods.
      */
     public function options(Request $request)
     {
         $result = $this->topUps->options($request->user());
 
-        return ApiResponse::success('Wallet top-up options retrieved successfully.', $result['data']);
+        return ApiResponse::success('Wallet add-money options retrieved successfully.', $result['data']);
     }
 
     /**
-     * POST /api/client/wallet/top-up/payment-intent
+     * POST /api/client/wallet/add-money/payment-intent
      * Body: amount (required), payment_method (optional: stripe|apple_pay).
      * Returns client_secret + publishable_key for Stripe Payment Sheet (card / Apple Pay).
      */
@@ -45,11 +45,11 @@ class WalletTopUpController extends Controller
             return ApiResponse::error($result['message'], $result['code']);
         }
 
-        return ApiResponse::success('Wallet top-up payment intent created successfully.', $result['data']);
+        return ApiResponse::success('Wallet add-money payment intent created successfully.', $result['data']);
     }
 
     /**
-     * POST /api/client/wallet/top-up/confirm
+     * POST /api/client/wallet/add-money/confirm
      * Body: payment_intent_id. Credits wallet after Payment Sheet success (idempotent with webhook).
      */
     public function confirm(Request $request)
@@ -63,6 +63,6 @@ class WalletTopUpController extends Controller
             return ApiResponse::error($result['message'], $result['code']);
         }
 
-        return ApiResponse::success('Wallet topped up successfully.', $result['data']);
+        return ApiResponse::success('Money added to wallet successfully.', $result['data']);
     }
 }

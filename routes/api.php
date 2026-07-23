@@ -723,12 +723,12 @@ Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(func
 
     /*
     |--------------------------------------------------------------------------
-    | Client Wallet Top-Up / Add Money (SEPARATE from shop checkout)
+    | Client Wallet Add Money (SEPARATE from shop checkout)
     |--------------------------------------------------------------------------
     */
-    Route::get('/wallet/top-up', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'options']);
-    Route::post('/wallet/top-up/payment-intent', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'paymentIntent']);
-    Route::post('/wallet/top-up/confirm', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'confirm']);
+    Route::get('/wallet/add-money', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'options']);
+    Route::post('/wallet/add-money/payment-intent', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'paymentIntent']);
+    Route::post('/wallet/add-money/confirm', [\App\Http\Controllers\Api\Client\WalletTopUpController::class, 'confirm']);
 });
 
 /*

@@ -288,7 +288,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up",
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/add-money",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -299,7 +299,7 @@
                                         "top-up"
                                     ]
                                 },
-                                "description": "GET \/api\/client\/wallet\/top-up — Add Money screen data: available_balance, presets [50,100,150,200], min\/max amount, payment_methods (stripe, apple_pay). SEPARATE from shop checkout. Auth: client."
+                                "description": "GET \/api\/client\/wallet\/add-money — Add Money screen data: available_balance, presets [50,100,150,200], min\/max amount, payment_methods (stripe, apple_pay). SEPARATE from shop checkout. Auth: client."
                             }
                         },
                         {
@@ -325,7 +325,7 @@
                                     "raw": "{\n  \"amount\": 100,\n  \"payment_method\": \"stripe\"\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/payment-intent",
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/add-money\/payment-intent",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -337,7 +337,7 @@
                                         "payment-intent"
                                     ]
                                 },
-                                "description": "POST \/api\/client\/wallet\/top-up\/payment-intent — Create Stripe PaymentIntent for wallet top-up only (no cart\/order). Body: amount (AED), payment_method optional stripe|apple_pay. Response: client_secret, publishable_key, payment_intent_id, amount, new_balance, purpose=wallet_topup. Open Payment Sheet with THIS publishable_key + client_secret (supports card + Apple Pay)."
+                                "description": "POST \/api\/client\/wallet\/add-money\/payment-intent — Create Stripe PaymentIntent for wallet top-up only (no cart\/order). Body: amount (AED), payment_method optional stripe|apple_pay. Response: client_secret, publishable_key, payment_intent_id, amount, new_balance, purpose=wallet_topup. Open Payment Sheet with THIS publishable_key + client_secret (supports card + Apple Pay)."
                             }
                         },
                         {
@@ -363,7 +363,7 @@
                                     "raw": "{\n  \"payment_intent_id\": \"{{payment_intent_id}}\"\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/confirm",
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/add-money\/confirm",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -375,7 +375,7 @@
                                         "confirm"
                                     ]
                                 },
-                                "description": "POST \/api\/client\/wallet\/top-up\/confirm — After Payment Sheet success. Body: payment_intent_id. Credits users.wallet_balance + wallet_credits (reason=top_up). Idempotent with Stripe webhook. Does NOT create shop orders."
+                                "description": "POST \/api\/client\/wallet\/add-money\/confirm — After Payment Sheet success. Body: payment_intent_id. Credits users.wallet_balance + wallet_credits (reason=top_up). Idempotent with Stripe webhook. Does NOT create shop orders."
                             }
                         },
                         {
@@ -2384,7 +2384,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up",
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/add-money",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -2421,7 +2421,7 @@
                                     "raw": "{\n  \"amount\": 100,\n  \"payment_method\": \"stripe\"\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/payment-intent",
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/add-money\/payment-intent",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -2459,7 +2459,7 @@
                                     "raw": "{\n  \"payment_intent_id\": \"pi_xxx\"\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}\/api\/client\/wallet\/top-up\/confirm",
+                                    "raw": "{{base_url}}\/api\/client\/wallet\/add-money\/confirm",
                                     "host": [
                                         "{{base_url}}"
                                     ],

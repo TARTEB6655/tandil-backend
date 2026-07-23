@@ -55,7 +55,7 @@ class WalletTopUpApiTest extends TestCase
     public function test_options_returns_balance_presets_and_payment_methods(): void
     {
         $res = $this->actingAs($this->client, 'sanctum')
-            ->getJson('/api/client/wallet/top-up')
+            ->getJson('/api/client/wallet/add-money')
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.available_balance', 137.02)
@@ -72,7 +72,7 @@ class WalletTopUpApiTest extends TestCase
         $this->fakeStripeUsable();
 
         $this->actingAs($this->client, 'sanctum')
-            ->postJson('/api/client/wallet/top-up/payment-intent', ['amount' => 1])
+            ->postJson('/api/client/wallet/add-money/payment-intent', ['amount' => 1])
             ->assertStatus(422);
     }
 
@@ -91,7 +91,7 @@ class WalletTopUpApiTest extends TestCase
         ]);
 
         $res = $this->actingAs($this->client, 'sanctum')
-            ->postJson('/api/client/wallet/top-up/payment-intent', [
+            ->postJson('/api/client/wallet/add-money/payment-intent', [
                 'amount' => 100,
                 'payment_method' => 'stripe',
             ])
@@ -144,7 +144,7 @@ class WalletTopUpApiTest extends TestCase
         ]);
 
         $this->actingAs($this->client, 'sanctum')
-            ->postJson('/api/client/wallet/top-up/confirm', [
+            ->postJson('/api/client/wallet/add-money/confirm', [
                 'payment_intent_id' => 'pi_test_wallet_confirm',
             ])
             ->assertOk()
@@ -183,7 +183,7 @@ class WalletTopUpApiTest extends TestCase
         ]);
 
         $this->actingAs($this->client, 'sanctum')
-            ->postJson('/api/client/wallet/top-up/confirm', [
+            ->postJson('/api/client/wallet/add-money/confirm', [
                 'payment_intent_id' => 'pi_shop',
             ])
             ->assertStatus(422);
@@ -224,7 +224,7 @@ class WalletTopUpApiTest extends TestCase
         $this->assignRoleIfAvailable($tech, 'technician');
 
         $this->actingAs($tech, 'sanctum')
-            ->getJson('/api/client/wallet/top-up')
+            ->getJson('/api/client/wallet/add-money')
             ->assertForbidden();
     }
 }
