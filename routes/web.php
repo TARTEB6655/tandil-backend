@@ -622,6 +622,9 @@ Route::middleware(['auth', 'role:client'])
         Route::delete('/addresses/{id}', [\App\Http\Controllers\Client\AddressController::class, 'destroy'])->name('addresses.destroy');
         Route::get('/payment-methods', [\App\Http\Controllers\Client\PaymentMethodController::class, 'index'])->name('payment-methods.index');
         Route::get('/wallet', [ClientWalletController::class, 'index'])->name('wallet.index');
+        Route::get('/wallet/add-money', [ClientWalletController::class, 'addMoney'])->name('wallet.add-money');
+        Route::post('/wallet/add-money/payment-intent', [ClientWalletController::class, 'paymentIntent'])->name('wallet.add-money.payment-intent');
+        Route::post('/wallet/add-money/confirm', [ClientWalletController::class, 'confirm'])->name('wallet.add-money.confirm');
         Route::get('/loyalty', [\App\Http\Controllers\Client\LoyaltyController::class, 'index'])->name('loyalty.index');
         Route::get('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'index'])->name('help-support.index');
         Route::post('/help-support', [\App\Http\Controllers\Client\HelpSupportController::class, 'store'])->name('help-support.store');

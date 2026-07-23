@@ -1,9 +1,21 @@
 <x-client-layout>
     <div class="space-y-6">
-        <div>
-            <h1 class="text-xl font-semibold text-gray-900">My Wallet</h1>
-            <p class="mt-1 text-sm text-gray-500">Track refund credits, expiry, and forfeited amounts.</p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900">My Wallet</h1>
+                <p class="mt-1 text-sm text-gray-500">Track refund credits, expiry, and forfeited amounts.</p>
+            </div>
+            <a href="{{ route('client.wallet.add-money') }}"
+               class="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 transition-colors">
+                Add Money
+            </a>
         </div>
+
+        @if(session('success'))
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                {{ session('success') }}
+            </div>
+        @endif
 
         @php
             $wt = \App\Support\RefundPolicy::policyForApi()['wallet_terms'] ?? [];

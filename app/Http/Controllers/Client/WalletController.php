@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\WalletCredit;
+use App\Services\WalletTopUpStripeService;
 use App\Support\RefundPolicy;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +15,10 @@ use Throwable;
 
 class WalletController extends Controller
 {
+    public function __construct(private WalletTopUpStripeService $topUps)
+    {
+    }
+
     public function index()
     {
         $user = Auth::user();
@@ -83,6 +89,71 @@ class WalletController extends Controller
         }
 
         return view('client.wallet.index', compact('credits', 'summary'));
+    }
+
+    /**
+     * Add Money screen (web) — same flow as mobile APIs.
+     */
+    public function addMoney()
+    {
+        $user = Auth::user();
+        $options = $this->topUps->options($user);
+
+        return view('client.wallet.add-money', [
+            'options' => $options['data'],
+        ]);
+    }
+
+    /**
+     * POST /client/wallet/add-money/payment-intent
+     * Creates Stripe PaymentIntent for wallet top-up (JSON for Stripe.js).
+     */
+    public function paymentIntent(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'nullable|string|in:stripe,apple_pay',
+        ]);
+
+        $result = $this->topUps->createPaymentIntent($request, $request->user());
+        if (! $result['ok']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], $result['code']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Wallet add-money payment intent created successfully.',
+            'data' => $result['data'],
+        ]);
+    }
+
+    /**
+     * POST /client/wallet/add-money/confirm
+     * Credits wallet after Stripe Payment Element succeeds.
+     */
+    public function confirm(Request $request)
+    {
+        $request->validate([
+            'payment_intent_id' => 'required|string',
+        ]);
+
+        $result = $this->topUps->confirm($request, $request->user());
+        if (! $result['ok']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], $result['code']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Money added to wallet successfully.',
+            'data' => $result['data'],
+            'redirect' => route('client.wallet.index'),
+        ]);
     }
 }
 
