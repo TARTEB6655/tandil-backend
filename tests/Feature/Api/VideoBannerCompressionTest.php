@@ -32,13 +32,16 @@ class VideoBannerCompressionTest extends TestCase
         }
     }
 
-    public function test_create_rejects_video_over_25mb_limit(): void
+    public function test_create_rejects_video_over_30mb_limit(): void
     {
-        // Laravel validates size in KB; 25601 > 25600.
+        // Laravel validates size in KB; 30721 > 30720 (30MB).
         $this->actingAs($this->admin, 'sanctum')->post('/api/admin/video-banners', [
             'title' => 'Too big',
-            'video' => UploadedFile::fake()->create('huge.mp4', 25601, 'video/mp4'),
-        ])->assertStatus(422);
+            'video' => UploadedFile::fake()->create('huge.mp4', 30721, 'video/mp4'),
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['video'])
+            ->assertJsonPath('errors.video.0', 'Video must be 30MB or smaller. Please upload a smaller file.');
     }
 
     public function test_video_compression_service_shrinks_oversized_mp4_when_ffmpeg_available(): void

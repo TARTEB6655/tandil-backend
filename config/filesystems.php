@@ -77,6 +77,9 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
+        // So /media/video_banners/*.mp4 is served by Apache/nginx as a static file
+        // (not through PHP) when the symlink exists — much faster for the app.
+        public_path('media') => storage_path('app/public'),
     ],
 
 ];

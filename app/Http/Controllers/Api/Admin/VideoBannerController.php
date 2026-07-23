@@ -153,13 +153,16 @@ class VideoBannerController extends Controller
 
     private function validatePayload(Request $request): void
     {
-        // Keep under typical PHP post_max_size (40M). Server compresses video (ffmpeg → ~720p).
+        // Max 30MB upload. Server compresses for fast home-screen playback.
         $request->validate([
             'title' => 'nullable|string|max:255',
-            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/webm,video/ogg,video/x-m4v|max:25600',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/webm,video/ogg,video/x-m4v|max:30720',
             'badge_text' => 'nullable|string|max:100',
             'button_text' => 'nullable|string|max:100',
             'is_active' => 'nullable|boolean',
+        ], [
+            'video.max' => 'Video must be 30MB or smaller. Please upload a smaller file.',
+            'video.mimetypes' => 'Video must be an MP4, MOV, WebM, OGG, or M4V file.',
         ]);
     }
 

@@ -14,7 +14,7 @@ class VideoBannerController extends Controller
     /**
      * Active video banners for the customer home screen ("Featured Video").
      * Public endpoint - no authentication required (mirrors GET /api/banners).
-     * Cached briefly so login/home does not hit DB on every open.
+     * Response is cached so the app gets JSON in milliseconds.
      */
     public function index(Request $request)
     {
@@ -22,17 +22,18 @@ class VideoBannerController extends Controller
             VideoBannerCache::PUBLIC_LIST_KEY,
             VideoBannerCache::PUBLIC_LIST_TTL_SECONDS,
             function () {
-                return VideoBanner::active()
+                return VideoBanner::query()
+                    ->active()
                     ->ordered()
-                    ->get()
-                    ->map(function (VideoBanner $videoBanner) {
+                    ->get(['id', 'title', 'video_path', 'badge_text', 'button_text', 'is_active'])
+                    ->map(static function (VideoBanner $videoBanner) {
                         return [
                             'id' => $videoBanner->id,
                             'title' => $videoBanner->title,
                             'video_url' => $videoBanner->video_url,
                             'badge_text' => $videoBanner->badge_text,
                             'button_text' => $videoBanner->button_text,
-                            'is_active' => $videoBanner->is_active,
+                            'is_active' => (bool) $videoBanner->is_active,
                         ];
                     })
                     ->values()
@@ -41,6 +42,7 @@ class VideoBannerController extends Controller
         );
 
         return ApiResponse::success('Video banners retrieved successfully.', $videoBanners)
-            ->header('Cache-Control', 'public, max-age=60');
+            ->header('Cache-Control', 'public, max-age=120, stale-while-revalidate=600')
+            ->header('X-Accel-Buffering', 'no');
     }
 }

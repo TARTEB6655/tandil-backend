@@ -56,6 +56,9 @@ class OptimizeVideoBannersCommand extends Command
 
         VideoBannerCache::forgetPublicList();
         $this->info("Done. Paths updated: {$updated}");
+        $this->newLine();
+        $this->comment('For fastest app playback, ensure the media symlink exists so /media/* is static:');
+        $this->comment('  php artisan storage:link');
 
         return self::SUCCESS;
     }
