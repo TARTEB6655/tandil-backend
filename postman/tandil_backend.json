@@ -1012,7 +1012,7 @@
                                 "google"
                             ]
                         },
-                        "description": "POST /api/auth/google. Public. Body: id_token (Google Sign-In SDK), roles (client). Verifies token with Google tokeninfo, finds or creates client user. Response = POST /api/auth/login (success, data.token, data.role, data.slug, data.user). Server .env: PUBLIC_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID (optional GOOGLE_CLIENT_IDS for multiple OAuth clients)."
+                        "description": "POST /api/auth/google. Public. Body: id_token (Google Sign-In SDK), roles (client). Verifies token with Google tokeninfo, finds or creates client user. Response = POST /api/auth/login (success, data.token, data.role, data.slug, data.user). data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID (optional GOOGLE_CLIENT_IDS for multiple OAuth clients)."
                     }
                 },
                 {
@@ -1064,7 +1064,7 @@
                                 "apple"
                             ]
                         },
-                        "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
+                        "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
                     }
                 },
                 {
@@ -1868,9 +1868,45 @@
                                 },
                                 "description": "Profile – Personal Information. Update name, email, phone and/or profile picture. Body: form-data. For photo: set profile_picture key to File. PUT or POST both work; PUT + multipart parses file from body. Response includes profile_picture_url (full URL for image load). Image is compressed on upload. Same pattern as Technician and Supervisor profile update."
                             }
+                        },
+                        {
+                            "name": "3. Update Phone Number Only (PUT/POST) – after Google/Apple signup",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"phone\": \"+971501234567\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/user/phone",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "user",
+                                        "phone"
+                                    ]
+                                },
+                                "description": "Update phone number only (post-registration popup after Google/Apple Sign-In). Auth required. Body: { \"phone\": \"+971...\" } or { \"phone_number\": \"+971...\" }. Phone must be unique. Response includes phone and needs_phone:false. Use when social auth login returns data.user.needs_phone:true."
+                            }
                         }
                     ],
-                    "description": "GET/PUT /api/user/profile."
+                    "description": "GET/PUT /api/user/profile. PUT/POST /api/user/phone (phone-only after Google/Apple signup)."
                 },
                 {
                     "name": "D. Addresses",

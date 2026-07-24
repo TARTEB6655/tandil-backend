@@ -686,6 +686,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/wallet', [\App\Http\Controllers\Api\UserController::class, 'walletSummary']);
     Route::get('/wallet/credits', [\App\Http\Controllers\Api\UserController::class, 'walletCredits']);
     Route::match(['put', 'post', 'patch'], '/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
+    Route::match(['put', 'post', 'patch'], '/phone', [\App\Http\Controllers\Api\UserController::class, 'updatePhone']);
     Route::delete('/account', [\App\Http\Controllers\Api\UserController::class, 'deleteAccount']);
     Route::post('/delete-account', [\App\Http\Controllers\Api\UserController::class, 'deleteAccount']);
     Route::get('/addresses', [\App\Http\Controllers\Api\UserController::class, 'getAddresses']);

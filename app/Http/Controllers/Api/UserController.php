@@ -20,8 +20,9 @@ use Illuminate\Validation\Rule;
 class UserController extends Controller
 {
     /**
-     * Profile response shape: id, name, email, phone, profile_picture, profile_picture_url, role.
+     * Profile response shape: id, name, email, phone, needs_phone, profile_picture, profile_picture_url, role.
      * profile_picture_url is full URL (e.g. https://domain.com/media/profiles/xxx.jpg) for proper image loading.
+     * needs_phone is true when phone is missing (e.g. Google/Apple signup) so the app can show the phone popup.
      */
     private function profileToArray($user): array
     {
@@ -30,6 +31,7 @@ class UserController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone ?? null,
+            'needs_phone' => $user->needsPhone(),
             'profile_picture' => $user->profile_picture ?? null,
             'profile_picture_url' => ProfilePictureUploadService::fullUrl($user->profile_picture) ?? $user->profile_picture_url ?? null,
             'role' => $user->role ?? null,
@@ -186,6 +188,35 @@ class UserController extends Controller
         $user->save();
 
         return ApiResponse::success('Profile updated successfully.', $this->profileToArray($user->fresh()));
+    }
+
+    /**
+     * Update phone number only (post-registration popup after Google/Apple signup).
+     * Body: { "phone": "+971501234567" } — also accepts phone_number.
+     * PUT / PATCH / POST /api/user/phone
+     */
+    public function updatePhone(Request $request)
+    {
+        $user = $request->user();
+
+        if ($request->filled('phone_number') && ! $request->filled('phone')) {
+            $request->merge(['phone' => $request->input('phone_number')]);
+        }
+
+        $validated = $request->validate([
+            'phone' => [
+                'required',
+                'string',
+                'min:7',
+                'max:20',
+                Rule::unique('users', 'phone')->ignore($user->id),
+            ],
+        ]);
+
+        $user->phone = trim($validated['phone']);
+        $user->save();
+
+        return ApiResponse::success('Phone number updated successfully.', $this->profileToArray($user->fresh()));
     }
 
     /**

@@ -283,6 +283,14 @@ class User extends Authenticatable
     }
 
     /**
+     * True when the client still needs to add a phone (common after Google/Apple signup).
+     */
+    public function needsPhone(): bool
+    {
+        return trim((string) ($this->phone ?? '')) === '';
+    }
+
+    /**
      * Lean payload for login / social auth responses (avoids serializing the full model).
      *
      * @return array<string, mixed>
@@ -296,6 +304,7 @@ class User extends Authenticatable
             'google_id' => $this->google_id,
             'apple_id' => $this->apple_id,
             'phone' => $this->phone,
+            'needs_phone' => $this->needsPhone(),
             'role' => $this->role,
             'status' => $this->status,
             'profile_picture_url' => $this->profile_picture_url,

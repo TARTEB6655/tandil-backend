@@ -155,6 +155,68 @@ class ClientDashboardProfileApiTest extends TestCase
         $this->assertSame('Updated Client Name', $this->client->name);
     }
 
+    // ---- Phone only (PUT/POST/PATCH /api/user/phone) — post Google/Apple signup popup ----
+    public function test_user_phone_update_requires_auth(): void
+    {
+        $this->putJson('/api/user/phone', ['phone' => '+971501234567'])
+            ->assertStatus(401);
+    }
+
+    public function test_user_phone_update_success(): void
+    {
+        $this->client->forceFill(['phone' => null])->save();
+
+        $response = $this->putJson('/api/user/phone', [
+            'phone' => '+971501234567',
+        ], $this->authHeaders());
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Phone number updated successfully.')
+            ->assertJsonPath('data.phone', '+971501234567')
+            ->assertJsonPath('data.needs_phone', false);
+
+        $this->client->refresh();
+        $this->assertSame('+971501234567', $this->client->phone);
+    }
+
+    public function test_user_phone_update_accepts_phone_number_alias(): void
+    {
+        $this->client->forceFill(['phone' => null])->save();
+
+        $this->postJson('/api/user/phone', [
+            'phone_number' => '+971509998877',
+        ], $this->authHeaders())
+            ->assertStatus(200)
+            ->assertJsonPath('data.phone', '+971509998877')
+            ->assertJsonPath('data.needs_phone', false);
+    }
+
+    public function test_user_phone_update_rejects_duplicate(): void
+    {
+        User::factory()->create([
+            'role' => 'client',
+            'phone' => '+971501111111',
+        ]);
+        $this->client->forceFill(['phone' => null])->save();
+
+        $this->putJson('/api/user/phone', [
+            'phone' => '+971501111111',
+        ], $this->authHeaders())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['phone']);
+    }
+
+    public function test_user_profile_includes_needs_phone_when_missing(): void
+    {
+        $this->client->forceFill(['phone' => null])->save();
+
+        $this->getJson('/api/user/profile', $this->authHeaders())
+            ->assertStatus(200)
+            ->assertJsonPath('data.needs_phone', true)
+            ->assertJsonPath('data.phone', null);
+    }
+
     // ---- Addresses (GET /api/user/addresses) ----
     public function test_user_addresses_requires_auth(): void
     {

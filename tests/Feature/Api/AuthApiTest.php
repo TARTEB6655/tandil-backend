@@ -477,7 +477,8 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('data.slug', 'client')
             ->assertJsonPath('data.role', 'client')
             ->assertJsonPath('data.user.email', 'google.new@example.com')
-            ->assertJsonStructure(['data' => ['token', 'role', 'slug', 'user' => ['id', 'name', 'email']]]);
+            ->assertJsonPath('data.user.needs_phone', true)
+            ->assertJsonStructure(['data' => ['token', 'role', 'slug', 'user' => ['id', 'name', 'email', 'needs_phone']]]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'google.new@example.com',
