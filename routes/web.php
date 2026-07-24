@@ -649,6 +649,8 @@ Route::middleware(['auth', 'role:client'])
         Route::put('/addresses/{id}', [\App\Http\Controllers\Client\AddressController::class, 'update'])->name('addresses.update');
         Route::delete('/addresses/{id}', [\App\Http\Controllers\Client\AddressController::class, 'destroy'])->name('addresses.destroy');
         Route::get('/payment-methods', [\App\Http\Controllers\Client\PaymentMethodController::class, 'index'])->name('payment-methods.index');
+        Route::get('/phone', [\App\Http\Controllers\Client\PhoneController::class, 'edit'])->name('phone.edit');
+        Route::put('/phone', [\App\Http\Controllers\Client\PhoneController::class, 'update'])->name('phone.update');
         Route::get('/wallet', [ClientWalletController::class, 'index'])->name('wallet.index');
         Route::get('/wallet/add-money', [ClientWalletController::class, 'addMoney'])->name('wallet.add-money');
         Route::post('/wallet/add-money/payment-intent', [ClientWalletController::class, 'paymentIntent'])->name('wallet.add-money.payment-intent');

@@ -69,6 +69,7 @@
     
     <x-toast-notifications />
     <x-live-chat-widget />
+    @include('components.client.phone-prompt-modal')
     @stack('scripts')
 </body>
 </html>

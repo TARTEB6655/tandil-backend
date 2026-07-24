@@ -47,6 +47,18 @@
             @endif
         </div>
 
+        <div>
+            <x-input-label for="phone" :value="__('Phone')" />
+            <x-text-input id="phone" name="phone" type="tel" class="mt-1 block w-full text-xs sm:text-sm" :value="old('phone', $user->phone)" autocomplete="tel" placeholder="+971501234567" />
+            <x-input-error class="mt-2 text-xs sm:text-sm" :messages="$errors->get('phone')" />
+            @if(($user->role ?? null) === 'client')
+                <p class="mt-1.5 text-xs text-gray-500">
+                    Or manage it on the dedicated page:
+                    <a href="{{ route('client.phone.edit') }}" class="font-medium text-indigo-600 hover:text-indigo-800">Update phone number</a>
+                </p>
+            @endif
+        </div>
+
         <div class="flex items-center gap-3 sm:gap-4">
             <x-primary-button class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">{{ __('Save') }}</x-primary-button>
 
