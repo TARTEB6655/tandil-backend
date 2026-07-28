@@ -9516,11 +9516,11 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "settings"]
                                         },
-                                        "description": "GET /api/admin/loyalty/settings — Full Loyalty settings screen (not the dashboard).\n\n**Response `data`:**\n- loyalty_system_enabled (bool)\n- points_per_aed\n- eligible_activities { shop_orders, service_orders, memberships } (bools)\n- points_expiry_months, rewards_expiry_months\n- cities (comma-separated string; empty = all cities)\n- customer_targeting: `all` | `specific`\n- specific_customer_ids: [1,2,3] (when targeting=specific)\n- specific_customers: [\"Client One\",\"Sara Ahmed\"] (names for UI chips)\n- campaign_periods_only (bool)\n- activities_selected, status (`Live`|`Off`)\n\nUse D. Customers list to pick IDs for specific_customer_ids."
+                                        "description": "GET /api/admin/loyalty/settings — Loyalty settings screen.\n\n**Response `data`:** loyalty_system_enabled, points_per_aed, eligible_activities{shop_orders,service_orders,memberships}, points_expiry_months, rewards_expiry_months, cities, customer_targeting (`all`|`specific`), specific_customer_ids[], specific_customers[] (chip names), campaign_periods_only, activities_selected, status.\n\nPick customer IDs from D. Customers when using specific targeting."
                                     }
                                 },
                                 {
-                                    "name": "2. Save Settings – Specific customers (PUT)",
+                                    "name": "2. Save Settings (PUT)",
                                     "request": {
                                         "method": "PUT",
                                         "header": [
@@ -9537,32 +9537,11 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "settings"]
                                         },
-                                        "description": "PUT /api/admin/loyalty/settings — Matches RN screen when **Specific customer** is selected.\n\nRequired for chips: `customer_targeting: \"specific\"` + `specific_customer_ids: [id,…]`.\nResponse includes `specific_customers` name chips (e.g. Client One, Sara Ahmed, Omar Khan).\nReplace [1,2,3] with real client IDs from GET /api/admin/loyalty/customers."
-                                    }
-                                },
-                                {
-                                    "name": "3. Save Settings – All customers (PUT)",
-                                    "request": {
-                                        "method": "PUT",
-                                        "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"loyalty_system_enabled\": true,\n  \"points_per_aed\": 1,\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": true\n  },\n  \"points_expiry_months\": 12,\n  \"rewards_expiry_months\": 6,\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\",\n  \"specific_customer_ids\": [],\n  \"campaign_periods_only\": false\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/loyalty/settings",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "settings"]
-                                        },
-                                        "description": "PUT /api/admin/loyalty/settings — When **All customers** is selected. Clears specific_customer_ids (returns [] and specific_customers: [])."
+                                        "description": "PUT /api/admin/loyalty/settings — **One API only.**\n\nSame endpoint for both UI modes:\n- Specific customers: `customer_targeting: \"specific\"` + `specific_customer_ids: [1,2,3]`\n- All customers: `customer_targeting: \"all\"` + `specific_customer_ids: []`\n\nResponse returns the same settings shape as GET (including specific_customers name chips when specific)."
                                     }
                                 }
                             ],
-                            "description": "Loyalty settings screen APIs. Use these for expiry, cities, customer targeting (all vs specific + chips), and campaign_periods_only — NOT GET /api/admin/loyalty."
+                            "description": "One GET + one PUT for Loyalty settings. customer_targeting all|specific is a body field, not a separate API."
                         },
                         {
                             "name": "C. Rewards",
