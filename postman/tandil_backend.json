@@ -9680,7 +9680,7 @@
                                     }
                                 },
                                 {
-                                    "name": "3. Manual Adjust (POST)",
+                                    "name": "3. Manual Adjust (POST/PUT)",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -9697,7 +9697,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "customers", "1", "adjust"]
                                         },
-                                        "description": "POST /api/admin/loyalty/customers/{id}/adjust — amount (+/-), reason. Positive credits, negative deducts."
+                                        "description": "POST or PUT /api/admin/loyalty/customers/{id}/adjust\n\nBody:\n```json\n{\n  \"amount\": 50,\n  \"reason\": \"Optional note\"\n}\n```\n- Positive `amount` credits points\n- Negative `amount` deducts points\n- Requires admin Bearer token\n- Customer `id` must be a client user (use List Customers first)"
                                     }
                                 }
                             ]

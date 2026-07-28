@@ -224,7 +224,7 @@ class AdminLoyaltyApiTest extends TestCase
             ->assertJsonPath('data.balance', 870)
             ->assertJsonPath('data.history.0.points_display', '+50');
 
-        $this->postJson('/api/admin/loyalty/customers/'.$client->id.'/adjust', [
+        $this->putJson('/api/admin/loyalty/customers/'.$client->id.'/adjust', [
             'amount' => -20,
             'reason' => 'Manual deduction',
         ], $this->headers())

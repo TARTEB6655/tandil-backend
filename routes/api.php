@@ -815,7 +815,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/loyalty')->grou
 
     Route::get('/customers', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'customers']);
     Route::get('/customers/{id}', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'customerShow']);
-    Route::post('/customers/{id}/adjust', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'customerAdjust']);
+    Route::match(['post', 'put'], '/customers/{id}/adjust', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'customerAdjust']);
 
     Route::get('/campaigns', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'campaigns']);
     Route::post('/campaigns', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'storeCampaign']);
