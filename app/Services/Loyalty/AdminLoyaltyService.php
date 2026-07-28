@@ -468,6 +468,9 @@ class AdminLoyaltyService
     {
         $cities = trim((string) ($reward->cities ?? ''));
         $targeting = $reward->customer_targeting === 'specific' ? 'specific' : 'all';
+        $ids = $targeting === 'specific'
+            ? array_values(array_map('intval', (array) ($reward->specific_customer_ids ?? [])))
+            : [];
 
         return [
             'id' => $reward->id,
@@ -480,6 +483,8 @@ class AdminLoyaltyService
             'expires_at' => $reward->expires_at?->format('Y-m-d'),
             'cities' => $cities !== '' ? $cities : 'All cities',
             'customer_targeting' => $targeting,
+            'specific_customer_ids' => $ids,
+            'specific_customers' => $this->customerNameList($ids),
         ];
     }
 

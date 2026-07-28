@@ -150,9 +150,22 @@ class AdminLoyaltyApiTest extends TestCase
             ->assertJsonPath('data.points_label', '500 pts')
             ->assertJsonPath('data.is_active', true)
             ->assertJsonPath('data.status', 'Active')
-            ->assertJsonPath('data.expires_at', '2026-12-31');
+            ->assertJsonPath('data.expires_at', '2026-12-31')
+            ->assertJsonPath('data.customer_targeting', 'all')
+            ->assertJsonPath('data.specific_customer_ids', [])
+            ->assertJsonPath('data.specific_customers', []);
 
         $id = (int) $create->json('data.id');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Reward Client']);
+        $this->putJson("/api/admin/loyalty/rewards/{$id}", [
+            'customer_targeting' => 'specific',
+            'specific_customer_ids' => [$client->id],
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.customer_targeting', 'specific')
+            ->assertJsonPath('data.specific_customer_ids.0', $client->id)
+            ->assertJsonPath('data.specific_customers.0', 'Reward Client');
 
         $this->getJson('/api/admin/loyalty/rewards', $this->headers())
             ->assertOk()

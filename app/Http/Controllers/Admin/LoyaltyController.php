@@ -84,7 +84,12 @@ class LoyaltyController extends Controller
 
     public function createReward(): View
     {
-        return view('admin.loyalty.rewards.form', ['reward' => null]);
+        $clients = User::query()->where('role', 'client')->orderBy('name')->get(['id', 'name', 'email']);
+
+        return view('admin.loyalty.rewards.form', [
+            'reward' => null,
+            'clients' => $clients,
+        ]);
     }
 
     public function storeReward(Request $request): RedirectResponse
@@ -98,8 +103,12 @@ class LoyaltyController extends Controller
     public function editReward(int $id): View
     {
         $reward = LoyaltyReward::query()->findOrFail($id);
+        $clients = User::query()->where('role', 'client')->orderBy('name')->get(['id', 'name', 'email']);
 
-        return view('admin.loyalty.rewards.form', ['reward' => $reward]);
+        return view('admin.loyalty.rewards.form', [
+            'reward' => $reward,
+            'clients' => $clients,
+        ]);
     }
 
     public function updateReward(Request $request, int $id): RedirectResponse
@@ -241,6 +250,7 @@ class LoyaltyController extends Controller
             'specific_customer_ids.*' => 'integer|exists:users,id',
         ]);
         $data['is_active'] = $request->boolean('is_active');
+        $data['specific_customer_ids'] = array_values(array_map('intval', (array) $request->input('specific_customer_ids', [])));
 
         return $data;
     }
@@ -268,6 +278,7 @@ class LoyaltyController extends Controller
             'reviews' => $request->boolean('eligible_activities.reviews'),
         ];
         $data['is_enabled'] = $request->boolean('is_enabled');
+        $data['specific_customer_ids'] = array_values(array_map('intval', (array) $request->input('specific_customer_ids', [])));
 
         return $data;
     }

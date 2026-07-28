@@ -9559,7 +9559,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "rewards"]
                                         },
-                                        "description": "GET /api/admin/loyalty/rewards — summary{total,active,starts_at} + rewards[] with title, points_label, is_active, status, cities, customer_targeting."
+                                        "description": "GET /api/admin/loyalty/rewards — summary{total,active,starts_at} + rewards[] including customer_targeting (`all`|`specific`), specific_customer_ids[], specific_customers[]."
                                     }
                                 },
                                 {
@@ -9573,14 +9573,14 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"title\": \"AED 10 wallet credit\",\n  \"description\": \"What the customer gets\",\n  \"points_required\": 500,\n  \"is_active\": true,\n  \"expires_at\": \"2026-12-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\"\n}"
+                                            "raw": "{\n  \"title\": \"AED 10 wallet credit\",\n  \"description\": \"What the customer gets\",\n  \"points_required\": 500,\n  \"is_active\": true,\n  \"expires_at\": \"2026-12-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [1, 2, 3]\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards",
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "rewards"]
                                         },
-                                        "description": "POST /api/admin/loyalty/rewards — Add reward UI fields only."
+                                        "description": "POST /api/admin/loyalty/rewards — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]`\nResponse includes specific_customers name chips."
                                     }
                                 },
                                 {
@@ -9594,14 +9594,14 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"title\": \"Free delivery\",\n  \"points_required\": 300,\n  \"is_active\": true\n}"
+                                            "raw": "{\n  \"title\": \"Free delivery\",\n  \"points_required\": 300,\n  \"is_active\": true,\n  \"customer_targeting\": \"all\",\n  \"specific_customer_ids\": []\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards/1",
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "rewards", "1"]
                                         },
-                                        "description": "PUT /api/admin/loyalty/rewards/{id}"
+                                        "description": "PUT /api/admin/loyalty/rewards/{id} — Same customer_targeting / specific_customer_ids fields as create."
                                     }
                                 },
                                 {
@@ -9660,7 +9660,7 @@
                                             "path": ["api", "admin", "loyalty", "customers"],
                                             "query": [{"key": "search", "value": "", "description": "Search name, email, or phone"}]
                                         },
-                                        "description": "GET /api/admin/loyalty/customers — summary{visible,points_pool,holders} + customers[{id,name,email,city,points}]. Use customer `id` values in settings `specific_customer_ids` when customer_targeting is specific."
+                                        "description": "GET /api/admin/loyalty/customers — summary{visible,points_pool,holders} + customers[{id,name,email,city,points}]. Use `id` values in settings / rewards / campaigns `specific_customer_ids` when customer_targeting is specific."
                                     }
                                 },
                                 {
@@ -9718,7 +9718,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "campaigns"]
                                         },
-                                        "description": "GET /api/admin/loyalty/campaigns — summary{total,live,top_boost} + campaigns[]."
+                                        "description": "GET /api/admin/loyalty/campaigns — summary{total,live,top_boost} + campaigns[] including customer_targeting (`all`|`specific`), specific_customer_ids[], specific_customers[]."
                                     }
                                 },
                                 {
@@ -9732,14 +9732,14 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"title\": \"Ramadan Double Points\",\n  \"multiplier\": 2,\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\",\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": false,\n    \"referrals\": false,\n    \"reviews\": false\n  },\n  \"notes\": \"Optional internal notes\",\n  \"is_enabled\": true\n}"
+                                            "raw": "{\n  \"title\": \"Ramadan Double Points\",\n  \"multiplier\": 2,\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [1, 2, 3],\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": false,\n    \"referrals\": false,\n    \"reviews\": false\n  },\n  \"notes\": \"Optional internal notes\",\n  \"is_enabled\": true\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/campaigns",
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "campaigns"]
                                         },
-                                        "description": "POST /api/admin/loyalty/campaigns — Add campaign UI fields (cities, targeting, eligible_activities checkboxes, notes, is_enabled)."
+                                        "description": "POST /api/admin/loyalty/campaigns — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]`\nResponse includes specific_customers name chips."
                                     }
                                 },
                                 {
