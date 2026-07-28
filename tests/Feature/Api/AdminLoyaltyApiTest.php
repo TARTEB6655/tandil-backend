@@ -59,9 +59,9 @@ class AdminLoyaltyApiTest extends TestCase
                     'points_per_aed',
                     'activities',
                     'expiry_months',
-                    'manage' => [['id', 'title', 'description', 'open_label']],
                 ],
-            ]);
+            ])
+            ->assertJsonMissingPath('data.manage');
 
         $this->putJson('/api/admin/loyalty/toggle', [
             'loyalty_system_enabled' => false,

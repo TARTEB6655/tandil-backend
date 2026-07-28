@@ -43,32 +43,6 @@ class AdminLoyaltyService
             'points_per_aed' => (int) $settings['points_per_aed'],
             'activities' => (int) $settings['activities_selected'],
             'expiry_months' => $settings['points_expiry_months'],
-            'manage' => [
-                [
-                    'id' => 'system_settings',
-                    'title' => 'System settings',
-                    'description' => 'Enable loyalty, points per AED, eligibility & expiry.',
-                    'open_label' => 'Open →',
-                ],
-                [
-                    'id' => 'rewards',
-                    'title' => 'Rewards',
-                    'description' => 'Create, edit, enable/disable reward catalog.',
-                    'open_label' => 'Open →',
-                ],
-                [
-                    'id' => 'customers',
-                    'title' => 'Customers',
-                    'description' => 'Search balances and open any customer ledger.',
-                    'open_label' => 'Open →',
-                ],
-                [
-                    'id' => 'campaigns',
-                    'title' => 'Campaigns',
-                    'description' => 'Schedule multipliers and seasonal point boosts.',
-                    'open_label' => 'Open →',
-                ],
-            ],
         ];
     }
 

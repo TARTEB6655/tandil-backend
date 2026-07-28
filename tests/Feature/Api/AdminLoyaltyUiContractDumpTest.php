@@ -67,12 +67,10 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $dash->assertOk()->assertJsonPath('success', true);
         $this->assertExactKeys($dash->json('data'), [
             'loyalty_system_enabled', 'status', 'status_label', 'points_per_aed',
-            'activities', 'expiry_months', 'manage',
+            'activities', 'expiry_months',
         ], 'dashboard');
         $this->assertIsBool($dash->json('data.loyalty_system_enabled'));
-        $this->assertExactKeys($dash->json('data.manage.0'), [
-            'id', 'title', 'description', 'open_label',
-        ], 'manage item');
+        $this->assertArrayNotHasKey('manage', $dash->json('data'));
 
         // ---- 2) Toggle OFF / ON ----
         echo "\n========== 2) PUT /api/admin/loyalty/toggle false ==========\n";

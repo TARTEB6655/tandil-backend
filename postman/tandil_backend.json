@@ -9474,7 +9474,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty"]
                                         },
-                                        "description": "GET /api/admin/loyalty — Loyalty control center. Response data: loyalty_system_enabled, status, status_label, points_per_aed, activities, expiry_months, manage[]."
+                                        "description": "GET /api/admin/loyalty — Loyalty control center. Response data: loyalty_system_enabled, status, status_label, points_per_aed, activities, expiry_months. (Manage menu is UI-only — not returned by API.)"
                                     }
                                 },
                                 {

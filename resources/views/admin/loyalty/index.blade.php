@@ -71,19 +71,19 @@
             <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Manage</h3>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 @php
-                    $links = [
-                        'system_settings' => route('admin.loyalty.settings'),
-                        'rewards' => route('admin.loyalty.rewards'),
-                        'customers' => route('admin.loyalty.customers'),
-                        'campaigns' => route('admin.loyalty.campaigns'),
+                    $manage = [
+                        ['title' => 'System settings', 'description' => 'Enable loyalty, points per AED, eligibility & expiry.', 'url' => route('admin.loyalty.settings')],
+                        ['title' => 'Rewards', 'description' => 'Create, edit, enable/disable reward catalog.', 'url' => route('admin.loyalty.rewards')],
+                        ['title' => 'Customers', 'description' => 'Search balances and open any customer ledger.', 'url' => route('admin.loyalty.customers')],
+                        ['title' => 'Campaigns', 'description' => 'Schedule multipliers and seasonal point boosts.', 'url' => route('admin.loyalty.campaigns')],
                     ];
                 @endphp
-                @foreach($dashboard['manage'] as $item)
-                    <a href="{{ $links[$item['id']] ?? '#' }}"
+                @foreach($manage as $item)
+                    <a href="{{ $item['url'] }}"
                        class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#1B4332]/40">
                         <p class="text-sm font-semibold text-gray-900">{{ $item['title'] }}</p>
                         <p class="mt-1 text-sm text-gray-500">{{ $item['description'] }}</p>
-                        <p class="mt-3 text-sm font-semibold ly-green">{{ $item['open_label'] }}</p>
+                        <p class="mt-3 text-sm font-semibold ly-green">Open →</p>
                     </a>
                 @endforeach
             </div>
