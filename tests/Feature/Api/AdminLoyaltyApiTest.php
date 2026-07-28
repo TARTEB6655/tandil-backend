@@ -87,8 +87,6 @@ class AdminLoyaltyApiTest extends TestCase
                 'shop_orders' => true,
                 'service_orders' => true,
                 'memberships' => true,
-                'referrals' => false,
-                'reviews' => false,
             ],
             'points_expiry_months' => 12,
             'rewards_expiry_months' => 6,
@@ -103,14 +101,15 @@ class AdminLoyaltyApiTest extends TestCase
             ->assertJsonPath('data.points_per_aed', 1)
             ->assertJsonPath('data.eligible_activities.shop_orders', true)
             ->assertJsonPath('data.eligible_activities.memberships', true)
-            ->assertJsonPath('data.eligible_activities.referrals', false)
             ->assertJsonPath('data.points_expiry_months', 12)
             ->assertJsonPath('data.rewards_expiry_months', 6)
             ->assertJsonPath('data.cities', 'Abu Dhabi, Dubai')
             ->assertJsonPath('data.customer_targeting', 'all')
             ->assertJsonPath('data.campaign_periods_only', false)
             ->assertJsonPath('data.activities_selected', 3)
-            ->assertJsonPath('data.status', 'Live');
+            ->assertJsonPath('data.status', 'Live')
+            ->assertJsonMissingPath('data.pts_per_aed')
+            ->assertJsonMissingPath('data.eligible_activities.referrals');
 
         $this->getJson('/api/admin/loyalty/settings', $this->headers())
             ->assertOk()

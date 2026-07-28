@@ -19,7 +19,7 @@
             <p class="text-base font-semibold text-gray-900">Control your loyalty engine</p>
             <p class="mt-1 text-sm text-gray-600">Tune earning rules, expiry windows, and customer restrictions from one place.</p>
             <div class="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-white px-3 py-3 text-center text-sm">
-                <div><p class="font-bold ly-green">{{ $settings['pts_per_aed'] }}</p><p class="text-xs text-gray-500">Pts/AED</p></div>
+                <div><p class="font-bold ly-green">{{ $settings['points_per_aed'] }}</p><p class="text-xs text-gray-500">Pts/AED</p></div>
                 <div><p class="font-bold ly-green">{{ $settings['activities_selected'] }}</p><p class="text-xs text-gray-500">Activities</p></div>
                 <div><p class="font-bold ly-green">{{ $settings['status'] }}</p><p class="text-xs text-gray-500">Status</p></div>
             </div>

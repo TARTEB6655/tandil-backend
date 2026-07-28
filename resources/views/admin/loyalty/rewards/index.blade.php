@@ -38,7 +38,7 @@
                         <div>
                             <p class="text-sm font-semibold text-gray-900">{{ $reward['title'] }}</p>
                             <p class="mt-1 text-sm font-semibold ly-green">{{ $reward['points_label'] }}</p>
-                            <p class="mt-2 text-xs text-gray-500">{{ $reward['cities'] }} · {{ $reward['customer_targeting'] }}</p>
+                            <p class="mt-2 text-xs text-gray-500">{{ $reward['cities'] }} · {{ ($reward['customer_targeting'] ?? '') === 'specific' ? 'Specific customer' : 'All customers' }}</p>
                         </div>
                         <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $reward['is_active'] ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600' }}">{{ $reward['status'] }}</span>
                     </div>

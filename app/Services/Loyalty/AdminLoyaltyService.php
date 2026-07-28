@@ -22,6 +22,13 @@ class AdminLoyaltyService
         'reviews',
     ];
 
+    /** Settings screen checkboxes only (RN Loyalty settings). */
+    public const SETTINGS_ACTIVITY_KEYS = [
+        'shop_orders',
+        'service_orders',
+        'memberships',
+    ];
+
     public function dashboard(): array
     {
         $settings = $this->getSettings();
@@ -75,7 +82,11 @@ class AdminLoyaltyService
 
     public function getSettings(): array
     {
-        $activities = $this->decodeActivities(Setting::get('loyalty_eligible_activities', null));
+        $allActivities = $this->decodeActivities(Setting::get('loyalty_eligible_activities', null));
+        $activities = [];
+        foreach (self::SETTINGS_ACTIVITY_KEYS as $key) {
+            $activities[$key] = (bool) ($allActivities[$key] ?? false);
+        }
         $selected = collect($activities)->filter()->count();
         $enabled = Setting::get('loyalty_system_enabled', Setting::get('loyalty_auto_earn_enabled', '1')) !== '0';
         $pointsPerAed = (int) max(0, (float) Setting::get('loyalty_points_per_aed', '1'));
@@ -91,7 +102,6 @@ class AdminLoyaltyService
             'cities' => (string) Setting::get('loyalty_cities', ''),
             'customer_targeting' => (string) Setting::get('loyalty_customer_targeting', 'all'),
             'campaign_periods_only' => Setting::get('loyalty_campaign_periods_only', '0') === '1',
-            'pts_per_aed' => $pointsPerAed,
             'activities_selected' => $selected,
             'status' => $enabled ? 'Live' : 'Off',
         ];
@@ -112,6 +122,7 @@ class AdminLoyaltyService
 
         if (array_key_exists('eligible_activities', $input) && is_array($input['eligible_activities'])) {
             $normalized = $this->normalizeActivities($input['eligible_activities']);
+            // Persist full key set; settings UI only sends the three core activities.
             Setting::set('loyalty_eligible_activities', json_encode($normalized), 'json', 'loyalty');
         }
 
@@ -459,6 +470,7 @@ class AdminLoyaltyService
     private function formatRewardAdmin(LoyaltyReward $reward): array
     {
         $cities = trim((string) ($reward->cities ?? ''));
+        $targeting = $reward->customer_targeting === 'specific' ? 'specific' : 'all';
 
         return [
             'id' => $reward->id,
@@ -470,9 +482,7 @@ class AdminLoyaltyService
             'status' => $reward->is_active ? 'Active' : 'Inactive',
             'expires_at' => $reward->expires_at?->format('Y-m-d'),
             'cities' => $cities !== '' ? $cities : 'All cities',
-            'customer_targeting' => $reward->customer_targeting === 'specific' ? 'Specific customer' : 'All customers',
-            'customer_targeting_value' => $reward->customer_targeting === 'specific' ? 'specific' : 'all',
-            'specific_customer_ids' => $reward->specific_customer_ids ?? [],
+            'customer_targeting' => $targeting,
         ];
     }
 
@@ -548,8 +558,7 @@ class AdminLoyaltyService
             'end_date' => $campaign->end_date?->format('Y-m-d'),
             'date_range' => ($campaign->start_date?->format('Y-m-d') ?? '').' -> '.($campaign->end_date?->format('Y-m-d') ?? ''),
             'cities' => $cities !== '' ? $cities : 'All cities',
-            'customer_targeting' => $campaign->customer_targeting === 'specific' ? 'Specific customer' : 'All customers',
-            'customer_targeting_value' => $campaign->customer_targeting === 'specific' ? 'specific' : 'all',
+            'customer_targeting' => $campaign->customer_targeting === 'specific' ? 'specific' : 'all',
             'specific_customers' => $customerNames,
             'specific_customer_ids' => $campaign->specific_customer_ids ?? [],
             'eligible_activities' => $this->normalizeActivities($campaign->eligible_activities ?? []),
