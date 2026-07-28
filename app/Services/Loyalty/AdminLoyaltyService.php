@@ -542,14 +542,10 @@ class AdminLoyaltyService
         $cities = trim((string) ($campaign->cities ?? ''));
         $mult = (float) $campaign->multiplier;
         $boost = rtrim(rtrim(number_format($mult, 2, '.', ''), '0'), '.').'x points';
-
-        $customerNames = [];
-        if ($campaign->customer_targeting === 'specific' && ! empty($campaign->specific_customer_ids)) {
-            $customerNames = User::query()
-                ->whereIn('id', $campaign->specific_customer_ids)
-                ->pluck('name')
-                ->all();
-        }
+        $targeting = $campaign->customer_targeting === 'specific' ? 'specific' : 'all';
+        $ids = $targeting === 'specific'
+            ? array_values(array_map('intval', (array) ($campaign->specific_customer_ids ?? [])))
+            : [];
 
         return [
             'id' => $campaign->id,
@@ -560,9 +556,9 @@ class AdminLoyaltyService
             'end_date' => $campaign->end_date?->format('Y-m-d'),
             'date_range' => ($campaign->start_date?->format('Y-m-d') ?? '').' -> '.($campaign->end_date?->format('Y-m-d') ?? ''),
             'cities' => $cities !== '' ? $cities : 'All cities',
-            'customer_targeting' => $campaign->customer_targeting === 'specific' ? 'specific' : 'all',
-            'specific_customers' => $customerNames,
-            'specific_customer_ids' => $campaign->specific_customer_ids ?? [],
+            'customer_targeting' => $targeting,
+            'specific_customer_ids' => $ids,
+            'specific_customers' => $this->customerNameList($ids),
             'eligible_activities' => $this->normalizeActivities($campaign->eligible_activities ?? []),
             'notes' => $campaign->notes,
             'is_enabled' => (bool) $campaign->is_enabled,
@@ -616,12 +612,19 @@ class AdminLoyaltyService
             return [];
         }
 
-        return User::query()
+        $namesById = User::query()
             ->whereIn('id', $ids)
             ->where('role', 'client')
-            ->orderBy('name')
-            ->pluck('name')
-            ->all();
+            ->pluck('name', 'id');
+
+        $names = [];
+        foreach ($ids as $id) {
+            if (isset($namesById[$id])) {
+                $names[] = $namesById[$id];
+            }
+        }
+
+        return $names;
     }
 
     private function customerCity(User $user): string

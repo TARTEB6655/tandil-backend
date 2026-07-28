@@ -257,15 +257,43 @@ class AdminLoyaltyApiTest extends TestCase
             ->assertJsonPath('data.title', 'Ramadan Double Points')
             ->assertJsonPath('data.boost_label', '2x points')
             ->assertJsonPath('data.is_enabled', true)
+            ->assertJsonPath('data.customer_targeting', 'all')
+            ->assertJsonPath('data.specific_customer_ids', [])
+            ->assertJsonPath('data.specific_customers', [])
             ->assertJsonPath('data.eligible_activities.shop_orders', true)
             ->assertJsonPath('data.eligible_activities.memberships', false);
 
         $id = (int) $create->json('data.id');
 
+        $clientA = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $clientB = User::factory()->create(['role' => 'client', 'name' => 'Sara Ahmed']);
+        $this->putJson("/api/admin/loyalty/campaigns/{$id}", [
+            'customer_targeting' => 'specific',
+            'specific_customer_ids' => [$clientA->id, $clientB->id],
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.customer_targeting', 'specific')
+            ->assertJsonPath('data.specific_customer_ids.0', $clientA->id)
+            ->assertJsonPath('data.specific_customer_ids.1', $clientB->id)
+            ->assertJsonPath('data.specific_customers.0', 'Client One')
+            ->assertJsonPath('data.specific_customers.1', 'Sara Ahmed');
+
+        $this->putJson("/api/admin/loyalty/campaigns/{$id}", [
+            'customer_targeting' => 'all',
+            'specific_customer_ids' => [],
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.customer_targeting', 'all')
+            ->assertJsonPath('data.specific_customer_ids', [])
+            ->assertJsonPath('data.specific_customers', []);
+
         $this->getJson('/api/admin/loyalty/campaigns', $this->headers())
             ->assertOk()
             ->assertJsonPath('data.summary.total', 1)
-            ->assertJsonPath('data.summary.top_boost', '2x');
+            ->assertJsonPath('data.summary.top_boost', '2x')
+            ->assertJsonPath('data.campaigns.0.customer_targeting', 'all')
+            ->assertJsonPath('data.campaigns.0.specific_customer_ids', [])
+            ->assertJsonPath('data.campaigns.0.specific_customers', []);
 
         $this->postJson("/api/admin/loyalty/campaigns/{$id}/toggle", [
             'is_enabled' => false,

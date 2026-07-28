@@ -9739,11 +9739,32 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "campaigns"]
                                         },
-                                        "description": "POST /api/admin/loyalty/campaigns — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]`\nResponse includes specific_customers name chips."
+                                        "description": "POST /api/admin/loyalty/campaigns — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]`\nResponse includes specific_customers name chips (same shape as rewards/settings)."
                                     }
                                 },
                                 {
-                                    "name": "3. Toggle Campaign Enabled (POST)",
+                                    "name": "3. Update Campaign (PUT)",
+                                    "request": {
+                                        "method": "PUT",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"title\": \"Ramadan Double Points\",\n  \"multiplier\": 2,\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\",\n  \"specific_customer_ids\": [],\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": false,\n    \"referrals\": false,\n    \"reviews\": false\n  },\n  \"notes\": \"Optional internal notes\",\n  \"is_enabled\": true\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/campaigns/1",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "campaigns", "1"]
+                                        },
+                                        "description": "PUT /api/admin/loyalty/campaigns/{id} — Same customer_targeting / specific_customer_ids fields as create. Switching to all clears specific customers."
+                                    }
+                                },
+                                {
+                                    "name": "4. Toggle Campaign Enabled (POST)",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -9764,7 +9785,7 @@
                                     }
                                 },
                                 {
-                                    "name": "4. Delete Campaign (DELETE)",
+                                    "name": "5. Delete Campaign (DELETE)",
                                     "request": {
                                         "method": "DELETE",
                                         "header": [

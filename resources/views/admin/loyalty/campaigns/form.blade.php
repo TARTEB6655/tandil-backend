@@ -55,17 +55,29 @@
                     <button type="button" @click="targeting='specific'" :class="targeting==='specific' ? 'ly-chip-on border' : 'border border-gray-200 bg-white text-gray-600'" class="rounded-xl px-3 py-2 text-sm font-medium">Specific customer</button>
                 </div>
                 <input type="hidden" name="customer_targeting" :value="targeting">
-            </div>
-            <div x-show="targeting==='specific'" x-cloak>
-                <label class="block text-sm font-medium text-gray-700">Specific customers</label>
-                <div class="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-lg bg-white p-3">
-                    @foreach($clients as $client)
-                        <label class="flex items-center gap-2 text-sm">
-                            <input type="checkbox" name="specific_customer_ids[]" value="{{ $client->id }}" class="rounded text-[#1B4332] focus:ring-[#1B4332]"
-                                   {{ in_array($client->id, (array) $selectedIds, true) ? 'checked' : '' }}>
-                            {{ $client->name }}
-                        </label>
-                    @endforeach
+                <div x-show="targeting==='specific'" x-cloak class="mt-3">
+                    <p class="text-xs text-gray-500 mb-2">Choose one or more customers for this campaign.</p>
+                    @if(!empty($selectedIds))
+                        <div class="mb-2 flex flex-wrap gap-2">
+                            @foreach(($clients ?? []) as $client)
+                                @if(in_array($client->id, (array) $selectedIds, false) || in_array((string) $client->id, array_map('strval', (array) $selectedIds), true))
+                                    <span class="rounded-full border border-[#1B4332]/20 bg-white px-3 py-1 text-xs font-medium text-[#1B4332]">{{ $client->name }}</span>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
+                    <div class="max-h-40 space-y-1 overflow-y-auto rounded-lg bg-white p-3">
+                        @forelse(($clients ?? []) as $client)
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="specific_customer_ids[]" value="{{ $client->id }}"
+                                       class="rounded text-[#1B4332] focus:ring-[#1B4332]"
+                                       {{ in_array($client->id, (array) $selectedIds, false) || in_array((string) $client->id, array_map('strval', (array) $selectedIds), true) ? 'checked' : '' }}>
+                                {{ $client->name }}
+                            </label>
+                        @empty
+                            <p class="text-xs text-gray-500">No clients found.</p>
+                        @endforelse
+                    </div>
                 </div>
             </div>
             <div>

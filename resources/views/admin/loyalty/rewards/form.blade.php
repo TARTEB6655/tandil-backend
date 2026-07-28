@@ -63,8 +63,17 @@
                 <input type="hidden" name="customer_targeting" :value="targeting">
                 <div x-show="targeting==='specific'" x-cloak class="mt-3">
                     <p class="text-xs text-gray-500 mb-2">Choose one or more customers for this reward.</p>
+                    @php $selectedIds = old('specific_customer_ids', $reward->specific_customer_ids ?? []); @endphp
+                    @if(!empty($selectedIds))
+                        <div class="mb-2 flex flex-wrap gap-2">
+                            @foreach(($clients ?? []) as $client)
+                                @if(in_array($client->id, (array) $selectedIds, false) || in_array((string) $client->id, array_map('strval', (array) $selectedIds), true))
+                                    <span class="rounded-full border border-[#1B4332]/20 bg-white px-3 py-1 text-xs font-medium text-[#1B4332]">{{ $client->name }}</span>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
                     <div class="max-h-40 space-y-1 overflow-y-auto rounded-lg bg-white p-3">
-                        @php $selectedIds = old('specific_customer_ids', $reward->specific_customer_ids ?? []); @endphp
                         @forelse(($clients ?? []) as $client)
                             <label class="flex items-center gap-2 text-sm">
                                 <input type="checkbox" name="specific_customer_ids[]" value="{{ $client->id }}"
