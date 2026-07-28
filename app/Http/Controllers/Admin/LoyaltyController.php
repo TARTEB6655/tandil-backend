@@ -56,7 +56,7 @@ class LoyaltyController extends Controller
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'required|in:all,specific',
             'specific_customer_ids' => 'nullable|array',
-            'specific_customer_ids.*' => 'integer|exists:users,id',
+            'specific_customer_ids.*' => 'integer|exists:users,id,role,client',
             'campaign_periods_only' => 'sometimes|boolean',
         ]);
 
@@ -247,7 +247,7 @@ class LoyaltyController extends Controller
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'required|in:all,specific',
             'specific_customer_ids' => 'nullable|array',
-            'specific_customer_ids.*' => 'integer|exists:users,id',
+            'specific_customer_ids.*' => 'integer|exists:users,id,role,client',
         ]);
         $data['is_active'] = $request->boolean('is_active');
         $data['specific_customer_ids'] = array_values(array_map('intval', (array) $request->input('specific_customer_ids', [])));
@@ -265,7 +265,7 @@ class LoyaltyController extends Controller
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'required|in:all,specific',
             'specific_customer_ids' => 'nullable|array',
-            'specific_customer_ids.*' => 'integer|exists:users,id',
+            'specific_customer_ids.*' => 'integer|exists:users,id,role,client',
             'notes' => 'nullable|string|max:2000',
             'is_enabled' => 'sometimes|boolean',
         ]);

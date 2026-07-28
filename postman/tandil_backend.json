@@ -9530,14 +9530,14 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"loyalty_system_enabled\": true,\n  \"points_per_aed\": 1,\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": true\n  },\n  \"points_expiry_months\": 12,\n  \"rewards_expiry_months\": 6,\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [1, 2, 3],\n  \"campaign_periods_only\": false\n}"
+                                            "raw": "{\n  \"loyalty_system_enabled\": true,\n  \"points_per_aed\": 1,\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": true\n  },\n  \"points_expiry_months\": 12,\n  \"rewards_expiry_months\": 6,\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [2],\n  \"campaign_periods_only\": false\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/settings",
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "settings"]
                                         },
-                                        "description": "PUT /api/admin/loyalty/settings — **One API only.**\n\nSame endpoint for both UI modes:\n- Specific customers: `customer_targeting: \"specific\"` + `specific_customer_ids: [1,2,3]`\n- All customers: `customer_targeting: \"all\"` + `specific_customer_ids: []`\n\nResponse returns the same settings shape as GET (including specific_customers name chips when specific)."
+                                        "description": "PUT /api/admin/loyalty/settings — **One API only.**\n\nSame endpoint for both UI modes:\n- Specific customers: `customer_targeting: \"specific\"` + `specific_customer_ids: [2]` (must be **client** user IDs from D. Customers — not admin/technician)\n- All customers: `customer_targeting: \"all\"` + `specific_customer_ids: []`\n\nResponse returns the same settings shape as GET (including specific_customers name chips when specific)."
                                     }
                                 }
                             ],
@@ -9573,14 +9573,14 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"title\": \"AED 10 wallet credit\",\n  \"description\": \"What the customer gets\",\n  \"points_required\": 500,\n  \"is_active\": true,\n  \"expires_at\": \"2026-12-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [1, 2, 3]\n}"
+                                            "raw": "{\n  \"title\": \"AED 10 wallet credit\",\n  \"description\": \"What the customer gets\",\n  \"points_required\": 500,\n  \"is_active\": true,\n  \"expires_at\": \"2026-12-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [2]\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards",
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "rewards"]
                                         },
-                                        "description": "POST /api/admin/loyalty/rewards — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]`\nResponse includes specific_customers name chips."
+                                        "description": "POST /api/admin/loyalty/rewards — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [2]` (client IDs only — from D. Customers)\nResponse includes specific_customers name chips."
                                     }
                                 },
                                 {
@@ -9732,14 +9732,14 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"title\": \"Ramadan Double Points\",\n  \"multiplier\": 2,\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [1, 2, 3],\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": false,\n    \"referrals\": false,\n    \"reviews\": false\n  },\n  \"notes\": \"Optional internal notes\",\n  \"is_enabled\": true\n}"
+                                            "raw": "{\n  \"title\": \"Ramadan Double Points\",\n  \"multiplier\": 2,\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [2],\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": false,\n    \"referrals\": false,\n    \"reviews\": false\n  },\n  \"notes\": \"Optional internal notes\",\n  \"is_enabled\": true\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/campaigns",
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "campaigns"]
                                         },
-                                        "description": "POST /api/admin/loyalty/campaigns — Matches Add campaign UI.\n- multiplier: `2`/`3` or `\"2x\"`/`\"3x\"`\n- Active toggle: `is_enabled` (alias `is_active` also accepted)\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]` → response `specific_customers` name chips + `customer_targeting_label`"
+                                        "description": "POST /api/admin/loyalty/campaigns — Matches Add campaign UI.\n- multiplier: `2`/`3` or `\"2x\"`/`\"3x\"`\n- Active toggle: `is_enabled` (alias `is_active` also accepted)\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [2]` (client IDs only — from D. Customers) → response `specific_customers` name chips + `customer_targeting_label`"
                                     }
                                 },
                                 {

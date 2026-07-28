@@ -62,7 +62,7 @@ class LoyaltyAdminApiController extends Controller
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'sometimes|in:all,specific',
             'specific_customer_ids' => 'nullable|array',
-            'specific_customer_ids.*' => 'integer|exists:users,id',
+            'specific_customer_ids.*' => 'integer|exists:users,id,role,client',
             'campaign_periods_only' => 'sometimes|boolean',
         ]);
 
@@ -217,7 +217,7 @@ class LoyaltyAdminApiController extends Controller
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'sometimes|in:all,specific',
             'specific_customer_ids' => 'nullable|array',
-            'specific_customer_ids.*' => 'integer|exists:users,id',
+            'specific_customer_ids.*' => 'integer|exists:users,id,role,client',
         ]);
     }
 
@@ -231,7 +231,7 @@ class LoyaltyAdminApiController extends Controller
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'sometimes|in:all,specific',
             'specific_customer_ids' => 'nullable|array',
-            'specific_customer_ids.*' => 'integer|exists:users,id',
+            'specific_customer_ids.*' => 'integer|exists:users,id,role,client',
             'eligible_activities' => 'sometimes|array',
             'eligible_activities.shop_orders' => 'sometimes|boolean',
             'eligible_activities.service_orders' => 'sometimes|boolean',
