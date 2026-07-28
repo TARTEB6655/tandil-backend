@@ -56,7 +56,7 @@
                         operations: {{ request()->routeIs('admin.visits.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.report-management.*') || request()->routeIs('admin.areas.*') || request()->routeIs('admin.zone-assignment.*') || request()->routeIs('admin.recent-activities.*') ? 'true' : 'false' }},
                         ecommerce: {{ request()->routeIs('admin.products.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.payments.*') || request()->routeIs('admin.wallet.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.marketplace.*') || request()->routeIs('admin.support-chat.*') || request()->routeIs('admin.packages.*') || request()->routeIs('admin.services.*') || request()->routeIs('admin.coupons.*') || request()->routeIs('admin.shop-settings.*') ? 'true' : 'false' }},
                         communication: {{ request()->routeIs('admin.tips.*') || request()->routeIs('admin.complaints.*') || request()->routeIs('admin.support-tickets.*') || request()->routeIs('admin.support-chat.*') ? 'true' : 'false' }},
-                        management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.video-banners.*') || request()->routeIs('admin.maintenance-photos.*') || request()->routeIs('admin.cms-pages.*') ? 'true' : 'false' }}
+                        management: {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.video-banners.*') || request()->routeIs('admin.loyalty.*') || request()->routeIs('admin.maintenance-photos.*') || request()->routeIs('admin.cms-pages.*') ? 'true' : 'false' }}
                     }">
                         <!-- Dashboard -->
                         <div class="mb-2">
@@ -497,7 +497,7 @@
 
                         <!-- MANAGEMENT -->
                         <div class="mb-2">
-                            <button @click="management = !management" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.video-banners.*') || request()->routeIs('admin.maintenance-photos.*') || request()->routeIs('admin.cms-pages.*') ? $navSectionActive : $navSectionIdle }}">
+                            <button @click="management = !management" class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold tracking-wide transition-colors {{ request()->routeIs('admin.hr.*') || request()->routeIs('admin.audit-logs.*') || request()->routeIs('admin.banners.*') || request()->routeIs('admin.video-banners.*') || request()->routeIs('admin.loyalty.*') || request()->routeIs('admin.maintenance-photos.*') || request()->routeIs('admin.cms-pages.*') ? $navSectionActive : $navSectionIdle }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
@@ -548,6 +548,15 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                         </svg>
                                         Video Banners
+                                    </a>
+                                </li>
+                                <li style="padding-left: 0px;">
+                                    <a href="{{ route('admin.loyalty.index') }}"
+                                       class="{{ $navSubBase }} {{ request()->routeIs('admin.loyalty.*') ? $navActive : $navIdleSub }}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Loyalty Points
                                     </a>
                                 </li>
                                 <li style="padding-left: 0px;">

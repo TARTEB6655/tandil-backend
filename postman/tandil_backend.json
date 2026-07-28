@@ -9456,6 +9456,350 @@
                     "description": "Admin only. Featured Video banner for the customer home screen. Fields: title, video, badge_text, button_text, is_active. Customer: GET /api/video-banners."
                 },
                 {
+                    "name": "E3. Loyalty Points (Admin)",
+                    "item": [
+                        {
+                            "name": "A. Dashboard",
+                            "item": [
+                                {
+                                    "name": "1. Control Center (GET)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty"]
+                                        },
+                                        "description": "GET /api/admin/loyalty — Loyalty control center. Response data: loyalty_system_enabled, status, status_label, points_per_aed, activities, expiry_months, manage[]."
+                                    }
+                                },
+                                {
+                                    "name": "2. Toggle Loyalty System (PUT)",
+                                    "request": {
+                                        "method": "PUT",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"loyalty_system_enabled\": true\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/toggle",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "toggle"]
+                                        },
+                                        "description": "PUT /api/admin/loyalty/toggle — Body: loyalty_system_enabled (boolean). Returns updated control center payload."
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "B. Loyalty Settings",
+                            "item": [
+                                {
+                                    "name": "1. Get Settings (GET)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/settings",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "settings"]
+                                        },
+                                        "description": "GET /api/admin/loyalty/settings — UI fields: loyalty_system_enabled, points_per_aed, eligible_activities{shop_orders,service_orders,memberships,referrals,reviews}, points_expiry_months, rewards_expiry_months, cities, customer_targeting, campaign_periods_only, pts_per_aed, activities_selected, status."
+                                    }
+                                },
+                                {
+                                    "name": "2. Save Settings (PUT)",
+                                    "request": {
+                                        "method": "PUT",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"loyalty_system_enabled\": true,\n  \"points_per_aed\": 1,\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": true,\n    \"referrals\": false,\n    \"reviews\": false\n  },\n  \"points_expiry_months\": 12,\n  \"rewards_expiry_months\": 6,\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\",\n  \"campaign_periods_only\": false\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/settings",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "settings"]
+                                        },
+                                        "description": "PUT /api/admin/loyalty/settings — Save settings matching RN Loyalty settings screens (toggles + checkboxes)."
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "C. Rewards",
+                            "item": [
+                                {
+                                    "name": "1. List Rewards (GET)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/rewards",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "rewards"]
+                                        },
+                                        "description": "GET /api/admin/loyalty/rewards — summary{total,active,starts_at} + rewards[] with title, points_label, is_active, status, cities, customer_targeting."
+                                    }
+                                },
+                                {
+                                    "name": "2. Create Reward (POST)",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"title\": \"AED 10 wallet credit\",\n  \"description\": \"What the customer gets\",\n  \"points_required\": 500,\n  \"is_active\": true,\n  \"expires_at\": \"2026-12-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\"\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/rewards",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "rewards"]
+                                        },
+                                        "description": "POST /api/admin/loyalty/rewards — Add reward UI fields only."
+                                    }
+                                },
+                                {
+                                    "name": "3. Update Reward (PUT)",
+                                    "request": {
+                                        "method": "PUT",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"title\": \"Free delivery\",\n  \"points_required\": 300,\n  \"is_active\": true\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/rewards/1",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "rewards", "1"]
+                                        },
+                                        "description": "PUT /api/admin/loyalty/rewards/{id}"
+                                    }
+                                },
+                                {
+                                    "name": "4. Toggle Reward Enabled (POST)",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"is_active\": false\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/rewards/1/toggle",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "rewards", "1", "toggle"]
+                                        },
+                                        "description": "POST /api/admin/loyalty/rewards/{id}/toggle — Body is_active boolean (Enabled toggle)."
+                                    }
+                                },
+                                {
+                                    "name": "5. Delete Reward (DELETE)",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/rewards/1",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "rewards", "1"]
+                                        },
+                                        "description": "DELETE /api/admin/loyalty/rewards/{id}"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "D. Customers & Points",
+                            "item": [
+                                {
+                                    "name": "1. List Customers (GET)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/customers?search=",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "customers"],
+                                            "query": [{"key": "search", "value": "", "description": "Search name, email, or phone"}]
+                                        },
+                                        "description": "GET /api/admin/loyalty/customers — summary{visible,points_pool,holders} + customers[{id,name,email,city,points}]."
+                                    }
+                                },
+                                {
+                                    "name": "2. Customer Points (GET)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/customers/1",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "customers", "1"]
+                                        },
+                                        "description": "GET /api/admin/loyalty/customers/{id} — name, email, city, balance, earned, redeemed, history[{title,type,type_label,datetime,points_display}]."
+                                    }
+                                },
+                                {
+                                    "name": "3. Manual Adjust (POST)",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"amount\": 50,\n  \"reason\": \"Optional note\"\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/customers/1/adjust",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "customers", "1", "adjust"]
+                                        },
+                                        "description": "POST /api/admin/loyalty/customers/{id}/adjust — amount (+/-), reason. Positive credits, negative deducts."
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "E. Campaigns",
+                            "item": [
+                                {
+                                    "name": "1. List Campaigns (GET)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/campaigns",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "campaigns"]
+                                        },
+                                        "description": "GET /api/admin/loyalty/campaigns — summary{total,live,top_boost} + campaigns[]."
+                                    }
+                                },
+                                {
+                                    "name": "2. Create Campaign (POST)",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"title\": \"Ramadan Double Points\",\n  \"multiplier\": 2,\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-03-31\",\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\",\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": false,\n    \"referrals\": false,\n    \"reviews\": false\n  },\n  \"notes\": \"Optional internal notes\",\n  \"is_enabled\": true\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/campaigns",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "campaigns"]
+                                        },
+                                        "description": "POST /api/admin/loyalty/campaigns — Add campaign UI fields (cities, targeting, eligible_activities checkboxes, notes, is_enabled)."
+                                    }
+                                },
+                                {
+                                    "name": "3. Toggle Campaign Enabled (POST)",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"},
+                                            {"key": "Content-Type", "value": "application/json"}
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"is_enabled\": true\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/campaigns/1/toggle",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "campaigns", "1", "toggle"]
+                                        },
+                                        "description": "POST /api/admin/loyalty/campaigns/{id}/toggle — is_enabled boolean."
+                                    }
+                                },
+                                {
+                                    "name": "4. Delete Campaign (DELETE)",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "header": [
+                                            {"key": "Authorization", "value": "Bearer {{token}}"},
+                                            {"key": "Accept", "value": "application/json"}
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/loyalty/campaigns/1",
+                                            "host": ["{{base_url}}"],
+                                            "path": ["api", "admin", "loyalty", "campaigns", "1"]
+                                        },
+                                        "description": "DELETE /api/admin/loyalty/campaigns/{id}"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "F. Export Report (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {"key": "Authorization", "value": "Bearer {{token}}"},
+                                    {"key": "Accept", "value": "application/json"}
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/loyalty/export",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "loyalty", "export"]
+                                },
+                                "description": "GET /api/admin/loyalty/export — Full loyalty analytics JSON (settings, rewards, customers, campaigns)."
+                            }
+                        }
+                    ],
+                    "description": "Admin Loyalty Points APIs matching RN app screens: Dashboard, Settings, Rewards, Customers/Points, Campaigns, Export. Auth: admin Bearer token."
+                },
+                {
                     "name": "F. Packages",
                     "item": [
                         {

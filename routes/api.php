@@ -797,6 +797,35 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/video-banners')
 
 /*
 |--------------------------------------------------------------------------
+| ADMIN LOYALTY POINTS (control center, settings, rewards, customers, campaigns)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/loyalty')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'dashboard']);
+    Route::put('/toggle', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'toggle']);
+    Route::get('/settings', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'settings']);
+    Route::match(['put', 'post'], '/settings', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'saveSettings']);
+    Route::get('/export', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'export']);
+
+    Route::get('/rewards', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'rewards']);
+    Route::post('/rewards', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'storeReward']);
+    Route::put('/rewards/{id}', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'updateReward']);
+    Route::post('/rewards/{id}/toggle', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'toggleReward']);
+    Route::delete('/rewards/{id}', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'destroyReward']);
+
+    Route::get('/customers', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'customers']);
+    Route::get('/customers/{id}', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'customerShow']);
+    Route::post('/customers/{id}/adjust', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'customerAdjust']);
+
+    Route::get('/campaigns', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'campaigns']);
+    Route::post('/campaigns', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'storeCampaign']);
+    Route::put('/campaigns/{id}', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'updateCampaign']);
+    Route::post('/campaigns/{id}/toggle', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'toggleCampaign']);
+    Route::delete('/campaigns/{id}', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'destroyCampaign']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN PACKAGES (set price, image, view order count)
 |--------------------------------------------------------------------------
 */

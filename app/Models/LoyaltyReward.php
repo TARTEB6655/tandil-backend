@@ -16,12 +16,18 @@ class LoyaltyReward extends Model
         'description',
         'points_required',
         'is_active',
+        'expires_at',
+        'cities',
+        'customer_targeting',
+        'specific_customer_ids',
         'sort_order',
     ];
 
     protected $casts = [
         'points_required' => 'integer',
         'is_active' => 'boolean',
+        'expires_at' => 'date',
+        'specific_customer_ids' => 'array',
         'sort_order' => 'integer',
     ];
 

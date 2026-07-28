@@ -357,6 +357,31 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         // Video banners (Featured Video on customer app)
         Route::post('video-banners/{id}/toggle-status', [VideoBannerController::class, 'toggleStatus'])->name('video-banners.toggle-status');
         Route::resource('video-banners', VideoBannerController::class)->except(['show']);
+
+        // Loyalty Points (admin control center)
+        Route::get('loyalty', [\App\Http\Controllers\Admin\LoyaltyController::class, 'index'])->name('loyalty.index');
+        Route::post('loyalty/toggle', [\App\Http\Controllers\Admin\LoyaltyController::class, 'toggle'])->name('loyalty.toggle');
+        Route::get('loyalty/settings', [\App\Http\Controllers\Admin\LoyaltyController::class, 'settings'])->name('loyalty.settings');
+        Route::post('loyalty/settings', [\App\Http\Controllers\Admin\LoyaltyController::class, 'saveSettings'])->name('loyalty.settings.save');
+        Route::get('loyalty/export', [\App\Http\Controllers\Admin\LoyaltyController::class, 'export'])->name('loyalty.export');
+        Route::get('loyalty/rewards', [\App\Http\Controllers\Admin\LoyaltyController::class, 'rewards'])->name('loyalty.rewards');
+        Route::get('loyalty/rewards/create', [\App\Http\Controllers\Admin\LoyaltyController::class, 'createReward'])->name('loyalty.rewards.create');
+        Route::post('loyalty/rewards', [\App\Http\Controllers\Admin\LoyaltyController::class, 'storeReward'])->name('loyalty.rewards.store');
+        Route::get('loyalty/rewards/{id}/edit', [\App\Http\Controllers\Admin\LoyaltyController::class, 'editReward'])->name('loyalty.rewards.edit');
+        Route::put('loyalty/rewards/{id}', [\App\Http\Controllers\Admin\LoyaltyController::class, 'updateReward'])->name('loyalty.rewards.update');
+        Route::post('loyalty/rewards/{id}/toggle', [\App\Http\Controllers\Admin\LoyaltyController::class, 'toggleReward'])->name('loyalty.rewards.toggle');
+        Route::delete('loyalty/rewards/{id}', [\App\Http\Controllers\Admin\LoyaltyController::class, 'destroyReward'])->name('loyalty.rewards.destroy');
+        Route::get('loyalty/customers', [\App\Http\Controllers\Admin\LoyaltyController::class, 'customers'])->name('loyalty.customers');
+        Route::get('loyalty/customers/{id}', [\App\Http\Controllers\Admin\LoyaltyController::class, 'customerShow'])->name('loyalty.customers.show');
+        Route::post('loyalty/customers/{id}/adjust', [\App\Http\Controllers\Admin\LoyaltyController::class, 'customerAdjust'])->name('loyalty.customers.adjust');
+        Route::get('loyalty/campaigns', [\App\Http\Controllers\Admin\LoyaltyController::class, 'campaigns'])->name('loyalty.campaigns');
+        Route::get('loyalty/campaigns/create', [\App\Http\Controllers\Admin\LoyaltyController::class, 'createCampaign'])->name('loyalty.campaigns.create');
+        Route::post('loyalty/campaigns', [\App\Http\Controllers\Admin\LoyaltyController::class, 'storeCampaign'])->name('loyalty.campaigns.store');
+        Route::get('loyalty/campaigns/{id}/edit', [\App\Http\Controllers\Admin\LoyaltyController::class, 'editCampaign'])->name('loyalty.campaigns.edit');
+        Route::put('loyalty/campaigns/{id}', [\App\Http\Controllers\Admin\LoyaltyController::class, 'updateCampaign'])->name('loyalty.campaigns.update');
+        Route::post('loyalty/campaigns/{id}/toggle', [\App\Http\Controllers\Admin\LoyaltyController::class, 'toggleCampaign'])->name('loyalty.campaigns.toggle');
+        Route::delete('loyalty/campaigns/{id}', [\App\Http\Controllers\Admin\LoyaltyController::class, 'destroyCampaign'])->name('loyalty.campaigns.destroy');
+
         Route::resource('maintenance-photos', \App\Http\Controllers\Admin\MaintenancePhotoController::class)->except(['show']);
         Route::get('cms-pages', [\App\Http\Controllers\Admin\CmsPageController::class, 'index'])->name('cms-pages.index');
         Route::get('cms-pages/{slug}/edit', [\App\Http\Controllers\Admin\CmsPageController::class, 'edit'])->name('cms-pages.edit');

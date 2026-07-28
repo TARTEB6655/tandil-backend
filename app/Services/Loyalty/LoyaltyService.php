@@ -19,6 +19,11 @@ class LoyaltyService
 
     public static function isAutoEarnEnabled(): bool
     {
+        $system = Setting::get('loyalty_system_enabled', null);
+        if ($system !== null) {
+            return $system !== '0';
+        }
+
         return Setting::get('loyalty_auto_earn_enabled', '1') !== '0';
     }
 
