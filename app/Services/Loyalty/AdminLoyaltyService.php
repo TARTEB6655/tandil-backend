@@ -67,6 +67,14 @@ class AdminLoyaltyService
         $pointsExpiry = Setting::get('loyalty_points_expiry_months', '12');
         $rewardsExpiry = Setting::get('loyalty_rewards_expiry_months', '6');
 
+        $targeting = (string) Setting::get('loyalty_customer_targeting', 'all');
+        $targeting = $targeting === 'specific' ? 'specific' : 'all';
+        $specificIds = $this->decodeIdList(Setting::get('loyalty_specific_customer_ids', '[]'));
+        if ($targeting !== 'specific') {
+            $specificIds = [];
+        }
+        $specificCustomers = $this->customerNameList($specificIds);
+
         return [
             'loyalty_system_enabled' => $enabled,
             'points_per_aed' => $pointsPerAed,
@@ -74,7 +82,9 @@ class AdminLoyaltyService
             'points_expiry_months' => $pointsExpiry === '' || $pointsExpiry === null ? null : (int) $pointsExpiry,
             'rewards_expiry_months' => $rewardsExpiry === '' || $rewardsExpiry === null ? null : (int) $rewardsExpiry,
             'cities' => (string) Setting::get('loyalty_cities', ''),
-            'customer_targeting' => (string) Setting::get('loyalty_customer_targeting', 'all'),
+            'customer_targeting' => $targeting,
+            'specific_customer_ids' => $specificIds,
+            'specific_customers' => $specificCustomers,
             'campaign_periods_only' => Setting::get('loyalty_campaign_periods_only', '0') === '1',
             'activities_selected' => $selected,
             'status' => $enabled ? 'Live' : 'Off',
@@ -127,6 +137,19 @@ class AdminLoyaltyService
         if (array_key_exists('customer_targeting', $input)) {
             $targeting = $input['customer_targeting'] === 'specific' ? 'specific' : 'all';
             Setting::set('loyalty_customer_targeting', $targeting, 'text', 'loyalty');
+        }
+
+        $targetingNow = (string) Setting::get('loyalty_customer_targeting', 'all');
+        if (array_key_exists('specific_customer_ids', $input) || array_key_exists('customer_targeting', $input)) {
+            $ids = array_key_exists('specific_customer_ids', $input)
+                ? array_values(array_map('intval', (array) $input['specific_customer_ids']))
+                : $this->decodeIdList(Setting::get('loyalty_specific_customer_ids', '[]'));
+
+            if ($targetingNow !== 'specific') {
+                $ids = [];
+            }
+
+            Setting::set('loyalty_specific_customer_ids', json_encode($ids), 'json', 'loyalty');
         }
 
         if (array_key_exists('campaign_periods_only', $input)) {
@@ -561,6 +584,39 @@ class AdminLoyaltyService
             'datetime' => $datetime,
             'points_display' => ($signed > 0 ? '+' : '').$signed,
         ];
+    }
+
+    /**
+     * @param  mixed  $raw
+     * @return array<int, int>
+     */
+    private function decodeIdList(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return array_values(array_map('intval', $raw));
+        }
+
+        $decoded = json_decode((string) ($raw ?? '[]'), true);
+
+        return is_array($decoded) ? array_values(array_map('intval', $decoded)) : [];
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, string>
+     */
+    private function customerNameList(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        return User::query()
+            ->whereIn('id', $ids)
+            ->where('role', 'client')
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
     }
 
     private function customerCity(User $user): string

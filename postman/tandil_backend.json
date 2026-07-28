@@ -9516,7 +9516,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "settings"]
                                         },
-                                        "description": "GET /api/admin/loyalty/settings — UI fields: loyalty_system_enabled, points_per_aed, eligible_activities{shop_orders,service_orders,memberships}, points_expiry_months, rewards_expiry_months, cities, customer_targeting, campaign_periods_only, activities_selected, status."
+                                        "description": "GET /api/admin/loyalty/settings — UI fields: loyalty_system_enabled, points_per_aed, eligible_activities{shop_orders,service_orders,memberships}, points_expiry_months, rewards_expiry_months, cities, customer_targeting (all|specific), specific_customer_ids[], specific_customers[] (names for chips), campaign_periods_only, activities_selected, status."
                                     }
                                 },
                                 {
@@ -9530,7 +9530,7 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"loyalty_system_enabled\": true,\n  \"points_per_aed\": 1,\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": true\n  },\n  \"points_expiry_months\": 12,\n  \"rewards_expiry_months\": 6,\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"all\",\n  \"campaign_periods_only\": false\n}"
+                                            "raw": "{\n  \"loyalty_system_enabled\": true,\n  \"points_per_aed\": 1,\n  \"eligible_activities\": {\n    \"shop_orders\": true,\n    \"service_orders\": true,\n    \"memberships\": true\n  },\n  \"points_expiry_months\": 12,\n  \"rewards_expiry_months\": 6,\n  \"cities\": \"Abu Dhabi, Dubai\",\n  \"customer_targeting\": \"specific\",\n  \"specific_customer_ids\": [1, 2, 3],\n  \"campaign_periods_only\": false\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/settings",

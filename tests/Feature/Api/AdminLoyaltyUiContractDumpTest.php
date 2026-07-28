@@ -112,7 +112,8 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $this->assertExactKeys($save->json('data'), [
             'loyalty_system_enabled', 'points_per_aed', 'eligible_activities',
             'points_expiry_months', 'rewards_expiry_months', 'cities',
-            'customer_targeting', 'campaign_periods_only',
+            'customer_targeting', 'specific_customer_ids', 'specific_customers',
+            'campaign_periods_only',
             'activities_selected', 'status',
         ], 'settings');
         $this->assertExactKeys($save->json('data.eligible_activities'), [

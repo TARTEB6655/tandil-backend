@@ -37,8 +37,11 @@ class LoyaltyController extends Controller
 
     public function settings(): View
     {
+        $clients = User::query()->where('role', 'client')->orderBy('name')->get(['id', 'name', 'email']);
+
         return view('admin.loyalty.settings', [
             'settings' => $this->loyalty->getSettings(),
+            'clients' => $clients,
         ]);
     }
 
@@ -52,6 +55,8 @@ class LoyaltyController extends Controller
             'rewards_expiry_months' => 'nullable|integer|min:1|max:120',
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'required|in:all,specific',
+            'specific_customer_ids' => 'nullable|array',
+            'specific_customer_ids.*' => 'integer|exists:users,id',
             'campaign_periods_only' => 'sometimes|boolean',
         ]);
 
@@ -65,6 +70,7 @@ class LoyaltyController extends Controller
         $validated['eligible_activities'] = $activities;
         $validated['loyalty_system_enabled'] = $request->boolean('loyalty_system_enabled');
         $validated['campaign_periods_only'] = $request->boolean('campaign_periods_only');
+        $validated['specific_customer_ids'] = array_values(array_map('intval', (array) $request->input('specific_customer_ids', [])));
 
         $this->loyalty->saveSettings($validated);
 

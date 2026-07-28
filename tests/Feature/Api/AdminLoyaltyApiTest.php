@@ -105,11 +105,27 @@ class AdminLoyaltyApiTest extends TestCase
             ->assertJsonPath('data.rewards_expiry_months', 6)
             ->assertJsonPath('data.cities', 'Abu Dhabi, Dubai')
             ->assertJsonPath('data.customer_targeting', 'all')
+            ->assertJsonPath('data.specific_customer_ids', [])
+            ->assertJsonPath('data.specific_customers', [])
             ->assertJsonPath('data.campaign_periods_only', false)
             ->assertJsonPath('data.activities_selected', 3)
             ->assertJsonPath('data.status', 'Live')
             ->assertJsonMissingPath('data.pts_per_aed')
             ->assertJsonMissingPath('data.eligible_activities.referrals');
+
+        $clientA = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $clientB = User::factory()->create(['role' => 'client', 'name' => 'Sara Ahmed']);
+
+        $this->putJson('/api/admin/loyalty/settings', [
+            'customer_targeting' => 'specific',
+            'specific_customer_ids' => [$clientA->id, $clientB->id],
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.customer_targeting', 'specific')
+            ->assertJsonPath('data.specific_customer_ids.0', $clientA->id)
+            ->assertJsonPath('data.specific_customer_ids.1', $clientB->id)
+            ->assertJsonPath('data.specific_customers.0', 'Client One')
+            ->assertJsonPath('data.specific_customers.1', 'Sara Ahmed');
 
         $this->getJson('/api/admin/loyalty/settings', $this->headers())
             ->assertOk()

@@ -61,6 +61,8 @@ class LoyaltyAdminApiController extends Controller
             'rewards_expiry_months' => 'nullable|integer|min:1|max:120',
             'cities' => 'nullable|string|max:500',
             'customer_targeting' => 'sometimes|in:all,specific',
+            'specific_customer_ids' => 'nullable|array',
+            'specific_customer_ids.*' => 'integer|exists:users,id',
             'campaign_periods_only' => 'sometimes|boolean',
         ]);
 
