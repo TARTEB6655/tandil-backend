@@ -557,6 +557,7 @@ class AdminLoyaltyService
             'date_range' => ($campaign->start_date?->format('Y-m-d') ?? '').' -> '.($campaign->end_date?->format('Y-m-d') ?? ''),
             'cities' => $cities !== '' ? $cities : 'All cities',
             'customer_targeting' => $targeting,
+            'customer_targeting_label' => $targeting === 'specific' ? 'Specific customer' : 'All customers',
             'specific_customer_ids' => $ids,
             'specific_customers' => $this->customerNameList($ids),
             'eligible_activities' => $this->normalizeActivities($campaign->eligible_activities ?? []),

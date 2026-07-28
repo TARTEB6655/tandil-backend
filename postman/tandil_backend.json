@@ -9718,7 +9718,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "campaigns"]
                                         },
-                                        "description": "GET /api/admin/loyalty/campaigns — summary{total,live,top_boost} + campaigns[] including customer_targeting (`all`|`specific`), specific_customer_ids[], specific_customers[]."
+                                        "description": "GET /api/admin/loyalty/campaigns — summary{total,live,top_boost} + campaigns[] with list-card fields: title, boost_label (`2x points`), date_range, cities (`All cities` when empty), customer_targeting (`all`|`specific`), customer_targeting_label (`All customers`|`Specific customer`), specific_customer_ids[], specific_customers[] chips, is_enabled, status."
                                     }
                                 },
                                 {
@@ -9739,7 +9739,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "campaigns"]
                                         },
-                                        "description": "POST /api/admin/loyalty/campaigns — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]`\nResponse includes specific_customers name chips (same shape as rewards/settings)."
+                                        "description": "POST /api/admin/loyalty/campaigns — Matches Add campaign UI.\n- multiplier: `2`/`3` or `\"2x\"`/`\"3x\"`\n- Active toggle: `is_enabled` (alias `is_active` also accepted)\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [1,2,3]` → response `specific_customers` name chips + `customer_targeting_label`"
                                     }
                                 },
                                 {

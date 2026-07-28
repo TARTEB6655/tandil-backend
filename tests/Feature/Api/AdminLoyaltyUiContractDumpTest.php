@@ -246,12 +246,13 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $campaign->assertCreated();
         $this->assertExactKeys($campaign->json('data'), [
             'id', 'title', 'multiplier', 'boost_label', 'start_date', 'end_date',
-            'date_range', 'cities', 'customer_targeting',
+            'date_range', 'cities', 'customer_targeting', 'customer_targeting_label',
             'specific_customer_ids', 'specific_customers', 'eligible_activities',
             'notes', 'is_enabled', 'status',
         ], 'campaign');
         $this->assertTrue($campaign->json('data.is_enabled'));
         $this->assertSame('all', $campaign->json('data.customer_targeting'));
+        $this->assertSame('All customers', $campaign->json('data.customer_targeting_label'));
         $this->assertSame([], $campaign->json('data.specific_customer_ids'));
         $this->assertSame([], $campaign->json('data.specific_customers'));
         $this->assertTrue($campaign->json('data.eligible_activities.shop_orders'));

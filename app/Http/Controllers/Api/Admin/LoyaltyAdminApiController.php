@@ -163,6 +163,7 @@ class LoyaltyAdminApiController extends Controller
     /** POST /api/admin/loyalty/campaigns */
     public function storeCampaign(Request $request): JsonResponse
     {
+        $this->normalizeCampaignAliases($request);
         $validated = $this->validateCampaign($request);
 
         return ApiResponse::success('Campaign created.', $this->loyalty->createCampaign($validated), 201);
@@ -171,6 +172,7 @@ class LoyaltyAdminApiController extends Controller
     /** PUT /api/admin/loyalty/campaigns/{id} */
     public function updateCampaign(Request $request, int $id): JsonResponse
     {
+        $this->normalizeCampaignAliases($request);
         $campaign = LoyaltyCampaign::query()->findOrFail($id);
         $validated = $this->validateCampaign($request, false);
 
@@ -180,6 +182,7 @@ class LoyaltyAdminApiController extends Controller
     /** POST /api/admin/loyalty/campaigns/{id}/toggle */
     public function toggleCampaign(Request $request, int $id): JsonResponse
     {
+        $this->normalizeCampaignAliases($request);
         $campaign = LoyaltyCampaign::query()->findOrFail($id);
         $enabled = $request->has('is_enabled')
             ? $request->boolean('is_enabled')
@@ -238,5 +241,23 @@ class LoyaltyAdminApiController extends Controller
             'notes' => 'nullable|string|max:2000',
             'is_enabled' => 'sometimes|boolean',
         ]);
+    }
+
+    /**
+     * RN form uses "Active" toggle / 2x chips; normalize aliases before validation.
+     */
+    private function normalizeCampaignAliases(Request $request): void
+    {
+        if (! $request->exists('is_enabled') && $request->exists('is_active')) {
+            $request->merge(['is_enabled' => $request->boolean('is_active')]);
+        }
+
+        if ($request->exists('multiplier') && is_string($request->input('multiplier'))) {
+            $raw = strtolower(trim((string) $request->input('multiplier')));
+            $raw = rtrim($raw, 'x');
+            if (is_numeric($raw)) {
+                $request->merge(['multiplier' => (float) $raw]);
+            }
+        }
     }
 }
