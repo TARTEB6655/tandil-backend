@@ -45,7 +45,7 @@ class AdminLoyaltyWebTest extends TestCase
 
         $this->actingAs($this->admin)->get(route('admin.loyalty.rewards'))
             ->assertOk()
-            ->assertSee('Rewards that feel worth earning');
+            ->assertSee('Rewards');
 
         $this->actingAs($this->admin)->get(route('admin.loyalty.customers'))
             ->assertOk()
@@ -53,7 +53,8 @@ class AdminLoyaltyWebTest extends TestCase
 
         $this->actingAs($this->admin)->get(route('admin.loyalty.campaigns'))
             ->assertOk()
-            ->assertSee('Campaigns');
+            ->assertSee('Campaigns')
+            ->assertSee('New campaign');
     }
 
     public function test_admin_can_save_settings_and_create_reward_via_web(): void

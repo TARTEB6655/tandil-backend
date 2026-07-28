@@ -112,7 +112,7 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $this->assertExactKeys($save->json('data'), [
             'loyalty_system_enabled', 'points_per_aed', 'eligible_activities',
             'points_expiry_months', 'rewards_expiry_months', 'cities',
-            'customer_targeting', 'specific_customer_ids', 'specific_customers',
+            'customer_targeting', 'customer_targeting_label', 'specific_customer_ids', 'specific_customers',
             'campaign_periods_only',
             'activities_selected', 'status',
         ], 'settings');
@@ -149,11 +149,12 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $this->assertExactKeys($reward->json('data'), [
             'id', 'title', 'description', 'points_required', 'points_label',
             'is_active', 'status', 'expires_at', 'cities', 'customer_targeting',
-            'specific_customer_ids', 'specific_customers',
+            'customer_targeting_label', 'specific_customer_ids', 'specific_customers',
         ], 'reward');
         $this->assertTrue($reward->json('data.is_active'));
         $this->assertSame('Active', $reward->json('data.status'));
         $this->assertSame('all', $reward->json('data.customer_targeting'));
+        $this->assertSame('All customers', $reward->json('data.customer_targeting_label'));
         $this->assertSame([], $reward->json('data.specific_customer_ids'));
         $this->assertSame([], $reward->json('data.specific_customers'));
         $rewardId = (int) $reward->json('data.id');

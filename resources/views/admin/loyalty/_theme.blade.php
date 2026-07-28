@@ -1,11 +1,20 @@
-{{-- Shared loyalty admin theme tokens (matches RN app: forest green + beige) --}}
+{{-- Loyalty admin theme — aligned with main dashboard (indigo) + emerald point accents --}}
 <style>
-    .ly-green { color: #1B4332; }
-    .ly-bg-green { background-color: #1B4332; }
-    .ly-bg-beige { background-color: #F3F1E9; }
-    .ly-border-green { border-color: #1B4332; }
-    .ly-btn { background-color: #1B4332; color: #fff; }
-    .ly-btn:hover { background-color: #163828; }
-    .ly-chip-on { background-color: #E8F0EA; border-color: #1B4332; color: #1B4332; }
-    .ly-toggle-on { background-color: #1B4332; }
+    .ly-accent { color: #4f46e5; }
+    .ly-btn {
+        background-color: #4f46e5;
+        color: #fff;
+    }
+    .ly-btn:hover { background-color: #4338ca; }
+    .ly-chip-on {
+        background-color: #eef2ff;
+        border-color: #6366f1;
+        color: #3730a3;
+    }
+    .ly-toggle-on { background-color: #4f46e5; }
+    .dark .ly-chip-on {
+        background-color: rgba(79, 70, 229, 0.25);
+        border-color: #818cf8;
+        color: #c7d2fe;
+    }
 </style>

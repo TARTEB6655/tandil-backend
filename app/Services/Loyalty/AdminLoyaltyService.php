@@ -83,6 +83,7 @@ class AdminLoyaltyService
             'rewards_expiry_months' => $rewardsExpiry === '' || $rewardsExpiry === null ? null : (int) $rewardsExpiry,
             'cities' => (string) Setting::get('loyalty_cities', ''),
             'customer_targeting' => $targeting,
+            'customer_targeting_label' => $targeting === 'specific' ? 'Specific customer' : 'All customers',
             'specific_customer_ids' => $specificIds,
             'specific_customers' => $specificCustomers,
             'campaign_periods_only' => Setting::get('loyalty_campaign_periods_only', '0') === '1',
@@ -483,6 +484,7 @@ class AdminLoyaltyService
             'expires_at' => $reward->expires_at?->format('Y-m-d'),
             'cities' => $cities !== '' ? $cities : 'All cities',
             'customer_targeting' => $targeting,
+            'customer_targeting_label' => $targeting === 'specific' ? 'Specific customer' : 'All customers',
             'specific_customer_ids' => $ids,
             'specific_customers' => $this->customerNameList($ids),
         ];
