@@ -73,7 +73,7 @@
                         ['title' => 'Rewards', 'description' => 'Create, edit, enable/disable reward catalog.', 'url' => route('admin.loyalty.rewards'), 'tone' => 'emerald'],
                         ['title' => 'Customers', 'description' => 'Search balances and open any customer ledger.', 'url' => route('admin.loyalty.customers'), 'tone' => 'teal'],
                         ['title' => 'Campaigns', 'description' => 'Schedule multipliers and seasonal point boosts.', 'url' => route('admin.loyalty.campaigns'), 'tone' => 'violet'],
-                        ['title' => 'Reports & export', 'description' => 'Filter by customer/period and export CSV.', 'url' => route('admin.loyalty.reports'), 'tone' => 'amber'],
+                        ['title' => 'Reports & export', 'description' => 'Filter by customer/period and export PDF.', 'url' => route('admin.loyalty.reports'), 'tone' => 'amber'],
                     ];
                 @endphp
                 @foreach($manage as $item)

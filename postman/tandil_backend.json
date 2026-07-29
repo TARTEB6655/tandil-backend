@@ -9825,16 +9825,16 @@
                                                 {"key": "date_to", "value": "2026-01-31", "disabled": true, "description": "Y-m-d when period=specific"}
                                             ]
                                         },
-                                        "description": "GET /api/admin/loyalty/reports — Reports & export screen.\n\n**Filters:** customer_scope (all|specific), specific_customer_ids[], period (week|month|specific), date_from/date_to.\n\n**Response:** health (outstanding/redeemed/campaigns + Export ready), filters echo, summary cards (customers_with_points, points_outstanding/earned/redeemed, rewards_redeemed, active_campaigns), export `{ format: csv, ready, label }`."
+                                        "description": "GET /api/admin/loyalty/reports — Reports & export screen.\n\n**Filters:** customer_scope (all|specific), specific_customer_ids[], period (week|month|specific), date_from/date_to.\n\n**Response:** health (outstanding/redeemed/campaigns + Export ready), filters echo, summary cards (customers_with_points, points_outstanding/earned/redeemed, rewards_redeemed, active_campaigns), export `{ format: pdf, ready, label }`."
                                     }
                                 },
                                 {
-                                    "name": "2. Export CSV (GET)",
+                                    "name": "2. Export PDF (GET)",
                                     "request": {
                                         "method": "GET",
                                         "header": [
                                             {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "text/csv"}
+                                            {"key": "Accept", "value": "application/pdf"}
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/export?customer_scope=all&period=month",
@@ -9846,17 +9846,17 @@
                                                 {"key": "period", "value": "month"},
                                                 {"key": "date_from", "value": "2026-01-01", "disabled": true},
                                                 {"key": "date_to", "value": "2026-01-31", "disabled": true},
-                                                {"key": "format", "value": "csv", "description": "csv (default download) | json (same payload as /reports)"}
+                                                {"key": "format", "value": "pdf", "description": "pdf (default download) | json (same payload as /reports)"}
                                             ]
                                         },
-                                        "description": "GET /api/admin/loyalty/export — **CSV download** (not PDF). Same filters as /reports. Postman: Send ▼ → **Send and Download**. Optional `format=json` returns the reports JSON instead of a file."
+                                        "description": "GET /api/admin/loyalty/export — **PDF download**. Same filters as /reports. Postman: Send ▼ → **Send and Download**. Optional `format=json` returns the reports JSON instead of a file."
                                     }
                                 }
                             ],
-                            "description": "Reports & export screen APIs. Export format is **CSV**."
+                            "description": "Reports & export screen APIs. Export format is **PDF**."
                         }
                     ],
-                    "description": "Admin Loyalty Points APIs matching RN app screens.\n\n**A. Dashboard** = GET/PUT toggle `/api/admin/loyalty` (stats only; no manage menu).\n**B. Loyalty Settings** = GET/PUT `/api/admin/loyalty/settings` (expiry, cities, customer_targeting all|specific + specific_customer_ids/specific_customers chips, campaign_periods_only).\n**C. Rewards** · **D. Customers & Points** · **E. Campaigns** · **F. Reports & Export** (filters + **CSV** download).\nAuth: admin Bearer {{token}}."
+                    "description": "Admin Loyalty Points APIs matching RN app screens.\n\n**A. Dashboard** = GET/PUT toggle `/api/admin/loyalty` (stats only; no manage menu).\n**B. Loyalty Settings** = GET/PUT `/api/admin/loyalty/settings` (expiry, cities, customer_targeting all|specific + specific_customer_ids/specific_customers chips, campaign_periods_only).\n**C. Rewards** · **D. Customers & Points** · **E. Campaigns** · **F. Reports & Export** (filters + **PDF** download).\nAuth: admin Bearer {{token}}."
                 },
                 {
                     "name": "F. Packages",

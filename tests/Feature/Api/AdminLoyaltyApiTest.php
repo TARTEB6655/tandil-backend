@@ -329,7 +329,7 @@ class AdminLoyaltyApiTest extends TestCase
         $this->assertDatabaseMissing('loyalty_campaigns', ['id' => $id]);
     }
 
-    public function test_reports_and_csv_export_and_auth_guard(): void
+    public function test_reports_and_pdf_export_and_auth_guard(): void
     {
         $client = User::factory()->create([
             'role' => 'client',
@@ -338,8 +338,8 @@ class AdminLoyaltyApiTest extends TestCase
 
         $reports = $this->getJson('/api/admin/loyalty/reports?period=month&customer_scope=all', $this->headers())
             ->assertOk()
-            ->assertJsonPath('data.export.format', 'csv')
-            ->assertJsonPath('data.export.label', 'Export CSV')
+            ->assertJsonPath('data.export.format', 'pdf')
+            ->assertJsonPath('data.export.label', 'Export PDF')
             ->assertJsonPath('data.filters.period', 'month')
             ->assertJsonPath('data.filters.customer_scope', 'all')
             ->assertJsonStructure([
@@ -360,16 +360,16 @@ class AdminLoyaltyApiTest extends TestCase
 
         $this->assertSame(250, (int) $reports->json('data.summary.points_outstanding'));
 
-        $csv = $this->get('/api/admin/loyalty/export?period=month&customer_scope=all', $this->headers());
-        $csv->assertOk();
-        $this->assertStringContainsString('text/csv', (string) $csv->headers->get('Content-Type'));
-        $body = method_exists($csv, 'streamedContent') ? $csv->streamedContent() : $csv->getContent();
-        $this->assertStringContainsString('customer_id', $body);
-        $this->assertStringContainsString((string) $client->id, $body);
+        $pdf = $this->get('/api/admin/loyalty/export?period=month&customer_scope=all', $this->headers());
+        $pdf->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $pdf->headers->get('Content-Type'));
+        $body = $pdf->getContent();
+        $this->assertStringStartsWith('%PDF', $body);
+        $this->assertStringContainsString('.pdf', (string) $pdf->headers->get('Content-Disposition'));
 
         $this->getJson('/api/admin/loyalty/export?format=json&period=week', $this->headers())
             ->assertOk()
-            ->assertJsonPath('data.export.format', 'csv')
+            ->assertJsonPath('data.export.format', 'pdf')
             ->assertJsonPath('data.filters.period', 'week');
 
         $this->getJson('/api/admin/loyalty/reports?period=specific&date_from=2026-01-01&date_to=2026-01-31&customer_scope=specific&specific_customer_ids[]='.$client->id, $this->headers())

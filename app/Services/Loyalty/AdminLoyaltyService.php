@@ -8,6 +8,7 @@ use App\Models\LoyaltyTransaction;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserAddress;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
@@ -396,20 +397,42 @@ class AdminLoyaltyService
             ],
             'summary' => $summary,
             'export' => [
-                'format' => 'csv',
+                'format' => 'pdf',
                 'ready' => true,
-                'label' => 'Export CSV',
+                'label' => 'Export PDF',
             ],
         ];
     }
 
     /**
-     * Build CSV rows for offline analysis (same filters as reports).
+     * Build PDF binary for offline analysis (same filters as reports).
      *
      * @param  array<string, mixed>  $filters
-     * @return array{filename: string, headers: array<int, string>, rows: array<int, array<int, string|int>>}
+     * @return array{filename: string, binary: string}
      */
-    public function exportReportCsv(array $filters = []): array
+    public function exportReportPdf(array $filters = []): array
+    {
+        $report = $this->reports($filters);
+        $customers = $this->reportCustomerDetailRows($filters);
+        $filename = 'loyalty-report-'.$report['filters']['period'].'-'.now()->format('Ymd-His').'.pdf';
+
+        $binary = Pdf::loadView('admin.loyalty.reports-pdf', [
+            'report' => $report,
+            'customers' => $customers,
+            'generatedAt' => now()->format('d M Y, H:i'),
+        ])->setPaper('a4', 'portrait')->output();
+
+        return [
+            'filename' => $filename,
+            'binary' => $binary,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<int, array<string, mixed>>
+     */
+    private function reportCustomerDetailRows(array $filters): array
     {
         $normalized = $this->normalizeReportFilters($filters);
         $customerIds = $this->reportCustomerIds($normalized);
@@ -421,20 +444,6 @@ class AdminLoyaltyService
             $clientsQuery->whereIn('id', $customerIds);
         }
         $clients = $clientsQuery->get(['id', 'name', 'email', 'loyalty_points_balance']);
-
-        $headers = [
-            'customer_id',
-            'customer_name',
-            'email',
-            'points_balance',
-            'points_earned_in_period',
-            'points_redeemed_in_period',
-            'rewards_redeemed_in_period',
-            'period_from',
-            'period_to',
-            'customer_scope',
-            'period',
-        ];
 
         $rows = [];
         foreach ($clients as $client) {
@@ -459,27 +468,17 @@ class AdminLoyaltyService
                 ->count();
 
             $rows[] = [
-                $client->id,
-                $client->name,
-                $client->email,
-                (int) ($client->loyalty_points_balance ?? 0),
-                $earned,
-                $redeemed,
-                $rewardsRedeemed,
-                $from,
-                $to,
-                $normalized['customer_scope'],
-                $normalized['period'],
+                'id' => $client->id,
+                'name' => $client->name,
+                'email' => $client->email,
+                'points_balance' => (int) ($client->loyalty_points_balance ?? 0),
+                'points_earned' => $earned,
+                'points_redeemed' => $redeemed,
+                'rewards_redeemed' => $rewardsRedeemed,
             ];
         }
 
-        $filename = 'loyalty-report-'.$normalized['period'].'-'.now()->format('Ymd-His').'.csv';
-
-        return [
-            'filename' => $filename,
-            'headers' => $headers,
-            'rows' => $rows,
-        ];
+        return $rows;
     }
 
     /**

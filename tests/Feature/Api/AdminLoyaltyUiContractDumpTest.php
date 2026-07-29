@@ -289,19 +289,19 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $this->assertExactKeys($reports->json('data.export'), [
             'format', 'ready', 'label',
         ], 'reports.export');
-        $this->assertSame('csv', $reports->json('data.export.format'));
+        $this->assertSame('pdf', $reports->json('data.export.format'));
 
-        echo "\n========== 18) GET /api/admin/loyalty/export (CSV) ==========\n";
+        echo "\n========== 18) GET /api/admin/loyalty/export (PDF) ==========\n";
         $export = $this->get('/api/admin/loyalty/export?period=month&customer_scope=all', $this->headers());
         $export->assertOk();
-        $csvBody = method_exists($export, 'streamedContent') ? $export->streamedContent() : $export->getContent();
+        $pdfBody = $export->getContent();
         echo json_encode([
             'content_type' => $export->headers->get('Content-Type'),
-            'has_header_row' => str_contains($csvBody, 'customer_id'),
-            'bytes' => strlen($csvBody),
+            'is_pdf' => str_starts_with($pdfBody, '%PDF'),
+            'bytes' => strlen($pdfBody),
         ], JSON_PRETTY_PRINT)."\n";
-        $this->assertStringContainsString('text/csv', (string) $export->headers->get('Content-Type'));
-        $this->assertStringContainsString('customer_id', $csvBody);
+        $this->assertStringContainsString('application/pdf', (string) $export->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $pdfBody);
 
         // cleanup deletes
         $this->deleteJson("/api/admin/loyalty/rewards/{$rewardId}", [], $this->headers())->assertOk();

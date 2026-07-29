@@ -60,7 +60,7 @@ class AdminLoyaltyWebTest extends TestCase
             ->assertOk()
             ->assertSee('Reports & export', false)
             ->assertSee('Apply filters')
-            ->assertSee('Export CSV')
+            ->assertSee('Export PDF')
             ->assertSee('Customers with points');
     }
 

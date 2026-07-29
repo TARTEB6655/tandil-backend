@@ -17,12 +17,12 @@
                 </a>
                 <div>
                     <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Reports & export</h1>
-                    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Export format: <strong>CSV</strong> (same as mobile app)</p>
+                    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Export format: <strong>PDF</strong></p>
                 </div>
             </div>
             <a href="{{ route('admin.loyalty.export', request()->query()) }}"
                class="ly-btn inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm">
-                Export CSV
+                Export PDF
             </a>
         </div>
 
@@ -30,7 +30,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-lg font-semibold">Read the health of your loyalty program</p>
-                    <p class="mt-1 text-sm text-indigo-100">Overview of loyalty activity. Export CSV for offline analysis.</p>
+                    <p class="mt-1 text-sm text-indigo-100">Overview of loyalty activity. Export PDF for offline analysis.</p>
                 </div>
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
                     {{ $health['status_label'] }}

@@ -9,9 +9,9 @@ use App\Models\User;
 use App\Services\Loyalty\AdminLoyaltyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 use InvalidArgumentException;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LoyaltyController extends Controller
 {
@@ -245,7 +245,7 @@ class LoyaltyController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): Response
     {
         $filters = [
             'customer_scope' => $request->query('customer_scope', 'all'),
@@ -255,20 +255,11 @@ class LoyaltyController extends Controller
             'date_to' => $request->query('date_to'),
         ];
 
-        $csv = $this->loyalty->exportReportCsv($filters);
+        $pdf = $this->loyalty->exportReportPdf($filters);
 
-        return response()->streamDownload(function () use ($csv) {
-            $out = fopen('php://output', 'w');
-            if ($out === false) {
-                return;
-            }
-            fputcsv($out, $csv['headers']);
-            foreach ($csv['rows'] as $row) {
-                fputcsv($out, $row);
-            }
-            fclose($out);
-        }, $csv['filename'], [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf['filename'].'"',
         ]);
     }
 

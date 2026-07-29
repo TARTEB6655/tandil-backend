@@ -10,8 +10,8 @@ use App\Models\User;
 use App\Services\Loyalty\AdminLoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use InvalidArgumentException;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LoyaltyAdminApiController extends Controller
 {
@@ -210,32 +210,23 @@ class LoyaltyAdminApiController extends Controller
     }
 
     /**
-     * GET /api/admin/loyalty/export — Export CSV (default) matching Reports & export UI.
+     * GET /api/admin/loyalty/export — Export PDF (default) matching Reports & export UI.
      * Query same filters as /reports. Use format=json for JSON payload instead of file download.
      */
-    public function export(Request $request): JsonResponse|StreamedResponse
+    public function export(Request $request): JsonResponse|Response
     {
         $filters = $this->validatedReportFilters($request);
-        $format = strtolower((string) $request->query('format', 'csv'));
+        $format = strtolower((string) $request->query('format', 'pdf'));
 
         if ($format === 'json') {
             return ApiResponse::success('Loyalty report exported.', $this->loyalty->reports($filters));
         }
 
-        $csv = $this->loyalty->exportReportCsv($filters);
+        $pdf = $this->loyalty->exportReportPdf($filters);
 
-        return response()->streamDownload(function () use ($csv) {
-            $out = fopen('php://output', 'w');
-            if ($out === false) {
-                return;
-            }
-            fputcsv($out, $csv['headers']);
-            foreach ($csv['rows'] as $row) {
-                fputcsv($out, $row);
-            }
-            fclose($out);
-        }, $csv['filename'], [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf['filename'].'"',
         ]);
     }
 
