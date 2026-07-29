@@ -17,7 +17,7 @@
                 </a>
                 <div>
                     <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Reports & export</h1>
-                    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Export format: <strong>PDF</strong></p>
+                    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Export format: <strong>PDF</strong> (same as mobile app)</p>
                 </div>
             </div>
             <a href="{{ route('admin.loyalty.export', request()->query()) }}"

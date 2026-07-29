@@ -292,16 +292,16 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $this->assertSame('pdf', $reports->json('data.export.format'));
 
         echo "\n========== 18) GET /api/admin/loyalty/export (PDF) ==========\n";
-        $export = $this->get('/api/admin/loyalty/export?period=month&customer_scope=all', $this->headers());
+        $export = $this->get('/api/admin/loyalty/export?period=specific&date_from=2026-07-01&date_to=2026-07-31&customer_scope=all', $this->headers());
         $export->assertOk();
-        $pdfBody = $export->getContent();
+        $body = $export->getContent();
         echo json_encode([
             'content_type' => $export->headers->get('Content-Type'),
-            'is_pdf' => str_starts_with($pdfBody, '%PDF'),
-            'bytes' => strlen($pdfBody),
+            'is_pdf' => str_starts_with($body, '%PDF'),
+            'bytes' => strlen($body),
         ], JSON_PRETTY_PRINT)."\n";
         $this->assertStringContainsString('application/pdf', (string) $export->headers->get('Content-Type'));
-        $this->assertStringStartsWith('%PDF', $pdfBody);
+        $this->assertStringStartsWith('%PDF', $body);
 
         // cleanup deletes
         $this->deleteJson("/api/admin/loyalty/rewards/{$rewardId}", [], $this->headers())->assertOk();

@@ -405,7 +405,7 @@ class AdminLoyaltyService
     }
 
     /**
-     * Build PDF binary for offline analysis (same filters as reports).
+     * Build PDF binary for offline analysis (same filters as reports, including period=specific + date_from/date_to).
      *
      * @param  array<string, mixed>  $filters
      * @return array{filename: string, binary: string}
@@ -413,12 +413,14 @@ class AdminLoyaltyService
     public function exportReportPdf(array $filters = []): array
     {
         $report = $this->reports($filters);
-        $customers = $this->reportCustomerDetailRows($filters);
-        $filename = 'loyalty-report-'.$report['filters']['period'].'-'.now()->format('Ymd-His').'.pdf';
+        $rows = $this->exportCustomerRows($filters);
+        $normalized = $report['filters'];
+
+        $filename = 'loyalty-report-'.$normalized['period'].'-'.now()->format('Ymd-His').'.pdf';
 
         $binary = Pdf::loadView('admin.loyalty.reports-pdf', [
             'report' => $report,
-            'customers' => $customers,
+            'rows' => $rows,
             'generatedAt' => now()->format('d M Y, H:i'),
         ])->setPaper('a4', 'portrait')->output();
 
@@ -429,10 +431,61 @@ class AdminLoyaltyService
     }
 
     /**
+     * Build CSV rows for offline analysis (same filters as reports). Optional via format=csv.
+     *
      * @param  array<string, mixed>  $filters
-     * @return array<int, array<string, mixed>>
+     * @return array{filename: string, headers: array<int, string>, rows: array<int, array<int, string|int>>}
      */
-    private function reportCustomerDetailRows(array $filters): array
+    public function exportReportCsv(array $filters = []): array
+    {
+        $normalized = $this->normalizeReportFilters($filters);
+        $detailRows = $this->exportCustomerRows($filters);
+
+        $headers = [
+            'customer_id',
+            'customer_name',
+            'email',
+            'points_balance',
+            'points_earned_in_period',
+            'points_redeemed_in_period',
+            'rewards_redeemed_in_period',
+            'period_from',
+            'period_to',
+            'customer_scope',
+            'period',
+        ];
+
+        $rows = [];
+        foreach ($detailRows as $row) {
+            $rows[] = [
+                $row['customer_id'],
+                $row['customer_name'],
+                $row['email'],
+                $row['points_balance'],
+                $row['points_earned_in_period'],
+                $row['points_redeemed_in_period'],
+                $row['rewards_redeemed_in_period'],
+                $normalized['date_from'],
+                $normalized['date_to'],
+                $normalized['customer_scope'],
+                $normalized['period'],
+            ];
+        }
+
+        $filename = 'loyalty-report-'.$normalized['period'].'-'.now()->format('Ymd-His').'.csv';
+
+        return [
+            'filename' => $filename,
+            'headers' => $headers,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<int, array<string, int|string>>
+     */
+    private function exportCustomerRows(array $filters = []): array
     {
         $normalized = $this->normalizeReportFilters($filters);
         $customerIds = $this->reportCustomerIds($normalized);
@@ -468,13 +521,13 @@ class AdminLoyaltyService
                 ->count();
 
             $rows[] = [
-                'id' => $client->id,
-                'name' => $client->name,
-                'email' => $client->email,
+                'customer_id' => $client->id,
+                'customer_name' => (string) $client->name,
+                'email' => (string) $client->email,
                 'points_balance' => (int) ($client->loyalty_points_balance ?? 0),
-                'points_earned' => $earned,
-                'points_redeemed' => $redeemed,
-                'rewards_redeemed' => $rewardsRedeemed,
+                'points_earned_in_period' => $earned,
+                'points_redeemed_in_period' => $redeemed,
+                'rewards_redeemed_in_period' => $rewardsRedeemed,
             ];
         }
 

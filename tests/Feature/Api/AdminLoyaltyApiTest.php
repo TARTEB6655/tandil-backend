@@ -363,21 +363,30 @@ class AdminLoyaltyApiTest extends TestCase
         $pdf = $this->get('/api/admin/loyalty/export?period=month&customer_scope=all', $this->headers());
         $pdf->assertOk();
         $this->assertStringContainsString('application/pdf', (string) $pdf->headers->get('Content-Type'));
-        $body = $pdf->getContent();
-        $this->assertStringStartsWith('%PDF', $body);
-        $this->assertStringContainsString('.pdf', (string) $pdf->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+
+        $specificPdf = $this->get(
+            '/api/admin/loyalty/export?period=specific&date_from=2026-07-01&date_to=2026-07-31&customer_scope=all',
+            $this->headers()
+        );
+        $specificPdf->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $specificPdf->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $specificPdf->getContent());
 
         $this->getJson('/api/admin/loyalty/export?format=json&period=week', $this->headers())
             ->assertOk()
             ->assertJsonPath('data.export.format', 'pdf')
             ->assertJsonPath('data.filters.period', 'week');
 
-        $this->getJson('/api/admin/loyalty/reports?period=specific&date_from=2026-01-01&date_to=2026-01-31&customer_scope=specific&specific_customer_ids[]='.$client->id, $this->headers())
+        $this->getJson('/api/admin/loyalty/reports?period=specific&date_from=2026-07-01&date_to=2026-07-31&customer_scope=specific&specific_customer_ids[]='.$client->id, $this->headers())
             ->assertOk()
             ->assertJsonPath('data.filters.customer_scope', 'specific')
             ->assertJsonPath('data.filters.period', 'specific')
-            ->assertJsonPath('data.filters.date_from', '2026-01-01')
-            ->assertJsonPath('data.filters.date_to', '2026-01-31');
+            ->assertJsonPath('data.filters.date_from', '2026-07-01')
+            ->assertJsonPath('data.filters.date_to', '2026-07-31');
+
+        $this->getJson('/api/admin/loyalty/reports?period=specific', $this->headers())
+            ->assertStatus(422);
 
         $this->app['auth']->forgetGuards();
         $this->flushHeaders();

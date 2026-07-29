@@ -9821,11 +9821,11 @@
                                                 {"key": "customer_scope", "value": "all", "description": "all | specific"},
                                                 {"key": "specific_customer_ids[]", "value": "2", "disabled": true, "description": "Required when customer_scope=specific (client role ids only)"},
                                                 {"key": "period", "value": "month", "description": "week | month | specific"},
-                                                {"key": "date_from", "value": "2026-01-01", "disabled": true, "description": "Y-m-d when period=specific"},
-                                                {"key": "date_to", "value": "2026-01-31", "disabled": true, "description": "Y-m-d when period=specific"}
+                                                {"key": "date_from", "value": "2026-07-01", "disabled": true, "description": "Y-m-d required when period=specific"},
+                                                {"key": "date_to", "value": "2026-07-31", "disabled": true, "description": "Y-m-d required when period=specific"}
                                             ]
                                         },
-                                        "description": "GET /api/admin/loyalty/reports — Reports & export screen.\n\n**Filters:** customer_scope (all|specific), specific_customer_ids[], period (week|month|specific), date_from/date_to.\n\n**Response:** health (outstanding/redeemed/campaigns + Export ready), filters echo, summary cards (customers_with_points, points_outstanding/earned/redeemed, rewards_redeemed, active_campaigns), export `{ format: pdf, ready, label }`."
+                                        "description": "GET /api/admin/loyalty/reports — Reports & export screen.\n\n**Filters:** customer_scope (all|specific), specific_customer_ids[], period (week|month|specific), date_from/date_to (required when period=specific).\n\n**Response:** health, filters echo, summary cards, export `{ format: pdf, ready, label: Export PDF }`."
                                     }
                                 },
                                 {
@@ -9837,19 +9837,19 @@
                                             {"key": "Accept", "value": "application/pdf"}
                                         ],
                                         "url": {
-                                            "raw": "{{base_url}}/api/admin/loyalty/export?customer_scope=all&period=month",
+                                            "raw": "{{base_url}}/api/admin/loyalty/export?customer_scope=all&period=specific&date_from=2026-07-01&date_to=2026-07-31",
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "export"],
                                             "query": [
                                                 {"key": "customer_scope", "value": "all"},
                                                 {"key": "specific_customer_ids[]", "value": "2", "disabled": true},
-                                                {"key": "period", "value": "month"},
-                                                {"key": "date_from", "value": "2026-01-01", "disabled": true},
-                                                {"key": "date_to", "value": "2026-01-31", "disabled": true},
-                                                {"key": "format", "value": "pdf", "description": "pdf (default download) | json (same payload as /reports)"}
+                                                {"key": "period", "value": "specific", "description": "week | month | specific"},
+                                                {"key": "date_from", "value": "2026-07-01", "description": "Required when period=specific"},
+                                                {"key": "date_to", "value": "2026-07-31", "description": "Required when period=specific"},
+                                                {"key": "format", "value": "pdf", "description": "pdf (default) | csv | json"}
                                             ]
                                         },
-                                        "description": "GET /api/admin/loyalty/export — **PDF download**. Same filters as /reports. Postman: Send ▼ → **Send and Download**. Optional `format=json` returns the reports JSON instead of a file."
+                                        "description": "GET /api/admin/loyalty/export — **PDF download** (default). Same filters as /reports including Specific date From/To. Postman: Send ▼ → **Send and Download**. Optional `format=csv` or `format=json`."
                                     }
                                 }
                             ],
