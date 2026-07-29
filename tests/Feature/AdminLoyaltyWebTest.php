@@ -6,6 +6,7 @@ use App\Models\LoyaltyReward;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -62,6 +63,36 @@ class AdminLoyaltyWebTest extends TestCase
             ->assertSee('Apply filters')
             ->assertSee('Export PDF')
             ->assertSee('Customers with points');
+    }
+
+    public function test_admin_loyalty_customers_pages_show_profile_picture(): void
+    {
+        $picturePath = 'profiles/loyalty-web-client.jpg';
+        Storage::disk('public')->put($picturePath, 'fake-image-bytes');
+
+        $client = User::factory()->create([
+            'role' => 'client',
+            'name' => 'Avatar Client',
+            'email' => 'avatar.client@test.com',
+            'loyalty_points_balance' => 120,
+            'profile_picture' => $picturePath,
+        ]);
+
+        $list = $this->actingAs($this->admin)->get(route('admin.loyalty.customers'))
+            ->assertOk()
+            ->assertSee('Avatar Client', false)
+            ->assertSee('/media/profiles/loyalty-web-client.jpg', false);
+
+        $this->assertStringContainsString('<img', $list->getContent());
+
+        $show = $this->actingAs($this->admin)->get(route('admin.loyalty.customers.show', $client->id))
+            ->assertOk()
+            ->assertSee('Avatar Client', false)
+            ->assertSee('/media/profiles/loyalty-web-client.jpg', false);
+
+        $this->assertStringContainsString('<img', $show->getContent());
+
+        $this->get('/media/profiles/loyalty-web-client.jpg')->assertOk();
     }
 
     public function test_admin_can_save_settings_and_create_reward_via_web(): void

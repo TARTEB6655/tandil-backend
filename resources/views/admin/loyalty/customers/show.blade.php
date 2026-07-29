@@ -17,9 +17,20 @@
         @endif
 
         <div class="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 text-white shadow-md">
-            <p class="text-lg font-semibold">{{ $points['name'] }}</p>
-            <p class="mt-1 text-sm text-indigo-100">{{ $points['email'] }}</p>
-            <p class="mt-1 text-sm text-indigo-200/80">{{ $points['city'] }}</p>
+            <div class="flex items-center gap-4">
+                @if(!empty($points['profile_picture_url']))
+                    <img src="{{ $points['profile_picture_url'] }}" alt="" class="h-14 w-14 rounded-full object-cover ring-2 ring-white/40">
+                @else
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-lg font-semibold ring-2 ring-white/30">
+                        {{ strtoupper(substr($points['name'] ?? '?', 0, 1)) }}
+                    </div>
+                @endif
+                <div class="min-w-0">
+                    <p class="text-lg font-semibold">{{ $points['name'] }}</p>
+                    <p class="mt-1 text-sm text-indigo-100">{{ $points['email'] }}</p>
+                    <p class="mt-1 text-sm text-indigo-200/80">{{ $points['city'] }}</p>
+                </div>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
