@@ -55,6 +55,13 @@ class AdminLoyaltyWebTest extends TestCase
             ->assertOk()
             ->assertSee('Campaigns')
             ->assertSee('New campaign');
+
+        $this->actingAs($this->admin)->get(route('admin.loyalty.reports'))
+            ->assertOk()
+            ->assertSee('Reports & export', false)
+            ->assertSee('Apply filters')
+            ->assertSee('Export CSV')
+            ->assertSee('Customers with points');
     }
 
     public function test_admin_can_save_settings_and_create_reward_via_web(): void

@@ -360,19 +360,249 @@ class AdminLoyaltyService
         $campaign->delete();
     }
 
-    public function exportReport(): array
+    public function exportReport(array $filters = []): array
     {
-        $settings = $this->getSettings();
-        $rewards = $this->rewardsIndex();
-        $customers = $this->customersIndex();
-        $campaigns = $this->campaignsIndex();
+        return $this->reports($filters);
+    }
+
+    /**
+     * Reports & export screen (matches RN).
+     *
+     * Filters:
+     * - customer_scope: all|specific
+     * - specific_customer_ids: int[]
+     * - period: week|month|specific
+     * - date_from / date_to: Y-m-d (required when period=specific)
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    public function reports(array $filters = []): array
+    {
+        $normalized = $this->normalizeReportFilters($filters);
+        $customerIds = $this->reportCustomerIds($normalized);
+        $summary = $this->reportSummary($customerIds, $normalized['date_from'], $normalized['date_to']);
+        $health = $this->reportHealth($customerIds);
 
         return [
-            'generated_at' => now()->toIso8601String(),
-            'settings' => $settings,
-            'rewards' => $rewards,
-            'customers' => $customers,
-            'campaigns' => $campaigns,
+            'health' => $health,
+            'filters' => [
+                'customer_scope' => $normalized['customer_scope'],
+                'specific_customer_ids' => $normalized['specific_customer_ids'],
+                'specific_customers' => $this->customerNameList($normalized['specific_customer_ids']),
+                'period' => $normalized['period'],
+                'date_from' => $normalized['date_from'],
+                'date_to' => $normalized['date_to'],
+            ],
+            'summary' => $summary,
+            'export' => [
+                'format' => 'csv',
+                'ready' => true,
+                'label' => 'Export CSV',
+            ],
+        ];
+    }
+
+    /**
+     * Build CSV rows for offline analysis (same filters as reports).
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array{filename: string, headers: array<int, string>, rows: array<int, array<int, string|int>>}
+     */
+    public function exportReportCsv(array $filters = []): array
+    {
+        $normalized = $this->normalizeReportFilters($filters);
+        $customerIds = $this->reportCustomerIds($normalized);
+        $from = $normalized['date_from'];
+        $to = $normalized['date_to'];
+
+        $clientsQuery = User::query()->where('role', 'client')->orderBy('name');
+        if ($customerIds !== null) {
+            $clientsQuery->whereIn('id', $customerIds);
+        }
+        $clients = $clientsQuery->get(['id', 'name', 'email', 'loyalty_points_balance']);
+
+        $headers = [
+            'customer_id',
+            'customer_name',
+            'email',
+            'points_balance',
+            'points_earned_in_period',
+            'points_redeemed_in_period',
+            'rewards_redeemed_in_period',
+            'period_from',
+            'period_to',
+            'customer_scope',
+            'period',
+        ];
+
+        $rows = [];
+        foreach ($clients as $client) {
+            $earned = (int) LoyaltyTransaction::query()
+                ->where('user_id', $client->id)
+                ->where('type', LoyaltyTransaction::TYPE_EARN)
+                ->whereDate('transaction_date', '>=', $from)
+                ->whereDate('transaction_date', '<=', $to)
+                ->sum('points');
+            $redeemed = (int) LoyaltyTransaction::query()
+                ->where('user_id', $client->id)
+                ->where('type', LoyaltyTransaction::TYPE_REDEEM)
+                ->whereDate('transaction_date', '>=', $from)
+                ->whereDate('transaction_date', '<=', $to)
+                ->sum('points');
+            $rewardsRedeemed = (int) LoyaltyTransaction::query()
+                ->where('user_id', $client->id)
+                ->where('type', LoyaltyTransaction::TYPE_REDEEM)
+                ->whereNotNull('loyalty_reward_id')
+                ->whereDate('transaction_date', '>=', $from)
+                ->whereDate('transaction_date', '<=', $to)
+                ->count();
+
+            $rows[] = [
+                $client->id,
+                $client->name,
+                $client->email,
+                (int) ($client->loyalty_points_balance ?? 0),
+                $earned,
+                $redeemed,
+                $rewardsRedeemed,
+                $from,
+                $to,
+                $normalized['customer_scope'],
+                $normalized['period'],
+            ];
+        }
+
+        $filename = 'loyalty-report-'.$normalized['period'].'-'.now()->format('Ymd-His').'.csv';
+
+        return [
+            'filename' => $filename,
+            'headers' => $headers,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{customer_scope: string, specific_customer_ids: array<int, int>, period: string, date_from: string, date_to: string}
+     */
+    private function normalizeReportFilters(array $filters): array
+    {
+        $scope = (($filters['customer_scope'] ?? 'all') === 'specific') ? 'specific' : 'all';
+        $ids = array_values(array_unique(array_map('intval', (array) ($filters['specific_customer_ids'] ?? []))));
+        if ($scope !== 'specific') {
+            $ids = [];
+        }
+
+        $period = (string) ($filters['period'] ?? 'month');
+        if (! in_array($period, ['week', 'month', 'specific'], true)) {
+            $period = 'month';
+        }
+
+        $today = now()->toDateString();
+        if ($period === 'week') {
+            $from = now()->subDays(6)->toDateString();
+            $to = $today;
+        } elseif ($period === 'specific') {
+            $from = (string) ($filters['date_from'] ?? now()->startOfMonth()->toDateString());
+            $to = (string) ($filters['date_to'] ?? $today);
+            if ($from > $to) {
+                [$from, $to] = [$to, $from];
+            }
+        } else {
+            $from = now()->startOfMonth()->toDateString();
+            $to = $today;
+        }
+
+        return [
+            'customer_scope' => $scope,
+            'specific_customer_ids' => $ids,
+            'period' => $period,
+            'date_from' => $from,
+            'date_to' => $to,
+        ];
+    }
+
+    /**
+     * @param  array{customer_scope: string, specific_customer_ids: array<int, int>}  $normalized
+     * @return array<int, int>|null null means all clients
+     */
+    private function reportCustomerIds(array $normalized): ?array
+    {
+        if ($normalized['customer_scope'] !== 'specific') {
+            return null;
+        }
+
+        return $normalized['specific_customer_ids'];
+    }
+
+    /**
+     * @param  array<int, int>|null  $customerIds
+     * @return array<string, mixed>
+     */
+    private function reportHealth(?array $customerIds): array
+    {
+        $clients = User::query()->where('role', 'client');
+        if ($customerIds !== null) {
+            $clients->whereIn('id', $customerIds);
+        }
+
+        $outstanding = (int) (clone $clients)->sum('loyalty_points_balance');
+        $rewardsRedeemed = LoyaltyTransaction::query()
+            ->where('type', LoyaltyTransaction::TYPE_REDEEM)
+            ->whereNotNull('loyalty_reward_id');
+        if ($customerIds !== null) {
+            $rewardsRedeemed->whereIn('user_id', $customerIds);
+        }
+
+        $activeCampaigns = LoyaltyCampaign::query()->get()->filter(fn (LoyaltyCampaign $c) => $c->isLive())->count();
+
+        return [
+            'outstanding' => $outstanding,
+            'redeemed' => (int) $rewardsRedeemed->count(),
+            'campaigns' => $activeCampaigns,
+            'export_ready' => true,
+            'status_label' => 'Export ready',
+        ];
+    }
+
+    /**
+     * @param  array<int, int>|null  $customerIds
+     * @return array<string, int>
+     */
+    private function reportSummary(?array $customerIds, string $from, string $to): array
+    {
+        $clients = User::query()->where('role', 'client');
+        if ($customerIds !== null) {
+            $clients->whereIn('id', $customerIds);
+        }
+
+        $customersWithPoints = (int) (clone $clients)->where('loyalty_points_balance', '>', 0)->count();
+        $pointsOutstanding = (int) (clone $clients)->sum('loyalty_points_balance');
+
+        $txBase = LoyaltyTransaction::query()
+            ->whereDate('transaction_date', '>=', $from)
+            ->whereDate('transaction_date', '<=', $to);
+        if ($customerIds !== null) {
+            $txBase->whereIn('user_id', $customerIds);
+        }
+
+        $pointsEarned = (int) (clone $txBase)->where('type', LoyaltyTransaction::TYPE_EARN)->sum('points');
+        $pointsRedeemed = (int) (clone $txBase)->where('type', LoyaltyTransaction::TYPE_REDEEM)->sum('points');
+        $rewardsRedeemed = (int) (clone $txBase)
+            ->where('type', LoyaltyTransaction::TYPE_REDEEM)
+            ->whereNotNull('loyalty_reward_id')
+            ->count();
+
+        $activeCampaigns = LoyaltyCampaign::query()->get()->filter(fn (LoyaltyCampaign $c) => $c->isLive())->count();
+
+        return [
+            'customers_with_points' => $customersWithPoints,
+            'points_outstanding' => $pointsOutstanding,
+            'points_earned' => $pointsEarned,
+            'points_redeemed' => $pointsRedeemed,
+            'rewards_redeemed' => $rewardsRedeemed,
+            'active_campaigns' => $activeCampaigns,
         ];
     }
 

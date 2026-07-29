@@ -11,6 +11,7 @@ use App\Services\Loyalty\AdminLoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LoyaltyAdminApiController extends Controller
 {
@@ -200,10 +201,74 @@ class LoyaltyAdminApiController extends Controller
         return ApiResponse::success('Campaign deleted.', []);
     }
 
-    /** GET /api/admin/loyalty/export */
-    public function export(): JsonResponse
+    /** GET /api/admin/loyalty/reports — Reports & export screen (filters + summary). */
+    public function reports(Request $request): JsonResponse
     {
-        return ApiResponse::success('Loyalty report exported.', $this->loyalty->exportReport());
+        $filters = $this->validatedReportFilters($request);
+
+        return ApiResponse::success('Loyalty reports retrieved.', $this->loyalty->reports($filters));
+    }
+
+    /**
+     * GET /api/admin/loyalty/export — Export CSV (default) matching Reports & export UI.
+     * Query same filters as /reports. Use format=json for JSON payload instead of file download.
+     */
+    public function export(Request $request): JsonResponse|StreamedResponse
+    {
+        $filters = $this->validatedReportFilters($request);
+        $format = strtolower((string) $request->query('format', 'csv'));
+
+        if ($format === 'json') {
+            return ApiResponse::success('Loyalty report exported.', $this->loyalty->reports($filters));
+        }
+
+        $csv = $this->loyalty->exportReportCsv($filters);
+
+        return response()->streamDownload(function () use ($csv) {
+            $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
+            fputcsv($out, $csv['headers']);
+            foreach ($csv['rows'] as $row) {
+                fputcsv($out, $row);
+            }
+            fclose($out);
+        }, $csv['filename'], [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedReportFilters(Request $request): array
+    {
+        $ids = $request->input('specific_customer_ids', []);
+        if (is_string($ids)) {
+            $ids = array_filter(array_map('trim', explode(',', $ids)), fn ($v) => $v !== '');
+            $request->merge(['specific_customer_ids' => $ids]);
+        }
+
+        $validated = $request->validate([
+            'customer_scope' => 'sometimes|in:all,specific',
+            'specific_customer_ids' => 'nullable|array',
+            'specific_customer_ids.*' => 'integer|exists:users,id,role,client',
+            'period' => 'sometimes|in:week,month,specific',
+            'date_from' => 'nullable|date_format:Y-m-d',
+            'date_to' => 'nullable|date_format:Y-m-d|after_or_equal:date_from',
+        ]);
+
+        if (($validated['period'] ?? 'month') === 'specific') {
+            $request->validate([
+                'date_from' => 'required|date_format:Y-m-d',
+                'date_to' => 'required|date_format:Y-m-d|after_or_equal:date_from',
+            ]);
+            $validated['date_from'] = $request->input('date_from');
+            $validated['date_to'] = $request->input('date_to');
+        }
+
+        return $validated;
     }
 
     private function validateReward(Request $request, bool $creating = true): array

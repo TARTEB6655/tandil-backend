@@ -805,6 +805,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/loyalty')->grou
     Route::put('/toggle', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'toggle']);
     Route::get('/settings', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'settings']);
     Route::match(['put', 'post'], '/settings', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'saveSettings']);
+    Route::get('/reports', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'reports']);
     Route::get('/export', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'export']);
 
     Route::get('/rewards', [\App\Http\Controllers\Api\Admin\LoyaltyAdminApiController::class, 'rewards']);

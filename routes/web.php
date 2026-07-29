@@ -363,6 +363,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::post('loyalty/toggle', [\App\Http\Controllers\Admin\LoyaltyController::class, 'toggle'])->name('loyalty.toggle');
         Route::get('loyalty/settings', [\App\Http\Controllers\Admin\LoyaltyController::class, 'settings'])->name('loyalty.settings');
         Route::post('loyalty/settings', [\App\Http\Controllers\Admin\LoyaltyController::class, 'saveSettings'])->name('loyalty.settings.save');
+        Route::get('loyalty/reports', [\App\Http\Controllers\Admin\LoyaltyController::class, 'reports'])->name('loyalty.reports');
         Route::get('loyalty/export', [\App\Http\Controllers\Admin\LoyaltyController::class, 'export'])->name('loyalty.export');
         Route::get('loyalty/rewards', [\App\Http\Controllers\Admin\LoyaltyController::class, 'rewards'])->name('loyalty.rewards');
         Route::get('loyalty/rewards/create', [\App\Http\Controllers\Admin\LoyaltyController::class, 'createReward'])->name('loyalty.rewards.create');

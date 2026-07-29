@@ -329,11 +329,55 @@ class AdminLoyaltyApiTest extends TestCase
         $this->assertDatabaseMissing('loyalty_campaigns', ['id' => $id]);
     }
 
-    public function test_export_and_auth_guard(): void
+    public function test_reports_and_csv_export_and_auth_guard(): void
     {
-        $this->getJson('/api/admin/loyalty/export', $this->headers())
+        $client = User::factory()->create([
+            'role' => 'client',
+            'loyalty_points_balance' => 250,
+        ]);
+
+        $reports = $this->getJson('/api/admin/loyalty/reports?period=month&customer_scope=all', $this->headers())
             ->assertOk()
-            ->assertJsonStructure(['data' => ['generated_at', 'settings', 'rewards', 'customers', 'campaigns']]);
+            ->assertJsonPath('data.export.format', 'csv')
+            ->assertJsonPath('data.export.label', 'Export CSV')
+            ->assertJsonPath('data.filters.period', 'month')
+            ->assertJsonPath('data.filters.customer_scope', 'all')
+            ->assertJsonStructure([
+                'data' => [
+                    'health' => ['outstanding', 'redeemed', 'campaigns', 'export_ready', 'status_label'],
+                    'filters' => ['customer_scope', 'specific_customer_ids', 'specific_customers', 'period', 'date_from', 'date_to'],
+                    'summary' => [
+                        'customers_with_points',
+                        'points_outstanding',
+                        'points_earned',
+                        'points_redeemed',
+                        'rewards_redeemed',
+                        'active_campaigns',
+                    ],
+                    'export' => ['format', 'ready', 'label'],
+                ],
+            ]);
+
+        $this->assertSame(250, (int) $reports->json('data.summary.points_outstanding'));
+
+        $csv = $this->get('/api/admin/loyalty/export?period=month&customer_scope=all', $this->headers());
+        $csv->assertOk();
+        $this->assertStringContainsString('text/csv', (string) $csv->headers->get('Content-Type'));
+        $body = method_exists($csv, 'streamedContent') ? $csv->streamedContent() : $csv->getContent();
+        $this->assertStringContainsString('customer_id', $body);
+        $this->assertStringContainsString((string) $client->id, $body);
+
+        $this->getJson('/api/admin/loyalty/export?format=json&period=week', $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.export.format', 'csv')
+            ->assertJsonPath('data.filters.period', 'week');
+
+        $this->getJson('/api/admin/loyalty/reports?period=specific&date_from=2026-01-01&date_to=2026-01-31&customer_scope=specific&specific_customer_ids[]='.$client->id, $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.filters.customer_scope', 'specific')
+            ->assertJsonPath('data.filters.period', 'specific')
+            ->assertJsonPath('data.filters.date_from', '2026-01-01')
+            ->assertJsonPath('data.filters.date_to', '2026-01-31');
 
         $this->app['auth']->forgetGuards();
         $this->flushHeaders();

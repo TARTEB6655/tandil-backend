@@ -273,13 +273,35 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $campOff->assertOk()->assertJsonPath('data.is_enabled', false);
         $this->assertFalse($campOff->json('data.is_enabled'));
 
-        echo "\n========== 17) GET /api/admin/loyalty/export ==========\n";
-        $export = $this->getJson('/api/admin/loyalty/export', $this->headers());
-        echo json_encode($export->json('data.generated_at') ? ['success' => true, 'keys' => array_keys($export->json('data'))] : $export->json(), JSON_PRETTY_PRINT)."\n";
+        echo "\n========== 17) GET /api/admin/loyalty/reports ==========\n";
+        $reports = $this->getJson('/api/admin/loyalty/reports?period=month&customer_scope=all', $this->headers());
+        echo json_encode($reports->json(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n";
+        $reports->assertOk();
+        $this->assertExactKeys($reports->json('data'), [
+            'health', 'filters', 'summary', 'export',
+        ], 'reports');
+        $this->assertExactKeys($reports->json('data.health'), [
+            'outstanding', 'redeemed', 'campaigns', 'export_ready', 'status_label',
+        ], 'reports.health');
+        $this->assertExactKeys($reports->json('data.summary'), [
+            'customers_with_points', 'points_outstanding', 'points_earned', 'points_redeemed', 'rewards_redeemed', 'active_campaigns',
+        ], 'reports.summary');
+        $this->assertExactKeys($reports->json('data.export'), [
+            'format', 'ready', 'label',
+        ], 'reports.export');
+        $this->assertSame('csv', $reports->json('data.export.format'));
+
+        echo "\n========== 18) GET /api/admin/loyalty/export (CSV) ==========\n";
+        $export = $this->get('/api/admin/loyalty/export?period=month&customer_scope=all', $this->headers());
         $export->assertOk();
-        $this->assertExactKeys($export->json('data'), [
-            'generated_at', 'settings', 'rewards', 'customers', 'campaigns',
-        ], 'export');
+        $csvBody = method_exists($export, 'streamedContent') ? $export->streamedContent() : $export->getContent();
+        echo json_encode([
+            'content_type' => $export->headers->get('Content-Type'),
+            'has_header_row' => str_contains($csvBody, 'customer_id'),
+            'bytes' => strlen($csvBody),
+        ], JSON_PRETTY_PRINT)."\n";
+        $this->assertStringContainsString('text/csv', (string) $export->headers->get('Content-Type'));
+        $this->assertStringContainsString('customer_id', $csvBody);
 
         // cleanup deletes
         $this->deleteJson("/api/admin/loyalty/rewards/{$rewardId}", [], $this->headers())->assertOk();

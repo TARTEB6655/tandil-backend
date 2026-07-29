@@ -226,14 +226,50 @@ class LoyaltyController extends Controller
         return redirect()->route('admin.loyalty.campaigns')->with('success', 'Campaign deleted.');
     }
 
-    public function export(): StreamedResponse
+    public function reports(Request $request): View
     {
-        $report = $this->loyalty->exportReport();
-        $filename = 'loyalty-report-'.now()->format('Ymd-His').'.json';
+        $filters = [
+            'customer_scope' => $request->query('customer_scope', 'all'),
+            'specific_customer_ids' => array_values(array_map('intval', (array) $request->query('specific_customer_ids', []))),
+            'period' => $request->query('period', 'month'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+        ];
 
-        return response()->streamDownload(function () use ($report) {
-            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        }, $filename, ['Content-Type' => 'application/json']);
+        $clients = User::query()->where('role', 'client')->orderBy('name')->get(['id', 'name', 'email']);
+
+        return view('admin.loyalty.reports', [
+            'report' => $this->loyalty->reports($filters),
+            'clients' => $clients,
+            'filters' => $filters,
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $filters = [
+            'customer_scope' => $request->query('customer_scope', 'all'),
+            'specific_customer_ids' => array_values(array_map('intval', (array) $request->query('specific_customer_ids', []))),
+            'period' => $request->query('period', 'month'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+        ];
+
+        $csv = $this->loyalty->exportReportCsv($filters);
+
+        return response()->streamDownload(function () use ($csv) {
+            $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
+            fputcsv($out, $csv['headers']);
+            foreach ($csv['rows'] as $row) {
+                fputcsv($out, $row);
+            }
+            fclose($out);
+        }, $csv['filename'], [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     private function validatedReward(Request $request): array
