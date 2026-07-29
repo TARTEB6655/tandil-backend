@@ -190,7 +190,7 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         $this->assertExactKeys($customers->json('data'), ['summary', 'customers'], 'customers index');
         $this->assertExactKeys($customers->json('data.summary'), ['visible', 'points_pool', 'holders'], 'customers summary');
         $this->assertExactKeys($customers->json('data.customers.0'), [
-            'id', 'name', 'email', 'city', 'points',
+            'id', 'name', 'email', 'city', 'points', 'profile_picture_url',
         ], 'customer row');
 
         echo "\n========== 11) GET /api/admin/loyalty/customers/{id} ==========\n";
@@ -198,7 +198,7 @@ class AdminLoyaltyUiContractDumpTest extends TestCase
         echo json_encode($points->json(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n";
         $points->assertOk();
         $this->assertExactKeys($points->json('data'), [
-            'name', 'email', 'city', 'balance', 'earned', 'redeemed', 'history',
+            'name', 'email', 'city', 'profile_picture_url', 'balance', 'earned', 'redeemed', 'history',
         ], 'customer points');
 
         echo "\n========== 12) POST customers/{id}/adjust +50 ==========\n";

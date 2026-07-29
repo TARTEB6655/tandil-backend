@@ -8,6 +8,7 @@ use App\Models\LoyaltyTransaction;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Services\ProfilePictureUploadService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -236,6 +237,7 @@ class AdminLoyaltyService
                 'email' => $u->email,
                 'city' => $this->customerCity($u),
                 'points' => (int) ($u->loyalty_points_balance ?? 0),
+                'profile_picture_url' => ProfilePictureUploadService::fullUrl($u->profile_picture),
             ])->values()->all(),
         ];
     }
@@ -264,6 +266,7 @@ class AdminLoyaltyService
             'name' => $customer->name,
             'email' => $customer->email,
             'city' => $this->customerCity($customer),
+            'profile_picture_url' => ProfilePictureUploadService::fullUrl($customer->profile_picture),
             'balance' => (int) ($customer->loyalty_points_balance ?? 0),
             'earned' => $earned,
             'redeemed' => $redeemed,

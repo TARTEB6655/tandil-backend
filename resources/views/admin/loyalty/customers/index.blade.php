@@ -52,8 +52,19 @@
                             @foreach($customers as $c)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                     <td class="px-4 py-3">
-                                        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $c['name'] }}</p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $c['email'] }}</p>
+                                        <div class="flex items-center gap-3">
+                                            @if(!empty($c['profile_picture_url']))
+                                                <img src="{{ $c['profile_picture_url'] }}" alt="" class="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-600">
+                                            @else
+                                                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                                    {{ strtoupper(substr($c['name'] ?? '?', 0, 1)) }}
+                                                </div>
+                                            @endif
+                                            <div>
+                                                <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $c['name'] }}</p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ $c['email'] }}</p>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $c['city'] }}</td>
                                     <td class="px-4 py-3 text-right font-bold text-indigo-700 dark:text-indigo-300">{{ number_format($c['points']) }}</td>

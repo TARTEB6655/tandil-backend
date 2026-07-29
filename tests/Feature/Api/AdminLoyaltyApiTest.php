@@ -196,25 +196,45 @@ class AdminLoyaltyApiTest extends TestCase
 
     public function test_customers_list_and_manual_adjust(): void
     {
+        $picturePath = 'profiles/loyalty-client-test.jpg';
+        \Illuminate\Support\Facades\Storage::disk('public')->put($picturePath, base64_decode(
+            '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAT8hf//Z'
+        ));
+
         $client = User::factory()->create([
             'role' => 'client',
             'name' => 'Client One',
             'email' => 'client1@test.com',
             'loyalty_points_balance' => 820,
+            'profile_picture' => $picturePath,
         ]);
 
-        $this->getJson('/api/admin/loyalty/customers?search=Client', $this->headers())
+        $list = $this->getJson('/api/admin/loyalty/customers?search=Client', $this->headers())
             ->assertOk()
             ->assertJsonPath('data.summary.visible', 1)
             ->assertJsonPath('data.summary.points_pool', 820)
             ->assertJsonPath('data.summary.holders', 1)
             ->assertJsonPath('data.customers.0.name', 'Client One')
-            ->assertJsonPath('data.customers.0.points', 820);
+            ->assertJsonPath('data.customers.0.points', 820)
+            ->assertJsonStructure([
+                'data' => [
+                    'customers' => [
+                        ['id', 'name', 'email', 'city', 'points', 'profile_picture_url'],
+                    ],
+                ],
+            ]);
+
+        $imageUrl = $list->json('data.customers.0.profile_picture_url');
+        $this->assertIsString($imageUrl);
+        $this->assertStringContainsString('/media/profiles/loyalty-client-test.jpg', $imageUrl);
+
+        $this->get($imageUrl)->assertOk();
 
         $this->getJson('/api/admin/loyalty/customers/'.$client->id, $this->headers())
             ->assertOk()
             ->assertJsonPath('data.balance', 820)
-            ->assertJsonPath('data.name', 'Client One');
+            ->assertJsonPath('data.name', 'Client One')
+            ->assertJsonPath('data.profile_picture_url', $imageUrl);
 
         $this->postJson('/api/admin/loyalty/customers/'.$client->id.'/adjust', [
             'amount' => 50,

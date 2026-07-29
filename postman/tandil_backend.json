@@ -9660,7 +9660,7 @@
                                             "path": ["api", "admin", "loyalty", "customers"],
                                             "query": [{"key": "search", "value": "", "description": "Search name, email, or phone"}]
                                         },
-                                        "description": "GET /api/admin/loyalty/customers — summary{visible,points_pool,holders} + customers[{id,name,email,city,points}]. Use `id` values in settings / rewards / campaigns `specific_customer_ids` when customer_targeting is specific."
+                                        "description": "GET /api/admin/loyalty/customers — summary{visible,points_pool,holders} + customers[{id,name,email,city,points,profile_picture_url}]. `profile_picture_url` is full `/media/...` URL or null. Use `id` values in settings / rewards / campaigns `specific_customer_ids` when customer_targeting is specific."
                                     }
                                 },
                                 {
@@ -9676,7 +9676,7 @@
                                             "host": ["{{base_url}}"],
                                             "path": ["api", "admin", "loyalty", "customers", "1"]
                                         },
-                                        "description": "GET /api/admin/loyalty/customers/{id} — name, email, city, balance, earned, redeemed, history[{title,type,type_label,datetime,points_display}]."
+                                        "description": "GET /api/admin/loyalty/customers/{id} — name, email, city, profile_picture_url, balance, earned, redeemed, history[{title,type,type_label,datetime,points_display}]."
                                     }
                                 },
                                 {
