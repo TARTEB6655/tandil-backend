@@ -88,8 +88,11 @@
                         <div class="flex items-start justify-between gap-3">
                             <a href="{{ $notificationOpenUrl }}" class="flex-1 min-w-0 group block js-open-notification">
                                 <p class="text-sm mb-1 {{ $isUnread ? 'font-semibold text-gray-900 dark:text-gray-100' : 'font-normal text-gray-700 dark:text-gray-300' }}">
-                                    {{ is_array($data) ? ($data['message'] ?? class_basename($type)) : class_basename($type) }}
+                                    {{ is_array($data) ? ($data['title'] ?? $data['message'] ?? class_basename($type)) : class_basename($type) }}
                                 </p>
+                                @if(is_array($data) && !empty($data['title']) && !empty($data['message']))
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ \Illuminate\Support\Str::limit($data['message'], 160) }}</p>
+                                @endif
                                 @php
                                     $kindBadge = \App\Support\NotificationWebPresenter::kindBadge($type, is_array($data) ? $data : []);
                                     $audLabel = \App\Support\NotificationWebPresenter::audienceLabel(is_array($data) ? $data : []);

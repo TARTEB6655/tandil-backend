@@ -23,6 +23,16 @@ final class NotificationWebPresenter
         if ($t === LeaveRequestStatusNotification::class || ($data['type'] ?? '') === 'leave_request_status') {
             return 'Leave';
         }
+
+        $metaType = is_array($data['meta'] ?? null) ? (string) ($data['meta']['type'] ?? '') : '';
+        $wave = (int) (is_array($data['meta'] ?? null) ? ($data['meta']['alert_wave'] ?? 0) : 0);
+        if ($metaType === 'new_paid_order' || $wave === 1) {
+            return 'Order alert';
+        }
+        if ($metaType === 'job_offer' || $wave === 2) {
+            return 'Job offer';
+        }
+
         if ($t === AdminNotification::class || ($data['type'] ?? '') === 'admin_notification') {
             return 'Message';
         }

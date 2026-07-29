@@ -128,8 +128,11 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-medium text-gray-900 leading-snug mb-0.5">
-                                                {{ $notification->data['message'] ?? 'New notification' }}
+                                                {{ $notification->data['title'] ?? $notification->data['message'] ?? 'New notification' }}
                                             </p>
+                                            @if(!empty($notification->data['title']) && !empty($notification->data['message']))
+                                                <p class="text-xs text-gray-500 leading-snug">{{ \Illuminate\Support\Str::limit($notification->data['message'], 120) }}</p>
+                                            @endif
                                             <p class="text-xs text-gray-400 mt-1.5">{{ $notification->created_at->diffForHumans() }}</p>
                                         </div>
                                         <span class="flex-shrink-0 h-2 w-2 bg-red-500 rounded-full mt-1.5"></span>
