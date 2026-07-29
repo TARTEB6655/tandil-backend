@@ -43,8 +43,10 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
 
         $admin = User::factory()->create(['role' => 'admin', 'email' => 'admin-smoke@example.com']);
         $supervisor = User::factory()->create(['role' => 'supervisor', 'email' => 'sup-smoke@example.com']);
+        $areaManager = User::factory()->create(['role' => 'area_manager', 'email' => 'am-smoke@example.com']);
         $this->assignRoleIfAvailable($admin, 'admin');
         $this->assignRoleIfAvailable($supervisor, 'supervisor');
+        $this->assignRoleIfAvailable($areaManager, 'area_manager');
 
         $area = Area::factory()->create([
             'name' => 'Abu Dhabi Central',
@@ -85,6 +87,7 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
 
         $beforeAdminUnread = $admin->unreadNotifications()->count();
         $beforeSupervisorUnread = $supervisor->unreadNotifications()->count();
+        $beforeAreaManagerUnread = $areaManager->unreadNotifications()->count();
 
         $capture = $this->postJson('/api/shop/paypal/capture', [
             'paypal_order_id' => $paypalOrderId,
@@ -97,11 +100,13 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $this->assertNotNull($order);
         $this->assertSame('paid', $order->payment_status);
 
-        // 1) Admin + supervisor notifications should be created.
+        // 1) Admin + supervisor + area manager notifications should be created.
         $admin->refresh();
         $supervisor->refresh();
+        $areaManager->refresh();
         $this->assertGreaterThan($beforeAdminUnread, $admin->unreadNotifications()->count());
         $this->assertGreaterThan($beforeSupervisorUnread, $supervisor->unreadNotifications()->count());
+        $this->assertGreaterThan($beforeAreaManagerUnread, $areaManager->unreadNotifications()->count());
 
         // 2) A Visit (job) should be created and assigned to that supervisor/area.
         $marker = '[SHOP-ORDER:' . $orderId . ']';
@@ -151,13 +156,21 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $visit->status = 'completed';
         $visit->save();
         $order->refresh();
-        // Completed requires supervisor report approval, so keep in_progress until report is approved.
+        // Completed requires report sent to client, so keep in_progress until then.
         $this->assertSame('in_progress', (string) $order->order_status);
 
         $this->actingAs($supervisor, 'sanctum')
             ->postJson('/api/supervisor/reports/' . $report->id . '/accept')
             ->assertOk()
             ->assertJsonPath('success', true);
+        $order->refresh();
+        $this->assertSame('in_progress', (string) $order->order_status);
+
+        $report->refresh();
+        $this->assertSame('approved', $report->status);
+        $report->status = 'sent_to_client';
+        $report->save();
+        \App\Support\VisitOrderTrackingSync::syncFromVisit($visit->fresh());
         $order->refresh();
         $this->assertSame('completed', (string) $order->order_status);
     }

@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Models\Visit;
 use App\Models\VisitOffer;
 use App\Models\User;
+use App\Notifications\AdminNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Job offer flow: find next technician (same zone, same specialization) or escalate to supervisor.
@@ -76,6 +78,7 @@ class VisitOfferService
 
     /**
      * Create an offer to the given technician and set visit state.
+     * Sends second-wave alert to the technician (after supervisor/area-manager first-wave on pay).
      */
     public static function offerToTechnician(Visit $visit, int $technicianId): void
     {
@@ -94,6 +97,40 @@ class VisitOfferService
         $visit->status = 'pending_acceptance';
         $visit->offer_count = ($visit->offer_count ?? 0) + 1;
         $visit->save();
+
+        self::notifyTechnicianOffer($visit, $technicianId, $acceptBy);
+    }
+
+    private static function notifyTechnicianOffer(Visit $visit, int $technicianId, Carbon $acceptBy): void
+    {
+        try {
+            $technician = User::query()->find($technicianId);
+            if (! $technician) {
+                return;
+            }
+
+            $when = $visit->scheduled_date
+                ? $visit->scheduled_date->format('Y-m-d')
+                : 'soon';
+
+            $technician->notify(new AdminNotification(
+                'New Job Offer',
+                "You have been offered visit #{$visit->id} scheduled for {$when}. Please accept within ".self::ACCEPT_MINUTES.' minutes.',
+                [
+                    'type' => 'job_offer',
+                    'alert_wave' => 2,
+                    'visit_id' => $visit->id,
+                    'order_id' => $visit->order_id,
+                    'accept_by' => $acceptBy->toIso8601String(),
+                    'recipient_role' => 'technician',
+                ]
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Technician offer notify failed: '.$e->getMessage(), [
+                'visit_id' => $visit->id,
+                'technician_id' => $technicianId,
+            ]);
+        }
     }
 
     /**
