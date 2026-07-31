@@ -2664,7 +2664,7 @@
                                         "loyalty"
                                     ]
                                 },
-                                "description": "GET /api/client/loyalty — Main loyalty screen (points + rewards + history). Campaigns are a separate API: GET /api/client/loyalty/campaigns.\n\n**Response `data`:**\n- `balance`, `balance_label`\n- `points_per_aed`, `earn_caption`\n- `rewards_count`, `ready_count`, `summary_badges[]`\n- `available_rewards[]` — badge_label (`READY`|`LOCKED`), action_label (`Redeem`)\n- `recent_transactions[]`"
+                                "description": "GET /api/client/loyalty — Main loyalty screen (points + rewards + history). Campaigns are a separate API: GET /api/client/loyalty/campaigns.\n\n**Response example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Loyalty points retrieved.\",\n  \"data\": {\n    \"balance\": 200,\n    \"balance_label\": \"200 points\",\n    \"points_per_aed\": 1,\n    \"earn_caption\": \"Earn 1 point for every 1 AED spent on services.\",\n    \"rewards_count\": 4,\n    \"ready_count\": 1,\n    \"summary_badges\": [\n      { \"key\": \"rewards\", \"count\": 4, \"label\": \"4 rewards\" },\n      { \"key\": \"ready\", \"count\": 1, \"label\": \"1 ready\" }\n    ],\n    \"available_rewards\": [\n      {\n        \"id\": 1,\n        \"title\": \"Free Cleaning Service\",\n        \"description\": \"Get a free basic cleaning service\",\n        \"points_required\": 500,\n        \"points_label\": \"500 points\",\n        \"can_redeem\": false,\n        \"status\": \"not_enough_points\",\n        \"status_label\": \"Not Enough Points\",\n        \"badge_label\": \"LOCKED\",\n        \"action_label\": \"Redeem\"\n      }\n    ],\n    \"recent_transactions\": [\n      {\n        \"id\": 1,\n        \"type\": \"earn\",\n        \"title\": \"Order #12345 completed\",\n        \"date\": \"2026-07-31\",\n        \"points\": 50,\n        \"points_display\": \"+50\"\n      }\n    ]\n  }\n}\n```\n\nNote: `active_campaigns` is **not** in this response."
                             }
                         },
                         {
@@ -2693,7 +2693,7 @@
                                         "campaigns"
                                     ]
                                 },
-                                "description": "GET /api/client/loyalty/campaigns — Active campaigns for this client.\n\n**Response `data`:**\n- `summary` — total, live, top_boost\n- `campaigns[]` — id, title, multiplier, boost_label, start_date, end_date, date_range, status, status_label, subtitle\n\nOnly live + enabled campaigns that apply to the authenticated client (all or specific targeting)."
+                                "description": "GET /api/client/loyalty/campaigns — Active campaigns for this client.\n\n**Auth:** Bearer {{token}} (client role)\n\n**Response example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Loyalty campaigns retrieved.\",\n  \"data\": {\n    \"summary\": {\n      \"total\": 1,\n      \"live\": 1,\n      \"top_boost\": \"2x points\"\n    },\n    \"campaigns\": [\n      {\n        \"id\": 1,\n        \"title\": \"Double Points Weekend\",\n        \"multiplier\": 2,\n        \"boost_label\": \"2x points\",\n        \"start_date\": \"2026-07-30\",\n        \"end_date\": \"2026-08-07\",\n        \"date_range\": \"2026-07-30 -> 2026-08-07\",\n        \"status\": \"Active\",\n        \"status_label\": \"Active\",\n        \"subtitle\": \"Earn 2x points until 2026-08-07\"\n      }\n    ]\n  }\n}\n```\n\nOnly live + enabled campaigns that apply to the authenticated client (all or specific targeting)."
                             }
                         },
                         {
@@ -2721,7 +2721,7 @@
                                         "loyalty"
                                     ]
                                 },
-                                "description": "GET /api/user/loyalty — Same as GET /api/client/loyalty (no campaigns; use /client/loyalty/campaigns)."
+                                "description": "GET /api/user/loyalty — Same payload as GET /api/client/loyalty (no campaigns; use request **2. Get Loyalty Campaigns**)."
                             }
                         },
                         {
@@ -2739,7 +2739,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/client/loyalty/rewards/1/redeem",
+                                    "raw": "{{base_url}}/api/client/loyalty/rewards/{{reward_id}}/redeem",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -2748,11 +2748,11 @@
                                         "client",
                                         "loyalty",
                                         "rewards",
-                                        "1",
+                                        "{{reward_id}}",
                                         "redeem"
                                     ]
                                 },
-                                "description": "POST /api/client/loyalty/rewards/{id}/redeem — Redeem when `can_redeem` is true. Replace `1` with reward id from `available_rewards`. Returns updated loyalty screen payload. Errors: 404 (reward not found), 422 (not enough points)."
+                                "description": "POST /api/client/loyalty/rewards/{id}/redeem — Redeem when `can_redeem` is true. Set `{{reward_id}}` from `available_rewards` on Get Loyalty Screen. Returns updated loyalty screen payload (same shape as GET /api/client/loyalty). Errors: 404 (reward not found / not available), 422 (not enough points)."
                             }
                         }
                     ]
