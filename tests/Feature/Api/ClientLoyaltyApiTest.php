@@ -70,18 +70,32 @@ class ClientLoyaltyApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Loyalty points retrieved.')
             ->assertJsonPath('data.balance', 200)
+            ->assertJsonPath('data.balance_label', '200 points')
+            ->assertJsonPath('data.earn_caption', 'Earn 1 point for every 1 AED spent on services.')
             ->assertJsonStructure([
                 'data' => [
                     'balance',
+                    'balance_label',
+                    'points_per_aed',
+                    'earn_caption',
+                    'rewards_count',
+                    'ready_count',
+                    'summary_badges' => [
+                        '*' => ['key', 'count', 'label'],
+                    ],
+                    'active_campaigns',
                     'available_rewards' => [
                         '*' => [
                             'id',
                             'title',
                             'description',
                             'points_required',
+                            'points_label',
                             'can_redeem',
                             'status',
                             'status_label',
+                            'badge_label',
+                            'action_label',
                         ],
                     ],
                     'recent_transactions' => [
@@ -97,22 +111,81 @@ class ClientLoyaltyApiTest extends TestCase
                 ],
             ]);
 
+        $this->assertIsArray($response->json('data.active_campaigns'));
+        $this->assertSame(0, count($response->json('data.active_campaigns')));
+
         $rewards = $response->json('data.available_rewards');
         $this->assertGreaterThanOrEqual(4, count($rewards));
         $this->assertSame('Free Cleaning Service', $rewards[0]['title']);
         $this->assertFalse($rewards[0]['can_redeem']);
         $this->assertSame('not_enough_points', $rewards[0]['status']);
         $this->assertSame('Not Enough Points', $rewards[0]['status_label']);
+        $this->assertSame('LOCKED', $rewards[0]['badge_label']);
 
         $express = collect($rewards)->firstWhere('title', 'Express Service');
         $this->assertNotNull($express);
         $this->assertTrue($express['can_redeem']);
+        $this->assertSame('READY', $express['badge_label']);
+        $this->assertSame('Redeem', $express['action_label']);
 
         $transactions = $response->json('data.recent_transactions');
         $this->assertCount(1, $transactions);
         $this->assertSame('earn', $transactions[0]['type']);
         $this->assertSame('Order #12345 completed', $transactions[0]['title']);
         $this->assertSame('+50', $transactions[0]['points_display']);
+    }
+
+    public function test_loyalty_includes_active_campaigns_for_client(): void
+    {
+        \App\Models\LoyaltyCampaign::query()->create([
+            'title' => 'Double Points Weekend',
+            'multiplier' => 2,
+            'start_date' => now()->subDay()->toDateString(),
+            'end_date' => now()->addDays(7)->toDateString(),
+            'cities' => '',
+            'customer_targeting' => 'all',
+            'specific_customer_ids' => [],
+            'eligible_activities' => ['shop_orders' => true],
+            'notes' => null,
+            'is_enabled' => true,
+        ]);
+
+        \App\Models\LoyaltyCampaign::query()->create([
+            'title' => 'Other Client Only',
+            'multiplier' => 3,
+            'start_date' => now()->subDay()->toDateString(),
+            'end_date' => now()->addDays(7)->toDateString(),
+            'customer_targeting' => 'specific',
+            'specific_customer_ids' => [999999],
+            'is_enabled' => true,
+        ]);
+
+        $response = $this->getJson('/api/client/loyalty', $this->authHeaders())
+            ->assertOk()
+            ->assertJsonCount(1, 'data.active_campaigns')
+            ->assertJsonPath('data.active_campaigns.0.title', 'Double Points Weekend')
+            ->assertJsonPath('data.active_campaigns.0.boost_label', '2x points')
+            ->assertJsonPath('data.active_campaigns.0.status', 'Active')
+            ->assertJsonStructure([
+                'data' => [
+                    'active_campaigns' => [
+                        '*' => [
+                            'id',
+                            'title',
+                            'multiplier',
+                            'boost_label',
+                            'start_date',
+                            'end_date',
+                            'date_range',
+                            'status',
+                            'status_label',
+                            'subtitle',
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->assertStringContainsString('2x points', (string) $response->json('data.active_campaigns.0.subtitle'));
     }
 
     public function test_user_loyalty_alias_returns_same_payload(): void

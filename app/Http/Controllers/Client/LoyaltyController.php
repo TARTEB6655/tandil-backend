@@ -22,7 +22,11 @@ class LoyaltyController extends Controller
         $payload = $this->loyalty->getScreenPayload($request->user());
 
         return view('client.loyalty.index', [
+            'payload' => $payload,
             'balance' => $payload['balance'],
+            'earnCaption' => $payload['earn_caption'] ?? null,
+            'summaryBadges' => $payload['summary_badges'] ?? [],
+            'activeCampaigns' => $payload['active_campaigns'] ?? [],
             'availableRewards' => $payload['available_rewards'],
             'recentTransactions' => $payload['recent_transactions'],
         ]);

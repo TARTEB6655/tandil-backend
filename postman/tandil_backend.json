@@ -2664,7 +2664,7 @@
                                         "loyalty"
                                     ]
                                 },
-                                "description": "GET /api/client/loyalty — Main loyalty screen payload.\n\n**Response `data`:**\n- `balance` (int)\n- `available_rewards[]` — id, title, description, points_required, can_redeem, status (`available`|`not_enough_points`), status_label (`Redeem`|`Not Enough Points`)\n- `recent_transactions[]` — id, type (`earn`|`redeem`), title, date (Y-m-d), points, points_display (`+50`, `-100`)"
+                                "description": "GET /api/client/loyalty — Main loyalty screen payload (enriched; no new endpoint).\n\n**Response `data`:**\n- `balance`, `balance_label` (e.g. `1,352 points`)\n- `points_per_aed`, `earn_caption`\n- `rewards_count`, `ready_count`, `summary_badges[]` (`key`,`count`,`label`)\n- `active_campaigns[]` — live campaigns for this client: id, title, multiplier, boost_label, start_date, end_date, date_range, status, status_label, subtitle\n- `available_rewards[]` — id, title, description, points_required, points_label, can_redeem, status, status_label, badge_label (`READY`|`LOCKED`), action_label (`Redeem`)\n- `recent_transactions[]` — id, type, title, date, points, points_display\n\n**UI:** points card → Active campaigns (if any) → Available Rewards → Recent transactions."
                             }
                         },
                         {
@@ -2692,7 +2692,7 @@
                                         "loyalty"
                                     ]
                                 },
-                                "description": "GET /api/user/loyalty — Same response as GET /api/client/loyalty (backward-compatible alias for profile APIs)."
+                                "description": "GET /api/user/loyalty — Same response as GET /api/client/loyalty (includes active_campaigns)."
                             }
                         },
                         {

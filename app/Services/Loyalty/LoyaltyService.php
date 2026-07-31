@@ -2,6 +2,7 @@
 
 namespace App\Services\Loyalty;
 
+use App\Models\LoyaltyCampaign;
 use App\Models\LoyaltyReward;
 use App\Models\LoyaltyTransaction;
 use App\Models\Order;
@@ -174,12 +175,57 @@ class LoyaltyService
         $this->ensureDefaultRewards();
 
         $balance = (int) ($user->loyalty_points_balance ?? 0);
+        $rate = self::pointsPerAed();
+        $rateDisplay = rtrim(rtrim(number_format($rate, 2, '.', ''), '0'), '.');
+        if ($rateDisplay === '') {
+            $rateDisplay = '0';
+        }
+
+        $rewards = $this->availableRewardsForUser($user, $balance);
+        $readyCount = collect($rewards)->where('can_redeem', true)->count();
+        $campaigns = $this->activeCampaignsForUser($user);
 
         return [
             'balance' => $balance,
-            'available_rewards' => $this->availableRewards($balance),
+            'balance_label' => number_format($balance).' points',
+            'points_per_aed' => $rate,
+            'earn_caption' => 'Earn '.$rateDisplay.' point'.($rateDisplay === '1' ? '' : 's').' for every 1 AED spent on services.',
+            'rewards_count' => count($rewards),
+            'ready_count' => $readyCount,
+            'summary_badges' => [
+                [
+                    'key' => 'rewards',
+                    'count' => count($rewards),
+                    'label' => count($rewards).' rewards',
+                ],
+                [
+                    'key' => 'ready',
+                    'count' => $readyCount,
+                    'label' => $readyCount.' ready',
+                ],
+            ],
+            'active_campaigns' => $campaigns,
+            'available_rewards' => $rewards,
             'recent_transactions' => $this->recentTransactions($user, $transactionLimit),
         ];
+    }
+
+    /**
+     * Live campaigns applicable to this client (for banner between points card and rewards).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function activeCampaignsForUser(User $user): array
+    {
+        return LoyaltyCampaign::query()
+            ->where('is_enabled', true)
+            ->orderByDesc('multiplier')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (LoyaltyCampaign $campaign) => $campaign->isLive() && $this->campaignAppliesToUser($campaign, $user))
+            ->map(fn (LoyaltyCampaign $campaign) => $this->formatClientCampaign($campaign))
+            ->values()
+            ->all();
     }
 
     /**
@@ -192,6 +238,30 @@ class LoyaltyService
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
+            ->map(fn (LoyaltyReward $reward) => $this->formatReward($reward, $balance))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function availableRewardsForUser(User $user, int $balance): array
+    {
+        $today = now()->toDateString();
+
+        return LoyaltyReward::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->filter(function (LoyaltyReward $reward) use ($user, $today) {
+                if ($reward->expires_at && $reward->expires_at->format('Y-m-d') < $today) {
+                    return false;
+                }
+
+                return $this->rewardAppliesToUser($reward, $user);
+            })
             ->map(fn (LoyaltyReward $reward) => $this->formatReward($reward, $balance))
             ->values()
             ->all();
@@ -228,6 +298,15 @@ class LoyaltyService
 
             if (! $reward) {
                 throw new InvalidArgumentException('Reward not found or inactive.');
+            }
+
+            $today = now()->toDateString();
+            if ($reward->expires_at && $reward->expires_at->format('Y-m-d') < $today) {
+                throw new InvalidArgumentException('This reward has expired.');
+            }
+
+            if (! $this->rewardAppliesToUser($reward, $lockedUser)) {
+                throw new InvalidArgumentException('This reward is not available for your account.');
             }
 
             $balance = (int) ($lockedUser->loyalty_points_balance ?? 0);
@@ -295,10 +374,60 @@ class LoyaltyService
             'title' => $reward->title,
             'description' => $reward->description,
             'points_required' => $reward->points_required,
+            'points_label' => number_format((int) $reward->points_required).' points',
             'can_redeem' => $canRedeem,
             'status' => $canRedeem ? LoyaltyReward::STATUS_AVAILABLE : LoyaltyReward::STATUS_NOT_ENOUGH_POINTS,
             'status_label' => $canRedeem ? 'Redeem' : 'Not Enough Points',
+            'badge_label' => $canRedeem ? 'READY' : 'LOCKED',
+            'action_label' => 'Redeem',
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function formatClientCampaign(LoyaltyCampaign $campaign): array
+    {
+        $mult = (float) $campaign->multiplier;
+        $boost = rtrim(rtrim(number_format($mult, 2, '.', ''), '0'), '.').'x points';
+        $end = $campaign->end_date?->format('Y-m-d');
+
+        return [
+            'id' => $campaign->id,
+            'title' => $campaign->title,
+            'multiplier' => $mult,
+            'boost_label' => $boost,
+            'start_date' => $campaign->start_date?->format('Y-m-d'),
+            'end_date' => $end,
+            'date_range' => ($campaign->start_date?->format('Y-m-d') ?? '').' -> '.($end ?? ''),
+            'status' => 'Active',
+            'status_label' => 'Active',
+            'subtitle' => 'Earn '.$boost.($end ? ' until '.$end : ''),
+        ];
+    }
+
+    private function campaignAppliesToUser(LoyaltyCampaign $campaign, User $user): bool
+    {
+        $targeting = strtolower((string) ($campaign->customer_targeting ?? 'all'));
+        if ($targeting !== 'specific') {
+            return true;
+        }
+
+        $ids = array_map('intval', (array) ($campaign->specific_customer_ids ?? []));
+
+        return in_array((int) $user->id, $ids, true);
+    }
+
+    private function rewardAppliesToUser(LoyaltyReward $reward, User $user): bool
+    {
+        $targeting = strtolower((string) ($reward->customer_targeting ?? 'all'));
+        if ($targeting !== 'specific') {
+            return true;
+        }
+
+        $ids = array_map('intval', (array) ($reward->specific_customer_ids ?? []));
+
+        return in_array((int) $user->id, $ids, true);
     }
 
     /**
