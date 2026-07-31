@@ -183,7 +183,6 @@ class LoyaltyService
 
         $rewards = $this->availableRewardsForUser($user, $balance);
         $readyCount = collect($rewards)->where('can_redeem', true)->count();
-        $campaigns = $this->activeCampaignsForUser($user);
 
         return [
             'balance' => $balance,
@@ -204,14 +203,37 @@ class LoyaltyService
                     'label' => $readyCount.' ready',
                 ],
             ],
-            'active_campaigns' => $campaigns,
             'available_rewards' => $rewards,
             'recent_transactions' => $this->recentTransactions($user, $transactionLimit),
         ];
     }
 
     /**
-     * Live campaigns applicable to this client (for banner between points card and rewards).
+     * Client campaigns screen / GET /api/client/loyalty/campaigns
+     *
+     * @return array{campaigns: array<int, array<string, mixed>>, summary: array{total: int, live: int, top_boost: string|null}}
+     */
+    public function campaignsPayload(User $user): array
+    {
+        $campaigns = $this->activeCampaignsForUser($user);
+        $topBoost = null;
+        if ($campaigns !== []) {
+            $top = collect($campaigns)->sortByDesc('multiplier')->first();
+            $topBoost = is_array($top) ? (string) ($top['boost_label'] ?? null) : null;
+        }
+
+        return [
+            'summary' => [
+                'total' => count($campaigns),
+                'live' => count($campaigns),
+                'top_boost' => $topBoost,
+            ],
+            'campaigns' => $campaigns,
+        ];
+    }
+
+    /**
+     * Live campaigns applicable to this client.
      *
      * @return array<int, array<string, mixed>>
      */

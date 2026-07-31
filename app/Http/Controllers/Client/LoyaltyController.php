@@ -26,7 +26,7 @@ class LoyaltyController extends Controller
             'balance' => $payload['balance'],
             'earnCaption' => $payload['earn_caption'] ?? null,
             'summaryBadges' => $payload['summary_badges'] ?? [],
-            'activeCampaigns' => $payload['active_campaigns'] ?? [],
+            'activeCampaigns' => $this->loyalty->activeCampaignsForUser($request->user()),
             'availableRewards' => $payload['available_rewards'],
             'recentTransactions' => $payload['recent_transactions'],
         ]);

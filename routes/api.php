@@ -715,6 +715,7 @@ Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(func
     Route::get('/settings/sections', [\App\Http\Controllers\Api\ClientSettingsController::class, 'sections']);
     Route::get('/memberships', [\App\Http\Controllers\Api\ClientSettingsController::class, 'memberships']);
     Route::get('/loyalty', [\App\Http\Controllers\Api\LoyaltyApiController::class, 'index']);
+    Route::get('/loyalty/campaigns', [\App\Http\Controllers\Api\LoyaltyApiController::class, 'campaigns']);
     Route::post('/loyalty/rewards/{id}/redeem', [\App\Http\Controllers\Api\LoyaltyApiController::class, 'redeem']);
     Route::get('/notifications', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'index']);
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Api\RoleNotificationsApiController::class, 'markAsRead']);

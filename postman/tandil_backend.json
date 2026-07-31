@@ -2637,7 +2637,7 @@
                 },
                 {
                     "name": "G. Loyalty Points",
-                    "description": "Client app Loyalty Points — balance, rewards, history, redeem. Auth: Bearer {{token}} (client). **Auto-earn:** 1 point per AED when shop order or membership payment becomes paid (logged-in client only). Config: settings loyalty_points_per_aed, loyalty_auto_earn_enabled.",
+                    "description": "Client app Loyalty Points.\n\n1) GET /api/client/loyalty — screen (balance, rewards, history)\n2) GET /api/client/loyalty/campaigns — active campaigns\n3) GET /api/user/loyalty — alias of (1)\n4) POST /api/client/loyalty/rewards/{id}/redeem\n\nAuth: Bearer {{token}} (client).",
                     "item": [
                         {
                             "name": "1. Get Loyalty Screen (GET)",
@@ -2664,11 +2664,40 @@
                                         "loyalty"
                                     ]
                                 },
-                                "description": "GET /api/client/loyalty — Main loyalty screen payload (enriched; no new endpoint).\n\n**Response `data`:**\n- `balance`, `balance_label` (e.g. `1,352 points`)\n- `points_per_aed`, `earn_caption`\n- `rewards_count`, `ready_count`, `summary_badges[]` (`key`,`count`,`label`)\n- `active_campaigns[]` — live campaigns for this client: id, title, multiplier, boost_label, start_date, end_date, date_range, status, status_label, subtitle\n- `available_rewards[]` — id, title, description, points_required, points_label, can_redeem, status, status_label, badge_label (`READY`|`LOCKED`), action_label (`Redeem`)\n- `recent_transactions[]` — id, type, title, date, points, points_display\n\n**UI:** points card → Active campaigns (if any) → Available Rewards → Recent transactions."
+                                "description": "GET /api/client/loyalty — Main loyalty screen (points + rewards + history). Campaigns are a separate API: GET /api/client/loyalty/campaigns.\n\n**Response `data`:**\n- `balance`, `balance_label`\n- `points_per_aed`, `earn_caption`\n- `rewards_count`, `ready_count`, `summary_badges[]`\n- `available_rewards[]` — badge_label (`READY`|`LOCKED`), action_label (`Redeem`)\n- `recent_transactions[]`"
                             }
                         },
                         {
-                            "name": "2. Get Loyalty (alias GET)",
+                            "name": "2. Get Loyalty Campaigns (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/client/loyalty/campaigns",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "client",
+                                        "loyalty",
+                                        "campaigns"
+                                    ]
+                                },
+                                "description": "GET /api/client/loyalty/campaigns — Active campaigns for this client.\n\n**Response `data`:**\n- `summary` — total, live, top_boost\n- `campaigns[]` — id, title, multiplier, boost_label, start_date, end_date, date_range, status, status_label, subtitle\n\nOnly live + enabled campaigns that apply to the authenticated client (all or specific targeting)."
+                            }
+                        },
+                        {
+                            "name": "3. Get Loyalty (alias GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -2692,11 +2721,11 @@
                                         "loyalty"
                                     ]
                                 },
-                                "description": "GET /api/user/loyalty — Same response as GET /api/client/loyalty (includes active_campaigns)."
+                                "description": "GET /api/user/loyalty — Same as GET /api/client/loyalty (no campaigns; use /client/loyalty/campaigns)."
                             }
                         },
                         {
-                            "name": "3. Redeem Reward (POST)",
+                            "name": "4. Redeem Reward (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [

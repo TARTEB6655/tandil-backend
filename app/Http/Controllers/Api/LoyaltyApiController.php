@@ -30,6 +30,17 @@ class LoyaltyApiController extends Controller
     }
 
     /**
+     * GET /api/client/loyalty/campaigns
+     */
+    public function campaigns(Request $request): JsonResponse
+    {
+        return ApiResponse::success(
+            'Loyalty campaigns retrieved.',
+            $this->loyalty->campaignsPayload($request->user())
+        );
+    }
+
+    /**
      * POST /api/client/loyalty/rewards/{id}/redeem
      */
     public function redeem(Request $request, int $id): JsonResponse
