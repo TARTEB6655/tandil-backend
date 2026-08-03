@@ -1124,6 +1124,31 @@
                     }
                 },
                 {
+                    "name": "Registration options (vendor types & emirates)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/vendor/auth/registration-options",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "vendor",
+                                "auth",
+                                "registration-options"
+                            ]
+                        },
+                        "description": "Public. Load active vendor types + emirates for the registration wizard pickers. Call before Register Vendor. Response: data.vendor_types[], data.emirates[] ({id,name,slug,is_active})."
+                    }
+                },
+                {
                     "name": "Register Vendor (form-data – full signup)",
                     "event": [
                         {
@@ -9495,13 +9520,25 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty"
+                                            ]
                                         },
                                         "description": "GET /api/admin/loyalty — Loyalty control center. Response data: loyalty_system_enabled, status, status_label, points_per_aed, activities, expiry_months. (Manage menu is UI-only — not returned by API.)"
                                     }
@@ -9511,9 +9548,18 @@
                                     "request": {
                                         "method": "PUT",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9521,8 +9567,15 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/toggle",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "toggle"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "toggle"
+                                            ]
                                         },
                                         "description": "PUT /api/admin/loyalty/toggle — Body: loyalty_system_enabled (boolean). Returns updated control center payload (same fields as GET /api/admin/loyalty — no manage array)."
                                     }
@@ -9537,13 +9590,26 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/settings",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "settings"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "settings"
+                                            ]
                                         },
                                         "description": "GET /api/admin/loyalty/settings — Loyalty settings screen.\n\n**Response `data`:** loyalty_system_enabled, points_per_aed, eligible_activities{shop_orders,service_orders,memberships}, points_expiry_months, rewards_expiry_months, cities, customer_targeting (`all`|`specific`), specific_customer_ids[], specific_customers[] (chip names), campaign_periods_only, activities_selected, status.\n\nPick customer IDs from D. Customers when using specific targeting."
                                     }
@@ -9553,9 +9619,18 @@
                                     "request": {
                                         "method": "PUT",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9563,8 +9638,15 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/settings",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "settings"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "settings"
+                                            ]
                                         },
                                         "description": "PUT /api/admin/loyalty/settings — **One API only.**\n\nSame endpoint for both UI modes:\n- Specific customers: `customer_targeting: \"specific\"` + `specific_customer_ids: [2]` (must be **client** user IDs from D. Customers — not admin/technician)\n- All customers: `customer_targeting: \"all\"` + `specific_customer_ids: []`\n\nResponse returns the same settings shape as GET (including specific_customers name chips when specific)."
                                     }
@@ -9580,13 +9662,26 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "rewards"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "rewards"
+                                            ]
                                         },
                                         "description": "GET /api/admin/loyalty/rewards — summary{total,active,starts_at} + rewards[] including customer_targeting (`all`|`specific`), specific_customer_ids[], specific_customers[]."
                                     }
@@ -9596,9 +9691,18 @@
                                     "request": {
                                         "method": "POST",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9606,8 +9710,15 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "rewards"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "rewards"
+                                            ]
                                         },
                                         "description": "POST /api/admin/loyalty/rewards — One API for all/specific.\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [2]` (client IDs only — from D. Customers)\nResponse includes specific_customers name chips."
                                     }
@@ -9617,9 +9728,18 @@
                                     "request": {
                                         "method": "PUT",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9627,8 +9747,16 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards/1",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "rewards", "1"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "rewards",
+                                                "1"
+                                            ]
                                         },
                                         "description": "PUT /api/admin/loyalty/rewards/{id} — Same customer_targeting / specific_customer_ids fields as create."
                                     }
@@ -9638,9 +9766,18 @@
                                     "request": {
                                         "method": "POST",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9648,8 +9785,17 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards/1/toggle",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "rewards", "1", "toggle"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "rewards",
+                                                "1",
+                                                "toggle"
+                                            ]
                                         },
                                         "description": "POST /api/admin/loyalty/rewards/{id}/toggle — Body is_active boolean (Enabled toggle)."
                                     }
@@ -9659,13 +9805,27 @@
                                     "request": {
                                         "method": "DELETE",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/rewards/1",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "rewards", "1"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "rewards",
+                                                "1"
+                                            ]
                                         },
                                         "description": "DELETE /api/admin/loyalty/rewards/{id}"
                                     }
@@ -9680,14 +9840,33 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/customers?search=",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "customers"],
-                                            "query": [{"key": "search", "value": "", "description": "Search name, email, or phone"}]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "customers"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "search",
+                                                    "value": "",
+                                                    "description": "Search name, email, or phone"
+                                                }
+                                            ]
                                         },
                                         "description": "GET /api/admin/loyalty/customers — summary{visible,points_pool,holders} + customers[{id,name,email,city,points,profile_picture_url}]. `profile_picture_url` is full `/media/...` URL or null. Use `id` values in settings / rewards / campaigns `specific_customer_ids` when customer_targeting is specific."
                                     }
@@ -9697,13 +9876,27 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/customers/1",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "customers", "1"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "customers",
+                                                "1"
+                                            ]
                                         },
                                         "description": "GET /api/admin/loyalty/customers/{id} — name, email, city, profile_picture_url, balance, earned, redeemed, history[{title,type,type_label,datetime,points_display}]."
                                     }
@@ -9713,9 +9906,18 @@
                                     "request": {
                                         "method": "POST",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9723,8 +9925,17 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/customers/1/adjust",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "customers", "1", "adjust"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "customers",
+                                                "1",
+                                                "adjust"
+                                            ]
                                         },
                                         "description": "POST or PUT /api/admin/loyalty/customers/{id}/adjust\n\nBody:\n```json\n{\n  \"amount\": 50,\n  \"reason\": \"Optional note\"\n}\n```\n- Positive `amount` credits points\n- Negative `amount` deducts points\n- Requires admin Bearer token\n- Customer `id` must be a client user (use List Customers first)"
                                     }
@@ -9739,13 +9950,26 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/campaigns",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "campaigns"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "campaigns"
+                                            ]
                                         },
                                         "description": "GET /api/admin/loyalty/campaigns — summary{total,live,top_boost} + campaigns[] with list-card fields: title, boost_label (`2x points`), date_range, cities (`All cities` when empty), customer_targeting (`all`|`specific`), customer_targeting_label (`All customers`|`Specific customer`), specific_customer_ids[], specific_customers[] chips, is_enabled, status."
                                     }
@@ -9755,9 +9979,18 @@
                                     "request": {
                                         "method": "POST",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9765,8 +9998,15 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/campaigns",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "campaigns"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "campaigns"
+                                            ]
                                         },
                                         "description": "POST /api/admin/loyalty/campaigns — Matches Add campaign UI.\n- multiplier: `2`/`3` or `\"2x\"`/`\"3x\"`\n- Active toggle: `is_enabled` (alias `is_active` also accepted)\n- All: `customer_targeting: \"all\"`, `specific_customer_ids: []`\n- Specific: `customer_targeting: \"specific\"`, `specific_customer_ids: [2]` (client IDs only — from D. Customers) → response `specific_customers` name chips + `customer_targeting_label`"
                                     }
@@ -9776,9 +10016,18 @@
                                     "request": {
                                         "method": "PUT",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9786,8 +10035,16 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/campaigns/1",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "campaigns", "1"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "campaigns",
+                                                "1"
+                                            ]
                                         },
                                         "description": "PUT /api/admin/loyalty/campaigns/{id} — Same customer_targeting / specific_customer_ids fields as create. Switching to all clears specific customers."
                                     }
@@ -9797,9 +10054,18 @@
                                     "request": {
                                         "method": "POST",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"},
-                                            {"key": "Content-Type", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "body": {
                                             "mode": "raw",
@@ -9807,8 +10073,17 @@
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/campaigns/1/toggle",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "campaigns", "1", "toggle"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "campaigns",
+                                                "1",
+                                                "toggle"
+                                            ]
                                         },
                                         "description": "POST /api/admin/loyalty/campaigns/{id}/toggle — is_enabled boolean."
                                     }
@@ -9818,13 +10093,27 @@
                                     "request": {
                                         "method": "DELETE",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/campaigns/1",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "campaigns", "1"]
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "campaigns",
+                                                "1"
+                                            ]
                                         },
                                         "description": "DELETE /api/admin/loyalty/campaigns/{id}"
                                     }
@@ -9839,19 +10128,55 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/json"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/reports?customer_scope=all&period=month",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "reports"],
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "reports"
+                                            ],
                                             "query": [
-                                                {"key": "customer_scope", "value": "all", "description": "all | specific"},
-                                                {"key": "specific_customer_ids[]", "value": "2", "disabled": true, "description": "Required when customer_scope=specific (client role ids only)"},
-                                                {"key": "period", "value": "month", "description": "week | month | specific"},
-                                                {"key": "date_from", "value": "2026-07-01", "disabled": true, "description": "Y-m-d required when period=specific"},
-                                                {"key": "date_to", "value": "2026-07-31", "disabled": true, "description": "Y-m-d required when period=specific"}
+                                                {
+                                                    "key": "customer_scope",
+                                                    "value": "all",
+                                                    "description": "all | specific"
+                                                },
+                                                {
+                                                    "key": "specific_customer_ids[]",
+                                                    "value": "2",
+                                                    "disabled": true,
+                                                    "description": "Required when customer_scope=specific (client role ids only)"
+                                                },
+                                                {
+                                                    "key": "period",
+                                                    "value": "month",
+                                                    "description": "week | month | specific"
+                                                },
+                                                {
+                                                    "key": "date_from",
+                                                    "value": "2026-07-01",
+                                                    "disabled": true,
+                                                    "description": "Y-m-d required when period=specific"
+                                                },
+                                                {
+                                                    "key": "date_to",
+                                                    "value": "2026-07-31",
+                                                    "disabled": true,
+                                                    "description": "Y-m-d required when period=specific"
+                                                }
                                             ]
                                         },
                                         "description": "GET /api/admin/loyalty/reports — Reports & export screen.\n\n**Filters:** customer_scope (all|specific), specific_customer_ids[], period (week|month|specific), date_from/date_to (required when period=specific).\n\n**Response:** health, filters echo, summary cards, export `{ format: pdf, ready, label: Export PDF }`."
@@ -9862,20 +10187,56 @@
                                     "request": {
                                         "method": "GET",
                                         "header": [
-                                            {"key": "Authorization", "value": "Bearer {{token}}"},
-                                            {"key": "Accept", "value": "application/pdf"}
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/pdf"
+                                            }
                                         ],
                                         "url": {
                                             "raw": "{{base_url}}/api/admin/loyalty/export?customer_scope=all&period=specific&date_from=2026-07-01&date_to=2026-07-31",
-                                            "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "loyalty", "export"],
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "loyalty",
+                                                "export"
+                                            ],
                                             "query": [
-                                                {"key": "customer_scope", "value": "all"},
-                                                {"key": "specific_customer_ids[]", "value": "2", "disabled": true},
-                                                {"key": "period", "value": "specific", "description": "week | month | specific"},
-                                                {"key": "date_from", "value": "2026-07-01", "description": "Required when period=specific"},
-                                                {"key": "date_to", "value": "2026-07-31", "description": "Required when period=specific"},
-                                                {"key": "format", "value": "pdf", "description": "pdf (default) | csv | json"}
+                                                {
+                                                    "key": "customer_scope",
+                                                    "value": "all"
+                                                },
+                                                {
+                                                    "key": "specific_customer_ids[]",
+                                                    "value": "2",
+                                                    "disabled": true
+                                                },
+                                                {
+                                                    "key": "period",
+                                                    "value": "specific",
+                                                    "description": "week | month | specific"
+                                                },
+                                                {
+                                                    "key": "date_from",
+                                                    "value": "2026-07-01",
+                                                    "description": "Required when period=specific"
+                                                },
+                                                {
+                                                    "key": "date_to",
+                                                    "value": "2026-07-31",
+                                                    "description": "Required when period=specific"
+                                                },
+                                                {
+                                                    "key": "format",
+                                                    "value": "pdf",
+                                                    "description": "pdf (default) | csv | json"
+                                                }
                                             ]
                                         },
                                         "description": "GET /api/admin/loyalty/export — **PDF download** (default). Same filters as /reports including Specific date From/To. Postman: Send ▼ → **Send and Download**. Optional `format=csv` or `format=json`."
@@ -19401,6 +19762,569 @@
                     ]
                 },
                 {
+                    "name": "F2. Admin - Vendor Types & Emirates",
+                    "description": "Admin mobile **Vendor types & Emirates** screen (tabs + add/edit/delete).\n\n**Auth:** Login as admin → Bearer {{token}}.\n\n**Form fields only (no extras):** `name`, `slug` (optional — empty auto from name), `is_active` (`1`/`0`).\n\n**Response shape:** `{ id, name, slug, is_active }`.\n\n**Public dropdowns for vendor registration:** `GET /api/vendor/auth/registration-options` (active only).\n\nEnv: `vendor_type_id`, `emirate_id` (auto-set from List/Create).",
+                    "item": [
+                        {
+                            "name": "A. Vendor Types",
+                            "description": "CRUD for vendor types tab. Form-data create/update.",
+                            "item": [
+                                {
+                                    "name": "List vendor type",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "exec": [
+                                                    "if (pm.response.code === 200) {",
+                                                    "    var jsonData = pm.response.json();",
+                                                    "    if (jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {",
+                                                    "        pm.environment.set('vendor_type_id', jsonData.data[0].id);",
+                                                    "    }",
+                                                    "}"
+                                                ],
+                                                "type": "text/javascript"
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/vendor-types",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "vendor-types"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "is_active",
+                                                    "value": "",
+                                                    "description": "Optional filter: 1 or 0",
+                                                    "disabled": true
+                                                }
+                                            ]
+                                        },
+                                        "description": "GET /api/admin/vendor-types — Admin list for Vendor types & Emirates screen. Response data[]: id, name, slug, is_active only. Auth: Bearer admin {{token}}."
+                                    }
+                                },
+                                {
+                                    "name": "Create vendor type",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "exec": [
+                                                    "if (pm.response.code === 201 || pm.response.code === 200) {",
+                                                    "    var jsonData = pm.response.json();",
+                                                    "    if (jsonData.data && jsonData.data.id) { pm.environment.set('vendor_type_id', jsonData.data.id); }",
+                                                    "}"
+                                                ],
+                                                "type": "text/javascript"
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "name",
+                                                    "value": "Fruits",
+                                                    "type": "text",
+                                                    "description": "Required. Display name (e.g. Fruits / Dubai)."
+                                                },
+                                                {
+                                                    "key": "slug",
+                                                    "value": "",
+                                                    "type": "text",
+                                                    "description": "Optional. Leave empty to auto-generate from name."
+                                                },
+                                                {
+                                                    "key": "is_active",
+                                                    "value": "1",
+                                                    "type": "text",
+                                                    "description": "Optional. 1 = active (default), 0 = inactive. Matches Active toggle."
+                                                }
+                                            ]
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/vendor-types",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "vendor-types"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/vendor-types — Add modal (form-data). Fields: name (required), slug (optional/empty = auto), is_active (1/0, default 1). Response: id, name, slug, is_active."
+                                    }
+                                },
+                                {
+                                    "name": "Get vendor type",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/vendor-types/{{vendor_type_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "vendor-types",
+                                                "{{vendor_type_id}}"
+                                            ]
+                                        },
+                                        "description": "GET /api/admin/vendor-types/{{vendor_type_id}} — Single row. Set vendor_type_id from List/Create."
+                                    }
+                                },
+                                {
+                                    "name": "Update vendor type",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "name",
+                                                    "value": "Fruits Updated",
+                                                    "type": "text",
+                                                    "description": "Required. Display name (e.g. Fruits / Dubai)."
+                                                },
+                                                {
+                                                    "key": "slug",
+                                                    "value": "",
+                                                    "type": "text",
+                                                    "description": "Optional. Leave empty to auto-generate from name."
+                                                },
+                                                {
+                                                    "key": "is_active",
+                                                    "value": "1",
+                                                    "type": "text",
+                                                    "description": "Optional. 1 = active (default), 0 = inactive. Matches Active toggle."
+                                                }
+                                            ]
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/vendor-types/{{vendor_type_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "vendor-types",
+                                                "{{vendor_type_id}}"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/vendor-types/{{vendor_type_id}} — Edit modal (form-data). Send name and/or slug and/or is_active. Empty slug regenerates from name only when slug key is sent."
+                                    }
+                                },
+                                {
+                                    "name": "Toggle vendor type status",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/vendor-types/{{vendor_type_id}}/toggle-status",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "vendor-types",
+                                                "{{vendor_type_id}}",
+                                                "toggle-status"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/vendor-types/{{vendor_type_id}}/toggle-status — Flip Active toggle."
+                                    }
+                                },
+                                {
+                                    "name": "Delete vendor type",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/vendor-types/{{vendor_type_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "vendor-types",
+                                                "{{vendor_type_id}}"
+                                            ]
+                                        },
+                                        "description": "DELETE /api/admin/vendor-types/{{vendor_type_id}} — Remove row."
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "B. Emirates",
+                            "description": "CRUD for Emirates tab. Form-data create/update.",
+                            "item": [
+                                {
+                                    "name": "List emirate",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "exec": [
+                                                    "if (pm.response.code === 200) {",
+                                                    "    var jsonData = pm.response.json();",
+                                                    "    if (jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {",
+                                                    "        pm.environment.set('emirate_id', jsonData.data[0].id);",
+                                                    "    }",
+                                                    "}"
+                                                ],
+                                                "type": "text/javascript"
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/emirates",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "emirates"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "is_active",
+                                                    "value": "",
+                                                    "description": "Optional filter: 1 or 0",
+                                                    "disabled": true
+                                                }
+                                            ]
+                                        },
+                                        "description": "GET /api/admin/emirates — Admin list for Vendor types & Emirates screen. Response data[]: id, name, slug, is_active only. Auth: Bearer admin {{token}}."
+                                    }
+                                },
+                                {
+                                    "name": "Create emirate",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "exec": [
+                                                    "if (pm.response.code === 201 || pm.response.code === 200) {",
+                                                    "    var jsonData = pm.response.json();",
+                                                    "    if (jsonData.data && jsonData.data.id) { pm.environment.set('emirate_id', jsonData.data.id); }",
+                                                    "}"
+                                                ],
+                                                "type": "text/javascript"
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "name",
+                                                    "value": "Dubai",
+                                                    "type": "text",
+                                                    "description": "Required. Display name (e.g. Fruits / Dubai)."
+                                                },
+                                                {
+                                                    "key": "slug",
+                                                    "value": "",
+                                                    "type": "text",
+                                                    "description": "Optional. Leave empty to auto-generate from name."
+                                                },
+                                                {
+                                                    "key": "is_active",
+                                                    "value": "1",
+                                                    "type": "text",
+                                                    "description": "Optional. 1 = active (default), 0 = inactive. Matches Active toggle."
+                                                }
+                                            ]
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/emirates",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "emirates"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/emirates — Add modal (form-data). Fields: name (required), slug (optional/empty = auto), is_active (1/0, default 1). Response: id, name, slug, is_active."
+                                    }
+                                },
+                                {
+                                    "name": "Get emirate",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/emirates/{{emirate_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "emirates",
+                                                "{{emirate_id}}"
+                                            ]
+                                        },
+                                        "description": "GET /api/admin/emirates/{{emirate_id}} — Single row. Set emirate_id from List/Create."
+                                    }
+                                },
+                                {
+                                    "name": "Update emirate",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "name",
+                                                    "value": "Dubai Updated",
+                                                    "type": "text",
+                                                    "description": "Required. Display name (e.g. Fruits / Dubai)."
+                                                },
+                                                {
+                                                    "key": "slug",
+                                                    "value": "",
+                                                    "type": "text",
+                                                    "description": "Optional. Leave empty to auto-generate from name."
+                                                },
+                                                {
+                                                    "key": "is_active",
+                                                    "value": "1",
+                                                    "type": "text",
+                                                    "description": "Optional. 1 = active (default), 0 = inactive. Matches Active toggle."
+                                                }
+                                            ]
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/emirates/{{emirate_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "emirates",
+                                                "{{emirate_id}}"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/emirates/{{emirate_id}} — Edit modal (form-data). Send name and/or slug and/or is_active. Empty slug regenerates from name only when slug key is sent."
+                                    }
+                                },
+                                {
+                                    "name": "Toggle emirate status",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/emirates/{{emirate_id}}/toggle-status",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "emirates",
+                                                "{{emirate_id}}",
+                                                "toggle-status"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/emirates/{{emirate_id}}/toggle-status — Flip Active toggle."
+                                    }
+                                },
+                                {
+                                    "name": "Delete emirate",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/emirates/{{emirate_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "emirates",
+                                                "{{emirate_id}}"
+                                            ]
+                                        },
+                                        "description": "DELETE /api/admin/emirates/{{emirate_id}} — Remove row."
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "C. Public – Registration options",
+                            "description": "Public (no auth). Used by vendor registration wizard dropdowns — active vendor types + emirates only.",
+                            "item": [
+                                {
+                                    "name": "Get registration options",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/vendor/auth/registration-options",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "vendor",
+                                                "auth",
+                                                "registration-options"
+                                            ]
+                                        },
+                                        "description": "GET /api/vendor/auth/registration-options — Public. Response data.vendor_types[] and data.emirates[] each with id, name, slug, is_active (active rows only)."
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
                     "name": "G. Admin - Services",
                     "description": "Services API – full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
                     "item": [
@@ -25152,6 +26076,18 @@
             "key": "category_id",
             "value": "1",
             "type": "string"
+        },
+        {
+            "key": "emirate_id",
+            "value": "1",
+            "type": "string",
+            "description": "Set from F2 List/Create emirate. Used for Get/Update/Toggle/Delete."
+        },
+        {
+            "key": "vendor_type_id",
+            "value": "1",
+            "type": "string",
+            "description": "Set from F2 List/Create vendor type. Used for Get/Update/Toggle/Delete."
         },
         {
             "key": "product_id",

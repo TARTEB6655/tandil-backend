@@ -416,6 +416,24 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/categories/{id}/toggle-status', [\App\Http\Controllers\CategoryController::class, 'toggleStatus']);
     Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
+    // Vendor types (admin-managed registration options)
+    Route::get('/vendor-types', [\App\Http\Controllers\Api\Admin\VendorTypeController::class, 'index']);
+    Route::post('/vendor-types', [\App\Http\Controllers\Api\Admin\VendorTypeController::class, 'store']);
+    Route::get('/vendor-types/{id}', [\App\Http\Controllers\Api\Admin\VendorTypeController::class, 'show']);
+    Route::put('/vendor-types/{id}', [\App\Http\Controllers\Api\Admin\VendorTypeController::class, 'update']);
+    Route::post('/vendor-types/{id}', [\App\Http\Controllers\Api\Admin\VendorTypeController::class, 'update']);
+    Route::post('/vendor-types/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\VendorTypeController::class, 'toggleStatus']);
+    Route::delete('/vendor-types/{id}', [\App\Http\Controllers\Api\Admin\VendorTypeController::class, 'destroy']);
+
+    // Emirates (admin-managed registration options)
+    Route::get('/emirates', [\App\Http\Controllers\Api\Admin\EmirateController::class, 'index']);
+    Route::post('/emirates', [\App\Http\Controllers\Api\Admin\EmirateController::class, 'store']);
+    Route::get('/emirates/{id}', [\App\Http\Controllers\Api\Admin\EmirateController::class, 'show']);
+    Route::put('/emirates/{id}', [\App\Http\Controllers\Api\Admin\EmirateController::class, 'update']);
+    Route::post('/emirates/{id}', [\App\Http\Controllers\Api\Admin\EmirateController::class, 'update']);
+    Route::post('/emirates/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\EmirateController::class, 'toggleStatus']);
+    Route::delete('/emirates/{id}', [\App\Http\Controllers\Api\Admin\EmirateController::class, 'destroy']);
+
     // Services API (separate CRUD; services = categories). Same data, routes under /api/admin/services.
     Route::get('/services', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'index']);
     Route::post('/services', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'store']);

@@ -2,9 +2,12 @@
 
 namespace App\Http\Requests\Vendor;
 
-use App\Enums\VendorType;
+use App\Enums\VendorType as VendorTypeEnum;
+use App\Models\Emirate;
 use App\Models\VendorProfile;
+use App\Models\VendorType as VendorTypeModel;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 abstract class VendorProfileFormRequest extends FormRequest
@@ -25,8 +28,8 @@ abstract class VendorProfileFormRequest extends FormRequest
             'phone' => [$presence, 'string', 'max:32'],
             'trade_license_number' => [$presence, 'string', 'max:100'],
             'address' => [$presence, 'string', 'max:2000'],
-            'vendor_type' => [$presence, Rule::in(VendorType::values())],
-            'emirate' => [$presence, 'string', 'max:100', Rule::in(VendorProfile::emirates())],
+            'vendor_type' => [$presence, Rule::in($this->allowedVendorTypeSlugs())],
+            'emirate' => [$presence, 'string', 'max:100', Rule::in($this->allowedEmirateNames())],
             'city' => ['nullable', 'string', 'max:100'],
             'google_maps_location' => [$presence, 'string', 'max:500'],
             'bank_name' => [$presence, 'string', 'max:191'],
@@ -93,31 +96,65 @@ abstract class VendorProfileFormRequest extends FormRequest
     }
 
     /**
-     * Mobile pickers sometimes send "Dubai"/"dubai", "Fruits"/"FRUITS", or loose aliases.
+     * Resolve against admin-managed DB rows first, then legacy enum helpers.
      */
     protected function normalizeVendorTypeAndEmirate(): void
     {
         $merge = [];
 
         if ($this->filled('vendor_type')) {
-            $resolved = VendorType::resolve($this->input('vendor_type'));
+            $resolved = VendorTypeModel::resolveToSlug($this->input('vendor_type'))
+                ?? VendorTypeEnum::resolve($this->input('vendor_type'));
             if ($resolved !== null) {
                 $merge['vendor_type'] = $resolved;
             }
         }
 
         if ($this->filled('emirate')) {
-            $raw = strtolower(trim((string) $this->input('emirate')));
-            foreach (VendorProfile::emirates() as $emirate) {
-                if ($raw === strtolower($emirate) || $raw === strtolower(str_replace(' ', '', $emirate))) {
-                    $merge['emirate'] = $emirate;
-                    break;
+            $resolved = Emirate::resolveToName($this->input('emirate'));
+            if ($resolved !== null) {
+                $merge['emirate'] = $resolved;
+            } else {
+                $raw = strtolower(trim((string) $this->input('emirate')));
+                foreach (VendorProfile::emirates() as $emirate) {
+                    if ($raw === strtolower($emirate) || $raw === strtolower(str_replace(' ', '', $emirate))) {
+                        $merge['emirate'] = $emirate;
+                        break;
+                    }
                 }
             }
         }
 
         if ($merge !== []) {
             $this->merge($merge);
+        }
+    }
+
+    /** @return list<string> */
+    protected function allowedVendorTypeSlugs(): array
+    {
+        if ($this->vendorTypesTableReady()) {
+            $slugs = VendorTypeModel::activeSlugs();
+            if ($slugs !== []) {
+                return $slugs;
+            }
+        }
+
+        return VendorTypeEnum::values();
+    }
+
+    /** @return list<string> */
+    protected function allowedEmirateNames(): array
+    {
+        return VendorProfile::emirates();
+    }
+
+    protected function vendorTypesTableReady(): bool
+    {
+        try {
+            return Schema::hasTable('vendor_types');
+        } catch (\Throwable) {
+            return false;
         }
     }
 

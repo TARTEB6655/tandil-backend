@@ -5,6 +5,7 @@ namespace Tests\Feature\Vendor;
 use App\Enums\VendorStatus;
 use App\Enums\VendorType;
 use App\Services\ImageCompressionService;
+use Database\Seeders\VendorTypeAndEmirateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -24,6 +25,7 @@ class VendorRegistrationAllTypesAndImageSmokeTest extends TestCase
         parent::setUp();
         Storage::fake('public');
         Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
+        $this->seed(VendorTypeAndEmirateSeeder::class);
     }
 
     /** @return array<string, array{0: string, 1: string}> */

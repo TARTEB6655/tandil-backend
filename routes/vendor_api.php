@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('vendor')->group(function () {
     Route::post('/auth/register', [VendorAuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']); // body: email, password, roles: "vendor"
+    Route::get('/auth/registration-options', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
 
     Route::get('/compare/products/{productId}', [VendorComparisonController::class, 'byProduct']);
     Route::post('/compare/products', [VendorComparisonController::class, 'byProducts']);

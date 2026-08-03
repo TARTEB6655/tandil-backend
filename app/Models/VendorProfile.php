@@ -63,6 +63,13 @@ class VendorProfile extends Model
             return null;
         }
 
+        if (\Illuminate\Support\Facades\Schema::hasTable('vendor_types')) {
+            $label = \App\Models\VendorType::query()->where('slug', $this->vendor_type)->value('name');
+            if (is_string($label) && $label !== '') {
+                return $label;
+            }
+        }
+
         return VendorType::tryFrom($this->vendor_type)?->label() ?? ucfirst($this->vendor_type);
     }
 
@@ -109,9 +116,20 @@ class VendorProfile extends Model
             : asset('media/'.$path);
     }
 
-    /** @return list<string> UAE emirates. */
+    /** @return list<string> Active emirates (admin-managed), with static fallback. */
     public static function emirates(): array
     {
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('emirates')) {
+                $names = Emirate::activeNames();
+                if ($names !== []) {
+                    return $names;
+                }
+            }
+        } catch (\Throwable) {
+            // fall through to static list
+        }
+
         return [
             'Abu Dhabi',
             'Dubai',

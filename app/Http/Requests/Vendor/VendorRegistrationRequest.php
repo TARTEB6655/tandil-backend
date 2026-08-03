@@ -37,9 +37,12 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             ]);
         }
 
-        // Unknown mobile picker values should not block signup — store as "other".
-        if ($this->filled('vendor_type') && ! in_array($this->input('vendor_type'), \App\Enums\VendorType::values(), true)) {
-            $this->merge(['vendor_type' => \App\Enums\VendorType::Other->value]);
+        // Unknown mobile picker values should not block signup — prefer active "other" row.
+        if ($this->filled('vendor_type') && ! in_array($this->input('vendor_type'), $this->allowedVendorTypeSlugs(), true)) {
+            $fallback = \App\Models\VendorType::query()->active()->where('slug', 'other')->value('slug')
+                ?? (\App\Models\VendorType::query()->active()->orderBy('id')->value('slug'))
+                ?? 'other';
+            $this->merge(['vendor_type' => $fallback]);
         }
     }
 
