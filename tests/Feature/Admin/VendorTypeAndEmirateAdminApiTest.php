@@ -52,9 +52,33 @@ class VendorTypeAndEmirateAdminApiTest extends TestCase
                 ],
             ]);
 
-        $first = $response->json('data.0');
+        $data = $response->json('data');
+        $this->assertNotEmpty($data, 'Vendor types list must not be empty after migrate/seed.');
+        $first = $data[0];
         $this->assertSame(['id', 'name', 'slug', 'is_active'], array_keys($first));
-        $this->assertGreaterThanOrEqual(9, count($response->json('data')));
+        $this->assertGreaterThanOrEqual(9, count($data));
+        $this->assertContains('fruits', collect($data)->pluck('slug')->all());
+    }
+
+    public function test_admin_lists_emirates_with_expected_shape_and_data(): void
+    {
+        $response = $this->getJson('/api/admin/emirates', $this->auth());
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    ['id', 'name', 'slug', 'is_active'],
+                ],
+            ]);
+
+        $data = $response->json('data');
+        $this->assertNotEmpty($data, 'Emirates list must not be empty after migrate/seed.');
+        $this->assertGreaterThanOrEqual(7, count($data));
+        $this->assertContains('dubai', collect($data)->pluck('slug')->all());
+        $this->assertSame(['id', 'name', 'slug', 'is_active'], array_keys($data[0]));
     }
 
     public function test_admin_creates_vendor_type_via_form_data(): void
