@@ -133,7 +133,7 @@ class AdminSupportChatWebTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.vendors.analytics', $vendor))
             ->assertOk()
-            ->assertSee('Performance Analytics')
+            ->assertSee('Performance analytics')
             ->assertSee($vendor->profile->business_name);
     }
 
