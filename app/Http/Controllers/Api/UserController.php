@@ -155,10 +155,28 @@ class UserController extends Controller
             $profileFile = $profileFile[0] ?? null;
         }
 
+        // Mobile clears phone by sending "" / "null" / whitespace — normalize to real null
+        // so the value is removed from DB (not left as the previous number).
+        $phoneWasSent = $request->exists('phone');
+        if ($phoneWasSent) {
+            $rawPhone = $request->input('phone');
+            if ($rawPhone === null || $rawPhone === '' || (is_string($rawPhone) && trim($rawPhone) === '') || $rawPhone === 'null') {
+                $request->merge(['phone' => null]);
+            } else {
+                $request->merge(['phone' => trim((string) $rawPhone)]);
+            }
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($user->id)],
+            'phone' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('users', 'phone')->ignore($user->id)->whereNotNull('phone'),
+            ],
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:102400',
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
@@ -175,7 +193,12 @@ class UserController extends Controller
             $user->password = Hash::make($request->input('password'));
         }
 
-        $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture', 'current_password', 'password', 'password_confirmation']));
+        $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture', 'current_password', 'password', 'password_confirmation', 'phone']));
+
+        // Explicit phone apply: present key with null/blank must clear the column.
+        if ($phoneWasSent) {
+            $user->phone = $validated['phone'] ?? null;
+        }
 
         try {
             if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
