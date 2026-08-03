@@ -201,6 +201,14 @@ class ImageCompressionService
     }
 
     /**
+     * Optimize client/staff user profile pictures (same targets as vendor avatars).
+     */
+    public static function optimizeUserProfilePictureFromPublicPath(string $relativePath): bool
+    {
+        return self::optimizeVendorProfilePictureFromPublicPath($relativePath);
+    }
+
+    /**
      * Optimize variable product option thumbnail (smaller dimensions + file size).
      */
     public static function optimizeProductOptionFromPublicPath(string $relativePath): bool

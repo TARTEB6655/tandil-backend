@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Api;
 
+use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\Package;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ClientDashboardProfileApiTest extends TestCase
@@ -153,6 +157,47 @@ class ClientDashboardProfileApiTest extends TestCase
         $response->assertJsonPath('data.name', 'Updated Client Name');
         $this->client->refresh();
         $this->assertSame('Updated Client Name', $this->client->name);
+    }
+
+    public function test_user_profile_photo_update_defers_compression_and_stays_fast(): void
+    {
+        Storage::fake('public');
+        Bus::fake([OptimizePublicDiskImageJob::class]);
+
+        $started = microtime(true);
+        $response = $this->post('/api/user/profile', [
+            'name' => 'devavology12',
+            'email' => $this->client->email,
+            'phone' => '983434343',
+            'profile_picture' => UploadedFile::fake()->image('avatar.jpg', 2400, 2400)->size(4500),
+        ], [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$this->token,
+        ]);
+        $elapsedMs = (microtime(true) - $started) * 1000;
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'devavology12')
+            ->assertJsonPath('data.phone', '983434343');
+
+        $this->assertNotEmpty($response->json('data.profile_picture'));
+        Bus::assertDispatched(OptimizePublicDiskImageJob::class, function (OptimizePublicDiskImageJob $job) {
+            return $job->profile === 'user' && str_contains($job->relativePath, 'profiles/');
+        });
+        $this->assertLessThan(2500, $elapsedMs, "Client profile update took {$elapsedMs}ms");
+    }
+
+    public function test_user_profile_rejects_duplicate_phone_with_friendly_message(): void
+    {
+        User::factory()->create(['role' => 'client', 'phone' => '0555381810']);
+
+        $this->putJson('/api/user/profile', [
+            'phone' => '0555381810',
+        ], $this->authHeaders())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['phone'])
+            ->assertJsonPath('message', 'This phone number is already registered. Please use a different phone number.');
     }
 
     // ---- Phone only (PUT/POST/PATCH /api/user/phone) — post Google/Apple signup popup ----

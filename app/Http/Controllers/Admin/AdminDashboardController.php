@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ProfilePictureUploadService;
 use App\Services\ImageCompressionService;
+use App\Jobs\OptimizePublicDiskImageJob;
 
 class AdminDashboardController extends Controller
 {
@@ -1340,10 +1341,10 @@ class AdminDashboardController extends Controller
         if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
             $stored = $profileFile->store('profiles', 'public');
             $user->profile_picture = $stored;
-            ImageCompressionService::compressIfNeededFromPublicPath($stored);
+            OptimizePublicDiskImageJob::dispatch($stored, 'user')->afterResponse();
         } elseif ($storedFromPut) {
             $user->profile_picture = $storedFromPut;
-            ImageCompressionService::compressIfNeededFromPublicPath($storedFromPut);
+            OptimizePublicDiskImageJob::dispatch($storedFromPut, 'user')->afterResponse();
         }
         $user->save();
         $user->refresh();

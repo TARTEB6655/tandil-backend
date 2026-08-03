@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
+use App\Jobs\OptimizePublicDiskImageJob;
 
 class AreaManagerApiController extends Controller
 {
@@ -1162,12 +1163,12 @@ class AreaManagerApiController extends Controller
         if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
             $stored = $profileFile->store('profiles', 'public');
             $user->profile_picture = $stored;
-            ImageCompressionService::compressIfNeededFromPublicPath($stored);
+            OptimizePublicDiskImageJob::dispatch($stored, 'user')->afterResponse();
         } elseif ($request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
             $stored = ProfilePictureUploadService::storeFromMultipartPut($request);
             if ($stored) {
                 $user->profile_picture = $stored;
-                ImageCompressionService::compressIfNeededFromPublicPath($stored);
+                OptimizePublicDiskImageJob::dispatch($stored, 'user')->afterResponse();
             }
         }
 
