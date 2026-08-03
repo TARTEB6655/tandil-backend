@@ -4,14 +4,15 @@ namespace App\Services\Vendor;
 
 use App\Enums\VendorDocumentType;
 use App\Enums\VendorStatus;
+use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorApprovalLog;
 use App\Models\VendorProfile;
-use App\Services\ImageCompressionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 
 class VendorRegistrationService
 {
@@ -37,7 +38,7 @@ class VendorRegistrationService
                 'role' => 'vendor',
                 'status' => 'active',
             ]);
-            $user->assignRole('vendor');
+            $this->ensureVendorRole($user);
 
             $vendor = Vendor::create([
                 'user_id' => $user->id,
@@ -219,9 +220,26 @@ class VendorRegistrationService
     private function storeAndOptimizeImage(UploadedFile $file, string $directory): string
     {
         $path = $file->store($directory, 'public');
-        ImageCompressionService::optimizeVendorProfilePictureFromPublicPath($path);
+
+        // Defer GD compression until after the HTTP response so large camera
+        // uploads cannot hold the registration DB transaction / hang the mobile spinner.
+        OptimizePublicDiskImageJob::dispatch($path, 'vendor')->afterResponse();
 
         return $path;
+    }
+
+    private function ensureVendorRole(User $user): void
+    {
+        try {
+            if (class_exists(Role::class)) {
+                Role::findOrCreate('vendor', 'web');
+            }
+            if (method_exists($user, 'assignRole') && ! $user->hasRole('vendor')) {
+                $user->assignRole('vendor');
+            }
+        } catch (\Throwable) {
+            // Spatie optional / already attached via users.role
+        }
     }
 
     /**

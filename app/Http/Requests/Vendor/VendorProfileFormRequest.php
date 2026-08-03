@@ -68,6 +68,7 @@ abstract class VendorProfileFormRequest extends FormRequest
         }
 
         $this->normalizeVendorFieldAliases();
+        $this->normalizeVendorTypeAndEmirate();
         $this->normalizeTimeFields(['opens_at', 'closes_at']);
         $this->normalizeOperatingHoursFromTimes();
     }
@@ -84,6 +85,38 @@ abstract class VendorProfileFormRequest extends FormRequest
             if ($this->filled($from) && ! $this->filled($to)) {
                 $this->merge([$to => $this->input($from)]);
             }
+        }
+    }
+
+    /**
+     * Mobile pickers sometimes send "Dubai"/"dubai" or "Fruits"/"FRUITS".
+     */
+    protected function normalizeVendorTypeAndEmirate(): void
+    {
+        $merge = [];
+
+        if ($this->filled('vendor_type')) {
+            $raw = strtolower(trim((string) $this->input('vendor_type')));
+            foreach (VendorType::values() as $value) {
+                if ($raw === $value || $raw === strtolower(VendorType::from($value)->label())) {
+                    $merge['vendor_type'] = $value;
+                    break;
+                }
+            }
+        }
+
+        if ($this->filled('emirate')) {
+            $raw = strtolower(trim((string) $this->input('emirate')));
+            foreach (VendorProfile::emirates() as $emirate) {
+                if ($raw === strtolower($emirate)) {
+                    $merge['emirate'] = $emirate;
+                    break;
+                }
+            }
+        }
+
+        if ($merge !== []) {
+            $this->merge($merge);
         }
     }
 

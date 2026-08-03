@@ -25,6 +25,7 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
     {
         $this->normalizeRegistrationFileAliases();
         $this->normalizeSingleFileUploads(['logo', 'trade_license', 'emirates_id']);
+        $this->ensureUploadFileExtensions(['logo', 'trade_license', 'emirates_id']);
 
         parent::prepareForValidation();
 
@@ -57,10 +58,11 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'terms_accepted' => ['required', 'accepted'],
 
-            'logo' => ['nullable', 'file', 'extensions:'.self::IMAGE_EXTENSIONS, 'max:10240'],
+            // Prefer extensions (camera HEIC) but also allow mimes for extensionless uploads.
+            'logo' => ['nullable', 'file', 'max:10240', 'extensions:'.self::IMAGE_EXTENSIONS],
 
-            'trade_license' => ['required', 'file', 'extensions:'.self::DOCUMENT_EXTENSIONS, 'max:10240'],
-            'emirates_id' => ['required', 'file', 'extensions:'.self::DOCUMENT_EXTENSIONS, 'max:10240'],
+            'trade_license' => ['required', 'file', 'max:10240', 'extensions:'.self::DOCUMENT_EXTENSIONS],
+            'emirates_id' => ['required', 'file', 'max:10240', 'extensions:'.self::DOCUMENT_EXTENSIONS],
 
             'opens_at' => ['nullable', 'date_format:H:i'],
             'closes_at' => ['nullable', 'date_format:H:i'],
@@ -129,5 +131,58 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
                 $this->files->set($key, $file[0]);
             }
         }
+    }
+
+    /**
+     * Some Android/iOS uploads arrive without a file extension; Laravel's
+     * `extensions:` rule then rejects them. Infer an extension from MIME.
+     *
+     * @param  list<string>  $keys
+     */
+    protected function ensureUploadFileExtensions(array $keys): void
+    {
+        $mimeMap = [
+            'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'image/heic' => 'heic',
+            'image/heif' => 'heif',
+            'application/pdf' => 'pdf',
+        ];
+
+        foreach ($keys as $key) {
+            $file = $this->file($key);
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            $original = (string) $file->getClientOriginalName();
+            $ext = strtolower((string) pathinfo($original, PATHINFO_EXTENSION));
+            if ($ext !== '') {
+                continue;
+            }
+
+            $clientMime = strtolower((string) ($file->getClientMimeType() ?: ''));
+            $detectedMime = strtolower((string) ($file->getMimeType() ?: ''));
+            $inferred = $mimeMap[$clientMime] ?? $mimeMap[$detectedMime] ?? null;
+            if ($inferred === null) {
+                continue;
+            }
+
+            $base = pathinfo($original !== '' ? $original : $key, PATHINFO_FILENAME) ?: $key;
+            $renamed = new UploadedFile(
+                $file->getPathname(),
+                $base.'.'.$inferred,
+                $clientMime !== '' ? $clientMime : ($detectedMime !== '' ? $detectedMime : null),
+                $file->getError(),
+                true
+            );
+            $this->files->set($key, $renamed);
+        }
+
+        // Request::file() caches converted uploads; clear so validators see renames.
+        $this->convertedFiles = null;
     }
 }
